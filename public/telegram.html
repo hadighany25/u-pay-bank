@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Link Telegram - U-Pay</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Kantumruy+Pro:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+
+      .content-body {
+        padding: 30px 25px;
+        text-align: center;
+      }
+      .tele-icon-box {
+        width: 80px;
+        height: 80px;
+        background: #e3f2fd;
+        color: #2aabee;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin: 0 auto 20px;
+      }
+      .bot-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 5px;
+      }
+      .bot-username {
+        color: #2aabee;
+        font-size: 0.9rem;
+        margin: 0 0 30px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .code-container {
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        display: none;
+      }
+      .code-digits {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #004d40;
+        letter-spacing: 10px;
+        margin: 0;
+      }
+
+      .btn-main {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 15px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .btn-main:active {
+        transform: scale(0.98);
+      }
+      .btn-generate {
+        background: #004d40;
+        color: white;
+      }
+      .btn-unlink {
+        background: #fee2e2;
+        color: #ef4444;
+        box-shadow: none;
+        margin-top: 20px;
+      }
+
+      .instruction-box {
+        text-align: left;
+        background: #fff;
+        border: 1px solid #eee;
+        padding: 20px;
+        border-radius: 15px;
+        margin-top: 20px;
+        display: none;
+      }
+      .step {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        font-size: 0.85rem;
+        color: #555;
+      }
+      .step-num {
+        width: 25px;
+        height: 25px;
+        background: #004d40;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        flex-shrink: 0;
+      }
+
+      .success-box {
+        display: none;
+        background: #d1fae5;
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid #10b981;
+        margin-bottom: 20px;
+      }
+      .success-box i {
+        font-size: 3rem;
+        color: #10b981;
+        margin-bottom: 10px;
+      }
+      .success-box h3 {
+        color: #065f46;
+        margin: 0 0 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="settings.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span style="font-family: &quot;Kantumruy Pro&quot;"
+          >ភ្ជាប់ Telegram</span
+        >
+      </div>
+
+      <div class="content-body">
+        <div class="tele-icon-box"><i class="fa-brands fa-telegram"></i></div>
+        <h3 class="bot-name">U-Pay Alert</h3>
+        <a
+          href="https://t.me/U_pay_bankBot"
+          target="_blank"
+          class="bot-username"
+          >@U_pay_bankBot</a
+        >
+
+        <button
+          class="btn-main btn-generate"
+          id="btnGenerate"
+          onclick="generateLinkCode()"
+        >
+          <i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដ
+        </button>
+
+        <div class="code-container" id="codeContainer">
+          <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 10px">
+            លេខកូដរបស់អ្នកគឺ៖
+          </div>
+          <h1 class="code-digits" id="displayCode">----</h1>
+        </div>
+
+        <div class="instruction-box" id="instructions">
+          <div style="font-weight: bold; margin-bottom: 15px">
+            របៀបភ្ជាប់ (How to Link):
+          </div>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div>បង្កើត Group ថ្មីមួយនៅក្នុង Telegram។</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              Add Bot ឈ្មោះ <strong>@U_pay_bankBot</strong> ចូលក្នុង Group
+              និងដាក់ជា Admin។
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div>
+              វាយលេខកូដ
+              <strong id="instructionCode" style="color: #004d40">----</strong>
+              បញ្ជូនទៅក្នុង Group ជាការស្រេច។
+            </div>
+          </div>
+        </div>
+
+        <div class="success-box" id="successBox">
+          <i class="fa-solid fa-circle-check"></i>
+          <h3>ភ្ជាប់ជោគជ័យ!</h3>
+          <p style="color: #047857; font-size: 0.9rem; margin: 0">
+            គណនីរបស់អ្នកនឹងទទួលបានសារដំណឹងពី Telegram ជានិច្ច។
+          </p>
+        </div>
+
+        <button
+          class="btn-main btn-unlink"
+          id="btnUnlink"
+          onclick="unlinkTelegram()"
+          style="display: none"
+        >
+          <i class="fa-solid fa-link-slash"></i> ផ្តាច់គណនី (Unlink)
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let pollingInterval;
+
+      // ពិនិត្យមើលពេលបើកមកដល់ (បើមាន ChatID ស្រាប់ បង្ហាញ Success)
+      if (user.telegramChatId) {
+        showSuccessUI();
+      }
+
+      async function generateLinkCode() {
+        const btn = document.getElementById("btnGenerate");
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...';
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/generate-telegram-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user.username }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            document.getElementById("displayCode").innerText = data.code;
+            document.getElementById("instructionCode").innerText = data.code;
+
+            btn.style.display = "none";
+            document.getElementById("codeContainer").style.display = "block";
+            document.getElementById("instructions").style.display = "block";
+
+            // 🔥 ចាប់ផ្តើមអង្គុយចាំមើលរាល់ 2 វិនាទីម្តង
+            startPolling();
+          } else {
+            Swal.fire("Error", "បរាជ័យក្នុងការទាញកូដ!", "error");
+            resetGenBtn();
+          }
+        } catch (error) {
+          Swal.fire("Error", "Server Error!", "error");
+          resetGenBtn();
+        }
+      }
+
+      function resetGenBtn() {
+        const btn = document.getElementById("btnGenerate");
+        btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដ';
+        btn.disabled = false;
+      }
+
+      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (Real-time check)
+      function startPolling() {
+        pollingInterval = setInterval(async () => {
+          try {
+            const res = await fetch("/api/users");
+            const users = await res.json();
+            const freshUser = users.find((u) => u.username === user.username);
+
+            // បើ Server លោតមាន ChatID ថ្មី មានន័យថាគេវាយលេខត្រូវហើយ!
+            if (freshUser && freshUser.telegramChatId) {
+              clearInterval(pollingInterval); // ឈប់ឆែក
+
+              // Update Session ថ្មី
+              user = freshUser;
+              sessionStorage.setItem("user", JSON.stringify(user));
+
+              // បង្ហាញ Animation និងបិទកូដចោល
+              document.getElementById("codeContainer").style.display = "none";
+              document.getElementById("instructions").style.display = "none";
+              showSuccessUI();
+
+              Swal.fire({
+                icon: "success",
+                title: "Congratulations! 🎉",
+                text: "គណនីត្រូវបានភ្ជាប់ទៅកាន់ Telegram ជោគជ័យ!",
+                confirmButtonColor: "#10b981",
+                timer: 3000,
+              });
+            }
+          } catch (e) {}
+        }, 2000); // ឆែករៀងរាល់ ២វិនាទី
+      }
+
+      function showSuccessUI() {
+        document.getElementById("btnGenerate").style.display = "none";
+        document.getElementById("successBox").style.display = "block";
+        document.getElementById("btnUnlink").style.display = "block";
+      }
+
+      // 🔥 មុខងារផ្តាច់ Telegram
+      async function unlinkTelegram() {
+        Swal.fire({
+          title: "តើអ្នកចង់ផ្តាច់មែនទេ?",
+          text: "អ្នកនឹងលែងទទួលបានសារពេលមានលុយចូលទៀតហើយ!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "យល់ព្រមផ្តាច់",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            Swal.showLoading();
+            const res = await fetch("/api/unlink-telegram", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: user.username }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              // លុប ChatID ចេញពី Session
+              user.telegramChatId = null;
+              sessionStorage.setItem("user", JSON.stringify(user));
+
+              Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
+                location.reload(); // Refresh ទំព័រឱ្យទៅសភាពដើម
+              });
+            }
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transfer Money - U-Pay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      /* BASE STYLES */
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .kh-font * {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+
+      .transfer-form {
+        padding: 20px 25px;
+        flex: 1;
+      }
+
+      /* 🔥 RECENT CONTACTS (STORY STYLE) */
+      .recent-contacts-container {
+        margin-bottom: 25px;
+        display: none;
+      } /* Hidden by default if no history */
+      .section-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+      }
+      body.dark-mode .section-label {
+        color: #94a3b8;
+      }
+
+      .contacts-scroll {
+        display: flex;
+        overflow-x: auto;
+        gap: 15px;
+        padding-bottom: 10px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+      .contacts-scroll::-webkit-scrollbar {
+        display: none;
+      }
+
+      .contact-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.2s;
+        width: 65px;
+        flex-shrink: 0;
+      }
+      .contact-item:active {
+        transform: scale(0.95);
+      }
+      .contact-avatar {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 8px;
+        border: 2px solid white;
+      }
+      body.dark-mode .contact-avatar {
+        border-color: #1e1e1e;
+      }
+      .contact-name {
+        font-size: 0.7rem;
+        color: #334155;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+      }
+      body.dark-mode .contact-name {
+        color: #cbd5e1;
+      }
+
+      .receiver-box {
+        text-align: center;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 20px;
+        border: 1px dashed #ccc;
+        transition: 0.3s;
+      }
+      .receiver-icon {
+        width: 60px;
+        height: 60px;
+        background: #e0f2f1;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #004d40;
+        font-size: 1.5rem;
+        transition: 0.3s;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+        position: relative;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .main-input {
+        width: 100%;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        font-size: 1rem;
+        outline: none;
+        background: #fff;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+        transition: 0.3s;
+      }
+      .main-input:focus {
+        border-color: #004d40;
+        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+      }
+      .main-input[readonly] {
+        background-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+      }
+
+      .check-status {
+        position: absolute;
+        right: 15px;
+        top: 42px;
+        font-size: 0.9rem;
+        font-weight: bold;
+      }
+      .status-ok {
+        color: #00b894;
+      }
+      .status-err {
+        color: #e74c3c;
+      }
+
+      .confirm-btn {
+        width: 100%;
+        padding: 16px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 10px;
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
+        transition: 0.3s;
+      }
+      .confirm-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* PIN MODAL */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .pin-box {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .pin-digit {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        text-align: center;
+        border-radius: 10px;
+        border: 2px solid white;
+        background: transparent;
+        color: white;
+        outline: none;
+      }
+
+      /* SLIP STYLES */
+      .slip-container {
+        width: 340px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        animation: slideUp 0.4s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .slip-header {
+        background: #004d40;
+        padding: 25px 20px 30px;
+        text-align: center;
+        color: white;
+        position: relative;
+      }
+      .slip-status-icon {
+        width: 60px;
+        height: 60px;
+        background: white;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .slip-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+      .slip-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 5px 0 0;
+        letter-spacing: -1px;
+      }
+
+      .slip-body {
+        padding: 20px 25px;
+        background: white;
+        position: relative;
+      }
+      .dashed-line {
+        margin: 15px -25px;
+        border-top: 2px dashed #ddd;
+        position: relative;
+      }
+      .dashed-line::before,
+      .dashed-line::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 50%;
+      }
+      .dashed-line::before {
+        left: -10px;
+      }
+      .dashed-line::after {
+        right: -10px;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .d-label {
+        color: #888;
+        font-weight: 500;
+      }
+      .d-value {
+        font-weight: 700;
+        color: #1f2937;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+      }
+      .d-mono {
+        font-family: "Courier New", monospace;
+        letter-spacing: 0.5px;
+        color: #004d40;
+        font-weight: bold;
+      }
+
+      .slip-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+      }
+      .qr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: #f9fafb;
+      }
+      .qr-img {
+        width: 45px;
+        height: 45px;
+      }
+      .qr-text {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #004d40;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+      }
+      .footer-logo {
+        width: 80px;
+      }
+
+      .slip-actions {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 25px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        color: #004d40;
+      }
+      .action-item:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+      .action-circle {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        color: #004d40;
+      }
+      .action-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .action-circle.done {
+        background: #f0fdf4;
+        border-color: #004d40;
+      }
+
+      /* 🔥 SPIN WHEEL */
+      .wheel-box {
+        position: relative;
+        width: 280px;
+        height: 280px;
+        margin: 20px auto 40px;
+      }
+      .wheel-pointer {
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 25px solid #fff;
+        z-index: 10;
+        filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
+      }
+      .wheel-canvas {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 5px solid #fff;
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+      }
+      .btn-spin-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background: #004d40;
+        color: white;
+        font-weight: 800;
+        font-size: 1.1rem;
+        cursor: pointer;
+        z-index: 5;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        transition: 0.2s;
+      }
+      .btn-spin-center:active {
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_transfer">Transfer Money</span>
+      </div>
+
+      <div class="transfer-form">
+        <div class="recent-contacts-container" id="recentContactsBlock">
+          <p class="section-label" data-lang="recent_contacts">
+            Recent Contacts
+          </p>
+          <div class="contacts-scroll" id="contactsList"></div>
+        </div>
+
+        <div class="receiver-box" id="receiverBoxUI">
+          <div class="receiver-icon" id="receiverIconUI">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <h3
+            id="displayReceiverName"
+            style="margin: 0; color: #004d40; min-height: 24px"
+          >
+            ...
+          </h3>
+          <p
+            style="margin: 5px 0 0; color: #888; font-size: 0.9rem"
+            data-lang="receiver_label"
+          >
+            Receiver
+          </p>
+        </div>
+
+        <div class="input-group">
+          <label data-lang="receiver_acc">Receiver Account</label>
+          <input
+            type="number"
+            id="receiverAcc"
+            class="main-input"
+            placeholder="Enter Account Number"
+            oninput="resetCheck()"
+            onblur="checkName()"
+          />
+          <span id="nameCheck" class="check-status"></span>
+        </div>
+
+        <div class="input-group">
+          <label data-lang="amount_label">Amount ($)</label>
+          <input
+            type="number"
+            id="amount"
+            class="main-input"
+            placeholder="0.00"
+          />
+        </div>
+
+        <div class="input-group">
+          <label data-lang="remark">Remark</label>
+          <input
+            type="text"
+            id="remark"
+            class="main-input"
+            placeholder="Optional"
+          />
+        </div>
+
+        <button
+          onclick="validateAndOpenPin()"
+          class="confirm-btn"
+          data-lang="btn_transfer"
+        >
+          Transfer Now
+        </button>
+      </div>
+    </div>
+
+    <div id="pinModal" class="modal-overlay">
+      <h3 style="color: white; margin-bottom: 10px" data-lang="enter_pin">
+        Enter PIN
+      </h3>
+      <div class="pin-box">
+        <input
+          type="password"
+          class="pin-digit"
+          maxlength="1"
+          id="p1"
+          oninput="moveFocus(this, 'p2')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          maxlength="1"
+          id="p2"
+          oninput="moveFocus(this, 'p3')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          maxlength="1"
+          id="p3"
+          oninput="moveFocus(this, 'p4')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          maxlength="1"
+          id="p4"
+          oninput="submitPin()"
+        />
+      </div>
+      <button
+        onclick="closeModal('pinModal')"
+        style="
+          margin-top: 30px;
+          background: none;
+          border: none;
+          color: white;
+          cursor: pointer;
+        "
+        data-lang="btn_cancel"
+      >
+        Cancel
+      </button>
+    </div>
+
+    <div
+      id="spinModal"
+      class="modal-overlay"
+      style="background: rgba(15, 23, 42, 0.95)"
+    >
+      <h2 style="color: white; margin: 0 0 10px; font-size: 1.8rem">
+        🎉 <span data-lang="spin_title">Lucky Spin</span> 🎉
+      </h2>
+      <p
+        style="color: #a7f3d0; margin-bottom: 20px; font-size: 0.9rem"
+        data-lang="spin_desc"
+      >
+        You transferred over $10! Spin to win Cashback!
+      </p>
+
+      <div class="wheel-box">
+        <div class="wheel-pointer"></div>
+        <canvas
+          id="wheelCanvas"
+          class="wheel-canvas"
+          width="280"
+          height="280"
+        ></canvas>
+        <button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
+          SPIN
+        </button>
+      </div>
+
+      <button
+        onclick="skipSpin()"
+        style="
+          background: transparent;
+          color: #94a3b8;
+          border: none;
+          font-size: 1rem;
+          cursor: pointer;
+          font-weight: 600;
+          padding: 10px 20px;
+        "
+        data-lang="btn_skip"
+      >
+        Skip & View Slip
+      </button>
+    </div>
+
+    <div id="slipModal" class="modal-overlay">
+      <div id="captureArea" class="slip-container">
+        <div class="slip-header">
+          <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="slip-title" data-lang="transfer_success">
+            Transfer Successful
+          </div>
+          <div class="slip-amount" id="slipAmount">$0.00</div>
+        </div>
+
+        <div class="slip-body">
+          <div class="detail-row">
+            <span class="d-label">Trx ID</span
+            ><span class="d-value d-mono" id="slipRef">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Hash</span
+            ><span
+              class="d-value d-mono"
+              id="slipHash"
+              style="font-size: 0.8rem"
+              >...</span
+            >
+          </div>
+          <div class="dashed-line"></div>
+          <div class="detail-row">
+            <span class="d-label">From</span
+            ><span class="d-value" id="slipSender">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">To</span
+            ><span class="d-value" id="slipReceiver">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Payment Via</span
+            ><span class="d-value" id="slipMethod">Account Input</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Date</span
+            ><span class="d-value" id="slipDate">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Fee</span><span class="d-value">$0.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Remark</span
+            ><span class="d-value" id="slipRemark">...</span>
+          </div>
+
+          <div class="slip-footer-info">
+            <div class="qr-box">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
+                class="qr-img"
+              />
+              <div class="qr-text"><span>SCAN TO</span><span>CHECK</span></div>
+            </div>
+            <img src="images/logo.png" class="footer-logo" />
+          </div>
+        </div>
+
+        <div class="slip-actions">
+          <div class="action-item" onclick="saveSlipImage()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <span class="action-text">Share</span>
+          </div>
+          <div class="action-item" onclick="location.reload()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-rotate-right"></i>
+            </div>
+            <span class="action-text">New Trx</span>
+          </div>
+          <div class="action-item" onclick="returnToShopOrDashboard()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-xmark"></i>
+            </div>
+            <span class="action-text">Done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("orderId");
+      const callbackUrl = urlParams.get("callback");
+      const items = urlParams.get("items");
+      const shopBuyerName = urlParams.get("user");
+
+      const uPayUserString = sessionStorage.getItem("user");
+      if (!uPayUserString) {
+        window.location.href = "index.html" + window.location.search;
+      }
+      const user = JSON.parse(uPayUserString);
+
+      // TRANSLATIONS
+      const translations = {
+        en: {
+          title_transfer: "Transfer Money",
+          recent_contacts: "Recent Contacts",
+          receiver_label: "Receiver",
+          receiver_acc: "Receiver Account",
+          amount_label: "Amount ($)",
+          remark: "Remark",
+          btn_transfer: "Transfer Now",
+          enter_pin: "Enter PIN",
+          btn_cancel: "Cancel",
+          spin_title: "Lucky Spin",
+          spin_desc: "You transferred over $10! Spin to win Cashback!",
+          btn_skip: "Skip & View Slip",
+          transfer_success: "Transfer Successful",
+        },
+        kh: {
+          title_transfer: "វេរប្រាក់",
+          recent_contacts: "អ្នកដែលធ្លាប់វេរប្រាក់ឱ្យ",
+          receiver_label: "អ្នកទទួល",
+          receiver_acc: "លេខគណនីអ្នកទទួល",
+          amount_label: "ចំនួនប្រាក់ ($)",
+          remark: "ចំណាំ (បើមាន)",
+          btn_transfer: "វេរប្រាក់ឥឡូវនេះ",
+          enter_pin: "បញ្ចូលលេខ PIN",
+          btn_cancel: "បោះបង់",
+          spin_title: "កងវិលផ្សងសំណាង",
+          spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
+          btn_skip: "រំលង & មើលវិក្កយបត្រ",
+          transfer_success: "វេរប្រាក់ជោគជ័យ",
+        },
+      };
+
+      let currentLang = localStorage.getItem("lang") || "en";
+      document.querySelectorAll("[data-lang]").forEach((el) => {
+        const key = el.getAttribute("data-lang");
+        if (translations[currentLang] && translations[currentLang][key])
+          el.innerText = translations[currentLang][key];
+      });
+      document.body.style.fontFamily =
+        currentLang === "kh"
+          ? "'Kantumruy Pro', sans-serif"
+          : "'Inter', 'Kantumruy Pro', sans-serif";
+
+      // AUTO FILL & LOCK LOGIC
+      window.addEventListener("DOMContentLoaded", () => {
+        const acc = urlParams.get("acc");
+        const amount = urlParams.get("amount");
+        const lockAmount = urlParams.get("lockAmount");
+
+        if (acc) {
+          const accInput = document.getElementById("receiverAcc");
+          if (accInput) {
+            accInput.value = acc;
+            accInput.readOnly = true;
+            accInput.style.backgroundColor = "#e9ecef";
+            checkName();
+          }
+        }
+
+        if (amount) {
+          const amtInput = document.getElementById("amount");
+          if (amtInput) {
+            amtInput.value = amount;
+            if (lockAmount === "true") {
+              amtInput.readOnly = true;
+              amtInput.style.backgroundColor = "#e9ecef";
+            }
+          }
+        }
+
+        if (orderId) {
+          const remarkInput = document.getElementById("remark");
+          if (remarkInput) {
+            remarkInput.value = "Pay for Order: " + orderId;
+            remarkInput.readOnly = true;
+            remarkInput.style.backgroundColor = "#e9ecef";
+          }
+        }
+
+        loadRecentContacts();
+        drawWheel();
+      });
+
+      // 🔥 LOAD RECENT CONTACTS LOGIC
+      // 🔥 LOAD RECENT CONTACTS LOGIC (UPDATED)
+      function loadRecentContacts() {
+        if (!user.transactions || user.transactions.length === 0) return;
+
+        let contacts = [];
+        let seenAccounts = new Set();
+
+        // រកមើលតែប្រវត្តិលុយចេញ (វេរទៅគេ ឬបង់វិក្កយបត្រ)
+        for (let t of user.transactions) {
+          if (t.amount < 0 && t.receiverAcc) {
+            let recName = t.receiverName || t.partner || "Unknown";
+
+            // 🔥 កែថ្មី៖ បើឈ្មោះជា Unknown គឺយើងមិនយកមកបង្ហាញក្នុងរង្វង់ Story ទេ (រំលងវាចោល)
+            if (
+              recName.toLowerCase() !== "unknown" &&
+              !seenAccounts.has(t.receiverAcc)
+            ) {
+              seenAccounts.add(t.receiverAcc);
+              contacts.push({
+                name: recName,
+                acc: t.receiverAcc,
+              });
+            }
+          }
+        }
+
+        const container = document.getElementById("recentContactsBlock");
+        const list = document.getElementById("contactsList");
+
+        // បើច្រោះអស់ Unknown ទៅ អត់សល់អ្នកណាទេ គឺលាក់រង្វង់ Story តែម្តង
+        if (contacts.length === 0) {
+          container.style.display = "none";
+          return;
+        }
+
+        container.style.display = "block";
+        list.innerHTML = "";
+
+        // ពណ៌កប់ៗសម្រាប់ Background ឈ្មោះ
+        const colors = [
+          "#f43f5e",
+          "#f97316",
+          "#eab308",
+          "#84cc16",
+          "#10b981",
+          "#06b6d4",
+          "#0ea5e9",
+          "#3b82f6",
+          "#8b5cf6",
+          "#d946ef",
+          "#f472b6",
+        ];
+
+        // បង្ហាញត្រឹម ១០ នាក់ចុងក្រោយ
+        contacts.slice(0, 10).forEach((c, index) => {
+          const bgColor = colors[index % colors.length];
+          const initials = c.name.substring(0, 2).toUpperCase();
+          const shortName = c.name.split(" ")[0]; // យកតែឈ្មោះមុខ
+
+          list.innerHTML += `
+                  <div class="contact-item" onclick="selectContact('${c.acc}')">
+                      <div class="contact-avatar" style="background-color: ${bgColor};">${initials}</div>
+                      <span class="contact-name">${shortName}</span>
+                  </div>
+              `;
+        });
+      }
+
+      function selectContact(acc) {
+        const input = document.getElementById("receiverAcc");
+        if (!input.readOnly) {
+          input.value = acc;
+          checkName();
+        }
+      }
+
+      async function checkName() {
+        const acc = document.getElementById("receiverAcc").value;
+        const nameDisplay = document.getElementById("displayReceiverName");
+        const status = document.getElementById("nameCheck");
+        const boxUI = document.getElementById("receiverBoxUI");
+        const iconUI = document.getElementById("receiverIconUI");
+
+        if (acc.length < 8) {
+          nameDisplay.innerText = "...";
+          status.innerText = "";
+          boxUI.style.borderColor = "#ccc";
+          boxUI.style.background = "#f8f9fa";
+          iconUI.style.background = "#e0f2f1";
+          iconUI.style.color = "#004d40";
+          return false;
+        }
+
+        try {
+          const res = await fetch("/api/check-account", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accountNumber: acc }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            nameDisplay.innerText = data.username.toUpperCase();
+            status.innerText = "✔";
+            status.className = "check-status status-ok";
+            // Effect ពេលរកឃើញឈ្មោះ
+            boxUI.style.borderColor = "#10b981";
+            boxUI.style.background = "#ecfdf5";
+            iconUI.style.background = "#10b981";
+            iconUI.style.color = "white";
+            return true;
+          } else {
+            nameDisplay.innerText = "Unknown";
+            status.innerText = "✘";
+            status.className = "check-status status-err";
+            boxUI.style.borderColor = "#ef4444";
+            boxUI.style.background = "#fef2f2";
+            iconUI.style.background = "#ef4444";
+            iconUI.style.color = "white";
+            return false;
+          }
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function resetCheck() {
+        document.getElementById("displayReceiverName").innerText = "...";
+        document.getElementById("nameCheck").innerText = "";
+        const boxUI = document.getElementById("receiverBoxUI");
+        const iconUI = document.getElementById("receiverIconUI");
+        boxUI.style.borderColor = "#ccc";
+        boxUI.style.background = "#f8f9fa";
+        iconUI.style.background = "#e0f2f1";
+        iconUI.style.color = "#004d40";
+      }
+
+      async function validateAndOpenPin() {
+        const amount = parseFloat(document.getElementById("amount").value);
+        if (!amount || amount <= 0)
+          return Swal.fire(
+            "Warning",
+            currentLang === "kh"
+              ? "សូមបញ្ចូលចំនួនប្រាក់ត្រឹមត្រូវ"
+              : "Please enter valid amount",
+            "warning",
+          );
+        if (amount > user.balance)
+          return Swal.fire(
+            "Error",
+            currentLang === "kh"
+              ? "សមតុល្យមិនគ្រប់គ្រាន់"
+              : "Insufficient Balance",
+            "error",
+          );
+
+        const isValidReceiver = await checkName();
+        if (!isValidReceiver) {
+          const statusText = document.getElementById("nameCheck").innerText;
+          if (statusText.includes("✘"))
+            return Swal.fire("Error", "Receiver Not Found", "error");
+        }
+
+        document.getElementById("pinModal").style.display = "flex";
+        ["p1", "p2", "p3", "p4"].forEach(
+          (id) => (document.getElementById(id).value = ""),
+        );
+        document.getElementById("p1").focus();
+      }
+
+      function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+      }
+      function moveFocus(c, n) {
+        if (c.value.length >= 1) document.getElementById(n).focus();
+      }
+
+      // --- SPIN WHEEL LOGIC ---
+      let currentSlipData = null;
+      let spinIsActive = false;
+
+      function drawWheel() {
+        const canvas = document.getElementById("wheelCanvas");
+        if (!canvas.getContext) return;
+        const ctx = canvas.getContext("2d");
+        const prizes = ["$0.05", "$0.50", "0.00", "$0.10", "$1.00", "$0.20"];
+        const colors = [
+          "#f59e0b",
+          "#10b981",
+          "#64748b",
+          "#3b82f6",
+          "#ef4444",
+          "#8b5cf6",
+        ];
+        const arc = Math.PI / (prizes.length / 2);
+
+        ctx.clearRect(0, 0, 280, 280);
+        for (let i = 0; i < prizes.length; i++) {
+          const angle = i * arc;
+          ctx.beginPath();
+          ctx.fillStyle = colors[i];
+          ctx.moveTo(140, 140);
+          ctx.arc(140, 140, 140, angle, angle + arc, false);
+          ctx.lineTo(140, 140);
+          ctx.fill();
+
+          ctx.save();
+          ctx.fillStyle = "white";
+          ctx.translate(
+            140 + Math.cos(angle + arc / 2) * 90,
+            140 + Math.sin(angle + arc / 2) * 90,
+          );
+          ctx.rotate(angle + arc / 2 + Math.PI / 2);
+          ctx.font = "bold 20px 'Inter'";
+          let text = prizes[i] === "0.00" ? "Oops!" : prizes[i];
+          ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+          ctx.restore();
+        }
+      }
+
+      function startSpin() {
+        if (spinIsActive) return;
+        spinIsActive = true;
+
+        const prizeValues = [0.05, 0.5, 0, 0.1, 1.0, 0.2];
+
+        const rand = Math.random();
+        let targetIndex = 2; // Default Oops
+        if (rand < 0.1)
+          targetIndex = 4; // 10%
+        else if (rand < 0.3)
+          targetIndex = 1; // 20%
+        else if (rand < 0.6)
+          targetIndex = 5; // 30%
+        else if (rand < 0.8)
+          targetIndex = 3; // 20%
+        else targetIndex = 0; // 20%
+
+        const targetAngle = 270 - (targetIndex * 60 + 30);
+        const totalRotation = 360 * 5 + targetAngle;
+
+        const canvas = document.getElementById("wheelCanvas");
+        canvas.style.transition = "transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)";
+        canvas.style.transform = `rotate(${totalRotation}deg)`;
+
+        setTimeout(() => {
+          const wonAmount = prizeValues[targetIndex];
+          if (wonAmount > 0) {
+            fetch("/api/reward/cashback", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: user.username,
+                amount: wonAmount,
+                refId: currentSlipData.refId,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) {
+                  user.balance = data.balance;
+                  sessionStorage.setItem("user", JSON.stringify(user));
+                  new Audio(
+                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                  )
+                    .play()
+                    .catch((e) => {});
+
+                  let tTitle =
+                    currentLang === "kh"
+                      ? `ឈ្នះបាន $${wonAmount.toFixed(2)}!`
+                      : `You won $${wonAmount.toFixed(2)}!`;
+                  let tDesc =
+                    currentLang === "kh"
+                      ? "ទឹកប្រាក់ត្រូវបានបញ្ជូលទៅគណនីរបស់អ្នក។"
+                      : "Cashback added to your balance.";
+                  Swal.fire({
+                    icon: "success",
+                    title: tTitle,
+                    text: tDesc,
+                    confirmButtonColor: "#004d40",
+                  }).then(() => finishSpin());
+                }
+              });
+          } else {
+            let tOops =
+              currentLang === "kh"
+                ? "សូមព្យាយាមម្តងទៀត!"
+                : "Better luck next time.";
+            Swal.fire({
+              icon: "info",
+              title: "Oops!",
+              text: tOops,
+              confirmButtonColor: "#004d40",
+            }).then(() => finishSpin());
+          }
+        }, 4100);
+      }
+
+      function skipSpin() {
+        finishSpin();
+      }
+
+      function finishSpin() {
+        document.getElementById("spinModal").style.display = "none";
+        showSlipData(currentSlipData);
+      }
+
+      function showSlipData(data) {
+        const method =
+          urlParams.get("source") === "qr" ? "QR Scan" : "Account Input";
+        document.getElementById("slipAmount").innerText =
+          "$" + Math.abs(data.amount).toFixed(2);
+        document.getElementById("slipRef").innerText = data.refId;
+        document.getElementById("slipHash").innerText = data.hash || "N/A";
+        document.getElementById("slipSender").innerText = user.username;
+        document.getElementById("slipReceiver").innerText =
+          data.partner || data.receiverName;
+        document.getElementById("slipMethod").innerText =
+          data.trxMethod || method;
+        document.getElementById("slipDate").innerText = data.date;
+        document.getElementById("slipRemark").innerText = data.remark || "-";
+        document.getElementById("slipModal").style.display = "flex";
+      }
+
+      // --- MAIN SUBMIT ---
+      async function submitPin() {
+        const pin =
+          document.getElementById("p1").value +
+          document.getElementById("p2").value +
+          document.getElementById("p3").value +
+          document.getElementById("p4").value;
+        const method =
+          urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
+        const amount = document.getElementById("amount").value;
+
+        if (pin.length === 4) {
+          closeModal("pinModal");
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/transfer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              senderUsername: user.username,
+              receiverAccount: document.getElementById("receiverAcc").value,
+              amount: amount,
+              remark: document.getElementById("remark").value,
+              pin: pin,
+              trxMethod: method,
+            }),
+          });
+          const data = await res.json();
+          Swal.close();
+
+          if (data.success) {
+            user.balance = data.newBalance;
+
+            // កត់ត្រាប្រវត្តិថ្មីចូល LocalSession ភ្លាមៗ ដើម្បីអាច Update មុខងារមិត្តសម្លាញ់បាន
+            user.transactions.unshift(data.slipData);
+            sessionStorage.setItem("user", JSON.stringify(user));
+
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            ).play();
+
+            if (orderId && callbackUrl) {
+              fetch(callbackUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: orderId,
+                  amount: urlParams.get("amount"),
+                  user: shopBuyerName,
+                  items: items,
+                }),
+              }).catch((err) => console.log("Webhook Error:", err));
+            }
+
+            // ប្រព័ន្ធលោតកងវិល បើវេរលើស $10
+            if (parseFloat(amount) >= 10) {
+              currentSlipData = data.slipData;
+              document.getElementById("spinModal").style.display = "flex";
+              document.getElementById("wheelCanvas").style.transition = "none";
+              document.getElementById("wheelCanvas").style.transform =
+                "rotate(0deg)";
+              spinIsActive = false;
+            } else {
+              showSlipData(data.slipData);
+            }
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
+        }
+      }
+
+      function saveSlipImage() {
+        document.querySelector(".slip-actions").style.display = "none";
+        html2canvas(document.getElementById("captureArea")).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `Slip-${Date.now()}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          document.querySelector(".slip-actions").style.display = "flex";
+        });
+      }
+
+      function returnToShopOrDashboard() {
+        if (callbackUrl) {
+          const urlObj = new URL(callbackUrl);
+          window.location.href = urlObj.origin;
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      }
+
+      // Dark Mode
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+        document.write(
+          "<style>body { background-color: #121212 !important; color: white !important; } .app-container { background-color: #121212 !important; } .receiver-box { background-color: #1e1e1e !important; border-color: #333; } .main-input { background: #333 !important; color: white !important; border-color:#444; } .slip-container { background: #fff !important; } </style>",
+        );
+      }
+    </script>
+  </body>
+</html>

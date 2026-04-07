@@ -1,0 +1,1329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - U-Pay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        height: 100vh;
+        background: #f3f4f6;
+        overflow: hidden;
+      }
+
+      /* ==================== SIDEBAR ==================== */
+      .sidebar {
+        width: 260px;
+        background: #0f172a;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        height: 100vh;
+        box-sizing: border-box;
+      }
+      .brand {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #10b981;
+        margin-bottom: 40px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .menu-item {
+        padding: 12px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #94a3b8;
+        transition: 0.2s;
+        font-size: 0.95rem;
+      }
+      .menu-item:hover,
+      .menu-item.active {
+        background: #1e293b;
+        color: white;
+      }
+      .menu-item.active {
+        color: #10b981;
+        font-weight: 600;
+      }
+
+      /* ==================== MAIN CONTENT ==================== */
+      .main-content {
+        flex: 1;
+        padding: 30px;
+        overflow-y: auto;
+        position: relative;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .mobile-header {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .menu-toggle {
+        font-size: 1.5rem;
+        color: #0f172a;
+        cursor: pointer;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 900;
+      }
+
+      /* ==================== DASHBOARD PREMIUM (NEW) ==================== */
+      .dash-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .dash-header {
+        margin-bottom: 25px;
+      }
+      .dash-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 5px 0;
+      }
+      .dash-desc {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin: 0;
+      }
+
+      .dash-stats {
+        display: grid;
+        grid-template-columns: repeat(
+          auto-fit,
+          minmax(240px, 1fr)
+        ); /* Responsive */
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .dash-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      }
+
+      .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .stat-text p {
+        margin: 0 0 5px 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+      .stat-text h3 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+      .stat-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .dash-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr; /* Graph ធំ , Activity តូច */
+        gap: 20px;
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+      }
+      .chart-container {
+        position: relative;
+        height: 320px;
+        width: 100%;
+      } /* ទប់មិនអោយហែក */
+
+      .activity-item {
+        display: flex;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px dashed #e2e8f0;
+      }
+      .activity-item:last-child {
+        border-bottom: none;
+      }
+      .act-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+      }
+      .act-text h5 {
+        margin: 0 0 3px 0;
+        font-size: 0.9rem;
+        color: #1e293b;
+      }
+      .act-text p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+
+      /* ==================== USERS & TRANSACTIONS (OLD STYLES RETAINED) ==================== */
+      .table-container {
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        min-width: 600px;
+      }
+      th {
+        text-align: left;
+        padding: 15px;
+        color: #64748b;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        border-bottom: 2px solid #f1f5f9;
+        white-space: nowrap;
+      }
+      td {
+        padding: 15px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+        font-size: 0.95rem;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+
+      .btn-action {
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: 0.2s;
+        margin-left: 5px;
+      }
+      .btn-edit {
+        background: #f59e0b;
+      }
+      .btn-edit:hover {
+        background: #d97706;
+      }
+      .btn-delete {
+        background: #ef4444;
+      }
+      .btn-delete:hover {
+        background: #dc2626;
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: #ef4444;
+      }
+      input:checked + .slider:before {
+        transform: translateX(18px);
+      }
+
+      .trx-search {
+        max-width: 600px;
+        margin: 0 auto;
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .trx-card {
+        background: white;
+        max-width: 700px;
+        margin: 0 auto;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        display: none;
+      }
+      .trx-header {
+        background: #004d40;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .trx-body {
+        padding: 20px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px dashed #eee;
+        font-size: 0.95rem;
+      }
+      .status-success {
+        color: green;
+        background: #e0f2f1;
+        padding: 3px 10px;
+        border-radius: 5px;
+      }
+
+      /* ==================== MODAL ==================== */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        align-items: center;
+        justify-content: center;
+        z-index: 1100;
+        backdrop-filter: blur(4px);
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .modal-card {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 20px;
+        overflow: hidden;
+        animation: zoomIn 0.2s ease-out;
+      }
+      @keyframes zoomIn {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-header {
+        background: #0f172a;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .modal-body {
+        padding: 20px;
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+      .form-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .modal-footer {
+        padding: 15px 20px;
+        background: #f8fafc;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .btn-save {
+        background: #0f172a;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .btn-cancel {
+        background: white;
+        border: 1px solid #cbd5e1;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      /* ==================== RESPONSIVE ==================== */
+      @media (max-width: 1024px) {
+        .dash-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          position: fixed;
+          transform: translateX(-100%);
+          width: 260px;
+          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .sidebar.active {
+          transform: translateX(0);
+        }
+        .overlay.active {
+          display: block;
+        }
+        .main-content {
+          padding: 15px;
+          width: 100%;
+        }
+        .mobile-header {
+          display: flex;
+        }
+        .trx-search {
+          flex-direction: column;
+        }
+        .trx-search input {
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .table-container {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+      <div class="brand">
+        <i class="fa-solid fa-layer-group"></i> U-PAY ADMIN
+      </div>
+
+      <!-- Menu Items -->
+      <div
+        class="menu-item active"
+        onclick="
+          showSection('dashboard', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-chart-pie"></i> Dashboard
+      </div>
+      <div
+        class="menu-item"
+        onclick="
+          showSection('users', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-users"></i> Users
+      </div>
+      <div
+        class="menu-item"
+        onclick="
+          showSection('check-trx', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-magnifying-glass-dollar"></i> Transactions
+      </div>
+
+      <div
+        class="menu-item"
+        onclick="
+          showSection('broadcast-history', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-message"></i> Broadcast History
+      </div>
+      <div
+        class="menu-item"
+        style="margin-top: auto; color: #ef4444"
+        onclick="logout()"
+      >
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="mobile-header">
+        <h2
+          style="
+            margin: 0;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <i class="fa-solid fa-building-columns" style="color: #10b981"></i>
+          U-PAY
+        </h2>
+        <div class="menu-toggle" onclick="toggleSidebar()">
+          <i class="fa-solid fa-bars"></i>
+        </div>
+      </div>
+
+      <div id="sec-dashboard" class="dash-wrapper">
+        <div class="dash-header">
+          <h2 class="dash-title">Dashboard Overview</h2>
+          <p class="dash-desc">Here's what's going on at U-Pay right now.</p>
+        </div>
+
+        <div class="dash-stats">
+          <div class="dash-card stat-item">
+            <div class="stat-text">
+              <p>Total Users</p>
+              <h3 id="d-users">0</h3>
+            </div>
+            <div class="stat-icon" style="background: #e0f2fe; color: #0ea5e9">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+          <div class="dash-card stat-item">
+            <div class="stat-text">
+              <p>System Funds</p>
+              <h3 id="d-balance">$0.00</h3>
+            </div>
+            <div class="stat-icon" style="background: #dcfce7; color: #10b981">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+          </div>
+          <div class="dash-card stat-item">
+            <div class="stat-text">
+              <p>Transactions</p>
+              <h3 id="d-trx">0</h3>
+            </div>
+            <div class="stat-icon" style="background: #fef3c7; color: #f59e0b">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </div>
+          </div>
+          <div class="dash-card stat-item">
+            <div class="stat-text">
+              <p>System Revenue</p>
+              <h3 id="d-revenue">$0.00</h3>
+            </div>
+            <div class="stat-icon" style="background: #f3e8ff; color: #9333ea">
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="card-header">
+              <div>
+                <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b">
+                  Transaction Volume
+                </h3>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b">
+                  System wide payment flow
+                </p>
+              </div>
+              <select
+                style="
+                  padding: 5px 10px;
+                  border-radius: 6px;
+                  border: 1px solid #cbd5e1;
+                  outline: none;
+                "
+              >
+                <option>Last 7 days</option>
+              </select>
+            </div>
+            <div class="chart-container">
+              <canvas id="trxChart"></canvas>
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <h3 style="margin: 0 0 5px 0; color: #1e293b">Recent Activity</h3>
+            <p style="margin: 0 0 15px 0; font-size: 0.8rem; color: #64748b">
+              Latest platform events
+            </p>
+            <div id="activity-feed">
+              <div
+                style="
+                  text-align: center;
+                  padding: 20px 0;
+                  color: #94a3b8;
+                  font-size: 0.9rem;
+                "
+              >
+                Loading activities...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-users" style="display: none">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+          "
+        >
+          <h2 style="color: #1e293b; margin: 0">User Management</h2>
+          <input
+            type="text"
+            id="searchBox"
+            placeholder="Search users..."
+            onkeyup="filterUsers()"
+            style="
+              padding: 10px 15px;
+              border-radius: 8px;
+              border: 1px solid #cbd5e1;
+              width: 100%;
+              max-width: 250px;
+              outline: none;
+            "
+          />
+        </div>
+        <div class="table-container">
+          <table id="userTable">
+            <thead>
+              <tr>
+                <th>User Profile</th>
+                <th>Account</th>
+                <th>Balance</th>
+                <th>Freeze</th>
+                <th style="text-align: right">Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="sec-check-trx" style="display: none">
+        <h2 style="text-align: center; color: #1e293b">Transaction Check</h2>
+        <div class="trx-search">
+          <input
+            type="text"
+            id="searchTrxId"
+            placeholder="Ref ID or Hash Code..."
+            style="
+              flex: 1;
+              padding: 12px;
+              border-radius: 8px;
+              border: 1px solid #cbd5e1;
+              outline: none;
+            "
+          />
+          <button
+            onclick="searchTrx()"
+            style="
+              padding: 0 25px;
+              background: #0f172a;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            Check
+          </button>
+        </div>
+        <div id="trxResult" class="trx-card"></div>
+      </div>
+
+      <div id="sec-broadcast-history" style="display: none; padding: 20px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+          "
+        >
+          <h2 style="color: #1e293b; margin: 0">Broadcast History</h2>
+          <button
+            onclick="sendBroadcast()"
+            style="
+              padding: 10px 20px;
+              background: #10b981;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: 600;
+            "
+          >
+            <i class="fa-solid fa-plus"></i> Send New
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr style="background: #f8fafc; text-align: left">
+                <th style="padding: 15px; border-bottom: 2px solid #edf2f7">
+                  Date
+                </th>
+                <th style="padding: 15px; border-bottom: 2px solid #edf2f7">
+                  Title
+                </th>
+                <th style="padding: 15px; border-bottom: 2px solid #edf2f7">
+                  Message
+                </th>
+                <th
+                  style="
+                    padding: 15px;
+                    border-bottom: 2px solid #edf2f7;
+                    text-align: right;
+                  "
+                >
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody id="broadcastList">
+              <tr>
+                <td
+                  colspan="4"
+                  style="text-align: center; padding: 30px; color: #94a3b8"
+                >
+                  Loading history...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <i class="fa-solid fa-user-pen"></i>
+          <h3>Edit User</h3>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="e-id" />
+          <div
+            style="display: flex; justify-content: center; margin-bottom: 15px"
+          >
+            <img
+              id="e-preview"
+              src=""
+              style="
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid #e2e8f0;
+              "
+            />
+          </div>
+          <div class="form-group">
+            <label>Profile Image URL</label
+            ><input
+              id="e-img"
+              class="form-input"
+              placeholder="https://..."
+              oninput="
+                document.getElementById('e-preview').src =
+                  this.value || 'images/logo.png'
+              "
+            />
+          </div>
+          <div class="form-group">
+            <label>Full Name</label><input id="e-name" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Account Number</label
+            ><input id="e-acc" class="form-input" type="number" />
+          </div>
+          <div class="form-group">
+            <label>Balance ($)</label
+            ><input id="e-bal" type="number" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Reset PIN</label
+            ><input id="e-pin" type="text" maxlength="4" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Change Password</label
+            ><input
+              id="e-pass"
+              type="text"
+              class="form-input"
+              placeholder="New password (optional)"
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-cancel"
+            onclick="
+              document.getElementById('editModal').style.display = 'none'
+            "
+          >
+            Cancel
+          </button>
+          <button class="btn-save" onclick="saveEdit()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user || user.role !== "admin") window.location.href = "index.html";
+
+      let myChart = null;
+
+      function toggleSidebar(force) {
+        const sb = document.getElementById("sidebar");
+        const ov = document.querySelector(".overlay");
+        if (force !== undefined) {
+          force ? sb.classList.add("active") : sb.classList.remove("active");
+          force ? ov.classList.add("active") : ov.classList.remove("active");
+        } else {
+          sb.classList.toggle("active");
+          ov.classList.toggle("active");
+        }
+      }
+
+      function showSection(id, btn) {
+        // លាក់គ្រប់ Section ទាំងអស់ដែលមាន ID ចាប់ផ្តើមដោយ 'sec-'
+        document.getElementById("sec-dashboard").style.display = "none";
+        document.getElementById("sec-users").style.display = "none";
+        document.getElementById("sec-check-trx").style.display = "none";
+        document.getElementById("sec-broadcast-history").style.display = "none"; // លាក់អាថ្មី
+
+        // បង្ហាញតែ Section ដែលយើងចង់មើល
+        document.getElementById("sec-" + id).style.display = "block";
+
+        // បើចុចលើ broadcast-history ឱ្យវាទាញទិន្នន័យមកបង្ហាញ
+        if (id === "broadcast-history") {
+          loadBroadcastHistory();
+        }
+
+        // ដូរពណ៌ Menu (Active State)
+        document
+          .querySelectorAll(".menu-item")
+          .forEach((m) => m.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+      }
+
+      async function loadData() {
+        try {
+          // 1. Load Users Data
+          const res = await fetch("/api/users");
+          const users = await res.json();
+          const clients = users.filter((u) => u.role !== "admin");
+
+          document.getElementById("d-users").innerText = clients.length;
+          document.getElementById("d-balance").innerText =
+            "$" + clients.reduce((a, c) => a + c.balance, 0).toFixed(2);
+          document.getElementById("d-trx").innerText = clients.reduce(
+            (a, c) => a + (c.transactions?.length || 0),
+            0,
+          );
+          if (document.getElementById("searchBox").value === "")
+            renderTable(clients);
+
+          // 2. Load Chart Data
+          try {
+            const chartRes = await fetch("/api/admin/stats");
+            const chartData = await chartRes.json();
+            const ctx = document.getElementById("trxChart").getContext("2d");
+            if (myChart) {
+              myChart.data.labels = chartData.labels;
+              myChart.data.datasets[0].data = chartData.data;
+              myChart.update();
+            } else {
+              myChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                  labels: chartData.labels,
+                  datasets: [
+                    {
+                      label: "Volume ($)",
+                      data: chartData.data,
+                      borderColor: "#3874ff",
+                      backgroundColor: "rgba(56, 116, 255, 0.1)",
+                      fill: true,
+                      tension: 0.4,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: { grid: { display: false } },
+                    y: { border: { display: false } },
+                  },
+                },
+              });
+            }
+          } catch (err) {
+            console.error("Chart Error", err);
+          }
+
+          // 3. Load Extra Data (Revenue & Activity)
+          try {
+            const extraRes = await fetch("/api/admin/dashboard-extra");
+            if (extraRes.ok) {
+              const extraData = await extraRes.json();
+              document.getElementById("d-revenue").innerText =
+                "$" + extraData.revenue.toFixed(2);
+
+              const activityBox = document.getElementById("activity-feed");
+              const currentDataStr = JSON.stringify(extraData.activities);
+
+              if (activityBox.dataset.lastData !== currentDataStr) {
+                activityBox.dataset.lastData = currentDataStr;
+                if (
+                  !extraData.activities ||
+                  extraData.activities.length === 0
+                ) {
+                  activityBox.innerHTML = `<div style="text-align:center; padding:20px 0; color:#94a3b8;">No new activity yet.</div>`;
+                } else {
+                  activityBox.innerHTML = extraData.activities
+                    .map((act) => {
+                      let icon = `<i class="fa-solid fa-bell"></i>`,
+                        bg = "#f1f5f9",
+                        col = "#64748b";
+                      if (
+                        act.type.includes("Payment") ||
+                        act.type.includes("Income")
+                      ) {
+                        icon =
+                          act.amount < 0
+                            ? `<i class="fa-solid fa-money-bill-transfer"></i>`
+                            : `<i class="fa-solid fa-arrow-down"></i>`;
+                        bg = act.amount < 0 ? "#fef2f2" : "#dcfce7";
+                        col = act.amount < 0 ? "#ef4444" : "#16a34a";
+                      } else if (act.type === "Card Created") {
+                        icon = `<i class="fa-solid fa-credit-card"></i>`;
+                        bg = "#fef9c3";
+                        col = "#ca8a04";
+                      }
+                      return `<div style="display:flex; gap:10px; padding:12px 0; border-bottom:1px dashed #e2e8f0;">
+                                      <div style="width:35px; height:35px; border-radius:50%; background:${bg}; color:${col}; display:flex; align-items:center; justify-content:center;">${icon}</div>
+                                      <div><h5 style="margin:0 0 3px 0; font-size:0.9rem;">${act.user} - ${act.type}</h5><p style="margin:0; font-size:0.75rem; color:#94a3b8;">${act.date}</p></div>
+                                    </div>`;
+                    })
+                    .join("");
+                }
+              }
+            } else {
+              document.getElementById("activity-feed").innerHTML =
+                `<div style="text-align:center; color:red;">API Error: Please check server.js</div>`;
+            }
+          } catch (err) {
+            console.error("Extra Data Error", err);
+          }
+        } catch (e) {
+          console.error("Load Data Error", e);
+        }
+      }
+      // 🛑 បិទមុខងារ loadData() ត្រឹមនេះ!
+      // 🔥 សូម Copy កូដ renderTable ខាងក្រោមនេះ មកដាក់ចន្លោះកណ្តាលនេះ 🔥
+      function renderTable(clients) {
+        const tbody = document.querySelector("#userTable tbody");
+        const html = clients
+          .map(
+            (u) => `
+            <tr>
+                <td><div style="display:flex; align-items:center; gap:10px;"><img src="${u.profileImage || "images/logo.png"}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #e2e8f0;"><div><div style="font-weight:600; color:#1e293b;">${u.username}</div><div style="font-size:0.75rem; color:${u.isOnline ? "#10b981" : "#94a3b8"}">● ${u.isOnline ? "Online" : "Offline"}</div></div></div></td>
+                <td style="font-family:monospace; color:#64748b;">${u.accountNumber}</td>
+                <td style="font-weight:bold; color:#0f172a;">$${u.balance.toFixed(2)}</td>
+                <td><label class="switch"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)"><span class="slider"></span></label></td>
+                <td style="text-align: right;">
+                    <button class="btn-action btn-edit" onclick="openEdit('${u.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-action btn-delete" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        `,
+          )
+          .join("");
+        if (tbody.innerHTML !== html) tbody.innerHTML = html;
+      }
+      // ==========================================
+      // មុខងារផ្សេងៗត្រូវនៅខាងក្រៅ loadData()
+      // ==========================================
+
+      async function openEdit(id) {
+        const res = await fetch("/api/users");
+        const users = await res.json();
+        const u = users.find((x) => x.id === id);
+        document.getElementById("e-id").value = u.id;
+        document.getElementById("e-name").value = u.username;
+        document.getElementById("e-acc").value = u.accountNumber;
+        document.getElementById("e-bal").value = u.balance;
+        document.getElementById("e-pin").value = u.pin;
+        document.getElementById("e-img").value = u.profileImage || "";
+        document.getElementById("e-preview").src =
+          u.profileImage || "images/logo.png";
+        document.getElementById("e-pass").value = "";
+        document.getElementById("editModal").style.display = "flex";
+      }
+
+      async function saveEdit() {
+        const body = {
+          id: document.getElementById("e-id").value,
+          username: document.getElementById("e-name").value,
+          accountNumber: document.getElementById("e-acc").value,
+          balance: document.getElementById("e-bal").value,
+          pin: document.getElementById("e-pin").value,
+          profileImage: document.getElementById("e-img").value,
+          password: document.getElementById("e-pass").value,
+        };
+        await fetch("/api/admin/edit-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        document.getElementById("editModal").style.display = "none";
+        loadData();
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "User updated!",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+      }
+
+      function deleteUser(id) {
+        Swal.fire({
+          title: "Are you sure?",
+          text: "Delete this user?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "Yes, delete!",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            const res = await fetch("/api/admin/delete-user", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              Swal.fire("Deleted!", "", "success");
+              loadData();
+            }
+          }
+        });
+      }
+      async function toggleFreeze(id, isFrozen) {
+        await fetch("/api/admin/toggle-freeze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, isFrozen }),
+        });
+      }
+
+      async function searchTrx() {
+        const id = document.getElementById("searchTrxId").value.trim();
+        if (!id) return;
+        const res = await fetch(`/api/admin/transaction/${id}`);
+        const data = await res.json();
+        const box = document.getElementById("trxResult");
+        if (data.success) {
+          const t = data.transaction;
+          box.style.display = "block";
+          box.innerHTML = `
+                  <div class="trx-header"><i class="fa-solid fa-receipt" style="font-size: 3rem; margin-bottom: 10px"></i><h3>Transaction Details</h3></div>
+                  <div class="trx-body">
+                      <h4 style="border-bottom: 2px solid #eee; margin-top: 0">1. Sender Info</h4>
+                      <div class="detail-row"><span>Name:</span><b>${t.senderName || "Unknown"}</b></div>
+                      <div class="detail-row"><span>Account:</span><b>${t.senderAcc || t.senderAccount || "Unknown"}</b></div>
+                      <div class="detail-row"><span>Device:</span><b>${t.device || "Unknown"}</b></div>
+                      <div class="detail-row"><span>IP:</span><b>${t.ip || "Unknown"}</b></div>
+                      <h4 style="border-bottom: 2px solid #eee">2. Receiver Info</h4>
+                      <div class="detail-row"><span>Name:</span><b>${t.receiverName || t.partner || "N/A"}</b></div>
+                      <div class="detail-row"><span>Account:</span><b>${t.receiverAcc || t.receiverAccount || "N/A"}</b></div>
+                      <h4 style="border-bottom: 2px solid #eee">3. Payment Info</h4>
+                      <div class="detail-row"><span>Amount:</span><b style="color: red">$${Math.abs(t.amount).toFixed(2)}</b></div>
+                      <div class="detail-row"><span>Payment Via:</span><b style="color: #004d40">${t.trxMethod || "Account Input"}</b></div>
+                      <div class="detail-row"><span>Fee:</span><b>$${(t.fee || 0).toFixed(2)}</b></div>
+                      <div class="detail-row"><span>Status:</span><b class="status-success">Success</b></div>
+                      <div class="detail-row"><span>Date:</span><b>${t.date}</b></div>
+                      <div class="detail-row"><span>Ref ID:</span><b>${t.refId}</b></div>
+                      <div class="detail-row"><span>Hash Code:</span><b style="font-family: monospace; color: #004d40; letter-spacing: 1px">${t.hash || "N/A"}</b></div>
+                  </div>
+                `;
+        } else {
+          box.style.display = "none";
+          Swal.fire("Not Found", "Invalid ID or Hash", "error");
+        }
+      }
+
+      function filterUsers() {
+        const term = document.getElementById("searchBox").value.toLowerCase();
+        const rows = document.querySelectorAll("#userTable tbody tr");
+        rows.forEach(
+          (r) =>
+            (r.style.display = r.innerText.toLowerCase().includes(term)
+              ? ""
+              : "none"),
+        );
+      }
+
+      function logout() {
+        localStorage.removeItem("user");
+        window.location.href = "index.html";
+      }
+
+      // ==========================================
+      // 🔥 មុខងារសម្រាប់ Admin ផ្ញើសារប្រកាស (Broadcast)
+      // ==========================================
+      async function sendBroadcast() {
+        const { value: formValues } = await Swal.fire({
+          title:
+            '<i class="fa-solid fa-bullhorn" style="color:#10b981;"></i> Send Notification',
+          html:
+            '<div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; color: #1e293b;">Title:</div>' +
+            '<input id="swal-title" class="swal2-input" placeholder="e.g., System Update" style="width: 100%; box-sizing: border-box; margin: 0 0 15px 0;">' +
+            '<div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; color: #1e293b;">Message:</div>' +
+            '<textarea id="swal-msg" class="swal2-textarea" placeholder="Type your message here..." style="width: 100%; box-sizing: border-box; margin: 0;"></textarea>',
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: "Send to All Users",
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#ef4444",
+          preConfirm: () => {
+            const title = document.getElementById("swal-title").value;
+            const msg = document.getElementById("swal-msg").value;
+            if (!title || !msg) {
+              Swal.showValidationMessage("Please enter both Title and Message");
+              return false;
+            }
+            return { title: title, message: msg };
+          },
+        });
+
+        // ពេល Admin ចុច Send
+        if (formValues && formValues.title && formValues.message) {
+          Swal.fire({
+            title: "Sending...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            // បាញ់ទិន្នន័យទៅឱ្យ Server
+            const res = await fetch("/api/admin/broadcast", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(formValues),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              Swal.fire(
+                "Sent!",
+                `Message sent successfully to ${data.count} users.`,
+                "success",
+              );
+              loadData(); // Refresh ទិន្នន័យ
+            } else {
+              Swal.fire("Error!", "Failed to send broadcast.", "error");
+            }
+          } catch (error) {
+            Swal.fire("Error!", "Cannot connect to server.", "error");
+          }
+        }
+      }
+
+      // ១. មុខងារទាញយកប្រវត្តិសារមកបង្ហាញ
+      async function loadBroadcastHistory() {
+        const res = await fetch("/api/users");
+        const users = await res.json();
+
+        // យើងទាញយកសារពី User ណាម្នាក់ក៏បាន (ឧទាហរណ៍ User ទី១) ដើម្បីមើលប្រវត្តិសារដែល Admin ធ្លាប់ផ្ញើ
+        const firstUser = users.find(
+          (u) =>
+            u.role !== "admin" && u.notifications && u.notifications.length > 0,
+        );
+        const list = document.getElementById("broadcastList");
+        list.innerHTML = "";
+
+        if (!firstUser || firstUser.notifications.length === 0) {
+          list.innerHTML =
+            "<tr><td colspan='4' style='text-align:center;'>No broadcast history found.</td></tr>";
+          return;
+        }
+
+        firstUser.notifications.forEach((n) => {
+          const row = `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding:15px; font-size:0.85rem; color:#64748b;">${n.date}</td>
+                <td style="padding:15px; font-weight:600; color:#1e293b;">${n.title}</td>
+                <td style="padding:15px; font-size:0.85rem; color:#475569;">${n.message}</td>
+                <td style="padding:15px; text-align: right;">
+                    <button onclick="deleteBroadcast('${n.id}')" 
+                        style="background:#fee2e2; color:#ef4444; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-weight:600; transition:0.2s;">
+                        <i class="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                </td>
+            </tr>
+        `;
+          list.innerHTML += row;
+        });
+      }
+
+      // ២. មុខងារលុបសារចេញពីគ្រប់ User ទាំងអស់
+      async function deleteBroadcast(notifId) {
+        const result = await Swal.fire({
+          title: "Are you sure?",
+          text: "This message will be removed from all users' notifications!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: "Yes, delete it!",
+        });
+
+        if (result.isConfirmed) {
+          const res = await fetch("/api/admin/delete-broadcast", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notifId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire("Deleted!", "The message has been removed.", "success");
+            loadBroadcastHistory(); // Update តារាងឡើងវិញ
+          }
+        }
+      }
+
+      async function addMoney(userId, username) {
+        const { value: amount } = await Swal.fire({
+          title: `Deposit to ${username}`,
+          input: "number",
+          inputLabel: "Amount in USD ($)",
+          inputPlaceholder: "Enter amount",
+          showCancelButton: true,
+          confirmButtonColor: "#10b981",
+        });
+
+        if (amount && amount > 0) {
+          const res = await fetch("/api/admin/add-money", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: userId,
+              amount: amount,
+              note: "Cash Deposit",
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire("Success", "លុយបានបញ្ចូលទៅកាន់ User រួចរាល់!", "success");
+            loadUsers(); // Refresh តារាង User
+          }
+        }
+      }
+      setInterval(loadData, 2000);
+      loadData();
+    </script>
+  </body>
+</html>

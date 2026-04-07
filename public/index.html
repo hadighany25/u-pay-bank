@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - U-Pay</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600&family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      /* BASE STYLES */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      .login-container {
+        background: white;
+        padding: 40px 35px;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 360px;
+        text-align: center;
+        transition: transform 0.3s;
+      }
+
+      .logo {
+        width: 90px;
+        margin-bottom: 15px;
+      }
+
+      h2 {
+        color: #0f172a;
+        margin: 0 0 5px 0;
+        font-weight: 700;
+        font-size: 1.5rem;
+      }
+      p {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 30px;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+        text-align: left;
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #334155;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .input-box {
+        position: relative;
+      }
+      .input-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 1rem;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 14px 14px 14px 45px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: 0.2s;
+        background: #f8fafc;
+        color: #1e293b;
+      }
+      .form-control:focus {
+        border-color: #004d40;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+
+      .btn-login {
+        width: 100%;
+        padding: 15px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        margin-top: 10px;
+        box-shadow: 0 4px 6px rgba(0, 77, 64, 0.2);
+      }
+      .btn-login:hover {
+        background: #00382e;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 77, 64, 0.25);
+      }
+      .btn-login:active {
+        transform: translateY(0);
+      }
+
+      .link {
+        margin-top: 25px;
+        font-size: 0.9rem;
+        color: #64748b;
+      }
+      .link a {
+        color: #004d40;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .link a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <img src="images/logo.png" class="logo" />
+      <h2>Welcome Back</h2>
+      <p>Login to your U-Pay account</p>
+
+      <form onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label>Username / Phone / Name</label>
+          <div class="input-box">
+            <i class="fa-solid fa-user"></i>
+            <input
+              type="text"
+              id="identifier"
+              class="form-control"
+              placeholder="Enter username, phone or name"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Password</label>
+          <div class="input-box">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              type="password"
+              id="password"
+              class="form-control"
+              placeholder="Enter password"
+              required
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">Login Securely</button>
+      </form>
+
+      <div class="link">
+        Don't have an account? <a href="register.html">Sign Up</a>
+      </div>
+    </div>
+
+    <script>
+      // មុខងារនេះជួយចាប់យក Parameters ពី URL ដូចជា ?orderId=...&amount=...
+      const currentUrlParams = window.location.search;
+
+      // Check if already logged in
+      if (sessionStorage.getItem("user")) {
+        const u = JSON.parse(sessionStorage.getItem("user"));
+
+        // 🔥 កែសម្រួល៖ បើមាន Login ស្រាប់ ហើយ URL មាន orderId ឱ្យវារត់ទៅ transfer.html
+        if (currentUrlParams && currentUrlParams.includes("orderId")) {
+          window.location.href = "transfer.html" + currentUrlParams;
+        } else {
+          if (u.role === "admin") window.location.href = "admin.html";
+          else window.location.href = "dashboard.html";
+        }
+      }
+
+      async function handleLogin(e) {
+        e.preventDefault();
+        const identifier = document.getElementById("identifier").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!identifier || !password) return;
+
+        const btn = document.querySelector(".btn-login");
+        const originalText = btn.innerText;
+        btn.innerText = "Verifying...";
+        btn.style.opacity = "0.7";
+
+        try {
+          const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier, password }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("user", JSON.stringify(data.user));
+
+            const Toast = Swal.mixin({
+              toast: true,
+              position: "top-end",
+              showConfirmButton: false,
+              timer: 1500,
+              didOpen: (toast) => {
+                toast.addEventListener("mouseenter", Swal.stopTimer);
+                toast.addEventListener("mouseleave", Swal.resumeTimer);
+              },
+            });
+
+            Toast.fire({ icon: "success", title: "Login successfully" });
+
+            setTimeout(() => {
+              // 🔥 កែសម្រួល៖ បន្ទាប់ពី Login ជោគជ័យ បើមាន URL Parameters វេរលុយ ឱ្យរត់ទៅ transfer.html
+              if (currentUrlParams && currentUrlParams.includes("orderId")) {
+                window.location.href = "transfer.html" + currentUrlParams;
+              } else {
+                if (data.user.role === "admin")
+                  window.location.href = "admin.html";
+                else window.location.href = "dashboard.html";
+              }
+            }, 1000);
+          } else {
+            btn.innerText = originalText;
+            btn.style.opacity = "1";
+            Swal.fire({
+              icon: "error",
+              title: "Access Denied",
+              text: data.message,
+              confirmButtonColor: "#004d40",
+            });
+          }
+        } catch (error) {
+          btn.innerText = originalText;
+          btn.style.opacity = "1";
+          Swal.fire("Error", "Server Connection Failed", "error");
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1787 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - U-Pay</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        padding-bottom: 90px;
+      }
+      .header {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+      }
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .avatar {
+        width: 50px;
+        height: 50px;
+        background: #e0f2f1;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #004d40;
+        font-size: 1.5rem;
+        overflow: hidden;
+        border: 2px solid #e0f2f1;
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .greeting h4 {
+        margin: 0;
+        color: #888;
+        font-size: 0.9rem;
+        font-weight: normal;
+      }
+      .greeting h2 {
+        margin: 0;
+        color: #333;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+
+      /* 🔥 HEADER ACTIONS (Bell + Refresh) */
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .refresh-btn {
+        background: #e0f2f1;
+        color: #004d40;
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        font-size: 1.1rem;
+      }
+      .refresh-btn:active {
+        transform: rotate(180deg);
+      }
+
+      .notification-bell {
+        position: relative;
+        background: #f8fafc;
+        color: #64748b;
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        font-size: 1.2rem;
+        border: 1px solid #e2e8f0;
+      }
+      .notification-bell:active {
+        transform: scale(0.95);
+      }
+      .notification-bell.active-bell {
+        color: #004d40;
+        background: #f0fdf4;
+        border-color: #004d40;
+      }
+
+      /* Red Badge (Facebook Style) */
+      .noti-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: bold;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        display: none;
+      }
+
+      .credit-card {
+        margin: 10px 20px 20px 20px;
+        border-radius: 20px;
+        padding: 25px;
+        color: #333;
+        position: relative;
+        height: 210px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 1;
+      }
+      .credit-card::before {
+        content: "";
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        background: linear-gradient(60deg, #004d40, #ffd700, #00b894, #004d40);
+        background-size: 300% 300%;
+        z-index: -2;
+        border-radius: 24px;
+        animation: border-run 3s linear infinite;
+      }
+      .credit-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        z-index: -1;
+        border-radius: 20px;
+      }
+      @keyframes border-run {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+      .card-top {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .card-chip {
+        width: 50px;
+        height: 35px;
+        background: linear-gradient(
+          135deg,
+          #d4af37 0%,
+          #fbe89e 50%,
+          #d4af37 100%
+        );
+        border-radius: 6px;
+        border: 1px solid #b8860b;
+      }
+      .card-logo-img {
+        height: 50px;
+        width: auto;
+        object-fit: contain;
+      }
+      .card-body {
+        margin-top: -15px;
+        width: 100%;
+      }
+      .card-label {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 5px;
+      }
+      .card-balance {
+        font-size: 2.2rem;
+        font-weight: bold;
+        color: #000;
+        margin: 0;
+      }
+      .card-footer {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .card-number {
+        font-family: monospace;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        color: #555;
+      }
+      .visa-logo-img {
+        height: 22px;
+        width: auto;
+        opacity: 0.8;
+      }
+
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        padding: 10px 20px 20px 20px;
+      }
+      .menu-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .menu-item:active {
+        transform: scale(0.95);
+      }
+      .icon-box {
+        width: 55px;
+        height: 55px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        transition: 0.2s;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      }
+      .menu-text {
+        font-size: 0.75rem;
+        color: #555;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .icon-transfer {
+        background: #e0f2f1;
+        color: #004d40;
+      }
+      .icon-scan {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+      .icon-payment {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      .icon-card {
+        background: #f3e5f5;
+        color: #8e24aa;
+      }
+      .icon-analytics {
+        background: #e0e7ff;
+        color: #4338ca;
+      }
+      .icon-empty {
+        background: #f1f5f9;
+        color: #cbd5e1;
+        border: 1px dashed #cbd5e1;
+        box-shadow: none;
+      }
+
+      .recent-section {
+        flex: 1;
+        background: white;
+        padding: 0 20px 20px 20px;
+        overflow-y: auto;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.02);
+      }
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        margin-top: 20px;
+      }
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #333;
+      }
+      .trx-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: 0.2s;
+      }
+      .trx-item:active {
+        transform: scale(0.98);
+        border-color: #ddd;
+      }
+      .trx-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .trx-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+      .trx-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #333;
+      }
+      .trx-info p {
+        margin: 3px 0 0 0;
+        font-size: 0.8rem;
+        color: #888;
+      }
+      .trx-amount {
+        font-weight: bold;
+        font-size: 1rem;
+      }
+      .text-green {
+        color: #00b894;
+      }
+      .text-red {
+        color: #e74c3c;
+      }
+      .bg-green {
+        background: #e0f2f1;
+        color: #004d40;
+      }
+      .bg-red {
+        background: #fee2e2;
+        color: #e74c3c;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 20px 0;
+      }
+      .slip-container {
+        width: 340px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        animation: slideUp 0.4s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .slip-header {
+        background: #004d40;
+        padding: 25px 20px 30px;
+        text-align: center;
+        color: white;
+        position: relative;
+      }
+      .slip-status-icon {
+        width: 60px;
+        height: 60px;
+        background: white;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .slip-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+      .slip-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 5px 0 0;
+        letter-spacing: -1px;
+      }
+      .slip-body {
+        padding: 20px 25px;
+        background: white;
+        position: relative;
+      }
+      .dashed-line {
+        margin: 15px -25px;
+        border-top: 2px dashed #ddd;
+        position: relative;
+      }
+      .dashed-line::before,
+      .dashed-line::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 50%;
+      }
+      .dashed-line::before {
+        left: -10px;
+      }
+      .dashed-line::after {
+        right: -10px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .d-label {
+        color: #888;
+        font-weight: 500;
+      }
+      .d-value {
+        font-weight: 700;
+        color: #1f2937;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+      }
+      .d-mono {
+        font-family: "Courier New", monospace;
+        letter-spacing: 0.5px;
+        color: #004d40;
+        font-weight: bold;
+      }
+      .slip-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+      }
+      .qr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: #f9fafb;
+      }
+      .qr-img {
+        width: 45px;
+        height: 45px;
+      }
+      .qr-text {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #004d40;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+      }
+      .footer-logo {
+        width: 80px;
+      }
+      .slip-actions {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 25px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        color: #004d40;
+      }
+      .action-item:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+      .action-circle {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        color: #004d40;
+      }
+      .action-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.2s;
+        flex: 1;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #121212 !important;
+        color: white !important;
+      }
+      body.dark-mode .app-container {
+        background: #121212 !important;
+      }
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+      }
+      body.dark-mode .recent-section {
+        background: #1e1e1e !important;
+        color: white !important;
+      }
+      body.dark-mode .trx-item {
+        background: #2c2c2c !important;
+        border-color: #333;
+      }
+      body.dark-mode .trx-info h4 {
+        color: white !important;
+      }
+      body.dark-mode .header {
+        background: #121212 !important;
+      }
+      body.dark-mode .greeting h2 {
+        color: white !important;
+      }
+      body.dark-mode .menu-item {
+        color: white !important;
+      }
+      body.dark-mode .menu-text {
+        color: #bbb;
+      }
+      body.dark-mode .icon-empty {
+        background: #1e1e1e;
+        border-color: #444;
+      }
+      body.dark-mode .notification-bell {
+        background: #1e1e1e;
+        border-color: #444;
+        color: #bbb;
+      }
+      body.dark-mode .noti-badge {
+        border-color: #121212;
+      }
+
+      #notif-dot {
+        animation: pulse-red 1.5s infinite;
+      }
+      /* ធ្វើឱ្យផ្ទាំង On Hold មានចលនា Pulse តិចៗ */
+      #holdDisplay {
+        animation:
+          fadeInHold 0.5s ease-in-out,
+          pulseHold 2s infinite;
+      }
+
+      @keyframes fadeInHold {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulseHold {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      /* ==================== NOTIFICATION MODAL PREMIUM ==================== */
+      .notif-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6); /* ពណ៌ងងឹតព្រាលៗ */
+        backdrop-filter: blur(4px);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .notif-card {
+        background: #ffffff;
+        width: 100%;
+        max-width: 420px;
+        border-radius: 24px;
+        padding: 0;
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        animation: slideUp 0.3s ease-out;
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .notif-header {
+        padding: 20px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .notif-header h3 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .notif-close-btn {
+        background: #e2e8f0;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #64748b;
+        transition: 0.2s;
+        font-size: 1rem;
+      }
+      .notif-close-btn:hover {
+        background: #ef4444;
+        color: white;
+      }
+
+      .notif-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+        background: #fbfbfc;
+      }
+
+      /* សម្រាប់កាតសារនីមួយៗ */
+      .notif-item {
+        display: flex;
+        gap: 15px;
+        padding: 15px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        margin-bottom: 12px;
+        transition: 0.2s;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      }
+      .notif-item:hover {
+        transform: translateY(-2px);
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+      .notif-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .notif-icon-wrap {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: #ecfdf5;
+        color: #10b981;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+
+      .notif-content {
+        flex: 1;
+      }
+      .notif-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+      }
+      .notif-title {
+        margin: 0;
+        color: #1e293b;
+        font-size: 0.95rem;
+        font-weight: 700;
+      }
+      .notif-badge-new {
+        background: #ef4444;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.65rem;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+      }
+      .notif-msg {
+        margin: 0 0 8px 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.5;
+      }
+      .notif-date {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      /* ពណ៌មាស/ទឹកក្រូច សម្រាប់ស្ថានភាព Pending/Hold */
+      .text-orange {
+        color: #f97316 !important;
+      }
+      .bg-orange {
+        background: #fff7ed !important;
+        color: #f97316 !important;
+      }
+
+      @keyframes pulse-red {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header">
+        <div class="user-profile">
+          <div class="avatar" id="avatarBox">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="greeting">
+            <h4 id="greetText">Welcome back,</h4>
+            <h2 id="username">...</h2>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div
+            class="notification-bell"
+            id="bellIcon"
+            onclick="readNotifications()"
+            style="position: relative"
+          >
+            <i
+              class="fa-solid fa-bell"
+              id="bellShake"
+              style="font-size: 1.5rem; color: #004d40"
+            ></i>
+
+            <span class="noti-badge" id="notiBadge" style="display: none"
+              >0</span
+            >
+
+            <span
+              id="notif-dot"
+              style="
+                display: none;
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 12px;
+                height: 12px;
+                background: #ef4444;
+                border-radius: 50%;
+                border: 2px solid white;
+              "
+            ></span>
+          </div>
+
+          <button class="refresh-btn" onclick="manualRefresh()">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="card-top">
+          <span class="card-chip"></span
+          ><img src="images/logo-nobg.png" class="card-logo-img" />
+        </div>
+        <div class="card-body">
+          <p class="card-label" data-lang="total_balance">Available Balance</p>
+          <h1 class="card-balance">$<span id="balance">0.00</span></h1>
+          <p
+            id="holdDisplay"
+            style="
+              font-size: 0.8rem;
+              color: #ef4444;
+              margin: 5px 0 0 0;
+              font-weight: 600;
+              display: none;
+            "
+          >
+            <i class="fa-solid fa-lock"></i> On Hold: $<span id="holdAmount"
+              >0.00</span
+            >
+          </p>
+        </div>
+        <div class="card-footer">
+          <p class="card-number" id="accNum">....</p>
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png"
+            class="visa-logo-img"
+          />
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <button
+          class="menu-item"
+          onclick="window.location.href = 'transfer.html'"
+        >
+          <div class="icon-box icon-transfer">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_transfer">Transfer</span>
+        </button>
+        <button class="menu-item" onclick="window.location.href = 'scan.html'">
+          <div class="icon-box icon-scan">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_scan">Scan QR</span>
+        </button>
+        <button
+          class="menu-item"
+          onclick="window.location.href = 'payment.html'"
+        >
+          <div class="icon-box icon-payment">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_payment">Payment</span>
+        </button>
+        <button class="menu-item" onclick="window.location.href = 'cards.html'">
+          <div class="icon-box icon-card">
+            <i class="fa-regular fa-credit-card"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_card">Cards</span>
+        </button>
+
+        <button
+          class="menu-item"
+          onclick="window.location.href = 'analytics.html'"
+        >
+          <div class="icon-box icon-analytics">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_analytics">Analytics</span>
+        </button>
+        <button
+          class="menu-item"
+          onclick="window.location.href = 'savings.html'"
+        >
+          <div class="icon-box" style="background: #fce4ec; color: #d81b60">
+            <i class="fa-solid fa-piggy-bank"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_savings">Savings</span>
+        </button>
+        <button class="menu-item" onclick="window.location.href = 'split.html'">
+          <div class="icon-box" style="background: #fff3e0; color: #e65100">
+            <i class="fa-solid fa-pizza-slice"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_split">Split Bill</span>
+        </button>
+        <button
+          class="menu-item"
+          onclick="Swal.fire('Info', 'Feature coming soon!', 'info')"
+        >
+          <div class="icon-box icon-empty">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_soon">More</span>
+        </button>
+      </div>
+
+      <div class="recent-section">
+        <div class="section-header">
+          <div class="section-title" data-lang="recent_trx">
+            Recent Transactions
+          </div>
+        </div>
+        <div id="trxList">
+          <p
+            style="text-align: center; color: #ccc; margin-top: 30px"
+            data-lang="no_trx"
+          >
+            No transactions yet.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="slipModal" class="modal-overlay">
+      <div id="captureArea" class="slip-container">
+        <div class="slip-header">
+          <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="slip-title" id="slipTitle">Transfer Successful</div>
+          <div class="slip-amount" id="slipAmount">$0.00</div>
+        </div>
+        <div class="slip-body">
+          <div class="detail-row">
+            <span class="d-label">Trx ID</span
+            ><span class="d-value d-mono" id="slipRef">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Hash</span
+            ><span
+              class="d-value d-mono"
+              id="slipHash"
+              style="font-size: 0.8rem"
+              >...</span
+            >
+          </div>
+          <div class="dashed-line"></div>
+          <div class="detail-row">
+            <span class="d-label">From</span
+            ><span class="d-value" id="slipSenderName">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">To</span
+            ><span class="d-value" id="slipReceiverName">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Payment Via</span
+            ><span class="d-value" id="slipMethod">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Date</span
+            ><span class="d-value" id="slipDate">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Fee</span><span class="d-value">$0.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Remark</span
+            ><span class="d-value" id="slipRemark">...</span>
+          </div>
+          <div class="slip-footer-info">
+            <div class="qr-box">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
+                class="qr-img"
+              />
+              <div class="qr-text"><span>SCAN TO</span><span>CHECK</span></div>
+            </div>
+            <img src="images/logo.png" class="footer-logo" />
+          </div>
+        </div>
+        <div class="slip-actions">
+          <div class="action-item" onclick="downloadSlip()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <span class="action-text">Share</span>
+          </div>
+          <div class="action-item" id="btnRepeat" onclick="">
+            <div class="action-circle done">
+              <i class="fa-solid fa-rotate-right"></i>
+            </div>
+            <span class="action-text" id="lblRepeat">Repeat</span>
+          </div>
+          <div
+            class="action-item"
+            onclick="
+              document.getElementById('slipModal').style.display = 'none'
+            "
+          >
+            <div class="action-circle done">
+              <i class="fa-solid fa-xmark"></i>
+            </div>
+            <span class="action-text">Done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <a href="dashboard.html" class="nav-item active"
+        ><i class="fa-solid fa-house"></i>
+        <span data-lang="nav_home">Home</span></a
+      >
+      <a href="scan.html" class="nav-item"
+        ><i class="fa-solid fa-qrcode"></i>
+        <span data-lang="nav_scan">Scan</span></a
+      >
+      <a href="history.html" class="nav-item"
+        ><i class="fa-solid fa-clock-rotate-left"></i>
+        <span data-lang="nav_history">History</span></a
+      >
+      <a href="settings.html" class="nav-item"
+        ><i class="fa-solid fa-gear"></i>
+        <span data-lang="nav_settings">Settings</span></a
+      >
+    </div>
+
+    <div id="notifModal" class="notif-modal">
+      <div class="notif-card">
+        <div class="notif-header">
+          <h3>
+            <div
+              style="
+                background: #e0f2fe;
+                color: #0284c7;
+                width: 35px;
+                height: 35px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+              "
+            >
+              <i class="fa-solid fa-bell"></i>
+            </div>
+            Notifications
+          </h3>
+          <button class="notif-close-btn" onclick="closeNotifications()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div id="notifList" class="notif-body"></div>
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let lastBalance = user.balance;
+
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+      }
+
+      // 🔥 LANGUAGE TRANSLATION
+      const translations = {
+        en: {
+          total_balance: "Total Balance",
+          btn_transfer: "Transfer",
+          btn_scan: "Scan QR",
+          btn_payment: "Payment",
+          btn_card: "Cards",
+          btn_analytics: "Analytics",
+          btn_soon: "More",
+          recent_trx: "Recent Transactions",
+          no_trx: "No transactions yet.",
+          greet_m: "Good Morning,",
+          greet_a: "Good Afternoon,",
+          greet_e: "Good Evening,",
+          nav_home: "Home",
+          nav_scan: "Scan",
+          nav_history: "History",
+          nav_settings: "Settings",
+          btn_savings: "Savings",
+          btn_split: "Split Bill",
+        },
+        kh: {
+          total_balance: "សមតុល្យសរុប",
+          btn_transfer: "វេរប្រាក់",
+          btn_scan: "ស្កេនកូដ",
+          btn_payment: "បង់វិក្កយបត្រ",
+          btn_card: "កាតខ្ញុំ",
+          btn_analytics: "វិភាគ",
+          btn_soon: "បន្ថែម",
+          recent_trx: "ប្រតិបត្តិការថ្មីៗ",
+          no_trx: "មិនមានប្រតិបត្តិការទេ។",
+          greet_m: "អរុណសួស្តី,",
+          greet_a: "ទិវាសួស្តី,",
+          greet_e: "សាយណ្ហសួស្តី,",
+          nav_home: "ទំព័រដើម",
+          nav_scan: "ស្កេន",
+          nav_history: "ប្រវត្តិ",
+          nav_settings: "ការកំណត់",
+          btn_savings: "សន្សំប្រាក់",
+          btn_split: "ចែកលុយគ្នា",
+        },
+      };
+
+      function applyLang() {
+        let currentLang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+          }
+        });
+        document.body.style.fontFamily =
+          currentLang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+        setGreeting(currentLang);
+      }
+
+      function readNotifications() {
+        // ពេលចុចកណ្តឹង វានឹងកត់ចំណាំថាបានអានលុយចូលទាំងអស់ហើយ រួចបោះទៅកាន់ History
+        let totalIncomeTrx = user.transactions.filter(
+          (t) => t.amount > 0,
+        ).length;
+        localStorage.setItem(user.username + "_read_income", totalIncomeTrx);
+        window.location.href = "history.html";
+      }
+
+      function parseDateString(dateStr) {
+        if (!dateStr) return new Date();
+        let parsedDate = new Date(dateStr);
+        if (isNaN(parsedDate.getTime()) && dateStr.includes(",")) {
+          parsedDate = new Date(dateStr.split(",")[0].trim());
+        }
+        return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      }
+
+      function getSmartDateLabel(parsedDate) {
+        let today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        let check = new Date(parsedDate);
+        check.setHours(0, 0, 0, 0);
+
+        let currentLang = localStorage.getItem("lang") || "en";
+
+        if (check.getTime() === today.getTime())
+          return currentLang === "kh" ? "ថ្ងៃនេះ" : "Today";
+        if (check.getTime() === yesterday.getTime())
+          return currentLang === "kh" ? "ម្សិលមិញ" : "Yesterday";
+        return check.toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+        });
+      }
+
+      function getTimeString(parsedDate, originalDateStr) {
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          });
+        }
+        return originalDateStr.includes(",")
+          ? originalDateStr.split(",")[1].trim()
+          : "";
+      }
+
+      async function fetchUserData(isAuto = true) {
+        try {
+          const res = await fetch("/api/users");
+          const users = await res.json();
+          const serverUser = users.find((u) => u.username === user.username);
+
+          if (serverUser) {
+            // ឆែកមើលបើមានលុយចូលថ្មី ឱ្យលោតសំឡេង និង Notification
+            if (isAuto && serverUser.balance > lastBalance) {
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch(() => {});
+              Swal.fire({
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 4000,
+                icon: "success",
+                title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
+              });
+            }
+
+            lastBalance = serverUser.balance;
+            user = serverUser;
+            sessionStorage.setItem("user", JSON.stringify(serverUser));
+
+            // 🔥 បច្ចុប្បន្នភាព UI និង កណ្ដឹងភ្លាមៗ
+            updateUI(serverUser);
+            loadUserNotifications(); // ហៅឱ្យកណ្ដឹងឆែកមើលសារថ្មីរាល់ពេលទាញ Data ពី Server
+          }
+        } catch (err) {
+          console.error("Fetch Error:", err);
+        }
+      }
+
+      function manualRefresh() {
+        fetchUserData(false);
+        const btn = document.querySelector(".refresh-btn i");
+        btn.style.transition = "transform 0.5s";
+        btn.style.transform = "rotate(360deg)";
+        setTimeout(() => (btn.style.transform = "rotate(0deg)"), 500);
+      }
+
+      function setGreeting(lang) {
+        const hour = new Date().getHours();
+        const greetElement = document.getElementById("greetText");
+        if (lang === "kh") {
+          if (hour >= 5 && hour < 12)
+            greetElement.innerText = translations.kh.greet_m;
+          else if (hour >= 12 && hour < 18)
+            greetElement.innerText = translations.kh.greet_a;
+          else greetElement.innerText = translations.kh.greet_e;
+        } else {
+          if (hour >= 5 && hour < 12)
+            greetElement.innerText = translations.en.greet_m;
+          else if (hour >= 12 && hour < 18)
+            greetElement.innerText = translations.en.greet_a;
+          else greetElement.innerText = translations.en.greet_e;
+        }
+      }
+
+      function updateUI(currentUser) {
+        applyLang();
+
+        // ១. គណនាលុយដែលកំពុងបង្កក (Hold Balance)
+        let totalHold = 0;
+        if (currentUser.transactions) {
+          totalHold = currentUser.transactions
+            .filter((t) => t.isHold === true && t.status === "Pending")
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        }
+
+        // ២. បង្ហាញឈ្មោះ និងលេខកុង
+        document.getElementById("username").innerText =
+          currentUser.fullName || currentUser.username;
+        document.getElementById("accNum").innerText =
+          currentUser.accountNumber.replace(
+            /(\d{3})(\d{3})(\d{3})/,
+            "$1 $2 $3",
+          );
+
+        // ៣. បង្ហាញសមតុល្យដែលអាចចាយបាន (Available Balance)
+        document.getElementById("balance").innerText =
+          currentUser.balance.toFixed(2);
+
+        // ៤. 🔥 Logic បង្ហាញអក្សរ On Hold (បើមានលុយបង្កក វានឹងលោតចេញមក)
+        const holdArea = document.getElementById("holdDisplay");
+        const holdAmountEl = document.getElementById("holdAmount");
+
+        if (totalHold > 0) {
+          if (holdArea) {
+            holdArea.style.display = "block";
+            holdAmountEl.innerText = totalHold.toFixed(2);
+          }
+        } else {
+          if (holdArea) holdArea.style.display = "none";
+        }
+
+        // ៥. បង្ហាញរូប Profile
+        if (currentUser.profileImage) {
+          document.getElementById("avatarBox").innerHTML =
+            `<img src="${currentUser.profileImage}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+        }
+
+        // ៦. បង្ហាញបញ្ជីប្រតិបត្តិការថ្មីៗ (Transactions List)
+        const list = document.getElementById("trxList");
+        if (currentUser.transactions && currentUser.transactions.length > 0) {
+          list.innerHTML = "";
+          let lastDateLabel = "";
+          let recentTrx = currentUser.transactions.slice(0, 10);
+
+          recentTrx.forEach((t) => {
+            const isIncome = t.amount > 0;
+            const isPending = t.status === "Pending"; // ឆែកមើលថាវាបង្កកឬអត់
+
+            let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+            let bgClass = isIncome
+              ? "bg-green"
+              : isPending
+                ? "bg-orange"
+                : "bg-red";
+            let textClass = isIncome
+              ? "text-green"
+              : isPending
+                ? "text-orange"
+                : "text-red";
+            let sign = isIncome ? "+" : "-";
+
+            // បន្ថែម Style ពណ៌លឿងសម្រាប់ Hold
+            if (isPending) {
+              bgClass = "bg-orange"; // បងអាចថែម CSS ពណ៌លឿងទុំក្នុង <style>
+              textClass = "text-orange";
+            }
+
+            let parsedDate = parseDateString(t.date);
+            let dateLabel = getSmartDateLabel(parsedDate);
+            let timeLabel = getTimeString(parsedDate, t.date);
+
+            if (dateLabel !== lastDateLabel) {
+              const dateHeader = document.createElement("div");
+              dateHeader.style.cssText =
+                "font-size: 0.85rem; font-weight: bold; color: #94a3b8; margin: 15px 0 10px 0; padding: 0 5px;";
+              dateHeader.innerText = dateLabel;
+              list.appendChild(dateHeader);
+              lastDateLabel = dateLabel;
+            }
+
+            let title = t.type;
+            if (t.type === "Transfer" || t.type === "Card Payment")
+              title = isIncome
+                ? t.senderName || "Received"
+                : t.receiverName || "Payment";
+
+            const item = document.createElement("div");
+            item.className = "trx-item";
+            item.onclick = function () {
+              showProfessionalSlip(t);
+            };
+
+            item.innerHTML = `
+                <div class="trx-left">
+                    <div class="trx-icon ${bgClass}" style="${isPending ? "background:#fff7ed; color:#f97316;" : ""}">
+                        <i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i>
+                    </div>
+                    <div class="trx-info">
+                        <h4 style="text-transform: capitalize;">${title}</h4>
+                        <p>${timeLabel} • ${isPending ? '<span style="color:#f97316; font-weight:bold;">On Hold</span>' : t.trxMethod || "U-Pay"}</p>
+                    </div>
+                </div>
+                <div class="trx-amount ${textClass}" style="${isPending ? "color:#f97316;" : ""}">${sign}$${Math.abs(t.amount).toFixed(2)}</div>
+            `;
+            list.appendChild(item);
+          });
+        } else {
+          let currentLang = localStorage.getItem("lang") || "en";
+          list.innerHTML = `<p style="text-align: center; color: #ccc; margin-top: 30px">${translations[currentLang].no_trx}</p>`;
+        }
+      }
+
+      function showProfessionalSlip(t) {
+        const isSender = t.amount < 0;
+
+        // ឆែក Status Success
+        const titleEl = document.getElementById("slipTitle");
+        if (titleEl) {
+          titleEl.innerText =
+            t.status === "Success"
+              ? isSender
+                ? "Transfer Sent"
+                : "Transfer Received"
+              : "Failed";
+        }
+
+        document.getElementById("slipAmount").innerText =
+          "$" + Math.abs(t.amount).toFixed(2);
+        document.getElementById("slipDate").innerText = t.date;
+        document.getElementById("slipRef").innerText = t.refId;
+        document.getElementById("slipHash").innerText = t.hash || "N/A";
+        document.getElementById("slipRemark").innerText = t.remark || "-";
+
+        // បង្ហាញឈ្មោះអ្នកផ្ញើ និងអ្នកទទួល
+        document.getElementById("slipSenderName").innerText =
+          t.senderName || "Unknown System";
+        document.getElementById("slipReceiverName").innerText =
+          t.receiverName || "Customer";
+        document.getElementById("slipMethod").innerText =
+          t.trxMethod || "U-PAY Transfer";
+
+        const btnRepeat = document.getElementById("btnRepeat");
+        if (btnRepeat) {
+          btnRepeat.onclick = () => {
+            const acc = isSender ? t.receiverAcc : t.senderAcc;
+            window.location.href = `transfer.html?acc=${acc}&amount=${Math.abs(t.amount)}`;
+          };
+        }
+
+        document.getElementById("slipModal").style.display = "flex";
+      }
+
+      function downloadSlip() {
+        document.querySelector(".slip-actions").style.display = "none";
+        html2canvas(document.getElementById("captureArea")).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = "u-pay-receipt.png";
+          link.href = canvas.toDataURL();
+          link.click();
+          document.querySelector(".slip-actions").style.display = "flex";
+        });
+      }
+
+      setInterval(() => fetchUserData(true), 3000);
+      updateUI(user);
+      fetchUserData(false);
+
+      // ឆែកមើលសំណើរបង់ប្រាក់រៀងរាល់ 3 វិនាទី
+      async function checkIncomingCardPayment() {
+        try {
+          const res = await fetch(
+            `/api/user/pending-payments/${user.username}`,
+          );
+          const data = await res.json();
+          const dot = document.getElementById("notif-dot");
+
+          if (data.pending && data.pending.length > 0) {
+            if (dot) dot.style.display = "block";
+
+            const pay = data.pending[0];
+
+            if (Swal.isVisible()) return;
+
+            const result = await Swal.fire({
+              title:
+                '<span style="font-size: 1.2rem; color: #64748b;">Transaction Approval</span>',
+              html: `
+              <div style="padding: 10px;">
+                  <div style="background: #f8fafc; border-radius: 15px; padding: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                      <p style="margin: 0; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase;">Amount to Pay</p>
+                      <h1 style="margin: 5px 0; color: #1e293b; font-size: 2.5rem; font-weight: 800;">$${pay.amount.toFixed(2)}</h1>
+                      <div style="display: flex; justify-content: space-between; margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                          <span style="color: #64748b; font-size: 0.9rem;">Merchant</span>
+                          <span style="font-weight: 700; color: #004d40;">${pay.shopName}</span>
+                      </div>
+                  </div>
+                  <p style="color: #475569; font-size: 0.9rem;">សូមបញ្ចូល <b>Card PIN</b> ដើម្បីយល់ព្រម</p>
+              </div>
+          `,
+              input: "password",
+              inputPlaceholder: "4-Digit Card PIN",
+              inputAttributes: {
+                maxlength: 4,
+                inputmode: "numeric",
+                style:
+                  "text-align: center; font-size: 1.5rem; letter-spacing: 10px;",
+              },
+              showCancelButton: true,
+              confirmButtonColor: "#004d40",
+              confirmButtonText: "Confirm & Pay",
+              cancelButtonText: "Decline",
+              allowOutsideClick: false,
+              backdrop: `rgba(0, 77, 64, 0.4) blur(4px)`,
+            });
+
+            // ✅ បើអ្នកប្រើវាយ PIN រួចចុច Confirm
+            if (result.value) {
+              const pin = result.value;
+              Swal.fire({
+                title: "Processing...",
+                didOpen: () => Swal.showLoading(),
+              });
+
+              const resConfirm = await fetch("/api/card/confirm-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  paymentId: pay.paymentId,
+                  pin: pin,
+                  username: user.username,
+                }),
+              });
+
+              const confirmData = await resConfirm.json();
+              if (confirmData.success) {
+                if (dot) dot.style.display = "none";
+                Swal.fire({
+                  icon: "success",
+                  title: "Approved!",
+                  timer: 2000,
+                  showConfirmButton: false,
+                });
+                if (typeof fetchUserData === "function") fetchUserData(false);
+              } else {
+                Swal.fire("Failed", confirmData.message, "error");
+              }
+            }
+            // ❌ 🔥 ចំណុចសំខាន់៖ បើអ្នកប្រើចុចប៊ូតុង Decline (Cancel)
+            else if (result.dismiss === Swal.DismissReason.cancel) {
+              await fetch("/api/card/decline-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ paymentId: pay.paymentId }),
+              });
+
+              if (dot) dot.style.display = "none";
+              Swal.fire({
+                icon: "info",
+                title: "Transaction Declined",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+            }
+          } else {
+            if (dot) dot.style.display = "none";
+          }
+        } catch (e) {
+          console.error("Error checking payment:", e);
+        }
+      }
+
+      // ប្រកាសអថេរមួយសម្រាប់ចំណាំចំនួនសារ
+      let currentUnreadCount = 0;
+
+      // ១. មុខងារទាញយកសារ (Load Notifications) + សំឡេង 🔔
+      async function loadUserNotifications() {
+        try {
+          const res = await fetch("/api/users");
+          const users = await res.json();
+          const currentUser = users.find((u) => u.username === user.username);
+
+          if (currentUser && currentUser.notifications) {
+            // ១. ទាញយកសារដែលមិនទាន់អាន (សម្រាប់បង្ហាញលេខ Badge)
+            const unreadNotifs = currentUser.notifications.filter(
+              (n) => !n.isRead,
+            );
+            const newUnreadCount = unreadNotifs.length;
+
+            // ២. Logic សំឡេង និងរញ្ជួយកណ្ដឹង (ទុកដដែល)
+            if (newUnreadCount > currentUnreadCount) {
+              const tingSound = new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
+              );
+              tingSound
+                .play()
+                .catch((e) => console.log("Sound play error:", e));
+              const bellIcon = document.getElementById("bellShake");
+              if (bellIcon) {
+                bellIcon.classList.add("fa-shake");
+                setTimeout(() => bellIcon.classList.remove("fa-shake"), 2000);
+              }
+            }
+
+            currentUnreadCount = newUnreadCount;
+
+            // ៣. Update លេខ Badge ក្រហម
+            const badge = document.getElementById("notiBadge");
+            const dot = document.getElementById("notif-dot");
+            if (currentUnreadCount > 0) {
+              if (badge) {
+                badge.innerText = currentUnreadCount;
+                badge.style.display = "inline-block";
+              }
+              if (dot) dot.style.display = "block";
+            } else {
+              if (badge) badge.style.display = "none";
+              if (dot) dot.style.display = "none";
+            }
+
+            // 🔥 កន្លែងត្រូវកែ៖ ទោះ Modal បើក ក៏ត្រូវឱ្យវា Update បញ្ជីសារដែរ ដើម្បីឱ្យវាបាត់ពេល Admin លុប
+            const listBox = document.getElementById("notifList");
+
+            // បើគ្មានសារសល់ក្នុង Array របស់ User ទេ (Admin លុបអស់)
+            if (currentUser.notifications.length === 0) {
+              listBox.innerHTML = `
+          <div style="text-align: center; padding: 40px 0;">
+              <i class="fa-regular fa-bell-slash" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
+              <p style="color:#94a3b8; margin: 0;">No notifications</p>
+          </div>`;
+            } else {
+              // បង្ហាញតែសារដែលមិនទាន់អាន (ឬបងអាចបង្ហាញទាំងអស់ក៏បាន អាស្រ័យលើចង់បាន)
+              // បើបងចង់ឱ្យបាត់តែសារដែល Admin លុប គឺប្រើ currentUser.notifications មក loop
+              listBox.innerHTML = unreadNotifs
+                .map((n) => {
+                  const isMoney = n.title.includes("Received");
+                  const icon = isMoney
+                    ? "fa-hand-holding-dollar"
+                    : "fa-bullhorn";
+                  const bgColor = isMoney ? "#ecfdf5" : "#e0f2fe";
+                  const color = isMoney ? "#10b981" : "#0284c7";
+
+                  return `
+              <div class="notif-item" id="notif-${n.id}">
+                  <div class="notif-icon-wrap" style="background:${bgColor}; color:${color};">
+                      <i class="fa-solid ${icon}"></i>
+                  </div>
+                  <div class="notif-content">
+                      <div class="notif-title-row">
+                          <h4 class="notif-title">${n.title}</h4>
+                          <span class="notif-badge-new">NEW</span>
+                      </div>
+                      <p class="notif-msg">${n.message}</p>
+                      <p class="notif-date"><i class="fa-regular fa-clock"></i> ${n.date}</p>
+                  </div>
+              </div>`;
+                })
+                .join("");
+            }
+          }
+        } catch (e) {
+          console.error("Error:", e);
+        }
+      }
+
+      // ២. មុខងារពេលចុចលើកណ្ដឹង (Read Notifications)
+      function readNotifications() {
+        // 🔥 មិនថាមានសារ ឬអត់សារទេ ឱ្យតែចុច គឺបើកផ្ទាំងមកជានិច្ច!
+        // (យើងលែងបាញ់ API ប្រាប់ Server ថាអានរួចហើយ នៅទីនេះទៀតហើយ)
+        document.getElementById("notifModal").style.display = "flex";
+      }
+
+      // ៣. មុខងារបិទផ្ទាំងសារ (Close Notifications)
+      function closeNotifications() {
+        document.getElementById("notifModal").style.display = "none"; // បិទផ្ទាំង
+
+        // 🔥 ចំណុចសំខាន់ទី២៖ បើមុនហ្នឹងមានសារថ្មី ពេលបិទផ្ទាំង (X) ត្រូវបាញ់ទៅ Server ថាលុបលេខក្រហមចេញ (មានន័យថា អានចប់ហើយ!)
+        if (currentUnreadCount > 0) {
+          fetch("/api/user/read-notifications", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user.username }),
+          }).then(() => {
+            // លាក់លេខ និង ចំនុចក្រហម
+            const badge = document.getElementById("notiBadge");
+            const dot = document.getElementById("notif-dot");
+            if (badge) badge.style.display = "none";
+            if (dot) dot.style.display = "none";
+
+            currentUnreadCount = 0; // កំណត់សារស្មើ ០ វិញ
+
+            // ហៅកូដខាងលើម្ដងទៀត ដើម្បីប្តូរអក្សរក្នុងផ្ទាំងទៅជា "No new notifications" ពេលបើកលើកក្រោយ
+            loadUserNotifications();
+          });
+        }
+      }
+
+      // ហៅឱ្យដំណើរការដំបូងពេល Load Page
+      applyLang();
+      updateUI(user);
+      fetchUserData(false);
+      loadUserNotifications();
+
+      // កំណត់ឱ្យវា Refresh តាមវិនាទី
+      setInterval(() => fetchUserData(true), 4000); // ឆែកសមតុល្យលុយរាល់ ៤ វិនាទី
+      setInterval(loadUserNotifications, 5000); // ឆែកសារកណ្ដឹងរាល់ ៥ វិនាទី
+      setInterval(checkIncomingCardPayment, 3000); // ឆែកសំណើបង់ប្រាក់រាល់ ៣ វិនាទី
+    </script>
+  </body>
+</html>

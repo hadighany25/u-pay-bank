@@ -1,0 +1,83 @@
+/* 1. Import Font ខ្មែរសម្រាប់គ្រប់ទំព័រ */
+@import url("https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap");
+
+/* 2. កំណត់ពណ៌ Theme គោល */
+:root {
+  --primary: #004d40; /* ពណ៌បៃតងចាស់ (Main) */
+  --primary-hover: #00695c;
+  --bg-color: #f0f2f5; /* ពណ៌Background */
+  --text-color: #333;
+  --danger: #e74c3c; /* ពណ៌ក្រហម */
+  --success: #2ecc71; /* ពណ៌បៃតងជោគជ័យ */
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Kantumruy+Pro", sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* 3. Style សម្រាប់ Input និង Button (ប្រើគ្រប់កន្លែង) */
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  font-size: 1rem;
+}
+input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+button:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+/* 4. Link និង SweetAlert */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: bold;
+}
+.swal2-popup {
+  font-family: "Kantumruy+Pro", sans-serif !important;
+}
+
+/* 1. កំណត់ Font ខ្មែរសម្រាប់តែអក្សរ និងធាតុទូទៅ */
+body.kh-font,
+body.kh-font *:not(i) {
+  font-family: "Kantumruy Pro", sans-serif !important;
+}
+
+/* 2. 🔥 ការពារដាច់ខាតកុំឱ្យ Font ខ្មែរទៅជាន់ Icon (សំខាន់ណាស់!) */
+body.kh-font .fa,
+body.kh-font .fas,
+body.kh-font .fa-solid,
+body.kh-font .fa-regular,
+body.kh-font .fa-brands,
+body.kh-font i {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+  font-weight: 900 !important; /* រក្សាភាពដិតរបស់ Icon */
+}

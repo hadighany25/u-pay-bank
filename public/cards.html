@@ -1,0 +1,1454 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Cards - U-Pay</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@400;500;600;700&family=Courier+New:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      /* --- GLOBAL STYLES --- */
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition: background-color 0.3s;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.3s;
+        padding-bottom: 90px;
+        position: relative;
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+      .content-body {
+        padding: 20px 20px 30px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      /* --- NO CARD STATE --- */
+      #noCardState {
+        text-align: center;
+        margin-top: 50px;
+        padding: 20px;
+      }
+      #noCardState i {
+        font-size: 5rem;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+        transition: color 0.3s;
+      }
+      .btn-create {
+        background: #004d40;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 15px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-create:active {
+        transform: scale(0.95);
+      }
+
+      /* --- CAROUSEL (MULTI-CARDS) --- */
+      #hasCardState {
+        width: 100%;
+        display: none;
+      }
+      .cards-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        gap: 15px;
+      }
+      .cards-slider::-webkit-scrollbar {
+        display: none;
+      }
+
+      .card-perspective {
+        flex: 0 0 100%;
+        scroll-snap-align: center;
+        perspective: 1000px;
+        width: 100%;
+        height: 230px;
+        z-index: 10;
+        cursor: pointer;
+      }
+
+      .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: left;
+        transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+        transform-style: preserve-3d;
+        border-radius: 18px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+      }
+      .card-inner.flipped {
+        transform: rotateY(180deg);
+      }
+
+      .card-front,
+      .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 18px;
+        box-sizing: border-box;
+        color: #fff;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* THEMES */
+      .theme-platinum .card-front,
+      .theme-platinum .card-back {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      }
+      .theme-standard .card-front,
+      .theme-standard .card-back {
+        background: linear-gradient(135deg, #149a83 0%, #00695c 100%);
+      }
+
+      .card-front::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          115deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.03) 40%,
+          rgba(255, 255, 255, 0.15) 50%,
+          rgba(255, 255, 255, 0) 51%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        pointer-events: none;
+        border-radius: 18px;
+        z-index: 1;
+      }
+
+      /* FRONT */
+      .card-front {
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 2;
+      }
+      .chip-contactless {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .chip {
+        width: 45px;
+        height: 32px;
+        background: linear-gradient(135deg, #e5e7eb, #94a3b8);
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+      }
+      .theme-standard .chip {
+        background: linear-gradient(135deg, #e2c35d, #c4a038);
+      }
+      .contactless-icon {
+        font-size: 1.4rem;
+        color: rgba(255, 255, 255, 0.6);
+        transform: rotate(90deg);
+        margin-top: 2px;
+      }
+      .logo-upay-top {
+        height: 40px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+        opacity: 0.9;
+      }
+
+      .card-number-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        z-index: 2;
+      }
+      .card-number {
+        font-family: "Courier New", monospace;
+        font-size: 1.5rem;
+        letter-spacing: 3px;
+        font-weight: bold;
+        white-space: nowrap;
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      .btn-reveal {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: white;
+        font-size: 1rem;
+        border-radius: 8px;
+        width: 38px;
+        height: 32px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(5px);
+      }
+
+      .card-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        z-index: 2;
+      }
+      .bottom-item {
+        display: flex;
+        flex-direction: column;
+      }
+      .bottom-item.right {
+        align-items: flex-end;
+      }
+      .card-label {
+        font-size: 0.6rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        margin-bottom: 5px;
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+      .card-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: #ffffff;
+        text-transform: uppercase;
+      }
+      .logo-visa-text {
+        font-family: "Inter", sans-serif;
+        font-weight: 900;
+        font-size: 1.8rem;
+        font-style: italic;
+        color: #ffffff;
+        letter-spacing: -1px;
+        line-height: 1;
+        opacity: 0.9;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      /* BACK */
+      .card-back {
+        transform: rotateY(180deg);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .magnetic-strip {
+        width: 100%;
+        height: 50px;
+        background: #000000;
+        margin-top: 25px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .back-middle {
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex: 1;
+      }
+      .back-text {
+        font-size: 0.55rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-align: left;
+        line-height: 1.5;
+        font-family: "Inter", sans-serif;
+        max-width: 60%;
+        font-weight: 400;
+      }
+      .cvv-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        z-index: 2;
+      }
+      .cvv-label {
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 5px;
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+      .cvv-box {
+        background: #fff;
+        color: #000;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        letter-spacing: 3px;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 55px;
+      }
+      .back-footer {
+        padding: 0 25px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        opacity: 0.8;
+      }
+      .logo-upay-back {
+        height: 18px;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+      }
+
+      /* LOCKED OVERLAY */
+      .locked-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(2px) grayscale(100%);
+        border-radius: 18px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+      }
+      .card-inner.locked .locked-overlay {
+        display: flex;
+      }
+      .locked-text {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: rgba(255, 255, 255, 0.9);
+        letter-spacing: 4px;
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        padding: 10px 20px;
+        border-radius: 8px;
+        transform: rotate(-15deg);
+      }
+
+      /* DOTS INDICATOR */
+      .slider-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 5px;
+        margin-bottom: 25px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: #cbd5e1;
+        border-radius: 50%;
+        transition: 0.3s;
+      }
+      .dot.active {
+        background: #004d40;
+        width: 20px;
+        border-radius: 10px;
+      }
+
+      /* --- ABA STYLE SETTINGS LIST --- */
+      .settings-section {
+        background: transparent;
+        padding: 0 10px;
+      }
+      .settings-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 15px;
+      }
+
+      .setting-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+      .setting-item:active {
+        opacity: 0.6;
+      }
+
+      .setting-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      /* Icon គ្មាន Background ដូច ABA */
+      .setting-icon {
+        width: 30px;
+        display: flex;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: #64748b;
+      }
+
+      .setting-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+        font-weight: 500;
+      }
+      .setting-info p {
+        margin: 3px 0 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+
+      /* Toggle Switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 26px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      input:checked + .slider {
+        background-color: #10b981;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
+      /* 🔥 FAB Container (Float Inside App Box) */
+      .fab-container {
+        position: fixed;
+        bottom: 95px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 20px;
+        box-sizing: border-box;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .fab-btn {
+        pointer-events: auto;
+        background: #004d40;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 30px;
+        font-weight: bold;
+        font-size: 1rem;
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        border: none;
+      }
+      .fab-btn:active {
+        transform: scale(0.95);
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        flex: 1;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #000;
+      }
+      body.dark-mode .app-container {
+        background: #121212;
+      }
+      body.dark-mode #noCardState i,
+      body.dark-mode #noCardState h3,
+      body.dark-mode #noCardState p {
+        color: #e0e0e0;
+      }
+      body.dark-mode .settings-header {
+        color: white;
+      }
+      body.dark-mode .setting-item {
+        border-color: #333;
+      }
+      body.dark-mode .setting-info h4 {
+        color: white;
+      }
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      /* CUSTOM MODALS */
+      .custom-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 10000;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 450px;
+        border-radius: 25px 25px 0 0;
+        padding: 30px 25px;
+        box-sizing: border-box;
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      /* Beautiful T&C Style */
+      .shield-icon {
+        width: 60px;
+        height: 60px;
+        background: #e0f2f1;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 15px;
+      }
+      .tc-scroll-box {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        color: #475569;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 1px solid #e2e8f0;
+        line-height: 1.6;
+        text-align: left;
+      }
+
+      /* Card Options */
+      .card-option {
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .card-option:hover {
+        background: #f8fafc;
+      }
+      .card-option.selected {
+        border-color: #004d40;
+        background: #f0fdf4;
+      }
+      .card-preview {
+        width: 60px;
+        height: 40px;
+        border-radius: 6px;
+      }
+      .preview-plat {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+      }
+      .preview-std {
+        background: linear-gradient(135deg, #149a83, #00695c);
+      }
+
+      /* Radio Options */
+      .radio-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-size: 0.95rem;
+        color: #333;
+        cursor: pointer;
+      }
+      .radio-label input {
+        width: 20px;
+        height: 20px;
+        accent-color: #004d40;
+      }
+
+      .btn-full {
+        width: 100%;
+        padding: 15px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-full:disabled {
+        background: #cbd5e1;
+        cursor: not-allowed;
+      }
+      .btn-full:active {
+        transform: scale(0.98);
+      }
+      .btn-danger {
+        background: #ef4444;
+      }
+      .btn-cancel {
+        background: #f1f5f9;
+        color: #64748b;
+        margin-top: 10px;
+      }
+
+      body.dark-mode .modal-content {
+        background: #1e1e1e;
+      }
+      body.dark-mode .tc-scroll-box {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+      }
+      body.dark-mode .card-option {
+        border-color: #333;
+      }
+      body.dark-mode .card-option.selected {
+        background: #2d3748;
+      }
+      body.dark-mode .radio-label {
+        color: #eee;
+      }
+      /* សម្រាប់លាក់ និង បង្ហាញបញ្ជី History */
+.history-list {
+    max-height: 0;
+    transition: max-height 0.4s ease-out;
+    overflow: hidden;
+    background: #f8fafc;
+    border-radius: 0 0 15px 15px;
+}
+.history-list.open {
+    max-height: 500px; /* កម្ពស់ពេលលាតចេញ */
+    overflow-y: auto;
+}
+.history-container {
+    border: 1px solid #f1f5f9;
+    border-radius: 15px;
+    background: white;
+    margin-bottom: 15px;
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_card">Virtual Cards</span>
+      </div>
+
+      <div class="content-body">
+        <div id="noCardState">
+          <i class="fa-regular fa-credit-card"></i>
+          <h3 data-lang="no_card_title">You don't have a card yet</h3>
+          <p data-lang="no_card_desc" style="color: #888; margin-bottom: 30px">
+            Create a Virtual Visa Card now to shop online securely!
+          </p>
+          <button
+            class="btn-create"
+            onclick="openTermsModal()"
+            data-lang="btn_create_card"
+          >
+            Create Virtual Card Now
+          </button>
+        </div>
+
+        <div id="hasCardState">
+          <div
+            class="cards-slider"
+            id="cardsSlider"
+            onscroll="updateActiveDot()"
+          ></div>
+
+          <div class="slider-dots" id="sliderDots"></div>
+
+          <div class="settings-section">
+            <div class="settings-header" data-lang="card_settings">
+              Card Settings
+            </div>
+             <div
+              class="setting-item"
+              style="padding: 15px; border-bottom: none"
+              onclick="toggleHistory()"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 style="font-weight: 700">Card Transactions</h4>
+                  <p>Tap to see usage history</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-down"
+                id="historyArrow"
+                style="color: #cbd5e1; transition: 0.3s"
+              ></i>
+            </div>
+            <div class="history-list" id="cardTrxList"></div>
+          </div>
+            <div class="setting-item">
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-regular fa-snowflake"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-lang="freeze_card">Freeze card</h4>
+                  <p data-lang="freeze_desc">
+                    Temporarily disable your card to prevent unauthorized
+                    transactions.
+                  </p>
+                </div>
+              </div>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  id="lockToggle"
+                  onchange="toggleLockCard()"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item" onclick="flipCurrentCard()">
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-lang="show_cvv">Flip Card (Show CVV)</h4>
+                  <p data-lang="cvv_desc">View security code on the back.</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+           <div class="setting-item" onclick="changeDailyLimit()">
+            <div class="setting-left">
+              <div class="setting-icon"><i class="fa-solid fa-gauge-high"></i></div>
+              <div class="setting-info">
+                <h4>Daily Spending Limit</h4>
+                <p id="limitDisplay">Loading limit...</p>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1;"></i>
+          </div>
+
+            <div class="setting-item">
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-globe"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-lang="online_pay">Online Payments</h4>
+                  <p data-lang="online_pay_desc">
+                    Enable or disable your card for online payments.
+                  </p>
+                </div>
+              </div>
+             <label class="switch">
+  <input
+    type="checkbox"
+    id="onlinePayToggle"
+    onchange="toggleOnlinePay()"
+  />
+  <span class="slider"></span>
+</label>
+            </div>
+
+            <div class="setting-item" onclick="openChangeCardPin()">
+              <div class="setting-left">
+                <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
+                <div class="setting-info">
+                  <h4 data-lang="reset_pin">Reset Card PIN</h4>
+                  <p data-lang="reset_pin_desc">
+                    Change or reset your 4-digit card PIN.
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <div
+              class="setting-item"
+              onclick="
+                Swal.fire('Coming Soon', 'Feature under development!', 'info')
+              "
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-lang="change_acc">Change linked account</h4>
+                  <p data-lang="change_acc_desc">
+                    Change source account that is linked to this card.
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <div
+              class="setting-item"
+              onclick="
+                Swal.fire('Coming Soon', 'Feature under development!', 'info')
+              "
+            >
+              <div class="setting-left">
+                <div class="setting-icon"><i class="fa-solid fa-pen"></i></div>
+                <div class="setting-info">
+                  <h4 data-lang="rename_card">Rename Card</h4>
+                  <p data-lang="rename_desc">
+                    Provide the card with your preferred name.
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <div class="setting-item" onclick="openDeleteModal()">
+              <div class="setting-left">
+                <div class="setting-icon"><i class="fa-solid fa-ban"></i></div>
+                <div class="setting-info">
+                  <h4 data-lang="close_card">Close card</h4>
+                  <p data-lang="close_desc">Close this card permanently.</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fab-container" id="fabContainer" style="display: none">
+        <button class="fab-btn" onclick="openTermsModal()">
+          <i class="fa-solid fa-plus"></i> Card
+        </button>
+      </div>
+
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i>
+          <span data-lang="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i>
+          <span data-lang="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-lang="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i>
+          <span data-lang="nav_settings">Settings</span></a
+        >
+        <div class="fab-container" id="fabContainer">
+  <button class="fab-btn" onclick="openTermsModal()">
+    <i class="fa-solid fa-plus"></i> Card
+  </button>
+</div>
+      </div>
+
+      <div class="custom-modal" id="termsModal">
+        <div class="modal-content">
+          <div style="text-align: center; margin-bottom: 20px">
+            <div class="shield-icon">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 style="margin: 0; color: #333" data-lang="tc_title">
+              Terms and Conditions
+            </h3>
+          </div>
+
+          <div class="tc-scroll-box">
+            <b>Virtual Card Agreement</b><br /><br />
+            By proceeding, you agree to the following terms and conditions for
+            issuing and using a U-Pay Virtual Card:<br /><br />
+            <ul style="padding-left: 20px; margin: 0">
+              <li>
+                The card is exclusively for online/e-commerce transactions.
+              </li>
+              <li>
+                U-Pay reserves the right to suspend or close the card if
+                suspicious or fraudulent activities are detected.
+              </li>
+              <li>
+                You are responsible for keeping your Card Number, CVV, and OTP
+                secure. Never share these details.
+              </li>
+              <li>
+                Limits and fees may apply based on your current account tier.
+              </li>
+            </ul>
+          </div>
+
+          <label class="radio-label">
+            <input
+              type="checkbox"
+              id="acceptTc"
+              onchange="
+                document.getElementById('btnNextType').disabled = !this.checked
+              "
+            />
+            <span data-lang="tc_agree"
+              >I have read and agree to the terms.</span
+            >
+          </label>
+
+          <button
+            class="btn-full"
+            id="btnNextType"
+            disabled
+            onclick="showTypeModal()"
+            data-lang="btn_continue"
+          >
+            Continue
+          </button>
+          <button
+            class="btn-full btn-cancel"
+            onclick="closeModals()"
+            data-lang="btn_cancel"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div class="custom-modal" id="typeModal">
+        <div class="modal-content">
+          <h3
+            style="margin: 0 0 20px; color: #333; text-align: center"
+            data-lang="type_title"
+          >
+            Select Card Type
+          </h3>
+
+          <div
+            class="card-option selected"
+            id="opt_plat"
+            onclick="selectType('platinum')"
+          >
+            <div class="card-preview preview-plat"></div>
+            <div>
+              <h4 style="margin: 0; color: #333">Visa Platinum (Obsidian)</h4>
+              <p style="margin: 0; font-size: 0.75rem; color: #888">
+                Premium look, high limits.
+              </p>
+            </div>
+          </div>
+
+          <div
+            class="card-option"
+            id="opt_std"
+            onclick="selectType('standard')"
+          >
+            <div class="card-preview preview-std"></div>
+            <div>
+              <h4 style="margin: 0; color: #333">Visa Standard (Teal)</h4>
+              <p style="margin: 0; font-size: 0.75rem; color: #888">
+                Classic U-Pay design.
+              </p>
+            </div>
+          </div>
+
+          <button
+            class="btn-full"
+            onclick="confirmGenerateCard()"
+            data-lang="btn_create"
+          >
+            Create Card
+          </button>
+          <button
+            class="btn-full btn-cancel"
+            onclick="closeModals()"
+            data-lang="btn_cancel"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <div class="custom-modal" id="deleteModal">
+        <div class="modal-content">
+          <h3
+            style="margin: 0 0 10px; color: #ef4444; text-align: center"
+            data-lang="close_card"
+          >
+            Close Card
+          </h3>
+          <p
+            style="
+              font-size: 0.85rem;
+              color: #555;
+              margin-bottom: 20px;
+              text-align: center;
+            "
+            data-lang="delete_desc"
+          >
+            Please tell us why you are closing this card.
+          </p>
+
+          <label class="radio-label">
+            <input
+              type="radio"
+              name="delReason"
+              value="Lost or compromised"
+              checked
+            />
+            Lost or security compromised
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="delReason" value="Not needed" /> I don't
+            need it anymore
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="delReason" value="Creating new one" /> I
+            want to create a different card
+          </label>
+
+          <button
+  class="btn-full btn-danger"
+  style="margin-top: 10px"
+  onclick="confirmDeleteCard()" 
+  data-lang="btn_confirm_del"
+>
+  Confirm Close Card
+</button>
+          <button
+            class="btn-full btn-cancel"
+            onclick="closeModals()"
+            data-lang="btn_cancel"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+<script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let cards = user.virtualCards || [];
+      let isRevealedList = {};
+      let currentCardIndex = 0;
+
+      if (localStorage.getItem("darkMode") === "true") document.body.classList.add("dark-mode");
+
+      function renderCards() {
+        const slider = document.getElementById("cardsSlider");
+        const dots = document.getElementById("sliderDots");
+        const fab = document.getElementById("fabContainer");
+        slider.innerHTML = ""; dots.innerHTML = "";
+        cards = user.virtualCards || [];
+
+        if (cards.length > 0) {
+          document.getElementById("noCardState").style.display = "none";
+          document.getElementById("hasCardState").style.display = "block";
+          fab.style.display = cards.length < 3 ? "flex" : "none";
+
+          cards.forEach((c, i) => {
+            let isRev = isRevealedList[c.id] || false;
+            let num = isRev ? c.number.match(/.{1,4}/g).join(" ") : `**** **** **** ${c.number.slice(-4)}`;
+            let theme = c.type === "standard" ? "theme-standard" : "theme-platinum";
+            slider.innerHTML += `
+              <div class="card-perspective" onclick="flipSpecificCard('${c.id}')">
+                <div class="card-inner ${theme} ${c.isLocked ? 'locked' : ''}" id="cardInner_${c.id}">
+                  <div class="card-front">
+                    <div class="locked-overlay"><div class="locked-text">FROZEN</div></div>
+                    <div class="card-top"><div class="chip"></div><img src="images/logo-nobg.png" class="logo-upay-top"></div>
+                    <div class="card-number-box">
+                      <div class="card-number" onclick="copyCardNumber('${c.number}', event)">${num}</div>
+                      <button class="btn-reveal" onclick="toggleVis('${c.id}', event)"><i class="fa-solid ${isRev?'fa-eye-slash':'fa-eye'}"></i></button>
+                    </div>
+                    <div class="card-bottom" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                      <div><div class="card-label">CARD HOLDER</div><div class="card-value">${user.fullName.toUpperCase()}</div></div>
+                      <div style="text-align:center;"><div class="card-label">EXPIRES</div><div class="card-value">${c.expiry}</div></div>
+                      <div class="card-value" style="font-style:italic; font-size:1.4rem;">VISA</div>
+                    </div>
+                  </div>
+                  <div class="card-back">
+                        <div class="locked-overlay"><div class="locked-text">FROZEN</div></div>
+                        <div class="magnetic-strip"></div>
+                        <div class="back-middle">
+                            <div class="back-text" style="font-size: 0.48rem; color: rgba(255, 255, 255, 0.6); text-align: left; line-height: 1.5; max-width: 70%; font-weight: 300; letter-spacing: 0.2px;">
+                                <span style="font-weight: 700; color: rgba(255, 255, 255, 0.9);">AUTHORIZED SIGNATURE - NOT VALID UNLESS SIGNED</span><br>
+                                This card is issued by <span style="font-weight: 600;">U-Pay PLC</span> pursuant to a license from Visa Inc. 
+                                Use of this card is governed by the terms and conditions of the cardholder agreement. 
+                                This card remains the property of U-Pay PLC and must be returned upon request. 
+                                <br><br>
+                                <i class="fa-solid fa-phone" style="font-size: 0.45rem;"></i> 24/7 Support: <span style="color: rgba(255, 255, 255, 0.9);">+855 98 203 203</span> 
+                                | <i class="fa-solid fa-globe" style="font-size: 0.45rem;"></i> www.u-pay.com.kh
+                              </div>
+                            <div class="cvv-section">
+                                <span class="cvv-label" style="font-size: 0.8rem;">CVV</span>
+                                <div class="cvv-box">${c.cvv}</div>
+                            </div>
+                        </div>
+                        <div class="back-footer" style="padding: 0 20px 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <img src="images/logo-nobg.png" style="height: 35px; filter: brightness(0) invert(1);">
+                            <div class="logo-visa-text" style="font-size: 1.2rem;">VISA</div>
+                        </div>
+                    </div>
+                </div>
+              </div>`;
+            dots.innerHTML += `<div class="dot ${i===currentCardIndex?'active':''}"></div>`;
+          });
+          syncToggles();
+          renderCardHistory();
+        } else {
+          document.getElementById("noCardState").style.display = "block";
+          document.getElementById("hasCardState").style.display = "none";
+          fab.style.display = "none";
+        }
+      }
+
+      function syncToggles() {
+        if (!cards[currentCardIndex]) return;
+        document.getElementById("lockToggle").checked = cards[currentCardIndex].isLocked || false;
+        document.getElementById("onlinePayToggle").checked = cards[currentCardIndex].isOnlinePayEnabled !== false;
+      }
+
+      function updateActiveDot() {
+        const slider = document.getElementById("cardsSlider");
+        let index = Math.round(slider.scrollLeft / slider.offsetWidth);
+        if (index !== currentCardIndex && index >= 0 && index < cards.length) {
+          currentCardIndex = index;
+          document.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === index));
+          syncToggles();
+          renderCardHistory();
+        }
+      }
+
+      async function toggleLockCard() {
+        const isLocked = document.getElementById("lockToggle").checked;
+        const res = await fetch("/api/card/toggle-lock", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: user.username, cardId: cards[currentCardIndex].id, isLocked }) });
+        const data = await res.json();
+        if (data.success) { user.virtualCards = data.cards; sessionStorage.setItem("user", JSON.stringify(user)); renderCards(); }
+      }
+
+      async function toggleOnlinePay() {
+        const isEnabled = document.getElementById("onlinePayToggle").checked;
+        const res = await fetch("/api/card/toggle-online-pay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: user.username, cardId: cards[currentCardIndex].id, isEnabled }) });
+        const data = await res.json();
+        if (data.success) { user.virtualCards = data.cards; sessionStorage.setItem("user", JSON.stringify(user)); }
+      }
+
+      async function confirmDeleteCard() {
+        const reason = document.querySelector('input[name="delReason"]:checked').value;
+        const cardId = cards[currentCardIndex].id;
+        closeModals();
+        Swal.fire({ title: 'Closing Card...', didOpen: () => Swal.showLoading() });
+        const res = await fetch("/api/card/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: user.username, cardId, reason }) });
+        const data = await res.json();
+        if (data.success) {
+          user.virtualCards = data.cards;
+          sessionStorage.setItem("user", JSON.stringify(user));
+          Swal.fire({ icon: 'success', title: 'Closed!', timer: 1500, showConfirmButton: false }).then(() => location.reload());
+        } else { Swal.fire('Error', data.message, 'error'); }
+      }
+
+      function flipSpecificCard(id) { document.getElementById(`cardInner_${id}`).classList.toggle("flipped"); }
+      function flipCurrentCard() { flipSpecificCard(cards[currentCardIndex].id); }
+      function toggleVis(id, e) { e.stopPropagation(); isRevealedList[id] = !isRevealedList[id]; renderCards(); }
+      function copyCardNumber(n, e) { e.stopPropagation(); navigator.clipboard.writeText(n); Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Copied!', showConfirmButton: false, timer: 1000 }); }
+      function openTermsModal() { document.getElementById("termsModal").style.display = "flex"; }
+      function showTypeModal() { document.getElementById("termsModal").style.display = "none"; document.getElementById("typeModal").style.display = "flex"; }
+      function openDeleteModal() { document.getElementById("deleteModal").style.display = "flex"; }
+      function closeModals() { document.querySelectorAll(".custom-modal").forEach(m => m.style.display = "none"); }
+
+      async function confirmGenerateCard(type) {
+        const res = await fetch("/api/card/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: user.username, cardType: type }) });
+        const data = await res.json();
+        if (data.success) { user.virtualCards = data.cards; sessionStorage.setItem("user", JSON.stringify(user)); location.reload(); }
+      }
+
+      function toggleHistory() { document.getElementById("cardTrxList").classList.toggle("open"); document.getElementById("historyArrow").style.transform = document.getElementById("cardTrxList").classList.contains("open") ? "rotate(180deg)" : "rotate(0)"; }
+      
+      function renderCardHistory() {
+        const container = document.getElementById("cardTrxList");
+        container.innerHTML = "";
+        const trxs = (user.transactions || []).filter(t => t.cardId === cards[currentCardIndex].id);
+        if (trxs.length === 0) { container.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.8rem; padding:10px;">No history</p>`; return; }
+        trxs.forEach(t => {
+          container.innerHTML += `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #f1f5f9;">
+            <div style="font-size:0.8rem;"><b>${t.receiverName}</b><br><span style="color:#94a3b8; font-size:0.7rem;">${t.date}</span></div>
+            <div style="color:#ef4444; font-weight:bold;">-$${Math.abs(t.amount).toFixed(2)}</div>
+          </div>`;
+        });
+      }
+
+      async function changeDailyLimit() {
+  const currentCard = cards[currentCardIndex];
+  const { value: newLimit } = await Swal.fire({
+    title: 'Daily Limit',
+    text: 'កំណត់ទឹកប្រាក់អតិបរមាដែលអាចចាយបានក្នុង ១ ថ្ងៃ',
+    input: 'number',
+    inputValue: currentCard.dailyLimit || 500,
+    showCancelButton: true,
+    confirmButtonColor: '#004d40',
+  });
+
+  if (newLimit) {
+    const res = await fetch("/api/card/update-limit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: user.username,
+        cardId: currentCard.id,
+        newLimit: parseFloat(newLimit)
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      user.virtualCards = data.cards;
+      sessionStorage.setItem("user", JSON.stringify(user));
+      renderCards(); // Update UI
+      Swal.fire({ icon: 'success', title: 'Limit Updated!', timer: 1500, showConfirmButton: false });
+    }
+  }
+}
+
+// 🔥 ក្នុង function syncToggles() បងថែមបន្ទាត់នេះ ដើម្បីបង្ហាញលេខ Limit លើ UI៖
+function syncToggles() {
+  const currentCard = cards[currentCardIndex];
+  if(!currentCard) return;
+  // ... កូដចាស់ៗ ...
+  document.getElementById("limitDisplay").innerText = `Current limit: $${(currentCard.dailyLimit || 500).toFixed(2)}`;
+}
+
+// 🔥 បន្ថែមការកំណត់តម្លៃដើមសម្រាប់ selectedCardType
+let selectedCardType = "platinum"; // តម្លៃដើម
+
+function selectType(type) {
+  selectedCardType = type; // រក្សាទុកប្រភេទដែលបងបានចុច
+  
+  // ប្តូរការបង្ហាញ UI (ឱ្យដឹងថាចុចមួយណា)
+  document.getElementById("opt_plat").classList.toggle("selected", type === 'platinum');
+  document.getElementById("opt_std").classList.toggle("selected", type === 'standard');
+}
+
+
+// កូដថ្មីសម្រាប់បញ្ជាក់ការបង់លុយ $5 និងវាយ PIN
+async function confirmGenerateCard() {
+    closeModals(); // បិទផ្ទាំងរើសកាតសិន
+
+    // 1. លោតផ្ទាំងទារ PIN មុននឹងកាត់លុយ
+    const { value: pin } = await Swal.fire({
+        title: 'Card Issuance Fee',
+        html: `You are about to create a new <b>${selectedCardType.toUpperCase()}</b> card.<br><br>
+               <span style="color: #ef4444; font-size: 1.2rem; font-weight: bold;">Fee: $5.00</span><br><br>
+               Please enter your 4-digit PIN to confirm payment.`,
+        input: 'password',
+        inputPlaceholder: 'Enter 4-digit PIN',
+        inputAttributes: {
+            maxlength: 4,
+            autocapitalize: 'off',
+            autocorrect: 'off',
+            style: 'text-align: center; font-size: 1.5rem; letter-spacing: 5px;'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Pay & Create',
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#ef4444'
+    });
+
+    if (!pin) return; // បើគាត់ចុច Cancel អត់វាយ PIN ទេ គឺបញ្ឈប់
+
+    Swal.fire({ title: 'Processing Payment...', didOpen: () => Swal.showLoading() });
+
+    // 2. បញ្ជូនសំណើទៅ Server
+    try {
+        const res = await fetch("/api/card/generate", { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json" }, 
+            body: JSON.stringify({ 
+                username: user.username, 
+                cardType: selectedCardType,
+                pin: pin // 🔥 បោះ PIN ទៅឱ្យ Server ឆែក
+            }) 
+        });
+
+        const data = await res.json();
+        if (data.success) { 
+            // 3. Update ទិន្នន័យថ្មីចូល Session
+            user.virtualCards = data.cards; 
+            user.balance = data.newBalance; // Update លុយដែលកាត់ហើយ
+            sessionStorage.setItem("user", JSON.stringify(user)); 
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Payment Successful!',
+                text: 'Your new virtual card is ready.',
+                confirmButtonColor: '#10b981'
+            }).then(() => location.reload()); 
+        } else {
+            Swal.fire('Failed', data.message, 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Something went wrong!', 'error');
+    }
+}
+
+      renderCards();
+    </script>
+  </body>
+</html>

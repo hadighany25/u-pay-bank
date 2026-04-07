@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bill Payment - U-Pay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      /* --- BASE STYLES --- */
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .kh-font {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+      }
+
+      /* HEADER */
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+
+      .content-body {
+        padding: 25px;
+        flex: 1;
+      }
+
+      /* BILLER GRID */
+      .biller-title {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #004d40;
+        font-weight: 700;
+      }
+      .biller-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .biller-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .biller-item:hover {
+        transform: translateY(-3px);
+      }
+
+      .biller-logo {
+        width: 65px;
+        height: 65px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        border: 1px solid #eee;
+        color: #94a3b8;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: 0.2s;
+      }
+      .biller-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-top: 8px;
+      }
+
+      /* Active State */
+      .biller-active .biller-logo {
+        border-color: #004d40;
+        color: #004d40;
+        background: #e0f2f1;
+        box-shadow: 0 5px 15px rgba(0, 77, 64, 0.2);
+      }
+      .biller-active .biller-name {
+        color: #004d40;
+        font-weight: 700;
+      }
+
+      /* INPUTS */
+      .input-group {
+        margin-bottom: 20px;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #475569;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .main-input {
+        width: 100%;
+        padding: 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        outline: none;
+        background: #f8fafc;
+        box-sizing: border-box;
+        font-family: "Inter", sans-serif;
+      }
+      .confirm-btn {
+        width: 100%;
+        padding: 16px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(0, 77, 64, 0.2);
+        transition: 0.2s;
+      }
+      .confirm-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* PIN MODAL */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .pin-box {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .pin-digit {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        text-align: center;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        outline: none;
+      }
+      .pin-digit:focus {
+        border-color: #00bfa5;
+        background: rgba(0, 191, 165, 0.1);
+      }
+
+      /* 🔥 RECEIPT SLIP STYLE */
+      .slip-container {
+        width: 340px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        animation: slideUp 0.4s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .slip-header {
+        background: #004d40;
+        padding: 25px 20px 30px;
+        text-align: center;
+        color: white;
+      }
+      .slip-status-icon {
+        width: 60px;
+        height: 60px;
+        background: white;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .slip-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+      .slip-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 5px 0 0;
+        letter-spacing: -1px;
+      }
+
+      .slip-body {
+        padding: 20px 25px;
+        background: white;
+        position: relative;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .d-label {
+        color: #888;
+        font-weight: 500;
+      }
+      .d-value {
+        font-weight: 700;
+        color: #1f2937;
+        text-align: right;
+        max-width: 60%;
+      }
+      .d-mono {
+        font-family: "Courier New", monospace;
+        letter-spacing: 0.5px;
+        color: #004d40;
+        font-weight: bold;
+      }
+      .dashed-line {
+        margin: 15px -25px;
+        border-top: 2px dashed #ddd;
+      }
+
+      /* 🔥 QR Footer Style */
+      .slip-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        margin-top: 10px;
+      }
+      .qr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: #f9fafb;
+      }
+      .qr-img {
+        width: 45px;
+        height: 45px;
+      }
+      .qr-text {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #004d40;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+      }
+      .footer-logo {
+        width: 70px;
+        opacity: 0.9;
+      }
+
+      .slip-actions {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 25px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #004d40;
+      }
+      .action-circle {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        background: #f0fdf4;
+        border-color: #004d40;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span class="kh-font">Bill Payment</span>
+      </div>
+
+      <div class="content-body">
+        <h3 class="kh-font biller-title">Select Service</h3>
+
+        <div class="biller-grid">
+          <div
+            class="biller-item biller-active"
+            onclick="selectBiller('EDC', this)"
+          >
+            <div class="biller-logo"><i class="fa-solid fa-bolt"></i></div>
+            <div class="biller-name">EDC</div>
+          </div>
+          <div class="biller-item" onclick="selectBiller('PPWSA', this)">
+            <div class="biller-logo">
+              <i class="fa-solid fa-faucet-drip"></i>
+            </div>
+            <div class="biller-name">PPWSA</div>
+          </div>
+          <div class="biller-item" onclick="selectBiller('Internet', this)">
+            <div class="biller-logo"><i class="fa-solid fa-wifi"></i></div>
+            <div class="biller-name">Internet</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Bill ID / Consumer ID</label>
+          <input
+            type="text"
+            id="billId"
+            class="main-input"
+            placeholder="Enter Consumer ID..."
+          />
+        </div>
+
+        <div class="input-group">
+          <label>Amount ($)</label>
+          <input
+            type="number"
+            id="amount"
+            class="main-input"
+            placeholder="0.00"
+          />
+        </div>
+
+        <button onclick="openPinModal()" class="confirm-btn">
+          Confirm Payment
+        </button>
+      </div>
+    </div>
+
+    <div id="pinModal" class="modal-overlay">
+      <h3 style="color: white; margin-bottom: 10px">Enter PIN to Pay</h3>
+      <div class="pin-box">
+        <input
+          type="password"
+          class="pin-digit"
+          id="p1"
+          maxlength="1"
+          oninput="move(this, 'p2')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          id="p2"
+          maxlength="1"
+          oninput="move(this, 'p3')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          id="p3"
+          maxlength="1"
+          oninput="move(this, 'p4')"
+        />
+        <input
+          type="password"
+          class="pin-digit"
+          id="p4"
+          maxlength="1"
+          oninput="submitPay()"
+        />
+      </div>
+      <button
+        onclick="document.getElementById('pinModal').style.display = 'none'"
+        style="
+          margin-top: 30px;
+          background: none;
+          border: none;
+          color: white;
+          cursor: pointer;
+          text-decoration: underline;
+        "
+      >
+        Cancel
+      </button>
+    </div>
+
+    <div id="slipModal" class="modal-overlay">
+      <div id="captureArea" class="slip-container">
+        <div class="slip-header">
+          <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="slip-title">Payment Successful</div>
+          <div class="slip-amount" id="slipAmount">$0.00</div>
+        </div>
+
+        <div class="slip-body">
+          <div class="detail-row">
+            <span class="d-label">Trx ID</span
+            ><span class="d-value d-mono" id="slipRef">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Hash</span
+            ><span
+              class="d-value d-mono"
+              id="slipHash"
+              style="font-size: 0.8rem"
+              >...</span
+            >
+          </div>
+
+          <div class="dashed-line"></div>
+
+          <div class="detail-row">
+            <span class="d-label">Biller</span
+            ><span class="d-value" id="slipBiller">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Bill ID</span
+            ><span class="d-value" id="slipBillId">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Date</span
+            ><span class="d-value" id="slipDate">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Fee</span><span class="d-value">$0.00</span>
+          </div>
+
+          <div class="slip-footer-info">
+            <div class="qr-box">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
+                class="qr-img"
+              />
+              <div class="qr-text">
+                <span>SCAN TO</span>
+                <span>CHECK</span>
+              </div>
+            </div>
+            <img src="images/logo.png" class="footer-logo" />
+          </div>
+        </div>
+
+        <div class="slip-actions">
+          <div class="action-item" onclick="saveSlipImage()">
+            <div class="action-circle">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <span style="font-size: 0.8rem; font-weight: 600">Share</span>
+          </div>
+          <div
+            class="action-item"
+            onclick="window.location.href = 'dashboard.html'"
+          >
+            <div class="action-circle"><i class="fa-solid fa-xmark"></i></div>
+            <span style="font-size: 0.8rem; font-weight: 600">Done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let selectedBiller = "EDC";
+
+      // Auto Fill from QR
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("billId"))
+        document.getElementById("billId").value = urlParams.get("billId");
+      if (urlParams.get("amount"))
+        document.getElementById("amount").value = urlParams.get("amount");
+
+      function selectBiller(name, el) {
+        selectedBiller = name;
+        document
+          .querySelectorAll(".biller-item")
+          .forEach((b) => b.classList.remove("biller-active"));
+        el.classList.add("biller-active");
+      }
+
+      function openPinModal() {
+        const amt = document.getElementById("amount").value;
+        const bid = document.getElementById("billId").value;
+        if (!amt || !bid)
+          return Swal.fire("Warning", "Please fill all fields", "warning");
+        if (parseFloat(amt) > user.balance)
+          return Swal.fire("Error", "Insufficient Balance", "error");
+
+        // Reset Inputs
+        ["p1", "p2", "p3", "p4"].forEach(
+          (id) => (document.getElementById(id).value = ""),
+        );
+        document.getElementById("pinModal").style.display = "flex";
+        document.getElementById("p1").focus();
+      }
+
+      function move(c, n) {
+        if (c.value.length >= 1) document.getElementById(n).focus();
+      }
+
+      async function submitPay() {
+        const pin =
+          document.getElementById("p1").value +
+          document.getElementById("p2").value +
+          document.getElementById("p3").value +
+          document.getElementById("p4").value;
+
+        if (pin.length === 4) {
+          document.getElementById("pinModal").style.display = "none";
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: user.username,
+              billerName: selectedBiller,
+              billId: document.getElementById("billId").value,
+              amount: document.getElementById("amount").value,
+              pin: pin,
+            }),
+          });
+
+          const data = await res.json();
+          Swal.close();
+
+          if (data.success) {
+            user.balance = data.newBalance;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            ).play();
+
+            // 🔥 SHOW RECEIPT WITH QR
+            document.getElementById("slipAmount").innerText =
+              "$" + Math.abs(data.slipData.amount).toFixed(2);
+            document.getElementById("slipRef").innerText = data.slipData.refId;
+            document.getElementById("slipHash").innerText = data.slipData.hash;
+            document.getElementById("slipBiller").innerText =
+              data.slipData.receiverName; // Biller Name
+            document.getElementById("slipBillId").innerText =
+              data.slipData.billId;
+            document.getElementById("slipDate").innerText = data.slipData.date;
+
+            document.getElementById("slipModal").style.display = "flex";
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
+        }
+      }
+
+      function saveSlipImage() {
+        document.querySelector(".slip-actions").style.display = "none";
+        html2canvas(document.getElementById("captureArea")).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `Bill-Receipt-${Date.now()}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          document.querySelector(".slip-actions").style.display = "flex";
+        });
+      }
+
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+        document.write(
+          "<style>body { background-color: #121212 !important; color: white !important; } .app-container { background-color: #121212 !important; } .biller-logo { background: #333 !important; border-color: #444 !important; color: #ccc !important; } .biller-active .biller-logo { background: #004d40 !important; color: white !important; border-color: #004d40 !important; } .main-input { background: #333 !important; color: white !important; border-color:#444; } .slip-container { background: #fff !important; } .biller-name { color: #aaa !important; } .biller-active .biller-name { color: #00bfa5 !important; } </style>",
+        );
+      }
+    </script>
+  </body>
+</html>

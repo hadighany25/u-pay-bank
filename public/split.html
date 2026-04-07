@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Split Bill - U-Pay</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition: 0.3s;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: 0.3s;
+        padding-bottom: 90px;
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+      .content-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .split-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+      }
+
+      .input-group {
+        margin-bottom: 25px;
+        text-align: center;
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .amount-input-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 800;
+        color: #004d40;
+      }
+      .amount-input-box input {
+        width: 150px;
+        border: none;
+        background: transparent;
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1e293b;
+        text-align: center;
+        outline: none;
+      }
+      .amount-input-box input::placeholder {
+        color: #cbd5e1;
+      }
+
+      .counter-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+      }
+      .counter-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #004d40;
+        border: none;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .counter-btn:active {
+        transform: scale(0.9);
+        background: #e2e8f0;
+      }
+      .people-count {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        width: 60px;
+        text-align: center;
+      }
+
+      .result-box {
+        text-align: center;
+        padding: 20px;
+        background: #e0f2f1;
+        border-radius: 16px;
+        border: 1px dashed #004d40;
+        margin-bottom: 20px;
+        transition: 0.3s;
+      }
+      .result-box p {
+        margin: 0 0 5px;
+        color: #004d40;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .result-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #004d40;
+        margin: 0;
+      }
+
+      .btn-generate {
+        width: 100%;
+        background: #004d40;
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-generate:active {
+        transform: scale(0.98);
+      }
+
+      /* QR CODE DISPLAY */
+      .qr-result-area {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 10px;
+        animation: fadeIn 0.5s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .qr-wrapper {
+        background: white;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 15px;
+      }
+      .qr-wrapper img {
+        width: 200px;
+        height: 200px;
+      }
+      .qr-note {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        flex: 1;
+        transition: 0.2s;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #000;
+      }
+      body.dark-mode .app-container {
+        background: #121212;
+      }
+      body.dark-mode .split-card {
+        background: #1e1e1e;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      body.dark-mode .amount-input-box input {
+        color: white;
+      }
+      body.dark-mode .people-count {
+        color: white;
+      }
+      body.dark-mode .counter-btn {
+        background: #2d3748;
+        color: #10b981;
+      }
+      body.dark-mode .result-box {
+        background: #0f2922;
+        border-color: #10b981;
+      }
+      body.dark-mode .result-box p,
+      body.dark-mode .result-amount {
+        color: #10b981;
+      }
+      body.dark-mode .qr-wrapper {
+        background: #1e1e1e;
+        border: 2px solid #333;
+      }
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e;
+        border-top: 1px solid #333;
+        box-shadow: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_split">Split Bill</span>
+      </div>
+
+      <div class="content-body">
+        <div class="split-card">
+          <div class="input-group">
+            <label data-lang="total_amount">Total Amount</label>
+            <div class="amount-input-box">
+              <span>$</span>
+              <input
+                type="number"
+                id="totalAmount"
+                placeholder="0.00"
+                oninput="calculateSplit()"
+              />
+            </div>
+          </div>
+
+          <div class="input-group" style="margin-top: 40px">
+            <label data-lang="num_people">Number of People</label>
+            <div class="counter-box">
+              <button class="counter-btn" onclick="updatePeople(-1)">
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <div class="people-count" id="peopleCount">2</div>
+              <button class="counter-btn" onclick="updatePeople(1)">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="result-box">
+            <p data-lang="each_pays">Each person pays</p>
+            <div class="result-amount">$<span id="splitAmount">0.00</span></div>
+          </div>
+
+          <button
+            class="btn-generate"
+            onclick="generateQR()"
+            data-lang="btn_gen_qr"
+          >
+            Generate Payment QR
+          </button>
+        </div>
+
+        <div class="qr-result-area" id="qrResultArea">
+          <div class="qr-wrapper">
+            <img id="qrImage" src="" alt="QR Code" />
+          </div>
+          <p class="qr-note" data-lang="qr_note">
+            Ask your friends to scan this QR code to pay you back instantly.
+          </p>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active"
+          ><i class="fa-solid fa-house"></i>
+          <span data-lang="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i>
+          <span data-lang="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-lang="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i>
+          <span data-lang="nav_settings">Settings</span></a
+        >
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      if (localStorage.getItem("darkMode") === "true")
+        document.body.classList.add("dark-mode");
+
+      const translations = {
+        en: {
+          title_split: "Split Bill",
+          total_amount: "Total Bill Amount",
+          num_people: "Number of People",
+          each_pays: "Each person pays",
+          btn_gen_qr: "Generate Payment QR",
+          qr_note:
+            "Ask your friends to scan this QR code to pay you back instantly.",
+          nav_home: "Home",
+          nav_scan: "Scan",
+          nav_history: "History",
+          nav_settings: "Settings",
+        },
+        kh: {
+          title_split: "ចែកលុយគ្នា",
+          total_amount: "ទឹកប្រាក់សរុប",
+          num_people: "ចំនួនមនុស្ស",
+          each_pays: "ម្នាក់ៗត្រូវចេញ",
+          btn_gen_qr: "បង្កើត QR សម្រាប់ទូទាត់",
+          qr_note:
+            "ឱ្យមិត្តភក្តិរបស់អ្នកស្កេន QR នេះដើម្បីវេរលុយសងអ្នកវិញភ្លាមៗ។",
+          nav_home: "ទំព័រដើម",
+          nav_scan: "ស្កេន",
+          nav_history: "ប្រវត្តិ",
+          nav_settings: "ការកំណត់",
+        },
+      };
+
+      let currentLang = localStorage.getItem("lang") || "en";
+      function applyLang() {
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+          }
+        });
+        document.body.style.fontFamily =
+          currentLang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+      }
+      applyLang();
+
+      // --- ការគណនាចែកលុយ ---
+      let people = 2;
+      let finalAmountPerPerson = 0;
+
+      function updatePeople(change) {
+        people += change;
+        if (people < 2) people = 2; // យ៉ាងហោចណាស់មាន ២នាក់
+        if (people > 50) people = 50; // កំណត់ត្រឹម ៥០នាក់អតិបរមា
+        document.getElementById("peopleCount").innerText = people;
+        calculateSplit();
+      }
+
+      function calculateSplit() {
+        const totalInput = document.getElementById("totalAmount").value;
+        const total = parseFloat(totalInput);
+
+        if (isNaN(total) || total <= 0) {
+          document.getElementById("splitAmount").innerText = "0.00";
+          finalAmountPerPerson = 0;
+          document.getElementById("qrResultArea").style.display = "none";
+          return;
+        }
+
+        finalAmountPerPerson = total / people;
+        document.getElementById("splitAmount").innerText =
+          finalAmountPerPerson.toFixed(2);
+
+        // លាក់ QR បើសិនជាមានការកែប្រែលុយ (តម្រូវអោយចុច Generate ម្ដងទៀត)
+        document.getElementById("qrResultArea").style.display = "none";
+      }
+
+      // --- បង្កើត QR Code សម្រាប់អោយគេស្កេនវេរលុយចូល ---
+      function generateQR() {
+        if (finalAmountPerPerson <= 0) {
+          Swal.fire(
+            "Warning",
+            currentLang === "kh"
+              ? "សូមវាយបញ្ចូលចំនួនទឹកប្រាក់!"
+              : "Please enter a valid amount!",
+            "warning",
+          );
+          return;
+        }
+
+        // បង្កើត URL សម្រាប់ទំព័រវេរលុយ
+        const baseUrl = window.location.origin;
+        const targetUrl = `${baseUrl}/transfer.html?acc=${user.accountNumber}&amount=${finalAmountPerPerson.toFixed(2)}&source=qr`;
+
+        // 🔥 ដកពណ៌បៃតងចេញ ប្រើពណ៌ខ្មៅស្តង់ដារ និងថែម margin ឱ្យងាយស្រួលស្កេន ១០០%
+        const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(targetUrl)}&margin=15`;
+
+        document.getElementById("qrImage").src = qrApi;
+        document.getElementById("qrResultArea").style.display = "flex";
+
+        // 🔥 លោតសារព្រមាន ប្រសិនបើបងកំពុងតេស្តលើ localhost
+        if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+          document.querySelector(".qr-note").innerHTML =
+            `<span style="color:#ef4444; font-size: 0.85rem; font-weight: bold;">
+              ⚠️ ចំណាំ: ទូរស័ព្ទមិនអាចស្កេន 'localhost' បានទេ។ <br>
+              សូមប្តូរទៅប្រើ IP Address កុំព្យូទ័របង (ឧ. http://192.168.X.X:3000) វិញ!
+            </span>`;
+        }
+
+        // ស្រូតទំព័រចុះក្រោមអោយឃើញ QR ពេញ
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth",
+          });
+        }, 100);
+      }
+    </script>
+  </body>
+</html>

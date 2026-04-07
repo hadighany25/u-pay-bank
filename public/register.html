@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - U-Pay</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600&family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .login-container {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+      }
+      .logo {
+        width: 80px;
+        margin-bottom: 10px;
+      }
+      h2 {
+        color: #004d40;
+        margin-bottom: 5px;
+        font-weight: 700;
+      }
+      p {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+        text-align: left;
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #475569;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+      .input-box {
+        position: relative;
+      }
+      .input-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+      }
+      .form-control {
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: 0.2s;
+      }
+      .form-control:focus {
+        border-color: #004d40;
+        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 14px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        margin-top: 10px;
+      }
+      .btn-primary:hover {
+        background: #00382e;
+        transform: translateY(-1px);
+      }
+      .link {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #64748b;
+      }
+      .link a {
+        color: #004d40;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <img src="images/logo.png" class="logo" />
+      <h2>Create Account</h2>
+      <p>Join U-Pay Digital Banking</p>
+
+      <form id="regForm" onsubmit="handleRegister(event)">
+        <div class="input-group">
+          <label>Full Name</label>
+          <div class="input-box">
+            <i class="fa-solid fa-user"></i>
+            <input
+              type="text"
+              id="fullName"
+              class="form-control"
+              placeholder="Sok Dara"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Username</label>
+          <div class="input-box">
+            <i class="fa-solid fa-at"></i>
+            <input
+              type="text"
+              id="username"
+              class="form-control"
+              placeholder="dara123"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Phone Number</label>
+          <div class="input-box">
+            <i class="fa-solid fa-phone"></i>
+            <input
+              type="number"
+              id="phone"
+              class="form-control"
+              placeholder="012345678"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Create PIN (4 Digits)</label>
+          <div class="input-box">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              type="password"
+              id="pin"
+              class="form-control"
+              maxlength="4"
+              placeholder="****"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Password</label>
+          <div class="input-box">
+            <i class="fa-solid fa-key"></i>
+            <input
+              type="password"
+              id="password"
+              class="form-control"
+              placeholder="Password"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Confirm Password</label>
+          <div class="input-box">
+            <i class="fa-solid fa-check-double"></i>
+            <input
+              type="password"
+              id="confirmPass"
+              class="form-control"
+              placeholder="Repeat Password"
+              required
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Sign Up</button>
+      </form>
+
+      <div class="link">
+        Already have an account? <a href="index.html">Login</a>
+      </div>
+    </div>
+
+    <script>
+      async function handleRegister(e) {
+        e.preventDefault();
+
+        const fullName = document.getElementById("fullName").value;
+        const username = document.getElementById("username").value;
+        const phone = document.getElementById("phone").value;
+        const pin = document.getElementById("pin").value;
+        const password = document.getElementById("password").value;
+        const confirmPass = document.getElementById("confirmPass").value;
+
+        // Basic Validation
+        if (password !== confirmPass) {
+          return Swal.fire("Error", "Passwords do not match!", "error");
+        }
+        if (pin.length !== 4) {
+          return Swal.fire("Error", "PIN must be 4 digits!", "warning");
+        }
+
+        // Show Loading
+        Swal.fire({
+          title: "Creating Account...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName, username, phone, pin, password }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            await Swal.fire({
+              icon: "success",
+              title: "Success!",
+              text: "Account created successfully.",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+            window.location.href = "index.html"; // Go to Login
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
+        } catch (error) {
+          Swal.fire("Error", "Something went wrong!", "error");
+        }
+      }
+    </script>
+  </body>
+</html>
