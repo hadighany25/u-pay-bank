@@ -2322,7 +2322,15 @@ app.post("/api/forgot-password/reset-password", (req, res) => {
 // URL របស់ PayHub KH
 const PAYHUB_URL = "https://payhub-kh.onrender.com";
 
-app.use(cors());
+// 👉 សូមប្តូរមកប្រើកូដបើកសិទ្ធិទូលាយនេះវិញ៖
+app.use(
+  cors({
+    origin: "*", // អនុញ្ញាតឱ្យរាល់ Website ទាំងអស់ (រួមទាំង PAYHUB) អាចទាញទិន្នន័យបាន
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
 app.use(express.json());
 
 // បម្រើឯកសារ upay.html ពី Folder public
