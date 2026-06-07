@@ -2320,7 +2320,7 @@ app.post("/api/forgot-password/reset-password", (req, res) => {
 });
 
 // URL របស់ PayHub KH
-const PAYHUB_URL = "http://localhost:4000";
+const PAYHUB_URL = "https://payhub-kh.onrender.com";
 
 app.use(cors());
 app.use(express.json());
@@ -2377,10 +2377,11 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    const response = await fetch(`${PAYHUB_URL}/api/gateway/pay`, {
+    // ប្តូរមកជា Link ផ្លូវការរបស់ PAYHUB លើ Cloud Internet
+    fetch("https://payhub-kh.onrender.com/api/gateway/pay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bill_id }),
+      body: JSON.stringify({ bill_id: currentBillId }),
     });
     const data = await response.json();
 
