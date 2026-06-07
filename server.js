@@ -6,7 +6,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const multer = require("multer");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ==========================================
 // ⚙️ ១. ការកំណត់ទូទៅ (SERVER CONFIGURATION)
