@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - U-Pay</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      /* BASE STYLES */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      .app-container {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        min-height: 600px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .header-section {
+        background: linear-gradient(135deg, #004d40, #00695c);
+        color: white;
+        padding: 40px 30px 60px 30px;
+        text-align: center;
+        position: relative;
+        border-bottom-left-radius: 30px;
+        border-bottom-right-radius: 30px;
+      }
+
+      .logo {
+        width: 70px;
+        margin-bottom: 15px;
+        background: white;
+        padding: 10px;
+        border-radius: 16px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .header-section h2 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      .header-section p {
+        margin: 5px 0 0 0;
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
+
+      /* 🔥 កែសម្រួល PROGRESS BAR ឱ្យឈប់ត្រូវកន្លែង ១០០% */
+      .progress-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 40px;
+        margin-top: -20px;
+        position: relative;
+        z-index: 10;
+      }
+
+      /* ប្រអប់សម្រាប់ផ្ទុកខ្សែ (ចាប់ពីរង្វង់១ ដល់ រង្វង់៣) */
+      .progress-track {
+        position: absolute;
+        top: 50%;
+        left: 60px; /* ចាប់ផ្តើមពីគែមរង្វង់១ */
+        right: 60px; /* បញ្ចប់ត្រឹមគែមរង្វង់៣ */
+        height: 3px;
+        background: #e2e8f0;
+        z-index: -1;
+        transform: translateY(-50%);
+      }
+
+      /* ខ្សែរត់ពណ៌បៃតង */
+      .progress-line-active {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: #10b981;
+        width: 0%; /* 0%, 50%, 100% */
+        transition: width 0.3s ease;
+      }
+
+      .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #64748b;
+        transition: all 0.3s;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .step-circle.active {
+        border-color: #10b981;
+        color: #10b981;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      }
+
+      .step-circle.completed {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+      }
+
+      /* FORM SECTION */
+      .form-section {
+        padding: 30px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .step-content {
+        display: none;
+        animation: fadeIn 0.4s;
+      }
+      .step-content.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #334155;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .input-box {
+        position: relative;
+        width: 100%;
+      }
+
+      .input-box i.fa-solid {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 1rem;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 14px 45px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: 0.2s;
+        background: #f8fafc;
+        color: #1e293b;
+      }
+
+      .form-control:focus {
+        border-color: #004d40;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+
+      .pin-input {
+        letter-spacing: 10px;
+        text-align: center;
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+      }
+      .pin-input + i {
+        display: none;
+      }
+
+      .toggle-password {
+        position: absolute;
+        right: 15px;
+        left: auto !important;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 5px;
+        z-index: 2;
+      }
+      .toggle-password:hover {
+        color: #0f172a;
+      }
+
+      .btn-container {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+        width: 100%;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        padding: 15px 0;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        flex: 1;
+        text-align: center;
+      }
+
+      .btn-primary {
+        background: #004d40;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 77, 64, 0.2);
+      }
+      .btn-primary:hover {
+        background: #00382e;
+      }
+
+      .btn-secondary {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+      .btn-secondary:hover {
+        background: #e2e8f0;
+      }
+
+      .btn-full {
+        width: 100%;
+        flex: none;
+      }
+
+      .terms-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        margin-bottom: 25px;
+        text-align: left;
+      }
+
+      .terms-box input[type="checkbox"] {
+        margin: 0;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        accent-color: #004d40;
+        cursor: pointer;
+      }
+
+      .terms-box label {
+        font-size: 0.85rem;
+        color: #475569;
+        line-height: 1.4;
+        cursor: pointer;
+        margin: 0;
+      }
+
+      .terms-box a {
+        color: #004d40;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .link {
+        margin-top: 20px;
+        font-size: 0.9rem;
+        color: #64748b;
+        text-align: center;
+      }
+      .link a {
+        color: #004d40;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .security-badge {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header-section">
+        <img
+          src="images/logo.png"
+          class="logo"
+          alt="U-PAY"
+          onerror="
+            this.src = 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
+          "
+        />
+        <h2>Create Account</h2>
+        <p>Join U-Pay Digital Banking</p>
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-track">
+          <div class="progress-line-active" id="progressLineActive"></div>
+        </div>
+
+        <div class="step-circle active" id="circle1">1</div>
+        <div class="step-circle" id="circle2">2</div>
+        <div class="step-circle" id="circle3">3</div>
+      </div>
+
+      <div class="form-section">
+        <form id="regForm">
+          <div class="step-content active" id="step1">
+            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
+              Personal Details
+            </h3>
+
+            <div class="input-group">
+              <label>Full Name</label>
+              <div class="input-box">
+                <i class="fa-solid fa-user"></i>
+                <input
+                  type="text"
+                  id="fullName"
+                  class="form-control"
+                  placeholder="E.g. Sok Dara"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Phone Number</label>
+              <div class="input-box">
+                <i class="fa-solid fa-phone"></i>
+                <input
+                  type="tel"
+                  id="phone"
+                  class="form-control"
+                  placeholder="012 345 678"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="btn-container">
+              <button
+                type="button"
+                class="btn-primary btn-full"
+                onclick="nextStep(2)"
+              >
+                Continue <i class="fa-solid fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="step-content" id="step2">
+            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
+              Account Details
+            </h3>
+
+            <div class="input-group">
+              <label>Username</label>
+              <div class="input-box">
+                <i class="fa-solid fa-at"></i>
+                <input
+                  type="text"
+                  id="username"
+                  class="form-control"
+                  placeholder="dara123"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Create PIN (4 Digits)</label>
+              <div class="input-box">
+                <input
+                  type="password"
+                  id="pin"
+                  class="form-control pin-input"
+                  maxlength="4"
+                  placeholder="****"
+                  inputmode="numeric"
+                  required
+                />
+              </div>
+              <small
+                style="
+                  color: #64748b;
+                  font-size: 0.75rem;
+                  display: block;
+                  margin-top: 5px;
+                "
+                >This PIN is for card payments.</small
+              >
+            </div>
+
+            <div class="btn-container">
+              <button type="button" class="btn-secondary" onclick="prevStep(1)">
+                Back
+              </button>
+              <button type="button" class="btn-primary" onclick="nextStep(3)">
+                Continue
+              </button>
+            </div>
+          </div>
+
+          <div class="step-content" id="step3">
+            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
+              Security Setup
+            </h3>
+
+            <div class="input-group">
+              <label>Password</label>
+              <div class="input-box">
+                <i class="fa-solid fa-key"></i>
+                <input
+                  type="password"
+                  id="password"
+                  class="form-control"
+                  placeholder="Create strong password"
+                  required
+                />
+                <i
+                  class="fa-regular fa-eye toggle-password"
+                  onclick="toggleVisibility('password', this)"
+                ></i>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Confirm Password</label>
+              <div class="input-box">
+                <i class="fa-solid fa-check-double"></i>
+                <input
+                  type="password"
+                  id="confirmPass"
+                  class="form-control"
+                  placeholder="Repeat password"
+                  required
+                />
+                <i
+                  class="fa-regular fa-eye toggle-password"
+                  onclick="toggleVisibility('confirmPass', this)"
+                ></i>
+              </div>
+            </div>
+
+            <div class="terms-box">
+              <input type="checkbox" id="termsCheck" />
+              <label for="termsCheck"
+                >I agree to the <a href="#">Terms & Conditions</a> and
+                <a href="#">Privacy Policy</a> of U-PAY.</label
+              >
+            </div>
+
+            <div class="btn-container">
+              <button type="button" class="btn-secondary" onclick="prevStep(2)">
+                Back
+              </button>
+              <button
+                type="button"
+                class="btn-primary"
+                id="submitBtn"
+                onclick="handleRegister(event)"
+              >
+                Create Account
+              </button>
+            </div>
+
+            <div class="security-badge">
+              <i class="fa-solid fa-shield-halved"></i> 256-bit Secure
+              Encryption
+            </div>
+          </div>
+        </form>
+
+        <div class="link">
+          Already have an account? <a href="index.html">Log In</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentStep = 1;
+
+      // ប្តូរ Step
+      function nextStep(step) {
+        if (step === 2) {
+          const fn = document.getElementById("fullName").value.trim();
+          const ph = document.getElementById("phone").value.trim();
+          if (!fn || !ph)
+            return Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូមបំពេញព័ត៌មានឱ្យគ្រប់សិន!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+        }
+        if (step === 3) {
+          const un = document.getElementById("username").value.trim();
+          const pin = document.getElementById("pin").value.trim();
+          if (!un || !pin)
+            return Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូមបំពេញព័ត៌មានគណនីសិន!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          if (pin.length !== 4)
+            return Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "PIN ត្រូវតែមាន ៤ខ្ទង់!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+        }
+        updateUI(step);
+      }
+
+      function prevStep(step) {
+        updateUI(step);
+      }
+
+      // Update UI ឱ្យត្រូវខ្នាត ១០០%
+      function updateUI(step) {
+        currentStep = step;
+
+        document
+          .querySelectorAll(".step-content")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById("step" + step).classList.add("active");
+
+        document.querySelectorAll(".step-circle").forEach((el, index) => {
+          el.classList.remove("active", "completed");
+          if (index + 1 < step) el.classList.add("completed");
+          if (index + 1 === step) el.classList.add("active");
+        });
+
+        // 🔥 កំណត់ខ្សែរត់ត្រឹម 0%, 50%, ឬ 100% នៃប្រអប់តូចដែលយើងកំណត់
+        const line = document.getElementById("progressLineActive");
+        if (step === 1) line.style.width = "0%";
+        if (step === 2) line.style.width = "50%";
+        if (step === 3) line.style.width = "100%";
+      }
+
+      // មើល Password
+      function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          iconElement.classList.remove("fa-eye");
+          iconElement.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          iconElement.classList.remove("fa-eye-slash");
+          iconElement.classList.add("fa-eye");
+        }
+      }
+
+      // Submit
+      async function handleRegister(e) {
+        e.preventDefault();
+
+        const fullName = document.getElementById("fullName").value.trim();
+        const username = document.getElementById("username").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const pin = document.getElementById("pin").value.trim();
+        const password = document.getElementById("password").value;
+        const confirmPass = document.getElementById("confirmPass").value;
+        const terms = document.getElementById("termsCheck").checked;
+
+        if (!password || !confirmPass)
+          return Swal.fire("Error", "សូមបញ្ចូលពាក្យសម្ងាត់!", "warning");
+        if (password !== confirmPass)
+          return Swal.fire("Error", "ពាក្យសម្ងាត់មិនដូចគ្នាទេ!", "error");
+        if (!terms)
+          return Swal.fire(
+            "Error",
+            "សូមយល់ព្រមលើលក្ខខណ្ឌប្រើប្រាស់សិន!",
+            "warning",
+          );
+
+        const btn = document.getElementById("submitBtn");
+        const originalText = btn.innerText;
+        btn.innerHTML =
+          '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName, username, phone, pin, password }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            const loginRes = await fetch("/api/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ identifier: username, password }),
+            });
+            const loginData = await loginRes.json();
+
+            if (loginData.success) {
+              sessionStorage.setItem("user", JSON.stringify(loginData.user));
+              await Swal.fire({
+                icon: "success",
+                title: "Welcome to U-PAY!",
+                text: "គណនីរបស់អ្នកត្រូវបានបង្កើតជោគជ័យ។",
+                timer: 2000,
+                showConfirmButton: false,
+              });
+              window.location.href = "dashboard.html";
+            }
+          } else {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          Swal.fire("Error", "មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server!", "error");
+        }
+      }
+    </script>
+  </body>
+</html>

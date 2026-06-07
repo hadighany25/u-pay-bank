@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fixed Deposit - U-Pay Bank</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Kantumruy+Pro:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      body {
+        background: #f2f4f6;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        position: relative;
+        padding-bottom: 100px;
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+      .content-body {
+        padding: 20px;
+      }
+      .active-deposit-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        display: none;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+      .deposit-card {
+        background: white;
+        border-radius: 18px;
+        padding: 18px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: 0.3s;
+      }
+      .deposit-card:active {
+        transform: scale(0.98);
+      }
+      #setup-step {
+        background: white;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        margin-top: 10px;
+        display: none;
+      }
+      .input-group {
+        margin-bottom: 20px;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+        color: #64748b;
+      }
+      .amount-input {
+        width: 100%;
+        border: none;
+        font-size: 2.2rem;
+        font-weight: 800;
+        text-align: center;
+        color: #004d40;
+        outline: none;
+        background: transparent;
+      }
+      .btn-confirm {
+        width: 100%;
+        background: #004d40;
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .status-badge {
+        background: #10b981;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span>U-Pay Fixed Deposit</span>
+      </div>
+
+      <div class="content-body">
+        <div id="activeDepositDisplay" class="active-deposit-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            "
+          >
+            <div>
+              <p style="margin: 0; opacity: 0.8; font-size: 0.75rem">
+                ទឹកប្រាក់សន្សំសរុប
+              </p>
+              <h2 style="margin: 5px 0">
+                $<span id="displayActiveAmount">0.00</span>
+              </h2>
+            </div>
+            <span class="status-badge">Active</span>
+          </div>
+          <div
+            style="
+              margin-top: 15px;
+              font-size: 0.8rem;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <span
+              >ការប្រាក់រំពឹងទុក:
+              <b style="color: #10b981"
+                >+$<span id="displayActiveInterest">0.00</span></b
+              ></span
+            >
+            <button
+              onclick="withdrawMoney()"
+              style="
+                background: #ef4444;
+                border: none;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.75rem;
+              "
+            >
+              ដកប្រាក់
+            </button>
+          </div>
+        </div>
+
+        <h4 id="list-label" style="color: #1e293b">ជ្រើសរើសគម្រោងសន្សំ</h4>
+        <div class="deposit-card" onclick="showSetup('Wealth Growth', 0.085)">
+          <div
+            style="
+              background: #f0fdf4;
+              color: #16a34a;
+              padding: 12px;
+              border-radius: 12px;
+            "
+          >
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div style="flex: 1">
+            <h4 style="margin: 0">Wealth Growth</h4>
+            <p style="margin: 0; font-size: 0.8rem; color: #64748b">
+              ការប្រាក់ខ្ពស់រហូតដល់ 8.50%
+            </p>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+        </div>
+
+        <div id="setup-step">
+          <h4
+            id="setup-title"
+            style="
+              margin-top: 0;
+              color: #004d40;
+              border-bottom: 1px solid #f1f5f9;
+              padding-bottom: 10px;
+            "
+          >
+            Setup
+          </h4>
+          <div class="input-group">
+            <label>ចំនួនទឹកប្រាក់ ($)</label>
+            <input
+              type="number"
+              id="depositAmount"
+              class="amount-input"
+              placeholder="0.00"
+              oninput="updateInterestPreview()"
+            />
+          </div>
+          <div class="input-group">
+            <label>រយៈពេលសន្សំ</label>
+            <select
+              id="duration"
+              style="
+                width: 100%;
+                padding: 12px;
+                border-radius: 10px;
+                border: 1px solid #e2e8f0;
+              "
+              onchange="updateInterestPreview()"
+            >
+              <option value="6">6 ខែ (ពាក់កណ្ដាលឆ្នាំ)</option>
+              <option value="12" selected>12 ខែ (1 ឆ្នាំ)</option>
+              <option value="24">24 ខែ (2 ឆ្នាំ)</option>
+            </select>
+          </div>
+          <div
+            style="
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 12px;
+              margin-bottom: 20px;
+              border: 1px dashed #cbd5e1;
+            "
+          >
+            <p style="margin: 0; font-size: 0.8rem; color: #64748b">
+              ការប្រាក់ទទួលបាននៅពេលផុតកំណត់:
+            </p>
+            <h3 style="margin: 5px 0; color: #10b981">
+              +$<span id="interestPreview">0.00</span>
+            </h3>
+          </div>
+          <button class="btn-confirm" onclick="handleDepositSubmit()">
+            ដាក់ប្រាក់សន្សំឥឡូវនេះ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const SERVER_URL = "https://u-pay-project.onrender.com";
+      let user = JSON.parse(localStorage.getItem("user"));
+      let currentRate = 0;
+      let currentPlan = "";
+
+      function init() {
+        renderActiveDeposit();
+      }
+
+      function showSetup(plan, rate) {
+        currentPlan = plan;
+        currentRate = rate;
+        document.getElementById("setup-step").style.display = "block";
+        document.getElementById("setup-title").innerText = plan;
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+
+      function updateInterestPreview() {
+        const amt =
+          parseFloat(document.getElementById("depositAmount").value) || 0;
+        const dur = parseInt(document.getElementById("duration").value);
+        const interest = amt * currentRate * (dur / 12);
+        document.getElementById("interestPreview").innerText =
+          interest.toFixed(2);
+      }
+
+      async function handleDepositSubmit() {
+        const amount = parseFloat(
+          document.getElementById("depositAmount").value,
+        );
+        if (!amount || amount <= 0) {
+          return Swal.fire("បញ្ហា", "សូមបញ្ចូលចំនួនទឹកប្រាក់", "warning");
+        }
+
+        const { value: pin } = await Swal.fire({
+          title: "បញ្ជាក់លេខ PIN",
+          input: "password",
+          inputAttributes: {
+            maxlength: 4,
+            autofocus: "autofocus",
+            style: "text-align:center",
+          },
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+        });
+
+        if (pin) {
+          try {
+            const response = await fetch(`${SERVER_URL}/api/fixed-deposit`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                accountNumber: user.accountNumber, // ប្រើតាម API logic របស់អ្នក
+                amount: amount,
+                pin: pin,
+                duration: document.getElementById("duration").value,
+                rate: currentRate,
+              }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              // រក្សាទុកក្នុង local ដើម្បីបង្ហាញ interface
+              localStorage.setItem(
+                "active_deposit",
+                JSON.stringify({
+                  depositId: "DEP-" + Date.now(), // បណ្តោះអាសន្ន ឬយកពី server បើមាន
+                  amount: amount,
+                  interest: parseFloat(
+                    document.getElementById("interestPreview").innerText,
+                  ),
+                }),
+              );
+
+              Swal.fire(
+                "ជោគជ័យ",
+                "ការដាក់ប្រាក់សន្សំបានសម្រេច",
+                "success",
+              ).then(() => location.reload());
+            } else {
+              Swal.fire("បរាជ័យ", result.message, "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server", "error");
+          }
+        }
+      }
+
+      function renderActiveDeposit() {
+        const data = JSON.parse(localStorage.getItem("active_deposit"));
+        if (data) {
+          document.getElementById("activeDepositDisplay").style.display =
+            "block";
+          document.getElementById("displayActiveAmount").innerText =
+            data.amount.toFixed(2);
+          document.getElementById("displayActiveInterest").innerText =
+            data.interest.toFixed(2);
+          document.getElementById("list-label").innerText = "គម្រោងផ្សេងៗទៀត";
+        }
+      }
+
+      async function withdrawMoney() {
+        const data = JSON.parse(localStorage.getItem("active_deposit"));
+        if (!data) return;
+
+        const { value: confirm } = await Swal.fire({
+          title: "ដកប្រាក់មុនកាលកំណត់?",
+          text: "ការដកប្រាក់មុនកាលកំណត់អាចនឹងមានការកាត់ប្រាក់ពិន័យ (Penalty)។ តើអ្នកប្រាកដទេ?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "បាទ/ចាស ដកប្រាក់",
+          confirmButtonColor: "#ef4444",
+        });
+
+        if (confirm) {
+          try {
+            // ហៅទៅ API /api/withdraw-deposit ដែលអ្នកទើបតែបន្ថែមក្នុង Server
+            const response = await fetch(`${SERVER_URL}/api/withdraw-deposit`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                accountNumber: user.accountNumber,
+                depositId: data.depositId,
+              }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              localStorage.removeItem("active_deposit");
+              Swal.fire({
+                title: "ដកប្រាក់ជោគជ័យ",
+                html: `ទឹកប្រាក់បានចូលកាបូបវិញហើយ។ <br> ប្រាក់ពិន័យ៖ $${result.penalty || 0}`,
+                icon: "success",
+              }).then(() => location.reload());
+            } else {
+              Swal.fire("កំហុស", result.message, "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "Server Error", "error");
+          }
+        }
+      }
+
+      window.onload = init;
+    </script>
+  </body>
+</html>

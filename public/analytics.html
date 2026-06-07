@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics - U-Pay</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition: background-color 0.3s;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.3s;
+        padding-bottom: 90px;
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+      .content-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* CHART CARD */
+      .chart-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+        border: 1px solid #f1f5f9;
+      }
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .chart-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+      }
+      .month-badge {
+        background: #e0f2f1;
+        color: #004d40;
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 200px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #noDataMsg {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.9rem;
+      }
+
+      .total-expense-display {
+        text-align: center;
+        margin-top: 15px;
+      }
+      .total-expense-display p {
+        margin: 0 0 5px;
+        font-size: 0.85rem;
+        color: #64748b;
+      }
+      .total-expense-display h2 {
+        margin: 0;
+        color: #ef4444;
+        font-size: 1.8rem;
+        font-weight: 800;
+      }
+
+      /* LIST SECTION */
+      .list-header {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #333;
+        margin: 10px 0 15px;
+      }
+      .expense-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .expense-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 15px;
+        border-radius: 16px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01);
+      }
+      .expense-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .expense-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+      .expense-icon.bills {
+        background: #fee2e2;
+        color: #ef4444;
+      }
+      .expense-icon.transfers {
+        background: #fef3c7;
+        color: #f59e0b;
+      }
+
+      .expense-info h4 {
+        margin: 0 0 3px;
+        font-size: 0.95rem;
+        color: #1e293b;
+        font-weight: 600;
+      }
+      .expense-info p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      .expense-amount {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1rem;
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.2s;
+        flex: 1;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #000;
+      }
+      body.dark-mode .app-container {
+        background: #121212;
+      }
+      body.dark-mode .chart-card {
+        background: #1e1e1e;
+        border-color: #333;
+      }
+      body.dark-mode .chart-title {
+        color: white;
+      }
+      body.dark-mode .month-badge {
+        background: #004d40;
+        color: #e0f2f1;
+      }
+      body.dark-mode .expense-item {
+        background: #1e1e1e;
+        border-color: #333;
+      }
+      body.dark-mode .expense-info h4 {
+        color: white;
+      }
+      body.dark-mode .expense-amount {
+        color: white;
+      }
+      body.dark-mode .list-header {
+        color: white;
+      }
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_analytics">Analytics</span>
+      </div>
+
+      <div class="content-body">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title" data-lang="monthly_expenses">
+              Monthly Expenses
+            </h3>
+            <div class="month-badge" id="monthBadge">This Month</div>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+            <div id="noDataMsg" style="display: none" data-lang="no_expenses">
+              No expenses recorded this month.
+            </div>
+          </div>
+
+          <div class="total-expense-display">
+            <p data-lang="total_spent">Total Spent</p>
+            <h2>$<span id="totalSpent">0.00</span></h2>
+          </div>
+        </div>
+
+        <h3 class="list-header" data-lang="expense_breakdown">
+          Expense Breakdown
+        </h3>
+
+        <div class="expense-list">
+          <div class="expense-item">
+            <div class="expense-left">
+              <div class="expense-icon bills">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+              <div class="expense-info">
+                <h4 data-lang="cat_bills">Bills & Utilities</h4>
+                <p id="billsCount">0 transactions</p>
+              </div>
+            </div>
+            <div class="expense-amount" id="billsTotalAmt">$0.00</div>
+          </div>
+
+          <div class="expense-item">
+            <div class="expense-left">
+              <div class="expense-icon transfers">
+                <i class="fa-solid fa-paper-plane"></i>
+              </div>
+              <div class="expense-info">
+                <h4 data-lang="cat_transfers">Transfers</h4>
+                <p id="transfersCount">0 transactions</p>
+              </div>
+            </div>
+            <div class="expense-amount" id="transfersTotalAmt">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item active"
+          ><i class="fa-solid fa-house"></i>
+          <span data-lang="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i>
+          <span data-lang="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-lang="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i>
+          <span data-lang="nav_settings">Settings</span></a
+        >
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let expenseChart = null;
+
+      // 🔥 LANGUAGE SYSTEM (English Default)
+      const translations = {
+        en: {
+          title_analytics: "Analytics",
+          monthly_expenses: "Monthly Expenses",
+          no_expenses: "No expenses recorded this month.",
+          total_spent: "Total Spent",
+          expense_breakdown: "Expense Breakdown",
+          cat_bills: "Bills & Utilities",
+          cat_transfers: "Transfers",
+          trx_text: "transactions",
+          nav_home: "Home",
+          nav_scan: "Scan",
+          nav_history: "History",
+          nav_settings: "Settings",
+        },
+        kh: {
+          title_analytics: "វិភាគ",
+          monthly_expenses: "ចំណាយប្រចាំខែ",
+          no_expenses: "មិនមានប្រតិបត្តិការចំណាយទេខែនេះ។",
+          total_spent: "ចំណាយសរុប",
+          expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
+          cat_bills: "បង់វិក្កយបត្រផ្សេងៗ",
+          cat_transfers: "វេរប្រាក់ចេញ",
+          trx_text: "ប្រតិបត្តិការ",
+          nav_home: "ទំព័រដើម",
+          nav_scan: "ស្កេន",
+          nav_history: "ប្រវត្តិ",
+          nav_settings: "ការកំណត់",
+        },
+      };
+
+      function applyLang() {
+        let currentLang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+          }
+        });
+        document.body.style.fontFamily =
+          currentLang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+        return currentLang;
+      }
+
+      // INIT DARK MODE
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+      }
+
+      // Set Month Badge
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const monthNamesKh = [
+        "មករា",
+        "កុម្ភៈ",
+        "មីនា",
+        "មេសា",
+        "ឧសភា",
+        "មិថុនា",
+        "កក្កដា",
+        "សីហា",
+        "កញ្ញា",
+        "តុលា",
+        "វិច្ឆិកា",
+        "ធ្នូ",
+      ];
+      const d = new Date();
+      let currLang = applyLang();
+      document.getElementById("monthBadge").innerText =
+        currLang === "kh"
+          ? monthNamesKh[d.getMonth()]
+          : monthNames[d.getMonth()];
+
+      // Helper Date Parser
+      function parseDateString(dateStr) {
+        if (!dateStr) return new Date();
+        let parsedDate = new Date(dateStr);
+        if (isNaN(parsedDate.getTime()) && dateStr.includes(",")) {
+          parsedDate = new Date(dateStr.split(",")[0].trim());
+        }
+        return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      }
+
+      // Analyze and Render
+      function loadAnalytics() {
+        const transactions = user.transactions || [];
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        let billsTotal = 0;
+        let billsCount = 0;
+        let transfersTotal = 0;
+        let transfersCount = 0;
+
+        transactions.forEach((t) => {
+          if (t.amount < 0) {
+            // Only Outflow
+            const tDate = parseDateString(t.date);
+            if (
+              tDate.getMonth() === currentMonth &&
+              tDate.getFullYear() === currentYear
+            ) {
+              if (t.type === "Bill Payment") {
+                billsTotal += Math.abs(t.amount);
+                billsCount++;
+              } else {
+                transfersTotal += Math.abs(t.amount);
+                transfersCount++;
+              }
+            }
+          }
+        });
+
+        const totalExpense = billsTotal + transfersTotal;
+        document.getElementById("totalSpent").innerText =
+          totalExpense.toFixed(2);
+
+        let trxWord =
+          currLang === "kh"
+            ? translations.kh.trx_text
+            : translations.en.trx_text;
+        document.getElementById("billsCount").innerText =
+          `${billsCount} ${trxWord}`;
+        document.getElementById("billsTotalAmt").innerText =
+          `$${billsTotal.toFixed(2)}`;
+        document.getElementById("transfersCount").innerText =
+          `${transfersCount} ${trxWord}`;
+        document.getElementById("transfersTotalAmt").innerText =
+          `$${transfersTotal.toFixed(2)}`;
+
+        const ctx = document.getElementById("expenseChart").getContext("2d");
+        const isDark = document.body.classList.contains("dark-mode");
+        Chart.defaults.color = isDark ? "#94a3b8" : "#64748b";
+        Chart.defaults.font.family = "'Inter', 'Kantumruy Pro', sans-serif";
+
+        if (totalExpense === 0) {
+          document.getElementById("expenseChart").style.display = "none";
+          document.getElementById("noDataMsg").style.display = "block";
+          return;
+        } else {
+          document.getElementById("expenseChart").style.display = "block";
+          document.getElementById("noDataMsg").style.display = "none";
+        }
+
+        if (expenseChart) expenseChart.destroy();
+
+        let lblBills =
+          currLang === "kh"
+            ? translations.kh.cat_bills
+            : translations.en.cat_bills;
+        let lblTransfers =
+          currLang === "kh"
+            ? translations.kh.cat_transfers
+            : translations.en.cat_transfers;
+
+        expenseChart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: [lblBills, lblTransfers],
+            datasets: [
+              {
+                data: [billsTotal, transfersTotal],
+                backgroundColor: ["#ef4444", "#f59e0b"],
+                borderWidth: 0,
+                hoverOffset: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "75%",
+            plugins: {
+              legend: {
+                position: "right",
+                labels: { usePointStyle: true, boxWidth: 8, padding: 15 },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    let label = context.label || "";
+                    if (label) label += ": ";
+                    if (context.parsed !== null)
+                      label += "$" + context.parsed.toFixed(2);
+                    return label;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Run on load
+      loadAnalytics();
+    </script>
+  </body>
+</html>
