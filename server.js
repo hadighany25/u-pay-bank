@@ -2467,10 +2467,8 @@ app.post("/api/bank/pay-bill", async (req, res) => {
 app.get("/api/bank/verify-account/:account_number", (req, res) => {
   const { account_number } = req.params;
 
-  // ១. ទាញទិន្នន័យពី users.json ផ្ទាល់
-  let users = readData();
+  let users = readData(); // ទាញទិន្នន័យពី users.json
 
-  // ២. ស្វែងរកគណនីដែលត្រូវនឹងលេខដែលបានបញ្ចូល (ឆែកទាំងកុង USD និងកុង KHR)
   const targetUser = users.find(
     (u) =>
       u.accountNumber === account_number ||
@@ -2478,16 +2476,16 @@ app.get("/api/bank/verify-account/:account_number", (req, res) => {
   );
 
   if (targetUser) {
-    // ៣. បើរាវរកឃើញ បោះឈ្មោះពិតរបស់គាត់ទៅឱ្យ Frontend
-    res.json({
+    // បើរកឃើញ បោះ success: true
+    return res.json({
       success: true,
       account_name: targetUser.fullName || targetUser.username,
     });
   } else {
-    // ៤. បើរាវរកមិនឃើញ
-    res.status(404).json({
+    // 🔥 សំខាន់ខ្លាំង៖ បើរកមិនឃើញ ត្រូវតែបោះ success: false ទៅប្រាប់គេវិញភ្លាម កុំឱ្យគេអង្គុយវិលចាំ
+    return res.json({
       success: false,
-      message: "រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធ U-PAY ទេ! ❌",
+      message: "រកមិនឃើញលេខគណនីនេះនៅក្នុងប្រព័ន្ធ U-PAY ទេ!",
     });
   }
 });
