@@ -1,12 +1,52 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer"); // 💡 បានថែមជូនដើម្បីជួសជុល Error 'multer is not defined' របស់ប្អូន
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 3000;
+
+// ==========================================
+// 🌐 CONFIGURATIONS & MIDDLEWARES
+// ==========================================
+
+// URL របស់ PayHub KH
+const PAYHUB_URL = "https://payhub-kh.onrender.com";
+
+// អនុញ្ញាតឱ្យរាល់ Website ទាំងអស់ (រួមទាំង PAYHUB) អាចទាញទិន្នន័យបាន
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
 app.use(express.json()); // សម្រាប់ឱ្យ Server អានទិន្នន័យ JSON បាន
 
-// 🟢 ១. លីងភ្ជាប់ទៅកាន់ MongoDB Atlas (ប្រើប្រាស់លីង និង Password ពិតរបស់ប្អូន)
+// បម្រើឯកសារនៅក្នុង Folder public
+app.use(express.static(path.join(__dirname, "public")));
+
+// មុខងារសម្រាប់គ្រប់គ្រងការ Upload រូបភាព (Multer Configuration)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "public", "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, "IMG-" + Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage: storage });
+
+// ==========================================
+// 🟢 ១. លីងភ្ជាប់ទៅកាន់ MongoDB Atlas
+// ==========================================
 const MONGO_URI =
   "mongodb+srv://hadighany25_db_user:9zFpD1cbPGKqzyKW@cluster0.wuilm9.mongodb.net/upay_db?appName=Cluster0";
 
@@ -15,7 +55,10 @@ mongoose
   .then(() => console.log("🟢 [MongoDB] Connected Successfully to Cloud!"))
   .catch((err) => console.error("🔴 [MongoDB] Connection Error:", err));
 
-// 🔵 ២. បង្កើតទម្រង់ទិន្នន័យ (User Schema) ឱ្យត្រូវនឹងទិន្នន័យពិតរបស់ប្អូនបេះបិទ
+// ==========================================
+// 🗄️ MONGOOSE MODELS & SCHEMAS
+// ==========================================
+
 const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true },
@@ -33,14 +76,17 @@ const userSchema = new mongoose.Schema(
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
-    transactions: { type: Array, default: [] }, // សម្រាប់ទុកប្រវត្តផ្ទេរប្រាក់
+    transactions: { type: Array, default: [] },
+    notifications: { type: Array, default: [] },
+    tickets: { type: Array, default: [] },
+    kycStatus: { type: String, default: "pending" },
+    needsSupport: { type: Boolean, default: false },
   },
   { timestamps: true },
-); // ថែម timestamps ដើម្បីដឹងថ្ងៃបង្កើតគណនី
+);
 
 const User = mongoose.model("User", userSchema);
 
-// 🔥🔥🔥 គឺយកមកដាក់នៅត្រង់នេះ (ខាងក្រោម User Model ចាស់) 🔥🔥🔥
 const ChatSchema = new mongoose.Schema({
   id: String,
   senderAcc: String,
@@ -53,6 +99,7 @@ const ChatSchema = new mongoose.Schema({
 });
 const Chat = mongoose.model("Chat", ChatSchema);
 
+let tempForgotOtps = {}; // ផ្ទុកលេខកូដ OTP បណ្តោះអាសន្នលើ Memory Server
 // ==========================================
 // ⚙️ ១. ការកំណត់ទូទៅ (SERVER CONFIGURATION)
 // ==========================================
