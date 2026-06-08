@@ -120,21 +120,6 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static("public"));
 
-// កំណត់ទីតាំងផ្ទុករូបភាពដែលគេ Upload ចូលមក (Save ចូល /public/uploads/)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, "public", "uploads");
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-const upload = multer({ storage: storage });
-
 // ទីតាំង File ទិន្នន័យ
 const DATA_FILE = path.join(__dirname, "data", "users.json");
 const SETTINGS_FILE = path.join(__dirname, "data", "settings.json");
