@@ -24,8 +24,6 @@ app.use(
   }),
 );
 
-app.use(express.json()); // សម្រាប់ឱ្យ Server អានទិន្នន័យ JSON បាន
-
 // បម្រើឯកសារនៅក្នុង Folder public
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -103,10 +101,8 @@ let tempForgotOtps = {}; // ផ្ទុកលេខកូដ OTP បណ្ត�
 // ==========================================
 // ⚙️ ១. ការកំណត់ទូទៅ (SERVER CONFIGURATION)
 // ==========================================
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.static("public"));
-// 💡 ១. ត្រូវដាក់ CORS នៅខាងលើគេបង្អស់ មុននឹង Middleware ផ្សេងៗរត់
+
+// 💡 ចំណុចទី១៖ ត្រូវដាក់ CORS នៅខាងលើគេបង្អស់ មុននឹង Middleware ផ្សេងៗរត់ (ដើម្បីកុំឱ្យទាស់ Domain)
 app.use(
   cors({
     origin: "*", // អនុញ្ញាតឱ្យរាល់គ្រប់ Domain ទាំងអស់ (រួមទាំង PAYHUB) អាច Fetch ចូលបាន
@@ -115,7 +111,7 @@ app.use(
   }),
 );
 
-// 💡 ២. បន្ទាប់មកទើបដាក់ពួក express.json
+// 💡 ចំណុចទី២៖ ដាក់ពួក express.json តែម្តងបានហើយ (លុបអាឈុតដែលជាន់គ្នាចោលទាំងស្រុង)
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static("public"));
@@ -123,7 +119,6 @@ app.use(express.static("public"));
 // ទីតាំង File ទិន្នន័យ
 const DATA_FILE = path.join(__dirname, "data", "users.json");
 const SETTINGS_FILE = path.join(__dirname, "data", "settings.json");
-
 // ==========================================
 // ⚙️ SYSTEM SETTINGS (GLOBAL FREEZE)
 // ==========================================
@@ -290,6 +285,7 @@ initSystemAccounts();
 // ==========================================
 // 🤖 ៤. មុខងារ TELEGRAM BOT
 // ==========================================
+const TelegramBot = require("node-telegram-bot-api"); // 🟢 ថែមបន្ទាត់នេះចូលខាងលើគេបង្អស់
 const token = "8786350689:AAEncWXnaMjzk1QpMyZmo_Censsu4DVHSG0";
 const bot = new TelegramBot(token, { polling: true });
 
@@ -3035,7 +3031,6 @@ app.post("/api/chat/check-user", async (req, res) => {
 // ==========================================
 // 🔑 ប្រព័ន្ធ FORGOT PASSWORD & OTP SYSTEM (MongoDB Version)
 // ==========================================
-let tempForgotOtps = {}; // ផ្ទុកលេខកូដ OTP បណ្តោះអាសន្នលើ Memory Server ដដែល
 
 // ១. API សម្រាប់ឆែកគណនី និងបង្កើត OTP
 app.post("/api/forgot-password/verify-user", async (req, res) => {
@@ -3122,8 +3117,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
-
-app.use(express.json());
 
 // បម្រើឯកសារ upay.html ពី Folder public
 app.use(express.static(path.join(__dirname, "public")));
