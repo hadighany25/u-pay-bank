@@ -45,7 +45,7 @@ const upload = multer({ storage: storage });
 // 🟢 ១. លីងភ្ជាប់ទៅកាន់ MongoDB Atlas
 // ==========================================
 const MONGO_URI =
-  "mongodb+srv://hadighany25_db_user:9zFpD1cbPGKqzyKW@cluster0.wuilm9.mongodb.net/upay_db?appName=Cluster0";
+  "mongodb+srv://hadighany25_db_user:WeBa4KcTKxl71UzY@cluster0.kkvnknp.mongodb.net/?appName=Cluster0";
 
 mongoose
   .connect(MONGO_URI)
@@ -912,12 +912,10 @@ app.post("/api/payment", async (req, res) => {
     res.json({ success: true, newBalance: user.balance, slipData: trx });
   } catch (err) {
     console.error("Payment Error:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
+    });
   }
 });
 
@@ -1558,12 +1556,10 @@ app.post("/api/fixed-deposit", async (req, res) => {
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការបង្កើតប្រាក់បញ្ញើ",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការបង្កើតប្រាក់បញ្ញើ",
+    });
   }
 });
 
@@ -1645,12 +1641,10 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការដកប្រាក់បញ្ញើ",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការដកប្រាក់បញ្ញើ",
+    });
   }
 });
 
@@ -1729,12 +1723,10 @@ app.post("/api/ticket/create", async (req, res) => {
       res.json({ success: false });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
+    });
   }
 });
 
@@ -2658,12 +2650,10 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         hash: newHash,
       });
     } else {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
-        });
+      res.status(400).json({
+        success: false,
+        message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
+      });
     }
   } catch (err) {
     res
@@ -2695,12 +2685,10 @@ app.get("/api/bank/verify-account/:account_number", async (req, res) => {
         message: "រកមិនឃើញលេខគណនីនេះនៅក្នុងប្រព័ន្ធ U-PAY ទេ!",
       });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
+    });
   }
 });
 
