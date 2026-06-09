@@ -49,8 +49,14 @@ const MONGO_URI =
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("🟢 [MongoDB] Connected Successfully to Cloud!"))
-  .catch((err) => console.error("🔴 [MongoDB] Connection Error:", err));
+  .then(async () => {
+    console.log("🟢 MongoDB Connected Successfully");
+
+    await initSystemAccounts();
+  })
+  .catch((err) => {
+    console.error("🔴 MongoDB Connection Error:", err);
+  });
 
 // ==========================================
 // 🗄️ MONGOOSE MODELS & SCHEMAS
@@ -201,6 +207,7 @@ const generateCompactHash = () =>
 const initSystemAccounts = async () => {
   try {
     console.log("🚀 Checking System Accounts...");
+
     const billers = [
       { username: "EDC", accountNumber: "100000001" },
       { username: "PPWSA", accountNumber: "100000002" },
@@ -208,28 +215,37 @@ const initSystemAccounts = async () => {
       { username: "Fashion Shop", accountNumber: "100000004" },
     ];
 
+    // Create Billers
     for (const b of billers) {
       const exists = await User.findOne({ username: b.username });
+
       if (!exists) {
         await User.create({
           username: b.username,
           password: "123",
           accountNumber: b.accountNumber,
           accountNumberKHR: "9" + b.accountNumber,
-          balance: 0.0,
-          balanceKHR: 0.0,
+          balance: 0,
+          balanceKHR: 0,
           role: "biller",
           pin: "0000",
           isFrozen: false,
         });
+
         console.log(`✅ Created Biller: ${b.username}`);
       }
     }
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
+
+    // Create Central Bank
+    const centralBank = await User.findOne({
+      $or: [{ accountNumber: "888888888" }, { username: "centralbank" }],
+    });
+
     if (!centralBank) {
-      await User.create({
+      const bank = new User({
         username: "centralbank",
         fullName: "U-Pay Central Bank",
+        password: "123456",
         accountNumber: "888888888",
         accountNumberKHR: "988888888",
         balance: 1000000000,
@@ -238,24 +254,20 @@ const initSystemAccounts = async () => {
         pin: "1234",
         profileImage: "images/logo.png",
         isFrozen: false,
+        transactions: [],
+        notifications: [],
       });
+
+      await bank.save();
+
       console.log("🏦 U-Pay Central Bank Created!");
+    } else {
+      console.log("🏦 U-Pay Central Bank Already Exists");
     }
   } catch (err) {
-    console.error("Init System Accounts Error:", err);
+    console.error("❌ Init System Accounts Error:", err);
   }
 };
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(async () => {
-    console.log("✅ Connected to MongoDB successfully");
-
-    // ហៅ Function នេះភ្លាមៗនៅទីនេះ ដើម្បីឱ្យវាដំណើរការក្រោយពេល Connect បាន
-    await initSystemAccounts();
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-  });
 
 // ==========================================
 // 🤖 ៤. មុខងារ TELEGRAM BOT
