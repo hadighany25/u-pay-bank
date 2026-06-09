@@ -200,6 +200,7 @@ const generateCompactHash = () =>
 // ==========================================
 const initSystemAccounts = async () => {
   try {
+    console.log("🚀 Checking System Accounts...");
     const billers = [
       { username: "EDC", accountNumber: "100000001" },
       { username: "PPWSA", accountNumber: "100000002" },
@@ -224,7 +225,6 @@ const initSystemAccounts = async () => {
         console.log(`✅ Created Biller: ${b.username}`);
       }
     }
-
     const centralBank = await User.findOne({ accountNumber: "888888888" });
     if (!centralBank) {
       await User.create({
@@ -239,13 +239,23 @@ const initSystemAccounts = async () => {
         profileImage: "images/logo.png",
         isFrozen: false,
       });
-      console.log(`🏦 U-Pay Central Bank Created!`);
+      console.log("🏦 U-Pay Central Bank Created!");
     }
   } catch (err) {
     console.error("Init System Accounts Error:", err);
   }
 };
-mongoose.connection.once("open", initSystemAccounts);
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(async () => {
+    console.log("✅ Connected to MongoDB successfully");
+
+    // ហៅ Function នេះភ្លាមៗនៅទីនេះ ដើម្បីឱ្យវាដំណើរការក្រោយពេល Connect បាន
+    await initSystemAccounts();
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+  });
 
 // ==========================================
 // 🤖 ៤. មុខងារ TELEGRAM BOT
