@@ -964,6 +964,7 @@ let pendingPayments = [];
 
 app.post("/api/card/generate", async (req, res) => {
   const system = readSystemStatus();
+
   if (system.isSystemFrozen) {
     return res.json({
       success: false,
@@ -975,45 +976,83 @@ app.post("/api/card/generate", async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "User not found" });
 
-    if (user.pin !== pin)
-      return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
-
-    const FEE_AMOUNT = 5.0;
-    if (user.balance < FEE_AMOUNT)
+    if (!user) {
       return res.json({
         success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់ទេ! ថ្លៃសេវាបង្កើតកាតគឺ $${FEE_AMOUNT.toFixed(2)}`,
+        message: "User not found",
       });
+    }
+
+    if (user.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខ PIN មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const FEE_AMOUNT = 5.0;
+
+    if (user.balance < FEE_AMOUNT) {
+      return res.json({
+        success: false,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់ទេ! ថ្លៃសេវាបង្កើតកាតគឺ $${FEE_AMOUNT.toFixed(
+          2,
+        )}`,
+      });
+    }
 
     if (!user.virtualCards) user.virtualCards = [];
-    if (user.virtualCards.length >= 3)
+
+    if (user.virtualCards.length >= 3) {
       return res.json({
         success: false,
         message: "Limit reached (Max 3 cards)",
       });
+    }
 
-    let feeAccount = await User.findOne({ accountNumber: "999999999" });
+    // ==========================================
+    // Create Fee Account Automatically (First Time Only)
+    // ==========================================
+    let feeAccount = await User.findOne({
+      accountNumber: "999999999",
+    });
+
     if (!feeAccount) {
       feeAccount = new User({
         username: "system_fee",
         fullName: "U-PAY Fee",
+        password: "123456",
+        pin: "0000",
         accountNumber: "999999999",
+        accountNumberKHR: "999999998",
         balance: 0,
+        balanceKHR: 0,
         role: "system",
+        isFrozen: false,
         transactions: [],
+        notifications: [],
       });
+
       await feeAccount.save();
+
+      console.log("💰 U-PAY Fee Account Created!");
     }
 
+    // ==========================================
+    // Deduct Fee
+    // ==========================================
     user.balance -= FEE_AMOUNT;
     feeAccount.balance += FEE_AMOUNT;
+
+    if (!user.transactions) user.transactions = [];
+    if (!feeAccount.transactions) feeAccount.transactions = [];
 
     const dateStr = getFormattedDate();
     const refId = "FEE-" + Date.now();
     const hash = generateHash();
 
+    // User Transaction
     user.transactions.unshift({
       refId,
       hash,
@@ -1028,6 +1067,8 @@ app.post("/api/card/generate", async (req, res) => {
       trxMethod: "Account Balance",
       isHold: false,
     });
+
+    // Fee Account Transaction
     feeAccount.transactions.unshift({
       refId,
       hash,
@@ -1043,8 +1084,13 @@ app.post("/api/card/generate", async (req, res) => {
       isHold: false,
     });
 
+    // ==========================================
+    // Generate Card
+    // ==========================================
     const prefix = cardType === "platinum" ? "4305" : "4215";
+
     const d = new Date();
+
     const newCard = {
       id: "card_" + Date.now(),
       type: cardType || "visa_classic",
@@ -1061,6 +1107,7 @@ app.post("/api/card/generate", async (req, res) => {
     };
 
     user.virtualCards.push(newCard);
+
     await user.save();
     await feeAccount.save();
 
@@ -1070,7 +1117,12 @@ app.post("/api/card/generate", async (req, res) => {
       newBalance: user.balance,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Card Generate Error:", err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message || "Server error",
+    });
   }
 });
 
