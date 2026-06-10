@@ -1517,6 +1517,7 @@ app.post("/api/savings/break", async (req, res) => {
 app.post("/api/fixed-deposit", async (req, res) => {
   const { accountNumber, amount, pin, duration, rate, type, currency } =
     req.body;
+
   const depAmount = parseFloat(amount);
 
   try {
@@ -1526,55 +1527,65 @@ app.post("/api/fixed-deposit", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-    if (!user || user.pin !== pin)
-      return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ" });
+
+    if (!user || user.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខ PIN មិនត្រឹមត្រូវទេ",
+      });
+    }
 
     const isKHR = currency === "KHR";
+
     if (isKHR) {
-      if ((user.balanceKHR || 0) < depAmount)
+      if ((user.balanceKHR || 0) < depAmount) {
         return res.json({
           success: false,
           message: "សមតុល្យប្រាក់រៀលមិនគ្រប់គ្រាន់ទេ",
         });
+      }
     } else {
-      if (user.balance < depAmount)
+      if ((user.balance || 0) < depAmount) {
         return res.json({
           success: false,
           message: "សមតុល្យប្រាក់ដុល្លារមិនគ្រប់គ្រាន់ទេ",
         });
+      }
     }
 
-    let centralBank = await User.findOne({ accountNumber: "888888888" });
+    const centralBank = await User.findOne({
+      accountNumber: "888888888",
+    });
+
     if (!centralBank) {
-      centralBank = new User({
-        username: "central_bank",
-        fullName: "U-Pay Central Bank",
-        accountNumber: "888888888",
-        balance: 0,
-        balanceKHR: 0,
-        role: "system",
-        transactions: [],
+      return res.json({
+        success: false,
+        message: "Central Bank Account Not Found",
       });
-      await centralBank.save();
     }
+
+    if (!user.transactions) user.transactions = [];
+    if (!centralBank.transactions) centralBank.transactions = [];
+    if (!user.deposits) user.deposits = [];
 
     if (isKHR) {
       user.balanceKHR -= depAmount;
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) + depAmount;
     } else {
       user.balance -= depAmount;
-      centralBank.balance += depAmount;
+      centralBank.balance = (centralBank.balance || 0) + depAmount;
     }
 
     const dateStr = getFormattedDate();
     const refId = "DEP-" + Date.now();
     const hash = generateHash();
+
     const senderAcc = isKHR ? user.accountNumberKHR : user.accountNumber;
+
     const bankAcc = isKHR
       ? centralBank.accountNumberKHR
       : centralBank.accountNumber;
 
-    if (!user.transactions) user.transactions = [];
     user.transactions.unshift({
       refId,
       hash,
@@ -1591,7 +1602,6 @@ app.post("/api/fixed-deposit", async (req, res) => {
       isHold: false,
     });
 
-    if (!centralBank.transactions) centralBank.transactions = [];
     centralBank.transactions.unshift({
       refId,
       hash,
@@ -1608,13 +1618,12 @@ app.post("/api/fixed-deposit", async (req, res) => {
       isHold: false,
     });
 
-    if (!user.deposits) user.deposits = [];
     user.deposits.push({
       id: "DEP" + Date.now(),
       amount: depAmount,
       currency: isKHR ? "KHR" : "USD",
-      rate: rate,
-      type: type,
+      rate,
+      type,
       durationMonths: duration,
       startDate: dateStr,
       maturityDate: new Date(
@@ -1623,22 +1632,30 @@ app.post("/api/fixed-deposit", async (req, res) => {
       status: "active",
     });
 
+    user.markModified("transactions");
+    user.markModified("deposits");
+    centralBank.markModified("transactions");
+
     await user.save();
     await centralBank.save();
-    res.json({
+
+    return res.json({
       success: true,
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    res.status(500).json({
+    console.error("FIXED DEPOSIT ERROR:", err);
+
+    return res.status(500).json({
       success: false,
-      message: "Server មានបញ្ហាក្នុងការបង្កើតប្រាក់បញ្ញើ",
+      message: err.message,
     });
   }
 });
 
 app.post("/api/fixed-deposit/withdraw", async (req, res) => {
   const { accountNumber, depositId } = req.body;
+
   try {
     const user = await User.findOne({
       $or: [
@@ -1646,35 +1663,44 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
 
-    if (!user || !centralBank || !user.deposits)
+    const centralBank = await User.findOne({
+      accountNumber: "888888888",
+    });
+
+    if (!user || !centralBank || !user.deposits) {
       return res.json({
         success: false,
         message: "រកមិនឃើញគណនី ឬប្រាក់បញ្ញើទេ",
       });
+    }
 
     const depIndex = user.deposits.findIndex(
       (d) => d.id === depositId && d.status === "active",
     );
-    if (depIndex === -1)
+
+    if (depIndex === -1) {
       return res.json({
         success: false,
         message: "ប្រាក់បញ្ញើនេះត្រូវបានដក ឬអសកម្ម",
       });
+    }
 
     const deposit = user.deposits[depIndex];
     const withdrawAmount = deposit.amount;
     const isKHR = deposit.currency === "KHR";
 
+    if (!user.transactions) user.transactions = [];
+    if (!centralBank.transactions) centralBank.transactions = [];
+
     user.deposits[depIndex].status = "closed";
 
     if (isKHR) {
       user.balanceKHR = (user.balanceKHR || 0) + withdrawAmount;
-      centralBank.balanceKHR -= withdrawAmount;
+      centralBank.balanceKHR = (centralBank.balanceKHR || 0) - withdrawAmount;
     } else {
-      user.balance += withdrawAmount;
-      centralBank.balance -= withdrawAmount;
+      user.balance = (user.balance || 0) + withdrawAmount;
+      centralBank.balance = (centralBank.balance || 0) - withdrawAmount;
     }
 
     const dateStr = getFormattedDate();
@@ -1685,7 +1711,7 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       refId,
       hash,
       date: dateStr,
-      type: `Withdraw Deposit`,
+      type: "Withdraw Deposit",
       amount: withdrawAmount,
       currency: isKHR ? "KHR" : "USD",
       senderName: "U-Pay Central Bank",
@@ -1698,7 +1724,7 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       refId,
       hash,
       date: dateStr,
-      type: `Deposit Refund`,
+      type: "Deposit Refund",
       amount: -withdrawAmount,
       currency: isKHR ? "KHR" : "USD",
       senderName: "U-Pay Central Bank",
@@ -1707,17 +1733,23 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       trxMethod: "Fixed Deposit",
     });
 
+    user.markModified("transactions");
     user.markModified("deposits");
+    centralBank.markModified("transactions");
+
     await user.save();
     await centralBank.save();
-    res.json({
+
+    return res.json({
       success: true,
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    res.status(500).json({
+    console.error("FIXED DEPOSIT WITHDRAW ERROR:", err);
+
+    return res.status(500).json({
       success: false,
-      message: "Server មានបញ្ហាក្នុងការដកប្រាក់បញ្ញើ",
+      message: err.message,
     });
   }
 });
