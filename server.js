@@ -585,43 +585,38 @@ app.post(
   upload.single("profileImg"),
   async (req, res) => {
     try {
-      const { username } = req.body;
-
-      console.log("Upload Profile Request:", username);
-      console.log("File:", req.file);
+      const userId = req.body.id;
 
       if (!req.file) {
-        return res.status(400).json({
+        return res.json({
           success: false,
           message: "No image uploaded",
         });
       }
 
-      const user = await User.findOne({ username });
+      const imageUrl = "/uploads/" + req.file.filename;
+
+      const user = await User.findById(userId);
 
       if (!user) {
-        return res.status(404).json({
+        return res.json({
           success: false,
           message: "User not found",
         });
       }
 
-      const imageUrl = `/uploads/${req.file.filename}`;
-
       user.profileImage = imageUrl;
-
-      user.markModified("profileImage");
 
       await user.save();
 
-      return res.json({
+      res.json({
         success: true,
         imageUrl,
       });
     } catch (err) {
       console.error("PROFILE UPLOAD ERROR:", err);
 
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: err.message,
       });
@@ -631,48 +626,40 @@ app.post(
 
 app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
   try {
-    const { username } = req.body;
-
-    console.log("KYC Request:", username);
-    console.log("File:", req.file);
+    const username = req.body.username;
 
     if (!req.file) {
-      return res.status(400).json({
+      return res.json({
         success: false,
         message: "No document uploaded",
       });
     }
 
+    const docUrl = "/uploads/" + req.file.filename;
+
     const user = await User.findOne({ username });
 
     if (!user) {
-      return res.status(404).json({
+      return res.json({
         success: false,
         message: "User not found",
       });
     }
 
-    const docUrl = `/uploads/${req.file.filename}`;
-
     user.kycStatus = "pending";
     user.kycDocument = docUrl;
     user.kycSubmittedAt = getFormattedDate();
 
-    user.markModified("kycStatus");
-    user.markModified("kycDocument");
-    user.markModified("kycSubmittedAt");
-
     await user.save();
 
-    return res.json({
+    res.json({
       success: true,
       message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
-      documentUrl: docUrl,
     });
   } catch (err) {
-    console.error("KYC UPLOAD ERROR:", err);
+    console.error("KYC ERROR:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: err.message,
     });
