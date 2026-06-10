@@ -584,52 +584,98 @@ app.post(
   "/api/user/upload-image",
   upload.single("profileImg"),
   async (req, res) => {
-    const username = req.body.username;
-    if (!req.file) {
-      return res.json({ success: false, message: "No image uploaded" });
-    }
-    const imageUrl = "/uploads/" + req.file.filename;
     try {
-      const user = await User.findOne({ username });
-      if (user) {
-        user.profileImage = imageUrl;
-        await user.save();
-        res.json({ success: true, imageUrl: imageUrl });
-      } else {
-        res.json({ success: false, message: "User not found" });
+      const { username } = req.body;
+
+      console.log("Upload Profile Request:", username);
+      console.log("File:", req.file);
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No image uploaded",
+        });
       }
+
+      const user = await User.findOne({ username });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const imageUrl = `/uploads/${req.file.filename}`;
+
+      user.profileImage = imageUrl;
+
+      user.markModified("profileImage");
+
+      await user.save();
+
+      return res.json({
+        success: true,
+        imageUrl,
+      });
     } catch (err) {
-      res
-        .status(500)
-        .json({ success: false, message: "Server មានបញ្ហា Upload" });
+      console.error("PROFILE UPLOAD ERROR:", err);
+
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+      });
     }
   },
 );
 
 app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
-  const username = req.body.username;
-  if (!req.file) {
-    return res.json({ success: false, message: "No document uploaded" });
-  }
-  const docUrl = "/uploads/" + req.file.filename;
   try {
-    const user = await User.findOne({ username });
-    if (user) {
-      user.kycStatus = "pending";
-      user.kycDocument = docUrl;
-      user.kycSubmittedAt = getFormattedDate();
-      await user.save();
-      res.json({
-        success: true,
-        message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
+    const { username } = req.body;
+
+    console.log("KYC Request:", username);
+    console.log("File:", req.file);
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No document uploaded",
       });
-    } else {
-      res.json({ success: false, message: "User not found" });
     }
+
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const docUrl = `/uploads/${req.file.filename}`;
+
+    user.kycStatus = "pending";
+    user.kycDocument = docUrl;
+    user.kycSubmittedAt = getFormattedDate();
+
+    user.markModified("kycStatus");
+    user.markModified("kycDocument");
+    user.markModified("kycSubmittedAt");
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
+      documentUrl: docUrl,
+    });
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server មានបញ្ហាដាក់ KYC" });
+    console.error("KYC UPLOAD ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 });
 
