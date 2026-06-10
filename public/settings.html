@@ -993,7 +993,7 @@
         if (!file) return;
         const formData = new FormData();
         formData.append("profileImg", file);
-        formData.append("id", user.id);
+        formData.append("username", user.username);
         const res = await fetch("/api/user/upload-image", {
           method: "POST",
           body: formData,
