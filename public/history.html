@@ -63,6 +63,18 @@
         top: 60px;
         z-index: 40;
       }
+      .account-select select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        outline: none;
+        background: white;
+        font-weight: 600;
+        color: #1e293b;
+      }
       .date-inputs {
         display: flex;
         gap: 10px;
@@ -171,7 +183,7 @@
         font-size: 1rem;
       }
 
-      /* Message Card Styling (New UI) */
+      /* Message Card Styling */
       .msg-card {
         background: white;
         border-radius: 16px;
@@ -297,7 +309,7 @@
       }
 
       /* =========================================
-         ORIGINAL SLIP MODAL UI (Restored & Perfected)
+         SLIP MODAL UI 
          ========================================= */
       .modal-overlay {
         display: none;
@@ -306,7 +318,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.85); /* Dark overlay */
+        background: rgba(0, 0, 0, 0.85);
         z-index: 9999;
         align-items: center;
         justify-content: center;
@@ -341,15 +353,14 @@
         padding: 20px;
         position: relative;
       }
-      /* Cutouts on the sides */
       .slip-middle::before,
       .slip-middle::after {
         content: "";
         position: absolute;
-        bottom: -10px; /* Align exactly at the divider */
+        bottom: -10px;
         width: 20px;
         height: 20px;
-        background: rgba(0, 0, 0, 0.85); /* Match modal overlay */
+        background: rgba(0, 0, 0, 0.85);
         border-radius: 50%;
         z-index: 2;
       }
@@ -392,7 +403,6 @@
         font-size: 0.95rem;
       }
 
-      /* Circular Action Buttons outside the slip */
       .slip-actions-row {
         display: flex;
         justify-content: center;
@@ -440,6 +450,11 @@
       body.dark-mode .tool-bar {
         background: #1e1e1e;
         border-color: #333;
+      }
+      body.dark-mode .account-select select {
+        background: #2d2d2d;
+        color: white;
+        border-color: #444;
       }
       body.dark-mode .filter-bar {
         background: #1e1e1e;
@@ -502,6 +517,13 @@
       </div>
 
       <div class="tool-bar">
+        <div class="account-select">
+          <select id="exportCurrency" onchange="renderTransactions()">
+            <option value="USD">USD Account (គណនីប្រាក់ដុល្លារ)</option>
+            <option value="KHR">KHR Account (គណនីប្រាក់រៀល)</option>
+          </select>
+        </div>
+
         <div class="date-inputs">
           <input type="date" id="startDate" title="Start Date" />
           <span style="color: #94a3b8">to</span>
@@ -512,7 +534,6 @@
         </button>
       </div>
 
-      <!-- Tab Switcher -->
       <div
         style="
           display: flex;
@@ -600,11 +621,8 @@
       </div>
     </div>
 
-    <!-- RESTORED ORIGINAL SLIP MODAL -->
     <div id="slipModal" class="modal-overlay">
-      <!-- Capture Area wraps only the ticket, not the outer buttons -->
       <div id="captureArea" class="slip-container">
-        <!-- Top Green Header -->
         <div class="slip-top">
           <div
             style="
@@ -632,8 +650,6 @@
             $0.00
           </div>
         </div>
-
-        <!-- Middle Section (Trx ID & Hash) -->
         <div class="slip-middle">
           <div class="slip-row">
             <span class="slip-label">Trx ID</span>
@@ -644,8 +660,6 @@
             <span class="slip-value mono" id="slipHash">opt08v6t</span>
           </div>
         </div>
-
-        <!-- Bottom Section (Details & QR) -->
         <div class="slip-bottom">
           <div class="slip-divider"></div>
           <div class="slip-row">
@@ -666,7 +680,7 @@
           </div>
           <div class="slip-row">
             <span class="slip-label">Fee</span
-            ><span class="slip-value">$0.00</span>
+            ><span class="slip-value" id="slipFee">$0.00</span>
           </div>
           <div class="slip-row">
             <span class="slip-label">Remark</span
@@ -710,8 +724,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Action Buttons (Outside the Ticket) -->
       <div class="slip-actions-row">
         <div class="slip-btn-col" onclick="saveSlipImage()">
           <div class="slip-btn-circle">
@@ -762,10 +774,11 @@
         .toISOString()
         .split("T")[0];
 
-      function formatMoney(amount) {
+      // Format Money ឥឡូវស្គាល់ទាំង KHR និង USD
+      function formatMoney(amount, isKHR = false) {
         return Math.abs(amount).toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
+          minimumFractionDigits: isKHR ? 0 : 2,
+          maximumFractionDigits: isKHR ? 0 : 2,
         });
       }
 
@@ -778,6 +791,8 @@
           if (serverUser) {
             user.notifications = serverUser.notifications || [];
             fullUserTransactions = serverUser.transactions || [];
+            user.accountNumber = serverUser.accountNumber;
+            user.accountNumberKHR = serverUser.accountNumberKHR;
             sessionStorage.setItem("user", JSON.stringify(user));
             renderMessages(user.notifications);
             renderTransactions();
@@ -790,7 +805,16 @@
 
       function renderTransactions() {
         const list = document.getElementById("historyList");
-        let filtered = fullUserTransactions.slice();
+        const selectedCurrency =
+          document.getElementById("exportCurrency").value;
+
+        // ចម្រាញ់យកតែប្រតិបត្តិការតាមរូបិយប័ណ្ណដែលបានជ្រើសរើស (USD ឬ KHR)
+        let filtered = fullUserTransactions.filter((t) => {
+          if (selectedCurrency === "KHR") return t.currency === "KHR";
+          return !t.currency || t.currency === "USD"; // ប្រវត្តិអាស់ៗដែលគ្មាន currency ចាត់ទុកជា USD
+        });
+
+        // តម្រងចំណូល ចំណាយ
         if (currentFilterType === "in")
           filtered = filtered.filter((t) => t.amount > 0);
         if (currentFilterType === "out")
@@ -799,7 +823,7 @@
 
         if (filtered.length === 0) {
           list.innerHTML =
-            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>No transactions found</p></div>';
+            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>មិនមានប្រតិបត្តិការទេ</p></div>';
           return;
         }
 
@@ -809,6 +833,8 @@
             const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
             const color = isIncome ? "text-green" : "text-red";
             const bg = isIncome ? "bg-green" : "bg-red";
+            const isKHR = t.currency === "KHR";
+            const currSym = isKHR ? "៛" : "$";
             const name =
               t.type === "Transfer"
                 ? isIncome
@@ -825,7 +851,7 @@
                   <p>${t.date} • ${t.trxMethod || "U-Pay"}</p>
                 </div>
               </div>
-              <div class="trx-amount ${color}">${isIncome ? "+" : ""}$${formatMoney(t.amount)}</div>
+              <div class="trx-amount ${color}">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
             </div>`;
           })
           .join("");
@@ -842,6 +868,7 @@
           return;
         }
 
+        // ដក .reverse() ចេញ ដើម្បីអោយរៀបពីថ្មីចុះក្រោម (ព្រោះថ្មីត្រូវបាន unshift មកលើគេស្រាប់)
         containerMsg.innerHTML = activeMsgs
           .map(
             (m) => `
@@ -858,7 +885,6 @@
           </div>
         `,
           )
-          .reverse()
           .join("");
       }
 
@@ -920,19 +946,20 @@
         }
       }
 
-      // Restored the accurate Slip Data logic
       function showSlip(index) {
         const t = currentTransactions[index];
         if (!t) return;
+        const isKHR = t.currency === "KHR";
+        const currSym = isKHR ? "៛" : "$";
 
         document.getElementById("slipModalTitle").innerText =
           t.amount < 0 ? "Transfer Sent" : "Transfer Received";
         document.getElementById("slipAmount").innerText =
-          "$" + formatMoney(t.amount);
+          currSym + formatMoney(t.amount, isKHR);
         document.getElementById("slipRef").innerText =
           t.refId || Math.floor(Math.random() * 1000000000);
         document.getElementById("slipHash").innerText =
-          "opt" + Math.random().toString(36).substring(2, 8); // Fake hash based on image
+          "opt" + Math.random().toString(36).substring(2, 8);
         document.getElementById("slipDate").innerText = t.date;
         document.getElementById("slipSender").innerText =
           t.amount > 0 ? t.senderName || "System" : user.username;
@@ -940,8 +967,8 @@
           t.amount < 0 ? t.receiverName || "Unknown" : user.username;
         document.getElementById("slipMethod").innerText =
           t.trxMethod || "U-PAY Transfer";
-        document.getElementById("slipRemark").innerText =
-          t.remark || "Saved to Goal";
+        document.getElementById("slipRemark").innerText = t.remark || "General";
+        document.getElementById("slipFee").innerText = currSym + "0.00";
 
         document.getElementById("slipModal").style.display = "flex";
       }
@@ -952,9 +979,7 @@
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
         });
-
         const captureArea = document.getElementById("captureArea");
-
         html2canvas(captureArea, {
           scale: 3,
           useCORS: true,
@@ -963,7 +988,6 @@
           canvas.toBlob(async (blob) => {
             const fileName = `Receipt_${Date.now()}.png`;
             const file = new File([blob], fileName, { type: "image/png" });
-
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               Swal.close();
               try {
@@ -987,32 +1011,36 @@
         });
       }
 
+      // 🔥 EXPORT STATEMENT PERFECTED
       async function exportStatementPDF() {
         try {
           const { jsPDF } = window.jspdf;
           const doc = new jsPDF("p", "pt", "a4");
-
           const pageWidth = doc.internal.pageSize.width;
           const pageHeight = doc.internal.pageSize.height;
 
           const start = document.getElementById("startDate").value;
           const end = document.getElementById("endDate").value;
+          const selectedCurrency =
+            document.getElementById("exportCurrency").value;
 
-          if (!start || !end) {
+          if (!start || !end)
             return Swal.fire("បញ្ជាក់", "សូមជ្រើសរើសកាលបរិច្ឆេទ!", "warning");
-          }
 
           const num = (v) => {
             const n = Number(v);
             return isNaN(n) ? 0 : n;
           };
-
           const formatMoneyPDF = (n) => {
-            return num(n).toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            });
+            const val = num(n);
+            return selectedCurrency === "KHR"
+              ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
+              : val.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                });
           };
+          const currSym = selectedCurrency === "KHR" ? " KHR" : " USD";
 
           const sanitizeForPDF = (str) => {
             if (!str) return "";
@@ -1027,16 +1055,24 @@
               .trim();
           };
 
-          // គណនា Balance ឡើងវិញពីប្រវត្តិទាំងអស់
-          let runningBal = 0;
-          const allTrxAsc = [...(fullUserTransactions || [])].sort(
+          // ១. ចម្រាញ់យកតែប្រតិបត្តិការតាមរូបិយប័ណ្ណដែលរើស
+          const currTrx = (fullUserTransactions || []).filter((t) => {
+            if (selectedCurrency === "KHR") return t.currency === "KHR";
+            return !t.currency || t.currency === "USD";
+          });
+
+          // ២. រៀបតាមកាលបរិច្ឆេទពីចាស់ទៅថ្មី ដើម្បីបូកសមតុល្យ Balance
+          const allTrxAsc = [...currTrx].sort(
             (a, b) => new Date(a.date) - new Date(b.date),
           );
+
+          let runningBal = 0;
           allTrxAsc.forEach((t) => {
-            runningBal += Number(t.amount) || 0;
+            runningBal += num(t.amount);
             t.computedBalance = runningBal;
           });
 
+          // ៣. ចាប់យកទិន្នន័យជាក់ស្តែងតាមចន្លោះថ្ងៃដែលបានរើស
           const stTrx = allTrxAsc.filter((t) => {
             const d = new Date(t.date);
             if (isNaN(d)) return false;
@@ -1044,21 +1080,25 @@
             return iso >= start && iso <= end;
           });
 
-          const openingBalance = stTrx.length
-            ? num(stTrx[0].computedBalance) - num(stTrx[0].amount)
+          // រកសមតុល្យដើមគ្រា (ពីមុនថ្ងៃ Start)
+          const beforeStTrx = allTrxAsc.filter((t) => {
+            const d = new Date(t.date);
+            if (isNaN(d)) return false;
+            return d.toISOString().split("T")[0] < start;
+          });
+          const openingBalance = beforeStTrx.length
+            ? num(beforeStTrx[beforeStTrx.length - 1].computedBalance)
             : 0;
+          const endingBalance = stTrx.length
+            ? num(stTrx[stTrx.length - 1].computedBalance)
+            : openingBalance;
 
           const totalIn = stTrx
             .filter((t) => num(t.amount) > 0)
             .reduce((s, t) => s + num(t.amount), 0);
-
           const totalOut = stTrx
             .filter((t) => num(t.amount) < 0)
             .reduce((s, t) => s + Math.abs(num(t.amount)), 0);
-
-          const endingBalance = stTrx.length
-            ? num(stTrx[stTrx.length - 1].computedBalance)
-            : 0;
 
           // Header
           doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 70, 25);
@@ -1094,7 +1134,6 @@
             (user.fullName || user.username).toUpperCase(),
           );
           doc.text(userNameStr, 40, y);
-
           doc.setFontSize(10);
           doc.setTextColor(100);
           doc.text("Phnom Penh, Cambodia", 40, y + 15);
@@ -1111,11 +1150,16 @@
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
 
+          const accNo =
+            selectedCurrency === "KHR"
+              ? user.accountNumberKHR || "N/A"
+              : user.accountNumber || "N/A";
+
           const details = [
             ["Account Name", userNameStr],
             ["Account Type", "Savings"],
-            ["Account No.", user.accountNumber || "168 001 163 595"],
-            ["Currency", "USD"],
+            ["Account No.", accNo],
+            ["Currency", selectedCurrency],
           ];
 
           details.forEach((item) => {
@@ -1132,10 +1176,10 @@
           doc.text("ACCOUNT SUMMARY", rightColX, summaryY);
 
           const summary = [
-            ["Opening Balance", formatMoneyPDF(openingBalance) + " USD"],
-            ["Total Money In", "+ " + formatMoneyPDF(totalIn) + " USD"],
-            ["Total Money Out", "- " + formatMoneyPDF(totalOut) + " USD"],
-            ["Ending Balance", formatMoneyPDF(endingBalance) + " USD"],
+            ["Opening Balance", formatMoneyPDF(openingBalance) + currSym],
+            ["Total Money In", "+ " + formatMoneyPDF(totalIn) + currSym],
+            ["Total Money Out", "- " + formatMoneyPDF(totalOut) + currSym],
+            ["Ending Balance", formatMoneyPDF(endingBalance) + currSym],
           ];
 
           summary.forEach((item, i) => {
@@ -1147,7 +1191,6 @@
             doc.text(item[1], valueColX, summaryY, { align: "right" });
           });
 
-          // Table Formatting
           const formatDateToPDF = (dateStr) => {
             const d = new Date(dateStr);
             if (isNaN(d)) return ["", ""];
@@ -1177,7 +1220,7 @@
             );
 
             let detailsText = "";
-            if (t.type === "Transfer") {
+            if (t.type === "Transfer" || t.type === "Received") {
               detailsText = isIn
                 ? `RECEIVED FROM ${sender}`
                 : `TRANSFER TO ${receiver}`;
@@ -1191,17 +1234,16 @@
             return [
               ds + "\n" + ts,
               detailsText,
-              isIn ? formatMoneyPDF(amount) + " USD" : "",
-              !isIn ? formatMoneyPDF(Math.abs(amount)) + " USD" : "",
-              formatMoneyPDF(num(t.computedBalance)) + " USD",
+              isIn ? formatMoneyPDF(amount) + currSym : "",
+              !isIn ? formatMoneyPDF(Math.abs(amount)) + currSym : "",
+              formatMoneyPDF(num(t.computedBalance)) + currSym,
             ];
           });
 
-          // Draw AutoTable
           doc.autoTable({
             startY: summaryY + 30,
             margin: { bottom: 65, left: 40, right: 40 },
-            showFoot: "lastPage", // បង្ហាញជួរ Total តែនៅទំព័រចុងក្រោយប៉ុណ្ណោះ
+            showFoot: "lastPage",
             head: [
               [
                 "Date",
@@ -1217,11 +1259,11 @@
                 "",
                 "Total",
                 {
-                  content: formatMoneyPDF(totalIn) + " USD",
+                  content: formatMoneyPDF(totalIn) + currSym,
                   styles: { halign: "right" },
                 },
                 {
-                  content: formatMoneyPDF(totalOut) + " USD",
+                  content: formatMoneyPDF(totalOut) + currSym,
                   styles: { halign: "right" },
                 },
                 "",
@@ -1265,18 +1307,21 @@
             didDrawPage: function () {
               doc.setFontSize(7);
               doc.setTextColor(150);
-
-              const dis1 =
-                "The Ending Balance does not reflect any pending withdrawals or uncleared transactions.";
-              const dis2 =
-                "DISCLAIMER: This document is a digitally generated statement for informational purposes only and does not require a physical signature.";
-              const dis3 =
-                "For an official certified copy, please visit your nearest U-Pay branch.";
-
-              doc.text(dis1, 40, pageHeight - 50);
-              doc.text(dis2, 40, pageHeight - 40);
-              doc.text(dis3, 40, pageHeight - 32);
-
+              doc.text(
+                "The Ending Balance does not reflect any pending withdrawals or uncleared transactions.",
+                40,
+                pageHeight - 50,
+              );
+              doc.text(
+                "DISCLAIMER: This document is a digitally generated statement for informational purposes only and does not require a physical signature.",
+                40,
+                pageHeight - 40,
+              );
+              doc.text(
+                "For an official certified copy, please visit your nearest U-Pay branch.",
+                40,
+                pageHeight - 32,
+              );
               doc.text(
                 "U-Pay Plc. | +855 98 203 203 | info@upay.com",
                 40,
@@ -1291,10 +1336,12 @@
             },
           });
 
-          doc.save(`Statement_${user.username}_${start}.pdf`);
+          doc.save(
+            `Statement_${user.username}_${selectedCurrency}_${start}.pdf`,
+          );
         } catch (e) {
           console.error(e);
-          alert("Error: " + e.message);
+          Swal.fire("Error", "បញ្ហាក្នុងការទាញយក PDF: " + e.message, "error");
         }
       }
 
