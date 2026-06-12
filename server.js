@@ -26,20 +26,13 @@ app.use(
   }),
 );
 
-// កំណត់ទីតាំងផ្ទុករូបភាពដែលគេ Upload ចូលមក (Save ចូល /public/uploads/)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, "public", "uploads");
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, "IMG-" + Date.now() + path.extname(file.originalname));
-  },
+// 🔥 កំណត់ Multer ឱ្យផ្ទុករូបភាពក្នុង Memory ជាបណ្តោះអាសន្ន (ដើម្បីបំប្លែងចូល MongoDB)
+// ដាក់ទំហំរូបមិនឱ្យលើសពី 5MB ដើម្បីកុំឱ្យធ្ងន់ Database ពេក
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
 });
-const upload = multer({ storage: storage });
 
 // ==========================================
 // 🟢 ២. ភ្ជាប់ទៅកាន់ MONGODB ATLAS
@@ -544,18 +537,22 @@ app.post("/api/change-limit", async (req, res) => {
   }
 });
 
-// 🔥 កែសម្រួល៖ មុខងារ Upload រូបភាព (ធានាថាដើរ ១០០% តាម id របស់ Frontend)
+// 🔥 កែសម្រួល៖ មុខងារ Upload រូបភាព (បំប្លែងជា Base64 ទុកក្នុង MongoDB)
 app.post(
   "/api/user/upload-image",
   upload.single("profileImg"),
   async (req, res) => {
     const userId = req.body.id;
+
     if (!req.file)
       return res.json({ success: false, message: "No image uploaded" });
-    const imageUrl = "/uploads/" + req.file.filename;
+
     try {
       if (!userId)
         return res.json({ success: false, message: "Invalid ID Provided" });
+
+      // បំប្លែងរូបភាពពី Buffer ទៅជាកូដ Base64 String
+      const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
       // ស្វែងរកតាម id របស់ Date.now(), តាម username, ឬ _id របស់ MongoDB
       let query = [{ id: userId }, { username: userId }];
@@ -563,9 +560,9 @@ app.post(
 
       const user = await User.findOne({ $or: query });
       if (user) {
-        user.profileImage = imageUrl;
+        user.profileImage = base64Image; // ទុកកូដ Base64 ក្នុង Database
         await user.save();
-        res.json({ success: true, imageUrl: imageUrl });
+        res.json({ success: true, imageUrl: base64Image }); // បោះ Base64 ឱ្យ Frontend បង្ហាញ
       } else {
         res.json({ success: false, message: "User not found" });
       }
@@ -574,6 +571,33 @@ app.post(
     }
   },
 );
+
+// 🔥 កែសម្រួល៖ មុខងារ Submit KYC (បំប្លែងជា Base64 ទុកក្នុង MongoDB)
+app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
+  const username = req.body.username;
+
+  if (!req.file)
+    return res.json({ success: false, message: "No document uploaded" });
+
+  try {
+    // បំប្លែងឯកសារពី Buffer ទៅជាកូដ Base64 String
+    const base64Doc = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const user = await User.findOne({ username: username });
+    if (user) {
+      user.kycStatus = "pending";
+      user.kycDocument = base64Doc; // ទុកឯកសារចូល Database ផ្ទាល់
+      user.kycSubmittedAt = getFormattedDate();
+      await user.save();
+      res.json({
+        success: true,
+        message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
+      });
+    } else res.json({ success: false, message: "User not found" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
 
 // 🔥 កែសម្រួល៖ មុខងារ Submit KYC (ធានាថាដើរ ១០០%)
 app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
