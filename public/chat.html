@@ -26,6 +26,7 @@
         justify-content: center;
         height: 100vh;
         overflow: hidden;
+        -webkit-touch-callout: none; /* ការពារកុំឱ្យលោត Popup Default របស់ទូរស័ព្ទពេលចុចសង្កត់ */
       }
       .app-container {
         width: 100%;
@@ -99,6 +100,8 @@
         border-bottom: 1px solid #f1f5f9;
         cursor: pointer;
         transition: 0.2s;
+        -webkit-user-select: none;
+        user-select: none;
       }
       .chat-item:active {
         background: #f8fafc;
@@ -116,12 +119,12 @@
         position: relative;
         flex-shrink: 0;
         border: 1px solid #e2e8f0;
+        overflow: hidden;
       }
       .chat-avatar img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border-radius: 50%;
       }
       .online-dot {
         position: absolute;
@@ -240,6 +243,9 @@
         display: flex;
         flex-direction: column;
         max-width: 80%;
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
       }
       .msg-wrap.received {
         align-self: flex-start;
@@ -255,6 +261,10 @@
         line-height: 1.4;
         position: relative;
         word-wrap: break-word;
+        transition: 0.2s;
+      }
+      .msg:active {
+        opacity: 0.8;
       }
       .msg-received {
         background: white;
@@ -322,7 +332,7 @@
         align-self: center;
       }
 
-      /* 🔥 BINANCE STYLE - Agent Joined Divider */
+      /* BINANCE STYLE - Agent Joined Divider */
       .agent-joined-divider {
         text-align: center;
         margin: 25px 0 10px 0;
@@ -348,34 +358,6 @@
         height: 1px;
         background: #cbd5e1;
       }
-      .agent-profile {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        background: #e2e8f0;
-        padding: 0 15px;
-        position: relative;
-        z-index: 1;
-      }
-      .agent-profile i {
-        font-size: 1.5rem;
-        color: #f59e0b;
-        background: white;
-        padding: 12px;
-        border-radius: 50%;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 5px;
-      }
-      .agent-profile span {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #1e293b;
-      }
-      .agent-profile small {
-        font-size: 0.65rem;
-        color: #64748b;
-      }
-
       .typing {
         display: flex;
         gap: 4px;
@@ -409,7 +391,6 @@
   </head>
   <body>
     <div class="app-container">
-      <!-- Main Chat List -->
       <div class="chat-header">
         <h2 onclick="window.location.href = 'dashboard.html'">
           <i class="fa-solid fa-chevron-left"></i> U-PAY Chat
@@ -432,14 +413,12 @@
         <i class="fa-solid fa-plus"></i>
       </div>
 
-      <!-- ================= CONVERSATION VIEW ================= -->
       <div class="convo-view" id="convoView">
         <div class="convo-header" id="convoHeader">
           <i
             class="fa-solid fa-chevron-left back-btn"
             onclick="closeChat()"
           ></i>
-          <!-- ជំនួសនៅក្នុង convo-header -->
           <div
             class="chat-avatar"
             style="
@@ -466,9 +445,7 @@
           </div>
         </div>
 
-        <div class="convo-body" id="convoBody">
-          <!-- សារលោតនៅទីនេះ -->
-        </div>
+        <div class="convo-body" id="convoBody"></div>
 
         <div class="convo-input">
           <input
@@ -492,10 +469,65 @@
       let pollInterval = null;
       let lastMsgCount = -1;
 
-      // 🔥 State Control
-      let supportMode = "bot"; // 'bot' ឬ 'agent'
+      // ការរក្សាទុកប្រវត្តិលុប Chat នៅក្នុង LocalStorage
+      let deletedChats =
+        JSON.parse(localStorage.getItem(`deletedChats_${user.username}`)) || {};
+      let deletedChatMsgs =
+        JSON.parse(localStorage.getItem(`deletedChatMsgs_${user.username}`)) ||
+        [];
+
+      // State Control
+      let supportMode = "bot";
       let currentAgentName = null;
       let botGreetingShown = false;
+
+      // មុខងារសួរដើម្បីលុបការសន្ទនាទាំងមូល (Chat Contact)
+      function promptDeleteChat(accNum, name) {
+        if (accNum === "ADMIN") return; // មិនអនុញ្ញាតឱ្យលុប U-PAY Support ទេ
+        Swal.fire({
+          title: "លុបការសន្ទនា?",
+          text: `តើអ្នកពិតជាចង់លុបការសន្ទនាជាមួយ ${name} មែនទេ?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          cancelButtonColor: "#94a3b8",
+          confirmButtonText: "លុប",
+          cancelButtonText: "បោះបង់",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            deletedChats[accNum] = Date.now(); // កត់ត្រាពេលវេលាដែលបានលុប
+            localStorage.setItem(
+              `deletedChats_${user.username}`,
+              JSON.stringify(deletedChats),
+            );
+            fetchContacts();
+          }
+        });
+      }
+
+      // មុខងារសួរដើម្បីលុបសារនីមួយៗ (Message Bubble)
+      function promptDeleteMsg(msgId) {
+        if (currentChatAcc === "ADMIN") return; // មិនអនុញ្ញាតឱ្យលុបសារក្នុង U-PAY Support ទេ
+        Swal.fire({
+          title: "លុបសារ?",
+          text: `តើអ្នកពិតជាចង់លុបសារនេះមែនទេ?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          cancelButtonColor: "#94a3b8",
+          confirmButtonText: "លុប",
+          cancelButtonText: "បោះបង់",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            deletedChatMsgs.push(msgId);
+            localStorage.setItem(
+              `deletedChatMsgs_${user.username}`,
+              JSON.stringify(deletedChatMsgs),
+            );
+            fetchMessages(); // Refresh UI បន្ទាប់ពីលុបរួច
+          }
+        });
+      }
 
       async function fetchContacts() {
         try {
@@ -505,24 +537,27 @@
             body: JSON.stringify({ myAcc: user.accountNumber }),
           });
           const data = await res.json();
-
           const list = document.getElementById("chatList");
           list.innerHTML = "";
 
-          // 🔥 U-PAY Support តែងតែនៅលើគេ (ជាកន្លែងរួមបញ្ចូល Bot នឹង Admin)
+          // U-PAY Support តែងតែនៅលើគេ
           list.innerHTML += `
-                    <div class="chat-item" onclick="openChat('ADMIN', 'U-PAY Support')">
-                        <div class="chat-avatar" style="background: linear-gradient(135deg, #004d40, #00b894); color: white;"><i class="fa-solid fa-headset"></i><div class="online-dot"></div></div>
-                        <div class="chat-info">
-                            <h4 class="chat-name">U-PAY Support <span class="chat-time">24/7</span></h4>
-                            <p class="chat-msg" style="color: #004d40; font-weight: 600;">ជំនួយការអតិថិជន</p>
-                        </div>
-                    </div>`;
+            <div class="chat-item" onclick="openChat('ADMIN', 'U-PAY Support')">
+                <div class="chat-avatar" style="background: linear-gradient(135deg, #004d40, #00b894); color: white; border: none;"><i class="fa-solid fa-headset"></i><div class="online-dot"></div></div>
+                <div class="chat-info">
+                    <h4 class="chat-name">U-PAY Support <span class="chat-time">24/7</span></h4>
+                    <p class="chat-msg" style="color: #004d40; font-weight: 600;">ជំនួយការអតិថិជន</p>
+                </div>
+            </div>`;
 
           if (data.success && data.contacts.length > 0) {
             data.contacts.forEach((c) => {
               if (c.accountNumber === "ADMIN" || c.accountNumber === "UPAY_BOT")
                 return;
+
+              // បើ User បានលុប Chat នេះ ហើយគ្មានសារថ្មីចូលក្រោយពេលលុបទេ នោះវានឹងលាក់
+              const delTime = deletedChats[c.accountNumber];
+              if (delTime && c.timestamp < delTime) return;
 
               let avatarHtml = c.profileImage
                 ? `<img src="${c.profileImage}">`
@@ -532,17 +567,20 @@
                   ? `<span class="unread-badge">${c.unreadCount}</span>`
                   : "";
 
+              // បញ្ចូលមុខងារ oncontextmenu សម្រាប់ Long Press (ចុចសង្កត់យូរ)
               list.innerHTML += `
-                            <div class="chat-item" onclick="openChat('${c.accountNumber}', '${c.name}')">
-                                <div class="chat-avatar" style="border:none;">${avatarHtml}</div>
-                                <div class="chat-info">
-                                    <h4 class="chat-name">${c.name} <span class="chat-time">${c.time.split(",")[1] || c.time}</span></h4>
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <p class="chat-msg">${c.lastMessage}</p>
-                                        ${badgeHtml}
-                                    </div>
-                                </div>
-                            </div>`;
+                <div class="chat-item" 
+                     onclick="openChat('${c.accountNumber}', '${c.name}', '${c.profileImage || ""}')"
+                     oncontextmenu="event.preventDefault(); promptDeleteChat('${c.accountNumber}', '${c.name}'); return false;">
+                    <div class="chat-avatar" style="${c.profileImage ? "background:transparent; border:none;" : ""}">${avatarHtml}</div>
+                    <div class="chat-info">
+                        <h4 class="chat-name">${c.name} <span class="chat-time">${c.time.split(",")[1] || c.time}</span></h4>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <p class="chat-msg">${c.lastMessage}</p>
+                            ${badgeHtml}
+                        </div>
+                    </div>
+                </div>`;
             });
           }
         } catch (err) {}
@@ -565,19 +603,23 @@
               "អ្នកមិនអាចឆាតទៅខ្លួនឯងបានទេ!",
               "warning",
             );
+
           Swal.fire({
             title: "កំពុងស្វែងរក...",
             didOpen: () => Swal.showLoading(),
           });
+
           const res = await fetch("/api/chat/check-user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ accountNumber: accNum }),
           });
           const data = await res.json();
+
           if (data.success) {
             Swal.close();
-            openChat(data.accountNumber, data.name);
+            // Data ត្រលប់មកវិញតែងតែជម្រុះយកគណនីគោល (USD Account) ធ្វើអោយ Chat មានតែមួយ Thread
+            openChat(data.accountNumber, data.name, data.profileImage);
           } else {
             Swal.fire(
               "រកមិនឃើញទេ!",
@@ -588,10 +630,10 @@
         }
       }
 
-      function openChat(accountNumber, name) {
+      function openChat(accountNumber, name, avatarUrl = "") {
         currentChatAcc = accountNumber;
         lastMsgCount = -1;
-        supportMode = "bot"; // Set default
+        supportMode = "bot";
         currentAgentName = null;
         botGreetingShown = false;
 
@@ -600,16 +642,20 @@
         if (accountNumber === "ADMIN") {
           updateHeaderUI();
         } else {
-          document.getElementById("cvAvatar").innerHTML =
-            '<i class="fa-solid fa-user"></i>';
-          document.getElementById("cvAvatar").style.background = "#e0f2f1";
+          // ចាប់យករូប Profile ជាក់ស្តែងរបស់ User
+          let avatarHtml = avatarUrl
+            ? `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+            : `<i class="fa-solid fa-user"></i>`;
+          document.getElementById("cvAvatar").innerHTML = avatarHtml;
+          document.getElementById("cvAvatar").style.background = avatarUrl
+            ? "transparent"
+            : "#e0f2f1";
           document.getElementById("cvAvatar").style.color = "#004d40";
           document.getElementById("cvStatus").innerText = "Online";
         }
 
         document.getElementById("convoBody").innerHTML =
           '<div class="system-notice"><i class="fa-solid fa-lock"></i> ការសន្ទនាត្រូវបានរក្សាសុវត្ថិភាព</div>';
-
         document.getElementById("msgInput").disabled = false;
         document.getElementById("msgInput").placeholder = "វាយសាររបស់អ្នក...";
 
@@ -627,19 +673,25 @@
         fetchContacts();
       }
 
-      function appendMsg(text, type, time = "") {
+      // បន្ថែម oncontextmenu ទៅលើសារនីមួយៗ
+      function appendMsg(id, text, type, time = "") {
         const body = document.getElementById("convoBody");
         const wrap = document.createElement("div");
         wrap.className = `msg-wrap ${type}`;
-        wrap.innerHTML = `<div class="msg msg-${type}">${text}</div><div class="msg-time">${time}</div>`;
+
+        // ដាក់លក្ខខណ្ឌបើមិនមែន Support Chat គឺអាច Long press លុបបាន
+        const onContextAttr =
+          currentChatAcc === "ADMIN"
+            ? ""
+            : `oncontextmenu="event.preventDefault(); promptDeleteMsg('${id}'); return false;"`;
+
+        wrap.innerHTML = `<div class="msg msg-${type}" ${onContextAttr}>${text}</div><div class="msg-time">${time}</div>`;
         body.appendChild(wrap);
         body.scrollTop = body.scrollHeight;
       }
 
-      // 🔥 Function ប្តូរ Header (Bot vs Agent)
       function updateHeaderUI() {
         if (currentChatAcc !== "ADMIN") return;
-
         const nameEl = document.getElementById("cvName");
         const statusEl = document.getElementById("cvStatus");
         const avatarEl = document.getElementById("cvAvatar");
@@ -682,41 +734,34 @@
           let tempAgentName = null;
           let agentJoinedRendered = false;
 
-          // វិភាគប្រវត្តិសារ
           data.history.forEach((m) => {
+            // លាក់សារដែលត្រូវ User បានលុបចោល
+            if (deletedChatMsgs.includes(m.id)) return;
+
             const type =
               m.senderAcc === user.accountNumber ||
               m.senderAcc === user.accountNumberKHR
                 ? "sent"
                 : "received";
             let displayTime = m.time.split(",")[1] || m.time;
-
-            // បង្កើតអញ្ញាតសម្រាប់កត់ចំណាំថាតើត្រូវលោតរូប Bot នៅក្រោមសារឬអត់
             let showBotDividerAfterMsg = false;
 
             if (currentChatAcc === "ADMIN") {
               if (type === "received") {
-                // ១. បើសារនោះផ្ញើដោយ Bot ស្វ័យប្រវត្តិ
                 if (
                   m.adminName === "U-PAY Smart Bot" ||
                   m.adminName === "UPAY_BOT"
                 ) {
                   tempMode = "bot";
                   tempAgentName = null;
-                }
-                // ២. បើសារនោះជាការបញ្ចប់ដោយ Admin
-                else if (m.message.includes("ការសន្ទនាត្រូវបានបញ្ចប់")) {
+                } else if (m.message.includes("ការសន្ទនាត្រូវបានបញ្ចប់")) {
                   tempMode = "bot";
                   tempAgentName = null;
-                  agentJoinedRendered = false; // Reset វិញ ដើម្បីថ្ងៃក្រោយអាចលោតរូបកាស Admin ម្តងទៀត
-                  showBotDividerAfterMsg = true; // ប្រាប់កូដឱ្យលោតរូប Bot ពេលបញ្ចេញសារចប់
-                }
-                // ៣. បើសារនោះផ្ញើដោយ Admin មនុស្សពិត (Customer Service)
-                else {
+                  agentJoinedRendered = false;
+                  showBotDividerAfterMsg = true;
+                } else {
                   tempMode = "agent";
                   tempAgentName = m.adminName || "Admin";
-
-                  // បង្ហាញបន្ទាត់ Agent Joined មុនពេលបង្ហាញសារ
                   if (!agentJoinedRendered) {
                     body.innerHTML += `
                       <div class="agent-joined-divider" style="display: flex; align-items: center; justify-content: center; margin: 25px 0 15px;">
@@ -746,10 +791,8 @@
               }
             }
 
-            // បញ្ចេញសារចូលក្នុងអេក្រង់ (ឧ. "ការសន្ទនាត្រូវបានបញ្ចប់...")
-            appendMsg(m.message, type, displayTime);
+            appendMsg(m.id, m.message, type, displayTime);
 
-            // 🔥 លោតរូប Bot ពណ៌ខៀវ នៅក្រោមសារបញ្ចប់ហ្នឹងភ្លាម!
             if (showBotDividerAfterMsg) {
               body.innerHTML += `
                   <div class="agent-joined-divider" style="display: flex; align-items: center; justify-content: center; margin: 25px 0 15px;">
@@ -806,6 +849,11 @@
         }
       }
 
+      function scrollToBottom() {
+        const body = document.getElementById("convoBody");
+        body.scrollTop = body.scrollHeight;
+      }
+
       async function sendMessage() {
         const input = document.getElementById("msgInput");
         const text = input.value.trim();
@@ -816,9 +864,9 @@
         if (tempG) tempG.remove();
         botGreetingShown = true;
 
-        appendMsg(text, "sent", "Sending...");
+        const fakeId = "MSG-" + Date.now();
+        appendMsg(fakeId, text, "sent", "Sending...");
 
-        // ផ្ញើសារ User ចូលទៅក្នុង Database (បាញ់ទៅ ADMIN ជានិច្ចសម្រាប់បញ្ហា Support)
         await fetch("/api/chat/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -829,7 +877,6 @@
           }),
         });
 
-        // ប្រសិនបើកំពុងឆាតជាមួយ U-PAY Support ក្នុង Mode ជា Bot
         if (currentChatAcc === "ADMIN" && supportMode === "bot") {
           const body = document.getElementById("convoBody");
           const typingId = "typing-" + Date.now();
@@ -848,19 +895,6 @@
               updateHeaderUI();
               reply =
                 "កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ Customer Service... 👨‍💻 សូមមេតា្តរង់ចាំ។";
-
-              await fetch("/api/chat/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  senderAcc: "ADMIN",
-                  receiverAcc: user.accountNumber,
-                  message: reply,
-                  adminName: "UPAY_BOT",
-                }),
-              });
-              fetchMessages();
-              return;
             } else if (lowerText.match(/សួស្តី|hello|hi|សួរស្ដី/)) {
               reply =
                 "សួស្តី! ខ្ញុំគឺ U-PAY Smart Bot 🤖។ តើថ្ងៃនេះលោកអ្នកមានអ្វីឱ្យខ្ញុំជួយ? (ឧ. សួរពី 'កាត', 'វេរលុយ', 'សន្សំ'...)";
@@ -884,7 +918,6 @@
                 "សុំទោស ខ្ញុំកំពុងរៀនសូត្រនៅឡើយ 🤖។ បើបងចង់សួរលម្អិត សូមវាយពាក្យ <b>'Human'</b> ឬ <b>'ភ្នាក់ងារ'</b>។";
             }
 
-            // រក្សាទុកការតបរបស់ Bot
             await fetch("/api/chat/send", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -895,13 +928,13 @@
                 adminName: "UPAY_BOT",
               }),
             });
-
             fetchMessages();
           }, 1000);
         } else {
           fetchMessages();
         }
       }
+
       fetchContacts();
       setInterval(fetchContacts, 3000);
     </script>
