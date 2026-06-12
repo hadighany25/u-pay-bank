@@ -26,7 +26,7 @@
         justify-content: center;
         height: 100vh;
         overflow: hidden;
-        -webkit-touch-callout: none; /* ការពារកុំឱ្យលោត Popup Default របស់ទូរស័ព្ទពេលចុចសង្កត់ */
+        -webkit-touch-callout: none;
       }
       .app-container {
         width: 100%;
@@ -340,24 +340,22 @@
         width: 100%;
         align-self: center;
       }
-      .agent-joined-divider::before {
-        content: "";
-        position: absolute;
-        left: 10%;
-        top: 40%;
-        width: 25%;
-        height: 1px;
-        background: #cbd5e1;
-      }
+      .agent-joined-divider::before,
       .agent-joined-divider::after {
         content: "";
         position: absolute;
-        right: 10%;
         top: 40%;
         width: 25%;
         height: 1px;
         background: #cbd5e1;
       }
+      .agent-joined-divider::before {
+        left: 10%;
+      }
+      .agent-joined-divider::after {
+        right: 10%;
+      }
+
       .typing {
         display: flex;
         gap: 4px;
@@ -469,21 +467,14 @@
       let pollInterval = null;
       let lastMsgCount = -1;
 
-      // ការរក្សាទុកប្រវត្តិលុប Chat នៅក្នុង LocalStorage
-      let deletedChats =
-        JSON.parse(localStorage.getItem(`deletedChats_${user.username}`)) || {};
-      let deletedChatMsgs =
-        JSON.parse(localStorage.getItem(`deletedChatMsgs_${user.username}`)) ||
-        [];
-
       // State Control
       let supportMode = "bot";
       let currentAgentName = null;
       let botGreetingShown = false;
 
-      // មុខងារសួរដើម្បីលុបការសន្ទនាទាំងមូល (Chat Contact)
+      // 🔥 មុខងារសួរដើម្បីលុបការសន្ទនាទាំងមូល
       function promptDeleteChat(accNum, name) {
-        if (accNum === "ADMIN") return; // មិនអនុញ្ញាតឱ្យលុប U-PAY Support ទេ
+        if (accNum === "ADMIN") return;
         Swal.fire({
           title: "លុបការសន្ទនា?",
           text: `តើអ្នកពិតជាចង់លុបការសន្ទនាជាមួយ ${name} មែនទេ?`,
@@ -491,43 +482,68 @@
           showCancelButton: true,
           confirmButtonColor: "#dc2626",
           cancelButtonColor: "#94a3b8",
-          confirmButtonText: "លុប",
+          confirmButtonText: "លុបចេញ",
           cancelButtonText: "បោះបង់",
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
-            deletedChats[accNum] = Date.now(); // កត់ត្រាពេលវេលាដែលបានលុប
-            localStorage.setItem(
-              `deletedChats_${user.username}`,
-              JSON.stringify(deletedChats),
-            );
+            await fetch("/api/chat/delete-convo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                myAcc: user.accountNumber,
+                targetAcc: accNum,
+              }),
+            });
             fetchContacts();
           }
         });
       }
 
-      // មុខងារសួរដើម្បីលុបសារនីមួយៗ (Message Bubble)
-      function promptDeleteMsg(msgId) {
-        if (currentChatAcc === "ADMIN") return; // មិនអនុញ្ញាតឱ្យលុបសារក្នុង U-PAY Support ទេ
+      // 🔥 មុខងារសួរដើម្បីលុបសារនីមួយៗ (លុបខ្លួនឯង ឬលុបទាំងសងខាង)
+      function promptDeleteMsg(msgId, senderAcc) {
+        if (currentChatAcc === "ADMIN") return; // មិនអាចលុបក្នុង U-PAY Support ទេ
+
+        const isMine =
+          senderAcc === user.accountNumber ||
+          senderAcc === user.accountNumberKHR;
+        const partnerName = document.getElementById("cvName").innerText;
+
+        let optionsHtml = `
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+                <button class="swal2-confirm swal2-styled" style="background:#f59e0b; width:100%; margin:0;" onclick="executeDeleteMsg('${msgId}', 'me')">លុបសម្រាប់តែខ្ញុំ</button>
+        `;
+        // បើសារនោះយើងជាអ្នកផ្ញើ អោយជម្រើស "លុបទាំងសងខាង"
+        if (isMine) {
+          optionsHtml += `<button class="swal2-confirm swal2-styled" style="background:#dc2626; width:100%; margin:0;" onclick="executeDeleteMsg('${msgId}', 'everyone')">លុបសម្រាប់ ${partnerName} ដែរ</button>`;
+        }
+        optionsHtml += `</div>`;
+
         Swal.fire({
-          title: "លុបសារ?",
-          text: `តើអ្នកពិតជាចង់លុបសារនេះមែនទេ?`,
-          icon: "warning",
+          title: "ជម្រើសលុបសារ",
+          html: optionsHtml,
+          showConfirmButton: false,
           showCancelButton: true,
-          confirmButtonColor: "#dc2626",
-          cancelButtonColor: "#94a3b8",
-          confirmButtonText: "លុប",
           cancelButtonText: "បោះបង់",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            deletedChatMsgs.push(msgId);
-            localStorage.setItem(
-              `deletedChatMsgs_${user.username}`,
-              JSON.stringify(deletedChatMsgs),
-            );
-            fetchMessages(); // Refresh UI បន្ទាប់ពីលុបរួច
-          }
         });
       }
+
+      // អនុវត្តការលុបសារទៅកាន់ Server
+      window.executeDeleteMsg = async function (msgId, type) {
+        Swal.close();
+        try {
+          await fetch("/api/chat/delete-msg", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              msgId: msgId,
+              deleteType: type,
+              reqAcc: user.accountNumber,
+            }),
+          });
+          lastMsgCount = -1; // Force re-render
+          fetchMessages();
+        } catch (e) {}
+      };
 
       async function fetchContacts() {
         try {
@@ -555,10 +571,6 @@
               if (c.accountNumber === "ADMIN" || c.accountNumber === "UPAY_BOT")
                 return;
 
-              // បើ User បានលុប Chat នេះ ហើយគ្មានសារថ្មីចូលក្រោយពេលលុបទេ នោះវានឹងលាក់
-              const delTime = deletedChats[c.accountNumber];
-              if (delTime && c.timestamp < delTime) return;
-
               let avatarHtml = c.profileImage
                 ? `<img src="${c.profileImage}">`
                 : `<i class="fa-solid fa-user"></i>`;
@@ -567,7 +579,7 @@
                   ? `<span class="unread-badge">${c.unreadCount}</span>`
                   : "";
 
-              // បញ្ចូលមុខងារ oncontextmenu សម្រាប់ Long Press (ចុចសង្កត់យូរ)
+              // ដាក់ oncontextmenu សម្រាប់ Long press
               list.innerHTML += `
                 <div class="chat-item" 
                      onclick="openChat('${c.accountNumber}', '${c.name}', '${c.profileImage || ""}')"
@@ -618,7 +630,6 @@
 
           if (data.success) {
             Swal.close();
-            // Data ត្រលប់មកវិញតែងតែជម្រុះយកគណនីគោល (USD Account) ធ្វើអោយ Chat មានតែមួយ Thread
             openChat(data.accountNumber, data.name, data.profileImage);
           } else {
             Swal.fire(
@@ -642,7 +653,6 @@
         if (accountNumber === "ADMIN") {
           updateHeaderUI();
         } else {
-          // ចាប់យករូប Profile ជាក់ស្តែងរបស់ User
           let avatarHtml = avatarUrl
             ? `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
             : `<i class="fa-solid fa-user"></i>`;
@@ -673,17 +683,17 @@
         fetchContacts();
       }
 
-      // បន្ថែម oncontextmenu ទៅលើសារនីមួយៗ
-      function appendMsg(id, text, type, time = "") {
+      // 🔥 បន្ថែម Parameter 'senderAcc' និង Function Long Press (oncontextmenu)
+      function appendMsg(id, text, type, time, senderAcc) {
         const body = document.getElementById("convoBody");
         const wrap = document.createElement("div");
         wrap.className = `msg-wrap ${type}`;
 
-        // ដាក់លក្ខខណ្ឌបើមិនមែន Support Chat គឺអាច Long press លុបបាន
+        // ដាក់លក្ខខណ្ឌ Long press
         const onContextAttr =
           currentChatAcc === "ADMIN"
             ? ""
-            : `oncontextmenu="event.preventDefault(); promptDeleteMsg('${id}'); return false;"`;
+            : `oncontextmenu="event.preventDefault(); promptDeleteMsg('${id}', '${senderAcc}'); return false;"`;
 
         wrap.innerHTML = `<div class="msg msg-${type}" ${onContextAttr}>${text}</div><div class="msg-time">${time}</div>`;
         body.appendChild(wrap);
@@ -735,9 +745,6 @@
           let agentJoinedRendered = false;
 
           data.history.forEach((m) => {
-            // លាក់សារដែលត្រូវ User បានលុបចោល
-            if (deletedChatMsgs.includes(m.id)) return;
-
             const type =
               m.senderAcc === user.accountNumber ||
               m.senderAcc === user.accountNumberKHR
@@ -791,7 +798,7 @@
               }
             }
 
-            appendMsg(m.id, m.message, type, displayTime);
+            appendMsg(m.id, m.message, type, displayTime, m.senderAcc);
 
             if (showBotDividerAfterMsg) {
               body.innerHTML += `
@@ -865,7 +872,7 @@
         botGreetingShown = true;
 
         const fakeId = "MSG-" + Date.now();
-        appendMsg(fakeId, text, "sent", "Sending...");
+        appendMsg(fakeId, text, "sent", "Sending...", user.accountNumber);
 
         await fetch("/api/chat/send", {
           method: "POST",
