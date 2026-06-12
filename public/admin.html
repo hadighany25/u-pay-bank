@@ -1665,1287 +1665,1331 @@
     </div>
 
     <script>
-      const user = JSON.parse(sessionStorage.getItem("user"));
-      if (!user || user.role !== "admin") window.location.href = "index.html";
+            const user = JSON.parse(sessionStorage.getItem("user"));
+            if (!user || user.role !== "admin") window.location.href = "index.html";
 
-      let myChart = null;
-      let globalUsersData = [];
+            let myChart = null;
+            let globalUsersData = [];
 
-      function toggleSidebar(force) {
-        const sb = document.getElementById("sidebar");
-        const ov = document.querySelector(".overlay");
-        if (force !== undefined) {
-          force ? sb.classList.add("active") : sb.classList.remove("active");
-          force ? ov.classList.add("active") : ov.classList.remove("active");
-        } else {
-          sb.classList.toggle("active");
-          ov.classList.toggle("active");
-        }
-      }
-
-      function showSection(id, btn) {
-        localStorage.setItem("activeSection", id);
-
-        const sections = [
-          "dashboard",
-          "users",
-          "check-trx",
-          "broadcast-history",
-          "fx",
-          "cards",
-          "kyc",
-          "tickets",
-          "live-chat",
-        ];
-
-        sections.forEach((sec) => {
-          const el = document.getElementById("sec-" + sec);
-          if (el) el.style.display = "none";
-        });
-
-        document.getElementById("sec-" + id).style.display = "block";
-
-        if (id === "broadcast-history") loadBroadcastHistory();
-        if (id === "fx") fetchFXRates();
-
-        document
-          .querySelectorAll(".menu-item")
-          .forEach((m) => m.classList.remove("active"));
-        if (btn) btn.classList.add("active");
-      }
-
-      async function loadData() {
-        try {
-          const res = await fetch("/api/users");
-          const users = await res.json();
-          globalUsersData = users;
-          const clients = users.filter((u) => u.role !== "admin");
-
-          renderUsersTable(globalUsersData);
-
-          let cardsHtml = "";
-          let kycHtml = "";
-          let ticketsHtml = "";
-
-          let activeToday = 0,
-            newUsers = 0,
-            totalFunds = 0,
-            totalFixedDeposits = 0;
-          let totalTrxCount = 0,
-            pendingCount = 0,
-            totalWithdrawals = 0;
-          let totalTransfers = 0,
-            frozenCount = 0;
-          let allAdminNotifs = new Set();
-
-          const todayStr = new Date().toISOString().split("T")[0];
-
-          clients.forEach((u) => {
-            if (u.isOnline) activeToday++;
-            if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
-            if (u.isFrozen) frozenCount++;
-
-            totalFunds += Number(u.balance) || 0;
-
-            if (u.deposits && Array.isArray(u.deposits)) {
-              u.deposits.forEach(
-                (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
-              );
+            function toggleSidebar(force) {
+              const sb = document.getElementById("sidebar");
+              const ov = document.querySelector(".overlay");
+              if (force !== undefined) {
+                force ? sb.classList.add("active") : sb.classList.remove("active");
+                force ? ov.classList.add("active") : ov.classList.remove("active");
+              } else {
+                sb.classList.toggle("active");
+                ov.classList.toggle("active");
+              }
             }
 
-            if (u.transactions && Array.isArray(u.transactions)) {
-              totalTrxCount += u.transactions.length;
-              u.transactions.forEach((trx) => {
-                if (trx.status === "Pending") pendingCount++;
-                if (
-                  trx.amount < 0 &&
-                  (trx.type === "Withdrawal" ||
-                    trx.type === "Transfer" ||
-                    trx.trxMethod === "U-PAY Transfer")
-                ) {
-                  totalWithdrawals += Math.abs(Number(trx.amount || 0));
-                }
-                if (
-                  trx.type === "Transfer" ||
-                  trx.trxMethod === "U-PAY Transfer"
-                ) {
-                  totalTransfers++;
-                }
+            function showSection(id, btn) {
+              localStorage.setItem("activeSection", id);
+
+              const sections = [
+                "dashboard",
+                "users",
+                "check-trx",
+                "broadcast-history",
+                "fx",
+                "cards",
+                "kyc",
+                "tickets",
+                "live-chat",
+              ];
+
+              sections.forEach((sec) => {
+                const el = document.getElementById("sec-" + sec);
+                if (el) el.style.display = "none";
               });
+
+              document.getElementById("sec-" + id).style.display = "block";
+
+              if (id === "broadcast-history") loadBroadcastHistory();
+              if (id === "fx") fetchFXRates();
+
+              document
+                .querySelectorAll(".menu-item")
+                .forEach((m) => m.classList.remove("active"));
+              if (btn) btn.classList.add("active");
             }
 
-            if (u.notifications && Array.isArray(u.notifications)) {
-              u.notifications.forEach((n) => {
-                if (n.sender === "admin")
-                  allAdminNotifs.add(n.id || n.title + n.date);
-              });
-            }
+            async function loadData() {
+              try {
+                const res = await fetch("/api/users");
+                const users = await res.json();
+                globalUsersData = users;
+                const clients = users.filter((u) => u.role !== "admin");
 
-            if (u.virtualCards) {
-              u.virtualCards.forEach((c) => {
-                const statusHtml = c.isLocked
-                  ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
-                  : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
-                const btnHtml = c.isLocked
-                  ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
-                  : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
+                renderUsersTable(globalUsersData);
 
-                cardsHtml += `<tr>
-                        <td><div style="font-weight:600;">${u.fullName || u.username}</div></td>
-                        <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${c.number.slice(-4)}</td>
-                        <td>Virtual ${c.type || "Card"}</td>
-                        <td>${statusHtml}</td>
-                        <td style="text-align: right;">${btnHtml}</td>
+                let cardsHtml = "";
+                let kycHtml = "";
+                let ticketsHtml = "";
+
+                let activeToday = 0,
+                  newUsers = 0,
+                  totalFunds = 0,
+                  totalFixedDeposits = 0;
+                let totalTrxCount = 0,
+                  pendingCount = 0,
+                  totalWithdrawals = 0;
+                let totalTransfers = 0,
+                  frozenCount = 0;
+                let allAdminNotifs = new Set();
+
+                const todayStr = new Date().toISOString().split("T")[0];
+
+                clients.forEach((u) => {
+                  if (u.isOnline) activeToday++;
+                  if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
+                  if (u.isFrozen) frozenCount++;
+
+                  totalFunds += Number(u.balance) || 0;
+
+                  if (u.deposits && Array.isArray(u.deposits)) {
+                    u.deposits.forEach(
+                      (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
+                    );
+                  }
+
+                  if (u.transactions && Array.isArray(u.transactions)) {
+                    totalTrxCount += u.transactions.length;
+                    u.transactions.forEach((trx) => {
+                      if (trx.status === "Pending") pendingCount++;
+                      if (
+                        trx.amount < 0 &&
+                        (trx.type === "Withdrawal" ||
+                          trx.type === "Transfer" ||
+                          trx.trxMethod === "U-PAY Transfer")
+                      ) {
+                        totalWithdrawals += Math.abs(Number(trx.amount || 0));
+                      }
+                      if (
+                        trx.type === "Transfer" ||
+                        trx.trxMethod === "U-PAY Transfer"
+                      ) {
+                        totalTransfers++;
+                      }
+                    });
+                  }
+
+                  if (u.notifications && Array.isArray(u.notifications)) {
+                    u.notifications.forEach((n) => {
+                      if (n.sender === "admin")
+                        allAdminNotifs.add(n.id || n.title + n.date);
+                    });
+                  }
+
+                  if (u.virtualCards) {
+                    u.virtualCards.forEach((c) => {
+                      const statusHtml = c.isLocked
+                        ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
+                        : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
+                      const btnHtml = c.isLocked
+                        ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
+                        : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
+
+                      cardsHtml += `<tr>
+                              <td><div style="font-weight:600;">${u.fullName || u.username}</div></td>
+                              <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${c.number.slice(-4)}</td>
+                              <td>Virtual ${c.type || "Card"}</td>
+                              <td>${statusHtml}</td>
+                              <td style="text-align: right;">${btnHtml}</td>
+                          </tr>`;
+                    });
+                  }
+
+                  if (u.kycStatus === "pending") {
+                    kycHtml += `<tr>
+                        <td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td>
+                        <td>Identity Document</td>
+                        <td>${u.kycSubmittedAt || "Recent"}</td>
+                        <td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td>
+                        <td style="text-align: right;">
+                            <button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button>
+                            <button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button>
+                            <button class="btn-action" style="background:var(--primary);" onclick="window.open('${u.kycDocument}', '_blank')" title="View Docs"><i class="fa-solid fa-eye"></i></button>
+                        </td>
                     </tr>`;
-              });
-            }
+                  }
 
-            if (u.kycStatus === "pending") {
-              kycHtml += `<tr>
-                  <td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td>
-                  <td>Identity Document</td>
-                  <td>${u.kycSubmittedAt || "Recent"}</td>
-                  <td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td>
-                  <td style="text-align: right;">
-                      <button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button>
-                      <button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button>
-                      <button class="btn-action" style="background:var(--primary);" onclick="window.open('${u.kycDocument}', '_blank')" title="View Docs"><i class="fa-solid fa-eye"></i></button>
-                  </td>
-              </tr>`;
-            }
+                  // Tickets Rendering (កែសម្រួលថ្មី)
+                  if (u.tickets) {
+                    u.tickets.forEach((t) => {
+                      const statusColor =
+                        t.status === "Open"
+                          ? "color:#d97706; background:#fef3c7;"
+                          : "color:#10b981; background:#dcfce7;";
 
-            // Tickets Rendering (កែសម្រួលថ្មី)
-            if (u.tickets) {
-              u.tickets.forEach((t) => {
-                const statusColor =
-                  t.status === "Open"
-                    ? "color:#d97706; background:#fef3c7;"
-                    : "color:#10b981; background:#dcfce7;";
-
-                ticketsHtml += `<tr>
-                      <td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td>
-                      <td><div style="font-weight:600;">${u.username}</div></td>
-                      <td>${t.subject}</td>
-                      <td style="text-align: center;">
-                        <!-- 🔥 Icon សម្រាប់ចុចមើល Message របស់ User -->
-                        <button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" 
-                                onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message">
-                          <i class="fa-solid fa-eye"></i>
-                        </button>
-                      </td>
-                      <td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td>
-                      <td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td>
-                      <td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td>
-                  </tr>`;
-              });
-            }
-          });
-
-          document.getElementById("cardTableBody").innerHTML =
-            cardsHtml ||
-            '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
-          document.getElementById("kycTableBody").innerHTML =
-            kycHtml ||
-            '<tr><td colspan="5" style="text-align:center; padding: 20px;">No pending KYC requests.</td></tr>';
-          document.getElementById("ticketTableBody").innerHTML =
-            ticketsHtml ||
-            '<tr><td colspan="6" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
-
-          document.getElementById("d-users").innerText = clients.length;
-          document.getElementById("d-active").innerText = activeToday;
-          document.getElementById("d-new-users").innerText = newUsers;
-          document.getElementById("d-balance").innerText =
-            "$" +
-            totalFunds.toLocaleString("en-US", { minimumFractionDigits: 2 });
-          document.getElementById("d-fixed-dep").innerText =
-            "$" +
-            totalFixedDeposits.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-            });
-          document.getElementById("d-trx").innerText = totalTrxCount;
-          document.getElementById("d-pending").innerText = pendingCount;
-          document.getElementById("d-withdrawals").innerText =
-            "$" +
-            totalWithdrawals.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-            });
-          document.getElementById("d-broadcasts").innerText =
-            allAdminNotifs.size;
-          document.getElementById("d-transfers").innerText = totalTransfers;
-          document.getElementById("d-frozen").innerText = frozenCount;
-
-          try {
-            const chartRes = await fetch("/api/admin/stats");
-            const chartData = await chartRes.json();
-            const ctx = document.getElementById("trxChart").getContext("2d");
-            let gradient = ctx.createLinearGradient(0, 0, 0, 350);
-            gradient.addColorStop(0, "rgba(16, 185, 129, 0.4)");
-            gradient.addColorStop(1, "rgba(16, 185, 129, 0.0)");
-
-            if (myChart) {
-              myChart.data.labels = chartData.labels;
-              myChart.data.datasets[0].data = chartData.data;
-              myChart.update();
-            } else {
-              myChart = new Chart(ctx, {
-                type: "line",
-                data: {
-                  labels: chartData.labels,
-                  datasets: [
-                    {
-                      label: "Volume ($)",
-                      data: chartData.data,
-                      borderColor: "#10b981",
-                      backgroundColor: gradient,
-                      borderWidth: 3,
-                      pointBackgroundColor: "#ffffff",
-                      pointBorderColor: "#10b981",
-                      pointRadius: 4,
-                      fill: true,
-                      tension: 0.4,
-                    },
-                  ],
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { display: false } },
-                  scales: {
-                    x: { grid: { display: false } },
-                    y: { border: { display: false } },
-                  },
-                },
-              });
-            }
-          } catch (err) {
-            console.error("Chart Error", err);
-          }
-
-          try {
-            const extraRes = await fetch("/api/admin/dashboard-extra");
-            if (extraRes.ok) {
-              const extraData = await extraRes.json();
-              document.getElementById("d-revenue").innerText =
-                "$" +
-                extraData.revenue.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
+                      ticketsHtml += `<tr>
+                            <td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td>
+                            <td><div style="font-weight:600;">${u.username}</div></td>
+                            <td>${t.subject}</td>
+                            <td style="text-align: center;">
+                              <!-- 🔥 Icon សម្រាប់ចុចមើល Message របស់ User -->
+                              <button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;"
+                                      onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message">
+                                <i class="fa-solid fa-eye"></i>
+                              </button>
+                            </td>
+                            <td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td>
+                            <td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td>
+                            <td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td>
+                        </tr>`;
+                    });
+                  }
                 });
 
-              const activityBox = document.getElementById("activity-feed");
-              const currentDataStr = JSON.stringify(extraData.activities);
-              if (activityBox.dataset.lastData !== currentDataStr) {
-                activityBox.dataset.lastData = currentDataStr;
-                if (
-                  !extraData.activities ||
-                  extraData.activities.length === 0
-                ) {
-                  activityBox.innerHTML = `<div style="text-align:center; padding:20px 0; color:var(--text-muted);">No new activity yet.</div>`;
-                } else {
-                  activityBox.innerHTML = extraData.activities
-                    .map((act) => {
-                      let icon = `<i class="fa-solid fa-bell"></i>`,
-                        bg = "#f1f5f9",
-                        col = "#64748b";
-                      if (
-                        act.type.includes("Payment") ||
-                        act.type.includes("Income")
-                      ) {
-                        icon =
-                          act.amount < 0
-                            ? `<i class="fa-solid fa-arrow-up"></i>`
-                            : `<i class="fa-solid fa-arrow-down"></i>`;
-                        bg = act.amount < 0 ? "#fee2e2" : "#d1fae5";
-                        col = act.amount < 0 ? "#dc2626" : "#059669";
-                      } else if (act.type === "Card Created") {
-                        icon = `<i class="fa-regular fa-credit-card"></i>`;
-                        bg = "#fef3c7";
-                        col = "#d97706";
-                      }
-                      return `<div class="activity-item">
-                                <div class="act-icon" style="background:${bg}; color:${col};">${icon}</div>
-                                <div class="act-text">
-                                  <h5>${act.user} <span style="font-weight:400; color:#64748b;">- ${act.type}</span></h5>
-                                  <p>${act.date}</p>
-                                </div>
-                              </div>`;
-                    })
-                    .join("");
+                document.getElementById("cardTableBody").innerHTML =
+                  cardsHtml ||
+                  '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
+                document.getElementById("kycTableBody").innerHTML =
+                  kycHtml ||
+                  '<tr><td colspan="5" style="text-align:center; padding: 20px;">No pending KYC requests.</td></tr>';
+                document.getElementById("ticketTableBody").innerHTML =
+                  ticketsHtml ||
+                  '<tr><td colspan="6" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
+
+                document.getElementById("d-users").innerText = clients.length;
+                document.getElementById("d-active").innerText = activeToday;
+                document.getElementById("d-new-users").innerText = newUsers;
+                document.getElementById("d-balance").innerText =
+                  "$" +
+                  totalFunds.toLocaleString("en-US", { minimumFractionDigits: 2 });
+                document.getElementById("d-fixed-dep").innerText =
+                  "$" +
+                  totalFixedDeposits.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  });
+                document.getElementById("d-trx").innerText = totalTrxCount;
+                document.getElementById("d-pending").innerText = pendingCount;
+                document.getElementById("d-withdrawals").innerText =
+                  "$" +
+                  totalWithdrawals.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  });
+                document.getElementById("d-broadcasts").innerText =
+                  allAdminNotifs.size;
+                document.getElementById("d-transfers").innerText = totalTransfers;
+                document.getElementById("d-frozen").innerText = frozenCount;
+
+                try {
+                  const chartRes = await fetch("/api/admin/stats");
+                  const chartData = await chartRes.json();
+                  const ctx = document.getElementById("trxChart").getContext("2d");
+                  let gradient = ctx.createLinearGradient(0, 0, 0, 350);
+                  gradient.addColorStop(0, "rgba(16, 185, 129, 0.4)");
+                  gradient.addColorStop(1, "rgba(16, 185, 129, 0.0)");
+
+                  if (myChart) {
+                    myChart.data.labels = chartData.labels;
+                    myChart.data.datasets[0].data = chartData.data;
+                    myChart.update();
+                  } else {
+                    myChart = new Chart(ctx, {
+                      type: "line",
+                      data: {
+                        labels: chartData.labels,
+                        datasets: [
+                          {
+                            label: "Volume ($)",
+                            data: chartData.data,
+                            borderColor: "#10b981",
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            pointBackgroundColor: "#ffffff",
+                            pointBorderColor: "#10b981",
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.4,
+                          },
+                        ],
+                      },
+                      options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                          x: { grid: { display: false } },
+                          y: { border: { display: false } },
+                        },
+                      },
+                    });
+                  }
+                } catch (err) {
+                  console.error("Chart Error", err);
                 }
+
+                try {
+                  const extraRes = await fetch("/api/admin/dashboard-extra");
+                  if (extraRes.ok) {
+                    const extraData = await extraRes.json();
+                    document.getElementById("d-revenue").innerText =
+                      "$" +
+                      extraData.revenue.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                      });
+
+                    const activityBox = document.getElementById("activity-feed");
+                    const currentDataStr = JSON.stringify(extraData.activities);
+                    if (activityBox.dataset.lastData !== currentDataStr) {
+                      activityBox.dataset.lastData = currentDataStr;
+                      if (
+                        !extraData.activities ||
+                        extraData.activities.length === 0
+                      ) {
+                        activityBox.innerHTML = `<div style="text-align:center; padding:20px 0; color:var(--text-muted);">No new activity yet.</div>`;
+                      } else {
+                        activityBox.innerHTML = extraData.activities
+                          .map((act) => {
+                            let icon = `<i class="fa-solid fa-bell"></i>`,
+                              bg = "#f1f5f9",
+                              col = "#64748b";
+                            if (
+                              act.type.includes("Payment") ||
+                              act.type.includes("Income")
+                            ) {
+                              icon =
+                                act.amount < 0
+                                  ? `<i class="fa-solid fa-arrow-up"></i>`
+                                  : `<i class="fa-solid fa-arrow-down"></i>`;
+                              bg = act.amount < 0 ? "#fee2e2" : "#d1fae5";
+                              col = act.amount < 0 ? "#dc2626" : "#059669";
+                            } else if (act.type === "Card Created") {
+                              icon = `<i class="fa-regular fa-credit-card"></i>`;
+                              bg = "#fef3c7";
+                              col = "#d97706";
+                            }
+                            return `<div class="activity-item">
+                                      <div class="act-icon" style="background:${bg}; color:${col};">${icon}</div>
+                                      <div class="act-text">
+                                        <h5>${act.user} <span style="font-weight:400; color:#64748b;">- ${act.type}</span></h5>
+                                        <p>${act.date}</p>
+                                      </div>
+                                    </div>`;
+                          })
+                          .join("");
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.error("Extra Data Error", err);
+                }
+              } catch (e) {
+                console.error("Load Data Error", e);
               }
             }
-          } catch (err) {
-            console.error("Extra Data Error", err);
-          }
-        } catch (e) {
-          console.error("Load Data Error", e);
-        }
-      }
 
-      function renderUsersTable(users) {
-        const tbody = document.querySelector("#userTable tbody");
-        tbody.innerHTML = "";
+            function renderUsersTable(users) {
+              const tbody = document.querySelector("#userTable tbody");
+              tbody.innerHTML = "";
 
-        // ❌ កាលពីមុនខ្ញុំបានដាក់កូដលាក់ Central Bank ត្រង់នេះ ឥឡូវយើងដកចេញ ដើម្បីបង្ហាញវាវិញ
-        const displayUsers = users;
+              // ❌ កាលពីមុនខ្ញុំបានដាក់កូដលាក់ Central Bank ត្រង់នេះ ឥឡូវយើងដកចេញ ដើម្បីបង្ហាញវាវិញ
+              const displayUsers = users;
 
-        displayUsers.forEach((u) => {
-          let accountsHtml = `<div class="acc-stack">
-              <div class="acc-badge usd"><span>$</span> ${u.accountNumber}</div>
-              ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
-          </div>`;
+              displayUsers.forEach((u) => {
+                let accountsHtml = `<div class="acc-stack">
+                    <div class="acc-badge usd"><span>$</span> ${u.accountNumber}</div>
+                    ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
+                </div>`;
 
-          let balanceHtml = `<div class="acc-stack">
-              <div style="color: #0369a1; font-weight: bold;">$${u.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-              <div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
-          </div>`;
+                let balanceHtml = `<div class="acc-stack">
+                    <div style="color: #0369a1; font-weight: bold;">$${u.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                    <div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
+                </div>`;
 
-          // កំណត់សម្គាល់ថាជាគណនី Central Bank (ដើម្បីលាក់ប៊ូតុង Freeze និង Delete កុំអោយច្រឡំលុប)
-          const isCentralBank = u.accountNumber === "888888888";
+                // កំណត់សម្គាល់ថាជាគណនី Central Bank (ដើម្បីលាក់ប៊ូតុង Freeze និង Delete កុំអោយច្រឡំលុប)
+                const isCentralBank = u.accountNumber === "888888888";
 
-          let actionButtonsHtml = "";
-          if (isCentralBank) {
-            actionButtonsHtml = `
-                <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
-            `;
-          } else {
-            actionButtonsHtml = `
-                <button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-                <button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')">
-                  <i class="fa-solid fa-minus"></i>
-                </button>
-                <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>
-            `;
-          }
+                let actionButtonsHtml = "";
+                if (isCentralBank) {
+                  actionButtonsHtml = `
+                      <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
+                  `;
+                } else {
+                  actionButtonsHtml = `
+                      <button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')">
+                        <i class="fa-solid fa-plus"></i>
+                      </button>
+                      <button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')">
+                        <i class="fa-solid fa-minus"></i>
+                      </button>
+                      <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
+                      <button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>
+                  `;
+                }
 
-          const tr = document.createElement("tr");
-          // បើជា Central Bank អោយមានផ្ទៃពណ៌លឿងស្រាលៗដាច់គេ
-          tr.style.backgroundColor = isCentralBank ? "#fef9c3" : "";
+                const tr = document.createElement("tr");
+                // បើជា Central Bank អោយមានផ្ទៃពណ៌លឿងស្រាលៗដាច់គេ
+                tr.style.backgroundColor = isCentralBank ? "#fef9c3" : "";
 
-          tr.innerHTML = `
-            <td>
-              <div style="display: flex; align-items: center; gap: 10px">
-                <img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" />
-                <div>
-                  <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
-                </div>
-              </div>
-            </td>
-            <td>${accountsHtml}</td>
-            <td>${balanceHtml}</td>
-            <td>
-              ${
-                isCentralBank
-                  ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
-                  : `<label class="switch">
-                  <input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)">
-                  <span class="slider"></span>
-                </label>`
+                tr.innerHTML = `
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" />
+                      <div>
+                        <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>${accountsHtml}</td>
+                  <td>${balanceHtml}</td>
+                  <td>
+                    ${
+                      isCentralBank
+                        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
+                        : `<label class="switch">
+                        <input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)">
+                        <span class="slider"></span>
+                      </label>`
+                    }
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                      ${actionButtonsHtml}
+                    </div>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+
+            function openEditModal(id) {
+              const u = globalUsersData.find(
+                (user) => user.id === id || user.username === id,
+              );
+              if (!u) return;
+
+              document.getElementById("editUserId").value = u.id;
+              document.getElementById("editUsername").value = u.username;
+              document.getElementById("editAccNum").value = u.accountNumber;
+              document.getElementById("editAccNumKHR").value =
+                u.accountNumberKHR || "";
+              document.getElementById("editPin").value = u.pin || "";
+              document.getElementById("editPassword").value = "";
+
+              // 🔥 ចំណុចសំខាន់៖ ការពារគាំង Browser ពេល Base64 វែងពេក
+              if (u.profileImage && u.profileImage.startsWith("data:image")) {
+                // បើជារូប Base64 យើងបង្ហាញត្រឹមពាក្យចំណាំបានហើយ
+                document.getElementById("editProfileImg").value =
+                  "Base64 Image Data...";
+              } else {
+                document.getElementById("editProfileImg").value =
+                  u.profileImage || "";
               }
-            </td>
-            <td>
-              <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                ${actionButtonsHtml}
-              </div>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
 
-      function openEditModal(id) {
-        const u = globalUsersData.find((user) => user.id === id);
-        if (!u) return;
-        document.getElementById("editUserId").value = u.id;
-        document.getElementById("editUsername").value = u.username;
-        document.getElementById("editAccNum").value = u.accountNumber;
-        document.getElementById("editAccNumKHR").value =
-          u.accountNumberKHR || "";
-        document.getElementById("editPin").value = u.pin || "";
-        document.getElementById("editProfileImg").value = u.profileImage || "";
-        document.getElementById("e-preview").src =
-          u.profileImage || "images/logo.png";
-        document.getElementById("editPassword").value = "";
+              document.getElementById("e-preview").src =
+                u.profileImage || "images/logo.png";
 
-        document
-          .getElementById("editUserModal")
-          .style.setProperty("display", "flex", "important");
-      }
+              document
+                .getElementById("editUserModal")
+                .style.setProperty("display", "flex", "important");
+            }
 
-      function closeModal(modalId) {
-        document
-          .getElementById(modalId)
-          .style.setProperty("display", "none", "important");
-      }
+            function closeModal(modalId) {
+              document
+                .getElementById(modalId)
+                .style.setProperty("display", "none", "important");
+            }
 
-      async function saveUserEdit() {
+            async function saveUserEdit() {
         const id = document.getElementById("editUserId").value;
+        const profileImgValue = document.getElementById("editProfileImg").value;
+
+        // ១. បង្កើត Object ទិន្នន័យ (ដោយមិនទាន់ដាក់ profileImage បញ្ចូលទេ)
         const bodyData = {
           id: id,
           username: document.getElementById("editUsername").value,
           accountNumber: document.getElementById("editAccNum").value,
           accountNumberKHR: document.getElementById("editAccNumKHR").value,
           pin: document.getElementById("editPin").value,
-          profileImage: document.getElementById("editProfileImg").value,
           password: document.getElementById("editPassword").value,
         };
 
-        const res = await fetch("/api/admin/edit-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bodyData),
-        });
-        const data = await res.json();
+        // 🔥 ២. លក្ខខណ្ឌការពារដ៏សំខាន់៖
+        // បើ Input មិនមែនជាពាក្យ "Base64 Image Data..." ទេ (មានន័យថា Admin បានលុប ឬដូរ Link ថ្មី) ទើបយើងបញ្ជូនវាទៅ Server
+        if (profileImgValue !== "Base64 Image Data...") {
+          bodyData.profileImage = profileImgValue;
+        }
 
-        if (data.success) {
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: "User Updated",
-            showConfirmButton: false,
-            timer: 1500,
+        // ៣. បញ្ជូនទិន្នន័យទៅកាន់ Server
+        try {
+          const res = await fetch("/api/admin/edit-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyData),
           });
-          closeModal("editUserModal");
-          loadData();
-        } else {
-          // 🔥 ថ្មី: បង្ហាញសារ Error ពណ៌ក្រហមពេលជាន់លេខគណនី!
-          Swal.fire("បរាជ័យ!", data.message, "error");
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire("ជោគជ័យ!", "ព័ត៌មានត្រូវបានកែប្រែរួចរាល់។", "success");
+            closeModal("editUserModal");
+
+            // Refresh ទិន្នន័យក្នុង Admin Dashboard វិញ
+            if (typeof fetchAllData === "function") fetchAllData();
+          } else {
+            Swal.fire("បរាជ័យ!", data.message || "មិនអាចកែប្រែបានទេ!", "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ!", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
 
-      function openAdjustBalance(username, type) {
-        const title =
-          type === "add" ? "ដាក់ប្រាក់ (Add Money)" : "ដកប្រាក់ (Deduct Money)";
-        const confirmBtnColor = type === "add" ? "#10b981" : "#ef4444";
-        const icon = type === "add" ? "plus-circle" : "minus-circle";
+              const res = await fetch("/api/admin/edit-user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bodyData),
+              });
+              const data = await res.json();
 
-        Swal.fire({
-          title: `<i class="fa-solid fa-${icon}"></i> ${title}`,
-          html: `
-            <div style="text-align: left; font-family: 'Kantumruy Pro';">
-                <p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p>
-                
-                <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label>
-                <select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;">
-                    <option value="USD">គណនី USD ($)</option>
-                    <option value="KHR">គណនី KHR (៛)</option>
-                </select>
+              if (data.success) {
+                Swal.fire({
+                  toast: true,
+                  position: "top-end",
+                  icon: "success",
+                  title: "User Updated",
+                  showConfirmButton: false,
+                  timer: 1500,
+                });
+                closeModal("editUserModal");
+                loadData();
+              } else {
+                // 🔥 ថ្មី: បង្ហាញសារ Error ពណ៌ក្រហមពេលជាន់លេខគណនី!
+                Swal.fire("បរាជ័យ!", data.message, "error");
+              }
 
-                <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label>
-                <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;">
+
+            function openAdjustBalance(username, type) {
+              const title =
+                type === "add" ? "ដាក់ប្រាក់ (Add Money)" : "ដកប្រាក់ (Deduct Money)";
+              const confirmBtnColor = type === "add" ? "#10b981" : "#ef4444";
+              const icon = type === "add" ? "plus-circle" : "minus-circle";
+
+              Swal.fire({
+                title: `<i class="fa-solid fa-${icon}"></i> ${title}`,
+                html: `
+                  <div style="text-align: left; font-family: 'Kantumruy Pro';">
+                      <p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p>
+
+                      <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label>
+                      <select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;">
+                          <option value="USD">គណនី USD ($)</option>
+                          <option value="KHR">គណនី KHR (៛)</option>
+                      </select>
+
+                      <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label>
+                      <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;">
+                  </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: confirmBtnColor,
+                cancelButtonColor: "#64748b",
+                confirmButtonText: "បញ្ជាក់ (Confirm)",
+                preConfirm: () => {
+                  const currency = document.getElementById("adjCurrency").value;
+                  const amount = document.getElementById("adjAmount").value;
+                  if (!amount || amount <= 0) {
+                    Swal.showValidationMessage(
+                      "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
+                    );
+                  }
+                  return { currency, amount };
+                },
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  Swal.fire({
+                    title: "កំពុងដំណើរការ...",
+                    didOpen: () => Swal.showLoading(),
+                  });
+                  try {
+                    const res = await fetch("/api/admin/adjust-balance", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        username: username,
+                        amount: result.value.amount,
+                        currency: result.value.currency,
+                        type: type,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      Swal.fire("ជោគជ័យ!", data.message, "success");
+                      loadData();
+                    } else {
+                      Swal.fire("បរាជ័យ", data.message, "error");
+                    }
+                  } catch (error) {
+                    Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+                  }
+                }
+              });
+            }
+
+            function deleteUser(id) {
+              Swal.fire({
+                title: "Delete User?",
+                text: "This action cannot be undone.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#ef4444",
+                confirmButtonText: "Delete",
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  const res = await fetch("/api/admin/delete-user", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id }),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    Swal.fire("Deleted!", "", "success");
+                    loadData();
+                  }
+                }
+              });
+            }
+
+            async function toggleFreeze(id, isFrozen) {
+              await fetch("/api/admin/toggle-freeze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, isFrozen }),
+              });
+            }
+
+            // ==========================================
+            // 🔥 ACTIONS FOR NEW FEATURES (Cards, KYC, Tickets)
+            // ==========================================
+
+            async function fetchFXRates() {
+              const res = await fetch("/api/fx/rates");
+              const data = await res.json();
+              if (data.success && data.rates) {
+                document.getElementById("fxBuy").value = data.rates.usdToKhrBuy;
+                document.getElementById("fxSell").value = data.rates.usdToKhrSell;
+              }
+            }
+
+            async function updateFX() {
+              const buy = document.getElementById("fxBuy").value;
+              const sell = document.getElementById("fxSell").value;
+              const res = await fetch("/api/admin/fx/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ buy, sell }),
+              });
+              const data = await res.json();
+              if (data.success)
+                Swal.fire({
+                  toast: true,
+                  position: "top-end",
+                  icon: "success",
+                  title: "Exchange Rates Updated!",
+                  showConfirmButton: false,
+                  timer: 1500,
+                });
+            }
+
+            async function toggleCardLock(username, cardId, isCurrentlyLocked) {
+              const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
+              const confirm = await Swal.fire({
+                title: `${actionText} Card?`,
+                icon: "warning",
+                showCancelButton: true,
+              });
+              if (confirm.isConfirmed) {
+                const res = await fetch("/api/card/toggle-lock", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    username,
+                    cardId,
+                    isLocked: !isCurrentlyLocked,
+                  }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  Swal.fire(
+                    "Success",
+                    `Card has been ${isCurrentlyLocked ? "unblocked" : "frozen"}.`,
+                    "success",
+                  );
+                  loadData();
+                }
+              }
+            }
+
+            async function kycAction(username, action) {
+              const actionText = action === "approved" ? "Approve" : "Reject";
+              const confirm = await Swal.fire({
+                title: `${actionText} KYC?`,
+                icon: "question",
+                showCancelButton: true,
+              });
+              if (confirm.isConfirmed) {
+                const res = await fetch("/api/admin/kyc-action", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ username, action }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  Swal.fire("Success", `KYC ${actionText}d.`, "success");
+                  loadData();
+                }
+              }
+            }
+
+            async function replyTicket(username, ticketId) {
+              const { value: text } = await Swal.fire({
+                title: "Reply to Ticket",
+                input: "textarea",
+                inputPlaceholder: "Type your reply here...",
+                showCancelButton: true,
+              });
+              if (text) {
+                const res = await fetch("/api/admin/ticket-reply", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ username, ticketId, replyMessage: text }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  Swal.fire("Success", "Reply sent to user.", "success");
+                  loadData();
+                }
+              }
+            }
+            async function searchTrx() {
+              const id = document.getElementById("searchTrxId").value.trim();
+              if (!id) return;
+              const res = await fetch(`/api/admin/transaction/${id}`);
+              const data = await res.json();
+              const box = document.getElementById("trxResult");
+
+              if (data.success) {
+                const t = data.transaction;
+                const isPending = t.status === "Pending";
+
+                // 👁️ ចុច F12 រួចមើលក្នុង Console ដើម្បីដឹងថា Server បោះ Key អីមកឱ្យពិតប្រាកដ!
+                console.log("ទិន្នន័យ Transaction ជាក់ស្តែង៖", t);
+
+                // 💡 ដំណោះស្រាយទាញទិន្នន័យ៖ ស្វែងរកគ្រប់លទ្ធភាព Key ដែលប្អូនអាចនឹងប្រើក្នុង Server.js
+                let sName =
+                  t.senderName || t.sender || t.fromName || t.senderPhone || "System";
+                let sAcc =
+                  t.senderAcc ||
+                  t.senderAccount ||
+                  t.fromAccount ||
+                  t.accountNumber ||
+                  "N/A";
+
+                let rName =
+                  t.receiverName ||
+                  t.receiver ||
+                  t.toName ||
+                  t.receiverPhone ||
+                  "System";
+                let rAcc = t.receiverAcc || t.receiverAccount || t.toAccount || "N/A";
+
+                // បើឈ្មោះជា System ដាក់ System Wallet
+                if (
+                  sName.toLowerCase().includes("system") ||
+                  t.trxMethod === "System Deposit"
+                ) {
+                  sAcc = "SYSTEM-WALLET";
+                }
+                if (rName.toLowerCase().includes("system")) {
+                  rAcc = "SYSTEM-WALLET";
+                }
+
+                box.style.display = "block";
+                box.innerHTML = `
+            <div class="trx-grid">
+                <div class="trx-box">
+                    <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
+                    <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
+                    <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
+                    <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.senderDevice || t.device || "Mobile App"}</span></div>
+                    <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.senderIp || t.ip || "127.0.0.1"}</span></div>
+                    <div class="t-row"><span class="t-label">Location</span> <span class="t-value">${t.senderLocation || t.location || "Unknown"}</span></div>
+                    <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.senderType || t.accountType || "Personal"}</span></div>
+                    <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value">${t.senderKyc || t.kycStatus || "Verified"}</span></div>
+                    <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "N/A"}</span></div>
+                </div>
+
+                <div class="trx-box">
+                    <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
+                    <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
+                    <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
+                    <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.receiverDevice || t.device || "Mobile App"}</span></div>
+                    <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.receiverIp || t.ip || "127.10.1.1"}</span></div>
+                    <div class="t-row"><span class="t-label">Location</span> <span class="t-value">${t.receiverLocation || t.location || "Unknown"}</span></div>
+                    <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || t.accountType || "Personal"}</span></div>
+                    <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value">${t.receiverKyc || t.kycStatus || "Verified"}</span></div>
+                    <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "N/A"}</span></div>
+                </div>
+
+                <div class="trx-box full">
+                    <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
+                    <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
+                    <div class="t-row"><span class="t-label">Payment Method</span> <span class="t-value">${t.trxMethod || t.method || "Wallet"}</span></div>
+                    <div class="t-row"><span class="t-label">Amount</span> <span class="t-value" style="font-size: 1.1rem; font-weight: bold; color: #10b981;">$${(t.amount || 0).toFixed(2)}</span></div>
+                    <div class="t-row"><span class="t-label">Status</span> <span class="t-value" style="color: ${isPending ? "#d97706" : t.status === "Failed" || t.status === "Rejected" ? "#ef4444" : "#10b981"}; font-weight: bold;">${t.status || "Completed"}</span></div>
+                    <div class="t-row"><span class="t-label">Network Fee</span> <span class="t-value">$${(t.fee || 0).toFixed(2)}</span></div>
+                    <div class="t-row"><span class="t-label">System Profit</span> <span class="t-value" style="color: #6366f1;">$${(t.profit || t.commission || 0).toFixed(2)}</span></div>
+                    <div class="t-row"><span class="t-label">Reference ID</span> <span class="t-value" style="font-family: monospace;">${t.refId || t.id || "N/A"}</span></div>
+                    <div class="t-row"><span class="t-label">Blockchain/Hash</span> <span class="t-value hash" style="font-family: monospace;">${t.hash || "N/A"}</span></div>
+                    <div class="t-row"><span class="t-label">Date & Time</span> <span class="t-value">${t.date || t.createdAt || "N/A"}</span></div>
+                    <div class="t-row"><span class="t-label">Tags</span> <span class="t-value">${(t.tags || []).join(", ") || "None"}</span></div>
+                </div>
             </div>
-          `,
-          showCancelButton: true,
-          confirmButtonColor: confirmBtnColor,
-          cancelButtonColor: "#64748b",
-          confirmButtonText: "បញ្ជាក់ (Confirm)",
-          preConfirm: () => {
-            const currency = document.getElementById("adjCurrency").value;
-            const amount = document.getElementById("adjAmount").value;
-            if (!amount || amount <= 0) {
-              Swal.showValidationMessage(
-                "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
+            ${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve</button><button class="btn-action-lg btn-refund" onclick="handleAdminAction('refund', '${t.refId || t.id}')"><i class="fa-solid fa-rotate-left"></i> Reject & Refund</button></div>` : ""}
+          `;
+              } else {
+                box.style.display = "none";
+                Swal.fire("Not Found", "Invalid Reference ID or Hash Code.", "error");
+              }
+            }
+            function filterUsers() {
+              const term = document.getElementById("searchBox").value.toLowerCase();
+              const rows = document.querySelectorAll("#userTable tbody tr");
+              rows.forEach(
+                (r) =>
+                  (r.style.display = r.innerText.toLowerCase().includes(term)
+                    ? ""
+                    : "none"),
               );
             }
-            return { currency, amount };
-          },
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            Swal.fire({
-              title: "កំពុងដំណើរការ...",
-              didOpen: () => Swal.showLoading(),
+
+            function logout() {
+              sessionStorage.removeItem("user");
+              window.location.href = "index.html";
+            }
+
+            async function sendBroadcast() {
+              const { value: formValues } = await Swal.fire({
+                title:
+                  '<i class="fa-solid fa-bullhorn" style="color:var(--secondary); font-size: 2.5rem; margin-bottom: 10px;"></i><br>Send Broadcast',
+                html:
+                  '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Notification Title</div>' +
+                  '<input id="swal-title" class="swal2-input" placeholder="e.g., System Maintenance" style="width: 100%; box-sizing: border-box; margin: 0 0 20px 0; border-radius: 10px;">' +
+                  '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Message Content</div>' +
+                  '<textarea id="swal-msg" class="swal2-textarea" placeholder="Type your message here..." style="width: 100%; box-sizing: border-box; margin: 0; border-radius: 10px;"></textarea>',
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: "Blast to All Users",
+                confirmButtonColor: "#10b981",
+                preConfirm: () => {
+                  const title = document.getElementById("swal-title").value;
+                  const msg = document.getElementById("swal-msg").value;
+                  if (!title || !msg) {
+                    Swal.showValidationMessage("Title and Message are required!");
+                    return false;
+                  }
+                  return { title: title, message: msg };
+                },
+              });
+
+              if (formValues && formValues.title && formValues.message) {
+                const payload = { ...formValues, sender: "admin" };
+                try {
+                  const res = await fetch("/api/admin/broadcast", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    Swal.fire(
+                      "Sent!",
+                      `Broadcast delivered to ${data.count} accounts.`,
+                      "success",
+                    );
+                    loadData();
+                  } else {
+                    Swal.fire("Error!", "Failed to send broadcast.", "error");
+                  }
+                } catch (error) {
+                  Swal.fire("Error!", "Connection issue.", "error");
+                }
+              }
+            }
+
+            async function loadBroadcastHistory() {
+              const res = await fetch("/api/users");
+              const users = await res.json();
+              let allNotifications = [];
+              users.forEach((u) => {
+                if (u.notifications) {
+                  allNotifications.push(
+                    ...u.notifications.filter((n) => n.sender === "admin"),
+                  );
+                }
+              });
+              const uniqueNotifications = Array.from(
+                new Map(allNotifications.map((n) => [n.id, n])).values(),
+              );
+              const list = document.getElementById("broadcastList");
+              list.innerHTML = "";
+
+              uniqueNotifications
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .forEach((n) => {
+                  list.innerHTML += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date}</td>
+                        <td style="font-weight:600; color:var(--text-main);">${n.title}</td>
+                        <td style="color:var(--text-muted); font-size: 0.9rem;">${n.message}</td>
+                        <td style="text-align: right;">
+                            <button onclick="deleteBroadcast('${n.id}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall</button>
+                        </td>
+                    </tr>`;
+                });
+            }
+
+            async function deleteBroadcast(notifId) {
+              const result = await Swal.fire({
+                title: "Recall Broadcast?",
+                text: "This will delete the message from all users' inboxes.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#ef4444",
+                confirmButtonText: "Recall",
+              });
+              if (result.isConfirmed) {
+                const res = await fetch("/api/admin/delete-broadcast", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ notifId }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                  Swal.fire("Recalled", "Message removed.", "success");
+                  loadBroadcastHistory();
+                }
+              }
+            }
+
+            window.addEventListener("DOMContentLoaded", () => {
+              const savedSection = localStorage.getItem("activeSection");
+              if (savedSection) {
+                const menuItems = document.querySelectorAll(".menu-item");
+                let targetBtn = null;
+                menuItems.forEach((item) => {
+                  if (
+                    item.getAttribute("onclick") &&
+                    item.getAttribute("onclick").includes(`'${savedSection}'`)
+                  ) {
+                    targetBtn = item;
+                  }
+                });
+                showSection(savedSection, targetBtn);
+              }
             });
-            try {
-              const res = await fetch("/api/admin/adjust-balance", {
+
+            async function handleAdminAction(action, refId) {
+              const confirm = await Swal.fire({
+                title: `Confirm ${action.toUpperCase()}?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: action === "approve" ? "#10b981" : "#ef4444",
+                confirmButtonText: "Yes, Proceed",
+              });
+              if (confirm.isConfirmed) {
+                const res = await fetch(`/api/admin/${action}-transaction`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ refId }),
+                });
+                const result = await res.json();
+                if (result.success) {
+                  Swal.fire("Success", result.message, "success");
+                  searchTrx();
+                } else {
+                  Swal.fire("Error", result.message, "error");
+                }
+              }
+            }
+
+            // ==========================================
+            // 💬 ADMIN LIVE CHAT LOGIC
+            // ==========================================
+            let adminCurrentChat = null;
+            let adminChatInterval = null;
+
+            async function fetchAdminContacts() {
+              try {
+                const res = await fetch("/api/chat/contacts", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ myAcc: "ADMIN" }),
+                });
+                const data = await res.json();
+
+                const list = document.getElementById("adminContactList");
+                if (data.success && data.contacts.length > 0) {
+                  list.innerHTML = data.contacts
+                    .map(
+                      (c) => `
+                            <div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" style="display:flex; align-items:center; gap:12px; padding:15px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); border: 1px solid ${adminCurrentChat === c.accountNumber ? "#3b82f6" : "transparent"};">
+                                <div style="width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div>
+                                <div style="flex:1; overflow:hidden;">
+                                    <h4 style="margin:0; font-size:0.95rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
+                                    <p style="margin:3px 0 0 0; font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastMessage}</p>
+                                </div>
+                                ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
+                            </div>
+                        `,
+                    )
+                    .join("");
+                } else {
+                  list.innerHTML =
+                    '<div style="text-align:center; padding:20px; color:var(--text-muted);">គ្មានសារចូលទេ</div>';
+                }
+              } catch (e) {}
+            }
+
+            function openAdminChat(accNum, name) {
+              adminCurrentChat = accNum;
+              document.getElementById("adminChatHeader").innerHTML =
+                `<h3 style="margin: 0; color: var(--text-main);"><i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} (${accNum})</h3><button onclick="endAdminChat()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">បញ្ចប់ការសន្ទនា (End Chat)</button>`;
+              document.getElementById("adminChatInputBox").style.display = "flex";
+
+              fetchAdminMessages();
+              if (adminChatInterval) clearInterval(adminChatInterval);
+              adminChatInterval = setInterval(fetchAdminMessages, 2000);
+            }
+
+            let adminLastMsgCount = 0;
+            async function fetchAdminMessages() {
+              if (!adminCurrentChat) return;
+              const res = await fetch("/api/chat/history", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  username: username,
-                  amount: result.value.amount,
-                  currency: result.value.currency,
-                  type: type,
+                  user1Acc: "ADMIN",
+                  user2Acc: adminCurrentChat,
                 }),
               });
               const data = await res.json();
-              if (data.success) {
-                Swal.fire("ជោគជ័យ!", data.message, "success");
-                loadData();
-              } else {
-                Swal.fire("បរាជ័យ", data.message, "error");
-              }
-            } catch (error) {
-              Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-            }
-          }
-        });
-      }
 
-      function deleteUser(id) {
-        Swal.fire({
-          title: "Delete User?",
-          text: "This action cannot be undone.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#ef4444",
-          confirmButtonText: "Delete",
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            const res = await fetch("/api/admin/delete-user", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id }),
-            });
-            const data = await res.json();
-            if (data.success) {
-              Swal.fire("Deleted!", "", "success");
-              loadData();
-            }
-          }
-        });
-      }
-
-      async function toggleFreeze(id, isFrozen) {
-        await fetch("/api/admin/toggle-freeze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, isFrozen }),
-        });
-      }
-
-      // ==========================================
-      // 🔥 ACTIONS FOR NEW FEATURES (Cards, KYC, Tickets)
-      // ==========================================
-
-      async function fetchFXRates() {
-        const res = await fetch("/api/fx/rates");
-        const data = await res.json();
-        if (data.success && data.rates) {
-          document.getElementById("fxBuy").value = data.rates.usdToKhrBuy;
-          document.getElementById("fxSell").value = data.rates.usdToKhrSell;
-        }
-      }
-
-      async function updateFX() {
-        const buy = document.getElementById("fxBuy").value;
-        const sell = document.getElementById("fxSell").value;
-        const res = await fetch("/api/admin/fx/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ buy, sell }),
-        });
-        const data = await res.json();
-        if (data.success)
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: "Exchange Rates Updated!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-      }
-
-      async function toggleCardLock(username, cardId, isCurrentlyLocked) {
-        const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
-        const confirm = await Swal.fire({
-          title: `${actionText} Card?`,
-          icon: "warning",
-          showCancelButton: true,
-        });
-        if (confirm.isConfirmed) {
-          const res = await fetch("/api/card/toggle-lock", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username,
-              cardId,
-              isLocked: !isCurrentlyLocked,
-            }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            Swal.fire(
-              "Success",
-              `Card has been ${isCurrentlyLocked ? "unblocked" : "frozen"}.`,
-              "success",
-            );
-            loadData();
-          }
-        }
-      }
-
-      async function kycAction(username, action) {
-        const actionText = action === "approved" ? "Approve" : "Reject";
-        const confirm = await Swal.fire({
-          title: `${actionText} KYC?`,
-          icon: "question",
-          showCancelButton: true,
-        });
-        if (confirm.isConfirmed) {
-          const res = await fetch("/api/admin/kyc-action", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, action }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            Swal.fire("Success", `KYC ${actionText}d.`, "success");
-            loadData();
-          }
-        }
-      }
-
-      async function replyTicket(username, ticketId) {
-        const { value: text } = await Swal.fire({
-          title: "Reply to Ticket",
-          input: "textarea",
-          inputPlaceholder: "Type your reply here...",
-          showCancelButton: true,
-        });
-        if (text) {
-          const res = await fetch("/api/admin/ticket-reply", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, ticketId, replyMessage: text }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            Swal.fire("Success", "Reply sent to user.", "success");
-            loadData();
-          }
-        }
-      }
-      async function searchTrx() {
-        const id = document.getElementById("searchTrxId").value.trim();
-        if (!id) return;
-        const res = await fetch(`/api/admin/transaction/${id}`);
-        const data = await res.json();
-        const box = document.getElementById("trxResult");
-
-        if (data.success) {
-          const t = data.transaction;
-          const isPending = t.status === "Pending";
-
-          // 👁️ ចុច F12 រួចមើលក្នុង Console ដើម្បីដឹងថា Server បោះ Key អីមកឱ្យពិតប្រាកដ!
-          console.log("ទិន្នន័យ Transaction ជាក់ស្តែង៖", t);
-
-          // 💡 ដំណោះស្រាយទាញទិន្នន័យ៖ ស្វែងរកគ្រប់លទ្ធភាព Key ដែលប្អូនអាចនឹងប្រើក្នុង Server.js
-          let sName =
-            t.senderName || t.sender || t.fromName || t.senderPhone || "System";
-          let sAcc =
-            t.senderAcc ||
-            t.senderAccount ||
-            t.fromAccount ||
-            t.accountNumber ||
-            "N/A";
-
-          let rName =
-            t.receiverName ||
-            t.receiver ||
-            t.toName ||
-            t.receiverPhone ||
-            "System";
-          let rAcc = t.receiverAcc || t.receiverAccount || t.toAccount || "N/A";
-
-          // បើឈ្មោះជា System ដាក់ System Wallet
-          if (
-            sName.toLowerCase().includes("system") ||
-            t.trxMethod === "System Deposit"
-          ) {
-            sAcc = "SYSTEM-WALLET";
-          }
-          if (rName.toLowerCase().includes("system")) {
-            rAcc = "SYSTEM-WALLET";
-          }
-
-          box.style.display = "block";
-          box.innerHTML = `
-      <div class="trx-grid">
-          <div class="trx-box">
-              <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
-              <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
-              <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
-              <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.senderDevice || t.device || "Mobile App"}</span></div>
-              <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.senderIp || t.ip || "127.0.0.1"}</span></div>
-              <div class="t-row"><span class="t-label">Location</span> <span class="t-value">${t.senderLocation || t.location || "Unknown"}</span></div>         
-              <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.senderType || t.accountType || "Personal"}</span></div>
-              <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value">${t.senderKyc || t.kycStatus || "Verified"}</span></div>
-              <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "N/A"}</span></div>
-          </div>
-
-          <div class="trx-box">
-              <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
-              <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
-              <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
-              <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.receiverDevice || t.device || "Mobile App"}</span></div>
-              <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.receiverIp || t.ip || "127.10.1.1"}</span></div>
-              <div class="t-row"><span class="t-label">Location</span> <span class="t-value">${t.receiverLocation || t.location || "Unknown"}</span></div>
-              <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || t.accountType || "Personal"}</span></div>
-              <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value">${t.receiverKyc || t.kycStatus || "Verified"}</span></div>
-              <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "N/A"}</span></div>
-          </div>
-
-          <div class="trx-box full">
-              <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
-              <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
-              <div class="t-row"><span class="t-label">Payment Method</span> <span class="t-value">${t.trxMethod || t.method || "Wallet"}</span></div>
-              <div class="t-row"><span class="t-label">Amount</span> <span class="t-value" style="font-size: 1.1rem; font-weight: bold; color: #10b981;">$${(t.amount || 0).toFixed(2)}</span></div>
-              <div class="t-row"><span class="t-label">Status</span> <span class="t-value" style="color: ${isPending ? "#d97706" : t.status === "Failed" || t.status === "Rejected" ? "#ef4444" : "#10b981"}; font-weight: bold;">${t.status || "Completed"}</span></div>
-              <div class="t-row"><span class="t-label">Network Fee</span> <span class="t-value">$${(t.fee || 0).toFixed(2)}</span></div>
-              <div class="t-row"><span class="t-label">System Profit</span> <span class="t-value" style="color: #6366f1;">$${(t.profit || t.commission || 0).toFixed(2)}</span></div>
-              <div class="t-row"><span class="t-label">Reference ID</span> <span class="t-value" style="font-family: monospace;">${t.refId || t.id || "N/A"}</span></div>
-              <div class="t-row"><span class="t-label">Blockchain/Hash</span> <span class="t-value hash" style="font-family: monospace;">${t.hash || "N/A"}</span></div>
-              <div class="t-row"><span class="t-label">Date & Time</span> <span class="t-value">${t.date || t.createdAt || "N/A"}</span></div>
-              <div class="t-row"><span class="t-label">Tags</span> <span class="t-value">${(t.tags || []).join(", ") || "None"}</span></div>          
-          </div>
-      </div>
-      ${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve</button><button class="btn-action-lg btn-refund" onclick="handleAdminAction('refund', '${t.refId || t.id}')"><i class="fa-solid fa-rotate-left"></i> Reject & Refund</button></div>` : ""}
-    `;
-        } else {
-          box.style.display = "none";
-          Swal.fire("Not Found", "Invalid Reference ID or Hash Code.", "error");
-        }
-      }
-      function filterUsers() {
-        const term = document.getElementById("searchBox").value.toLowerCase();
-        const rows = document.querySelectorAll("#userTable tbody tr");
-        rows.forEach(
-          (r) =>
-            (r.style.display = r.innerText.toLowerCase().includes(term)
-              ? ""
-              : "none"),
-        );
-      }
-
-      function logout() {
-        sessionStorage.removeItem("user");
-        window.location.href = "index.html";
-      }
-
-      async function sendBroadcast() {
-        const { value: formValues } = await Swal.fire({
-          title:
-            '<i class="fa-solid fa-bullhorn" style="color:var(--secondary); font-size: 2.5rem; margin-bottom: 10px;"></i><br>Send Broadcast',
-          html:
-            '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Notification Title</div>' +
-            '<input id="swal-title" class="swal2-input" placeholder="e.g., System Maintenance" style="width: 100%; box-sizing: border-box; margin: 0 0 20px 0; border-radius: 10px;">' +
-            '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Message Content</div>' +
-            '<textarea id="swal-msg" class="swal2-textarea" placeholder="Type your message here..." style="width: 100%; box-sizing: border-box; margin: 0; border-radius: 10px;"></textarea>',
-          focusConfirm: false,
-          showCancelButton: true,
-          confirmButtonText: "Blast to All Users",
-          confirmButtonColor: "#10b981",
-          preConfirm: () => {
-            const title = document.getElementById("swal-title").value;
-            const msg = document.getElementById("swal-msg").value;
-            if (!title || !msg) {
-              Swal.showValidationMessage("Title and Message are required!");
-              return false;
-            }
-            return { title: title, message: msg };
-          },
-        });
-
-        if (formValues && formValues.title && formValues.message) {
-          const payload = { ...formValues, sender: "admin" };
-          try {
-            const res = await fetch("/api/admin/broadcast", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-            const data = await res.json();
-            if (data.success) {
-              Swal.fire(
-                "Sent!",
-                `Broadcast delivered to ${data.count} accounts.`,
-                "success",
-              );
-              loadData();
-            } else {
-              Swal.fire("Error!", "Failed to send broadcast.", "error");
-            }
-          } catch (error) {
-            Swal.fire("Error!", "Connection issue.", "error");
-          }
-        }
-      }
-
-      async function loadBroadcastHistory() {
-        const res = await fetch("/api/users");
-        const users = await res.json();
-        let allNotifications = [];
-        users.forEach((u) => {
-          if (u.notifications) {
-            allNotifications.push(
-              ...u.notifications.filter((n) => n.sender === "admin"),
-            );
-          }
-        });
-        const uniqueNotifications = Array.from(
-          new Map(allNotifications.map((n) => [n.id, n])).values(),
-        );
-        const list = document.getElementById("broadcastList");
-        list.innerHTML = "";
-
-        uniqueNotifications
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .forEach((n) => {
-            list.innerHTML += `
-              <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date}</td>
-                  <td style="font-weight:600; color:var(--text-main);">${n.title}</td>
-                  <td style="color:var(--text-muted); font-size: 0.9rem;">${n.message}</td>
-                  <td style="text-align: right;">
-                      <button onclick="deleteBroadcast('${n.id}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall</button>
-                  </td>
-              </tr>`;
-          });
-      }
-
-      async function deleteBroadcast(notifId) {
-        const result = await Swal.fire({
-          title: "Recall Broadcast?",
-          text: "This will delete the message from all users' inboxes.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#ef4444",
-          confirmButtonText: "Recall",
-        });
-        if (result.isConfirmed) {
-          const res = await fetch("/api/admin/delete-broadcast", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ notifId }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            Swal.fire("Recalled", "Message removed.", "success");
-            loadBroadcastHistory();
-          }
-        }
-      }
-
-      window.addEventListener("DOMContentLoaded", () => {
-        const savedSection = localStorage.getItem("activeSection");
-        if (savedSection) {
-          const menuItems = document.querySelectorAll(".menu-item");
-          let targetBtn = null;
-          menuItems.forEach((item) => {
-            if (
-              item.getAttribute("onclick") &&
-              item.getAttribute("onclick").includes(`'${savedSection}'`)
-            ) {
-              targetBtn = item;
-            }
-          });
-          showSection(savedSection, targetBtn);
-        }
-      });
-
-      async function handleAdminAction(action, refId) {
-        const confirm = await Swal.fire({
-          title: `Confirm ${action.toUpperCase()}?`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: action === "approve" ? "#10b981" : "#ef4444",
-          confirmButtonText: "Yes, Proceed",
-        });
-        if (confirm.isConfirmed) {
-          const res = await fetch(`/api/admin/${action}-transaction`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refId }),
-          });
-          const result = await res.json();
-          if (result.success) {
-            Swal.fire("Success", result.message, "success");
-            searchTrx();
-          } else {
-            Swal.fire("Error", result.message, "error");
-          }
-        }
-      }
-
-      // ==========================================
-      // 💬 ADMIN LIVE CHAT LOGIC
-      // ==========================================
-      let adminCurrentChat = null;
-      let adminChatInterval = null;
-
-      async function fetchAdminContacts() {
-        try {
-          const res = await fetch("/api/chat/contacts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ myAcc: "ADMIN" }),
-          });
-          const data = await res.json();
-
-          const list = document.getElementById("adminContactList");
-          if (data.success && data.contacts.length > 0) {
-            list.innerHTML = data.contacts
-              .map(
-                (c) => `
-                      <div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" style="display:flex; align-items:center; gap:12px; padding:15px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); border: 1px solid ${adminCurrentChat === c.accountNumber ? "#3b82f6" : "transparent"};">
-                          <div style="width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div>
-                          <div style="flex:1; overflow:hidden;">
-                              <h4 style="margin:0; font-size:0.95rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
-                              <p style="margin:3px 0 0 0; font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastMessage}</p>
-                          </div>
-                          ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
-                      </div>
-                  `,
-              )
-              .join("");
-          } else {
-            list.innerHTML =
-              '<div style="text-align:center; padding:20px; color:var(--text-muted);">គ្មានសារចូលទេ</div>';
-          }
-        } catch (e) {}
-      }
-
-      function openAdminChat(accNum, name) {
-        adminCurrentChat = accNum;
-        document.getElementById("adminChatHeader").innerHTML =
-          `<h3 style="margin: 0; color: var(--text-main);"><i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} (${accNum})</h3><button onclick="endAdminChat()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">បញ្ចប់ការសន្ទនា (End Chat)</button>`;
-        document.getElementById("adminChatInputBox").style.display = "flex";
-
-        fetchAdminMessages();
-        if (adminChatInterval) clearInterval(adminChatInterval);
-        adminChatInterval = setInterval(fetchAdminMessages, 2000);
-      }
-
-      let adminLastMsgCount = 0;
-      async function fetchAdminMessages() {
-        if (!adminCurrentChat) return;
-        const res = await fetch("/api/chat/history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user1Acc: "ADMIN",
-            user2Acc: adminCurrentChat,
-          }),
-        });
-        const data = await res.json();
-
-        if (data.success && data.history.length !== adminLastMsgCount) {
-          const body = document.getElementById("adminChatBody");
-          body.innerHTML = "";
-          data.history.forEach((m) => {
-            const isSent = m.senderAcc === "ADMIN";
-            body.innerHTML += `
-                      <div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;">
-                          <div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${isSent ? "var(--primary)" : "white"}; color: ${isSent ? "white" : "var(--text-main)"}; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${m.message}</div>
-                          <div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px;">${m.time.split(",")[1] || m.time}</div>
-                      </div>`;
-          });
-          body.scrollTop = body.scrollHeight;
-          adminLastMsgCount = data.history.length;
-        }
-      }
-
-      async function sendAdminChat() {
-        const input = document.getElementById("adminChatInput");
-        const text = input.value.trim();
-        if (!text || !adminCurrentChat) return;
-        input.value = "";
-
-        const body = document.getElementById("adminChatBody");
-        body.innerHTML += `
-              <div style="align-self: flex-end; max-width: 75%;">
-                  <div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px;">Sending...</div>
-              </div>`;
-        body.scrollTop = body.scrollHeight;
-
-        const currentAdminName = user.fullName || user.username;
-
-        await fetch("/api/chat/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            senderAcc: "ADMIN",
-            receiverAcc: adminCurrentChat,
-            message: text,
-            adminName: currentAdminName,
-          }),
-        });
-        fetchAdminMessages();
-      }
-
-      function viewUserMessage(username, ticketId) {
-        const targetUser = globalUsersData.find((u) => u.username === username);
-        const ticket = targetUser?.tickets?.find(
-          (t) => t.ticketId === ticketId,
-        );
-
-        if (!ticket) return;
-
-        Swal.fire({
-          title:
-            '<i class="fa-solid fa-envelope-open-text" style="color:#004d40;"></i> សារពីអតិថិជន',
-          html: `
-            <div style="text-align: left; font-family: 'Kantumruy Pro';">
-                <div style="margin-bottom: 15px; padding: 18px; background: #f1f5f9; border-radius: 16px; border: 1px solid #e2e8f0;">
-                    <p style="margin: 0 0 8px; font-size: 0.85rem; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">សេចក្តីពិពណ៌នាបញ្ហា៖</p>
-                    <p style="margin: 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">${ticket.description}</p>
-                </div>
-                <div style="font-size: 0.8rem; color: #94a3b8; padding-left: 5px;">
-                    <i class="fa-regular fa-clock"></i> បញ្ជូននៅថ្ងៃ៖ ${ticket.date}
-                </div>
-            </div>
-        `,
-          confirmButtonText: "យល់ព្រម",
-
-          // 🚨 ផ្នែកសំខាន់បំផុតគឺត្រង់នេះ
-          buttonsStyling: false,
-          customClass: {
-            popup: "premium-swal",
-            title: "premium-swal-title",
-            confirmButton: "premium-btn-confirm", // ឈ្មោះ Class ក្នុង CSS ខាងលើ
-          },
-        });
-      }
-
-      function endAdminChat() {
-        Swal.fire({
-          title: "បញ្ចប់ការសន្ទនា?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "បាទ, បញ្ចប់",
-        }).then(async (res) => {
-          if (res.isConfirmed) {
-            const currentAdminName = user.fullName || user.username;
-
-            await fetch("/api/chat/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                senderAcc: "ADMIN",
-                receiverAcc: adminCurrentChat,
-                message:
-                  "ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin។ អរគុណដែលបានទាក់ទងមកកាន់ភ្នាក់ងារ U-PAY! សូមគោរពលា 🙏",
-                adminName: currentAdminName,
-              }),
-            });
-
-            adminCurrentChat = null;
-            document.getElementById("adminChatHeader").innerHTML =
-              `<h3 style="margin: 0; color: var(--text-main);">ជ្រើសរើសអតិថិជនដើម្បីឆាត</h3>`;
-            document.getElementById("adminChatBody").innerHTML =
-              '<div style="text-align:center; color: var(--text-muted); margin-top: 50px;"><i class="fa-regular fa-comments" style="font-size: 3rem; margin-bottom: 10px; opacity:0.5;"></i><br>សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង</div>';
-            document.getElementById("adminChatInputBox").style.display = "none";
-            if (adminChatInterval) clearInterval(adminChatInterval);
-          }
-        });
-      }
-
-      setInterval(fetchAdminContacts, 3000);
-      fetchAdminContacts();
-
-      setInterval(loadData, 2000);
-      loadData();
-
-      // ==========================================
-      // 🔔 ប្រព័ន្ធ NOTIFICATION & សំឡេង (CHAT, KYC, TICKETS)
-      // ==========================================
-
-      let previousTotalUnread = 0;
-      let previousQueueLength = 0;
-      let previousPendingKyc = 0;
-      let previousOpenTickets = 0;
-      let isFirstLoadNotif = true;
-
-      // 🔊 រៀបចំសំឡេង ៣ ប្រភេទខុសៗគ្នា
-      const chatSound = new Audio(
-        "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
-      ); // សំឡេងប៉ុប (Chat)
-      const kycSound = new Audio(
-        "https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3",
-      ); // សំឡេងទីង (KYC)
-      const ticketSound = new Audio(
-        "https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3",
-      ); // សំឡេងរោទិ៍ខ្លី (Ticket)
-
-      async function checkAdminNotifications() {
-        if (!window.location.href.includes("admin.html")) return;
-
-        try {
-          // ១. ទាញយកទិន្នន័យ Chat
-          const chatRes = await fetch("/api/chat/contacts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ myAcc: "ADMIN" }),
-          });
-          const chatData = await chatRes.json();
-
-          // ២. ទាញយកទិន្នន័យ User (ប្រើ API របស់បង) ដើម្បីរាប់ KYC & Tickets
-          const userRes = await fetch("/api/users");
-          const userData = await userRes.json();
-
-          if (chatData.success && Array.isArray(userData)) {
-            let currentTotalUnread = 0;
-            let currentQueueLength = chatData.contacts.length;
-            let currentPendingKyc = 0;
-            let currentOpenTickets = 0;
-
-            // រាប់ចំនួនសារ
-            chatData.contacts.forEach((c) => {
-              currentTotalUnread += c.unreadCount;
-            });
-
-            // រាប់ចំនួន KYC (Pending) និង Tickets (Open)
-            userData.forEach((u) => {
-              if (u.kycStatus === "pending") currentPendingKyc++;
-              if (u.tickets && Array.isArray(u.tickets)) {
-                u.tickets.forEach((t) => {
-                  if (t.status === "Open") currentOpenTickets++;
+              if (data.success && data.history.length !== adminLastMsgCount) {
+                const body = document.getElementById("adminChatBody");
+                body.innerHTML = "";
+                data.history.forEach((m) => {
+                  const isSent = m.senderAcc === "ADMIN";
+                  body.innerHTML += `
+                            <div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;">
+                                <div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${isSent ? "var(--primary)" : "white"}; color: ${isSent ? "white" : "var(--text-main)"}; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${m.message}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px;">${m.time.split(",")[1] || m.time}</div>
+                            </div>`;
                 });
-              }
-            });
-
-            // ឆែកមើលបម្រែបម្រួល (បើមានរបស់ថ្មីចូល)
-            if (!isFirstLoadNotif) {
-              let shouldRefreshTable = false;
-
-              // 💬 ឆែក Chat
-              if (currentQueueLength > previousQueueLength) {
-                playCustomNotif(
-                  "អតិថិជនថ្មី សុំជួបភ្នាក់ងារ! 👨‍💻",
-                  chatSound,
-                  "#0ea5e9",
-                ); // ពណ៌ខៀវ
-              } else if (currentTotalUnread > previousTotalUnread) {
-                playCustomNotif(
-                  "មានសារថ្មីពីអតិថិជន! 💬",
-                  chatSound,
-                  "#0ea5e9",
-                );
-              }
-
-              // 🪪 ឆែក KYC
-              if (currentPendingKyc > previousPendingKyc) {
-                playCustomNotif(
-                  "មានសំណើផ្ទៀងផ្ទាត់ KYC ថ្មី! 🪪",
-                  kycSound,
-                  "#8b5cf6",
-                ); // ពណ៌ស្វាយ
-                shouldRefreshTable = true;
-              }
-
-              // 🎫 ឆែក Tickets
-              if (currentOpenTickets > previousOpenTickets) {
-                playCustomNotif(
-                  "មានសំបុត្រជំនួយ (Ticket) ថ្មី! 🎫",
-                  ticketSound,
-                  "#f59e0b",
-                ); // ពណ៌ទឹកក្រូច
-                shouldRefreshTable = true;
-              }
-
-              // ទាញទិន្នន័យថ្មីចូលតារាងអូតូ
-              if (shouldRefreshTable && typeof loadData === "function") {
-                loadData();
+                body.scrollTop = body.scrollHeight;
+                adminLastMsgCount = data.history.length;
               }
             }
 
-            // កត់ចំណាំទុកសម្រាប់ប្រៀបធៀបនៅជុំក្រោយ
-            previousQueueLength = currentQueueLength;
-            previousTotalUnread = currentTotalUnread;
-            previousPendingKyc = currentPendingKyc;
-            previousOpenTickets = currentOpenTickets;
-            isFirstLoadNotif = false;
-          }
-        } catch (e) {
-          console.log("Admin Notif Error:", e);
-        }
-      }
+            async function sendAdminChat() {
+              const input = document.getElementById("adminChatInput");
+              const text = input.value.trim();
+              if (!text || !adminCurrentChat) return;
+              input.value = "";
 
-      // Function សម្រាប់បញ្ចេញសំឡេង និង Popup
-      function playCustomNotif(message, soundObj, iconColorHex) {
-        soundObj.play().catch(() => {
-          console.log("ទាមទារអោយ Admin ចុចលើអេក្រង់ម្តងសិន ទើបអាចលោតសំឡេងបាន");
-        });
+              const body = document.getElementById("adminChatBody");
+              body.innerHTML += `
+                    <div style="align-self: flex-end; max-width: 75%;">
+                        <div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px;">Sending...</div>
+                    </div>`;
+              body.scrollTop = body.scrollHeight;
 
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "info",
-          title: message,
-          showConfirmButton: false,
-          timer: 4500,
-          background: "#1e293b",
-          color: "white",
-          iconColor: iconColorHex,
-          customClass: { popup: "premium-swal" },
-        });
-      }
+              const currentAdminName = user.fullName || user.username;
 
-      // ឱ្យប្រព័ន្ធលួចឆែករាល់ ៣ វិនាទី
-      setInterval(checkAdminNotifications, 3000);
-
-      // ==========================================
-      // 🛑 GLOBAL SYSTEM FREEZE (KILL SWITCH)
-      // ==========================================
-      async function toggleSystemFreeze() {
-        try {
-          // ១. ឆែកមើលស្ថានភាពបច្ចុប្បន្នសិន
-          const res = await fetch("/api/system-status");
-          const sys = await res.json();
-          const isCurrentlyFrozen = sys.isSystemFrozen;
-
-          const titleText = isCurrentlyFrozen
-            ? "បើកដំណើរការប្រព័ន្ធវិញ?"
-            : "ផ្អាកប្រព័ន្ធទាំងមូល?";
-          const confirmBtnText = isCurrentlyFrozen
-            ? "បាទ, បើកវិញ 🟢"
-            : "បាទ, ផ្អាក 🛑";
-          const confirmColor = isCurrentlyFrozen ? "#10b981" : "#ef4444";
-          const htmlText = isCurrentlyFrozen
-            ? "អតិថិជននឹងអាចធ្វើប្រតិបត្តិការវេរលុយ/ដកលុយបានធម្មតាវិញ។"
-            : "អតិថិជនទាំងអស់នឹង <b>មិនអាច</b> ធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានទេរហូតដល់អ្នកបើកវាវិញ!";
-
-          Swal.fire({
-            title: titleText,
-            html: htmlText,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: confirmColor,
-            cancelButtonColor: "#64748b",
-            confirmButtonText: confirmBtnText,
-            cancelButtonText: "បោះបង់",
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              // ២. ហៅ API ទៅបិទ/បើក
-              const toggleRes = await fetch("/api/admin/toggle-system", {
+              await fetch("/api/chat/send", {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  senderAcc: "ADMIN",
+                  receiverAcc: adminCurrentChat,
+                  message: text,
+                  adminName: currentAdminName,
+                }),
               });
-              const toggleData = await toggleRes.json();
+              fetchAdminMessages();
+            }
 
-              if (toggleData.success) {
-                Swal.fire({
-                  title: toggleData.isSystemFrozen
-                    ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
-                    : "ប្រព័ន្ធដំណើរការធម្មតា! 🟢",
-                  text: toggleData.isSystemFrozen
-                    ? "រាល់ប្រតិបត្តិការត្រូវបាន Block ទាំងស្រុង។"
-                    : "អតិថិជនអាចប្រើប្រាស់បានវិញហើយ។",
-                  icon: "success",
-                  background: "#1e293b",
-                  color: "white",
+            function viewUserMessage(username, ticketId) {
+              const targetUser = globalUsersData.find((u) => u.username === username);
+              const ticket = targetUser?.tickets?.find(
+                (t) => t.ticketId === ticketId,
+              );
+
+              if (!ticket) return;
+
+              Swal.fire({
+                title:
+                  '<i class="fa-solid fa-envelope-open-text" style="color:#004d40;"></i> សារពីអតិថិជន',
+                html: `
+                  <div style="text-align: left; font-family: 'Kantumruy Pro';">
+                      <div style="margin-bottom: 15px; padding: 18px; background: #f1f5f9; border-radius: 16px; border: 1px solid #e2e8f0;">
+                          <p style="margin: 0 0 8px; font-size: 0.85rem; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">សេចក្តីពិពណ៌នាបញ្ហា៖</p>
+                          <p style="margin: 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">${ticket.description}</p>
+                      </div>
+                      <div style="font-size: 0.8rem; color: #94a3b8; padding-left: 5px;">
+                          <i class="fa-regular fa-clock"></i> បញ្ជូននៅថ្ងៃ៖ ${ticket.date}
+                      </div>
+                  </div>
+              `,
+                confirmButtonText: "យល់ព្រម",
+
+                // 🚨 ផ្នែកសំខាន់បំផុតគឺត្រង់នេះ
+                buttonsStyling: false,
+                customClass: {
+                  popup: "premium-swal",
+                  title: "premium-swal-title",
+                  confirmButton: "premium-btn-confirm", // ឈ្មោះ Class ក្នុង CSS ខាងលើ
+                },
+              });
+            }
+
+            function endAdminChat() {
+              Swal.fire({
+                title: "បញ្ចប់ការសន្ទនា?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "បាទ, បញ្ចប់",
+              }).then(async (res) => {
+                if (res.isConfirmed) {
+                  const currentAdminName = user.fullName || user.username;
+
+                  await fetch("/api/chat/send", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      senderAcc: "ADMIN",
+                      receiverAcc: adminCurrentChat,
+                      message:
+                        "ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin។ អរគុណដែលបានទាក់ទងមកកាន់ភ្នាក់ងារ U-PAY! សូមគោរពលា 🙏",
+                      adminName: currentAdminName,
+                    }),
+                  });
+
+                  adminCurrentChat = null;
+                  document.getElementById("adminChatHeader").innerHTML =
+                    `<h3 style="margin: 0; color: var(--text-main);">ជ្រើសរើសអតិថិជនដើម្បីឆាត</h3>`;
+                  document.getElementById("adminChatBody").innerHTML =
+                    '<div style="text-align:center; color: var(--text-muted); margin-top: 50px;"><i class="fa-regular fa-comments" style="font-size: 3rem; margin-bottom: 10px; opacity:0.5;"></i><br>សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង</div>';
+                  document.getElementById("adminChatInputBox").style.display = "none";
+                  if (adminChatInterval) clearInterval(adminChatInterval);
+                }
+              });
+            }
+
+            setInterval(fetchAdminContacts, 3000);
+            fetchAdminContacts();
+
+            setInterval(loadData, 2000);
+            loadData();
+
+            // ==========================================
+            // 🔔 ប្រព័ន្ធ NOTIFICATION & សំឡេង (CHAT, KYC, TICKETS)
+            // ==========================================
+
+            let previousTotalUnread = 0;
+            let previousQueueLength = 0;
+            let previousPendingKyc = 0;
+            let previousOpenTickets = 0;
+            let isFirstLoadNotif = true;
+
+            // 🔊 រៀបចំសំឡេង ៣ ប្រភេទខុសៗគ្នា
+            const chatSound = new Audio(
+              "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
+            ); // សំឡេងប៉ុប (Chat)
+            const kycSound = new Audio(
+              "https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3",
+            ); // សំឡេងទីង (KYC)
+            const ticketSound = new Audio(
+              "https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3",
+            ); // សំឡេងរោទិ៍ខ្លី (Ticket)
+
+            async function checkAdminNotifications() {
+              if (!window.location.href.includes("admin.html")) return;
+
+              try {
+                // ១. ទាញយកទិន្នន័យ Chat
+                const chatRes = await fetch("/api/chat/contacts", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ myAcc: "ADMIN" }),
                 });
+                const chatData = await chatRes.json();
+
+                // ២. ទាញយកទិន្នន័យ User (ប្រើ API របស់បង) ដើម្បីរាប់ KYC & Tickets
+                const userRes = await fetch("/api/users");
+                const userData = await userRes.json();
+
+                if (chatData.success && Array.isArray(userData)) {
+                  let currentTotalUnread = 0;
+                  let currentQueueLength = chatData.contacts.length;
+                  let currentPendingKyc = 0;
+                  let currentOpenTickets = 0;
+
+                  // រាប់ចំនួនសារ
+                  chatData.contacts.forEach((c) => {
+                    currentTotalUnread += c.unreadCount;
+                  });
+
+                  // រាប់ចំនួន KYC (Pending) និង Tickets (Open)
+                  userData.forEach((u) => {
+                    if (u.kycStatus === "pending") currentPendingKyc++;
+                    if (u.tickets && Array.isArray(u.tickets)) {
+                      u.tickets.forEach((t) => {
+                        if (t.status === "Open") currentOpenTickets++;
+                      });
+                    }
+                  });
+
+                  // ឆែកមើលបម្រែបម្រួល (បើមានរបស់ថ្មីចូល)
+                  if (!isFirstLoadNotif) {
+                    let shouldRefreshTable = false;
+
+                    // 💬 ឆែក Chat
+                    if (currentQueueLength > previousQueueLength) {
+                      playCustomNotif(
+                        "អតិថិជនថ្មី សុំជួបភ្នាក់ងារ! 👨‍💻",
+                        chatSound,
+                        "#0ea5e9",
+                      ); // ពណ៌ខៀវ
+                    } else if (currentTotalUnread > previousTotalUnread) {
+                      playCustomNotif(
+                        "មានសារថ្មីពីអតិថិជន! 💬",
+                        chatSound,
+                        "#0ea5e9",
+                      );
+                    }
+
+                    // 🪪 ឆែក KYC
+                    if (currentPendingKyc > previousPendingKyc) {
+                      playCustomNotif(
+                        "មានសំណើផ្ទៀងផ្ទាត់ KYC ថ្មី! 🪪",
+                        kycSound,
+                        "#8b5cf6",
+                      ); // ពណ៌ស្វាយ
+                      shouldRefreshTable = true;
+                    }
+
+                    // 🎫 ឆែក Tickets
+                    if (currentOpenTickets > previousOpenTickets) {
+                      playCustomNotif(
+                        "មានសំបុត្រជំនួយ (Ticket) ថ្មី! 🎫",
+                        ticketSound,
+                        "#f59e0b",
+                      ); // ពណ៌ទឹកក្រូច
+                      shouldRefreshTable = true;
+                    }
+
+                    // ទាញទិន្នន័យថ្មីចូលតារាងអូតូ
+                    if (shouldRefreshTable && typeof loadData === "function") {
+                      loadData();
+                    }
+                  }
+
+                  // កត់ចំណាំទុកសម្រាប់ប្រៀបធៀបនៅជុំក្រោយ
+                  previousQueueLength = currentQueueLength;
+                  previousTotalUnread = currentTotalUnread;
+                  previousPendingKyc = currentPendingKyc;
+                  previousOpenTickets = currentOpenTickets;
+                  isFirstLoadNotif = false;
+                }
+              } catch (e) {
+                console.log("Admin Notif Error:", e);
               }
             }
-          });
-        } catch (e) {
-          console.error("System Toggle Error:", e);
-        }
-      }
+
+            // Function សម្រាប់បញ្ចេញសំឡេង និង Popup
+            function playCustomNotif(message, soundObj, iconColorHex) {
+              soundObj.play().catch(() => {
+                console.log("ទាមទារអោយ Admin ចុចលើអេក្រង់ម្តងសិន ទើបអាចលោតសំឡេងបាន");
+              });
+
+              Swal.fire({
+                toast: true,
+                position: "top-end",
+                icon: "info",
+                title: message,
+                showConfirmButton: false,
+                timer: 4500,
+                background: "#1e293b",
+                color: "white",
+                iconColor: iconColorHex,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+
+            // ឱ្យប្រព័ន្ធលួចឆែករាល់ ៣ វិនាទី
+            setInterval(checkAdminNotifications, 3000);
+
+            // ==========================================
+            // 🛑 GLOBAL SYSTEM FREEZE (KILL SWITCH)
+            // ==========================================
+            async function toggleSystemFreeze() {
+              try {
+                // ១. ឆែកមើលស្ថានភាពបច្ចុប្បន្នសិន
+                const res = await fetch("/api/system-status");
+                const sys = await res.json();
+                const isCurrentlyFrozen = sys.isSystemFrozen;
+
+                const titleText = isCurrentlyFrozen
+                  ? "បើកដំណើរការប្រព័ន្ធវិញ?"
+                  : "ផ្អាកប្រព័ន្ធទាំងមូល?";
+                const confirmBtnText = isCurrentlyFrozen
+                  ? "បាទ, បើកវិញ 🟢"
+                  : "បាទ, ផ្អាក 🛑";
+                const confirmColor = isCurrentlyFrozen ? "#10b981" : "#ef4444";
+                const htmlText = isCurrentlyFrozen
+                  ? "អតិថិជននឹងអាចធ្វើប្រតិបត្តិការវេរលុយ/ដកលុយបានធម្មតាវិញ។"
+                  : "អតិថិជនទាំងអស់នឹង <b>មិនអាច</b> ធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានទេរហូតដល់អ្នកបើកវាវិញ!";
+
+                Swal.fire({
+                  title: titleText,
+                  html: htmlText,
+                  icon: "warning",
+                  showCancelButton: true,
+                  confirmButtonColor: confirmColor,
+                  cancelButtonColor: "#64748b",
+                  confirmButtonText: confirmBtnText,
+                  cancelButtonText: "បោះបង់",
+                }).then(async (result) => {
+                  if (result.isConfirmed) {
+                    // ២. ហៅ API ទៅបិទ/បើក
+                    const toggleRes = await fetch("/api/admin/toggle-system", {
+                      method: "POST",
+                    });
+                    const toggleData = await toggleRes.json();
+
+                    if (toggleData.success) {
+                      Swal.fire({
+                        title: toggleData.isSystemFrozen
+                          ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
+                          : "ប្រព័ន្ធដំណើរការធម្មតា! 🟢",
+                        text: toggleData.isSystemFrozen
+                          ? "រាល់ប្រតិបត្តិការត្រូវបាន Block ទាំងស្រុង។"
+                          : "អតិថិជនអាចប្រើប្រាស់បានវិញហើយ។",
+                        icon: "success",
+                        background: "#1e293b",
+                        color: "white",
+                      });
+                    }
+                  }
+                });
+              } catch (e) {
+                console.error("System Toggle Error:", e);
+              }
+            }
     </script>
   </body>
 </html>
