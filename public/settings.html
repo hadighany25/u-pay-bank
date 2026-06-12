@@ -987,19 +987,62 @@
       async function uploadImage(e) {
         const file = e.target.files[0];
         if (!file) return;
+
+        // ១. ការពាររូបធំពេក (ឧ. លើសពី 3MB)
+        if (file.size > 3 * 1024 * 1024) {
+          Swal.fire(
+            "បរាជ័យ",
+            "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបតូចជាង 3MB",
+            "error",
+          );
+          e.target.value = ""; // Clear input
+          return;
+        }
+
+        Swal.fire({
+          title: "កំពុងបញ្ជូនរូបភាព...",
+          didOpen: () => Swal.showLoading(),
+        });
+
         const formData = new FormData();
         formData.append("profileImg", file);
-        formData.append("id", user.id);
-        const res = await fetch("/api/user/upload-image", {
-          method: "POST",
-          body: formData,
-        });
-        const d = await res.json();
-        if (d.success) {
-          user.profileImage = d.imageUrl;
-          sessionStorage.setItem("user", JSON.stringify(user));
-          document.getElementById("u-img").src = d.imageUrl;
+        formData.append("id", user.id || user.username); // ការពារក្រែងលោបាត់ id ប្រើ username ជំនួស
+
+        try {
+          const res = await fetch("/api/user/upload-image", {
+            method: "POST",
+            body: formData,
+          });
+          const d = await res.json();
+
+          if (d.success) {
+            user.profileImage = d.imageUrl;
+            document.getElementById("u-img").src = d.imageUrl;
+
+            // ២. ប្រើ Try...Catch ការពារ Error ពេល Session Storage ពេញដោយសារ Base64 វែងពេក
+            try {
+              sessionStorage.setItem("user", JSON.stringify(user));
+            } catch (err) {
+              console.log(
+                "Session Storage ពេញ តែមិនអីទេ ព្រោះរូបត្រូវបាន Save ចូល Database ជោគជ័យហើយ!",
+              );
+            }
+
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ",
+              text: "ផ្លាស់ប្តូររូបភាពរួចរាល់!",
+              timer: 1500,
+            });
+          } else {
+            Swal.fire("បរាជ័យ", d.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
         }
+
+        // ៣. សំខាន់បំផុត៖ Clear ទិន្នន័យក្នុង Input ចោល ដើម្បីអោយការចុចដូររូបលើកក្រោយដំណើរការ
+        e.target.value = "";
       }
 
       function logout() {
