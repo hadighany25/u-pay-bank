@@ -51,7 +51,6 @@ mongoose
   .connect(MONGO_URI)
   .then(async () => {
     console.log("🟢 MongoDB Connected Successfully");
-
     await initSystemAccounts();
   })
   .catch((err) => {
@@ -75,7 +74,6 @@ const userSchema = new mongoose.Schema(
     balanceKHR: { type: Number, default: 0 },
     role: { type: String, default: "user" },
     trxLimit: { type: Number, default: 100 },
-    profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
@@ -85,12 +83,16 @@ const userSchema = new mongoose.Schema(
     virtualCards: { type: Array, default: [] },
     savings: { type: Array, default: [] },
     deposits: { type: Array, default: [] },
-    kycStatus: { type: String, default: "pending" },
     needsSupport: { type: Boolean, default: false },
     telegramChatId: { type: String, default: null },
     linkCode: { type: String, default: null },
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
+    // កែសម្រួល៖ លុប Field ដែលជាន់គ្នាអោយនៅសល់តែមួយ
+    profileImage: { type: String, default: "" },
+    kycStatus: { type: String, default: "unverified" },
+    kycDocument: { type: String, default: "" },
+    kycSubmittedAt: { type: String, default: "" },
   },
   { timestamps: true },
 );
@@ -218,7 +220,6 @@ const initSystemAccounts = async () => {
     // Create Billers
     for (const b of billers) {
       const exists = await User.findOne({ username: b.username });
-
       if (!exists) {
         await User.create({
           username: b.username,
@@ -231,7 +232,6 @@ const initSystemAccounts = async () => {
           pin: "0000",
           isFrozen: false,
         });
-
         console.log(`✅ Created Biller: ${b.username}`);
       }
     }
@@ -257,9 +257,7 @@ const initSystemAccounts = async () => {
         transactions: [],
         notifications: [],
       });
-
       await bank.save();
-
       console.log("🏦 U-Pay Central Bank Created!");
     } else {
       console.log("🏦 U-Pay Central Bank Already Exists");
@@ -586,40 +584,27 @@ app.post(
   async (req, res) => {
     try {
       const userId = req.body.id;
-
       if (!req.file) {
-        return res.json({
-          success: false,
-          message: "No image uploaded",
-        });
+        return res.json({ success: false, message: "No image uploaded" });
       }
-
       const imageUrl = "/uploads/" + req.file.filename;
-
-      const user = await User.findById(userId);
+      // ប្រើ FindById ឬស្វែងរកតាម Username អាស្រ័យលើ frontend បោះអ្វីមក
+      const user = await User.findOne({
+        $or: [
+          { _id: mongoose.isValidObjectId(userId) ? userId : null },
+          { username: userId },
+        ],
+      });
 
       if (!user) {
-        return res.json({
-          success: false,
-          message: "User not found",
-        });
+        return res.json({ success: false, message: "User not found" });
       }
-
       user.profileImage = imageUrl;
-
       await user.save();
-
-      res.json({
-        success: true,
-        imageUrl,
-      });
+      res.json({ success: true, imageUrl });
     } catch (err) {
       console.error("PROFILE UPLOAD ERROR:", err);
-
-      res.status(500).json({
-        success: false,
-        message: err.message,
-      });
+      res.status(500).json({ success: false, message: err.message });
     }
   },
 );
@@ -627,42 +612,25 @@ app.post(
 app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
   try {
     const username = req.body.username;
-
     if (!req.file) {
-      return res.json({
-        success: false,
-        message: "No document uploaded",
-      });
+      return res.json({ success: false, message: "No document uploaded" });
     }
-
     const docUrl = "/uploads/" + req.file.filename;
-
     const user = await User.findOne({ username });
-
     if (!user) {
-      return res.json({
-        success: false,
-        message: "User not found",
-      });
+      return res.json({ success: false, message: "User not found" });
     }
-
     user.kycStatus = "pending";
     user.kycDocument = docUrl;
     user.kycSubmittedAt = getFormattedDate();
-
     await user.save();
-
     res.json({
       success: true,
       message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
     });
   } catch (err) {
     console.error("KYC ERROR:", err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -854,8 +822,11 @@ app.post("/api/transfer", async (req, res) => {
     };
 
     sender.transactions.unshift(senderTrx);
+    sender.markModified("transactions"); // កែសម្រួល៖ អោយ Mongoose ដឹងថា Array ត្រូវ Update
+
     if (!receiver.transactions) receiver.transactions = [];
     receiver.transactions.unshift(receiverTrx);
+    receiver.markModified("transactions"); // កែសម្រួល
 
     if (!receiver.notifications) receiver.notifications = [];
     receiver.notifications.unshift({
@@ -865,6 +836,7 @@ app.post("/api/transfer", async (req, res) => {
       date: date,
       isRead: false,
     });
+    receiver.markModified("notifications"); // កែសម្រួល
 
     await sender.save();
     await receiver.save();
@@ -948,11 +920,15 @@ app.post("/api/payment", async (req, res) => {
     };
 
     user.transactions.unshift(trx);
+    user.markModified("transactions");
+
+    if (!biller.transactions) biller.transactions = [];
     biller.transactions.unshift({
       ...trx,
       amount: payAmount,
       type: "Income (Bill)",
     });
+    biller.markModified("transactions");
 
     await user.save();
     await biller.save();
@@ -967,10 +943,12 @@ app.post("/api/payment", async (req, res) => {
     res.json({ success: true, newBalance: user.balance, slipData: trx });
   } catch (err) {
     console.error("Payment Error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
+      });
   }
 });
 
@@ -1009,34 +987,19 @@ app.post("/api/card/generate", async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-
-    if (!user) {
-      return res.json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    if (user.pin !== pin) {
-      return res.json({
-        success: false,
-        message: "លេខ PIN មិនត្រឹមត្រូវទេ!",
-      });
-    }
+    if (!user) return res.json({ success: false, message: "User not found" });
+    if (user.pin !== pin)
+      return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
 
     const FEE_AMOUNT = 5.0;
-
     if (user.balance < FEE_AMOUNT) {
       return res.json({
         success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់ទេ! ថ្លៃសេវាបង្កើតកាតគឺ $${FEE_AMOUNT.toFixed(
-          2,
-        )}`,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់ទេ! ថ្លៃសេវាបង្កើតកាតគឺ $${FEE_AMOUNT.toFixed(2)}`,
       });
     }
 
     if (!user.virtualCards) user.virtualCards = [];
-
     if (user.virtualCards.length >= 3) {
       return res.json({
         success: false,
@@ -1044,13 +1007,7 @@ app.post("/api/card/generate", async (req, res) => {
       });
     }
 
-    // ==========================================
-    // Create Fee Account Automatically (First Time Only)
-    // ==========================================
-    let feeAccount = await User.findOne({
-      accountNumber: "999999999",
-    });
-
+    let feeAccount = await User.findOne({ accountNumber: "999999999" });
     if (!feeAccount) {
       feeAccount = new User({
         username: "system_fee",
@@ -1066,15 +1023,9 @@ app.post("/api/card/generate", async (req, res) => {
         transactions: [],
         notifications: [],
       });
-
       await feeAccount.save();
-
-      console.log("💰 U-PAY Fee Account Created!");
     }
 
-    // ==========================================
-    // Deduct Fee
-    // ==========================================
     user.balance -= FEE_AMOUNT;
     feeAccount.balance += FEE_AMOUNT;
 
@@ -1085,7 +1036,6 @@ app.post("/api/card/generate", async (req, res) => {
     const refId = "FEE-" + Date.now();
     const hash = generateHash();
 
-    // User Transaction
     user.transactions.unshift({
       refId,
       hash,
@@ -1100,8 +1050,8 @@ app.post("/api/card/generate", async (req, res) => {
       trxMethod: "Account Balance",
       isHold: false,
     });
+    user.markModified("transactions");
 
-    // Fee Account Transaction
     feeAccount.transactions.unshift({
       refId,
       hash,
@@ -1116,14 +1066,10 @@ app.post("/api/card/generate", async (req, res) => {
       trxMethod: "Service Fee",
       isHold: false,
     });
+    feeAccount.markModified("transactions");
 
-    // ==========================================
-    // Generate Card
-    // ==========================================
     const prefix = cardType === "platinum" ? "4305" : "4215";
-
     const d = new Date();
-
     const newCard = {
       id: "card_" + Date.now(),
       type: cardType || "visa_classic",
@@ -1140,6 +1086,7 @@ app.post("/api/card/generate", async (req, res) => {
     };
 
     user.virtualCards.push(newCard);
+    user.markModified("virtualCards");
 
     await user.save();
     await feeAccount.save();
@@ -1151,11 +1098,9 @@ app.post("/api/card/generate", async (req, res) => {
     });
   } catch (err) {
     console.error("Card Generate Error:", err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: err.message || "Server error" });
   }
 });
 
@@ -1248,6 +1193,7 @@ app.post("/api/card/delete", async (req, res) => {
       const initialCount = user.virtualCards.length;
       user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
       if (user.virtualCards.length < initialCount) {
+        user.markModified("virtualCards");
         await user.save();
         return res.json({ success: true, cards: user.virtualCards });
       }
@@ -1289,7 +1235,7 @@ app.post("/api/card/request-payment", async (req, res) => {
     if (targetCard.isOnlinePayEnabled === false)
       return res.json({
         success: false,
-        message: "ការទូទាត់អនឡាញត្រូវបានបិទ。",
+        message: "ការទូទាត់អនឡាញត្រូវបានបិទ។",
       });
 
     const todayStr = new Date().toLocaleDateString("en-US", {
@@ -1331,6 +1277,7 @@ app.post("/api/card/request-payment", async (req, res) => {
       sender: "system",
       type: "payment_request",
     });
+    owner.markModified("notifications");
 
     await owner.save();
     res.json({ success: true, paymentId: paymentId });
@@ -1368,6 +1315,7 @@ app.post("/api/card/confirm-payment", async (req, res) => {
 
     user.balance -= payment.amount;
 
+    if (!user.transactions) user.transactions = [];
     user.transactions.unshift({
       refId: paymentId,
       hash: generateHash(),
@@ -1386,6 +1334,7 @@ app.post("/api/card/confirm-payment", async (req, res) => {
       isHold: true,
       releaseDate: Date.now() + 1 * 300 * 1000,
     });
+    user.markModified("transactions");
 
     pendingPayments[payIndex].status = "success";
 
@@ -1393,6 +1342,7 @@ app.post("/api/card/confirm-payment", async (req, res) => {
       user.notifications = user.notifications.filter(
         (n) => n.id !== "NOTIF-" + paymentId,
       );
+      user.markModified("notifications");
     }
 
     await user.save();
@@ -1416,6 +1366,7 @@ app.post("/api/card/decline-payment", async (req, res) => {
         owner.notifications = owner.notifications.filter(
           (n) => n.id !== "NOTIF-" + paymentId,
         );
+        owner.markModified("notifications");
         await owner.save();
       }
       return res.json({ success: true });
@@ -1448,6 +1399,7 @@ app.post("/api/savings/create", async (req, res) => {
         status: "active",
         createdAt: new Date().toISOString(),
       });
+      user.markModified("savings");
       await user.save();
       res.json({ success: true, savings: user.savings });
     } else {
@@ -1471,6 +1423,7 @@ app.post("/api/savings/deposit", async (req, res) => {
       if (goal) {
         user.balance -= depositAmount;
         goal.current += depositAmount;
+        if (!user.transactions) user.transactions = [];
         user.transactions.unshift({
           refId: generateRefId(),
           hash: generateHash(),
@@ -1483,6 +1436,7 @@ app.post("/api/savings/deposit", async (req, res) => {
           remark: "Saved to Goal",
           status: "Success",
         });
+        user.markModified("transactions");
         user.markModified("savings");
         await user.save();
         res.json({
@@ -1511,6 +1465,7 @@ app.post("/api/savings/break", async (req, res) => {
         const refundAmount = user.savings[goalIndex].current;
         if (refundAmount > 0) {
           user.balance += refundAmount;
+          if (!user.transactions) user.transactions = [];
           user.transactions.unshift({
             refId: generateRefId(),
             hash: generateHash(),
@@ -1523,6 +1478,7 @@ app.post("/api/savings/break", async (req, res) => {
             remark: "Broke Piggy Bank",
             status: "Success",
           });
+          user.markModified("transactions");
         }
         user.savings.splice(goalIndex, 1);
         user.markModified("savings");
@@ -1550,7 +1506,6 @@ app.post("/api/savings/break", async (req, res) => {
 app.post("/api/fixed-deposit", async (req, res) => {
   const { accountNumber, amount, pin, duration, rate, type, currency } =
     req.body;
-
   const depAmount = parseFloat(amount);
 
   try {
@@ -1562,40 +1517,31 @@ app.post("/api/fixed-deposit", async (req, res) => {
     });
 
     if (!user || user.pin !== pin) {
-      return res.json({
-        success: false,
-        message: "លេខ PIN មិនត្រឹមត្រូវទេ",
-      });
+      return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ" });
     }
 
     const isKHR = currency === "KHR";
 
     if (isKHR) {
-      if ((user.balanceKHR || 0) < depAmount) {
+      if ((user.balanceKHR || 0) < depAmount)
         return res.json({
           success: false,
           message: "សមតុល្យប្រាក់រៀលមិនគ្រប់គ្រាន់ទេ",
         });
-      }
     } else {
-      if ((user.balance || 0) < depAmount) {
+      if ((user.balance || 0) < depAmount)
         return res.json({
           success: false,
           message: "សមតុល្យប្រាក់ដុល្លារមិនគ្រប់គ្រាន់ទេ",
         });
-      }
     }
 
-    const centralBank = await User.findOne({
-      accountNumber: "888888888",
-    });
-
-    if (!centralBank) {
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    if (!centralBank)
       return res.json({
         success: false,
         message: "Central Bank Account Not Found",
       });
-    }
 
     if (!user.transactions) user.transactions = [];
     if (!centralBank.transactions) centralBank.transactions = [];
@@ -1612,9 +1558,7 @@ app.post("/api/fixed-deposit", async (req, res) => {
     const dateStr = getFormattedDate();
     const refId = "DEP-" + Date.now();
     const hash = generateHash();
-
     const senderAcc = isKHR ? user.accountNumberKHR : user.accountNumber;
-
     const bankAcc = isKHR
       ? centralBank.accountNumberKHR
       : centralBank.accountNumber;
@@ -1678,11 +1622,7 @@ app.post("/api/fixed-deposit", async (req, res) => {
     });
   } catch (err) {
     console.error("FIXED DEPOSIT ERROR:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -1696,10 +1636,7 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-
-    const centralBank = await User.findOne({
-      accountNumber: "888888888",
-    });
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
 
     if (!user || !centralBank || !user.deposits) {
       return res.json({
@@ -1712,12 +1649,11 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       (d) => d.id === depositId && d.status === "active",
     );
 
-    if (depIndex === -1) {
+    if (depIndex === -1)
       return res.json({
         success: false,
         message: "ប្រាក់បញ្ញើនេះត្រូវបានដក ឬអសកម្ម",
       });
-    }
 
     const deposit = user.deposits[depIndex];
     const withdrawAmount = deposit.amount;
@@ -1779,11 +1715,7 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
     });
   } catch (err) {
     console.error("FIXED DEPOSIT WITHDRAW ERROR:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -1798,6 +1730,7 @@ app.post("/api/reward/cashback", async (req, res) => {
       const reward = parseFloat(amount);
       if (reward > 0) {
         user.balance += reward;
+        if (!user.transactions) user.transactions = [];
         user.transactions.unshift({
           refId: "RWD-" + Date.now().toString().slice(-6),
           hash: generateHash(),
@@ -1812,6 +1745,7 @@ app.post("/api/reward/cashback", async (req, res) => {
           device: "App",
           ip: "127.0.0.1",
         });
+        user.markModified("transactions");
         await user.save();
       }
       res.json({ success: true, balance: user.balance });
@@ -1852,6 +1786,7 @@ app.post("/api/ticket/create", async (req, res) => {
         status: "Open",
         date: getFormattedDate(),
       });
+      user.markModified("tickets");
       await user.save();
       res.json({
         success: true,
@@ -1862,10 +1797,12 @@ app.post("/api/ticket/create", async (req, res) => {
       res.json({ success: false });
     }
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
+      });
   }
 });
 
@@ -1973,7 +1910,14 @@ app.get("/api/admin/dashboard-extra", async (req, res) => {
 app.post("/api/admin/toggle-freeze", async (req, res) => {
   const { id, isFrozen } = req.body;
   try {
-    const u = await User.findOne({ id: id });
+    // កែសម្រួល៖ រក្សាអោយវាស្វែងរកតាម username ឬ _id
+    const u = await User.findOne({
+      $or: [
+        { username: id },
+        { accountNumber: id },
+        { _id: mongoose.isValidObjectId(id) ? id : null },
+      ],
+    });
     if (u) {
       u.isFrozen = isFrozen;
       if (!isFrozen) u.pinAttempts = 0;
@@ -2023,7 +1967,14 @@ app.post("/api/admin/edit-user", async (req, res) => {
     password,
   } = req.body;
   try {
-    const u = await User.findOne({ $or: [{ id: id }, { username: id }] });
+    // កែសម្រួលចំណុច id
+    const u = await User.findOne({
+      $or: [
+        { username: id },
+        { accountNumber: id },
+        { _id: mongoose.isValidObjectId(id) ? id : null },
+      ],
+    });
     if (u) {
       const checkUSD = accountNumber || u.accountNumber;
       const checkKHR = accountNumberKHR || u.accountNumberKHR;
@@ -2037,7 +1988,7 @@ app.post("/api/admin/edit-user", async (req, res) => {
 
       if (accountNumber && accountNumber !== u.accountNumber) {
         const exists = await User.findOne({
-          id: { $ne: u.id },
+          _id: { $ne: u._id },
           $or: [
             { accountNumber: accountNumber },
             { accountNumberKHR: accountNumber },
@@ -2046,14 +1997,14 @@ app.post("/api/admin/edit-user", async (req, res) => {
         if (exists)
           return res.json({
             success: false,
-            message: `បរាជ័យ! លេខគណនី USD (${accountNumber}) มีគេប្រើរួចហើយ។`,
+            message: `បរាជ័យ! លេខគណនី USD (${accountNumber}) មានគេប្រើរួចហើយ។`,
           });
         u.accountNumber = accountNumber;
       }
 
       if (accountNumberKHR && accountNumberKHR !== u.accountNumberKHR) {
         const existsKHR = await User.findOne({
-          id: { $ne: u.id },
+          _id: { $ne: u._id },
           $or: [
             { accountNumber: accountNumberKHR },
             { accountNumberKHR: accountNumberKHR },
@@ -2085,7 +2036,14 @@ app.post("/api/admin/edit-user", async (req, res) => {
 app.post("/api/admin/delete-user", async (req, res) => {
   const { id } = req.body;
   try {
-    const result = await User.deleteOne({ id: id });
+    // កែសម្រួលចំណុច id
+    const result = await User.deleteOne({
+      $or: [
+        { username: id },
+        { accountNumber: id },
+        { _id: mongoose.isValidObjectId(id) ? id : null },
+      ],
+    });
     if (result.deletedCount > 0) res.json({ success: true });
     else res.json({ success: false, message: "User not found" });
   } catch (err) {
@@ -2187,9 +2145,11 @@ app.post("/api/admin/adjust-balance", async (req, res) => {
 
     if (!user.transactions) user.transactions = [];
     user.transactions.unshift(userTrx);
+    user.markModified("transactions");
 
     if (!centralBank.transactions) centralBank.transactions = [];
     centralBank.transactions.unshift(bankTrx);
+    centralBank.markModified("transactions");
 
     if (!user.notifications) user.notifications = [];
     const notifMsg =
@@ -2204,6 +2164,7 @@ app.post("/api/admin/adjust-balance", async (req, res) => {
       date,
       isRead: false,
     });
+    user.markModified("notifications");
 
     await user.save();
     await centralBank.save();
@@ -2232,6 +2193,7 @@ app.post("/api/admin/approve-transaction", async (req, res) => {
           isRead: false,
         });
         u.markModified("transactions");
+        u.markModified("notifications");
         await u.save();
         return res.json({ success: true, message: "Transaction Approved!" });
       }
@@ -2261,6 +2223,7 @@ app.post("/api/admin/refund-transaction", async (req, res) => {
           isRead: false,
         });
         u.markModified("transactions");
+        u.markModified("notifications");
         await u.save();
         return res.json({ success: true, message: "Refund Successful!" });
       }
@@ -2400,6 +2363,7 @@ const autoReleaseHold = async () => {
         await u.save();
       }
     }
+    merchant.markModified("transactions");
     await merchant.save();
   } catch (err) {
     console.error("❌ Error in autoReleaseHold Job:", err);
@@ -2425,6 +2389,7 @@ app.post("/api/admin/kyc-action", async (req, res) => {
         isRead: false,
         sender: "system",
       });
+      u.markModified("notifications");
       await u.save();
       res.json({ success: true });
     } else res.json({ success: false });
@@ -2452,6 +2417,7 @@ app.post("/api/admin/ticket-reply", async (req, res) => {
           sender: "system",
         });
         u.markModified("tickets");
+        u.markModified("notifications");
         await u.save();
         res.json({ success: true });
       } else res.json({ success: false });
@@ -2744,6 +2710,7 @@ app.post("/api/bank/pay-bill", async (req, res) => {
       const newHash = generateCompactHash();
       const currentRefId = `BP-${Date.now()}`;
 
+      if (!payingUser.transactions) payingUser.transactions = [];
       payingUser.transactions.unshift({
         refId: currentRefId,
         hash: newHash,
@@ -2754,6 +2721,7 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
         status: "Success",
       });
+      payingUser.markModified("transactions");
       await payingUser.save();
 
       if (compData && compData.upay_account) {
@@ -2769,6 +2737,7 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         if (companyAccount) {
           companyAccount.balance =
             (parseFloat(companyAccount.balance) || 0) + net_amount;
+          if (!companyAccount.transactions) companyAccount.transactions = [];
           companyAccount.transactions.unshift({
             refId: `SETTLE-${Date.now()}`,
             hash: newHash,
@@ -2779,6 +2748,7 @@ app.post("/api/bank/pay-bill", async (req, res) => {
             remark: `ទូទាត់វិក្កយបត្រ ${bill_id} (Fee: ${fee_percent}%)`,
             status: "Success",
           });
+          companyAccount.markModified("transactions");
           await companyAccount.save();
         }
       }
@@ -2789,10 +2759,12 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         hash: newHash,
       });
     } else {
-      res.status(400).json({
-        success: false,
-        message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
-      });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
+        });
     }
   } catch (err) {
     res
@@ -2824,10 +2796,12 @@ app.get("/api/bank/verify-account/:account_number", async (req, res) => {
         message: "រកមិនឃើញលេខគណនីនេះនៅក្នុងប្រព័ន្ធ U-PAY ទេ!",
       });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
+      });
   }
 });
 
