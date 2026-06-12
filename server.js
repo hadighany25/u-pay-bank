@@ -119,9 +119,9 @@ const ChatSchema = new mongoose.Schema({
   time: String,
   timestamp: Number,
   isRead: Boolean,
+  deletedBy: { type: Array, default: [] }, // 🔥 បន្ថែមថ្មី
 });
 const Chat = mongoose.model("Chat", ChatSchema);
-
 let tempForgotOtps = {}; // ផ្ទុកលេខកូដ OTP បណ្តោះអាសន្ន
 
 // ==========================================
@@ -873,12 +873,10 @@ app.post("/api/payment", async (req, res) => {
     }
     res.json({ success: true, newBalance: user.balance, slipData: trx });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការទូទាត់វិក្កយបត្រ",
+    });
   }
 });
 
@@ -1661,12 +1659,10 @@ app.post("/api/ticket/create", async (req, res) => {
       });
     } else res.json({ success: false });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server មានបញ្ហាក្នុងការបង្កើត Ticket",
+    });
   }
 });
 
@@ -1886,9 +1882,24 @@ app.post("/api/admin/delete-user", async (req, res) => {
     if (!id) return res.json({ success: false });
     let query = [{ id: id }, { username: id }];
     if (mongoose.isValidObjectId(id)) query.push({ _id: id });
-    const result = await User.deleteOne({ $or: query });
-    if (result.deletedCount > 0) res.json({ success: true });
-    else res.json({ success: false, message: "User not found" });
+
+    const userToDelete = await User.findOne({ $or: query });
+    if (userToDelete) {
+      // 🔥 លុបប្រវត្តិ Chat ទាំងអស់ដែលពាក់ព័ន្ធនឹងគណនីនេះ
+      await Chat.deleteMany({
+        $or: [
+          { senderAcc: userToDelete.accountNumber },
+          { receiverAcc: userToDelete.accountNumber },
+          { senderAcc: userToDelete.accountNumberKHR },
+          { receiverAcc: userToDelete.accountNumberKHR },
+        ],
+      });
+
+      await User.deleteOne({ _id: userToDelete._id });
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: "User not found" });
+    }
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -2327,12 +2338,16 @@ app.post("/api/chat/send", async (req, res) => {
 app.post("/api/chat/history", async (req, res) => {
   const { user1Acc, user2Acc } = req.body;
   try {
-    const history = await Chat.find({
+    let history = await Chat.find({
       $or: [
         { senderAcc: user1Acc, receiverAcc: user2Acc },
         { senderAcc: user2Acc, receiverAcc: user1Acc },
       ],
     });
+
+    // 🔥 លាក់សារណាដែល User ខ្លួនឯងបានចុចលុប (Delete for me)
+    history = history.filter((m) => !m.deletedBy.includes(user1Acc));
+
     await Chat.updateMany(
       { receiverAcc: user1Acc, senderAcc: user2Acc, isRead: false },
       { $set: { isRead: true } },
@@ -2346,9 +2361,13 @@ app.post("/api/chat/history", async (req, res) => {
 app.post("/api/chat/contacts", async (req, res) => {
   const { myAcc } = req.body;
   try {
-    const chats = await Chat.find({
+    let chats = await Chat.find({
       $or: [{ senderAcc: myAcc }, { receiverAcc: myAcc }],
     });
+
+    // 🔥 លាក់សារដែលខ្លួនឯងបានលុប មុននឹងទាញយក Last Message
+    chats = chats.filter((c) => !c.deletedBy.includes(myAcc));
+
     const users = await User.find({});
     let contactMap = {};
 
@@ -2431,6 +2450,49 @@ app.post("/api/chat/check-user", async (req, res) => {
     else res.json({ success: false, message: "លេខគណនីមិនត្រឹមត្រូវទេ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// 🔥 API សម្រាប់លុបសារមួយៗ (Delete Message)
+app.post("/api/chat/delete-msg", async (req, res) => {
+  const { msgId, deleteType, reqAcc } = req.body;
+  try {
+    const msg = await Chat.findOne({ id: msgId });
+    if (!msg) return res.json({ success: false });
+
+    if (deleteType === "everyone") {
+      await Chat.deleteOne({ id: msgId }); // លុបចេញពី Database ទាំងស្រុង
+    } else if (deleteType === "me") {
+      if (!msg.deletedBy.includes(reqAcc)) {
+        msg.deletedBy.push(reqAcc); // លាក់តែសម្រាប់ម្នាក់ឯង
+        await msg.save();
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// 🔥 API សម្រាប់លុបការសន្ទនាទាំងមូល (Delete Conversation)
+app.post("/api/chat/delete-convo", async (req, res) => {
+  const { myAcc, targetAcc } = req.body;
+  try {
+    const chats = await Chat.find({
+      $or: [
+        { senderAcc: myAcc, receiverAcc: targetAcc },
+        { senderAcc: targetAcc, receiverAcc: myAcc },
+      ],
+    });
+    for (let c of chats) {
+      if (!c.deletedBy.includes(myAcc)) {
+        c.deletedBy.push(myAcc);
+        await c.save();
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
   }
 });
 
@@ -2595,12 +2657,10 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         hash: newHash,
       });
     } else
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
-        });
+      res.status(400).json({
+        success: false,
+        message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
+      });
   } catch (err) {
     res
       .status(500)
@@ -2623,20 +2683,16 @@ app.get("/api/bank/verify-account/:account_number", async (req, res) => {
         account_name: targetUser.fullName || targetUser.username,
       });
     } else {
-      res
-        .status(404)
-        .json({
-          success: false,
-          message: "រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធ U-PAY ទេ! ❌",
-        });
+      res.status(404).json({
+        success: false,
+        message: "រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធ U-PAY ទេ! ❌",
+      });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Server Error ក្នុងការផ្ទៀងផ្ទាត់គណនី",
+    });
   }
 });
 
