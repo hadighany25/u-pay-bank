@@ -1,20 +1,23 @@
 const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
+const cors = require("cors");
+const path = require("path");
+const mongoose = require("mongoose");
 const TelegramBot = require("node-telegram-bot-api");
+const multer = require("multer");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================
-// 🌐 CONFIGURATIONS & MIDDLEWARES
+// ⚙️ ១. ការកំណត់ទូទៅ (SERVER CONFIGURATION)
 // ==========================================
 
 const PAYHUB_URL = "https://payhub-kh.onrender.com";
 
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(
   cors({
     origin: "*",
@@ -23,26 +26,23 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
-
+// កំណត់ទីតាំងផ្ទុករូបភាពដែលគេ Upload ចូលមក (Save ចូល /public/uploads/)
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "public", "uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, "public", "uploads");
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
     }
-    cb(null, uploadDir);
+    cb(null, uploadPath);
   },
-  filename: (req, file, cb) => {
+  filename: function (req, file, cb) {
     cb(null, "IMG-" + Date.now() + path.extname(file.originalname));
   },
 });
 const upload = multer({ storage: storage });
 
 // ==========================================
-// 🟢 ១. លីងភ្ជាប់ទៅកាន់ MongoDB Atlas
+// 🟢 ២. ភ្ជាប់ទៅកាន់ MONGODB ATLAS
 // ==========================================
 const MONGO_URI =
   "mongodb+srv://hadighany25_db_user:WeBa4KcTKxl71UzY@cluster0.kkvnknp.mongodb.net/?appName=Cluster0";
@@ -51,18 +51,20 @@ mongoose
   .connect(MONGO_URI)
   .then(async () => {
     console.log("🟢 MongoDB Connected Successfully");
-    await initSystemAccounts();
+    await initSystemAccounts(); // បង្កើតគណនី Admin អូតូ
   })
   .catch((err) => {
     console.error("🔴 MongoDB Connection Error:", err);
   });
 
 // ==========================================
-// 🗄️ MONGOOSE MODELS & SCHEMAS
+// 🗄️ ៣. MONGODB SCHEMAS & MODELS
 // ==========================================
 
 const userSchema = new mongoose.Schema(
   {
+    // 🔥 ធានាថាមាន id: Date.now().toString() ដូចកូដចាស់បេះបិទ
+    id: { type: String, default: () => Date.now().toString() },
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     fullName: { type: String, default: "" },
@@ -70,10 +72,11 @@ const userSchema = new mongoose.Schema(
     pin: { type: String, default: "1111" },
     accountNumber: { type: String, unique: true },
     accountNumberKHR: { type: String, unique: true },
-    balance: { type: Number, default: 0 },
-    balanceKHR: { type: Number, default: 0 },
+    balance: { type: Number, default: 0.0 },
+    balanceKHR: { type: Number, default: 0.0 },
     role: { type: String, default: "user" },
-    trxLimit: { type: Number, default: 100 },
+    trxLimit: { type: Number, default: 1000.0 },
+    profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
@@ -83,19 +86,27 @@ const userSchema = new mongoose.Schema(
     virtualCards: { type: Array, default: [] },
     savings: { type: Array, default: [] },
     deposits: { type: Array, default: [] },
+    kycStatus: { type: String, default: "unverified" },
+    kycDocument: { type: String, default: "" },
+    kycSubmittedAt: { type: String, default: "" },
     needsSupport: { type: Boolean, default: false },
     telegramChatId: { type: String, default: null },
     linkCode: { type: String, default: null },
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
-    // កែសម្រួល៖ លុប Field ដែលជាន់គ្នាអោយនៅសល់តែមួយ
-    profileImage: { type: String, default: "" },
-    kycStatus: { type: String, default: "unverified" },
-    kycDocument: { type: String, default: "" },
-    kycSubmittedAt: { type: String, default: "" },
   },
   { timestamps: true },
 );
+
+// 🔥 នេះជាកន្លែងសំខាន់ដើម្បីឱ្យ Frontend លែងគាំង: ផ្លាស់ប្តូរ _id ឱ្យទៅជា id អូតូពេលបោះទៅ Frontend
+userSchema.set("toJSON", {
+  virtuals: true,
+  transform: function (doc, ret) {
+    if (!ret.id) ret.id = ret._id.toString();
+    delete ret._id;
+    delete ret.__v;
+  },
+});
 
 const User = mongoose.model("User", userSchema);
 
@@ -111,13 +122,13 @@ const ChatSchema = new mongoose.Schema({
 });
 const Chat = mongoose.model("Chat", ChatSchema);
 
-let tempForgotOtps = {};
+let tempForgotOtps = {}; // ផ្ទុកលេខកូដ OTP បណ្តោះអាសន្ន
 
 // ==========================================
-// ⚙️ SYSTEM SETTINGS (GLOBAL FREEZE)
+// ⚙️ ៤. SYSTEM SETTINGS (GLOBAL FREEZE & FX)
 // ==========================================
 const SYSTEM_FILE = path.join(__dirname, "data", "system.json");
-const SETTINGS_FILE = path.join(__dirname, "data", "settings.json");
+const FX_FILE = path.join(__dirname, "data", "fx.json");
 
 const readSystemStatus = () => {
   if (!fs.existsSync(SYSTEM_FILE)) {
@@ -148,27 +159,33 @@ app.post("/api/admin/toggle-system", (req, res) => {
   res.json({ success: true, isSystemFrozen: current.isSystemFrozen });
 });
 
-// ==========================================
-// 🛠 ២. មុខងារជំនួយ (HELPER FUNCTIONS)
-// ==========================================
-const readSettings = () => {
-  if (!fs.existsSync(SETTINGS_FILE)) {
-    if (!fs.existsSync(path.dirname(SETTINGS_FILE)))
-      fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
-    const defaultSettings = { fx: { usdToKhrBuy: 4050, usdToKhrSell: 4100 } };
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(defaultSettings, null, 2));
-    return defaultSettings;
-  }
+let globalFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
+if (fs.existsSync(FX_FILE)) {
   try {
-    return JSON.parse(fs.readFileSync(SETTINGS_FILE));
-  } catch (e) {
-    return { fx: { usdToKhrBuy: 4050, usdToKhrSell: 4100 } };
-  }
-};
-const writeSettings = (data) => {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
+    globalFXRates = JSON.parse(fs.readFileSync(FX_FILE));
+  } catch (e) {}
+}
+
+const writeFX = (data) => {
+  globalFXRates = data;
+  const dir = path.join(__dirname, "data");
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(FX_FILE, JSON.stringify(data, null, 2));
 };
 
+app.get("/api/fx/rates", (req, res) => {
+  res.json({ success: true, rates: globalFXRates });
+});
+
+app.post("/api/admin/fx/update", (req, res) => {
+  const { buy, sell } = req.body;
+  writeFX({ usdToKhrBuy: parseFloat(buy), usdToKhrSell: parseFloat(sell) });
+  res.json({ success: true, message: "Exchange rates updated successfully!" });
+});
+
+// ==========================================
+// 🛠 ៥. មុខងារជំនួយ (HELPER FUNCTIONS)
+// ==========================================
 const getFormattedDate = () => {
   return new Date().toLocaleString("en-US", {
     timeZone: "Asia/Phnom_Penh",
@@ -204,12 +221,10 @@ const generateCompactHash = () =>
   Math.random().toString(36).substring(2, 10).toUpperCase();
 
 // ==========================================
-// 🏢 ៣. បង្កើតគណនីក្រុមហ៊ុន និងធនាគារកណ្តាល (AUTO INIT SYSTEM ACCOUNTS)
+// 🏢 ៦. បង្កើតគណនីក្រុមហ៊ុន និងធនាគារកណ្តាល (AUTO INIT SYSTEM ACCOUNTS)
 // ==========================================
 const initSystemAccounts = async () => {
   try {
-    console.log("🚀 Checking System Accounts...");
-
     const billers = [
       { username: "EDC", accountNumber: "100000001" },
       { username: "PPWSA", accountNumber: "100000002" },
@@ -217,32 +232,29 @@ const initSystemAccounts = async () => {
       { username: "Fashion Shop", accountNumber: "100000004" },
     ];
 
-    // Create Billers
     for (const b of billers) {
       const exists = await User.findOne({ username: b.username });
       if (!exists) {
         await User.create({
+          id: "BILLER-" + b.username,
           username: b.username,
           password: "123",
           accountNumber: b.accountNumber,
           accountNumberKHR: "9" + b.accountNumber,
-          balance: 0,
-          balanceKHR: 0,
+          balance: 0.0,
           role: "biller",
           pin: "0000",
           isFrozen: false,
+          lastActive: new Date().toISOString(),
         });
         console.log(`✅ Created Biller: ${b.username}`);
       }
     }
 
-    // Create Central Bank
-    const centralBank = await User.findOne({
-      $or: [{ accountNumber: "888888888" }, { username: "centralbank" }],
-    });
-
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
     if (!centralBank) {
-      const bank = new User({
+      await User.create({
+        id: "sys_central_bank",
         username: "centralbank",
         fullName: "U-Pay Central Bank",
         password: "123456",
@@ -254,13 +266,8 @@ const initSystemAccounts = async () => {
         pin: "1234",
         profileImage: "images/logo.png",
         isFrozen: false,
-        transactions: [],
-        notifications: [],
       });
-      await bank.save();
-      console.log("🏦 U-Pay Central Bank Created!");
-    } else {
-      console.log("🏦 U-Pay Central Bank Already Exists");
+      console.log(`🏦 U-Pay Central Bank Created!`);
     }
   } catch (err) {
     console.error("❌ Init System Accounts Error:", err);
@@ -268,7 +275,7 @@ const initSystemAccounts = async () => {
 };
 
 // ==========================================
-// 🤖 ៤. មុខងារ TELEGRAM BOT
+// 🤖 ៧. មុខងារ TELEGRAM BOT
 // ==========================================
 const token = "8786350689:AAEncWXnaMjzk1QpMyZmo_Censsu4DVHSG0";
 const bot = new TelegramBot(token, { polling: true });
@@ -306,9 +313,7 @@ app.post("/api/generate-telegram-code", async (req, res) => {
       user.linkCode = randomCode;
       await user.save();
       res.json({ success: true, code: randomCode });
-    } else {
-      res.json({ success: false, message: "User not found" });
-    }
+    } else res.json({ success: false, message: "User not found" });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -322,7 +327,7 @@ app.post("/api/unlink-telegram", async (req, res) => {
       const oldChatId = user.telegramChatId;
       user.telegramChatId = null;
       await user.save();
-      if (oldChatId) {
+      if (oldChatId)
         bot
           .sendMessage(
             oldChatId,
@@ -330,25 +335,20 @@ app.post("/api/unlink-telegram", async (req, res) => {
             { parse_mode: "HTML" },
           )
           .catch((e) => console.log(e));
-      }
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "User not found" });
-    }
+    } else res.json({ success: false, message: "User not found" });
   } catch (err) {
     res.status(500).json({ success: false });
   }
 });
 
 // ==========================================
-// 🔐 ៥. ផ្នែកចូលគណនី (AUTH & USER LOGIN)
+// 🔐 ៨. ផ្នែកចូលគណនី (AUTH & USER LOGIN)
 // ==========================================
-
 const generatePatternAccounts = (users) => {
   let isUnique = false;
   let newAccUSD = "";
   let newAccKHR = "";
-
   while (!isUnique) {
     const n = Math.floor(Math.random() * 9) + 1;
     const prefix = `${n}00${n}00`;
@@ -365,49 +365,42 @@ const generatePatternAccounts = (users) => {
         u.accountNumber === newAccKHR ||
         u.accountNumberKHR === newAccKHR,
     );
-
-    if (!exists) {
-      isUnique = true;
-    }
+    if (!exists) isUnique = true;
   }
   return { usd: newAccUSD, khr: newAccKHR };
 };
 
 app.post("/api/register", async (req, res) => {
   const { username, password, fullName, phone, pin } = req.body;
-
   try {
     const existingUser = await User.findOne({ username });
-    if (existingUser) {
+    if (existingUser)
       return res.json({ success: false, message: "Username already taken!" });
-    }
 
-    const users = await User.find({});
-    const newAccs = generatePatternAccounts(users);
+    const allUsers = await User.find({});
+    const newAccs = generatePatternAccounts(allUsers);
 
-    if (newAccs.usd === newAccs.khr) {
+    if (newAccs.usd === newAccs.khr)
       return res.json({
         success: false,
         message: "ប្រព័ន្ធមានបញ្ហា! លេខគណនី USD និង KHR មិនអាចដូចគ្នាទេ។",
       });
-    }
 
-    const isDuplicate = users.some(
+    const isDuplicate = allUsers.some(
       (u) =>
         u.accountNumber === newAccs.usd ||
         u.accountNumberKHR === newAccs.usd ||
         u.accountNumber === newAccs.khr ||
         u.accountNumberKHR === newAccs.khr,
     );
-
-    if (isDuplicate) {
+    if (isDuplicate)
       return res.json({
         success: false,
         message: "ប្រព័ន្ធមានបញ្ហា! លេខគណនីនេះត្រូវបានប្រើប្រាស់រួចហើយ។",
       });
-    }
 
     const newUser = new User({
+      id: Date.now().toString(), // 🔥 កំណត់ ID ផ្ទាល់
       username,
       password,
       fullName: fullName || username,
@@ -419,22 +412,13 @@ app.post("/api/register", async (req, res) => {
       balanceKHR: 0.0,
       role: "user",
       trxLimit: 1000.0,
-      profileImage: "",
-      isFrozen: false,
-      isOnline: false,
-      pinAttempts: 0,
-      transactions: [],
       joinDate: new Date().toISOString(),
       lastActive: new Date().toISOString(),
-      telegramChatId: null,
-      linkCode: null,
-      kycStatus: "unverified",
     });
 
     await newUser.save();
     res.json({ success: true, user: newUser });
   } catch (err) {
-    console.error("Register Error:", err);
     res
       .status(500)
       .json({ success: false, message: "Server មានបញ្ហាក្នុងការចុះឈ្មោះ!" });
@@ -443,7 +427,6 @@ app.post("/api/register", async (req, res) => {
 
 app.post("/api/login", async (req, res) => {
   const { identifier, password } = req.body;
-
   if (identifier === "admin" && password === "123") {
     return res.json({
       success: true,
@@ -465,22 +448,15 @@ app.post("/api/login", async (req, res) => {
       ],
       password: password,
     });
-
     if (user) {
-      if (user.isFrozen) {
+      if (user.isFrozen)
         return res.json({ success: false, message: "Account Frozen!" });
-      }
-
       user.isOnline = true;
       user.lastActive = new Date().toISOString();
       await user.save();
-
       res.json({ success: true, user });
-    } else {
-      res.json({ success: false, message: "Invalid Credentials" });
-    }
+    } else res.json({ success: false, message: "Invalid Credentials" });
   } catch (err) {
-    console.error("Login Error:", err);
     res.status(500).json({ success: false, message: "Server មានបញ្ហាឡកអ៊ីន" });
   }
 });
@@ -495,7 +471,7 @@ app.post("/api/logout", async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Logout Error" });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -507,9 +483,7 @@ app.post("/api/heartbeat", async (req, res) => {
       user.lastActive = new Date().toISOString();
       await user.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false });
-    }
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -520,15 +494,13 @@ app.get("/api/users", async (req, res) => {
     const users = await User.find({});
     res.json(users);
   } catch (err) {
-    console.error("Fetch Users Error:", err);
-    res.status(500).json({ success: false, message: "មិនអាចទាញទិន្នន័យបានទេ" });
+    res.status(500).json({ success: false });
   }
 });
 
 // ==========================================
-// 👤 ៦. ការគ្រប់គ្រងទម្រង់គណនី (USER SETTINGS)
+// 👤 ៩. ការគ្រប់គ្រងទម្រង់គណនី (USER SETTINGS)
 // ==========================================
-
 app.post("/api/change-password", async (req, res) => {
   const { username, oldPassword, newPassword } = req.body;
   try {
@@ -537,11 +509,9 @@ app.post("/api/change-password", async (req, res) => {
       user.password = newPassword;
       await user.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "Old password incorrect" });
-    }
+    } else res.json({ success: false, message: "Old password incorrect" });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server មានបញ្ហា" });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -554,11 +524,9 @@ app.post("/api/change-pin", async (req, res) => {
       user.pinAttempts = 0;
       await user.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "Password incorrect" });
-    }
+    } else res.json({ success: false, message: "Password incorrect" });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server មានបញ្ហា" });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -570,93 +538,70 @@ app.post("/api/change-limit", async (req, res) => {
       user.trxLimit = parseFloat(newLimit);
       await user.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "Password incorrect" });
-    }
+    } else res.json({ success: false, message: "Password incorrect" });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server មានបញ្ហា" });
+    res.status(500).json({ success: false });
   }
 });
 
+// 🔥 កែសម្រួល៖ មុខងារ Upload រូបភាព (ធានាថាដើរ ១០០% តាម id របស់ Frontend)
 app.post(
   "/api/user/upload-image",
   upload.single("profileImg"),
   async (req, res) => {
+    const userId = req.body.id;
+    if (!req.file)
+      return res.json({ success: false, message: "No image uploaded" });
+    const imageUrl = "/uploads/" + req.file.filename;
     try {
-      const userId = req.body.id;
-      if (!req.file) {
-        return res.json({ success: false, message: "No image uploaded" });
-      }
-      const imageUrl = "/uploads/" + req.file.filename;
-      // ប្រើ FindById ឬស្វែងរកតាម Username អាស្រ័យលើ frontend បោះអ្វីមក
-      const user = await User.findOne({
-        $or: [
-          { _id: mongoose.isValidObjectId(userId) ? userId : null },
-          { username: userId },
-        ],
-      });
+      if (!userId)
+        return res.json({ success: false, message: "Invalid ID Provided" });
 
-      if (!user) {
-        return res.json({ success: false, message: "User not found" });
+      // ស្វែងរកតាម id របស់ Date.now(), តាម username, ឬ _id របស់ MongoDB
+      let query = [{ id: userId }, { username: userId }];
+      if (mongoose.isValidObjectId(userId)) query.push({ _id: userId });
+
+      const user = await User.findOne({ $or: query });
+      if (user) {
+        user.profileImage = imageUrl;
+        await user.save();
+        res.json({ success: true, imageUrl: imageUrl });
+      } else {
+        res.json({ success: false, message: "User not found" });
       }
-      user.profileImage = imageUrl;
-      await user.save();
-      res.json({ success: true, imageUrl });
     } catch (err) {
-      console.error("PROFILE UPLOAD ERROR:", err);
-      res.status(500).json({ success: false, message: err.message });
+      res.status(500).json({ success: false, message: "Server Error" });
     }
   },
 );
 
+// 🔥 កែសម្រួល៖ មុខងារ Submit KYC (ធានាថាដើរ ១០០%)
 app.post("/api/user/submit-kyc", upload.single("kycDoc"), async (req, res) => {
+  const username = req.body.username;
+  if (!req.file)
+    return res.json({ success: false, message: "No document uploaded" });
+  const docUrl = "/uploads/" + req.file.filename;
+
   try {
-    const username = req.body.username;
-    if (!req.file) {
-      return res.json({ success: false, message: "No document uploaded" });
-    }
-    const docUrl = "/uploads/" + req.file.filename;
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.json({ success: false, message: "User not found" });
-    }
-    user.kycStatus = "pending";
-    user.kycDocument = docUrl;
-    user.kycSubmittedAt = getFormattedDate();
-    await user.save();
-    res.json({
-      success: true,
-      message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
-    });
+    const user = await User.findOne({ username: username });
+    if (user) {
+      user.kycStatus = "pending";
+      user.kycDocument = docUrl;
+      user.kycSubmittedAt = getFormattedDate();
+      await user.save();
+      res.json({
+        success: true,
+        message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
+      });
+    } else res.json({ success: false, message: "User not found" });
   } catch (err) {
-    console.error("KYC ERROR:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
 // ==========================================
-// 💱 ៧. អត្រាប្តូរប្រាក់ & ផ្ទេរប្រាក់ (EXCHANGE & TRANSFERS)
+// 💱 ១០. ផ្ទេរប្រាក់ (EXCHANGE & TRANSFERS)
 // ==========================================
-
-let globalFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
-try {
-  globalFXRates = readSettings().fx;
-} catch (e) {}
-
-app.get("/api/fx/rates", (req, res) => {
-  res.json({ success: true, rates: globalFXRates });
-});
-
-app.post("/api/admin/fx/update", (req, res) => {
-  const { buy, sell } = req.body;
-  globalFXRates = {
-    usdToKhrBuy: parseFloat(buy),
-    usdToKhrSell: parseFloat(sell),
-  };
-  writeSettings({ fx: globalFXRates });
-  res.json({ success: true, message: "Exchange rates updated successfully!" });
-});
-
 app.post("/api/check-account", async (req, res) => {
   const { accountNumber } = req.body;
   try {
@@ -666,7 +611,6 @@ app.post("/api/check-account", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-
     if (targetUser) {
       const isReceiverKHR = targetUser.accountNumberKHR === accountNumber;
       res.json({
@@ -675,9 +619,7 @@ app.post("/api/check-account", async (req, res) => {
         isReceiverKHR: isReceiverKHR,
         fxRates: globalFXRates,
       });
-    } else {
-      res.json({ success: false, message: "Account not found" });
-    }
+    } else res.json({ success: false, message: "Account not found" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -685,13 +627,12 @@ app.post("/api/check-account", async (req, res) => {
 
 app.post("/api/transfer", async (req, res) => {
   const system = readSystemStatus();
-  if (system.isSystemFrozen) {
+  if (system.isSystemFrozen)
     return res.json({
       success: false,
       message:
         "ប្រព័ន្ធកំពុងធ្វើការថែទាំ (Maintenance) 🛠️ សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ។",
     });
-  }
 
   const {
     senderUsername,
@@ -702,9 +643,7 @@ app.post("/api/transfer", async (req, res) => {
     trxMethod,
     currency,
   } = req.body;
-
   try {
-    const fxRates = globalFXRates;
     const sender = await User.findOne({ username: senderUsername });
     const receiver = await User.findOne({
       $or: [
@@ -744,14 +683,13 @@ app.post("/api/transfer", async (req, res) => {
     const isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
 
     let amountInUSDForLimit = isSenderKHR
-      ? transferAmount / fxRates.usdToKhrSell
+      ? transferAmount / globalFXRates.usdToKhrSell
       : transferAmount;
-    if (amountInUSDForLimit > sender.trxLimit) {
+    if (amountInUSDForLimit > sender.trxLimit)
       return res.json({
         success: false,
         message: `Over Limit! Your limit is $${sender.trxLimit}`,
       });
-    }
 
     if (isSenderKHR) {
       if ((sender.balanceKHR || 0) < transferAmount)
@@ -770,19 +708,17 @@ app.post("/api/transfer", async (req, res) => {
     if (
       sender.accountNumber === receiverAccount ||
       sender.accountNumberKHR === receiverAccount
-    ) {
+    )
       return res.json({ success: false, message: "Cannot transfer to self" });
-    }
 
     let receiverAmount = transferAmount;
     if (!isSenderKHR && isReceiverKHR)
-      receiverAmount = transferAmount * fxRates.usdToKhrBuy;
+      receiverAmount = transferAmount * globalFXRates.usdToKhrBuy;
     else if (isSenderKHR && !isReceiverKHR)
-      receiverAmount = transferAmount / fxRates.usdToKhrSell;
+      receiverAmount = transferAmount / globalFXRates.usdToKhrSell;
 
     if (isSenderKHR) sender.balanceKHR -= transferAmount;
     else sender.balance -= transferAmount;
-
     if (isReceiverKHR)
       receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
     else receiver.balance += receiverAmount;
@@ -790,8 +726,6 @@ app.post("/api/transfer", async (req, res) => {
     const date = getFormattedDate();
     const refId = generateRefId();
     const trxHash = generateHash();
-    const deviceName = getDevice(req.headers["user-agent"]);
-    const ipAddress = req.ip || req.connection.remoteAddress;
     const signSender = isSenderKHR ? "៛" : "$";
     const signReceiver = isReceiverKHR ? "៛" : "$";
 
@@ -809,8 +743,8 @@ app.post("/api/transfer", async (req, res) => {
       receiverAcc: receiverAccount,
       remark: remark || "General",
       status: "Success",
-      device: deviceName,
-      ip: ipAddress,
+      device: getDevice(req.headers["user-agent"]),
+      ip: req.ip || req.connection.remoteAddress,
       trxMethod: trxMethod || "Account Input",
     };
 
@@ -821,12 +755,13 @@ app.post("/api/transfer", async (req, res) => {
       type: "Received",
     };
 
+    if (!sender.transactions) sender.transactions = [];
     sender.transactions.unshift(senderTrx);
-    sender.markModified("transactions"); // កែសម្រួល៖ អោយ Mongoose ដឹងថា Array ត្រូវ Update
+    sender.markModified("transactions");
 
     if (!receiver.transactions) receiver.transactions = [];
     receiver.transactions.unshift(receiverTrx);
-    receiver.markModified("transactions"); // កែសម្រួល
+    receiver.markModified("transactions");
 
     if (!receiver.notifications) receiver.notifications = [];
     receiver.notifications.unshift({
@@ -836,7 +771,7 @@ app.post("/api/transfer", async (req, res) => {
       date: date,
       isRead: false,
     });
-    receiver.markModified("notifications"); // កែសម្រួល
+    receiver.markModified("notifications");
 
     await sender.save();
     await receiver.save();
@@ -846,16 +781,14 @@ app.post("/api/transfer", async (req, res) => {
       const alertMsg = `🔔 <b>ប្រាក់ចូល (Money Received)</b> 🔔\n━━━━━━━━━━━━━━━━\n💰 <b>ចំនួនទឹកប្រាក់៖</b> +${displayAmount}\n📥 <b>ចូលគណនី៖</b> ${receiver.fullName || receiver.username}\n📤 <b>ពីគណនី៖</b> ${sender.fullName || sender.username}\n🧾 <b>លេខប្រតិបត្តិការ៖</b> ${refId}\n⏰ <b>កាលបរិច្ឆេទ៖</b> ${date}\n📝 <b>ចំណាំ៖</b> ${remark || "គ្មាន"}\n━━━━━━━━━━━━━━━━━\n✅ <i>ប្រតិបត្តិការជោគជ័យ (U-Pay)</i>`;
       bot
         .sendMessage(receiver.telegramChatId, alertMsg, { parse_mode: "HTML" })
-        .catch((err) => console.error(err));
+        .catch((e) => e);
     }
-
     res.json({
       success: true,
       newBalance: isSenderKHR ? sender.balanceKHR : sender.balance,
       slipData: senderTrx,
     });
   } catch (err) {
-    console.error("Transfer Error:", err);
     res
       .status(500)
       .json({ success: false, message: "Server មានបញ្ហាក្នុងការផ្ទេរប្រាក់" });
@@ -867,7 +800,6 @@ app.post("/api/payment", async (req, res) => {
   try {
     const user = await User.findOne({ username });
     const biller = await User.findOne({ username: billerName });
-
     if (!user || !biller)
       return res.json({ success: false, message: "Error User/Biller" });
     if (user.isFrozen)
@@ -897,7 +829,6 @@ app.post("/api/payment", async (req, res) => {
     const payAmount = parseFloat(amount);
     user.balance -= payAmount;
     biller.balance += payAmount;
-
     const refId = generateRefId();
     const date = getFormattedDate();
 
@@ -919,6 +850,7 @@ app.post("/api/payment", async (req, res) => {
       ip: req.ip,
     };
 
+    if (!user.transactions) user.transactions = [];
     user.transactions.unshift(trx);
     user.markModified("transactions");
 
@@ -937,12 +869,10 @@ app.post("/api/payment", async (req, res) => {
       const alertMsg = `🔔 <b>វិក្កយបត្របានទូទាត់</b> 🔔\n━━━━━━━━━━━━━━━━━━━━\n💰 <b>ទឹកប្រាក់៖</b> +$${payAmount.toFixed(2)}\n🏢 <b>ហាង៖</b> ${biller.fullName || biller.username}\n👤 <b>អតិថិជន៖</b> ${user.fullName || user.username}\n🧾 <b>វិក្កយបត្រ៖</b> ${billId}\n🏷️ <b>ប្រតិបត្តិការ៖</b> ${refId}\n━━━━━━━━━━━━━━━━━━━━\n✅ <i>ប្រតិបត្តិការជោគជ័យ</i>`;
       bot
         .sendMessage(biller.telegramChatId, alertMsg, { parse_mode: "HTML" })
-        .catch((err) => console.error(err));
+        .catch((e) => e);
     }
-
     res.json({ success: true, newBalance: user.balance, slipData: trx });
   } catch (err) {
-    console.error("Payment Error:", err);
     res
       .status(500)
       .json({
@@ -953,7 +883,7 @@ app.post("/api/payment", async (req, res) => {
 });
 
 // ==========================================
-// 💳 ៨. ប្រព័ន្ធកាត (CARD MANAGEMENT SYSTEM)
+// 💳 ១១. ប្រព័ន្ធកាត (CARD MANAGEMENT SYSTEM)
 // ==========================================
 function generateLuhnNumber(prefix) {
   let num = prefix;
@@ -975,16 +905,13 @@ let pendingPayments = [];
 
 app.post("/api/card/generate", async (req, res) => {
   const system = readSystemStatus();
-
-  if (system.isSystemFrozen) {
+  if (system.isSystemFrozen)
     return res.json({
       success: false,
       message: "ប្រព័ន្ធកំពុងធ្វើការថែទាំ 🛠️ មិនអាចបង្កើតកាតថ្មីបានទេនៅពេលនេះ។",
     });
-  }
 
   const { username, cardType, pin } = req.body;
-
   try {
     const user = await User.findOne({ username });
     if (!user) return res.json({ success: false, message: "User not found" });
@@ -992,50 +919,41 @@ app.post("/api/card/generate", async (req, res) => {
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
 
     const FEE_AMOUNT = 5.0;
-    if (user.balance < FEE_AMOUNT) {
+    if (user.balance < FEE_AMOUNT)
       return res.json({
         success: false,
         message: `សមតុល្យមិនគ្រប់គ្រាន់ទេ! ថ្លៃសេវាបង្កើតកាតគឺ $${FEE_AMOUNT.toFixed(2)}`,
       });
-    }
 
     if (!user.virtualCards) user.virtualCards = [];
-    if (user.virtualCards.length >= 3) {
+    if (user.virtualCards.length >= 3)
       return res.json({
         success: false,
         message: "Limit reached (Max 3 cards)",
       });
-    }
 
     let feeAccount = await User.findOne({ accountNumber: "999999999" });
     if (!feeAccount) {
       feeAccount = new User({
+        id: "sys_fee_account",
         username: "system_fee",
         fullName: "U-PAY Fee",
-        password: "123456",
-        pin: "0000",
         accountNumber: "999999999",
         accountNumberKHR: "999999998",
         balance: 0,
-        balanceKHR: 0,
         role: "system",
-        isFrozen: false,
-        transactions: [],
-        notifications: [],
+        password: "123",
       });
       await feeAccount.save();
     }
 
     user.balance -= FEE_AMOUNT;
     feeAccount.balance += FEE_AMOUNT;
-
-    if (!user.transactions) user.transactions = [];
-    if (!feeAccount.transactions) feeAccount.transactions = [];
-
     const dateStr = getFormattedDate();
     const refId = "FEE-" + Date.now();
     const hash = generateHash();
 
+    if (!user.transactions) user.transactions = [];
     user.transactions.unshift({
       refId,
       hash,
@@ -1051,7 +969,7 @@ app.post("/api/card/generate", async (req, res) => {
       isHold: false,
     });
     user.markModified("transactions");
-
+    if (!feeAccount.transactions) feeAccount.transactions = [];
     feeAccount.transactions.unshift({
       refId,
       hash,
@@ -1084,23 +1002,18 @@ app.post("/api/card/generate", async (req, res) => {
       isOnlinePayEnabled: true,
       dailyLimit: 500.0,
     };
-
     user.virtualCards.push(newCard);
     user.markModified("virtualCards");
 
     await user.save();
     await feeAccount.save();
-
     res.json({
       success: true,
       cards: user.virtualCards,
       newBalance: user.balance,
     });
   } catch (err) {
-    console.error("Card Generate Error:", err);
-    res
-      .status(500)
-      .json({ success: false, message: err.message || "Server error" });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -1158,9 +1071,7 @@ app.post("/api/card/change-pin", async (req, res) => {
       user.markModified("virtualCards");
       await user.save();
       res.json({ success: true, message: "ប្តូរលេខ PIN កាតជោគជ័យ!" });
-    } else {
-      res.json({ success: false, message: "រកមិនឃើញអ្នកប្រើប្រាស់!" });
-    }
+    } else res.json({ success: false, message: "រកមិនឃើញអ្នកប្រើប្រាស់!" });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -1206,30 +1117,26 @@ app.post("/api/card/delete", async (req, res) => {
 
 app.post("/api/card/request-payment", async (req, res) => {
   const system = readSystemStatus();
-  if (system.isSystemFrozen) {
+  if (system.isSystemFrozen)
     return res.json({
       success: false,
       message:
         "ប្រព័ន្ធធនាគាកំពុងធ្វើការថែទាំ (Maintenance) 🛠️ មិនអាចធ្វើការទូទាត់បានទេ។",
     });
-  }
 
   const { cardNumber, expiry, cvv, amount, orderId, shopName } = req.body;
-
   try {
     let owner = await User.findOne({
       "virtualCards.number": cardNumber,
       "virtualCards.expiry": expiry,
       "virtualCards.cvv": cvv,
     });
-
     if (!owner)
       return res.json({ success: false, message: "ព័ត៌មានកាតមិនត្រឹមត្រូវ!" });
 
     const targetCard = owner.virtualCards.find(
       (c) => c.number === cardNumber && c.expiry === expiry && c.cvv === cvv,
     );
-
     if (targetCard.isLocked)
       return res.json({ success: false, message: "កាតនេះត្រូវបានបង្កក!" });
     if (targetCard.isOnlinePayEnabled === false)
@@ -1278,7 +1185,6 @@ app.post("/api/card/request-payment", async (req, res) => {
       type: "payment_request",
     });
     owner.markModified("notifications");
-
     await owner.save();
     res.json({ success: true, paymentId: paymentId });
   } catch (err) {
@@ -1286,7 +1192,7 @@ app.post("/api/card/request-payment", async (req, res) => {
   }
 });
 
-app.get("/api/card/pending-payments/:username", (req, res) => {
+app.get("/api/user/pending-payments/:username", (req, res) => {
   const searchUsername = req.params.username.toLowerCase();
   const list = pendingPayments.filter(
     (p) => p.username === searchUsername && p.status === "pending",
@@ -1301,7 +1207,6 @@ app.post("/api/card/confirm-payment", async (req, res) => {
     const payIndex = pendingPayments.findIndex(
       (p) => p.paymentId === paymentId,
     );
-
     if (!user || payIndex === -1)
       return res.json({ success: false, message: "សំណើមិនត្រឹមត្រូវ!" });
 
@@ -1309,12 +1214,10 @@ app.post("/api/card/confirm-payment", async (req, res) => {
     const usedCard = user.virtualCards.find(
       (c) => c.number === payment.cardNumber,
     );
-
     if (!usedCard || usedCard.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវ!" });
 
     user.balance -= payment.amount;
-
     if (!user.transactions) user.transactions = [];
     user.transactions.unshift({
       refId: paymentId,
@@ -1335,7 +1238,6 @@ app.post("/api/card/confirm-payment", async (req, res) => {
       releaseDate: Date.now() + 1 * 300 * 1000,
     });
     user.markModified("transactions");
-
     pendingPayments[payIndex].status = "success";
 
     if (user.notifications) {
@@ -1344,7 +1246,6 @@ app.post("/api/card/confirm-payment", async (req, res) => {
       );
       user.markModified("notifications");
     }
-
     await user.save();
     res.json({ success: true, message: "ការទូទាត់ជោគជ័យ!" });
   } catch (err) {
@@ -1355,13 +1256,11 @@ app.post("/api/card/confirm-payment", async (req, res) => {
 app.post("/api/card/decline-payment", async (req, res) => {
   const { paymentId } = req.body;
   const payIndex = pendingPayments.findIndex((p) => p.paymentId === paymentId);
-
   if (payIndex !== -1) {
     pendingPayments[payIndex].status = "declined";
     try {
       const ownerUsername = pendingPayments[payIndex].username;
       const owner = await User.findOne({ username: ownerUsername });
-
       if (owner && owner.notifications) {
         owner.notifications = owner.notifications.filter(
           (n) => n.id !== "NOTIF-" + paymentId,
@@ -1383,7 +1282,7 @@ app.get("/api/card/check-status/:paymentId", (req, res) => {
 });
 
 // ==========================================
-// 🐷 ៩. កូនជ្រូកសន្សំប្រាក់ (SAVINGS GOALS)
+// 🐷 ១២. កូនជ្រូកសន្សំប្រាក់ (SAVINGS GOALS)
 // ==========================================
 app.post("/api/savings/create", async (req, res) => {
   const { username, goalName, targetAmount } = req.body;
@@ -1402,9 +1301,7 @@ app.post("/api/savings/create", async (req, res) => {
       user.markModified("savings");
       await user.save();
       res.json({ success: true, savings: user.savings });
-    } else {
-      res.json({ success: false });
-    }
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -1418,7 +1315,6 @@ app.post("/api/savings/deposit", async (req, res) => {
       const depositAmount = parseFloat(amount);
       if (user.balance < depositAmount)
         return res.json({ success: false, message: "Insufficient balance!" });
-
       const goal = user.savings?.find((g) => g.id === goalId);
       if (goal) {
         user.balance -= depositAmount;
@@ -1444,12 +1340,8 @@ app.post("/api/savings/deposit", async (req, res) => {
           balance: user.balance,
           savings: user.savings,
         });
-      } else {
-        res.json({ success: false });
-      }
-    } else {
-      res.json({ success: false });
-    }
+      } else res.json({ success: false });
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -1489,25 +1381,20 @@ app.post("/api/savings/break", async (req, res) => {
           savings: user.savings,
           amount: refundAmount,
         });
-      } else {
-        res.json({ success: false });
-      }
-    } else {
-      res.json({ success: false });
-    }
+      } else res.json({ success: false });
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
 // ==========================================
-// 🏦 ១០. គណនីបញ្ញើ (FIXED DEPOSITS)
+// 🏦 ១៣. គណនីបញ្ញើ (FIXED DEPOSITS)
 // ==========================================
 app.post("/api/fixed-deposit", async (req, res) => {
   const { accountNumber, amount, pin, duration, rate, type, currency } =
     req.body;
   const depAmount = parseFloat(amount);
-
   try {
     const user = await User.findOne({
       $or: [
@@ -1515,13 +1402,10 @@ app.post("/api/fixed-deposit", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-
-    if (!user || user.pin !== pin) {
+    if (!user || user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ" });
-    }
 
     const isKHR = currency === "KHR";
-
     if (isKHR) {
       if ((user.balanceKHR || 0) < depAmount)
         return res.json({
@@ -1578,7 +1462,6 @@ app.post("/api/fixed-deposit", async (req, res) => {
       trxMethod: "Fixed Deposit",
       isHold: false,
     });
-
     centralBank.transactions.unshift({
       refId,
       hash,
@@ -1608,27 +1491,22 @@ app.post("/api/fixed-deposit", async (req, res) => {
       ).toISOString(),
       status: "active",
     });
-
     user.markModified("transactions");
     user.markModified("deposits");
     centralBank.markModified("transactions");
-
     await user.save();
     await centralBank.save();
-
     return res.json({
       success: true,
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    console.error("FIXED DEPOSIT ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
 
 app.post("/api/fixed-deposit/withdraw", async (req, res) => {
   const { accountNumber, depositId } = req.body;
-
   try {
     const user = await User.findOne({
       $or: [
@@ -1637,18 +1515,15 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       ],
     });
     const centralBank = await User.findOne({ accountNumber: "888888888" });
-
-    if (!user || !centralBank || !user.deposits) {
+    if (!user || !centralBank || !user.deposits)
       return res.json({
         success: false,
         message: "រកមិនឃើញគណនី ឬប្រាក់បញ្ញើទេ",
       });
-    }
 
     const depIndex = user.deposits.findIndex(
       (d) => d.id === depositId && d.status === "active",
     );
-
     if (depIndex === -1)
       return res.json({
         success: false,
@@ -1658,10 +1533,8 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
     const deposit = user.deposits[depIndex];
     const withdrawAmount = deposit.amount;
     const isKHR = deposit.currency === "KHR";
-
     if (!user.transactions) user.transactions = [];
     if (!centralBank.transactions) centralBank.transactions = [];
-
     user.deposits[depIndex].status = "closed";
 
     if (isKHR) {
@@ -1675,7 +1548,6 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
     const dateStr = getFormattedDate();
     const refId = "WD-" + Date.now();
     const hash = generateHash();
-
     user.transactions.unshift({
       refId,
       hash,
@@ -1688,7 +1560,6 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
       status: "Success",
       trxMethod: "Fixed Deposit",
     });
-
     centralBank.transactions.unshift({
       refId,
       hash,
@@ -1705,22 +1576,19 @@ app.post("/api/fixed-deposit/withdraw", async (req, res) => {
     user.markModified("transactions");
     user.markModified("deposits");
     centralBank.markModified("transactions");
-
     await user.save();
     await centralBank.save();
-
     return res.json({
       success: true,
       newBalance: isKHR ? user.balanceKHR : user.balance,
     });
   } catch (err) {
-    console.error("FIXED DEPOSIT WITHDRAW ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
 
 // ==========================================
-// 🎁 ១១. រង្វាន់ និងការបង្វិលសង (REWARDS & CASHBACK)
+// 🎁 ១៤. រង្វាន់ និងការបង្វិលសង (REWARDS & CASHBACK)
 // ==========================================
 app.post("/api/reward/cashback", async (req, res) => {
   const { username, amount, refId } = req.body;
@@ -1749,16 +1617,14 @@ app.post("/api/reward/cashback", async (req, res) => {
         await user.save();
       }
       res.json({ success: true, balance: user.balance });
-    } else {
-      res.json({ success: false });
-    }
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 // ==========================================
-// 🎧 ១២. សេវាកម្មអតិថិជន (SUPPORT TICKETS)
+// 🎧 ១៥. សេវាកម្មអតិថិជន (SUPPORT TICKETS)
 // ==========================================
 app.post("/api/ticket/create", async (req, res) => {
   const { username, subject, description, priority } = req.body;
@@ -1775,8 +1641,8 @@ app.post("/api/ticket/create", async (req, res) => {
         { $group: { _id: null, total: { $sum: "$numberOfTickets" } } },
       ]);
       const allTicketsCount = results.length > 0 ? results[0].total : 0;
-      const nextNumber = allTicketsCount + 1;
-      const formattedId = "TK-" + nextNumber.toString().padStart(3, "0");
+      const formattedId =
+        "TK-" + (allTicketsCount + 1).toString().padStart(3, "0");
 
       user.tickets.push({
         ticketId: formattedId,
@@ -1793,9 +1659,7 @@ app.post("/api/ticket/create", async (req, res) => {
         message: "Ticket Created!",
         ticketId: formattedId,
       });
-    } else {
-      res.json({ success: false });
-    }
+    } else res.json({ success: false });
   } catch (err) {
     res
       .status(500)
@@ -1807,7 +1671,7 @@ app.post("/api/ticket/create", async (req, res) => {
 });
 
 // ==========================================
-// 👑 ១៣. ប្រព័ន្ធគ្រប់គ្រង ADMIN (ADMIN DASHBOARD)
+// 👑 ១៦. ប្រព័ន្ធគ្រប់គ្រង ADMIN (ADMIN DASHBOARD)
 // ==========================================
 app.get("/api/admin/stats", async (req, res) => {
   try {
@@ -1815,13 +1679,11 @@ app.get("/api/admin/stats", async (req, res) => {
     const labels = [];
     const data = Array(7).fill(0);
     const today = new Date();
-
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       labels.push(d.toLocaleDateString("en-US", { weekday: "short" }));
     }
-
     users.forEach((u) => {
       if (u.transactions) {
         u.transactions.forEach((t) => {
@@ -1847,7 +1709,6 @@ app.get("/api/admin/dashboard-extra", async (req, res) => {
     const users = await User.find({});
     let totalRevenue = 0;
     let allActivities = [];
-
     users.forEach((user) => {
       if (user.transactions) {
         user.transactions.forEach((t) => {
@@ -1856,9 +1717,7 @@ app.get("/api/admin/dashboard-extra", async (req, res) => {
             totalRevenue += parseFloat(t.amount) || 0;
         });
       }
-
       if (user.accountNumber === "888888888" || user.role === "system") return;
-
       if (user.transactions) {
         user.transactions.forEach((t) => {
           let rawDate = new Date(t.date).getTime();
@@ -1895,7 +1754,6 @@ app.get("/api/admin/dashboard-extra", async (req, res) => {
         });
       }
     });
-
     allActivities.sort((a, b) => b.rawDate - a.rawDate);
     res.json({
       success: true,
@@ -1910,14 +1768,10 @@ app.get("/api/admin/dashboard-extra", async (req, res) => {
 app.post("/api/admin/toggle-freeze", async (req, res) => {
   const { id, isFrozen } = req.body;
   try {
-    // កែសម្រួល៖ រក្សាអោយវាស្វែងរកតាម username ឬ _id
-    const u = await User.findOne({
-      $or: [
-        { username: id },
-        { accountNumber: id },
-        { _id: mongoose.isValidObjectId(id) ? id : null },
-      ],
-    });
+    if (!id) return res.json({ success: false });
+    let query = [{ id: id }, { username: id }];
+    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
+    const u = await User.findOne({ $or: query });
     if (u) {
       u.isFrozen = isFrozen;
       if (!isFrozen) u.pinAttempts = 0;
@@ -1938,7 +1792,6 @@ app.get("/api/admin/transaction/:id", async (req, res) => {
         { "transactions.hash": searchTerm },
       ],
     });
-
     if (owner) {
       const foundTrx = owner.transactions.find(
         (t) => t.refId === searchTerm || t.hash === searchTerm,
@@ -1948,14 +1801,13 @@ app.get("/api/admin/transaction/:id", async (req, res) => {
         transaction: foundTrx,
         user: { username: owner.username, accountNumber: owner.accountNumber },
       });
-    } else {
-      res.json({ success: false });
-    }
+    } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false });
   }
 });
 
+// 🔥 កែសម្រួល៖ មុខងារ Edit User (ធានាថាដើរ ១០០% តាម id របស់ Frontend)
 app.post("/api/admin/edit-user", async (req, res) => {
   const {
     id,
@@ -1967,18 +1819,15 @@ app.post("/api/admin/edit-user", async (req, res) => {
     password,
   } = req.body;
   try {
-    // កែសម្រួលចំណុច id
-    const u = await User.findOne({
-      $or: [
-        { username: id },
-        { accountNumber: id },
-        { _id: mongoose.isValidObjectId(id) ? id : null },
-      ],
-    });
+    if (!id) return res.json({ success: false, message: "Invalid ID" });
+
+    let query = [{ id: id }, { username: id }];
+    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
+
+    const u = await User.findOne({ $or: query });
     if (u) {
       const checkUSD = accountNumber || u.accountNumber;
       const checkKHR = accountNumberKHR || u.accountNumberKHR;
-
       if (checkUSD === checkKHR)
         return res.json({
           success: false,
@@ -2025,9 +1874,7 @@ app.post("/api/admin/edit-user", async (req, res) => {
 
       await u.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "រកមិនឃើញគណនីដើម្បីកែប្រែទេ។" });
-    }
+    } else res.json({ success: false, message: "រកមិនឃើញគណនីដើម្បីកែប្រែទេ។" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -2036,14 +1883,10 @@ app.post("/api/admin/edit-user", async (req, res) => {
 app.post("/api/admin/delete-user", async (req, res) => {
   const { id } = req.body;
   try {
-    // កែសម្រួលចំណុច id
-    const result = await User.deleteOne({
-      $or: [
-        { username: id },
-        { accountNumber: id },
-        { _id: mongoose.isValidObjectId(id) ? id : null },
-      ],
-    });
+    if (!id) return res.json({ success: false });
+    let query = [{ id: id }, { username: id }];
+    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
+    const result = await User.deleteOne({ $or: query });
     if (result.deletedCount > 0) res.json({ success: true });
     else res.json({ success: false, message: "User not found" });
   } catch (err) {
@@ -2056,7 +1899,6 @@ app.post("/api/admin/adjust-balance", async (req, res) => {
   try {
     const user = await User.findOne({ username });
     const centralBank = await User.findOne({ accountNumber: "888888888" });
-
     if (!user) return res.json({ success: false, message: "User not found!" });
     if (!centralBank)
       return res.json({ success: false, message: "Central Bank not found!" });
@@ -2146,7 +1988,6 @@ app.post("/api/admin/adjust-balance", async (req, res) => {
     if (!user.transactions) user.transactions = [];
     user.transactions.unshift(userTrx);
     user.markModified("transactions");
-
     if (!centralBank.transactions) centralBank.transactions = [];
     centralBank.transactions.unshift(bankTrx);
     centralBank.markModified("transactions");
@@ -2165,7 +2006,6 @@ app.post("/api/admin/adjust-balance", async (req, res) => {
       isRead: false,
     });
     user.markModified("notifications");
-
     await user.save();
     await centralBank.save();
 
@@ -2235,7 +2075,7 @@ app.post("/api/admin/refund-transaction", async (req, res) => {
 });
 
 // ==========================================
-// 📢 ១៤. ការជូនដំណឹង (NOTIFICATIONS & BROADCASTS)
+// 📢 ១៧. ការជូនដំណឹង (NOTIFICATIONS & BROADCASTS)
 // ==========================================
 app.get("/api/user/notifications", async (req, res) => {
   if (!req.session || !req.session.username)
@@ -2311,7 +2151,7 @@ app.post("/api/admin/delete-broadcast", async (req, res) => {
 });
 
 // ==========================================
-// ⏱ ១៥. ស្វ័យប្រវត្តិកម្ម (AUTO JOBS)
+// ⏱ ១៨. ស្វ័យប្រវត្តិកម្ម (AUTO JOBS)
 // ==========================================
 const autoReleaseHold = async () => {
   const now = Date.now();
@@ -2372,7 +2212,7 @@ const autoReleaseHold = async () => {
 setInterval(autoReleaseHold, 10000);
 
 // ==========================================
-// 🛡 ១៦. ADMIN ACTIONS (KYC & TICKETS)
+// 🛡 ១៩. ADMIN ACTIONS (KYC & TICKETS)
 // ==========================================
 app.post("/api/admin/kyc-action", async (req, res) => {
   const { username, action } = req.body;
@@ -2428,7 +2268,7 @@ app.post("/api/admin/ticket-reply", async (req, res) => {
 });
 
 // ==========================================
-// 💬 ប្រព័ន្ធ CHAT ថ្មី (UNIFIED CHAT - BOT & HUMAN)
+// 💬 ២០. ប្រព័ន្ធ CHAT ថ្មី (UNIFIED CHAT - BOT & HUMAN)
 // ==========================================
 app.post("/api/chat/send", async (req, res) => {
   const { senderAcc, receiverAcc, message, adminName } = req.body;
@@ -2439,10 +2279,8 @@ app.post("/api/chat/send", async (req, res) => {
         $or: [{ accountNumber: acc }, { accountNumberKHR: acc }],
       });
     };
-
     const sender = await getAcc(senderAcc);
     const receiver = await getAcc(receiverAcc);
-
     if (!sender || !receiver)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
 
@@ -2460,13 +2298,11 @@ app.post("/api/chat/send", async (req, res) => {
       const realUser = await User.findOne({
         accountNumber: sender.accountNumber,
       });
-      if (realUser) {
-        if (!realUser.needsSupport) {
-          const text = message.toLowerCase();
-          if (text.includes("human") || text.includes("ភ្នាក់ងារ")) {
-            realUser.needsSupport = true;
-            await realUser.save();
-          }
+      if (realUser && !realUser.needsSupport) {
+        const text = message.toLowerCase();
+        if (text.includes("human") || text.includes("ភ្នាក់ងារ")) {
+          realUser.needsSupport = true;
+          await realUser.save();
         }
       }
     }
@@ -2570,7 +2406,6 @@ app.post("/api/chat/contacts", async (req, res) => {
         return true;
       })
       .sort((a, b) => b.timestamp - a.timestamp);
-
     res.json({ success: true, contacts: activeContacts });
   } catch (err) {
     res.status(500).json({ success: false, contacts: [] });
@@ -2586,23 +2421,21 @@ app.post("/api/chat/check-user", async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
-    if (targetUser) {
+    if (targetUser)
       res.json({
         success: true,
         name: targetUser.fullName || targetUser.username,
         accountNumber: targetUser.accountNumber,
         profileImage: targetUser.profileImage,
       });
-    } else {
-      res.json({ success: false, message: "លេខគណនីមិនត្រឹមត្រូវទេ!" });
-    }
+    else res.json({ success: false, message: "លេខគណនីមិនត្រឹមត្រូវទេ!" });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
 // ==========================================
-// 🔑 ប្រព័ន្ធ FORGOT PASSWORD & OTP SYSTEM
+// 🔑 ២១. ប្រព័ន្ធ FORGOT PASSWORD & OTP SYSTEM
 // ==========================================
 app.post("/api/forgot-password/verify-user", async (req, res) => {
   const { identifier } = req.body;
@@ -2630,12 +2463,11 @@ app.post("/api/forgot-password/verify-user", async (req, res) => {
 
 app.post("/api/forgot-password/reset-password", async (req, res) => {
   const { username, otp, newPassword } = req.body;
-  if (!tempForgotOtps[username] || tempForgotOtps[username] !== otp) {
+  if (!tempForgotOtps[username] || tempForgotOtps[username] !== otp)
     return res.json({
       success: false,
       message: "លេខកូដ OTP មិនត្រឹមត្រូវ ឬផុតកំណត់ហើយ! ❌",
     });
-  }
   try {
     const user = await User.findOne({ username });
     if (user) {
@@ -2657,8 +2489,14 @@ app.post("/api/forgot-password/reset-password", async (req, res) => {
 });
 
 // ==========================================
-// 💳 ប្រព័ន្ធទូទាត់វិក្កយបត្រ (BILL PAYMENTS INTERACTION WITH PAYHUB)
+// 💳 ២២. ប្រព័ន្ធទូទាត់វិក្កយបត្រ (BILL PAYMENTS & PAYHUB)
 // ==========================================
+
+// ពេលវាយ localhost:3000 លោតទៅ upay.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "upay.html"));
+});
+
 app.post("/api/bank/scan-bill", async (req, res) => {
   const { bill_id } = req.body;
   try {
@@ -2697,8 +2535,8 @@ app.post("/api/bank/pay-bill", async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bill_id: bill_id }),
     });
-
     const data = await response.json();
+
     if (response.ok && data.success) {
       const compRes = await fetch(`${PAYHUB_URL}/api/admin/users`);
       const payhubUsers = await compRes.json();
@@ -2709,7 +2547,6 @@ app.post("/api/bank/pay-bill", async (req, res) => {
       payingUser.balance -= amount;
       const newHash = generateCompactHash();
       const currentRefId = `BP-${Date.now()}`;
-
       if (!payingUser.transactions) payingUser.transactions = [];
       payingUser.transactions.unshift({
         refId: currentRefId,
@@ -2733,7 +2570,6 @@ app.post("/api/bank/pay-bill", async (req, res) => {
             { accountNumberKHR: compData.upay_account },
           ],
         });
-
         if (companyAccount) {
           companyAccount.balance =
             (parseFloat(companyAccount.balance) || 0) + net_amount;
@@ -2758,14 +2594,13 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         transaction_id: currentRefId,
         hash: newHash,
       });
-    } else {
+    } else
       res
         .status(400)
         .json({
           success: false,
           message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
         });
-    }
   } catch (err) {
     res
       .status(500)
@@ -2773,9 +2608,6 @@ app.post("/api/bank/pay-bill", async (req, res) => {
   }
 });
 
-// ==========================================
-// 🔄 API សម្រាប់ផ្ទៀងផ្ទាត់លេខគណនី U-PAY
-// ==========================================
 app.get("/api/bank/verify-account/:account_number", async (req, res) => {
   const { account_number } = req.params;
   try {
@@ -2785,16 +2617,19 @@ app.get("/api/bank/verify-account/:account_number", async (req, res) => {
         { accountNumberKHR: account_number },
       ],
     });
-    if (targetUser)
+    if (targetUser) {
       res.json({
         success: true,
         account_name: targetUser.fullName || targetUser.username,
       });
-    else
-      res.json({
-        success: false,
-        message: "រកមិនឃើញលេខគណនីនេះនៅក្នុងប្រព័ន្ធ U-PAY ទេ!",
-      });
+    } else {
+      res
+        .status(404)
+        .json({
+          success: false,
+          message: "រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធ U-PAY ទេ! ❌",
+        });
+    }
   } catch (err) {
     res
       .status(500)
@@ -2806,9 +2641,9 @@ app.get("/api/bank/verify-account/:account_number", async (req, res) => {
 });
 
 // ==========================================
-// 🚀 ចាប់ផ្តើម SERVER (START SERVER)
+// 🚀 ២៣. ចាប់ផ្តើម SERVER (START SERVER)
 // ==========================================
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(
     `🚀🔥 U-PAY Banking Server is running successfully on port ${PORT}`,
   );
