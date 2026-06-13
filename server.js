@@ -2606,6 +2606,7 @@ app.post("/api/bank/scan-bill", async (req, res) => {
 app.post("/api/bank/pay-bill", async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
   try {
+    // ១. ឆែកមើលគណនីអតិថិជន និងសមតុល្យ
     let payingUser = await User.findOne({ username });
     if (!payingUser)
       return res
@@ -2616,6 +2617,7 @@ app.post("/api/bank/pay-bill", async (req, res) => {
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
+    // ២. បាញ់សំណើទៅកាត់វិក្កយបត្រនៅ PayHub KH
     const response = await fetch(`${PAYHUB_URL}/api/gateway/pay`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2624,15 +2626,18 @@ app.post("/api/bank/pay-bill", async (req, res) => {
     const data = await response.json();
 
     if (response.ok && data.success) {
+      // ៣. ទាញយកព័ត៌មានក្រុមហ៊ុនពី PayHub ដើម្បីយក Fee Percent
       const compRes = await fetch(`${PAYHUB_URL}/api/admin/users`);
       const payhubUsers = await compRes.json();
       const compData = payhubUsers.find(
         (u) => u.name === company && u.role === "company",
       );
 
+      // ៤. កាត់លុយពីអតិថិជន និងកត់ត្រាប្រតិបត្តិការ
       payingUser.balance -= amount;
       const newHash = generateCompactHash();
       const currentRefId = `BP-${Date.now()}`;
+
       if (!payingUser.transactions) payingUser.transactions = [];
       payingUser.transactions.unshift({
         refId: currentRefId,
@@ -2647,9 +2652,13 @@ app.post("/api/bank/pay-bill", async (req, res) => {
       payingUser.markModified("transactions");
       await payingUser.save();
 
+      // ៥. ធ្វើការបែងចែកលុយ (ក្រុមហ៊ុន និង U-PAY Fee)
       if (compData && compData.upay_account) {
         const fee_percent = parseFloat(compData.fee_percent) || 0;
-        const net_amount = amount - (amount * fee_percent) / 100;
+        const fee_amount = (amount * fee_percent) / 100; // គណនាថ្លៃ Fee
+        const net_amount = amount - fee_amount; // ប្រាក់សុទ្ធដែលក្រុមហ៊ុនត្រូវទទួលបាន
+
+        // ៥.១ បញ្ចូលប្រាក់សុទ្ធទៅកាន់គណនីក្រុមហ៊ុន
         let companyAccount = await User.findOne({
           $or: [
             { accountNumber: compData.upay_account },
@@ -2673,18 +2682,57 @@ app.post("/api/bank/pay-bill", async (req, res) => {
           companyAccount.markModified("transactions");
           await companyAccount.save();
         }
+
+        // ៥.២ យកថ្លៃសេវា (Fee) បញ្ចូលទៅក្នុងគណនី U-PAY Fee (999999999)
+        if (fee_amount > 0) {
+          let feeAccount = await User.findOne({ accountNumber: "999999999" });
+
+          // បើគណនី Fee អត់ទាន់មាន បង្កើតវាដោយស្វ័យប្រវត្តិ
+          if (!feeAccount) {
+            feeAccount = new User({
+              id: "sys_fee_account",
+              username: "system_fee",
+              fullName: "U-PAY Fee",
+              accountNumber: "999999999",
+              accountNumberKHR: "999999998",
+              balance: 0,
+              role: "system",
+              password: "123",
+              transactions: [],
+            });
+          }
+
+          feeAccount.balance =
+            (parseFloat(feeAccount.balance) || 0) + fee_amount;
+          if (!feeAccount.transactions) feeAccount.transactions = [];
+          feeAccount.transactions.unshift({
+            refId: `FEE-${Date.now()}`,
+            hash: newHash,
+            date: getFormattedDate(),
+            type: "System Income",
+            amount: fee_amount,
+            senderName: company,
+            remark: `ចំណូលពី Bill Payment: ${bill_id} (${fee_percent}%)`,
+            status: "Success",
+            trxMethod: "Service Fee",
+          });
+          feeAccount.markModified("transactions");
+          await feeAccount.save();
+        }
       }
+
       res.json({
         success: true,
         newBalance: payingUser.balance,
         transaction_id: currentRefId,
         hash: newHash,
       });
-    } else
+    } else {
       res.status(400).json({
         success: false,
         message: data.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
       });
+    }
   } catch (err) {
     res
       .status(500)
