@@ -223,6 +223,7 @@ const initSystemAccounts = async () => {
       { username: "PPWSA", accountNumber: "100000002" },
       { username: "Internet", accountNumber: "100000003" },
       { username: "Fashion Shop", accountNumber: "100000004" },
+      { username: "U-RENTAL", accountNumber: "100000005" },
     ];
 
     for (const b of billers) {
