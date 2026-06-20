@@ -805,6 +805,76 @@ const getMe = async (req, res) => {
   }
 };
 
+// ========================================================
+// 🔥 មុខងារ Broadcast (បញ្ជូនសារទៅអតិថិជនទាំងអស់)
+// ========================================================
+const broadcast = async (req, res) => {
+  try {
+    // ឆែកសិទ្ធិ៖ តើ Admin នេះមានសិទ្ធិចូល Menu Broadcast ដែរឬទេ?
+    if (req.admin.role !== "super_admin") {
+      const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
+      if (!adminAcc || !adminAcc.permissions?.menus?.broadcast) {
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិបញ្ជូនសារ Broadcast ទេ 🛑",
+        });
+      }
+    }
+
+    const { title, message, sender } = req.body;
+    const sharedNotifId = "BC-" + Date.now();
+
+    const result = await User.updateMany(
+      { role: { $ne: "admin" } },
+      {
+        $push: {
+          notifications: {
+            $each: [
+              {
+                id: sharedNotifId,
+                title,
+                message,
+                sender: sender || "admin",
+                date: getFormattedDate(),
+                isRead: false,
+              },
+            ],
+            $position: 0,
+          },
+        },
+      },
+    );
+    res.json({ success: true, count: result.matchedCount });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
+// មុខងារទាញសារ Broadcast ត្រឡប់មកវិញ (លុបចោល)
+const deleteBroadcast = async (req, res) => {
+  try {
+    // ឆែកសិទ្ធិដូចគ្នា
+    if (req.admin.role !== "super_admin") {
+      const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
+      if (!adminAcc || !adminAcc.permissions?.menus?.broadcast) {
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិលុបសារ Broadcast ទេ 🛑",
+        });
+      }
+    }
+
+    const { notifId } = req.body;
+    await User.updateMany(
+      { "notifications.id": notifId },
+      { $pull: { notifications: { id: notifId } } },
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -826,4 +896,6 @@ module.exports = {
   deleteAdminAccount,
   checkAdminAccess,
   getMe,
+  broadcast,
+  deleteBroadcast,
 };

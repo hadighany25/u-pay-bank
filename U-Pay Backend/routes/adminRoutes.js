@@ -108,4 +108,15 @@ router.get(
   adminController.getMe,
 );
 
+router.post(
+  "/broadcast",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.broadcast,
+);
+router.post(
+  "/delete-broadcast",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.deleteBroadcast,
+);
+
 module.exports = router;
