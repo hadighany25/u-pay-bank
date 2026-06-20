@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Scan AI - U-Pay</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      /* --- GENERAL --- */
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        overflow: hidden;
+      }
+      .kh-text {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
+      .app-container {
+        max-width: 450px;
+        margin: 0 auto;
+        height: 100vh;
+        position: relative;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      #reader {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+
+      .scan-header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 20;
+        padding: 25px 20px;
+        box-sizing: border-box;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+      }
+      .back-link {
+        color: white;
+        font-size: 1.4rem;
+        text-decoration: none;
+        opacity: 0.9;
+        transition: 0.2s;
+      }
+      .back-link:active {
+        opacity: 0.5;
+        transform: scale(0.9);
+      }
+
+      .scan-overlay-ui {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .scan-frame {
+        width: 270px;
+        height: 270px;
+        position: relative;
+        border-radius: 30px;
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .corner {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-color: #00b894;
+        border-style: solid;
+        border-width: 5px;
+      }
+      .tl {
+        top: -3px;
+        left: -3px;
+        border-right: 0;
+        border-bottom: 0;
+        border-top-left-radius: 25px;
+      }
+      .tr {
+        top: -3px;
+        right: -3px;
+        border-left: 0;
+        border-bottom: 0;
+        border-top-right-radius: 25px;
+      }
+      .bl {
+        bottom: -3px;
+        left: -3px;
+        border-right: 0;
+        border-top: 0;
+        border-bottom-left-radius: 25px;
+      }
+      .br {
+        bottom: -3px;
+        right: -3px;
+        border-left: 0;
+        border-top: 0;
+        border-bottom-right-radius: 25px;
+      }
+
+      .scan-laser {
+        width: 100%;
+        height: 3px;
+        background: #00b894;
+        box-shadow: 0 0 20px 2px #00b894;
+        position: absolute;
+        top: 0;
+        border-radius: 5px;
+        animation: scanMove 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes scanMove {
+        0% {
+          top: 10px;
+          opacity: 0;
+        }
+        20% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          top: 250px;
+          opacity: 0;
+        }
+      }
+
+      .scan-text {
+        color: white;
+        margin-top: 30px;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        opacity: 0.8;
+      }
+
+      .scan-controls {
+        position: absolute;
+        bottom: 60px;
+        width: 100%;
+        z-index: 20;
+        display: flex;
+        justify-content: center;
+        gap: 50px;
+      }
+      .control-btn {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .control-btn:active {
+        transform: scale(0.85);
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      /* 🔥 MODAL "MY QR" */
+      .qr-modal {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #f1f5f9;
+        z-index: 100;
+        flex-direction: column;
+        align-items: center;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .qr-card-container {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .qr-white-box {
+        background: #ffffff;
+        width: 100%;
+        max-width: 350px;
+        padding: 30px 25px;
+        border-radius: 30px;
+        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1);
+        text-align: center;
+        position: relative;
+        box-sizing: border-box;
+      }
+
+      .currency-toggle {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 14px;
+        padding: 5px;
+        margin-bottom: 25px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .toggle-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #64748b;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .toggle-btn.active {
+        background: white;
+        color: #004d40;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .qr-logo-top {
+        height: 40px;
+        margin-bottom: 15px;
+      }
+      .qr-user-name {
+        margin: 0;
+        font-size: 1.3rem;
+        color: #1e293b;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .qr-user-acc {
+        margin: 5px 0 20px;
+        color: #00b894;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      .qr-img-wrapper {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
+      }
+      #myQrImg {
+        width: 220px;
+        height: 220px;
+        display: block;
+        border-radius: 12px;
+      }
+
+      .amount-input-area {
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 20px;
+        width: 100%;
+      }
+      .amount-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .amount-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .currency-symbol {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-top: -2px;
+      }
+
+      #qrSetAmount {
+        border: none;
+        background: transparent;
+        width: 160px;
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #004d40;
+        outline: none;
+        font-family: "JetBrains Mono", sans-serif;
+      }
+      #qrSetAmount::placeholder {
+        color: #cbd5e1;
+      }
+
+      .btn-save-qr {
+        width: calc(100% - 40px);
+        max-width: 350px;
+        padding: 18px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-save-qr:active {
+        transform: scale(0.96);
+      }
+
+      .close-qr-btn {
+        position: absolute;
+        top: 25px;
+        left: 20px;
+        font-size: 1.2rem;
+        color: #1e293b;
+        cursor: pointer;
+        background: #fff;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        transition: 0.2s;
+      }
+      .close-qr-btn:active {
+        transform: scale(0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div id="reader"></div>
+
+      <div class="scan-header">
+        <a href="dashboard.html" class="back-link"
+          ><i class="fa-solid fa-chevron-left"></i
+        ></a>
+        <span
+          style="
+            color: white;
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 1.1rem;
+          "
+          data-lang="title_scan"
+          >SCAN QR</span
+        >
+        <div style="width: 24px"></div>
+      </div>
+
+      <div class="scan-overlay-ui">
+        <div class="scan-frame">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <div class="scan-laser"></div>
+        </div>
+        <div class="scan-text kh-text" data-lang="scan_desc">
+          ដាក់កូដ QR ក្នុងប្រអប់ដើម្បីស្កេន
+        </div>
+      </div>
+
+      <div class="scan-controls">
+        <div
+          class="control-btn"
+          title="Gallery"
+          onclick="document.getElementById('qr-input-file').click()"
+        >
+          <i class="fa-regular fa-image"></i>
+        </div>
+        <div
+          class="control-btn"
+          title="My QR"
+          onclick="showMyQR()"
+          style="
+            background: #00b894;
+            color: #fff;
+            border: none;
+            box-shadow: 0 0 25px rgba(0, 184, 148, 0.4);
+            transform: scale(1.15);
+          "
+        >
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <div
+          class="control-btn"
+          title="Flash"
+          id="flashBtn"
+          onclick="toggleFlash()"
+        >
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+      </div>
+
+      <input
+        type="file"
+        id="qr-input-file"
+        accept="image/*"
+        style="display: none"
+        onchange="scanFromGallery(event)"
+      />
+
+      <div id="qrModal" class="qr-modal">
+        <div class="close-qr-btn" onclick="closeMyQR()">
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+
+        <div class="qr-card-container">
+          <div class="qr-white-box" id="myQRContent">
+            <div class="currency-toggle" id="qrToggleBar">
+              <div
+                class="toggle-btn active"
+                id="btnUSD"
+                onclick="switchQRCurrency('USD')"
+              >
+                USD ($)
+              </div>
+              <div
+                class="toggle-btn"
+                id="btnKHR"
+                onclick="switchQRCurrency('KHR')"
+              >
+                KHR (៛)
+              </div>
+            </div>
+
+            <img src="images/logo.png" class="qr-logo-top" alt="U-Pay" />
+            <h3 id="qrUserName" class="qr-user-name">...</h3>
+            <p id="qrUserAcc" class="qr-user-acc">...</p>
+
+            <div class="qr-img-wrapper">
+              <img id="myQrImg" src="" alt="QR Code" />
+            </div>
+
+            <div class="amount-input-area">
+              <div class="amount-label kh-text" data-lang="set_amount">
+                កំណត់ទឹកប្រាក់ចង់បាន
+              </div>
+              <div class="amount-row">
+                <span class="currency-symbol" id="qrCurrencySymbol">$</span>
+                <input
+                  type="number"
+                  id="qrSetAmount"
+                  placeholder="0.00"
+                  oninput="updateMyQR()"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onclick="downloadMyQR()"
+          class="btn-save-qr kh-text"
+          id="btnSaveQR"
+        >
+          <i class="fa-solid fa-download" style="margin-right: 8px"></i>
+          <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      const translations = {
+        en: {
+          title_scan: "SCAN QR",
+          scan_desc: "Place QR Code inside the frame",
+          set_amount: "Specify Amount",
+          save_qr: "Save to Gallery",
+          error_qr: "No QR code found!",
+        },
+        kh: {
+          title_scan: "ស្កេនកូដ QR",
+          scan_desc: "ដាក់កូដ QR ក្នុងប្រអប់ដើម្បីស្កេន",
+          set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
+          save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+          error_qr: "រកមិនឃើញកូដ QR ទេ!",
+        },
+      };
+      let currentLang = localStorage.getItem("lang") || "en";
+      function applyLang() {
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang][key])
+            el.innerText = translations[currentLang][key];
+        });
+      }
+      applyLang();
+
+      let qrCurrency = "USD";
+      document.getElementById("qrUserName").textContent =
+        user.fullName || user.username;
+
+      function switchQRCurrency(currency) {
+        qrCurrency = currency;
+        document
+          .getElementById("btnUSD")
+          .classList.toggle("active", currency === "USD");
+        document
+          .getElementById("btnKHR")
+          .classList.toggle("active", currency === "KHR");
+        document.getElementById("qrCurrencySymbol").innerText =
+          currency === "USD" ? "$" : "៛";
+        const targetAcc =
+          currency === "USD" ? user.accountNumber : user.accountNumberKHR;
+        document.getElementById("qrUserAcc").textContent = targetAcc.replace(
+          /(\d{3})(\d{3})(\d{3})/,
+          "$1 $2 $3",
+        );
+        updateMyQR();
+      }
+      switchQRCurrency("USD");
+
+      function updateMyQR() {
+        const amount = document.getElementById("qrSetAmount").value;
+        const targetAcc =
+          qrCurrency === "USD" ? user.accountNumber : user.accountNumberKHR;
+        let qrData = targetAcc;
+        if (amount && amount > 0) qrData = `${targetAcc}:${amount}`;
+        const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
+        document.getElementById("myQrImg").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${qrData}&color=${qrColor}`;
+      }
+
+      // ==========================================
+      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC)
+      // ==========================================
+      let paymentPollingInterval = null;
+      let initialTrxCount = user.transactions ? user.transactions.length : 0;
+
+      async function checkIncomingPayment() {
+        try {
+          const res = await fetch("/api/users");
+          const users = await res.json();
+          // រកគណនីបច្ចុប្បន្នពី Database
+          const serverUser = users.find((u) => u.username === user.username);
+
+          if (serverUser && serverUser.transactions) {
+            // បើចំនួនប្រតិបត្តិការកើនឡើង
+            if (serverUser.transactions.length > initialTrxCount) {
+              const latestTrx = serverUser.transactions[0];
+
+              // បើវាជាការទទួលប្រាក់ (Amount > 0)
+              if (latestTrx.amount > 0) {
+                // Update ចំនួន Trx បច្ចុប្បន្ន ដើម្បីកុំឱ្យវាលោតសារដដែលៗ
+                initialTrxCount = serverUser.transactions.length;
+                sessionStorage.setItem("user", JSON.stringify(serverUser));
+
+                let sym = latestTrx.currency === "KHR" ? "៛" : "$";
+                let amt = Math.abs(latestTrx.amount).toLocaleString("en-US", {
+                  minimumFractionDigits: latestTrx.currency === "KHR" ? 0 : 2,
+                });
+
+                // 🔥 ឆែកមើលថាតើ QR នេះមានកំណត់ចំនួនលុយឬទេ?
+                const setAmount =
+                  parseFloat(document.getElementById("qrSetAmount").value) || 0;
+
+                if (setAmount > 0) {
+                  // ករណីទី១៖ កំណត់លុយជាក់លាក់ -> លោត Alert ធំ ហើយរត់ទៅ Dashboard
+                  stopPaymentListener();
+                  Swal.fire({
+                    icon: "success",
+                    title:
+                      currentLang === "kh"
+                        ? "ទទួលបានប្រាក់ជោគជ័យ!"
+                        : "Payment Received!",
+                    html:
+                      currentLang === "kh"
+                        ? `អ្នកទទួលបាន <b>${sym}${amt}</b> ពី <b>${latestTrx.senderName || "Unknown"}</b>`
+                        : `You received <b>${sym}${amt}</b> from <b>${latestTrx.senderName || "Unknown"}</b>`,
+                    confirmButtonColor: "#004d40",
+                    confirmButtonText:
+                      currentLang === "kh" ? "បិទ (OK)" : "Close",
+                    allowOutsideClick: false,
+                  }).then(() => {
+                    window.location.href = "dashboard.html";
+                  });
+                } else {
+                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូចនៅជ្រុងលើ (មិនរត់ទៅណាទេ)
+                  Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title:
+                      currentLang === "kh"
+                        ? `ប្រាក់ចូល: ${sym}${amt}`
+                        : `Received: ${sym}${amt}`,
+                    text:
+                      currentLang === "kh"
+                        ? `ពី: ${latestTrx.senderName || "Unknown"}`
+                        : `From: ${latestTrx.senderName || "Unknown"}`,
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                  });
+                }
+              } else {
+                // បើជាការដកលុយចេញ គ្រាន់តែ Update Count ទុក
+                initialTrxCount = serverUser.transactions.length;
+              }
+            }
+          }
+        } catch (err) {
+          console.log("Polling Error:", err);
+        }
+      }
+
+      function startPaymentListener() {
+        // កំណត់ Count ដើមឡើងវិញរាល់ពេលបើក QR
+        initialTrxCount = user.transactions ? user.transactions.length : 0;
+        if (paymentPollingInterval) clearInterval(paymentPollingInterval);
+        // ឆែករៀងរាល់ ៣ វិនាទី
+        paymentPollingInterval = setInterval(checkIncomingPayment, 3000);
+      }
+
+      function stopPaymentListener() {
+        if (paymentPollingInterval) clearInterval(paymentPollingInterval);
+      }
+      // ==========================================
+
+      let html5QrCode = new Html5Qrcode("reader");
+      let isCameraRunning = false;
+      let isFlashOn = false;
+
+      async function startScanner() {
+        try {
+          const config = {
+            fps: 20,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.77,
+          };
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            onScanSuccess,
+          );
+          isCameraRunning = true;
+        } catch (err) {
+          console.log("Camera fail");
+        }
+      }
+
+      function onScanSuccess(decodedText) {
+        if (isCameraRunning) {
+          html5QrCode
+            .stop()
+            .then(() => (isCameraRunning = false))
+            .catch((e) => {});
+        }
+        new Audio(
+          "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+        ).play();
+
+        if (
+          decodedText.includes("transfer.html") &&
+          decodedText.includes("acc=")
+        ) {
+          window.location.href = decodedText;
+          return;
+        }
+
+        let targetAcc = decodedText;
+        let targetAmount = "";
+        let targetRemark = ""; // 🔥 បន្ថែមអថេរថ្មី ដើម្បីចាប់យកលេខកក់ (BK-...)
+        let lockMoney = false;
+
+        if (decodedText.includes(":")) {
+          const parts = decodedText.split(":");
+          targetAcc = parts[0];
+          targetAmount = parts[1];
+          if (parts[2]) targetRemark = parts[2]; // 🔥 ចាប់យកកង់ទី៣ (លេខកក់)
+          lockMoney = true;
+        }
+
+        if (/^\d+$/.test(targetAcc) && targetAcc.length >= 8) {
+          let url = `transfer.html?acc=${targetAcc}&source=qr`;
+          if (targetAmount) {
+            url += `&amount=${targetAmount}`;
+            if (lockMoney) url += `&lockAmount=true`;
+          }
+          // 🔥 បាញ់លេខកក់ (Remark/OrderId) បន្តទៅកាន់ទំព័រ transfer.html
+          if (targetRemark) {
+            url += `&orderId=${encodeURIComponent(targetRemark)}&remark=${encodeURIComponent(targetRemark)}`;
+          }
+
+          window.location.href = url; // ហោះទៅទំព័រផ្ទេរប្រាក់
+        }
+      }
+
+      async function scanFromGallery(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (isCameraRunning) {
+          await html5QrCode.stop().catch(() => {});
+          isCameraRunning = false;
+        }
+        Swal.fire({ title: "Scanning...", didOpen: () => Swal.showLoading() });
+        try {
+          const galleryScanner = new Html5Qrcode("reader");
+          const result = await galleryScanner.scanFile(file, true);
+          Swal.close();
+          onScanSuccess(result);
+        } catch (err) {
+          Swal.close();
+          Swal.fire({
+            icon: "error",
+            title: translations[currentLang].error_qr,
+            confirmButtonColor: "#004d40",
+          }).then(() => startScanner());
+        }
+      }
+
+      function toggleFlash() {
+        if (!isCameraRunning) return;
+        isFlashOn = !isFlashOn;
+        html5QrCode.applyVideoConstraints({ advanced: [{ torch: isFlashOn }] });
+        document.getElementById("flashBtn").style.background = isFlashOn
+          ? "white"
+          : "rgba(255, 255, 255, 0.15)";
+        document.getElementById("flashBtn").style.color = isFlashOn
+          ? "#000"
+          : "white";
+      }
+
+      function showMyQR() {
+        document.getElementById("qrModal").style.display = "flex";
+        startPaymentListener(); // 🔥 ចាប់ផ្តើមស្តាប់ការវេរលុយចូលនៅពេលបើក QR
+      }
+
+      function closeMyQR() {
+        stopPaymentListener(); // 🔥 បញ្ឈប់ការស្តាប់ពេលបិទ QR
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("showQR") === "true") {
+          window.location.href = "dashboard.html";
+        } else {
+          document.getElementById("qrModal").style.display = "none";
+        }
+      }
+
+      function downloadMyQR() {
+        const btnSave = document.getElementById("btnSaveQR");
+        const btnClose = document.querySelector(".close-qr-btn");
+        const toggleBar = document.getElementById("qrToggleBar");
+        btnSave.style.display = "none";
+        btnClose.style.display = "none";
+        toggleBar.style.display = "none";
+
+        html2canvas(document.getElementById("myQRContent"), {
+          backgroundColor: "#ffffff",
+          scale: 3,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `U-Pay-QR-${user.username}-${qrCurrency}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          btnSave.style.display = "block";
+          btnClose.style.display = "flex";
+          toggleBar.style.display = "flex";
+        });
+      }
+
+      if (localStorage.getItem("darkMode") === "true") {
+        document.write(
+          "<style>body { background-color: #121212 !important; color: white !important; } .app-container { background-color: #121212 !important; } .qr-modal { background: #121212; } .qr-white-box { background: #1e1e1e; border: 1px solid #333; } .close-qr-btn { background: #333; color: white; border: none; } .currency-toggle { background: #2a2a2a; } .toggle-btn { color: #888; } .toggle-btn.active { background: #444; color: #fff; } .qr-user-name { color: #fff; } .qr-img-wrapper { background: #fff; } .amount-input-area { border-top-color: #444; } #qrSetAmount { color: #00b894; }</style>",
+        );
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const isFromDashboard = urlParams.get("showQR") === "true";
+
+      if (isFromDashboard) {
+        document.querySelector(".scan-overlay-ui").style.display = "none";
+        document.querySelector(".scan-controls").style.display = "none";
+
+        const modal = document.getElementById("qrModal");
+        modal.style.animation = "none";
+        modal.style.display = "flex";
+        document.body.style.backgroundColor = "#f1f5f9";
+
+        startPaymentListener(); // 🔥 ចាប់ផ្តើមស្តាប់ប្រសិនបើលោតចូលមកពី Dashboard ផ្ទាល់
+      } else {
+        startScanner();
+      }
+    </script>
+  </body>
+</html>

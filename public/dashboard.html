@@ -1,0 +1,1560 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Dashboard - U-Pay</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <style>
+      /* --- GLOBAL STYLES --- */
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      span,
+      div,
+      button,
+      .menu-text {
+        font-family: "Kantumruy Pro", sans-serif;
+      }
+      .card-balance,
+      .trx-amount,
+      .card-number,
+      .slip-amount,
+      .sheet-balance {
+        font-family: "Inter", sans-serif;
+        font-weight: 700;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        padding-bottom: 90px;
+        overflow-x: hidden;
+      }
+
+      /* --- HEADER (ក្បាលលើ) --- */
+      .header {
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: transparent;
+        z-index: 10;
+      }
+      .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .avatar {
+        width: 50px;
+        height: 50px;
+        background: #e0f2f1;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #004d40;
+        font-size: 1.5rem;
+        overflow: hidden;
+        border: 2px solid white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .greeting h4 {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: normal;
+      }
+      .greeting h2 {
+        margin: 0;
+        color: #1e293b;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .action-btn {
+        width: 42px;
+        height: 42px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+        transition: all 0.2s ease;
+        position: relative;
+        padding: 0;
+        color: #334155;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .action-btn i {
+        font-size: 1.15rem;
+      }
+      .action-btn:active {
+        transform: scale(0.85);
+        background: #f1f5f9;
+      }
+
+      .noti-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ef4444;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: bold;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+      }
+
+      /* --- CARDS SLIDER --- */
+      .card-slider-wrapper {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding: 10px 20px 20px 20px;
+        gap: 15px;
+        scrollbar-width: none;
+      }
+      .card-slider-wrapper::-webkit-scrollbar {
+        display: none;
+      }
+
+      .credit-card {
+        min-width: 100%;
+        scroll-snap-align: center;
+        flex-shrink: 0;
+        border-radius: 20px;
+        padding: 25px;
+        color: #333;
+        position: relative;
+        height: 210px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 1;
+        box-sizing: border-box;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .credit-card:active {
+        transform: scale(0.97);
+      }
+
+      .usd-card::before,
+      .khr-card::before {
+        content: "";
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        background-size: 300% 300%;
+        z-index: -2;
+        border-radius: 24px;
+        animation: border-run 3s linear infinite;
+      }
+      .usd-card::before {
+        background: linear-gradient(60deg, #004d40, #ffd700, #00b894, #004d40);
+      }
+      .khr-card::before {
+        background: linear-gradient(60deg, #1e40af, #38bdf8, #0ea5e9, #1e40af);
+      }
+
+      .usd-card::after,
+      .khr-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        border-radius: 20px;
+      }
+      .usd-card::after {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      }
+      .khr-card::after {
+        background: linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%);
+      }
+
+      @keyframes border-run {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .card-top {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .card-chip {
+        width: 45px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid #b8860b;
+        background: linear-gradient(
+          135deg,
+          #d4af37 0%,
+          #fbe89e 50%,
+          #d4af37 100%
+        );
+      }
+      .card-logo-img {
+        height: 40px;
+        width: auto;
+        object-fit: contain;
+      }
+      .card-body {
+        margin-top: -15px;
+        width: 100%;
+      }
+      .card-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 2px;
+        font-weight: 600;
+      }
+      .card-balance {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+        letter-spacing: -1px;
+      }
+      .card-footer {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .card-number {
+        font-family: monospace;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        color: #475569;
+        margin: 0;
+        font-weight: bold;
+      }
+
+      /* --- MENU GRID (DRAG & DROP) --- */
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        padding: 5px 20px 20px 20px;
+      }
+      .menu-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .menu-item:active {
+        transform: scale(0.92);
+      }
+      .sortable-ghost {
+        opacity: 0.4;
+        transform: scale(0.9);
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 15px;
+      } /* Drag Animation */
+
+      .icon-box {
+        width: 55px;
+        height: 55px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      }
+      .menu-text {
+        font-size: 0.75rem;
+        color: #475569;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .icon-transfer {
+        background: #e0f2f1;
+        color: #004d40;
+      }
+      .icon-scan {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+      .icon-payment {
+        background: #ffedd5;
+        color: #ea580c;
+      }
+      .icon-card {
+        background: #fae8ff;
+        color: #9333ea;
+      }
+      .icon-analytics {
+        background: #e0e7ff;
+        color: #4f46e5;
+      }
+
+      /* --- PROMO SECTION (ពាណិជ្ជកម្មជំនួសប្រវត្តិ) --- */
+      .promo-section {
+        flex: 1;
+        background: white;
+        padding: 25px 0 25px 20px;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.02);
+      }
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 15px 0;
+      }
+      .promo-slider {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        padding-right: 20px;
+        padding-bottom: 10px;
+      }
+      .promo-slider::-webkit-scrollbar {
+        display: none;
+      }
+      .promo-card {
+        min-width: 280px;
+        height: 140px;
+        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+        border-radius: 20px;
+        scroll-snap-align: center;
+        padding: 20px;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+      .promo-card.green {
+        background: linear-gradient(135deg, #004d40 0%, #10b981 100%);
+      }
+      .promo-card.blue {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      }
+      .promo-card h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        z-index: 2;
+      }
+      .promo-card p {
+        margin: 5px 0 0 0;
+        font-size: 0.85rem;
+        opacity: 0.9;
+        z-index: 2;
+        max-width: 70%;
+      }
+      .promo-card button {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        width: fit-content;
+        font-size: 0.8rem;
+        font-weight: bold;
+        backdrop-filter: blur(5px);
+        z-index: 2;
+        cursor: pointer;
+      }
+      .promo-card i {
+        position: absolute;
+        right: -10px;
+        bottom: -20px;
+        font-size: 8rem;
+        opacity: 0.1;
+        z-index: 1;
+        transform: rotate(-15deg);
+      }
+
+      /* ========================================== */
+      /* 🔥 ABA STYLE BOTTOM SHEET (កាត់ចេញពីក្រោម) */
+      /* ========================================== */
+      .bottom-sheet-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9998;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(2px);
+      }
+      .bottom-sheet-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .bottom-sheet {
+        position: fixed;
+        bottom: -100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        height: 85vh;
+        background: #f8fafc;
+        border-radius: 30px 30px 0 0;
+        z-index: 9999;
+        transition: bottom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+      }
+      .bottom-sheet.active {
+        bottom: 0;
+      }
+
+      .sheet-header {
+        background: white;
+        padding: 15px 20px 25px 20px;
+        border-radius: 30px 30px 0 0;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        z-index: 2;
+      }
+      .sheet-pull-bar {
+        width: 40px;
+        height: 5px;
+        background: #cbd5e1;
+        border-radius: 10px;
+        margin: 0 auto 15px;
+      }
+      .sheet-close-btn {
+        position: absolute;
+        right: 20px;
+        top: 15px;
+        background: #f1f5f9;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        color: #64748b;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .sheet-close-btn:active {
+        transform: scale(0.9);
+        background: #e2e8f0;
+      }
+
+      /* ក្បាលនៃ Bottom Sheet ដែលបង្ហាញលុយ និងឈ្មោះ */
+      .sheet-acc-title {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      .sheet-balance {
+        font-size: 2.8rem;
+        color: #0f172a;
+        margin: 5px 0 0 0;
+        letter-spacing: -1px;
+      }
+      .sheet-acc-num {
+        font-family: monospace;
+        font-size: 1.1rem;
+        color: #3b82f6;
+        background: #eff6ff;
+        padding: 5px 15px;
+        border-radius: 10px;
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: bold;
+        border: 1px dashed #bae6fd;
+      }
+
+      .sheet-trx-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8fafc;
+      }
+
+      .trx-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background: white;
+        border-radius: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        transition: 0.2s;
+        -webkit-tap-highlight-color: transparent;
+        border: 1px solid transparent;
+      }
+      .trx-item:active {
+        transform: scale(0.98);
+        border-color: #e2e8f0;
+      }
+      .trx-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .trx-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+      .trx-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+      }
+      .trx-info p {
+        margin: 3px 0 0 0;
+        font-size: 0.8rem;
+        color: #64748b;
+      }
+      .trx-amount {
+        font-weight: bold;
+        font-size: 1.05rem;
+      }
+      .text-green {
+        color: #10b981;
+      }
+      .text-red {
+        color: #ef4444;
+      }
+      .text-orange {
+        color: #f97316;
+      }
+      .bg-green {
+        background: #ecfdf5;
+        color: #10b981;
+      }
+      .bg-red {
+        background: #fef2f2;
+        color: #ef4444;
+      }
+      .bg-orange {
+        background: #fff7ed;
+        color: #f97316;
+      }
+
+      /* --- BOTTOM NAV & MODALS (រក្សាដដែល 100%) --- */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 480px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9000;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        flex: 1;
+        transition: 0.2s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10001;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 20px 0;
+      }
+      .slip-container {
+        width: 340px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        animation: slideUp 0.4s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .slip-header {
+        background: #004d40;
+        padding: 25px 20px 30px;
+        text-align: center;
+        color: white;
+      }
+      .slip-status-icon {
+        width: 60px;
+        height: 60px;
+        background: white;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 10px;
+      }
+      .slip-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+      .slip-amount {
+        font-size: 2.5rem;
+        margin: 5px 0 0;
+        letter-spacing: -1px;
+      }
+      .slip-body {
+        padding: 20px 25px;
+        background: white;
+      }
+      .dashed-line {
+        margin: 15px -25px;
+        border-top: 2px dashed #ddd;
+        position: relative;
+      }
+      .dashed-line::before,
+      .dashed-line::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 50%;
+      }
+      .dashed-line::before {
+        left: -10px;
+      }
+      .dashed-line::after {
+        right: -10px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .d-label {
+        color: #888;
+        font-weight: 500;
+      }
+      .d-value {
+        font-weight: 700;
+        color: #1f2937;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+      }
+      .slip-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+      }
+      .qr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: #f9fafb;
+      }
+      .qr-img {
+        width: 45px;
+        height: 45px;
+      }
+      .qr-text {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #004d40;
+        display: flex;
+        flex-direction: column;
+      }
+      .footer-logo {
+        width: 80px;
+      }
+      .slip-actions {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 20px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #004d40;
+      }
+      .action-circle {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .action-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .notif-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 2000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .notif-card {
+        background: #ffffff;
+        width: 100%;
+        max-width: 420px;
+        border-radius: 24px;
+        padding: 0;
+        max-height: 80vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        animation: slideUp 0.3s ease-out;
+      }
+      .notif-header {
+        padding: 20px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .notif-header h3 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .notif-close-btn {
+        background: #e2e8f0;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #64748b;
+      }
+      .notif-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+        background: #fbfbfc;
+      }
+      .premium-swal {
+        border-radius: 20px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header">
+        <div class="user-profile">
+          <div class="avatar" id="avatarBox">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div class="greeting">
+            <h4 id="greetText">Welcome back,</h4>
+            <h2 id="username">...</h2>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button
+            class="action-btn"
+            onclick="window.location.href = 'scan.html?showQR=true'"
+          >
+            <i class="fa-solid fa-qrcode"></i>
+          </button>
+          <button
+            class="action-btn"
+            onclick="window.location.href = 'chat.html'"
+          >
+            <i class="fa-regular fa-comment-dots"></i>
+          </button>
+          <button
+            class="action-btn"
+            id="bellIcon"
+            onclick="readNotifications()"
+          >
+            <i class="fa-solid fa-bell" id="bellShake"></i>
+            <span class="noti-badge" id="notiBadge">0</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-slider-wrapper">
+        <div class="credit-card usd-card" onclick="openAccountDetails('USD')">
+          <div class="card-top">
+            <span class="card-chip"></span>
+            <img
+              src="images/logo-nobg.png"
+              class="card-logo-img"
+              onerror="this.style.display = 'none'"
+            />
+          </div>
+          <div class="card-body">
+            <p class="card-label">Available Balance (USD)</p>
+            <h1 class="card-balance">$<span id="balance">0.00</span></h1>
+            <p
+              id="holdDisplay"
+              style="
+                font-size: 0.8rem;
+                color: #ef4444;
+                font-weight: 600;
+                display: none;
+              "
+            >
+              <i class="fa-solid fa-lock"></i> On Hold: $<span id="holdAmount"
+                >0.00</span
+              >
+            </p>
+          </div>
+          <div class="card-footer">
+            <p class="card-number" id="accNum">....</p>
+            <i
+              class="fa-solid fa-chevron-right"
+              style="color: rgba(0, 0, 0, 0.3)"
+            ></i>
+          </div>
+        </div>
+
+        <div class="credit-card khr-card" onclick="openAccountDetails('KHR')">
+          <div class="card-top">
+            <span class="card-chip" style="filter: hue-rotate(200deg)"></span>
+            <img
+              src="images/logo-nobg.png"
+              class="card-logo-img"
+              onerror="this.style.display = 'none'"
+            />
+          </div>
+          <div class="card-body">
+            <p class="card-label">Available Balance (KHR)</p>
+            <h1 class="card-balance"><span id="balanceKHR">0</span> ៛</h1>
+          </div>
+          <div class="card-footer">
+            <p class="card-number" id="accNumKHR">....</p>
+            <i
+              class="fa-solid fa-chevron-right"
+              style="color: rgba(0, 0, 0, 0.3)"
+            ></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-grid" id="sortableMenu">
+        <button
+          class="menu-item"
+          id="m1"
+          onclick="window.location.href = 'transfer.html'"
+        >
+          <div class="icon-box icon-transfer">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_transfer">Transfer</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m2"
+          onclick="window.location.href = 'scan.html'"
+        >
+          <div class="icon-box icon-scan">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_scan">Scan QR</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m3"
+          onclick="window.location.href = 'payment.html'"
+        >
+          <div class="icon-box icon-payment">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_payment">Payment</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m4"
+          onclick="window.location.href = 'cards.html'"
+        >
+          <div class="icon-box icon-card">
+            <i class="fa-regular fa-credit-card"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_card">Cards</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m5"
+          onclick="window.location.href = 'analytics.html'"
+        >
+          <div class="icon-box icon-analytics">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_analytics">Analytics</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m6"
+          onclick="window.location.href = 'savings.html'"
+        >
+          <div class="icon-box" style="background: #fce4ec; color: #d81b60">
+            <i class="fa-solid fa-piggy-bank"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_savings">Savings</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m7"
+          onclick="window.location.href = 'split.html'"
+        >
+          <div class="icon-box" style="background: #fff3e0; color: #e65100">
+            <i class="fa-solid fa-pizza-slice"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_split">Split Bill</span>
+        </button>
+        <button
+          class="menu-item"
+          id="m8"
+          onclick="window.location.href = 'fixed-deposit.html'"
+        >
+          <div class="icon-box" style="background: #fff7ed; color: #f97316">
+            <i class="fa-solid fa-vault"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_deposit">Deposit</span>
+        </button>
+      </div>
+
+      <div class="promo-section">
+        <h3 class="section-title">Promotions & Offers</h3>
+        <div class="promo-slider">
+          <div class="promo-card green">
+            <i class="fa-solid fa-gift"></i>
+            <div>
+              <h3>Cashback 10%</h3>
+              <p>When you pay at AEON Mall using U-Pay KHQR.</p>
+            </div>
+            <button>Claim Now</button>
+          </div>
+          <div class="promo-card blue">
+            <i class="fa-solid fa-plane"></i>
+            <div>
+              <h3>Travel Insurance</h3>
+              <p>Get covered up to $50,000 for your next trip.</p>
+            </div>
+            <button>Learn More</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <a href="dashboard.html" class="nav-item active"
+        ><i class="fa-solid fa-house"></i
+        ><span data-lang="nav_home">Home</span></a
+      >
+      <a href="scan.html" class="nav-item"
+        ><i class="fa-solid fa-qrcode"></i
+        ><span data-lang="nav_scan">Scan</span></a
+      >
+      <a href="history.html" class="nav-item"
+        ><i class="fa-solid fa-clock-rotate-left"></i
+        ><span data-lang="nav_history">History</span></a
+      >
+      <a href="settings.html" class="nav-item"
+        ><i class="fa-solid fa-gear"></i
+        ><span data-lang="nav_settings">Settings</span></a
+      >
+    </div>
+
+    <div
+      id="accountModalOverlay"
+      class="bottom-sheet-overlay"
+      onclick="closeAccountDetails()"
+    ></div>
+    <div id="accountBottomSheet" class="bottom-sheet">
+      <div class="sheet-header">
+        <div class="sheet-pull-bar"></div>
+        <button class="sheet-close-btn" onclick="closeAccountDetails()">
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+
+        <p id="sheetAccType" class="sheet-acc-title">គណនីប្រាក់ដុល្លារ (USD)</p>
+        <h1 id="sheetBalance" class="sheet-balance">$0.00</h1>
+        <div id="sheetAccNum" class="sheet-acc-num">000 000 000</div>
+      </div>
+
+      <div class="sheet-trx-container" id="sheetTrxList">
+        <div style="text-align: center; color: #94a3b8; margin-top: 40px">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem"></i>
+          <p>Loading transactions...</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/slip.js"></script>
+
+    <script>
+      // ==========================================
+      // 🔒 JWT SECURITY & SESSION MANAGEMENT
+      // ==========================================
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      let token = sessionStorage.getItem("userToken"); // Token សម្រាប់ User Security
+
+      // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
+      if (!user) window.location.href = "index.html";
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      };
+
+      let lastBalance = user.balance;
+
+      // ==========================================
+      // 🖐️ DRAG & DROP MENU (ABA STYLE)
+      // ==========================================
+      document.addEventListener("DOMContentLoaded", () => {
+        const grid = document.getElementById("sortableMenu");
+        const savedOrder = localStorage.getItem("menuOrder");
+        if (savedOrder) {
+          const orderArray = JSON.parse(savedOrder);
+          orderArray.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) grid.appendChild(el);
+          });
+        }
+        new Sortable(grid, {
+          animation: 250,
+          delay: 200,
+          delayOnTouchOnly: true,
+          ghostClass: "sortable-ghost",
+          onEnd: function () {
+            const items = grid.querySelectorAll(".menu-item");
+            const newOrder = Array.from(items).map((item) => item.id);
+            localStorage.setItem("menuOrder", JSON.stringify(newOrder));
+          },
+        });
+      });
+
+      // វចនានុក្រម
+      const translations = {
+        en: {
+          btn_transfer: "Transfer",
+          btn_scan: "Scan QR",
+          btn_payment: "Payment",
+          btn_card: "Cards",
+          btn_analytics: "Analytics",
+          btn_savings: "Savings",
+          btn_split: "Split Bill",
+          btn_deposit: "Deposit",
+          nav_home: "Home",
+          nav_scan: "Scan",
+          nav_history: "History",
+          nav_settings: "Settings",
+        },
+        kh: {
+          btn_transfer: "វេរប្រាក់",
+          btn_scan: "ស្កេនកូដ",
+          btn_payment: "បង់វិក្កយបត្រ",
+          btn_card: "កាតខ្ញុំ",
+          btn_analytics: "វិភាគ",
+          btn_savings: "សន្សំប្រាក់",
+          btn_split: "ចែកលុយគ្នា",
+          btn_deposit: "ប្រាក់បញ្ញើ",
+          nav_home: "ទំព័រដើម",
+          nav_scan: "ស្កេន",
+          nav_history: "ប្រវត្តិ",
+          nav_settings: "ការកំណត់",
+        },
+      };
+
+      function applyLang() {
+        let currentLang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key])
+            el.innerText = translations[currentLang][key];
+        });
+        const hour = new Date().getHours();
+        const greetEl = document.getElementById("greetText");
+        greetEl.innerText =
+          hour < 12
+            ? currentLang === "kh"
+              ? "អរុណសួស្តី,"
+              : "Good Morning,"
+            : hour < 18
+              ? currentLang === "kh"
+                ? "ទិវាសួស្តី,"
+                : "Good Afternoon,"
+              : currentLang === "kh"
+                ? "សាយណ្ហសួស្តី,"
+                : "Good Evening,";
+      }
+
+      // ==========================================
+      // 🔄 DATA FETCHING & UI UPDATE (JWT SECURED)
+      // ==========================================
+      async function fetchUserData(isAuto = true) {
+        try {
+          const res = await fetch("/api/users", { headers: authHeaders });
+          const users = await res.json();
+          const serverUser = users.find((u) => u.username === user.username);
+
+          if (serverUser) {
+            if (isAuto && serverUser.balance > lastBalance) {
+              Swal.fire({
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 4000,
+                icon: "success",
+                title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+            lastBalance = serverUser.balance;
+            user = serverUser;
+            sessionStorage.setItem("user", JSON.stringify(serverUser));
+            updateUI(serverUser);
+
+            if (currentViewingCurrency)
+              renderTransactionsInModal(serverUser, currentViewingCurrency);
+          }
+        } catch (err) {
+          console.error("Fetch Error:", err);
+        }
+      }
+
+      function updateUI(currentUser) {
+        applyLang();
+        document.getElementById("username").innerText =
+          currentUser.fullName || currentUser.username;
+        document.getElementById("accNum").innerText =
+          currentUser.accountNumber.replace(
+            /(\d{3})(\d{3})(\d{3})/,
+            "$1 $2 $3",
+          );
+        document.getElementById("balance").innerText =
+          currentUser.balance.toFixed(2);
+
+        let khrAcc = currentUser.accountNumberKHR || "N/A";
+        document.getElementById("accNumKHR").innerText = khrAcc.replace(
+          /(\d{3})(\d{3})(\d{3})/,
+          "$1 $2 $3",
+        );
+        document.getElementById("balanceKHR").innerText = (
+          currentUser.balanceKHR || 0
+        ).toLocaleString("en-US");
+
+        let totalHold = currentUser.transactions
+          ? currentUser.transactions
+              .filter((t) => t.isHold === true && t.status === "Pending")
+              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+          : 0;
+        const holdArea = document.getElementById("holdDisplay");
+        if (totalHold > 0 && holdArea) {
+          holdArea.style.display = "block";
+          document.getElementById("holdAmount").innerText =
+            totalHold.toFixed(2);
+        } else if (holdArea) holdArea.style.display = "none";
+
+        if (currentUser.profileImage)
+          document.getElementById("avatarBox").innerHTML =
+            `<img src="${currentUser.profileImage}">`;
+      }
+
+      // ==========================================
+      // 💳 ABA STYLE BOTTOM SHEET LOGIC
+      // ==========================================
+      let currentViewingCurrency = null;
+
+      function openAccountDetails(currency) {
+        currentViewingCurrency = currency;
+        const modal = document.getElementById("accountBottomSheet");
+        const overlay = document.getElementById("accountModalOverlay");
+
+        document.getElementById("sheetAccType").innerText =
+          currency === "USD"
+            ? "គណនីប្រាក់ដុល្លារ (USD)"
+            : "គណនីប្រាក់រៀល (KHR)";
+        document.getElementById("sheetBalance").innerText =
+          currency === "USD"
+            ? `$${user.balance.toFixed(2)}`
+            : `${(user.balanceKHR || 0).toLocaleString("en-US")} ៛`;
+        document.getElementById("sheetAccNum").innerText =
+          currency === "USD"
+            ? user.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
+            : (user.accountNumberKHR || "").replace(
+                /(\d{3})(\d{3})(\d{3})/,
+                "$1 $2 $3",
+              );
+
+        renderTransactionsInModal(user, currency);
+        overlay.classList.add("active");
+        modal.classList.add("active");
+      }
+
+      function closeAccountDetails() {
+        currentViewingCurrency = null;
+        document
+          .getElementById("accountBottomSheet")
+          .classList.remove("active");
+        document
+          .getElementById("accountModalOverlay")
+          .classList.remove("active");
+      }
+
+      function renderTransactionsInModal(currentUser, currency) {
+        const list = document.getElementById("sheetTrxList");
+        if (
+          !currentUser.transactions ||
+          currentUser.transactions.length === 0
+        ) {
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+          return;
+        }
+
+        let filteredTrx = currentUser.transactions
+          .filter((t) => t.currency === currency && t.status !== "Refunded")
+          .slice(0, 30);
+        if (filteredTrx.length === 0) {
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការ ${currency} ទេ</p></div>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        let lastDateLabel = "";
+
+        filteredTrx.forEach((t) => {
+          const isIncome = t.amount > 0;
+          const isPending = t.status === "Pending";
+          let parsedDate = parseDateString(t.date);
+          let dateLabel = getSmartDateLabel(parsedDate);
+
+          if (dateLabel !== lastDateLabel) {
+            const dateHeader = document.createElement("div");
+            dateHeader.style.cssText =
+              "font-size: 0.85rem; font-weight: bold; color: #64748b; margin: 15px 0 10px 0; padding: 0 5px; text-transform: uppercase;";
+            dateHeader.innerText = dateLabel;
+            list.appendChild(dateHeader);
+            lastDateLabel = dateLabel;
+          }
+
+          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+          let bgClass = isIncome
+            ? "bg-green"
+            : isPending
+              ? "bg-orange"
+              : "bg-red";
+          let textClass = isIncome
+            ? "text-green"
+            : isPending
+              ? "text-orange"
+              : "text-red";
+          let title =
+            t.type === "Transfer" || t.type === "Card Payment"
+              ? isIncome
+                ? t.senderName || "Received"
+                : t.receiverName || "Payment"
+              : t.type;
+          const displayAmt =
+            currency === "KHR"
+              ? Math.abs(t.amount).toLocaleString("en-US") + " ៛"
+              : "$" + Math.abs(t.amount).toFixed(2);
+
+          const item = document.createElement("div");
+          item.className = "trx-item";
+          item.onclick = function () {
+            openGlobalSlip(t, user.username);
+          };
+          item.innerHTML = `
+                <div class="trx-left">
+                    <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
+                    <div class="trx-info"><h4 style="text-transform: capitalize;">${title}</h4><p>${getTimeString(parsedDate, t.date)} • ${t.trxMethod || "U-Pay"}</p></div>
+                </div>
+                <div class="trx-amount ${textClass}">${isIncome ? "+" : "-"}${displayAmt}</div>`;
+          list.appendChild(item);
+        });
+      }
+
+      function parseDateString(dateStr) {
+        if (!dateStr) return new Date();
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime()) && dateStr.includes(","))
+          d = new Date(dateStr.split(",")[0].trim());
+        return isNaN(d.getTime()) ? new Date() : d;
+      }
+      function getSmartDateLabel(d) {
+        let t = new Date();
+        t.setHours(0, 0, 0, 0);
+        let y = new Date();
+        y.setDate(t.getDate() - 1);
+        y.setHours(0, 0, 0, 0);
+        let c = new Date(d);
+        c.setHours(0, 0, 0, 0);
+        let l = localStorage.getItem("lang") || "en";
+        if (c.getTime() === t.getTime())
+          return l === "kh" ? "ថ្ងៃនេះ" : "Today";
+        if (c.getTime() === y.getTime())
+          return l === "kh" ? "ម្សិលមិញ" : "Yesterday";
+        return c.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        });
+      }
+      function getTimeString(d, orig) {
+        return !isNaN(d.getTime())
+          ? d.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : orig.includes(",")
+            ? orig.split(",")[1].trim()
+            : "";
+      }
+
+      // ឧទាហរណ៍នៅក្នុង history.html
+      function showSlip(index) {
+        const t = currentTransactions[index];
+        openGlobalSlip(t, user.username); // ហៅមកប្រើខ្លីៗបែបនេះ
+      }
+
+      function readNotifications() {
+        document.getElementById("notifModal").style.display = "flex";
+      }
+      async function closeNotifications() {
+        document.getElementById("notifModal").style.display = "none";
+        if (document.getElementById("notiBadge").innerText > 0) {
+          try {
+            await fetch("/api/user/read-notifications", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({ username: user.username }),
+            });
+            fetchUserData(false);
+          } catch (e) {}
+        }
+      }
+
+      let currentUnreadCount = 0;
+      async function loadUserNotifications() {
+        try {
+          const res = await fetch("/api/users", { headers: authHeaders });
+          const users = await res.json();
+          const currentUser = users.find((u) => u.username === user.username);
+          if (currentUser) {
+            const unread = (currentUser.notifications || []).filter(
+              (n) => !n.isRead,
+            );
+            if (unread.length > currentUnreadCount) {
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
+              )
+                .play()
+                .catch(() => {});
+              document.getElementById("bellShake").classList.add("fa-shake");
+              setTimeout(
+                () =>
+                  document
+                    .getElementById("bellShake")
+                    .classList.remove("fa-shake"),
+                2000,
+              );
+            }
+            currentUnreadCount = unread.length;
+            document.getElementById("notiBadge").innerText = currentUnreadCount;
+            document.getElementById("notiBadge").style.display =
+              currentUnreadCount > 0 ? "flex" : "none";
+
+            const list = document.getElementById("notifList");
+            if (unread.length === 0) {
+              list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
+            } else {
+              list.innerHTML = unread
+                .map((n) => {
+                  let icon = "fa-bullhorn",
+                    bg = "#e0f2fe",
+                    col = "#0284c7";
+                  if (n.title.includes("Received")) {
+                    icon = "fa-hand-holding-dollar";
+                    bg = "#ecfdf5";
+                    col = "#10b981";
+                  } else if (
+                    n.title.includes("សំណើទូទាត់ប្រាក់") ||
+                    n.type === "payment_request"
+                  ) {
+                    icon = "fa-cart-shopping";
+                    bg = "#fff7ed";
+                    col = "#ea580c";
+                  }
+                  return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px;">
+                          <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
+                          <div><h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4><p style="margin:4px 0; font-size:0.85rem; color:#475569;">${n.message}</p><span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span></div>
+                        </div>`;
+                })
+                .reverse()
+                .join("");
+            }
+          }
+        } catch (e) {}
+      }
+
+      setInterval(() => fetchUserData(true), 5000);
+      setInterval(loadUserNotifications, 4000);
+      updateUI(user);
+      fetchUserData(false);
+    </script>
+  </body>
+</html>

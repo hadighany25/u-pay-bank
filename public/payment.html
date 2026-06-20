@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="km">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bill Payment - U-Pay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        background-color: #e2e8f0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .kh-font {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 400px;
+        height: 100vh;
+        max-height: 850px;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .nav-header {
+        padding: 18px 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 1.1rem;
+        z-index: 10;
+      }
+      .user-balance {
+        font-size: 0.85rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+      .content-body {
+        padding: 25px 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .biller-info-box {
+        text-align: center;
+        margin-bottom: 30px;
+        transition: 0.3s;
+        padding: 20px;
+        border-radius: 20px;
+        background: white;
+        border: 1px dashed #cbd5e1;
+      }
+      .biller-logo {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin: 0 auto 10px;
+        transition: 0.3s;
+        background: #f1f5f9;
+        color: #94a3b8;
+      }
+      .biller-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #64748b;
+      }
+      .biller-info-box.active {
+        border: 1px solid #004d40;
+        background: #f0fdfa;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.05);
+      }
+      .biller-info-box.active .biller-logo {
+        background: #004d40;
+        color: white;
+        box-shadow: 0 10px 15px rgba(0, 77, 64, 0.2);
+      }
+      .biller-info-box.active .biller-name {
+        color: #004d40;
+      }
+
+      .search-wrapper {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 25px;
+      }
+      .main-input {
+        flex: 1;
+        padding: 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        outline: none;
+        background: #fff;
+        transition: 0.3s;
+        width: 100%;
+      }
+      .main-input:focus {
+        border-color: #004d40;
+        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+      }
+      .action-btn {
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+      .check-btn {
+        background: #004d40;
+        color: white;
+        padding: 0 20px;
+      }
+      .scan-btn {
+        background: #f1f5f9;
+        color: #004d40;
+        border: 1px solid #cbd5e1;
+        padding: 0 15px;
+      }
+
+      .bill-details-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        display: none;
+        animation: fadeIn 0.3s ease-out;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .detail-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .info-label {
+        color: #64748b;
+      }
+      .info-value {
+        font-weight: 600;
+        color: #0f172a;
+        text-align: right;
+      }
+      .total-amount {
+        font-size: 2rem;
+        color: #004d40;
+        font-weight: 800;
+        text-align: center;
+        margin: 15px 0;
+        padding-top: 15px;
+        border-top: 1px dashed #cbd5e1;
+      }
+      .confirm-btn {
+        width: 100%;
+        padding: 16px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .scanner-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #0f172a;
+        z-index: 50;
+        flex-direction: column;
+        align-items: center;
+      }
+      .scanner-header {
+        width: 100%;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+        background: rgba(0, 0, 0, 0.3);
+      }
+      .scanner-frame {
+        width: 280px;
+        height: 280px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-top: 40px;
+        margin-bottom: 30px;
+        background: #000;
+        box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.6);
+      }
+      #reader {
+        width: 100%;
+        height: 100%;
+      }
+      .upload-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 12px 24px;
+        border-radius: 30px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      .modal-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 60;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .pin-box {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
+      }
+      .pin-digit {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        text-align: center;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        outline: none;
+      }
+
+      /* 🔥 PREMIUM U-PAY SLIP STYLES */
+      .slip-container {
+        width: 340px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        animation: slideUp 0.4s ease-out;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .slip-header {
+        background: #004d40;
+        padding: 25px 20px 30px;
+        text-align: center;
+        color: white;
+        position: relative;
+      }
+      .slip-status-icon {
+        width: 60px;
+        height: 60px;
+        background: white;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .slip-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-top: 5px;
+      }
+      .slip-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 5px 0 0;
+        letter-spacing: -1px;
+      }
+      .slip-body {
+        padding: 20px 25px;
+        background: white;
+        position: relative;
+      }
+
+      .dashed-line {
+        margin: 15px -25px;
+        border-top: 2px dashed #ddd;
+        position: relative;
+      }
+      .dashed-line::before,
+      .dashed-line::after {
+        content: "";
+        position: absolute;
+        top: -10px;
+        width: 20px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        border-radius: 50%;
+      }
+      .dashed-line::before {
+        left: -10px;
+      }
+      .dashed-line::after {
+        right: -10px;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+      }
+      .d-label {
+        color: #888;
+        font-weight: 500;
+      }
+      .d-value {
+        font-weight: 700;
+        color: #1f2937;
+        text-align: right;
+        max-width: 60%;
+        word-break: break-word;
+      }
+      .d-mono {
+        font-family: "Courier New", monospace;
+        letter-spacing: 0.5px;
+        color: #004d40;
+        font-weight: bold;
+      }
+
+      .slip-footer-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+      }
+      .qr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: #f9fafb;
+      }
+      .qr-img {
+        width: 45px;
+        height: 45px;
+      }
+      .qr-text {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #004d40;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+      }
+      .footer-logo {
+        width: 80px;
+      }
+
+      .slip-actions {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        padding: 25px;
+        background: #fff;
+        border-top: 1px solid #f0f0f0;
+      }
+      .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        color: #004d40;
+      }
+      .action-item:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+      .action-circle {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        color: #004d40;
+      }
+      .action-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .action-circle.done {
+        background: #f0fdf4;
+        border-color: #004d40;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <div class="flex items-center gap-3">
+          <a
+            href="dashboard.html"
+            class="text-white hover:bg-white/20 p-1.5 rounded-full transition"
+          >
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+          </a>
+          <span class="kh-font font-bold tracking-wide">Bill Payment</span>
+        </div>
+        <div class="user-balance" id="topBalance">Bal: $0.00</div>
+      </div>
+
+      <div class="content-body">
+        <div class="biller-info-box" id="billerInfoBox">
+          <div class="biller-logo" id="billerLogo">
+            <i data-lucide="file-text" class="w-8 h-8"></i>
+          </div>
+          <div class="biller-name kh-font" id="billerName">
+            ស្វែងរកវិក្កយបត្រ
+          </div>
+          <p class="text-xs text-slate-400 mt-2" id="billerSub">
+            សូមវាយលេខកូដអតិថិជន ឬលេខវិក្កយបត្រ
+          </p>
+        </div>
+
+        <div class="search-wrapper">
+          <input
+            type="text"
+            id="billId"
+            class="main-input"
+            placeholder="Enter ID here..."
+            onkeypress="if (event.key === 'Enter') checkBill();"
+          />
+          <button onclick="openCameraScanner()" class="action-btn scan-btn">
+            <i data-lucide="qr-code" class="w-5 h-5"></i>
+          </button>
+          <button onclick="checkBill()" class="action-btn check-btn kh-font">
+            Check
+          </button>
+        </div>
+
+        <div id="billDetailsCard" class="bill-details-card kh-font">
+          <div class="detail-info-row">
+            <span class="info-label">វិក្កយបត្រ (Bill ID):</span
+            ><span class="info-value" id="infoBillId">---</span>
+          </div>
+          <div class="detail-info-row">
+            <span class="info-label">អតិថិជន (Name):</span
+            ><span class="info-value" id="infoName">---</span>
+          </div>
+          <div class="detail-info-row">
+            <span class="info-label">សម្រាប់ខែ (Month):</span
+            ><span class="info-value" id="infoMonth">---</span>
+          </div>
+          <div class="total-amount" id="infoAmount">$0.00</div>
+          <button
+            onclick="openPinModal()"
+            id="btnConfirm"
+            class="confirm-btn kh-font"
+          >
+            ទូទាត់ប្រាក់ (Pay Now)
+          </button>
+        </div>
+      </div>
+
+      <div id="scannerModal" class="scanner-overlay">
+        <div class="scanner-header">
+          <button
+            onclick="closeCameraScanner()"
+            class="text-white hover:text-rose-400 transition p-2"
+          >
+            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+          </button>
+          <h3 class="text-lg font-bold kh-font">ស្កេន Barcode / QR</h3>
+          <div style="width: 40px"></div>
+        </div>
+        <div class="scanner-frame"><div id="reader"></div></div>
+        <div class="flex flex-col items-center">
+          <div class="text-slate-300 text-sm mb-5 kh-font">
+            សូមដាក់ Barcode ឱ្យចំប្រអប់កណ្តាលកាមេរ៉ា
+          </div>
+          <label class="upload-btn kh-font">
+            <i data-lucide="image" class="w-5 h-5"></i> ទាញរូបពីទូរស័ព្ទ
+            (Upload)
+            <input
+              type="file"
+              accept="image/*"
+              style="display: none"
+              onchange="handleFileUpload(event)"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div id="pinModal" class="modal-overlay">
+        <h3 style="color: white; margin-bottom: 5px">Enter Payment PIN</h3>
+        <p
+          style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px"
+          id="pin-hint"
+        >
+          Enter your 4-digit PIN
+        </p>
+        <div class="pin-box">
+          <input
+            type="password"
+            class="pin-digit"
+            id="p1"
+            maxlength="1"
+            oninput="move(this, 'p2')"
+          />
+          <input
+            type="password"
+            class="pin-digit"
+            id="p2"
+            maxlength="1"
+            oninput="move(this, 'p3')"
+          />
+          <input
+            type="password"
+            class="pin-digit"
+            id="p3"
+            maxlength="1"
+            oninput="move(this, 'p4')"
+          />
+          <input
+            type="password"
+            class="pin-digit"
+            id="p4"
+            maxlength="1"
+            oninput="submitPay()"
+          />
+        </div>
+        <button
+          onclick="document.getElementById('pinModal').style.display = 'none'"
+          style="
+            margin-top: 30px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            text-decoration: underline;
+          "
+        >
+          Cancel
+        </button>
+      </div>
+
+      <div id="slipModal" class="modal-overlay">
+        <div id="captureArea" class="slip-container">
+          <div class="slip-header">
+            <div class="slip-status-icon">
+              <i data-lucide="check" class="w-8 h-8 font-bold"></i>
+            </div>
+            <div class="slip-title">Payment Successful</div>
+            <div class="slip-amount" id="slipAmount">$0.00</div>
+          </div>
+          <div class="slip-body">
+            <div class="detail-row">
+              <span class="d-label">Trx ID</span
+              ><span class="d-value d-mono" id="slipRef">...</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">Hash</span
+              ><span
+                class="d-value d-mono text-slate-400"
+                id="slipHash"
+                style="font-size: 0.8rem"
+                >...</span
+              >
+            </div>
+            <div class="dashed-line"></div>
+            <div class="detail-row">
+              <span class="d-label">From</span
+              ><span class="d-value" id="slipFrom">...</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">Biller</span
+              ><span class="d-value" id="slipBiller">...</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">Customer</span
+              ><span class="d-value kh-font" id="slipCustomer">...</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">Date</span
+              ><span class="d-value" id="slipDate">...</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">Remark</span
+              ><span class="d-value" id="slipRemark">...</span>
+            </div>
+
+            <div class="slip-footer-info mt-4">
+              <div class="qr-box">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
+                  class="qr-img"
+                />
+                <div class="qr-text">
+                  <span>SCAN TO</span><span>CHECK</span>
+                </div>
+              </div>
+              <img
+                src="images/logo.png"
+                class="footer-logo"
+                onerror="
+                  this.src =
+                    'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
+                "
+              />
+            </div>
+          </div>
+          <div class="slip-actions no-print">
+            <div class="action-item" onclick="saveSlipImage()">
+              <div class="action-circle done">
+                <i data-lucide="share-2" class="w-6 h-6"></i>
+              </div>
+              <span class="action-text">Share</span>
+            </div>
+            <div class="action-item" onclick="window.location.reload()">
+              <div class="action-circle done">
+                <i data-lucide="rotate-cw" class="w-6 h-6"></i>
+              </div>
+              <span class="action-text">New Trx</span>
+            </div>
+            <div
+              class="action-item"
+              onclick="window.location.href = 'dashboard.html'"
+            >
+              <div class="action-circle done">
+                <i data-lucide="x" class="w-6 h-6"></i>
+              </div>
+              <span class="action-text">Done</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      lucide.createIcons();
+
+      // 1. Setup Environment
+      const uPayUserString = sessionStorage.getItem("user");
+      if (!uPayUserString) {
+        window.location.href = "index.html";
+      }
+      let user = JSON.parse(uPayUserString);
+
+      document.getElementById("topBalance").innerText =
+        `Bal: $${(user.balance || 0).toFixed(2)}`;
+
+      const UPAY_SERVER_URL = "https://u-pay-bank.onrender.com"; // (ដូរដាក់ Link U-PAY ពិតរបស់អ្នក)
+      let actualBillId = null;
+      let actualCompany = null;
+      let actualCompanyAccount = null;
+      let html5QrCode = null;
+
+      function getBillerIcon(companyName) {
+        const lower = companyName.toLowerCase();
+        if (lower.includes("edc") || lower.includes("អគ្គិសនី"))
+          return '<i data-lucide="zap" class="w-8 h-8"></i>';
+        if (
+          lower.includes("ppwsa") ||
+          lower.includes("រដ្ឋាករទឹក") ||
+          lower.includes("water")
+        )
+          return '<i data-lucide="droplets" class="w-8 h-8"></i>';
+        if (
+          lower.includes("net") ||
+          lower.includes("wifi") ||
+          lower.includes("isp")
+        )
+          return '<i data-lucide="wifi" class="w-8 h-8"></i>';
+        if (lower.includes("trash") || lower.includes("សំរាម"))
+          return '<i data-lucide="trash-2" class="w-8 h-8"></i>';
+        return '<i data-lucide="building-2" class="w-8 h-8"></i>';
+      }
+
+      function openCameraScanner() {
+        document.getElementById("scannerModal").style.display = "flex";
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode
+          .start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            (err) => {},
+          )
+          .catch((err) => {
+            console.log("កាមេរ៉ាអត់ដើរ។ សូមប្រើ Upload");
+          });
+      }
+
+      function closeCameraScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode
+            .stop()
+            .then(() => html5QrCode.clear())
+            .catch((e) => console.error(e));
+        } else if (html5QrCode) html5QrCode.clear();
+        document.getElementById("scannerModal").style.display = "none";
+      }
+
+      function parseScanResult(text) {
+        let result = text.trim();
+        if (result.startsWith("UPAY|") || result.includes("|")) {
+          const parts = result.split("|");
+          if (parts.length >= 3) return parts[2];
+        }
+        return result;
+      }
+
+      function onScanSuccess(decodedText) {
+        closeCameraScanner();
+        const extractedId = parseScanResult(decodedText);
+        document.getElementById("billId").value = extractedId;
+        checkBill(extractedId);
+      }
+
+      function handleFileUpload(event) {
+        if (event.target.files.length == 0) return;
+        const file = event.target.files[0];
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode
+            .stop()
+            .then(() => {
+              html5QrCode.clear();
+              scanFileNow(file);
+            })
+            .catch((e) => scanFileNow(file));
+        } else {
+          if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+          scanFileNow(file);
+        }
+        event.target.value = "";
+      }
+
+      function scanFileNow(file) {
+        Swal.fire({
+          title: "កំពុងអានរូបភាព...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+        html5QrCode
+          .scanFile(file, true)
+          .then((decodedText) => {
+            Swal.close();
+            onScanSuccess(decodedText);
+          })
+          .catch((err) => {
+            Swal.close();
+            Swal.fire("បរាជ័យ", "មិនអាចស្វែងរក Barcode ទេ!", "error");
+          });
+      }
+
+      async function checkBill(queryOverride = null) {
+        const query =
+          queryOverride || document.getElementById("billId").value.trim();
+        if (!query)
+          return Swal.fire(
+            "Warning",
+            "សូមវាយលេខវិក្កយបត្រ ឬ លេខអតិថិជន",
+            "warning",
+          );
+
+        Swal.fire({
+          title: "កំពុងស្វែងរក...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bill_id: query }),
+          });
+          const data = await res.json();
+          Swal.close();
+
+          if (data.success && data.billData) {
+            const b = data.billData;
+            actualBillId = b.bill_id;
+            actualCompany = b.company;
+
+            document.getElementById("billerLogo").innerHTML = getBillerIcon(
+              b.company,
+            );
+            document.getElementById("billerName").innerText = b.company;
+            document.getElementById("billerSub").innerText =
+              "រកឃើញវិក្កយបត្រជំពាក់";
+            document.getElementById("billerInfoBox").classList.add("active");
+
+            document.getElementById("infoBillId").innerText = b.bill_id;
+            document.getElementById("infoName").innerText = b.customer_name;
+            document.getElementById("infoMonth").innerText = b.month;
+            document.getElementById("infoAmount").innerText =
+              `$${Number(b.total_amount_usd).toFixed(2)}`;
+
+            document.getElementById("billDetailsCard").style.display = "block";
+            lucide.createIcons();
+          } else {
+            resetDetails();
+            Swal.fire("ព័ត៌មាន", data.message, "info");
+          }
+        } catch (error) {
+          Swal.close();
+          resetDetails();
+          Swal.fire({
+            icon: "error",
+            title: "Network Error",
+            text: "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ",
+          });
+        }
+      }
+
+      function resetDetails() {
+        document.getElementById("billDetailsCard").style.display = "none";
+        document.getElementById("billerInfoBox").classList.remove("active");
+        document.getElementById("billerLogo").innerHTML =
+          '<i data-lucide="file-text" class="w-8 h-8"></i>';
+        document.getElementById("billerName").innerText = "ស្វែងរកវិក្កយបត្រ";
+        document.getElementById("billerSub").innerText =
+          "សូមវាយលេខកូដអតិថិជន ឬលេខវិក្កយបត្រ";
+        actualBillId = null;
+        actualCompany = null;
+        lucide.createIcons();
+      }
+
+      function openPinModal() {
+        const amtText = document
+          .getElementById("infoAmount")
+          .innerText.replace("$", "");
+        if (parseFloat(amtText) > user.balance)
+          return Swal.fire(
+            "បរាជ័យ",
+            "ទឹកប្រាក់ក្នុងគណនី U-Pay មិនគ្រប់គ្រាន់ទេ",
+            "error",
+          );
+        ["p1", "p2", "p3", "p4"].forEach(
+          (id) => (document.getElementById(id).value = ""),
+        );
+        document.getElementById("pinModal").style.display = "flex";
+        document.getElementById("p1").focus();
+      }
+
+      function move(c, n) {
+        if (c.value.length >= 1) document.getElementById(n).focus();
+      }
+
+      // 🔥 មុខងារទូទាត់ប្រាក់ដែលបានជួសជុលហើយ (បញ្ចូល username និង amount)
+      async function submitPay() {
+        const pin =
+          document.getElementById("p1").value +
+          document.getElementById("p2").value +
+          document.getElementById("p3").value +
+          document.getElementById("p4").value;
+
+        if (pin.length === 4) {
+          if (pin !== user.pin) {
+            document.getElementById("pinModal").style.display = "none";
+            return Swal.fire("បរាជ័យ", "លេខកូដ PIN មិនត្រឹមត្រូវ!", "error");
+          }
+
+          document.getElementById("pinModal").style.display = "none";
+          Swal.fire({
+            title: "កំពុងទូទាត់ប្រាក់...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const payAmount = parseFloat(
+            document.getElementById("infoAmount").innerText.replace("$", ""),
+          );
+
+          try {
+            // 🔥 បញ្ជូន username និង amount ទៅអោយ U-PAY Server ដឹងថាអ្នកណាបង់
+            const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                bill_id: actualBillId,
+                company: actualCompany,
+                username: user.username, // សំខាន់ណាស់នៅត្រង់នេះ
+                amount: payAmount, // សំខាន់ណាស់នៅត្រង់នេះ
+              }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              // កាត់លុយជាក់ស្តែងពីកុងភ្ញៀវតាមរយ: Backend ឆ្លើយតបមក
+              user.balance =
+                data.newBalance !== undefined
+                  ? data.newBalance
+                  : user.balance - payAmount;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              document.getElementById("topBalance").innerText =
+                `Bal: $${user.balance.toFixed(2)}`;
+
+              Swal.close();
+
+              // កែសម្រួលត្រង់ផ្នែកបង្ហាញ Slip៖
+              const txId = data.transaction_id || `BP-${Date.now()}`;
+              const txHash = data.hash; // នេះគឺ Hash ដែលបាញ់មកពី Server ផ្ទាល់
+
+              document.getElementById("slipAmount").innerText =
+                `$${payAmount.toFixed(2)}`;
+              document.getElementById("slipRef").innerText = txId;
+              document.getElementById("slipHash").innerText = txHash; // នឹងបង្ហាញអក្សរលាយលេខ ៨ ខ្ទង់
+              document.getElementById("slipFrom").innerText = user.username;
+              document.getElementById("slipBiller").innerText = actualCompany;
+              document.getElementById("slipCustomer").innerText =
+                document.getElementById("infoName").innerText;
+              document.getElementById("slipRemark").innerText =
+                `Bill: ${actualBillId}`;
+
+              const now = new Date();
+              document.getElementById("slipDate").innerText =
+                now.toLocaleString("en-US", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                });
+
+              // បង្ហាញផ្ទាំងវិក្កយបត្រ
+              document.getElementById("slipModal").style.display = "flex";
+            } else {
+              Swal.fire("បរាជ័យ", data.message, "error");
+            }
+          } catch (e) {
+            Swal.fire("Error", "បរាជ័យក្នុងការភ្ជាប់ទៅធនាគារ", "error");
+          }
+        }
+      }
+
+      function saveSlipImage() {
+        document.querySelector(".slip-actions").style.display = "none";
+        html2canvas(document.getElementById("captureArea"), {
+          scale: 2,
+          backgroundColor: null,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `UPay-BillReceipt-${Date.now()}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+          document.querySelector(".slip-actions").style.display = "flex";
+        });
+      }
+    </script>
+  </body>
+</html>

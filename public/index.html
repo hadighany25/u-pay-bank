@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - U-Pay</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      /* BASE STYLES */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      /* MOBILE APP STYLE CONTAINER */
+      .app-container {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        animation: scaleUp 0.4s ease-out;
+      }
+
+      @keyframes scaleUp {
+        from {
+          transform: scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* GREEN HEADER SECTION */
+      .header-section {
+        background: linear-gradient(135deg, #004d40, #00695c);
+        color: white;
+        padding: 40px 30px 40px 30px;
+        text-align: center;
+        position: relative;
+        border-bottom-left-radius: 30px;
+        border-bottom-right-radius: 30px;
+      }
+
+      .logo {
+        width: 75px;
+        margin-bottom: 15px;
+        background: white;
+        padding: 12px;
+        border-radius: 18px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      }
+
+      .header-section h2 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      .header-section p {
+        margin: 5px 0 0 0;
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
+
+      /* FORM SECTION */
+      .form-section {
+        padding: 35px 30px 30px 30px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #334155;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .input-box {
+        position: relative;
+        width: 100%;
+      }
+
+      .input-box i.fa-solid {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 1rem;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 14px 45px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: 0.2s;
+        background: #f8fafc;
+        color: #1e293b;
+      }
+
+      .form-control:focus {
+        border-color: #004d40;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+
+      /* TOGGLE PASSWORD ICON */
+      .toggle-password {
+        position: absolute;
+        right: 15px;
+        left: auto !important;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 5px;
+        z-index: 2;
+      }
+      .toggle-password:hover {
+        color: #0f172a;
+      }
+
+      /* BUTTON */
+      .btn-primary {
+        width: 100%;
+        padding: 15px 0;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        margin-top: 10px;
+        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-primary:hover {
+        background: #00382e;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 77, 64, 0.3);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+      .btn-primary:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      /* LINKS & BADGE */
+      .link {
+        margin-top: 25px;
+        font-size: 0.95rem;
+        color: #64748b;
+        text-align: center;
+      }
+      .link a {
+        color: #004d40;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .link a:hover {
+        text-decoration: underline;
+      }
+
+      .security-badge {
+        text-align: center;
+        margin-top: 25px;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      /* ================================================= */
+      /* 🔥 PREMIUM SWAL STYLING (កែថ្មីឱ្យស្អាតកប់) */
+      /* ================================================= */
+      .premium-swal {
+        border-radius: 28px !important;
+        padding: 30px 20px 20px 20px !important;
+        background: #ffffff !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+      }
+      .swal2-title {
+        font-family: "Inter", "Kantumruy Pro", sans-serif !important;
+        color: #0f172a !important;
+        font-size: 1.4rem !important;
+        margin-bottom: 20px !important;
+      }
+      .swal-form-group {
+        text-align: left;
+        margin-bottom: 18px;
+        width: 100%;
+      }
+      .swal-form-label {
+        display: block;
+        font-size: 0.85rem;
+        color: #475569;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .swal-custom-input {
+        width: 100%;
+        padding: 15px 16px;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        font-size: 1rem;
+        outline: none;
+        box-sizing: border-box;
+        background: #f8fafc;
+        transition: 0.2s;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .swal-custom-input:focus {
+        border-color: #004d40;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+      .swal2-actions {
+        width: 100%;
+        display: flex !important;
+        flex-direction: column; /* តម្រៀបប៊ូតុងបញ្ឈរ */
+        gap: 10px;
+        margin-top: 10px !important;
+      }
+      .premium-btn-confirm {
+        background: #004d40 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 14px 25px !important;
+        font-weight: 700 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
+      }
+      .premium-btn-cancel {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 14px 25px !important;
+        font-weight: 700 !important;
+        width: 100% !important;
+        margin: 0 !important;
+      }
+
+      /* ================================================= */
+      /* 🔥 CUSTOM SMS TOAST NOTIFICATION (លែងប៉ះពាល់ Swal) */
+      /* ================================================= */
+      .custom-sms-toast {
+        position: fixed;
+        top: -100px; /* លាក់ពីលើ */
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        border-radius: 18px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        z-index: 99999; /* ឱ្យលោតពីលើគេបង្អស់ */
+        transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        width: 90%;
+        max-width: 380px;
+        border-left: 6px solid #10b981;
+      }
+      .custom-sms-toast.show {
+        top: 25px; /* ហោះធ្លាក់មកក្រោម */
+      }
+      .sms-icon {
+        background: #ecfdf5;
+        color: #10b981;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+      .sms-content {
+        flex-grow: 1;
+        text-align: left;
+      }
+      .sms-title {
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 0.95rem;
+      }
+      .sms-desc {
+        color: #64748b;
+        font-size: 0.85rem;
+        margin-top: 4px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header-section">
+        <img
+          src="images/logo.png"
+          class="logo"
+          alt="U-PAY"
+          onerror="
+            this.src = 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
+          "
+        />
+        <h2>Welcome Back</h2>
+        <p>Login to your U-Pay account</p>
+      </div>
+
+      <div class="form-section">
+        <form onsubmit="handleLogin(event)">
+          <div class="input-group">
+            <label>Username / Phone</label>
+            <div class="input-box">
+              <i class="fa-solid fa-user"></i>
+              <input
+                type="text"
+                id="identifier"
+                class="form-control"
+                placeholder="Enter username or phone"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Password</label>
+            <div class="input-box">
+              <i class="fa-solid fa-lock"></i>
+              <input
+                type="password"
+                id="password"
+                class="form-control"
+                placeholder="Enter password"
+                required
+              />
+              <i
+                class="fa-regular fa-eye toggle-password"
+                onclick="toggleVisibility('password', this)"
+              ></i>
+            </div>
+          </div>
+
+          <div
+            style="text-align: right; margin-top: -10px; margin-bottom: 20px"
+          >
+            <a
+              href="#"
+              onclick="handleForgotPassword(event)"
+              style="
+                color: #004d40;
+                font-size: 0.85rem;
+                font-weight: 700;
+                text-decoration: none;
+              "
+              >Forgot Password?</a
+            >
+          </div>
+
+          <button type="submit" class="btn-primary" id="loginBtn">
+            Login Securely <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          </button>
+        </form>
+
+        <div class="link">
+          Don't have an account? <a href="register.html">Sign Up</a>
+        </div>
+
+        <div class="security-badge">
+          <i class="fa-solid fa-shield-halved"></i> 256-bit Secure Encryption
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // មុខងារមើល Password (Show/Hide)
+      function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          iconElement.classList.remove("fa-eye");
+          iconElement.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          iconElement.classList.remove("fa-eye-slash");
+          iconElement.classList.add("fa-eye");
+        }
+      }
+
+      // ចាប់យក Parameters ពី URL
+      const currentUrlParams = window.location.search;
+
+      // ឆែកមើលបើ Login រួចហើយ
+      if (
+        sessionStorage.getItem("user") &&
+        sessionStorage.getItem("userToken")
+      ) {
+        const u = JSON.parse(sessionStorage.getItem("user"));
+        if (currentUrlParams && currentUrlParams.includes("orderId")) {
+          window.location.href = "transfer.html" + currentUrlParams;
+        } else {
+          if (u.role === "admin") window.location.href = "admin.html";
+          else window.location.href = "dashboard.html";
+        }
+      }
+
+      // 🔥 មុខងារ Login ធម្មតា (ដែលត្រូវបាន Update ដើម្បីទាញ Token ទុក)
+      async function handleLogin(e) {
+        e.preventDefault();
+        const identifier = document.getElementById("identifier").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (!identifier || !password) return;
+
+        const btn = document.getElementById("loginBtn");
+        const originalText = btn.innerHTML;
+        btn.innerHTML =
+          '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier, password }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            // 🔥 រក្សាទុកទាំង User Data និង Token សម្ងាត់ចូលក្នុង Session
+            sessionStorage.setItem("user", JSON.stringify(data.user));
+            if (data.token) {
+              sessionStorage.setItem("userToken", data.token);
+            }
+
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "Login successfully",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+
+            setTimeout(() => {
+              if (currentUrlParams && currentUrlParams.includes("orderId")) {
+                window.location.href = "transfer.html" + currentUrlParams;
+              } else {
+                if (data.user.role === "admin")
+                  window.location.href = "admin.html";
+                else window.location.href = "dashboard.html";
+              }
+            }, 1000);
+          } else {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            Swal.fire({
+              icon: "error",
+              title: "Access Denied",
+              text: data.message,
+              confirmButtonColor: "#004d40",
+            });
+          }
+        } catch (error) {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          Swal.fire("Error", "Server Connection Failed", "error");
+        }
+      }
+
+      // =========================================================
+      // 🔥 មុខងារថ្មី៖ CUSTOM SMS TOAST (មិនប៉ះពាល់ផ្ទាំង OTP)
+      // =========================================================
+      function showSmsToast(otp, username) {
+        const div = document.createElement("div");
+        div.className = "custom-sms-toast";
+        div.innerHTML = `
+            <div class="sms-icon"><i class="fa-solid fa-comment-sms"></i></div>
+            <div class="sms-content">
+              <div class="sms-title">U-PAY Security Alert</div>
+              <div class="sms-desc">លេខកូដ OTP សម្រាប់គណនី <b>${username}</b> គឺ: <b style="color:#10b981; font-size:1.15rem; letter-spacing:3px; display:inline-block; margin-top:3px;">${otp}</b></div>
+            </div>
+          `;
+        document.body.appendChild(div);
+
+        // ឱ្យវាហោះចុះមកក្រោម
+        setTimeout(() => div.classList.add("show"), 100);
+
+        // បាត់ទៅវិញដោយស្វ័យប្រវត្តិក្រោយ 15 វិនាទី
+        setTimeout(() => {
+          div.classList.remove("show");
+          setTimeout(() => div.remove(), 600); // រង់ចាំ Animation ចប់សឹមលុបចេញ
+        }, 15000);
+      }
+
+      // =========================================================
+      // 🔥 មុខងារ FORGOT PASSWORD FLOW (OTP & RESET)
+      // =========================================================
+      const swalStyle = {
+        buttonsStyling: false,
+        customClass: {
+          popup: "premium-swal",
+          confirmButton: "premium-btn-confirm",
+          cancelButton: "premium-btn-cancel",
+        },
+      };
+
+      async function handleForgotPassword(e) {
+        e.preventDefault();
+
+        // STEP 1: វាយបញ្ចូល Username ឬលេខទូរស័ព្ទ
+        const { value: identifierInput } = await Swal.fire({
+          ...swalStyle,
+          title: "🔐 Recovery Account",
+          html: `<div class="swal-form-group">
+                    <label class="swal-form-label">Username / Phone Number</label>
+                    <input id="forgot-id" class="swal-custom-input" placeholder="Enter your username or phone">
+                 </div>`,
+          showCancelButton: true,
+          confirmButtonText: "Find Account",
+          cancelButtonText: "Cancel",
+          preConfirm: () => document.getElementById("forgot-id").value.trim(),
+        });
+
+        if (!identifierInput) return;
+
+        Swal.fire({ title: "Checking...", didOpen: () => Swal.showLoading() });
+
+        try {
+          const res = await fetch("/api/forgot-password/verify-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: identifierInput }),
+          });
+          const userData = await res.json();
+          Swal.close(); // បិទ Loading
+
+          if (!userData.success) {
+            return Swal.fire({
+              icon: "error",
+              title: "បរាជ័យ",
+              text: userData.message,
+            });
+          }
+
+          const username = userData.username;
+          const userPhone = userData.phone;
+          const receivedOtp = userData.otp;
+
+          // 🔥 លោត SMS ហោះពីលើអាកាសមក (មិនប៉ះពាល់ Swal ទេ!)
+          setTimeout(() => showSmsToast(receivedOtp, username), 500);
+
+          // STEP 2: វាយបញ្ចូលលេខកូដ OTP (ផ្ទាំងនេះនឹងរង់ចាំនៅទីនេះរហូត)
+          const { value: otpInput } = await Swal.fire({
+            ...swalStyle,
+            title: "🔢 OTP Verification",
+            html: `<p style="font-size:0.85rem; color:#64748b; margin-top:-10px; margin-bottom: 20px;">We sent a 6-digit code to ${userPhone.substring(0, 3)}***${userPhone.slice(-3)}</p>
+                   <div class="swal-form-group">
+                      <input id="forgot-otp" class="swal-custom-input" maxlength="6" placeholder="------" style="text-align:center; font-size:1.8rem; letter-spacing:10px; font-weight:700;">
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: "Verify Code",
+            cancelButtonText: "Cancel",
+            preConfirm: () =>
+              document.getElementById("forgot-otp").value.trim(),
+          });
+
+          if (!otpInput) return; // បើគេចុចខ្វែង ឬ Cancel
+
+          if (otpInput !== receivedOtp) {
+            return Swal.fire({
+              icon: "error",
+              title: "ខុសលេខកូដ",
+              text: "លេខកូដ OTP មិនត្រឹមត្រូវទេ! សូមព្យាយាមម្តងទៀត។",
+            });
+          }
+
+          // STEP 3: បង្កើតពាក្យសម្ងាត់ថ្មី
+          const { value: passwordForm } = await Swal.fire({
+            ...swalStyle,
+            title: "🆕 Reset Password",
+            html: `<div class="swal-form-group">
+                      <label class="swal-form-label">New Password</label>
+                      <input id="forgot-newpass" type="password" class="swal-custom-input" placeholder="Create new password">
+                   </div>
+                   <div class="swal-form-group">
+                      <label class="swal-form-label">Confirm Password</label>
+                      <input id="forgot-confirmpass" type="password" class="swal-custom-input" placeholder="Repeat new password">
+                   </div>`,
+            showCancelButton: true,
+            confirmButtonText: "Reset & Save",
+            cancelButtonText: "Cancel",
+            preConfirm: () => {
+              const np = document.getElementById("forgot-newpass").value;
+              const cp = document.getElementById("forgot-confirmpass").value;
+              if (!np || !cp) {
+                Swal.showValidationMessage("សូមបំពេញប្រអប់ទាំងពីរឱ្យគ្រប់!");
+                return false;
+              }
+              if (np !== cp) {
+                Swal.showValidationMessage("ពាក្យសម្ងាត់ទាំងពីរមិនដូចគ្នាទេ!");
+                return false;
+              }
+              return np;
+            },
+          });
+
+          if (!passwordForm) return;
+
+          // ផ្ញើទៅ Update លើ Database
+          Swal.fire({
+            title: "Updating...",
+            didOpen: () => Swal.showLoading(),
+          });
+          const resetRes = await fetch("/api/forgot-password/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: username,
+              otp: otpInput,
+              newPassword: passwordForm,
+            }),
+          });
+          const resetData = await resetRes.json();
+          Swal.close();
+
+          if (resetData.success) {
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ! 🎉",
+              text: resetData.message,
+              confirmButtonColor: "#004d40",
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "បរាជ័យ",
+              text: resetData.message,
+            });
+          }
+        } catch (err) {
+          Swal.fire(
+            "Error",
+            "មានបញ្ហាបច្ចេកទេសក្នុងកំឡុងពេលដំណើរការ!",
+            "error",
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

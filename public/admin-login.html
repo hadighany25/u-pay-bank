@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>U-Pay Admin Secure Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      :root {
+        --primary: #0f172a;
+        --secondary: #10b981;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+      }
+      .login-container {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        padding: 40px;
+        border-radius: 24px;
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.5),
+          0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        animation: slideUp 0.5s ease;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .logo {
+        width: 80px;
+        margin-bottom: 20px;
+      }
+      h2 {
+        margin: 0 0 5px;
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--primary);
+      }
+      p.subtitle {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        margin-bottom: 30px;
+      }
+      .input-group {
+        text-align: left;
+        margin-bottom: 20px;
+        position: relative;
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+      .input-group i {
+        position: absolute;
+        left: 16px;
+        bottom: 14px;
+        color: #94a3b8;
+        font-size: 1.1rem;
+      }
+      .input-group input {
+        width: 100%;
+        padding: 14px 15px 14px 45px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-family: inherit;
+        outline: none;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+      }
+      .input-group input:focus {
+        border-color: var(--secondary);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      }
+      .btn-login {
+        width: 100%;
+        background: var(--secondary);
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .btn-login:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2);
+      }
+      .btn-login:active {
+        transform: translateY(0);
+      }
+      /* Custom SweetAlert */
+      .premium-swal {
+        border-radius: 20px !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <img
+        src="images/logo.png"
+        alt="U-Pay Logo"
+        class="logo"
+        onerror="
+          this.src = 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
+        "
+      />
+      <h2>Admin Portal</h2>
+      <p class="subtitle">Secure access for authorized personnel.</p>
+
+      <div class="input-group">
+        <label>Admin Username</label>
+        <i class="fa-solid fa-user"></i>
+        <input
+          type="text"
+          id="username"
+          placeholder="Enter username"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="input-group">
+        <label>Secure Password</label>
+        <i class="fa-solid fa-lock"></i>
+        <input
+          type="password"
+          id="password"
+          placeholder="Enter password"
+          autocomplete="off"
+        />
+      </div>
+
+      <button class="btn-login" id="loginBtn" onclick="attemptLogin()">
+        Secure Login <i class="fa-solid fa-arrow-right-to-bracket"></i>
+      </button>
+    </div>
+
+    <script>
+      // បើមាន Token រួចហើយ លោតចូល admin.html តែម្តង
+      if (sessionStorage.getItem("adminToken")) {
+        window.location.href = "admin.html";
+      }
+
+      // 🔥 ចាប់យកព្រឹត្តិការណ៍ពេលចុច Enter លើប្រអប់ Username
+      document
+        .getElementById("username")
+        .addEventListener("keypress", function (event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            document.getElementById("password").focus(); // លោត Cursor ទៅប្រអប់ Password អូតូ
+          }
+        });
+
+      // 🔥 ចាប់យកព្រឹត្តិការណ៍ពេលចុច Enter លើប្រអប់ Password
+      document
+        .getElementById("password")
+        .addEventListener("keypress", function (event) {
+          if (event.key === "Enter") {
+            event.preventDefault(); // ការពារកុំអោយ Browser Refresh
+            attemptLogin(); // ហៅមុខងារ Login តែម្តង
+          }
+        });
+
+      async function attemptLogin() {
+        const user = document.getElementById("username").value.trim();
+        const pass = document.getElementById("password").value.trim();
+        const btn = document.getElementById("loginBtn");
+
+        if (!user || !pass) {
+          return Swal.fire({
+            icon: "warning",
+            title: "Oops...",
+            text: "សូមបញ្ចូលឈ្មោះ និងលេខសម្ងាត់!",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+
+        // ធ្វើអោយប៊ូតុងទៅជា Loading
+        const originalText = btn.innerHTML;
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...';
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: pass }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            // រក្សាទុក Token និង Role
+            sessionStorage.setItem("adminToken", data.token);
+            sessionStorage.setItem("adminRole", data.user.role);
+
+            Swal.fire({
+              icon: "success",
+              title: "Login Success",
+              text: `Welcome back, ${data.user.fullName || data.user.role}!`,
+              showConfirmButton: false,
+              timer: 1500,
+              customClass: { popup: "premium-swal" },
+            }).then(() => {
+              window.location.href = "admin.html";
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Access Denied",
+              text: data.message,
+              customClass: { popup: "premium-swal" },
+            });
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+          }
+        } catch (err) {
+          Swal.fire({
+            icon: "error",
+            title: "System Error",
+            text: "Can't connect to server",
+            customClass: { popup: "premium-swal" },
+          });
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Savings - U-Pay</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition: 0.3s;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: 0.3s;
+        padding-bottom: 90px;
+        position: relative;
+      }
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.1rem;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+      .content-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      /* SUMMARY CARD */
+      .summary-card {
+        background: linear-gradient(135deg, #004d40 0%, #00695c 100%);
+        border-radius: 20px;
+        padding: 25px 20px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+        margin-bottom: 25px;
+        position: relative;
+        overflow: hidden;
+      }
+      .summary-card::after {
+        content: "\f4d3";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        right: -20px;
+        bottom: -20px;
+        font-size: 8rem;
+        color: rgba(255, 255, 255, 0.05);
+        pointer-events: none;
+      }
+      .summary-card p {
+        margin: 0 0 5px;
+        font-size: 0.9rem;
+        color: #a7f3d0;
+      }
+      .summary-card h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 800;
+      }
+
+      /* GOALS LIST */
+      .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 15px;
+      }
+      .goals-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .goal-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        border: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .goal-card:active {
+        transform: scale(0.98);
+      }
+      .goal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+      }
+      .goal-icon {
+        width: 45px;
+        height: 45px;
+        background: #fce4ec;
+        color: #d81b60;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+      .goal-info {
+        flex: 1;
+        margin-left: 15px;
+      }
+      .goal-info h3 {
+        margin: 0 0 3px;
+        font-size: 1.05rem;
+        color: #334155;
+      }
+      .goal-info p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+      .goal-percent {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #004d40;
+      }
+      .goal-percent.full {
+        color: #f59e0b;
+      }
+
+      /* PROGRESS BAR */
+      .progress-bg {
+        width: 100%;
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #059669);
+        width: 0%;
+        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 4px;
+      }
+      .progress-bar.completed {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+      }
+
+      .goal-amounts {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 600;
+      }
+
+      /* EMPTY STATE */
+      .empty-state {
+        text-align: center;
+        margin-top: 40px;
+        color: #94a3b8;
+      }
+      .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 15px;
+      }
+
+      /* FAB */
+      .fab-container {
+        position: fixed;
+        bottom: 95px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 20px;
+        box-sizing: border-box;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .fab-btn {
+        pointer-events: auto;
+        background: #004d40;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 30px;
+        font-weight: bold;
+        font-size: 1rem;
+        box-shadow: 0 10px 25px rgba(0, 77, 64, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        border: none;
+      }
+      .fab-btn:active {
+        transform: scale(0.95);
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #000;
+      }
+      body.dark-mode .app-container {
+        background: #121212;
+      }
+      body.dark-mode .section-title {
+        color: white;
+      }
+      body.dark-mode .goal-card {
+        background: #1e1e1e;
+        border-color: #333;
+      }
+      body.dark-mode .goal-info h3 {
+        color: white;
+      }
+      body.dark-mode .progress-bg {
+        background: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_savings">Saving Goals</span>
+      </div>
+
+      <div class="content-body">
+        <div class="summary-card">
+          <p data-lang="total_saved">Total Saved Balance</p>
+          <h2>$<span id="totalSavedAmt">0.00</span></h2>
+        </div>
+
+        <h3 class="section-title" data-lang="my_jars">My Piggy Banks</h3>
+
+        <div class="goals-list" id="goalsList"></div>
+      </div>
+
+      <div class="fab-container">
+        <button class="fab-btn" onclick="openCreateGoal()">
+          <i class="fa-solid fa-plus"></i>
+          <span data-lang="btn_new_goal">New Goal</span>
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      if (localStorage.getItem("darkMode") === "true")
+        document.body.classList.add("dark-mode");
+
+      const translations = {
+        en: {
+          title_savings: "Saving Goals",
+          total_saved: "Total Saved Balance",
+          my_jars: "My Piggy Banks",
+          btn_new_goal: "New Goal",
+          empty_msg: "No saving goals yet. Start saving today!",
+          create_title: "Create Saving Goal",
+          name_ph: "Goal Name (e.g. iPhone 16)",
+          amount_ph: "Target Amount ($)",
+          dep_title: "Deposit to Piggy Bank",
+          dep_ph: "Amount to save ($)",
+          success_create: "Goal Created!",
+          success_dep: "Money Saved!",
+          btn_deposit: "Deposit",
+          btn_break: "Break Bank",
+          break_confirm: "Break Piggy Bank?",
+          break_desc: "You will withdraw this money to your main balance.",
+          btn_yes_break: "Yes, Break it!",
+          success_break: "Piggy Bank Broken!",
+        },
+        kh: {
+          title_savings: "សន្សំប្រាក់",
+          total_saved: "ទំហំទឹកប្រាក់សន្សំសរុប",
+          my_jars: "កូនជ្រូកសន្សំប្រាក់របស់ខ្ញុំ",
+          btn_new_goal: "បង្កើតគោលដៅ",
+          empty_msg: "អ្នកមិនទាន់មានកូនជ្រូកសន្សំប្រាក់ទេ។ ចាប់ផ្តើមឥឡូវនេះ!",
+          create_title: "បង្កើតគម្រោងសន្សំ",
+          name_ph: "ឈ្មោះគោលដៅ (ឧ. ទិញកង់ថ្មី)",
+          amount_ph: "ចំនួនទឹកប្រាក់គោលដៅ ($)",
+          dep_title: "ដាក់លុយចូលកូនជ្រូក",
+          dep_ph: "ចំនួនប្រាក់ត្រូវដាក់ ($)",
+          success_create: "បង្កើតបានជោគជ័យ!",
+          success_dep: "ដាក់លុយចូលកូនជ្រូកជោគជ័យ!",
+          btn_deposit: "ដាក់លុយ",
+          btn_break: "វាយបំបែកកូនជ្រូក",
+          break_confirm: "តើចង់វាយបំបែកមែនទេ?",
+          break_desc: "ទឹកប្រាក់នឹងត្រូវបានផ្ទេរចូលគណនីដើមវិញ។",
+          btn_yes_break: "យល់ព្រមបំបែក!",
+          success_break: "បំបែកកូនជ្រូកជោគជ័យ!",
+        },
+      };
+
+      let currentLang = localStorage.getItem("lang") || "en";
+      function applyLang() {
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+          }
+        });
+        document.body.style.fontFamily =
+          currentLang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+      }
+
+      function renderGoals() {
+        applyLang();
+        const list = document.getElementById("goalsList");
+        list.innerHTML = "";
+        let totalSaved = 0;
+        const savings = user.savings || [];
+
+        if (savings.length === 0) {
+          list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-piggy-bank"></i><p>${translations[currentLang].empty_msg}</p></div>`;
+        } else {
+          savings.forEach((g) => {
+            totalSaved += g.current;
+            let percent = Math.min(
+              100,
+              Math.round((g.current / g.target) * 100),
+            );
+            let isCompleted = percent >= 100;
+            let barClass = isCompleted ? "completed" : "";
+            let percentClass = isCompleted ? "full" : "";
+            let iconTrophy = isCompleted
+              ? `<i class="fa-solid fa-trophy" style="color:#f59e0b; margin-right:5px;"></i> `
+              : "";
+
+            list.innerHTML += `
+                    <div class="goal-card" onclick="manageGoal('${g.id}', '${g.name}', ${g.current}, ${g.target})">
+                        <div class="goal-header">
+                            <div class="goal-icon"><i class="fa-solid fa-piggy-bank"></i></div>
+                            <div class="goal-info">
+                                <h3>${g.name}</h3>
+                                <p>Progress</p>
+                            </div>
+                            <div class="goal-percent ${percentClass}">${iconTrophy}${percent}%</div>
+                        </div>
+                        <div class="progress-bg">
+                            <div class="progress-bar ${barClass}" style="width: ${percent}%;"></div>
+                        </div>
+                        <div class="goal-amounts">
+                            <span>$${g.current.toFixed(2)}</span>
+                            <span>Target: $${g.target.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+          });
+        }
+        document.getElementById("totalSavedAmt").innerText =
+          totalSaved.toFixed(2);
+      }
+
+      // 🔥 មុខងារគ្រប់គ្រងពេលចុចលើកូនជ្រូក (ជ្រើសរើស Deposit ឬ Break)
+      async function manageGoal(id, name, current, target) {
+        let isFull = current >= target;
+        let titleText = isFull ? `🎉 Goal Reached: ${name}` : `${name}`;
+
+        const result = await Swal.fire({
+          title: titleText,
+          html: `Saved: <b>$${current.toFixed(2)}</b><br><br>`,
+          showCancelButton: true,
+          showDenyButton: true,
+          confirmButtonText: `<i class="fa-solid fa-plus"></i> ${translations[currentLang].btn_deposit}`,
+          denyButtonText: `<i class="fa-solid fa-hammer"></i> ${translations[currentLang].btn_break}`,
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#004d40",
+          denyButtonColor: "#ef4444",
+          reverseButtons: true,
+        });
+
+        if (result.isConfirmed) {
+          // ចុច Deposit
+          openDeposit(id, name);
+        } else if (result.isDenied) {
+          // ចុច Break Bank
+          confirmBreakBank(id, name, current);
+        }
+      }
+
+      // 🔥 មុខងារបញ្ជាក់ការវាយបំបែកកូនជ្រូក
+      async function confirmBreakBank(id, name, amount) {
+        const confirmResult = await Swal.fire({
+          title: translations[currentLang].break_confirm,
+          text: translations[currentLang].break_desc,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#cbd5e1",
+          confirmButtonText: translations[currentLang].btn_yes_break,
+        });
+
+        if (confirmResult.isConfirmed) {
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/savings/break", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: user.username, goalId: id }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              user.balance = data.balance;
+              user.savings = data.savings;
+              sessionStorage.setItem("user", JSON.stringify(user));
+
+              // លេងសំឡេងលុយចូលពេលបំបែករួច
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch((e) => {});
+
+              Swal.fire({
+                icon: "success",
+                title: translations[currentLang].success_break,
+                text: `+$${data.amount.toFixed(2)} added to balance.`,
+                timer: 2000,
+              });
+              renderGoals();
+            } else {
+              Swal.fire("Error", data.message, "error");
+            }
+          } catch (e) {
+            Swal.fire("Error", "Failed to connect", "error");
+          }
+        }
+      }
+
+      async function openCreateGoal() {
+        const { value: formValues } = await Swal.fire({
+          title: translations[currentLang].create_title,
+          html: `
+                <input id="swal-name" class="swal2-input" placeholder="${translations[currentLang].name_ph}">
+                <input id="swal-amount" type="number" class="swal2-input" placeholder="${translations[currentLang].amount_ph}">
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          preConfirm: () => {
+            return [
+              document.getElementById("swal-name").value,
+              document.getElementById("swal-amount").value,
+            ];
+          },
+        });
+
+        if (formValues) {
+          const [name, amt] = formValues;
+          if (!name || !amt || amt <= 0)
+            return Swal.fire("Error", "Please provide valid info", "warning");
+
+          Swal.fire({
+            title: "Creating...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/savings/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: user.username,
+                goalName: name,
+                targetAmount: amt,
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              user.savings = data.savings;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              Swal.fire({
+                icon: "success",
+                title: translations[currentLang].success_create,
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              renderGoals();
+            }
+          } catch (e) {
+            Swal.fire("Error", "Failed to connect", "error");
+          }
+        }
+      }
+
+      async function openDeposit(goalId, goalName) {
+        const { value: amount } = await Swal.fire({
+          title: translations[currentLang].dep_title,
+          text: `➡️ ${goalName}`,
+          input: "number",
+          inputPlaceholder: translations[currentLang].dep_ph,
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          footer: `<span style="color:#64748b; font-size:0.85rem;">Available Balance: <b>$${user.balance.toFixed(2)}</b></span>`,
+        });
+
+        if (amount) {
+          if (amount <= 0)
+            return Swal.fire(
+              "Error",
+              "Amount must be greater than 0",
+              "warning",
+            );
+
+          Swal.fire({
+            title: "Depositing...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/savings/deposit", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: user.username,
+                goalId: goalId,
+                amount: amount,
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              user.balance = data.balance;
+              user.savings = data.savings;
+              sessionStorage.setItem("user", JSON.stringify(user));
+
+              Swal.fire({
+                icon: "success",
+                title: translations[currentLang].success_dep,
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              renderGoals();
+            } else {
+              Swal.fire("Failed", data.message, "error");
+            }
+          } catch (e) {
+            Swal.fire("Error", "Failed to connect", "error");
+          }
+        }
+      }
+
+      renderGoals();
+    </script>
+  </body>
+</html>

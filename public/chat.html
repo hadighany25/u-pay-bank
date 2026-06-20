@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>U-PAY Chat</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      body {
+        margin: 0;
+        background-color: #f2f4f6;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        display: flex;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden;
+        -webkit-touch-callout: none;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .chat-header {
+        background: #004d40;
+        color: white;
+        padding: 20px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+      }
+      .chat-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        cursor: pointer;
+      }
+
+      .search-bar {
+        padding: 15px;
+        background: #004d40;
+        z-index: 10;
+      }
+      .search-input-wrapper {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        padding: 10px 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .search-input-wrapper input {
+        background: transparent;
+        border: none;
+        color: white;
+        width: 100%;
+        outline: none;
+        font-size: 0.95rem;
+      }
+      .search-input-wrapper input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .chat-list {
+        flex: 1;
+        overflow-y: auto;
+        background: white;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        margin-top: -10px;
+        padding-top: 10px;
+        z-index: 5;
+      }
+      .chat-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: 0.2s;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .chat-item:active {
+        background: #f8fafc;
+      }
+      .chat-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e0f2f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #004d40;
+        position: relative;
+        flex-shrink: 0;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+      }
+      .chat-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .online-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 12px;
+        height: 12px;
+        background: #10b981;
+        border: 2px solid white;
+        border-radius: 50%;
+      }
+
+      .chat-info {
+        margin-left: 15px;
+        flex: 1;
+        overflow: hidden;
+      }
+      .chat-name {
+        margin: 0;
+        font-size: 1.05rem;
+        color: #1e293b;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-time {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 400;
+      }
+      .chat-msg {
+        margin: 5px 0 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 20px;
+      }
+      .unread-badge {
+        background: #ef4444;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        margin-left: 5px;
+      }
+
+      .fab {
+        position: absolute;
+        bottom: 30px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #004d40, #00b894);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        box-shadow: 0 5px 15px rgba(0, 77, 64, 0.4);
+        cursor: pointer;
+        transition: 0.2s;
+        z-index: 10;
+      }
+      .fab:active {
+        transform: scale(0.9);
+      }
+
+      /* ================= CONVERSATION VIEW ================= */
+      .convo-view {
+        position: absolute;
+        top: 0;
+        left: 100%;
+        width: 100%;
+        height: 100%;
+        background: #f2f4f6;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .convo-view.active {
+        transform: translateX(-100%);
+      }
+
+      .convo-header {
+        background: #004d40;
+        color: white;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+      .convo-header i.back-btn {
+        font-size: 1.4rem;
+        cursor: pointer;
+        padding: 5px;
+      }
+
+      .convo-body {
+        flex: 1;
+        padding: 20px 15px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #e2e8f0;
+      }
+      .msg-wrap {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+        -webkit-user-select: none;
+        user-select: none;
+        cursor: pointer;
+      }
+      .msg-wrap.received {
+        align-self: flex-start;
+      }
+      .msg-wrap.sent {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+
+      .msg {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        position: relative;
+        word-wrap: break-word;
+        transition: 0.2s;
+      }
+      .msg:active {
+        opacity: 0.8;
+      }
+      .msg-received {
+        background: white;
+        color: #1e293b;
+        border-radius: 18px 18px 18px 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .msg-sent {
+        background: #004d40;
+        color: white;
+        border-radius: 18px 18px 4px 18px;
+        box-shadow: 0 1px 2px rgba(0, 4d, 40, 0.1);
+      }
+      .msg-time {
+        font-size: 0.65rem;
+        color: #94a3b8;
+        margin-top: 4px;
+      }
+
+      .convo-input {
+        background: white;
+        padding: 12px 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        z-index: 10;
+      }
+      .convo-input input {
+        flex: 1;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        padding: 12px 20px;
+        border-radius: 25px;
+        outline: none;
+        font-size: 0.95rem;
+        transition: 0.2s;
+      }
+      .convo-input input:focus {
+        border-color: #004d40;
+      }
+      .convo-input button {
+        width: 45px;
+        height: 45px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .system-notice {
+        text-align: center;
+        font-size: 0.75rem;
+        color: #64748b;
+        margin: 15px 0;
+        background: rgba(0, 0, 0, 0.05);
+        padding: 5px 15px;
+        border-radius: 20px;
+        align-self: center;
+      }
+
+      /* BINANCE STYLE - Agent Joined Divider */
+      .agent-joined-divider {
+        text-align: center;
+        margin: 25px 0 10px 0;
+        position: relative;
+        width: 100%;
+        align-self: center;
+      }
+      .agent-joined-divider::before,
+      .agent-joined-divider::after {
+        content: "";
+        position: absolute;
+        top: 40%;
+        width: 25%;
+        height: 1px;
+        background: #cbd5e1;
+      }
+      .agent-joined-divider::before {
+        left: 10%;
+      }
+      .agent-joined-divider::after {
+        right: 10%;
+      }
+
+      .typing {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        padding: 12px 16px;
+      }
+      .typing span {
+        width: 6px;
+        height: 6px;
+        background: #94a3b8;
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out both;
+      }
+      .typing span:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .typing span:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+      @keyframes typing {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="chat-header">
+        <h2 onclick="window.location.href = 'dashboard.html'">
+          <i class="fa-solid fa-chevron-left"></i> U-PAY Chat
+        </h2>
+      </div>
+      <div class="search-bar">
+        <div class="search-input-wrapper">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="ស្វែងរកឈ្មោះ ឬ លេខគណនី..." />
+        </div>
+      </div>
+
+      <div class="chat-list" id="chatList">
+        <div style="text-align: center; padding: 40px; color: #94a3b8">
+          កំពុងទាញយកទិន្នន័យ...
+        </div>
+      </div>
+
+      <div class="fab" onclick="startNewChat()">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+
+      <div class="convo-view" id="convoView">
+        <div class="convo-header" id="convoHeader">
+          <i
+            class="fa-solid fa-chevron-left back-btn"
+            onclick="closeChat()"
+          ></i>
+          <div
+            class="chat-avatar"
+            style="
+              width: 42px;
+              height: 42px;
+              font-size: 1.3rem;
+              background: linear-gradient(135deg, #004d40, #00b894);
+              color: white;
+              border: none;
+            "
+            id="cvAvatar"
+          >
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem" id="cvName">
+              U-PAY Assistant
+            </h3>
+            <span
+              style="font-size: 0.75rem; font-weight: normal; opacity: 0.8"
+              id="cvStatus"
+              >Online</span
+            >
+          </div>
+        </div>
+
+        <div class="convo-body" id="convoBody"></div>
+
+        <div class="convo-input">
+          <input
+            type="text"
+            id="msgInput"
+            placeholder="វាយសាររបស់អ្នក..."
+            onkeypress="if (event.key === 'Enter') sendMessage();"
+          />
+          <button onclick="sendMessage()">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let currentChatAcc = null;
+      let pollInterval = null;
+      let lastMsgCount = -1;
+
+      // State Control
+      let supportMode = "bot";
+      let currentAgentName = null;
+      let botGreetingShown = false;
+
+      // 🔥 មុខងារសួរដើម្បីលុបការសន្ទនាទាំងមូល
+      function promptDeleteChat(accNum, name) {
+        if (accNum === "ADMIN") return;
+        Swal.fire({
+          title: "លុបការសន្ទនា?",
+          text: `តើអ្នកពិតជាចង់លុបការសន្ទនាជាមួយ ${name} មែនទេ?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#dc2626",
+          cancelButtonColor: "#94a3b8",
+          confirmButtonText: "លុបចេញ",
+          cancelButtonText: "បោះបង់",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await fetch("/api/chat/delete-convo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                myAcc: user.accountNumber,
+                targetAcc: accNum,
+              }),
+            });
+            fetchContacts();
+          }
+        });
+      }
+
+      // 🔥 មុខងារសួរដើម្បីលុបសារនីមួយៗ (លុបខ្លួនឯង ឬលុបទាំងសងខាង)
+      function promptDeleteMsg(msgId, senderAcc) {
+        if (currentChatAcc === "ADMIN") return; // មិនអាចលុបក្នុង U-PAY Support ទេ
+
+        const isMine =
+          senderAcc === user.accountNumber ||
+          senderAcc === user.accountNumberKHR;
+        const partnerName = document.getElementById("cvName").innerText;
+
+        let optionsHtml = `
+            <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+                <button class="swal2-confirm swal2-styled" style="background:#f59e0b; width:100%; margin:0;" onclick="executeDeleteMsg('${msgId}', 'me')">លុបសម្រាប់តែខ្ញុំ</button>
+        `;
+        // បើសារនោះយើងជាអ្នកផ្ញើ អោយជម្រើស "លុបទាំងសងខាង"
+        if (isMine) {
+          optionsHtml += `<button class="swal2-confirm swal2-styled" style="background:#dc2626; width:100%; margin:0;" onclick="executeDeleteMsg('${msgId}', 'everyone')">លុបសម្រាប់ ${partnerName} ដែរ</button>`;
+        }
+        optionsHtml += `</div>`;
+
+        Swal.fire({
+          title: "ជម្រើសលុបសារ",
+          html: optionsHtml,
+          showConfirmButton: false,
+          showCancelButton: true,
+          cancelButtonText: "បោះបង់",
+        });
+      }
+
+      // អនុវត្តការលុបសារទៅកាន់ Server
+      window.executeDeleteMsg = async function (msgId, type) {
+        Swal.close();
+        try {
+          await fetch("/api/chat/delete-msg", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              msgId: msgId,
+              deleteType: type,
+              reqAcc: user.accountNumber,
+            }),
+          });
+          lastMsgCount = -1; // Force re-render
+          fetchMessages();
+        } catch (e) {}
+      };
+
+      async function fetchContacts() {
+        try {
+          const res = await fetch("/api/chat/contacts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ myAcc: user.accountNumber }),
+          });
+          const data = await res.json();
+          const list = document.getElementById("chatList");
+          list.innerHTML = "";
+
+          // U-PAY Support តែងតែនៅលើគេ
+          list.innerHTML += `
+            <div class="chat-item" onclick="openChat('ADMIN', 'U-PAY Support')">
+                <div class="chat-avatar" style="background: linear-gradient(135deg, #004d40, #00b894); color: white; border: none;"><i class="fa-solid fa-headset"></i><div class="online-dot"></div></div>
+                <div class="chat-info">
+                    <h4 class="chat-name">U-PAY Support <span class="chat-time">24/7</span></h4>
+                    <p class="chat-msg" style="color: #004d40; font-weight: 600;">ជំនួយការអតិថិជន</p>
+                </div>
+            </div>`;
+
+          if (data.success && data.contacts.length > 0) {
+            data.contacts.forEach((c) => {
+              if (c.accountNumber === "ADMIN" || c.accountNumber === "UPAY_BOT")
+                return;
+
+              let avatarHtml = c.profileImage
+                ? `<img src="${c.profileImage}">`
+                : `<i class="fa-solid fa-user"></i>`;
+              let badgeHtml =
+                c.unreadCount > 0
+                  ? `<span class="unread-badge">${c.unreadCount}</span>`
+                  : "";
+
+              // ដាក់ oncontextmenu សម្រាប់ Long press
+              list.innerHTML += `
+                <div class="chat-item" 
+                     onclick="openChat('${c.accountNumber}', '${c.name}', '${c.profileImage || ""}')"
+                     oncontextmenu="event.preventDefault(); promptDeleteChat('${c.accountNumber}', '${c.name}'); return false;">
+                    <div class="chat-avatar" style="${c.profileImage ? "background:transparent; border:none;" : ""}">${avatarHtml}</div>
+                    <div class="chat-info">
+                        <h4 class="chat-name">${c.name} <span class="chat-time">${c.time.split(",")[1] || c.time}</span></h4>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <p class="chat-msg">${c.lastMessage}</p>
+                            ${badgeHtml}
+                        </div>
+                    </div>
+                </div>`;
+            });
+          }
+        } catch (err) {}
+      }
+
+      async function startNewChat() {
+        const { value: accNum } = await Swal.fire({
+          title: "ការសន្ទនាថ្មី",
+          input: "number",
+          inputLabel: "បញ្ចូលលេខគណនី U-PAY ដើម្បីឆាត",
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          confirmButtonText: "ស្វែងរក",
+        });
+
+        if (accNum) {
+          if (accNum === user.accountNumber || accNum === user.accountNumberKHR)
+            return Swal.fire(
+              "បំរាម",
+              "អ្នកមិនអាចឆាតទៅខ្លួនឯងបានទេ!",
+              "warning",
+            );
+
+          Swal.fire({
+            title: "កំពុងស្វែងរក...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/chat/check-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accountNumber: accNum }),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.close();
+            openChat(data.accountNumber, data.name, data.profileImage);
+          } else {
+            Swal.fire(
+              "រកមិនឃើញទេ!",
+              "លេខគណនីនេះមិនមានក្នុងប្រព័ន្ធ U-PAY ឡើយ។",
+              "error",
+            );
+          }
+        }
+      }
+
+      function openChat(accountNumber, name, avatarUrl = "") {
+        currentChatAcc = accountNumber;
+        lastMsgCount = -1;
+        supportMode = "bot";
+        currentAgentName = null;
+        botGreetingShown = false;
+
+        document.getElementById("cvName").innerText = name;
+
+        if (accountNumber === "ADMIN") {
+          updateHeaderUI();
+        } else {
+          let avatarHtml = avatarUrl
+            ? `<img src="${avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+            : `<i class="fa-solid fa-user"></i>`;
+          document.getElementById("cvAvatar").innerHTML = avatarHtml;
+          document.getElementById("cvAvatar").style.background = avatarUrl
+            ? "transparent"
+            : "#e0f2f1";
+          document.getElementById("cvAvatar").style.color = "#004d40";
+          document.getElementById("cvStatus").innerText = "Online";
+        }
+
+        document.getElementById("convoBody").innerHTML =
+          '<div class="system-notice"><i class="fa-solid fa-lock"></i> ការសន្ទនាត្រូវបានរក្សាសុវត្ថិភាព</div>';
+        document.getElementById("msgInput").disabled = false;
+        document.getElementById("msgInput").placeholder = "វាយសាររបស់អ្នក...";
+
+        fetchMessages();
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(fetchMessages, 2000);
+
+        document.getElementById("convoView").classList.add("active");
+      }
+
+      function closeChat() {
+        document.getElementById("convoView").classList.remove("active");
+        currentChatAcc = null;
+        if (pollInterval) clearInterval(pollInterval);
+        fetchContacts();
+      }
+
+      // 🔥 បន្ថែម Parameter 'senderAcc' និង Function Long Press (oncontextmenu)
+      function appendMsg(id, text, type, time, senderAcc) {
+        const body = document.getElementById("convoBody");
+        const wrap = document.createElement("div");
+        wrap.className = `msg-wrap ${type}`;
+
+        // ដាក់លក្ខខណ្ឌ Long press
+        const onContextAttr =
+          currentChatAcc === "ADMIN"
+            ? ""
+            : `oncontextmenu="event.preventDefault(); promptDeleteMsg('${id}', '${senderAcc}'); return false;"`;
+
+        wrap.innerHTML = `<div class="msg msg-${type}" ${onContextAttr}>${text}</div><div class="msg-time">${time}</div>`;
+        body.appendChild(wrap);
+        body.scrollTop = body.scrollHeight;
+      }
+
+      function updateHeaderUI() {
+        if (currentChatAcc !== "ADMIN") return;
+        const nameEl = document.getElementById("cvName");
+        const statusEl = document.getElementById("cvStatus");
+        const avatarEl = document.getElementById("cvAvatar");
+
+        if (
+          supportMode === "agent" &&
+          currentAgentName &&
+          currentAgentName !== "Pending..."
+        ) {
+          nameEl.innerText = currentAgentName;
+          statusEl.innerText = "Customer Service Agent";
+          avatarEl.innerHTML = '<i class="fa-solid fa-headset"></i>';
+          avatarEl.style.background = "#f59e0b";
+        } else {
+          nameEl.innerText = "U-PAY Assistant";
+          statusEl.innerText = "Smart Bot";
+          avatarEl.innerHTML = '<i class="fa-solid fa-robot"></i>';
+          avatarEl.style.background = "#1e293b";
+        }
+      }
+
+      async function fetchMessages() {
+        if (!currentChatAcc) return;
+        const res = await fetch("/api/chat/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user1Acc: user.accountNumber,
+            user2Acc: currentChatAcc,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success && data.history.length !== lastMsgCount) {
+          const body = document.getElementById("convoBody");
+          body.innerHTML =
+            '<div class="system-notice"><i class="fa-solid fa-lock"></i> ការសន្ទនាត្រូវបានរក្សាសុវត្ថិភាព</div>';
+
+          let tempMode = "bot";
+          let tempAgentName = null;
+          let agentJoinedRendered = false;
+
+          data.history.forEach((m) => {
+            const type =
+              m.senderAcc === user.accountNumber ||
+              m.senderAcc === user.accountNumberKHR
+                ? "sent"
+                : "received";
+            let displayTime = m.time.split(",")[1] || m.time;
+            let showBotDividerAfterMsg = false;
+
+            if (currentChatAcc === "ADMIN") {
+              if (type === "received") {
+                if (
+                  m.adminName === "U-PAY Smart Bot" ||
+                  m.adminName === "UPAY_BOT"
+                ) {
+                  tempMode = "bot";
+                  tempAgentName = null;
+                } else if (m.message.includes("ការសន្ទនាត្រូវបានបញ្ចប់")) {
+                  tempMode = "bot";
+                  tempAgentName = null;
+                  agentJoinedRendered = false;
+                  showBotDividerAfterMsg = true;
+                } else {
+                  tempMode = "agent";
+                  tempAgentName = m.adminName || "Admin";
+                  if (!agentJoinedRendered) {
+                    body.innerHTML += `
+                      <div class="agent-joined-divider" style="display: flex; align-items: center; justify-content: center; margin: 25px 0 15px;">
+                          <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
+                          <div style="text-align: center; padding: 0 15px;">
+                              <div style="width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                                  <i class="fa-solid fa-headset" style="color: #f59e0b; font-size: 1.3rem;"></i>
+                              </div>
+                              <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">CS ${tempAgentName}</div>
+                              <div style="font-size: 0.75rem; color: #64748b;">Customer Service Agent</div>
+                          </div>
+                          <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
+                      </div>`;
+                    agentJoinedRendered = true;
+                  }
+                  displayTime += ` • ឆ្លើយដោយ៖ ${tempAgentName}`;
+                }
+              } else if (type === "sent") {
+                if (
+                  m.message
+                    .toLowerCase()
+                    .match(/human|ភ្នាក់ងារ|មនុស្ស|ជួយ|help|admin/)
+                ) {
+                  tempMode = "agent";
+                  tempAgentName = "Pending...";
+                }
+              }
+            }
+
+            appendMsg(m.id, m.message, type, displayTime, m.senderAcc);
+
+            if (showBotDividerAfterMsg) {
+              body.innerHTML += `
+                  <div class="agent-joined-divider" style="display: flex; align-items: center; justify-content: center; margin: 25px 0 15px;">
+                      <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
+                      <div style="text-align: center; padding: 0 15px;">
+                          <div style="width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                              <i class="fa-solid fa-robot" style="color: #0ea5e9; font-size: 1.3rem;"></i>
+                          </div>
+                          <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">CS U-PAY Smart Bot</div>
+                          <div style="font-size: 0.75rem; color: #64748b;">Automated Assistant</div>
+                      </div>
+                      <div style="flex: 1; height: 1px; background: #e2e8f0;"></div>
+                  </div>`;
+            }
+          });
+
+          if (currentChatAcc === "ADMIN") {
+            supportMode = tempMode;
+            currentAgentName = tempAgentName;
+            updateHeaderUI();
+
+            if (supportMode === "bot") {
+              let shouldShowGreeting = false;
+              const lastMsg = data.history[data.history.length - 1];
+
+              if (data.history.length === 0) {
+                shouldShowGreeting = true;
+              } else if (lastMsg) {
+                const oneHour = 60 * 60 * 1000;
+                if (
+                  Date.now() - lastMsg.timestamp > oneHour ||
+                  lastMsg.message.includes("ការសន្ទនាត្រូវបានបញ្ចប់")
+                ) {
+                  shouldShowGreeting = true;
+                }
+              }
+
+              if (shouldShowGreeting && !botGreetingShown) {
+                const tempId = "temp-greeting";
+                if (!document.getElementById(tempId)) {
+                  const wrap = document.createElement("div");
+                  wrap.className = `msg-wrap received`;
+                  wrap.id = tempId;
+                  wrap.innerHTML = `<div class="msg msg-received" style="background:#e0f2fe; border: 1px solid #bae6fd;">សួស្តី! ខ្ញុំគឺ <b>U-PAY Smart Bot</b> 🤖។<br>តើមានអ្វីឱ្យខ្ញុំជួយអ្នកថ្ងៃនេះ?<br><br>👉 បើចង់ជួបភ្នាក់ងារផ្ទាល់ សូមវាយពាក្យថា <b>"Human"</b> ឬ <b>"ភ្នាក់ងារ"</b>។</div><div class="msg-time">Now</div>`;
+                  body.appendChild(wrap);
+                }
+                botGreetingShown = true;
+              }
+            }
+          }
+
+          lastMsgCount = data.history.length;
+          scrollToBottom();
+        }
+      }
+
+      function scrollToBottom() {
+        const body = document.getElementById("convoBody");
+        body.scrollTop = body.scrollHeight;
+      }
+
+      async function sendMessage() {
+        const input = document.getElementById("msgInput");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+
+        const tempG = document.getElementById("temp-greeting");
+        if (tempG) tempG.remove();
+        botGreetingShown = true;
+
+        const fakeId = "MSG-" + Date.now();
+        appendMsg(fakeId, text, "sent", "Sending...", user.accountNumber);
+
+        await fetch("/api/chat/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            senderAcc: user.accountNumber,
+            receiverAcc: currentChatAcc,
+            message: text,
+          }),
+        });
+
+        if (currentChatAcc === "ADMIN" && supportMode === "bot") {
+          const body = document.getElementById("convoBody");
+          const typingId = "typing-" + Date.now();
+          body.innerHTML += `<div class="msg-wrap received" id="${typingId}"><div class="msg msg-received typing"><span></span><span></span><span></span></div></div>`;
+          body.scrollTop = body.scrollHeight;
+
+          setTimeout(async () => {
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+
+            let reply = "";
+            let lowerText = text.toLowerCase();
+
+            if (lowerText.match(/human|ភ្នាក់ងារ|មនុស្ស|ជួយ|help|admin/)) {
+              supportMode = "agent";
+              updateHeaderUI();
+              reply =
+                "កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ Customer Service... 👨‍💻 សូមមេតា្តរង់ចាំ។";
+            } else if (lowerText.match(/សួស្តី|hello|hi|សួរស្ដី/)) {
+              reply =
+                "សួស្តី! ខ្ញុំគឺ U-PAY Smart Bot 🤖។ តើថ្ងៃនេះលោកអ្នកមានអ្វីឱ្យខ្ញុំជួយ? (ឧ. សួរពី 'កាត', 'វេរលុយ', 'សន្សំ'...)";
+            } else if (lowerText.match(/កាត|card/)) {
+              reply =
+                "សម្រាប់ U-PAY ផ្តល់ជូនកាត Virtual ឥតគិតថ្លៃសម្រាប់ការទិញទំនិញអនឡាញ។ បងអាចចូលទៅកាន់ 'Cards' នៅទំព័រដើមដើម្បីបង្កើតបាន។ 💳";
+            } else if (lowerText.match(/វេរលុយ|transfer|ផ្ទេរប្រាក់/)) {
+              reply =
+                "ការផ្ទេរប្រាក់ក្នុង U-PAY គឺឥតគិតថ្លៃសេវា។ បងអាចចុចប៊ូតុង 'Transfer' ពណ៌បៃតងនៅទំព័រដើម។ 💸";
+            } else if (lowerText.match(/សន្សំ|deposit|fixed deposit/)) {
+              reply =
+                "U-PAY មានគណនីសន្សំមានកាលកំណត់ (Fixed Deposit) ដែលផ្តល់អត្រាការប្រាក់រហូតដល់ 6.5% ក្នុងមួយឆ្នាំ។ 💰";
+            } else if (lowerText.match(/ថ្លៃសេវា|fee/)) {
+              reply =
+                "រាល់ការវេរប្រាក់ ការស្កេន KHQR និងការបង់វិក្កយបត្រ គឺមិនមានគិតថ្លៃសេវាឡើយ! 🎉";
+            } else if (lowerText.match(/លុយ|balance/)) {
+              let khrBal = user.balanceKHR !== undefined ? user.balanceKHR : 0;
+              reply = `គណនី USD របស់អ្នកមាន៖ <b>$${user.balance.toFixed(2)}</b><br>គណនី KHR របស់អ្នកមាន៖ <b>${khrBal.toLocaleString("en-US")} ៛</b>`;
+            } else {
+              reply =
+                "សុំទោស ខ្ញុំកំពុងរៀនសូត្រនៅឡើយ 🤖។ បើបងចង់សួរលម្អិត សូមវាយពាក្យ <b>'Human'</b> ឬ <b>'ភ្នាក់ងារ'</b>។";
+            }
+
+            await fetch("/api/chat/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                senderAcc: "ADMIN",
+                receiverAcc: user.accountNumber,
+                message: reply,
+                adminName: "UPAY_BOT",
+              }),
+            });
+            fetchMessages();
+          }, 1000);
+        } else {
+          fetchMessages();
+        }
+      }
+
+      fetchContacts();
+      setInterval(fetchContacts, 3000);
+    </script>
+  </body>
+</html>

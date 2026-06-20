@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - U-Pay</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      /* 🔥 PREMIUM FONT SETUP */
+      :root {
+        --font-main: "Inter", "Kantumruy Pro", sans-serif;
+        --max-width: 450px;
+        --primary-color: #004d40;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-main);
+        background: #eef2f6;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+      .app-container {
+        width: 100%;
+        max-width: var(--max-width);
+        background: #f3f4f6;
+        min-height: 100vh;
+        position: relative;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 90px;
+      }
+      input,
+      button,
+      select,
+      textarea {
+        font-family: var(--font-main) !important;
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background: #000;
+      }
+      body.dark-mode .app-container {
+        background: #121212;
+        color: #e0e0e0;
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
+      }
+
+      /* HEADER */
+      .header {
+        background: linear-gradient(135deg, #004d40, #00695c);
+        color: white;
+        padding: 40px 20px 90px 20px;
+        border-radius: 0 0 35px 35px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 77, 64, 0.3);
+      }
+      .header h2 {
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      /* PROFILE CARD */
+      .profile-section {
+        margin-top: -65px;
+        padding: 0 20px;
+      }
+      .profile-card {
+        background: white;
+        border-radius: 24px;
+        padding: 30px 20px 20px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        position: relative;
+        transition: 0.3s;
+      }
+      body.dark-mode .profile-card {
+        background: #1e1e1e;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .profile-img-container {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        margin: 0 auto 15px auto;
+        cursor: pointer;
+      }
+      .profile-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid white;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        transition: 0.2s;
+      }
+      .profile-img-container:active .profile-img {
+        transform: scale(0.95);
+        opacity: 0.8;
+      }
+      body.dark-mode .profile-img {
+        border-color: #2d2d2d;
+      }
+
+      .edit-icon {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background: #004d40;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        border: 3px solid white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+      body.dark-mode .edit-icon {
+        border-color: #1e1e1e;
+        background: #10b981;
+      }
+      #fileUploadInput,
+      #kycUploadInput {
+        display: none;
+      }
+
+      .profile-info-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 16px;
+        transition: 0.2s;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .profile-info-box:active {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+      }
+      body.dark-mode .profile-info-box:active {
+        background: #2a2a2a;
+        border-color: #333;
+      }
+      .profile-info-box .fa-pen {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #cbd5e1;
+        font-size: 1.1rem;
+      }
+      .user-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: -0.5px;
+      }
+      body.dark-mode .user-name {
+        color: white;
+      }
+      .user-phone {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-top: 5px;
+        font-weight: 500;
+      }
+
+      /* SETTINGS LIST */
+      .settings-group {
+        margin: 25px 20px;
+      }
+      .group-title {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 12px;
+        margin-left: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      body.dark-mode .group-title {
+        color: #94a3b8;
+      }
+      .setting-wrapper {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+      }
+      body.dark-mode .setting-wrapper {
+        background: #1e1e1e;
+      }
+      .setting-item {
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      body.dark-mode .setting-item {
+        border-color: #333;
+      }
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+      .setting-item:active {
+        background: #f8fafc;
+        transform: scale(0.98);
+      }
+      body.dark-mode .setting-item:active {
+        background: #2a2a2a;
+      }
+      .setting-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #334155;
+      }
+      body.dark-mode .setting-left {
+        color: #e2e8f0;
+      }
+      .setting-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #e0f2f1;
+        color: #004d40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+      }
+      body.dark-mode .setting-icon {
+        background: #2d2d2d;
+        color: #10b981;
+      }
+
+      /* LOGOUT */
+      .logout-btn {
+        margin: 10px 20px 30px;
+        background: white;
+        color: #ef4444;
+        text-align: center;
+        padding: 16px;
+        border-radius: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 10px rgba(239, 68, 68, 0.1);
+        border: 1px solid transparent;
+      }
+      .logout-btn:active {
+        transform: scale(0.97);
+      }
+      body.dark-mode .logout-btn {
+        background: #2a1515;
+        color: #ff6b6b;
+        border-color: #451a1a;
+        box-shadow: none;
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: var(--max-width);
+        background: white;
+        padding: 12px 0 20px 0;
+        display: flex;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
+        border-radius: 25px 25px 0 0;
+      }
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 6px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
+      }
+      body.dark-mode .nav-item.active {
+        color: #10b981;
+      }
+
+      /* SWITCH */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      input:checked + .slider {
+        background-color: #004d40;
+      }
+      body.dark-mode input:checked + .slider {
+        background-color: #10b981;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
+      /* 🔥 PREMIUM SWEETALERT MODAL UI */
+      .premium-swal {
+        border-radius: 24px !important;
+        padding: 20px !important;
+      }
+      .premium-swal-title {
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+        margin-bottom: 20px !important;
+      }
+      .swal-form-group {
+        text-align: left;
+        margin-bottom: 16px;
+      }
+      .swal-form-label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .swal-custom-input,
+      .swal-custom-select,
+      .swal-custom-textarea {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-family: var(--font-main);
+        font-size: 0.95rem;
+        color: #1e293b;
+        outline: none;
+        box-sizing: border-box;
+        transition: 0.2s;
+        background: #f8fafc;
+      }
+      .swal-custom-input:focus,
+      .swal-custom-select:focus,
+      .swal-custom-textarea:focus {
+        border-color: #004d40;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+      }
+      .swal-custom-textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+      .premium-btn-confirm {
+        background: #004d40 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 12px 28px !important;
+        font-weight: 600 !important;
+        font-family: var(--font-main) !important;
+        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
+        margin: 5px !important;
+      }
+      .premium-btn-cancel {
+        background: white !important;
+        color: #64748b !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        padding: 12px 28px !important;
+        font-weight: 600 !important;
+        font-family: var(--font-main) !important;
+        margin: 5px !important;
+      }
+
+      body.dark-mode .premium-swal {
+        background: #1e1e1e !important;
+      }
+      body.dark-mode .premium-swal-title {
+        color: white !important;
+      }
+      body.dark-mode .swal-custom-input,
+      body.dark-mode .swal-custom-select,
+      body.dark-mode .swal-custom-textarea {
+        background: #121212;
+        border-color: #333;
+        color: white;
+      }
+      body.dark-mode .swal-form-label {
+        color: #94a3b8;
+      }
+      body.dark-mode .premium-btn-cancel {
+        background: #2a2a2a !important;
+        border-color: #444 !important;
+        color: #cbd5e1 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header">
+        <h2 data-lang="title">Settings</h2>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-card">
+          <div
+            class="profile-img-container"
+            onclick="document.getElementById('fileUploadInput').click()"
+          >
+            <img id="u-img" src="images/logo.png" class="profile-img" />
+            <div class="edit-icon"><i class="fa-solid fa-camera"></i></div>
+          </div>
+          <input
+            type="file"
+            id="fileUploadInput"
+            accept="image/png, image/jpeg, image/jpg"
+            onchange="uploadImage(event)"
+          />
+          <div class="profile-info-box" onclick="editProfile()">
+            <h3 id="u-name" class="user-name">Loading...</h3>
+            <p id="u-phone" class="user-phone">Loading...</p>
+            <i class="fa-solid fa-pen"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="group-title" data-lang="sec_general">General</div>
+        <div class="setting-wrapper">
+          <div class="setting-item">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #0ea5e9; background: #e0f2fe"
+              >
+                <i class="fa-solid fa-moon"></i>
+              </div>
+              <span data-lang="dark_mode">Dark Mode</span>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                id="darkModeToggle"
+                onchange="toggleDarkMode()"
+              />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-item" onclick="toggleLang()">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #8b5cf6; background: #ede9fe"
+              >
+                <i class="fa-solid fa-language"></i>
+              </div>
+              <span data-lang="language">Language</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span
+                id="currentLang"
+                style="font-size: 0.9rem; color: #64748b; font-weight: 600"
+                >EN</span
+              >
+              <i
+                class="fa-solid fa-rotate"
+                style="color: #cbd5e1; font-size: 0.9rem"
+                id="langIcon"
+              ></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="group-title" data-lang="sec_security">Security</div>
+        <div class="setting-wrapper">
+          <div class="setting-item" onclick="changePassword()">
+            <div class="setting-left">
+              <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
+              <span data-lang="change_pass">Change Password</span>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+          <div class="setting-item" onclick="changePin()">
+            <div class="setting-left">
+              <div class="setting-icon"><i class="fa-solid fa-key"></i></div>
+              <span data-lang="change_pin">Change PIN</span>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+          <a
+            href="telegram.html"
+            class="setting-item"
+            style="text-decoration: none; color: inherit"
+          >
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="background: #e3f2fd; color: #2aabee"
+              >
+                <i class="fa-brands fa-telegram"></i>
+              </div>
+              <div style="display: flex; flex-direction: column">
+                <span data-lang="link_telegram" style="margin-bottom: 3px"
+                  >Telegram Alert</span
+                >
+                <span
+                  id="teleStatus"
+                  style="font-size: 0.75rem; color: #888; font-weight: 400"
+                  >Checking...</span
+                >
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </a>
+          <div class="setting-item">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #f59e0b; background: #fef3c7"
+              >
+                <i class="fa-solid fa-fingerprint"></i>
+              </div>
+              <span data-lang="biometric">Biometric Login</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="bioToggle" onchange="toggleBio()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="group-title" data-lang="sec_limits">Limits</div>
+        <div class="setting-wrapper">
+          <div class="setting-item" onclick="changeLimit()">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #ef4444; background: #fee2e2"
+              >
+                <i class="fa-solid fa-chart-pie"></i>
+              </div>
+              <span data-lang="trx_limit">Transaction Limit</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span
+                id="userLimitDisplay"
+                style="font-size: 0.9rem; color: #64748b; font-weight: 700"
+                >$1,000</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="group-title" data-lang="sec_support">
+          Support & Verification
+        </div>
+        <div class="setting-wrapper">
+          <div class="setting-item" onclick="triggerKycUpload()">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #6366f1; background: #e0e7ff"
+              >
+                <i class="fa-solid fa-id-card"></i>
+              </div>
+              <div style="display: flex; flex-direction: column">
+                <span data-lang="kyc_verify" style="margin-bottom: 3px"
+                  >Identity Verification</span
+                >
+                <span
+                  id="kycStatusText"
+                  style="
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                  "
+                  >Unverified</span
+                >
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+          <input
+            type="file"
+            id="kycUploadInput"
+            accept="image/*"
+            onchange="uploadKyc(event)"
+          />
+          <div class="setting-item" onclick="openTicketModal()">
+            <div class="setting-left">
+              <div
+                class="setting-icon"
+                style="color: #d946ef; background: #fae8ff"
+              >
+                <i class="fa-solid fa-headset"></i>
+              </div>
+              <span data-lang="support_ticket">Support Tickets</span>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="logout-btn" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span data-lang="logout">Log Out</span>
+      </div>
+
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i> Home</a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i> Scan</a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i> History</a
+        >
+        <div class="nav-item active">
+          <i class="fa-solid fa-gear"></i> Settings
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      // --- INITIAL LOAD ---
+      document.getElementById("u-name").innerText =
+        user.fullName || user.username;
+      document.getElementById("u-phone").innerText =
+        user.phone || "No Phone Number";
+      document.getElementById("u-img").src =
+        user.profileImage || "images/logo.png";
+      document.getElementById("userLimitDisplay").innerText =
+        "$" + (user.trxLimit || 1000).toLocaleString();
+
+      const teleStatus = document.getElementById("teleStatus");
+      teleStatus.innerHTML = user.telegramChatId
+        ? '<span style="color: #10b981; font-weight: bold;">Linked</span>'
+        : '<span style="color: #ef4444;">Not Linked</span>';
+
+      const kycEl = document.getElementById("kycStatusText");
+      function updateKycUI() {
+        if (user.kycStatus === "approved") {
+          kycEl.innerText = "Verified";
+          kycEl.style.color = "#10b981";
+        } else if (user.kycStatus === "pending") {
+          kycEl.innerText = "Pending";
+          kycEl.style.color = "#f59e0b";
+        } else {
+          kycEl.innerText = "Unverified";
+          kycEl.style.color = "#ef4444";
+        }
+      }
+      updateKycUI();
+
+      // --- LANGUAGE SETUP ---
+      const translations = {
+        en: {
+          title: "Settings",
+          sec_general: "General",
+          dark_mode: "Dark Mode",
+          language: "Language",
+          sec_security: "Security",
+          change_pass: "Change Password",
+          change_pin: "Change PIN",
+          link_telegram: "Telegram Alert",
+          biometric: "Biometric Login",
+          sec_limits: "Limits",
+          trx_limit: "Transaction Limit",
+          sec_support: "Support & Verification",
+          kyc_verify: "Identity Verification (KYC)",
+          support_ticket: "Support Tickets",
+          logout: "Log Out",
+        },
+        kh: {
+          title: "ការកំណត់",
+          sec_general: "ទូទៅ",
+          dark_mode: "ម៉ូដងងឹត",
+          language: "ភាសា",
+          sec_security: "សុវត្ថិភាព",
+          change_pass: "ប្ដូរពាក្យសម្ងាត់",
+          change_pin: "ប្ដូរលេខ PIN",
+          link_telegram: "ភ្ជាប់ Telegram",
+          biometric: "ស្កេនម្រាមដៃ",
+          sec_limits: "ដែនកំណត់",
+          trx_limit: "ដែនកំណត់ការវេរ",
+          sec_support: "ជំនួយ និងផ្ទៀងផ្ទាត់",
+          kyc_verify: "ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC)",
+          support_ticket: "សេវាកម្មអតិថិជន",
+          logout: "ចាកចេញ",
+        },
+      };
+      let currentLang = localStorage.getItem("lang") || "en";
+      function applyLang(lang) {
+        document.getElementById("currentLang").innerText =
+          lang === "en" ? "English" : "ភាសាខ្មែរ";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[lang][key]) el.innerText = translations[lang][key];
+        });
+        document.body.style.fontFamily =
+          lang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+      }
+      applyLang(currentLang);
+      function toggleLang() {
+        currentLang = currentLang === "en" ? "kh" : "en";
+        localStorage.setItem("lang", currentLang);
+        applyLang(currentLang);
+        updateKycUI();
+      }
+
+      // --- THEME & BIO ---
+      if (localStorage.getItem("darkMode") === "true")
+        (document.body.classList.add("dark-mode"),
+          (document.getElementById("darkModeToggle").checked = true));
+      function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        localStorage.setItem(
+          "darkMode",
+          document.body.classList.contains("dark-mode"),
+        );
+      }
+      if (localStorage.getItem("useBiometric") === "true")
+        document.getElementById("bioToggle").checked = true;
+      function toggleBio() {
+        localStorage.setItem(
+          "useBiometric",
+          document.getElementById("bioToggle").checked,
+        );
+      }
+
+      // --- MODAL UTILS ---
+      const swalConfig = {
+        buttonsStyling: false,
+        customClass: {
+          popup: "premium-swal",
+          title: "premium-swal-title",
+          confirmButton: "premium-btn-confirm",
+          cancelButton: "premium-btn-cancel",
+        },
+        showCancelButton: true,
+      };
+
+      // --- CORE FUNCTIONS ---
+      async function editProfile() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: currentLang === "en" ? "Edit Profile" : "កែប្រែព័ត៌មាន",
+          html: `<div class="swal-form-group"><label class="swal-form-label">Full Name</label><input id="sw-n" class="swal-custom-input" value="${user.fullName || ""}"></div>
+                 <div class="swal-form-group"><label class="swal-form-label">Phone</label><input id="sw-p" class="swal-custom-input" value="${user.phone || ""}"></div>`,
+          preConfirm: () => [
+            document.getElementById("sw-n").value,
+            document.getElementById("sw-p").value,
+          ],
+        });
+        if (v) {
+          const res = await fetch("/api/user/update-profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: user.id, fullName: v[0], phone: v[1] }),
+          });
+          const d = await res.json();
+          if (d.success) {
+            user.fullName = v[0];
+            user.phone = v[1];
+            sessionStorage.setItem("user", JSON.stringify(user));
+            location.reload();
+          }
+        }
+      }
+
+      async function changePassword() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: "Password",
+          html: `<div class="swal-form-group"><label class="swal-form-label">Current</label><input id="o-p" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New</label><input id="n-p" type="password" class="swal-custom-input"></div>`,
+          preConfirm: () => [
+            document.getElementById("o-p").value,
+            document.getElementById("n-p").value,
+          ],
+        });
+        if (v) {
+          const res = await fetch("/api/user/change-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: user.id,
+              oldPassword: v[0],
+              newPassword: v[1],
+            }),
+          });
+          const d = await res.json();
+          if (d.success)
+            Swal.fire("Success", "Relogin required", "success").then(logout);
+          else Swal.fire("Error", d.message, "error");
+        }
+      }
+
+      async function changePin() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: "PIN",
+          html: `<div class="swal-form-group"><label class="swal-form-label">Verify Pass</label><input id="p-v" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New PIN</label><input id="n-i" type="password" maxlength="4" class="swal-custom-input" style="text-align:center;letter-spacing:8px;font-size:1.5rem"></div>`,
+          preConfirm: () => [
+            document.getElementById("p-v").value,
+            document.getElementById("n-i").value,
+          ],
+        });
+        if (v) {
+          const res = await fetch("/api/user/change-pin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: user.id, password: v[0], newPin: v[1] }),
+          });
+          const d = await res.json();
+          if (d.success) {
+            user.pin = v[1];
+            sessionStorage.setItem("user", JSON.stringify(user));
+            Swal.fire("Success", "PIN Updated", "success");
+          } else Swal.fire("Error", d.message, "error");
+        }
+      }
+
+      async function changeLimit() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: "Limit",
+          html: `<div class="swal-form-group"><label class="swal-form-label">Verify Pass</label><input id="l-v" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New Limit ($)</label><input id="n-l" type="number" class="swal-custom-input"></div>`,
+          preConfirm: () => [
+            document.getElementById("l-v").value,
+            document.getElementById("n-l").value,
+          ],
+        });
+        if (v) {
+          const res = await fetch("/api/change-limit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: user.username,
+              password: v[0],
+              newLimit: v[1],
+            }),
+          });
+          const d = await res.json();
+          if (d.success) {
+            user.trxLimit = parseFloat(v[1]);
+            sessionStorage.setItem("user", JSON.stringify(user));
+            location.reload();
+          } else Swal.fire("Error", d.message, "error");
+        }
+      }
+
+      async function openTicketModal() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: "Support Ticket",
+          html: `<div class="swal-form-group"><label class="swal-form-label">Subject</label><input id="t-s" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">Priority</label><select id="t-p" class="swal-custom-select"><option value="Normal">Normal</option><option value="High">High</option></select></div><div class="swal-form-group"><label class="swal-form-label">Message</label><textarea id="t-d" class="swal-custom-textarea"></textarea></div>`,
+          preConfirm: () => ({
+            subject: document.getElementById("t-s").value,
+            priority: document.getElementById("t-p").value,
+            description: document.getElementById("t-d").value,
+          }),
+        });
+        if (v && v.subject && v.description) {
+          const res = await fetch("/api/ticket/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user.username, ...v }),
+          });
+          const d = await res.json();
+          if (d.success)
+            Swal.fire("Sent", "We will review your issue", "success");
+        }
+      }
+
+      function triggerKycUpload() {
+        if (user.kycStatus === "approved" || user.kycStatus === "pending")
+          return Swal.fire("Status", user.kycStatus, "info");
+        document.getElementById("kycUploadInput").click();
+      }
+      async function uploadKyc(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("kycDoc", file);
+        formData.append("username", user.username);
+        const res = await fetch("/api/user/submit-kyc", {
+          method: "POST",
+          body: formData,
+        });
+        const d = await res.json();
+        if (d.success) {
+          user.kycStatus = "pending";
+          sessionStorage.setItem("user", JSON.stringify(user));
+          updateKycUI();
+          Swal.fire("Success", d.message, "success");
+        }
+      }
+
+      async function uploadImage(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // ១. ការពាររូបធំពេក (ឧ. លើសពី 3MB)
+        if (file.size > 3 * 1024 * 1024) {
+          Swal.fire(
+            "បរាជ័យ",
+            "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបតូចជាង 3MB",
+            "error",
+          );
+          e.target.value = ""; // Clear input
+          return;
+        }
+
+        Swal.fire({
+          title: "កំពុងបញ្ជូនរូបភាព...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const formData = new FormData();
+        formData.append("profileImg", file);
+        formData.append("id", user.id || user.username); // ការពារក្រែងលោបាត់ id ប្រើ username ជំនួស
+
+        try {
+          const res = await fetch("/api/user/upload-image", {
+            method: "POST",
+            body: formData,
+          });
+          const d = await res.json();
+
+          if (d.success) {
+            user.profileImage = d.imageUrl;
+            document.getElementById("u-img").src = d.imageUrl;
+
+            // ២. ប្រើ Try...Catch ការពារ Error ពេល Session Storage ពេញដោយសារ Base64 វែងពេក
+            try {
+              sessionStorage.setItem("user", JSON.stringify(user));
+            } catch (err) {
+              console.log(
+                "Session Storage ពេញ តែមិនអីទេ ព្រោះរូបត្រូវបាន Save ចូល Database ជោគជ័យហើយ!",
+              );
+            }
+
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ",
+              text: "ផ្លាស់ប្តូររូបភាពរួចរាល់!",
+              timer: 1500,
+            });
+          } else {
+            Swal.fire("បរាជ័យ", d.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
+
+        // ៣. សំខាន់បំផុត៖ Clear ទិន្នន័យក្នុង Input ចោល ដើម្បីអោយការចុចដូររូបលើកក្រោយដំណើរការ
+        e.target.value = "";
+      }
+
+      function logout() {
+        sessionStorage.removeItem("user");
+        window.location.href = "index.html";
+      }
+    </script>
+  </body>
+</html>
