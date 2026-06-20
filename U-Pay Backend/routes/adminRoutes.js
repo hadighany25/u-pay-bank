@@ -94,6 +94,11 @@ router.post(
   adminController.editUser,
 );
 router.post(
+  "/toggle-card-lock",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.toggleAdminCardLock,
+);
+router.post(
   "/kyc-action",
   checkRole([ROLE_SUPER, ROLE_SUPPORT]),
   adminController.kycAction,

@@ -2562,6 +2562,7 @@
           Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
+
       async function toggleCardLock(username, cardId, isCurrentlyLocked) {
         const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
         const confirm = await Swal.fire({
@@ -2569,8 +2570,10 @@
           icon: "warning",
           showCancelButton: true,
         });
+
         if (confirm.isConfirmed) {
-          const res = await fetch("/api/card/toggle-lock", {
+          // 🔥 ប្តូរពី /api/card/.. មក /api/admin/.. ដើម្បីប្រើអំណាច Admin
+          const res = await fetch("/api/admin/toggle-card-lock", {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -2586,10 +2589,13 @@
               `Card has been ${isCurrentlyLocked ? "unblocked" : "frozen"}.`,
               "success",
             );
-            loadData();
+            loadData(); // ហៅទិន្នន័យមក Update តារាង
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
           }
         }
       }
+
       async function kycAction(username, action) {
         const actionText = action === "approved" ? "Approve" : "Reject";
         const confirm = await Swal.fire({

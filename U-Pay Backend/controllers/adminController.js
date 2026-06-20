@@ -556,6 +556,49 @@ const refundTransaction = async (req, res) => {
   }
 };
 
+// ========================================================
+// 🔥 មុខងារ Admin បិទ/បើកកាត (មានអំណាចលើសអតិថិជន)
+// ========================================================
+const toggleAdminCardLock = async (req, res) => {
+  // ១. ឆែកសិទ្ធិ: ប្រើសិទ្ធិ freezeUser ឬ editUser ក៏បាន
+  const access = await checkAdminAccess(req.admin, "freezeUser");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
+  const { username, cardId, isLocked } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user || !user.virtualCards)
+      return res.json({ success: false, message: "រកមិនឃើញគណនី ឬកាតទេ!" });
+
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card)
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+
+    // ២. អនុវត្តការបិទ/បើក និងដាក់សញ្ញាសម្គាល់ថា "Admin ជាអ្នកបិទ"
+    card.isLocked = isLocked;
+    card.lockedByAdmin = isLocked; // 👈 នេះជាសោរសម្ងាត់! បើ Admin បិទ User មិនអាចបើកវិញបានទេ
+
+    user.markModified("virtualCards");
+    await user.save();
+
+    // ៣. កត់ត្រាចូល Audit Log ដោយស្ងាត់ៗ
+    await logAdminAction(
+      req.admin.username,
+      "Toggle Card",
+      user.username,
+      `Card ${card.number.slice(-4)} set to ${isLocked ? "FROZEN" : "ACTIVE"}`,
+    );
+
+    res.json({
+      success: true,
+      message: `កាតត្រូវបាន ${isLocked ? "បង្កក" : "បើកដំណើរការវិញ"} ជោគជ័យ!`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 const kycAction = async (req, res) => {
   const { username, action } = req.body;
   try {
@@ -628,12 +671,10 @@ const broadcast = async (req, res) => {
     if (req.admin.role !== "super_admin") {
       const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
       if (!adminAcc || !adminAcc.permissions?.menus?.broadcast)
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "សុំទោស! អ្នកគ្មានសិទ្ធិបញ្ជូនសារ Broadcast ទេ 🛑",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិបញ្ជូនសារ Broadcast ទេ 🛑",
+        });
     }
     const { title, message, sender } = req.body;
     const sharedNotifId = "BC-" + Date.now();
@@ -675,12 +716,10 @@ const deleteBroadcast = async (req, res) => {
     if (req.admin.role !== "super_admin") {
       const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
       if (!adminAcc || !adminAcc.permissions?.menus?.broadcast)
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "សុំទោស! អ្នកគ្មានសិទ្ធិលុបសារ Broadcast ទេ 🛑",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិលុបសារ Broadcast ទេ 🛑",
+        });
     }
     const { notifId } = req.body;
     await User.updateMany(
@@ -960,6 +999,7 @@ module.exports = {
   adjustBalance,
   approveTransaction,
   refundTransaction,
+  toggleAdminCardLock,
   kycAction,
   ticketReply,
   getSystemStatus,

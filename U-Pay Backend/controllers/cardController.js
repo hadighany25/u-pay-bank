@@ -107,21 +107,49 @@ const generateCard = async (req, res) => {
 
 // ២. បិទ/បើកកាត (Freeze)
 const toggleLock = async (req, res) => {
-  const { username, cardId, isLocked } = req.body;
-  if (req.user.username !== username)
-    return res.status(403).json({ success: false });
+  const { cardId, isLocked } = req.body;
+
+  // ទាញយក username ពី Token របស់អតិថិជន
+  const username = req.user ? req.user.username : req.body.username;
 
   try {
+    const User = require("../models/User"); // ហៅ User Model មក (បើបងមាននៅខាងលើហើយ មិនបាច់ក៏បាន)
     const user = await User.findOne({ username });
+
+    if (!user || !user.virtualCards) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនី ឬកាតទេ!" });
+    }
+
     const card = user.virtualCards.find((c) => c.id === cardId);
-    if (card) {
-      card.isLocked = isLocked;
-      user.markModified("virtualCards");
-      await user.save();
-      res.json({ success: true, cards: user.virtualCards });
-    } else res.json({ success: false, message: "Card not found" });
+    if (!card) {
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    }
+
+    // =======================================================
+    // 🔥 កូដអំណាច Admin (ការពារកុំអោយអតិថិជនចុច Unfreeze បាន)
+    // =======================================================
+    if (isLocked === false && card.lockedByAdmin === true) {
+      return res.json({
+        success: false,
+        message:
+          "បម្រាម៖ កាតនេះត្រូវបានបង្កកដោយU PAY ។ សូមទាក់ទងផ្នែកបម្រើអតិថិជនដើម្បីបើកកាតវិញ! 🛑",
+      });
+    }
+
+    // បើកាតមិនជាប់សោរ Admin ទេ គឺអនុញ្ញាតអោយអតិថិជនបិទ/បើកកាតតាមធម្មតា
+    card.isLocked = isLocked;
+
+    // បើអតិថិជនចុចបិទកាតខ្លួនឯង យើងត្រូវប្រាកដថា lockedByAdmin = false
+    if (isLocked === true) {
+      card.lockedByAdmin = false;
+    }
+
+    user.markModified("virtualCards");
+    await user.save();
+
+    res.json({ success: true, isLocked: card.isLocked });
   } catch (err) {
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
