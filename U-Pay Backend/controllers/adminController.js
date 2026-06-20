@@ -5,10 +5,70 @@ const {
   writeFXRates,
 } = require("../services/systemService");
 
+const Admin = require("../models/Admin");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
 const mongoose = require("mongoose");
 const { getFormattedDate, generateHash } = require("../services/helpers");
+
+// ========================================================
+// 🧠 ខួរក្បាលត្រួតពិនិត្យសិទ្ធិ និង ម៉ោងធ្វើការ (ត្រូវដាក់លើគេបង្អស់)
+// ========================================================
+const checkAdminAccess = async (reqAdmin, actionKey) => {
+  // ១. បើជា Super Admin មិនបាច់ឆែកច្រើនទេ គឺអោយឆ្លងកាត់ភ្លាមៗ
+  if (reqAdmin.role === "super_admin") return { allowed: true };
+
+  // ២. ទាញយកទិន្នន័យជាក់ស្តែងពី Database
+  const adminAcc = await Admin.findById(reqAdmin.id || reqAdmin._id);
+  if (!adminAcc)
+    return { allowed: false, message: "គណនីបុគ្គលិកមិនត្រឹមត្រូវ!" };
+
+  // ៣. ឆែកមើលម៉ោងធ្វើការ (ប្រៀបធៀបជាមួយម៉ោងស្រុកខ្មែរ)
+  if (
+    adminAcc.permissions &&
+    adminAcc.permissions.workStart &&
+    adminAcc.permissions.workEnd
+  ) {
+    const now = new Date();
+    const khmerTimeStr = now.toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: false,
+    });
+    const timeMatch = khmerTimeStr.match(/(\d+):(\d+):/);
+    if (timeMatch) {
+      const currentHour = timeMatch[1].padStart(2, "0");
+      const currentMin = timeMatch[2].padStart(2, "0");
+      const currentTime = `${currentHour}:${currentMin}`;
+
+      if (
+        currentTime < adminAcc.permissions.workStart ||
+        currentTime > adminAcc.permissions.workEnd
+      ) {
+        return {
+          allowed: false,
+          message: `បម្រាម៖ អ្នកនៅក្រៅម៉ោងធ្វើការ! (ម៉ោងអនុញ្ញាតរបស់អ្នកគឺ ${adminAcc.permissions.workStart} ដល់ ${adminAcc.permissions.workEnd}) 🛑`,
+        };
+      }
+    }
+  }
+
+  // ៤. ឆែកមើលសិទ្ធិអនុវត្ត (Action Check)
+  if (actionKey && adminAcc.permissions && adminAcc.permissions.actions) {
+    if (adminAcc.permissions.actions[actionKey] !== true) {
+      return {
+        allowed: false,
+        message: "សុំទោស! អ្នកគ្មានសិទ្ធិធ្វើសកម្មភាពនេះទេ (Access Denied) 🛑",
+      };
+    }
+  }
+
+  return { allowed: true };
+};
+
+// ========================================================
+// មុខងារចាស់ៗរបស់ប្រព័ន្ធ (រក្សាទុកនៅដដែល ១០០%)
+// ========================================================
 
 const toggleSystem = async (req, res) => {
   try {
@@ -127,6 +187,11 @@ const getDashboardExtra = async (req, res) => {
 };
 
 const toggleFreeze = async (req, res) => {
+  // 🔥 ឆែកសិទ្ធិ: តើបុគ្គលិកនេះមានសិទ្ធិផ្អាកគណនីឬអត់?
+  const access = await checkAdminAccess(req.admin, "freezeUser");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
   const { id, isFrozen } = req.body;
   try {
     if (!id) return res.json({ success: false });
@@ -187,6 +252,11 @@ const getTransaction = async (req, res) => {
 };
 
 const editUser = async (req, res) => {
+  // 🔥 ឆែកសិទ្ធិ: តើបុគ្គលិកនេះមានសិទ្ធិកែប្រែ Profile អតិថិជនឬអត់?
+  const access = await checkAdminAccess(req.admin, "editUser");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
   const {
     id,
     username,
@@ -258,6 +328,11 @@ const editUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
+  // 🔥 ឆែកសិទ្ធិ: តើបុគ្គលិកនេះមានសិទ្ធិលុបអតិថិជនឬអត់?
+  const access = await checkAdminAccess(req.admin, "deleteUser");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
   const { id } = req.body;
   try {
     if (!id) return res.json({ success: false });
@@ -283,6 +358,11 @@ const deleteUser = async (req, res) => {
 };
 
 const adjustBalance = async (req, res) => {
+  // 🔥 ឆែកសិទ្ធិ និងម៉ោងធ្វើការ
+  const access = await checkAdminAccess(req.admin, "adjustBal");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
   const { username, amount, type, currency } = req.body;
   try {
     const user = await User.findOne({ username });
@@ -432,23 +512,17 @@ const approveTransaction = async (req, res) => {
   }
 };
 
-// ========================================================
-// 🔥 ១១. មុខងារ Refund ពិតប្រាកដ (កាត់ពី B សង A វិញ)
-// ========================================================
 const refundTransaction = async (req, res) => {
+  // 🔥 ឆែកសិទ្ធិ និងម៉ោងធ្វើការ
+  const access = await checkAdminAccess(req.admin, "refund");
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
   const { refId, reason } = req.body;
 
-  // ១. ការពារសិទ្ធិ: អោយតែ Super Admin ទើបអាចចុច Refund បាន
-  if (req.admin.role !== "super_admin") {
-    return res.status(403).json({
-      success: false,
-      message:
-        "បម្រាម៖ មានតែ Super Admin ប៉ុណ្ណោះ ទើបមានសិទ្ធិ Refund ប្រាក់បាន! 🛑",
-    });
-  }
+  // លែងត្រូវការកូដ check super_admin ទៀតហើយ ព្រោះ checkAdminAccess បានឆែករួចរាល់
 
   try {
-    // ២. រកម្ចាស់ដើមដែលជាអ្នកផ្ញើលុយ (Sender) ដោយប្រើ refId ដែលបានកាត់លុយ (amount < 0)
     const sender = await User.findOne({
       "transactions.refId": refId,
       "transactions.amount": { $lt: 0 },
@@ -472,7 +546,6 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ៣. រកអ្នកទទួលលុយ (Receiver) ដោយប្រើលេខគណនី
     const receiver = await User.findOne({
       $or: [
         { accountNumber: originalTrx.receiverAcc },
@@ -490,7 +563,6 @@ const refundTransaction = async (req, res) => {
     const isKHR = originalTrx.currency === "KHR";
     const refundAmount = Math.abs(originalTrx.amount);
 
-    // ៤. ឆែកមើលលុយអ្នកទទួល (តើគាត់ដកចាយអស់ហើយឬនៅ?)
     const receiverBalance = isKHR
       ? receiver.balanceKHR || 0
       : receiver.balance || 0;
@@ -501,7 +573,6 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ៥. ចាប់ផ្តើមធ្វើការកាត់ និង បូកលុយពិតប្រាកដ
     if (isKHR) {
       receiver.balanceKHR -= refundAmount;
       sender.balanceKHR += refundAmount;
@@ -510,7 +581,6 @@ const refundTransaction = async (req, res) => {
       sender.balance += refundAmount;
     }
 
-    // ៦. Update Status ប្រតិបត្តិការចាស់ទាំងសងខាង
     originalTrx.status = "Refunded";
     originalTrx.remark = `[REFUNDED] មូលហេតុ: ${reason}`;
 
@@ -522,12 +592,10 @@ const refundTransaction = async (req, res) => {
       receiverOriginalTrx.remark = `[REFUNDED BY ADMIN] មូលហេតុ: ${reason}`;
     }
 
-    // ៧. បង្កើត Slip ថ្មីអោយអ្នកទាំងពីរ
     const refundRef = "RF-" + Date.now().toString().slice(-6);
     const dateNow = getFormattedDate();
     const newHash = generateHash();
 
-    // Slip សម្រាប់ Sender (បានលុយវិញ)
     sender.transactions.unshift({
       refId: refundRef,
       hash: newHash,
@@ -543,7 +611,6 @@ const refundTransaction = async (req, res) => {
       trxMethod: "System Refund",
     });
 
-    // Slip សម្រាប់ Receiver (ត្រូវគេកាត់លុយ)
     receiver.transactions.unshift({
       refId: refundRef,
       hash: newHash,
@@ -559,7 +626,6 @@ const refundTransaction = async (req, res) => {
       trxMethod: "System Refund",
     });
 
-    // ៨. លោត Notification ប្រាប់អ្នកទាំងពីរ
     if (!sender.notifications) sender.notifications = [];
     sender.notifications.unshift({
       id: "NOTIF-" + Date.now() + "1",
@@ -658,38 +724,33 @@ const getFXRates = (req, res) => {
   res.json({ success: true, rates });
 };
 
-const Admin = require("../models/Admin"); // សូមប្រាកដថាបងបានហៅ Admin Model មក
-const bcrypt = require("bcryptjs"); // សម្រាប់បម្លែងលេខសម្ងាត់
-
-// ទាញយកបញ្ជីបុគ្គលិកទាំងអស់
 const getAdminsList = async (req, res) => {
   try {
-    const admins = await Admin.find({}, "-password"); // ទាញយកទាំងអស់ តែមិនយកលេខសម្ងាត់មកទេ
+    const admins = await Admin.find({}, "-password");
     res.json({ success: true, admins });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// បង្កើត ឬកែប្រែគណនីបុគ្គលិក
 const saveAdminAccount = async (req, res) => {
-  const { id, username, password, role } = req.body;
+  const { id, username, password, role, permissions } = req.body;
   try {
     if (id) {
-      // ករណីកែប្រែគណនីចាស់
       const adminToUpdate = await Admin.findById(id);
       if (!adminToUpdate)
         return res.json({ success: false, message: "រកមិនឃើញគណនី" });
 
       adminToUpdate.username = username;
       adminToUpdate.role = role;
+      if (permissions) adminToUpdate.permissions = permissions;
+
       if (password && password.trim() !== "") {
         adminToUpdate.password = await bcrypt.hash(password, 10);
       }
       await adminToUpdate.save();
       return res.json({ success: true, message: "កែប្រែបានជោគជ័យ!" });
     } else {
-      // ករណីបង្កើតថ្មី
       const exists = await Admin.findOne({ username });
       if (exists)
         return res.json({
@@ -700,7 +761,12 @@ const saveAdminAccount = async (req, res) => {
         return res.json({ success: false, message: "សូមបញ្ចូលលេខសម្ងាត់!" });
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newAdmin = new Admin({ username, password: hashedPassword, role });
+      const newAdmin = new Admin({
+        username,
+        password: hashedPassword,
+        role,
+        permissions,
+      });
       await newAdmin.save();
       return res.json({
         success: true,
@@ -712,7 +778,6 @@ const saveAdminAccount = async (req, res) => {
   }
 };
 
-// លុបគណនីបុគ្គលិក
 const deleteAdminAccount = async (req, res) => {
   const { id } = req.body;
   try {
@@ -749,4 +814,5 @@ module.exports = {
   getAdminsList,
   saveAdminAccount,
   deleteAdminAccount,
+  checkAdminAccess,
 };
