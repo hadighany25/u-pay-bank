@@ -486,7 +486,7 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       input:checked + .slider {
-        background-color: #ef4444;
+        background-color: #10b981; /* Changed to Green for permissions */
       }
       input:checked + .slider:before {
         transform: translateX(20px);
@@ -663,7 +663,7 @@
       .modal-card {
         background: white;
         width: 100%;
-        max-width: 450px;
+        max-width: 500px; /* Increased for permissions */
         border-radius: 24px;
         overflow: hidden;
         animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -692,7 +692,7 @@
       }
       .modal-body {
         padding: 25px;
-        max-height: 70vh;
+        max-height: 75vh;
         overflow-y: auto;
       }
       .form-group {
@@ -798,6 +798,26 @@
       .premium-btn-confirm:active {
         transform: scale(0.95) !important;
       }
+
+      /* 🔥 Style សម្រាប់ Permission Grid */
+      .perm-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      .perm-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+
       /* Responsive Rules */
       @media (max-width: 1400px) {
         .dash-stats {
@@ -844,6 +864,9 @@
         }
         .search-box {
           max-width: 100%;
+        }
+        .perm-grid {
+          grid-template-columns: 1fr;
         }
       }
       @media (max-width: 480px) {
@@ -1053,7 +1076,6 @@
           <i class="fa-solid fa-bars-staggered"></i>
         </div>
       </div>
-      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -1229,7 +1251,6 @@
           </div>
         </div>
       </div>
-      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1262,7 +1283,6 @@
         </div>
       </div>
 
-      <!-- Transaction Verification -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
           Transaction Verification
@@ -1321,7 +1341,6 @@
         </div>
       </div>
 
-      <!-- Exchange Rate Settings -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
           Exchange Rate Settings
@@ -1363,7 +1382,6 @@
         </div>
       </div>
 
-      <!-- Card Management -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1398,7 +1416,6 @@
         </div>
       </div>
 
-      <!-- KYC & Identity Approvals -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1431,7 +1448,6 @@
         </div>
       </div>
 
-      <!-- Support Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1460,7 +1476,6 @@
         </div>
       </div>
 
-      <!-- Live Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1624,7 +1639,6 @@
       </div>
     </div>
 
-    <!-- Admin Management -->
     <div
       id="sec-admins"
       style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1646,13 +1660,14 @@
             <tr>
               <th>Username</th>
               <th>តួនាទី (Role)</th>
+              <th>ម៉ោងធ្វើការ</th>
               <th>ថ្ងៃបង្កើត</th>
               <th style="text-align: right">សកម្មភាព (Action)</th>
             </tr>
           </thead>
           <tbody id="adminTableBody">
             <tr>
-              <td colspan="4" style="text-align: center; padding: 20px">
+              <td colspan="5" style="text-align: center; padding: 20px">
                 កំពុងទាញយកទិន្នន័យ...
               </td>
             </tr>
@@ -1661,7 +1676,6 @@
       </div>
     </div>
 
-    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1748,7 +1762,6 @@
       </div>
     </div>
 
-    <!-- Admin Account Modal -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1774,9 +1787,14 @@
               placeholder="ទុកទទេបើមិនចង់ដូរលេខសម្ងាត់ (សម្រាប់ពេល Edit)"
             />
           </div>
+
           <div class="form-group">
             <label>Role (តួនាទី និងសិទ្ធិ)</label>
-            <select id="manageAdminRole" class="form-input">
+            <select
+              id="manageAdminRole"
+              class="form-input"
+              onchange="toggleCustomPermissions(this.value)"
+            >
               <option value="super_admin">
                 Super Admin (មេធំ គ្រប់គ្រងទាំងអស់)
               </option>
@@ -1786,7 +1804,182 @@
               <option value="support_agent">
                 Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
               </option>
+              <option value="custom">Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)</option>
             </select>
+          </div>
+
+          <div
+            id="customPermissionBox"
+            style="
+              display: none;
+              border-top: 1px solid var(--border);
+              padding-top: 15px;
+              margin-top: 15px;
+            "
+          >
+            <label
+              style="
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-main);
+                margin-bottom: 10px;
+                display: block;
+              "
+              >ម៉ោងធ្វើការ (Working Hours)</label
+            >
+            <div style="display: flex; gap: 10px; margin-bottom: 20px">
+              <input
+                type="time"
+                id="permWorkStart"
+                class="form-input"
+                value="08:00"
+              />
+              <span
+                style="
+                  display: flex;
+                  align-items: center;
+                  color: var(--text-muted);
+                  font-weight: bold;
+                "
+                >ដល់</span
+              >
+              <input
+                type="time"
+                id="permWorkEnd"
+                class="form-input"
+                value="17:00"
+              />
+            </div>
+
+            <label
+              style="
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-main);
+                margin-bottom: 10px;
+                display: block;
+              "
+              >សិទ្ធិចូលមើល (Menu Access)</label
+            >
+            <div class="perm-grid" style="margin-bottom: 20px">
+              <div class="perm-item">
+                <span>User Mgmt</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_users" checked /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Trx Check</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_checktrx" checked /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Broadcast</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_broadcast" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Exchange Rates</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_fx" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Cards Mgmt</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_cards" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>KYC</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_kyc" checked /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Tickets</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_tickets" checked /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Live Chat</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_chat" checked /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+            </div>
+
+            <label
+              style="
+                font-size: 0.9rem;
+                font-weight: 700;
+                color: var(--text-main);
+                margin-bottom: 10px;
+                display: block;
+              "
+              >សិទ្ធិអនុវត្ត (Action Permissions)</label
+            >
+            <div class="perm-grid">
+              <div class="perm-item">
+                <span>កែប្រែ Profile</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_edit_user" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>លុបគណនី (Delete)</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_delete_user" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>ផ្អាកគណនី (Freeze)</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_freeze_user" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>បន្ថែម/ដកលុយ</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_adjust_bal" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+              <div class="perm-item">
+                <span>Refund វិក្កយបត្រ</span
+                ><label class="switch"
+                  ><input type="checkbox" id="p_refund" /><span
+                    class="slider"
+                  ></span
+                ></label>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -3276,6 +3469,9 @@
       }
 
       function applyRoleRestrictions() {
+        // 🔥 ទីនេះសម្រាប់អនាគត៖ យើងនឹងសរសេរកូដអោយវាទាញ Permissions ពី Database
+        // មកបិទ/បើក Menu ទៅតាមអីដែល Super Admin គ្រីសអោយ។
+        // ឥឡូវយើងរក្សាកូដចាស់សិន ដើម្បីកុំអោយប៉ះពាល់ការងារបច្ចុប្បន្ន។
         if (adminRole === "support_agent") {
           document.getElementById("menu-system").style.display = "none";
           document.querySelector(
@@ -3306,9 +3502,6 @@
         if (mAdmin) mAdmin.style.display = "none";
       }
 
-      // ថែម 'admins' ចូលទៅក្នុង Array នៃមុខងារ showSection() ខាងលើផងណា៎
-      // ឧ. const sections = ["dashboard", "users", ... , "admins"];
-
       async function loadAdminList() {
         if (adminRole !== "super_admin") return;
         try {
@@ -3323,7 +3516,8 @@
                 (a) => `
               <tr>
                 <td style="font-weight: 600;">@${a.username}</td>
-                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${a.role.toUpperCase()}</span></td>
+                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${(a.role || "support_agent").toUpperCase()}</span></td>
+                <td style="font-family: monospace; font-size: 0.9rem;">${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
                 <td>${new Date(a.createdAt).toLocaleDateString()}</td>
                 <td style="text-align: right;">
                   <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}', '${a.username}', '${a.role}')"><i class="fa-solid fa-pen"></i></button>
@@ -3337,11 +3531,25 @@
         } catch (e) {}
       }
 
+      // 🔥 មុខងារថ្មី៖ បិទ/បើកផ្ទាំង Custom Permissions ពេលរើស Role
+      function toggleCustomPermissions(role) {
+        const customBox = document.getElementById("customPermissionBox");
+        if (role === "custom") {
+          customBox.style.display = "block";
+        } else {
+          customBox.style.display = "none";
+        }
+      }
+
       function openAdminModal(id = "", username = "", role = "support_agent") {
         document.getElementById("manageAdminId").value = id;
         document.getElementById("manageAdminUser").value = username;
         document.getElementById("manageAdminPass").value = "";
+
+        // បើ Role ជា Custom, បង្ហាញផ្ទាំងសិទ្ធិ
         document.getElementById("manageAdminRole").value = role;
+        toggleCustomPermissions(role);
+
         document.getElementById("adminModalTitle").innerText = id
           ? "កែប្រែគណនីបុគ្គលិក"
           : "បន្ថែមបុគ្គលិកថ្មី";
@@ -3350,11 +3558,37 @@
 
       async function saveAdminAccount() {
         const id = document.getElementById("manageAdminId").value;
+        const role = document.getElementById("manageAdminRole").value;
+
+        // 🔥 ប្រមូលទិន្នន័យពី Toggles ទាំងអស់
+        const permissions = {
+          workStart: document.getElementById("permWorkStart").value,
+          workEnd: document.getElementById("permWorkEnd").value,
+          menus: {
+            users: document.getElementById("p_users").checked,
+            checktrx: document.getElementById("p_checktrx").checked,
+            broadcast: document.getElementById("p_broadcast").checked,
+            fx: document.getElementById("p_fx").checked,
+            cards: document.getElementById("p_cards").checked,
+            kyc: document.getElementById("p_kyc").checked,
+            tickets: document.getElementById("p_tickets").checked,
+            chat: document.getElementById("p_chat").checked,
+          },
+          actions: {
+            editUser: document.getElementById("p_edit_user").checked,
+            deleteUser: document.getElementById("p_delete_user").checked,
+            freezeUser: document.getElementById("p_freeze_user").checked,
+            adjustBal: document.getElementById("p_adjust_bal").checked,
+            refund: document.getElementById("p_refund").checked,
+          },
+        };
+
         const payload = {
           id: id,
           username: document.getElementById("manageAdminUser").value,
           password: document.getElementById("manageAdminPass").value,
-          role: document.getElementById("manageAdminRole").value,
+          role: role,
+          permissions: permissions, // បោះទិន្នន័យសិទ្ធិលម្អិតទៅអោយ Backend
         };
 
         const res = await fetch("/api/admin/save-admin", {
