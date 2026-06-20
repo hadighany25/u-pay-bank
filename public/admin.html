@@ -27,7 +27,6 @@
         --text-muted: #64748b;
         --border: #e2e8f0;
       }
-
       * {
         box-sizing: border-box;
       }
@@ -40,7 +39,6 @@
         overflow: hidden;
         color: var(--text-main);
       }
-
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -56,6 +54,7 @@
         background: #94a3b8;
       }
 
+      /* SIDEBAR */
       .sidebar {
         width: 280px;
         background: var(--primary);
@@ -128,6 +127,7 @@
         color: #f87171 !important;
       }
 
+      /* MAIN CONTENT */
       .main-content {
         flex: 1;
         padding: 30px 40px;
@@ -162,6 +162,7 @@
         z-index: 900;
       }
 
+      /* DASHBOARD PREMIUM */
       .dash-wrapper {
         max-width: 1600px;
         margin: 0 auto;
@@ -178,7 +179,6 @@
           transform: translateY(0);
         }
       }
-
       .dash-header {
         margin-bottom: 30px;
         display: flex;
@@ -197,7 +197,6 @@
         font-size: 0.95rem;
         margin: 0;
       }
-
       .dash-stats {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -218,7 +217,6 @@
         transform: translateY(-3px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
       }
-
       .stat-item {
         display: flex;
         flex-direction: column;
@@ -260,7 +258,6 @@
         opacity: 0.1;
         z-index: 1;
       }
-
       .dash-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
@@ -284,6 +281,7 @@
         width: 100%;
       }
 
+      /* Activity Feed */
       .activity-feed {
         padding-left: 10px;
         border-left: 2px solid #f1f5f9;
@@ -329,6 +327,7 @@
         font-weight: 500;
       }
 
+      /* USERS & TABLES */
       .table-header-controls {
         display: flex;
         justify-content: space-between;
@@ -363,7 +362,6 @@
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
       }
-
       .table-container {
         background: white;
         border-radius: 20px;
@@ -397,7 +395,6 @@
       tr:hover td {
         background: #f8fafc;
       }
-
       .btn-action {
         width: 36px;
         height: 36px;
@@ -444,6 +441,20 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
       }
+      .btn-cancel {
+        background: white;
+        border: 1px solid #cbd5e1;
+        padding: 10px 24px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #475569;
+        transition: 0.2s;
+      }
+      .btn-cancel:hover {
+        background: #f1f5f9;
+        color: #334155;
+      }
 
       .switch {
         position: relative;
@@ -486,6 +497,127 @@
         transform: translateX(20px);
       }
 
+      /* MODAL FIXED */
+      .modal-overlay {
+        display: none !important;
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.7);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+      }
+      .modal-card {
+        background: white;
+        width: 100%;
+        max-width: 500px;
+        border-radius: 24px;
+        overflow: hidden;
+        animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes zoomIn {
+        from {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-header {
+        background: var(--primary);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .modal-header h3 {
+        margin: 0;
+        font-weight: 600;
+      }
+      .modal-body {
+        padding: 25px;
+        max-height: 75vh;
+        overflow-y: auto;
+      }
+      .form-group {
+        margin-bottom: 18px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .form-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        outline: none;
+        font-family: inherit;
+      }
+      .modal-footer {
+        padding: 15px 25px;
+        background: #f8fafc;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        border-top: 1px solid var(--border);
+      }
+
+      .acc-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .acc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .acc-badge.usd {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+      }
+      .acc-badge.khr {
+        background: #dcfce7;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+
+      .perm-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      .perm-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+
+      /* TRX CHECK & OTHERS */
       .trx-check-wrapper {
         max-width: 900px;
         margin: 0 auto;
@@ -608,7 +740,6 @@
         gap: 15px;
         border-top: 1px solid var(--border);
       }
-
       .fx-card {
         background: white;
         padding: 30px;
@@ -634,171 +765,6 @@
         font-size: 1.1rem;
         color: var(--primary);
         outline: none;
-      }
-
-      .modal-overlay {
-        display: none !important;
-        position: fixed !important;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(15, 23, 42, 0.7);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(4px);
-      }
-      .modal-card {
-        background: white;
-        width: 100%;
-        max-width: 500px;
-        border-radius: 24px;
-        overflow: hidden;
-        animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-      @keyframes zoomIn {
-        from {
-          transform: scale(0.9);
-          opacity: 0;
-        }
-        to {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
-      .modal-header {
-        background: var(--primary);
-        color: white;
-        padding: 20px 25px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .modal-header h3 {
-        margin: 0;
-        font-weight: 600;
-      }
-      .modal-body {
-        padding: 25px;
-        max-height: 75vh;
-        overflow-y: auto;
-      }
-      .form-group {
-        margin-bottom: 18px;
-      }
-      .form-group label {
-        display: block;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-        font-weight: 600;
-      }
-      .form-input {
-        width: 100%;
-        padding: 12px 15px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        outline: none;
-        font-family: inherit;
-      }
-      .modal-footer {
-        padding: 15px 25px;
-        background: #f8fafc;
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        border-top: 1px solid var(--border);
-      }
-      .btn-save {
-        background: var(--primary);
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: 600;
-      }
-      .btn-cancel {
-        background: white;
-        border: 1px solid #cbd5e1;
-        padding: 10px 24px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: 600;
-        color: #475569;
-      }
-
-      .acc-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .acc-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        font-family: "JetBrains Mono", monospace;
-      }
-      .acc-badge.usd {
-        background: #e0f2fe;
-        color: #0369a1;
-        border: 1px solid #bae6fd;
-      }
-      .acc-badge.khr {
-        background: #dcfce7;
-        color: #047857;
-        border: 1px solid #a7f3d0;
-      }
-
-      .action-btn-red {
-        background-color: #fef2f2;
-        color: #ef4444;
-        border: 1px solid #fecaca;
-      }
-      .action-btn-red:hover {
-        background-color: #fee2e2;
-      }
-      .premium-btn-confirm {
-        background-color: #004d40 !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 12px 30px !important;
-        font-weight: 600 !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
-        cursor: pointer !important;
-        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
-        transition: all 0.2s ease !important;
-      }
-      .premium-btn-confirm:hover {
-        background-color: #00695c !important;
-        transform: translateY(-1px) !important;
-      }
-      .premium-btn-confirm:active {
-        transform: scale(0.95) !important;
-      }
-
-      .perm-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        background: #f8fafc;
-        padding: 15px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-      }
-      .perm-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: var(--text-main);
       }
 
       @media (max-width: 1400px) {
@@ -1078,6 +1044,7 @@
         </div>
       </div>
 
+      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -1104,7 +1071,6 @@
             Live Sync Active
           </div>
         </div>
-
         <div class="dash-stats">
           <div class="dash-card stat-item">
             <div class="bg-shape" style="background: #3b82f6"></div>
@@ -1227,7 +1193,6 @@
             </div>
           </div>
         </div>
-
         <div class="dash-grid">
           <div class="dash-card">
             <div class="card-header">
@@ -1254,6 +1219,7 @@
         </div>
       </div>
 
+      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1286,6 +1252,7 @@
         </div>
       </div>
 
+      <!-- Trx Check -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
           Transaction Verification
@@ -1303,6 +1270,7 @@
         <div id="trxResult" class="trx-result-card"></div>
       </div>
 
+      <!-- Broadcast -->
       <div
         id="sec-broadcast-history"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1344,6 +1312,7 @@
         </div>
       </div>
 
+      <!-- FX -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
           Exchange Rate Settings
@@ -1390,6 +1359,7 @@
         </div>
       </div>
 
+      <!-- Cards -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1424,6 +1394,7 @@
         </div>
       </div>
 
+      <!-- KYC -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1456,6 +1427,7 @@
         </div>
       </div>
 
+      <!-- Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1484,6 +1456,7 @@
         </div>
       </div>
 
+      <!-- Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1534,7 +1507,6 @@
               </div>
             </div>
           </div>
-
           <div
             style="
               flex: 1;
@@ -1625,8 +1597,7 @@
                   font-size: 1rem;
                 "
                 onkeypress="if (event.key === 'Enter') sendAdminChat();"
-              />
-              <button
+              /><button
                 onclick="sendAdminChat()"
                 style="
                   background: var(--primary);
@@ -1646,6 +1617,7 @@
         </div>
       </div>
 
+      <!-- Admin Management -->
       <div
         id="sec-admins"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1689,42 +1661,48 @@
           </table>
         </div>
       </div>
-    </div>
 
-    <div id="sec-logs" style="display: none; max-width: 1400px; margin: 0 auto">
-      <div class="table-header-controls">
-        <div>
-          <h2 class="dash-title">Admin Audit Logs</h2>
-          <p class="dash-desc">
-            តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
-          </p>
+      <!-- 🔥 Audit Logs (ថ្មី និងកែបញ្ហាត្រួតស៊ីគ្នា) -->
+      <div
+        id="sec-logs"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title">Admin Audit Logs</h2>
+            <p class="dash-desc">
+              តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+            </p>
+          </div>
+          <button class="btn-cancel" onclick="loadAdminLogs()">
+            <i class="fa-solid fa-rotate-right"></i> ទាញយកទិន្នន័យថ្មី
+          </button>
         </div>
-        <button class="btn-cancel" onclick="loadAdminLogs()">
-          <i class="fa-solid fa-rotate-right"></i> ទាញយកទិន្នន័យថ្មី
-        </button>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>កាលបរិច្ឆេទ (Date)</th>
-              <th>គណនី Admin</th>
-              <th>សកម្មភាព (Action)</th>
-              <th>គោលដៅ (Target)</th>
-              <th>ព័ត៌មានលម្អិត (Details)</th>
-            </tr>
-          </thead>
-          <tbody id="logsTableBody">
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 20px">
-                កំពុងទាញយកទិន្នន័យ...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>កាលបរិច្ឆេទ (Date)</th>
+                <th>គណនី Admin</th>
+                <th>សកម្មភាព (Action)</th>
+                <th>គោលដៅ (Target)</th>
+                <th>ព័ត៌មានលម្អិត (Details)</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 20px">
+                  កំពុងទាញយកទិន្នន័យ...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+    <!-- END main-content -->
 
+    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1800,15 +1778,15 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" onclick="closeModal('editUserModal')">
-            Cancel
-          </button>
-          <button class="btn-save" onclick="saveUserEdit()">
+            Cancel</button
+          ><button class="btn-save" onclick="saveUserEdit()">
             Save Changes
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Admin Account Modal -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1834,7 +1812,6 @@
               placeholder="ទុកទទេបើមិនចង់ដូរលេខសម្ងាត់ (សម្រាប់ពេល Edit)"
             />
           </div>
-
           <div class="form-group">
             <label>Role (តួនាទី និងសិទ្ធិ)</label>
             <select
@@ -1854,7 +1831,6 @@
               <option value="custom">Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)</option>
             </select>
           </div>
-
           <div
             class="form-group"
             id="customRoleInputGroup"
@@ -1877,7 +1853,6 @@
               style="border-color: #34d399"
             />
           </div>
-
           <div
             id="customPermissionBox"
             style="
@@ -1903,8 +1878,7 @@
                 id="permWorkStart"
                 class="form-input"
                 value="08:00"
-              />
-              <span
+              /><span
                 style="
                   display: flex;
                   align-items: center;
@@ -1912,15 +1886,13 @@
                   font-weight: bold;
                 "
                 >ដល់</span
-              >
-              <input
+              ><input
                 type="time"
                 id="permWorkEnd"
                 class="form-input"
                 value="17:00"
               />
             </div>
-
             <label
               style="
                 font-size: 0.9rem;
@@ -1997,7 +1969,6 @@
                 ></label>
               </div>
             </div>
-
             <label
               style="
                 font-size: 0.9rem;
@@ -2054,9 +2025,8 @@
         </div>
         <div class="modal-footer">
           <button class="btn-cancel" onclick="closeModal('adminAccModal')">
-            បោះបង់
-          </button>
-          <button class="btn-save" onclick="saveAdminAccount()">
+            បោះបង់</button
+          ><button class="btn-save" onclick="saveAdminAccount()">
             រក្សាទុក
           </button>
         </div>
@@ -2066,7 +2036,7 @@
     <script>
       const adminToken = sessionStorage.getItem("adminToken");
       const adminRole = sessionStorage.getItem("adminRole");
-      let myAdminPermissions = null; // ទុកកត់ត្រាសិទ្ធិផ្ទាល់ខ្លួន
+      let myAdminPermissions = null;
 
       if (!adminToken || !adminRole) {
         window.location.href = "admin-login.html";
@@ -2104,6 +2074,7 @@
       function showSection(id, btn) {
         sessionStorage.setItem("activeSection", id);
 
+        // 🔥 ដោះស្រាយបញ្ហា Overlap ដោយថែមពាក្យ "logs" ទីនេះ
         const sections = [
           "dashboard",
           "users",
@@ -2127,6 +2098,7 @@
 
         if (id === "broadcast-history") loadBroadcastHistory();
         if (id === "fx") fetchFXRates();
+        if (id === "logs") loadAdminLogs(); // 🔥 ទាញទិន្នន័យពេលចុច
 
         document
           .querySelectorAll(".menu-item")
@@ -2140,7 +2112,6 @@
           const users = await res.json();
           globalUsersData = users;
           const clients = users.filter((u) => u.role !== "admin");
-
           renderUsersTable(globalUsersData);
 
           let cardsHtml = "";
@@ -2163,12 +2134,10 @@
             if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
             if (u.isFrozen) frozenCount++;
             totalFunds += Number(u.balance) || 0;
-
-            if (u.deposits && Array.isArray(u.deposits)) {
+            if (u.deposits && Array.isArray(u.deposits))
               u.deposits.forEach(
                 (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
               );
-            }
             if (u.transactions && Array.isArray(u.transactions)) {
               totalTrxCount += u.transactions.length;
               u.transactions.forEach((trx) => {
@@ -2178,9 +2147,8 @@
                   (trx.type === "Withdrawal" ||
                     trx.type === "Transfer" ||
                     trx.trxMethod === "U-PAY Transfer")
-                ) {
+                )
                   totalWithdrawals += Math.abs(Number(trx.amount || 0));
-                }
                 if (
                   trx.type === "Transfer" ||
                   trx.trxMethod === "U-PAY Transfer"
@@ -2188,12 +2156,11 @@
                   totalTransfers++;
               });
             }
-            if (u.notifications && Array.isArray(u.notifications)) {
+            if (u.notifications && Array.isArray(u.notifications))
               u.notifications.forEach((n) => {
                 if (n.sender === "admin")
                   allAdminNotifs.add(n.id || n.title + n.date);
               });
-            }
             if (u.virtualCards) {
               u.virtualCards.forEach((c) => {
                 const statusHtml = c.isLocked
@@ -2296,9 +2263,7 @@
                 },
               });
             }
-          } catch (err) {
-            console.error("Chart Error", err);
-          }
+          } catch (err) {}
 
           try {
             const extraRes = await fetch("/api/admin/dashboard-extra", {
@@ -2347,12 +2312,8 @@
                 }
               }
             }
-          } catch (err) {
-            console.error("Extra Data Error", err);
-          }
-        } catch (e) {
-          console.error("Load Data Error", e);
-        }
+          } catch (err) {}
+        } catch (e) {}
       }
 
       function viewKycDocument(base64Image) {
@@ -2368,8 +2329,6 @@
       function renderUsersTable(users) {
         const tbody = document.querySelector("#userTable tbody");
         tbody.innerHTML = "";
-
-        // 🔥 ទាញយកសិទ្ធិ Action ដែលបានរៀបចំទុកដើម្បីលាក់ប៊ូតុង
         let canEdit =
           adminRole === "super_admin" ||
           (myAdminPermissions && myAdminPermissions.actions?.editUser);
@@ -2409,13 +2368,7 @@
 
           const tr = document.createElement("tr");
           tr.style.backgroundColor = isCentralBank ? "#fef9c3" : "";
-          tr.innerHTML = `
-            <td><div style="display: flex; align-items: center; gap: 10px"><img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" /><div><div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div><div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div></div></div></td>
-            <td>${accountsHtml}</td>
-            <td>${balanceHtml}</td>
-            <td>${freezeHtml}</td>
-            <td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
-          `;
+          tr.innerHTML = `<td><div style="display: flex; align-items: center; gap: 10px"><img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" /><div><div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div><div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div></div></div></td><td>${accountsHtml}</td><td>${balanceHtml}</td><td>${freezeHtml}</td><td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>`;
           tbody.appendChild(tr);
         });
       }
@@ -2444,7 +2397,6 @@
           .getElementById("editUserModal")
           .style.setProperty("display", "flex", "important");
       }
-
       function closeModal(modalId) {
         document
           .getElementById(modalId)
@@ -2559,7 +2511,6 @@
           }
         });
       }
-
       async function toggleFreeze(id, isFrozen) {
         await fetch("/api/admin/toggle-freeze", {
           method: "POST",
@@ -2578,7 +2529,6 @@
           document.getElementById("fxSell").value = data.rates.usdToKhrSell;
         }
       }
-
       async function updateFX() {
         const buy = document.getElementById("fxBuy").value;
         const sell = document.getElementById("fxSell").value;
@@ -2612,7 +2562,6 @@
           Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
-
       async function toggleCardLock(username, cardId, isCurrentlyLocked) {
         const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
         const confirm = await Swal.fire({
@@ -2641,7 +2590,6 @@
           }
         }
       }
-
       async function kycAction(username, action) {
         const actionText = action === "approved" ? "Approve" : "Reject";
         const confirm = await Swal.fire({
@@ -2662,7 +2610,6 @@
           }
         }
       }
-
       async function replyTicket(username, ticketId) {
         const { value: text } = await Swal.fire({
           title: "Reply to Ticket",
@@ -2698,7 +2645,6 @@
         const data = await res.json();
         const box = document.getElementById("trxResult");
         Swal.close();
-
         if (data.success) {
           const t = data.transaction;
           const isPending = t.status === "Pending";
@@ -2742,7 +2688,6 @@
           )
             sAcc = "SYSTEM-WALLET";
           if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
-
           let sKyc = t.senderKyc || t.kycStatus || "Unverified";
           let rKyc = t.receiverKyc || t.kycStatus || "Unverified";
           let sKycColor =
@@ -2756,7 +2701,6 @@
               ? "#10b981"
               : "#ef4444";
 
-          // 🔥 លាក់ប៊ូតុង Refund បើគ្មានសិទ្ធិ
           let canRefund =
             adminRole === "super_admin" ||
             (myAdminPermissions && myAdminPermissions.actions?.refund);
@@ -2765,44 +2709,7 @@
             : `<span style="color: var(--text-muted);">គ្មានសិទ្ធិ Refund ទេ</span>`;
 
           box.style.display = "block";
-          box.innerHTML = `
-      <div class="trx-grid">
-          <div class="trx-box">
-              <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
-              <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
-              <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
-              <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.senderDevice || t.device || "Mobile App"}</span></div>
-              <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.senderIp || t.ip || "127.0.0.1"}</span></div>
-              <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.senderType || t.accountType || "Personal"}</span></div>
-              <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${sKycColor}">${sKyc}</span></div>
-              <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "N/A"}</span></div>
-          </div>
-          <div class="trx-box">
-              <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
-              <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
-              <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
-              <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.receiverDevice || t.device || "Mobile App"}</span></div>
-              <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.receiverIp || t.ip || "127.10.1.1"}</span></div>
-              <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || t.accountType || "Personal"}</span></div>
-              <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${rKycColor}">${rKyc}</span></div>
-              <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "N/A"}</span></div>
-          </div>
-          <div class="trx-box full">
-              <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
-              <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
-              <div class="t-row"><span class="t-label">Payment Method</span> <span class="t-value">${t.trxMethod || t.method || "Wallet"}</span></div>
-              <div class="t-row"><span class="t-label">Amount</span> <span class="t-value" style="font-size: 1.1rem; font-weight: bold; color: #10b981;">${isKHR ? "" : currSym}${fmtAmt}${isKHR ? " " + currSym : ""}</span></div>
-              <div class="t-row"><span class="t-label">Status</span> <span class="t-value" style="color: ${isPending ? "#d97706" : t.status === "Failed" || t.status === "Rejected" || t.status === "Refunded" ? "#ef4444" : "#10b981"}; font-weight: bold;">${t.status || "Completed"}</span></div>
-              <div class="t-row"><span class="t-label">Network Fee</span> <span class="t-value">${isKHR ? "" : currSym}${fmtFee}${isKHR ? " " + currSym : ""}</span></div>
-              <div class="t-row"><span class="t-label">System Profit</span> <span class="t-value" style="color: #6366f1;">${isKHR ? "" : currSym}${fmtProfit}${isKHR ? " " + currSym : ""}</span></div>
-              <div class="t-row"><span class="t-label">Reference ID</span> <span class="t-value" style="font-family: monospace;">${t.refId || t.id || "N/A"}</span></div>
-              <div class="t-row"><span class="t-label">Blockchain/Hash</span> <span class="t-value hash" style="font-family: monospace;">${t.hash || "N/A"}</span></div>
-              <div class="t-row"><span class="t-label">Date & Time</span> <span class="t-value">${t.date || t.createdAt || "N/A"}</span></div>
-              <div class="t-row" style="align-items: center;"><span class="t-label">Action</span><span class="t-value">${refundHtml}</span></div>          
-          </div>
-      </div>
-      ${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve Only</button></div>` : ""}
-    `;
+          box.innerHTML = `<div class="trx-grid"><div class="trx-box"><h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4><div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div><div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div><div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.senderDevice || t.device || "Mobile App"}</span></div><div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.senderIp || t.ip || "127.0.0.1"}</span></div><div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.senderType || t.accountType || "Personal"}</span></div><div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${sKycColor}">${sKyc}</span></div><div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "N/A"}</span></div></div><div class="trx-box"><h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4><div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div><div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div><div class="t-row"><span class="t-label">Device</span> <span class="t-value">${t.receiverDevice || t.device || "Mobile App"}</span></div><div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${t.receiverIp || t.ip || "127.10.1.1"}</span></div><div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || t.accountType || "Personal"}</span></div><div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${rKycColor}">${rKyc}</span></div><div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "N/A"}</span></div></div><div class="trx-box full"><h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4><div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div><div class="t-row"><span class="t-label">Payment Method</span> <span class="t-value">${t.trxMethod || t.method || "Wallet"}</span></div><div class="t-row"><span class="t-label">Amount</span> <span class="t-value" style="font-size: 1.1rem; font-weight: bold; color: #10b981;">${isKHR ? "" : currSym}${fmtAmt}${isKHR ? " " + currSym : ""}</span></div><div class="t-row"><span class="t-label">Status</span> <span class="t-value" style="color: ${isPending ? "#d97706" : t.status === "Failed" || t.status === "Rejected" || t.status === "Refunded" ? "#ef4444" : "#10b981"}; font-weight: bold;">${t.status || "Completed"}</span></div><div class="t-row"><span class="t-label">Network Fee</span> <span class="t-value">${isKHR ? "" : currSym}${fmtFee}${isKHR ? " " + currSym : ""}</span></div><div class="t-row"><span class="t-label">System Profit</span> <span class="t-value" style="color: #6366f1;">${isKHR ? "" : currSym}${fmtProfit}${isKHR ? " " + currSym : ""}</span></div><div class="t-row"><span class="t-label">Reference ID</span> <span class="t-value" style="font-family: monospace;">${t.refId || t.id || "N/A"}</span></div><div class="t-row"><span class="t-label">Blockchain/Hash</span> <span class="t-value hash" style="font-family: monospace;">${t.hash || "N/A"}</span></div><div class="t-row"><span class="t-label">Date & Time</span> <span class="t-value">${t.date || t.createdAt || "N/A"}</span></div><div class="t-row" style="align-items: center;"><span class="t-label">Action</span><span class="t-value">${refundHtml}</span></div></div></div>${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve Only</button></div>` : ""}`;
         } else {
           box.style.display = "none";
           Swal.fire("Not Found", "Invalid Reference ID or Hash Code.", "error");
@@ -2819,7 +2726,6 @@
               : "none"),
         );
       }
-
       document.addEventListener("DOMContentLoaded", () => {
         const searchInput = document.getElementById("searchTrxId");
         if (searchInput)
@@ -2830,7 +2736,6 @@
             }
           });
       });
-
       function logout() {
         sessionStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminRole");
@@ -2856,7 +2761,6 @@
             return { title: title, message: msg };
           },
         });
-
         if (formValues && formValues.title && formValues.message) {
           try {
             const res = await fetch("/api/admin/broadcast", {
@@ -2960,7 +2864,6 @@
           if (isDismissed || !text) return;
           reason = text;
         }
-
         const endpoint =
           action === "approve"
             ? "/api/admin/approve-transaction"
@@ -3272,29 +3175,23 @@
         } catch (e) {}
       }
 
-      // ==========================================
-      // 🔥 មុខងារថ្មី សម្រាប់លាក់ Menu និងប៊ូតុងតាម Toggles (Dynamic Menu Hiding)
-      // ==========================================
+      // 🔥 ការរៀបចំសិទ្ធិ (Dynamic Hiding)
       async function applyDynamicPermissions() {
         if (adminRole === "super_admin") {
-          // បើជាមេធំ មិនបាច់លាក់អីទេ បើកអោយទាំងអស់ ហើយហៅទិន្នន័យមកតែម្តង
           setInterval(loadData, 15000);
           loadData();
           return;
         }
 
         try {
-          // ទាញសួរ Database ថាគណនីខ្ញុំនេះ មានសិទ្ធិអីខ្លះ
           const res = await fetch("/api/admin/me", {
             headers: getAuthHeaders(),
           });
           const data = await res.json();
-
           if (data.success && data.admin && data.admin.permissions) {
-            myAdminPermissions = data.admin.permissions; // រក្សាទុកសិទ្ធិ ដើម្បីអោយតារាងអាចយកទៅប្រើលាក់ប៊ូតុង Edit/Delete បាន
+            myAdminPermissions = data.admin.permissions;
             const menus = data.admin.permissions.menus;
 
-            // 1. លាក់ Menu ខាងឆ្វេង បើអត់មានសិទ្ធិ
             if (!menus.users)
               document.getElementById("menu-users").style.display = "none";
             if (!menus.checktrx)
@@ -3312,7 +3209,6 @@
             if (!menus.chat)
               document.getElementById("menu-chat").style.display = "none";
 
-            // លាក់ Label អោយស្អាត បើកូនចៅវាបាត់អស់
             if (!menus.checktrx && !menus.broadcast)
               document.getElementById("label-ops").style.display = "none";
             if (!menus.fx && !menus.cards)
@@ -3320,7 +3216,6 @@
             if (!menus.kyc && !menus.tickets && !menus.chat)
               document.getElementById("label-security").style.display = "none";
 
-            // 2. ដូរឈ្មោះតួនាទី (Role) ផ្នែកខាងលើឆ្វេង អោយចេញឈ្មោះ Custom
             if (
               data.admin.role === "custom" &&
               data.admin.permissions.customRoleName
@@ -3329,7 +3224,6 @@
                 data.admin.permissions.customRoleName.toUpperCase();
             }
 
-            // លាក់ប៊ូតុង Admin ធំ
             document.getElementById("menu-super-only").style.display = "none";
             document.getElementById("menu-admins").style.display = "none";
             document.getElementById("menu-logs").style.display = "none";
@@ -3338,8 +3232,6 @@
         } catch (err) {
           console.log("Error fetching permissions", err);
         }
-
-        // ក្រោយពេលរៀបចំសិទ្ធិ និងលាក់ប៊ូតុងរួចរាល់ ទើបហៅទិន្នន័យមកបង្ហាញ
         setInterval(loadData, 15000);
         loadData();
       }
@@ -3364,20 +3256,44 @@
                   a.role === "custom" && a.permissions?.customRoleName
                     ? a.permissions.customRoleName
                     : a.role || "support_agent";
-                return `<tr>
-                <td style="font-weight: 600;">@${a.username}</td>
-                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${displayRole.toUpperCase()}</span></td>
-                <td style="font-family: monospace; font-size: 0.9rem;">${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
-                <td>${new Date(a.createdAt).toLocaleDateString()}</td>
-                <td style="text-align: right;">
-                  <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}', '${a.username}', '${a.role}')"><i class="fa-solid fa-pen"></i></button>
-                  ${a.username !== "admin" ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')"><i class="fa-solid fa-trash"></i></button>` : ""}
-                </td>
-              </tr>`;
+                return `<tr><td style="font-weight: 600;">@${a.username}</td><td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${displayRole.toUpperCase()}</span></td><td style="font-family: monospace; font-size: 0.9rem;">${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td><td>${new Date(a.createdAt).toLocaleDateString()}</td><td style="text-align: right;"><button class="btn-action btn-edit" onclick="openAdminModal('${a._id}', '${a.username}', '${a.role}')"><i class="fa-solid fa-pen"></i></button>${a.username !== "admin" ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')"><i class="fa-solid fa-trash"></i></button>` : ""}</td></tr>`;
               })
               .join("");
           }
         } catch (e) {}
+      }
+
+      // 🔥 មុខងារទាញទិន្នន័យ Audit Logs យកមកបង្ហាញ
+      async function loadAdminLogs() {
+        if (adminRole !== "super_admin") return;
+        try {
+          const res = await fetch("/api/admin/logs", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          const tbody = document.getElementById("logsTableBody");
+
+          if (data.success && data.logs && data.logs.length > 0) {
+            tbody.innerHTML = data.logs
+              .map(
+                (l) => `
+              <tr>
+                <td style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${l.date}</td>
+                <td style="font-weight: bold; color: var(--primary);">@${l.admin}</td>
+                <td><span style="background: #f1f5f9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td>
+                <td style="font-family: monospace; font-size: 0.95rem;">${l.target || "-"}</td>
+                <td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td>
+              </tr>
+            `,
+              )
+              .join("");
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានប្រវត្តិសកម្មភាពទេ</td></tr>';
+          }
+        } catch (e) {
+          console.log("Error loading logs", e);
+        }
       }
 
       function toggleCustomPermissions(role) {
@@ -3409,7 +3325,6 @@
       async function saveAdminAccount() {
         const id = document.getElementById("manageAdminId").value;
         const role = document.getElementById("manageAdminRole").value;
-
         const permissions = {
           customRoleName: document.getElementById("customRoleName").value,
           workStart: document.getElementById("permWorkStart").value,
@@ -3432,7 +3347,6 @@
             refund: document.getElementById("p_refund").checked,
           },
         };
-
         const payload = {
           id: id,
           username: document.getElementById("manageAdminUser").value,
@@ -3472,40 +3386,8 @@
           }
         }
       }
+
       setTimeout(loadAdminList, 1000);
-
-      // ២. មុខងារទាញយក Logs
-      async function loadAdminLogs() {
-        if (adminRole !== "super_admin") return; // មានតែមេធំទេទើបអាចមើលបាន
-        try {
-          const res = await fetch("/api/admin/logs", {
-            headers: getAuthHeaders(),
-          });
-          const data = await res.json();
-          const tbody = document.getElementById("logsTableBody");
-
-          if (data.success && data.logs.length > 0) {
-            tbody.innerHTML = data.logs
-              .map(
-                (l) => `
-              <tr>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">${l.date}</td>
-                <td style="font-weight: bold; color: var(--primary);">@${l.admin}</td>
-                <td><span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td>
-                <td style="font-family: monospace;">${l.target || "-"}</td>
-                <td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td>
-              </tr>
-            `,
-              )
-              .join("");
-          } else {
-            tbody.innerHTML =
-              '<tr><td colspan="5" style="text-align: center; padding: 20px;">គ្មានប្រវត្តិសកម្មភាពទេ</td></tr>';
-          }
-        } catch (e) {}
-      }
-
-      // ហៅមុខងាររៀបចំសិទ្ធិ និងលាក់ Menu ពេលបើកវេបសាយភ្លាម
       applyDynamicPermissions();
     </script>
   </body>
