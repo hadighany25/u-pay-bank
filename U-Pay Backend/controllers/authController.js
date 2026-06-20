@@ -4,6 +4,10 @@ const User = require("../models/User");
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
+// 🔥 ថែម ២ បន្ទាត់នេះចូល
+const Admin = require("../models/Admin");
+const bcrypt = require("bcryptjs");
+
 let tempForgotOtps = {};
 
 // មុខងារជំនួយសម្រាប់បង្កើតលេខគណនីអូតូ
@@ -348,36 +352,66 @@ const verifyAccount = async (req, res) => {
 };
 
 // 🔥 មុខងារសម្រាប់ Admin Login ដាច់ដោយឡែក (មានប្រព័ន្ធ RBAC)
+// 🔥 មុខងារសម្រាប់ Admin Login ដែល Update ថ្មី (ស្គាល់ទាំង Admin ចាស់ និង Admin ថ្មី)
 const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
-    // ស្វែងរកគណនីដែលជា Admin ទាំង ៤ ប្រភេទ (admin ចាស់, super_admin, finance_admin, support_agent)
-    const adminUser = await User.findOne({
-      username: username,
-      role: { $in: ["admin", "super_admin", "finance_admin", "support_agent"] },
-    });
+    let isValid = false;
+    let finalRole = "support_agent";
+    let adminId = "";
 
-    if (!adminUser || adminUser.password !== password) {
+    // ១. ស្វែងរកក្នុងតារាង Admin ថ្មីមុនគេ (ប្រព័ន្ធថ្មី)
+    const newAdminAcc = await Admin.findOne({ username: username });
+
+    if (newAdminAcc) {
+      // ផ្ទៀងផ្ទាត់លេខសម្ងាត់ដែលបាន Hash
+      isValid = await bcrypt.compare(password, newAdminAcc.password);
+
+      // ករណីពិសេសលេខសម្ងាត់អត់ទាន់ Hash
+      if (!isValid && newAdminAcc.password === password) isValid = true;
+
+      if (isValid) {
+        finalRole = newAdminAcc.role;
+        adminId = newAdminAcc.id || newAdminAcc._id;
+      }
+    } else {
+      // ២. បើរកអត់ឃើញទេ ទៅរកក្នុងតារាង User ចាស់ (ករណី Master Admin ចាស់បងមិនទាន់លុប)
+      const legacyAdmin = await User.findOne({
+        username: username,
+        role: {
+          $in: ["admin", "super_admin", "finance_admin", "support_agent"],
+        },
+      });
+
+      if (legacyAdmin && legacyAdmin.password === password) {
+        isValid = true;
+        finalRole =
+          legacyAdmin.role === "admin" ? "super_admin" : legacyAdmin.role;
+        adminId = legacyAdmin.id || legacyAdmin._id;
+      }
+    }
+
+    // ៣. បើលេខសម្ងាត់ខុស
+    if (!isValid) {
       return res.json({
         success: false,
         message: "ឈ្មោះ ឬលេខសម្ងាត់ Admin មិនត្រឹមត្រូវទេ!",
       });
     }
 
-    // បើត្រូវហើយ បង្កើត Token មួយដែលមានអាយុកាល ១ ថ្ងៃ (1d)
+    // ៤. បង្កើត Token បញ្ជាក់សិទ្ធិ
     const token = jwt.sign(
-      { id: adminUser.id, username: adminUser.username, role: adminUser.role },
+      { id: adminId, username: username, role: finalRole },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }, // ផុតកំណត់ក្រោយ ១ថ្ងៃ
     );
 
     res.json({
       success: true,
-      token: token, // បោះ Token ទៅអោយ Frontend ទុក
+      token: token,
       user: {
-        username: adminUser.username,
-        role: adminUser.role, // យកតួនាទីពិតប្រាកដដែលបានរក្សាទុកក្នុង Database
-        fullName: adminUser.fullName,
+        username: username,
+        role: finalRole,
       },
     });
   } catch (err) {
@@ -385,6 +419,25 @@ const adminLogin = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Server Error ពេល Admin login" });
   }
+};
+
+module.exports = {
+  register,
+  login,
+  logout,
+  heartbeat,
+  getUsers,
+  changePassword,
+  changePin,
+  changeLimit,
+  uploadImage,
+  submitKyc,
+  verifyUser,
+  resetPassword,
+  generateTelegramCode,
+  unlinkTelegram,
+  verifyAccount,
+  adminLogin,
 };
 
 module.exports = {

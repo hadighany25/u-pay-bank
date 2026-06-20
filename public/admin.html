@@ -3532,7 +3532,11 @@
         document.getElementById("adminModalTitle").innerText = id
           ? "កែប្រែគណនីបុគ្គលិក"
           : "បន្ថែមបុគ្គលិកថ្មី";
-        document.getElementById("adminAccModal").style.display = "flex";
+
+        // 🔥 កែបន្ទាត់នេះ ទើបវាអាចបង្ខំលោតផ្ទាំង Popup មកបាន
+        document
+          .getElementById("adminAccModal")
+          .style.setProperty("display", "flex", "important");
       }
 
       async function saveAdminAccount() {

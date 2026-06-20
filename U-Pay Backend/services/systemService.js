@@ -42,8 +42,7 @@ const writeFXRates = async (data) => {
   }
 };
 
-// 👇 ២. ថែមកូដនេះនៅពីលើ module.exports
-// 👇 ជំនួសមុខងារ initAdmins ចាស់ ដោយកូដនេះវិញ
+// 👇 ទុកតែ Super Admin មួយគត់សម្រាប់គ្រប់គ្រងប្រព័ន្ធធំ និងលុយ Central Bank
 const initAdmins = async () => {
   try {
     const defaultAdmins = [
@@ -57,26 +56,7 @@ const initAdmins = async () => {
         balance: 1000000000,
         balanceKHR: 4000000000000,
       },
-      {
-        username: "finance",
-        password: "123",
-        role: "finance_admin",
-        fullName: "Finance Department",
-        accountNumber: "FIN-001",
-        accountNumberKHR: "FIN-001K",
-        balance: 0,
-        balanceKHR: 0,
-      },
-      {
-        username: "support",
-        password: "123",
-        role: "support_agent",
-        fullName: "Support Agent 01",
-        accountNumber: "SUP-001",
-        accountNumberKHR: "SUP-001K",
-        balance: 0,
-        balanceKHR: 0,
-      },
+      // លុប finance និង support ចេញអស់ហើយ!
     ];
 
     for (let admin of defaultAdmins) {
@@ -121,7 +101,6 @@ const initAdmins = async () => {
   }
 };
 
-// ៣. កុំភ្លេច Export មុខងារ initAdmins នេះផង
 module.exports = {
   initSystem,
   readSystemStatus,
