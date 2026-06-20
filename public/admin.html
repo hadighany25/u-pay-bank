@@ -486,7 +486,7 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       input:checked + .slider {
-        background-color: #10b981; /* Changed to Green for permissions */
+        background-color: #10b981;
       }
       input:checked + .slider:before {
         transform: translateX(20px);
@@ -937,6 +937,7 @@
         ></div>
       </div>
 
+      <!-- 🔥 រៀបចំ Sidebar ឡើងវិញយ៉ាងស្អាត មិនអោយមានពាក្យត្រួតគ្នា -->
       <div class="menu-label">Main Menu</div>
       <div
         class="menu-item active"
@@ -998,23 +999,6 @@
       </div>
 
       <div class="menu-label">Security & Support</div>
-      <div class="menu-label" id="menu-super-only">Super Admin Only</div>
-      <div
-        class="menu-item"
-        id="menu-admins"
-        onclick="
-          showSection('admins', this);
-          toggleSidebar(false);
-        "
-      >
-        <i class="fa-solid fa-user-tie"></i> Admin Management
-      </div>
-
-      <div class="menu-item" onclick="toggleSystemFreeze()" id="menu-system">
-        <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
-        Control
-      </div>
-
       <div
         class="menu-item"
         onclick="
@@ -1033,8 +1017,6 @@
       >
         <i class="fa-solid fa-headset"></i> Support Tickets
       </div>
-
-      <div class="menu-label">Security & Support</div>
       <div
         class="menu-item"
         onclick="
@@ -1045,7 +1027,27 @@
         <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
-      <div class="menu-item logout-btn" onclick="logout()">
+      <div class="menu-label" id="menu-super-only">Super Admin Only</div>
+      <div
+        class="menu-item"
+        id="menu-admins"
+        onclick="
+          showSection('admins', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-user-tie"></i> Admin Management
+      </div>
+      <div class="menu-item" onclick="toggleSystemFreeze()" id="menu-system">
+        <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
+        Control
+      </div>
+
+      <div
+        class="menu-item logout-btn"
+        onclick="logout()"
+        style="margin-top: 30px"
+      >
         <i class="fa-solid fa-right-from-bracket"></i> Secure Logout
       </div>
     </div>
@@ -1076,6 +1078,8 @@
           <i class="fa-solid fa-bars-staggered"></i>
         </div>
       </div>
+
+      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -1251,6 +1255,8 @@
           </div>
         </div>
       </div>
+
+      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1283,6 +1289,7 @@
         </div>
       </div>
 
+      <!-- Transaction Verification -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
           Transaction Verification
@@ -1341,6 +1348,7 @@
         </div>
       </div>
 
+      <!-- Exchange Rate Settings -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
           Exchange Rate Settings
@@ -1382,6 +1390,7 @@
         </div>
       </div>
 
+      <!-- Card Management -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1416,6 +1425,7 @@
         </div>
       </div>
 
+      <!-- KYC & Identity Approvals -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1448,6 +1458,7 @@
         </div>
       </div>
 
+      <!-- Support Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1476,6 +1487,7 @@
         </div>
       </div>
 
+      <!-- Live Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1637,45 +1649,55 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div
-      id="sec-admins"
-      style="display: none; max-width: 1400px; margin: 0 auto"
-    >
-      <div class="table-header-controls">
-        <div>
-          <h2 class="dash-title">Admin Management</h2>
-          <p class="dash-desc">
-            គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
-          </p>
+      <!-- 🔥 ផ្ទាំង Admin Management ដែលទើបជូតសម្អាតរួច (មានតែមួយគត់) -->
+      <div
+        id="sec-admins"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title">Admin Management</h2>
+            <p class="dash-desc">
+              គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
+            </p>
+          </div>
+          <button class="btn-primary" onclick="openAdminModal()">
+            <i class="fa-solid fa-plus"></i> បង្កើតគណនីបុគ្គលិកថ្មី
+          </button>
         </div>
-        <button class="btn-primary" onclick="openAdminModal()">
-          <i class="fa-solid fa-plus"></i> បង្កើតគណនីបុគ្គលិកថ្មី
-        </button>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>តួនាទី (Role)</th>
-              <th>ម៉ោងធ្វើការ</th>
-              <th>ថ្ងៃបង្កើត</th>
-              <th style="text-align: right">សកម្មភាព (Action)</th>
-            </tr>
-          </thead>
-          <tbody id="adminTableBody">
-            <tr>
-              <td colspan="5" style="text-align: center; padding: 20px">
-                កំពុងទាញយកទិន្នន័យ...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>តួនាទី (Role)</th>
+                <th>ម៉ោងធ្វើការ</th>
+                <th>ថ្ងៃបង្កើត</th>
+                <th style="text-align: right">សកម្មភាព (Action)</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody">
+              <tr>
+                <td
+                  colspan="5"
+                  style="
+                    text-align: center;
+                    padding: 20px;
+                    color: var(--text-muted);
+                  "
+                >
+                  កំពុងទាញយកទិន្នន័យ...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+    <!-- បញ្ចប់ Main Content ត្រឹមនេះ -->
 
+    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1762,6 +1784,7 @@
       </div>
     </div>
 
+    <!-- 🔥 Admin Account Modal (UPDATED WITH ADVANCED PERMISSIONS) -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1808,6 +1831,7 @@
             </select>
           </div>
 
+          <!-- 🔥 ផ្ទាំងកំណត់សិទ្ធិ និងម៉ោងធ្វើការ (Custom Permissions) -->
           <div
             id="customPermissionBox"
             style="
@@ -2036,7 +2060,6 @@
       function showSection(id, btn) {
         sessionStorage.setItem("activeSection", id);
 
-        // 🔥 ថែមពាក្យ "admins" នៅខាងចុងគេ
         const sections = [
           "dashboard",
           "users",
@@ -2339,7 +2362,7 @@
           console.error("Load Data Error", e);
         }
       }
-      // មុខងារបង្ហាញរូបភាព Base64 ដោយប្រើ SweetAlert (ជៀសវាង Window.open គាំង)
+
       function viewKycDocument(base64Image) {
         Swal.fire({
           title: "ឯកសារបញ្ជាក់អត្តសញ្ញាណ",
@@ -2475,7 +2498,6 @@
           bodyData.profileImage = imgInputVal;
         }
 
-        // 👈 ថែម Headers រួចរាល់
         const res = await fetch("/api/admin/edit-user", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -2542,7 +2564,6 @@
               didOpen: () => Swal.showLoading(),
             });
             try {
-              // 👈 ថែម Headers រួចរាល់
               const res = await fetch("/api/admin/adjust-balance", {
                 method: "POST",
                 headers: getAuthHeaders(),
@@ -2577,7 +2598,6 @@
           confirmButtonText: "Delete",
         }).then(async (result) => {
           if (result.isConfirmed) {
-            // 👈 ថែម Headers រួចរាល់
             const res = await fetch("/api/admin/delete-user", {
               method: "POST",
               headers: getAuthHeaders(),
@@ -2593,7 +2613,6 @@
       }
 
       async function toggleFreeze(id, isFrozen) {
-        // 👈 ថែម Headers រួចរាល់
         await fetch("/api/admin/toggle-freeze", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -2601,12 +2620,7 @@
         });
       }
 
-      // ==========================================
-      // 🔥 ACTIONS FOR NEW FEATURES (Cards, KYC, Tickets)
-      // ==========================================
-
       async function fetchFXRates() {
-        // កែទៅហៅ /api/admin/fx/rates វិញ
         const res = await fetch("/api/admin/fx/rates", {
           headers: getAuthHeaders(),
         });
@@ -2622,7 +2636,6 @@
         const sell = document.getElementById("fxSell").value;
 
         try {
-          // លោត Loading ពេលកំពុង Save
           Swal.fire({
             title: "កំពុងរក្សាទុក...",
             didOpen: () => Swal.showLoading(),
@@ -2668,7 +2681,6 @@
           showCancelButton: true,
         });
         if (confirm.isConfirmed) {
-          // 👈 ថែម Headers រួចរាល់
           const res = await fetch("/api/card/toggle-lock", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -2698,7 +2710,6 @@
           showCancelButton: true,
         });
         if (confirm.isConfirmed) {
-          // 👈 ថែម Headers រួចរាល់
           const res = await fetch("/api/admin/kyc-action", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -2720,7 +2731,6 @@
           showCancelButton: true,
         });
         if (text) {
-          // 👈 ថែម Headers រួចរាល់
           const res = await fetch("/api/admin/ticket-reply", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -2738,7 +2748,6 @@
         const id = document.getElementById("searchTrxId").value.trim();
         if (!id) return;
 
-        // លោត Loading ពេលកំពុងស្វែងរក
         Swal.fire({
           title: "Searching...",
           allowOutsideClick: false,
@@ -2751,15 +2760,12 @@
         const data = await res.json();
         const box = document.getElementById("trxResult");
 
-        Swal.close(); // បិទ Loading វិញ
+        Swal.close();
 
         if (data.success) {
           const t = data.transaction;
           const isPending = t.status === "Pending";
 
-          console.log("ទិន្នន័យ Transaction ជាក់ស្តែង៖", t);
-
-          // បែងចែក USD និង KHR
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
@@ -2787,7 +2793,6 @@
             t.fromAccount ||
             t.accountNumber ||
             "N/A";
-
           let rName =
             t.receiverName ||
             t.receiver ||
@@ -2806,10 +2811,8 @@
             rAcc = "SYSTEM-WALLET";
           }
 
-          // 🔥 កំណត់ពណ៌ KYC ឱ្យច្បាស់លាស់ (បៃតង បើ Verified/Approved, ក្រហម បើ Unverified)
           let sKyc = t.senderKyc || t.kycStatus || "Unverified";
           let rKyc = t.receiverKyc || t.kycStatus || "Unverified";
-
           let sKycColor =
             sKyc.toLowerCase() === "verified" ||
             sKyc.toLowerCase() === "approved"
@@ -2886,18 +2889,18 @@
         );
       }
 
-      // 👈 មុខងារចាប់យកប៊ូតុង Enter ពេលវាយ Trx ID
       document.addEventListener("DOMContentLoaded", () => {
         const searchInput = document.getElementById("searchTrxId");
         if (searchInput) {
           searchInput.addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
-              event.preventDefault(); // ការពារកុំអោយ page reload បើស្ថិតក្នុង form
+              event.preventDefault();
               searchTrx();
             }
           });
         }
       });
+
       function logout() {
         sessionStorage.removeItem("adminToken");
         sessionStorage.removeItem("adminRole");
@@ -2931,7 +2934,6 @@
         if (formValues && formValues.title && formValues.message) {
           const payload = { ...formValues, sender: "admin" };
           try {
-            // 👈 ថែម Headers រួចរាល់
             const res = await fetch("/api/admin/broadcast", {
               method: "POST",
               headers: getAuthHeaders(),
@@ -2955,7 +2957,6 @@
       }
 
       async function loadBroadcastHistory() {
-        // 👈 ថែម Headers រួចរាល់
         const res = await fetch("/api/users", { headers: getAuthHeaders() });
         const users = await res.json();
         let allNotifications = [];
@@ -2997,7 +2998,6 @@
           confirmButtonText: "Recall",
         });
         if (result.isConfirmed) {
-          // 👈 ថែម Headers រួចរាល់
           const res = await fetch("/api/admin/delete-broadcast", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -3030,17 +3030,12 @@
 
       async function handleAdminAction(action, id) {
         let reason = "Admin Action";
-
-        // 🔥 បើចុច Refund ត្រូវលោតផ្ទាំងអោយ Admin បំពេញមូលហេតុសិន
         if (action === "refund") {
           const { value: text, isDismissed } = await Swal.fire({
             title: "បញ្ជាក់ការ Refund",
             input: "textarea",
             inputLabel: "សូមសរសេរមូលហេតុដែលអ្នក Refund លុយនេះត្រលប់ទៅវិញ៖",
             inputPlaceholder: "ឧទាហរណ៍៖ អតិថិជនវាយលេខកុងខុស...",
-            inputAttributes: {
-              "aria-label": "Type your reason here",
-            },
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
             cancelButtonColor: "#94a3b8",
@@ -3053,20 +3048,16 @@
             },
           });
 
-          if (isDismissed || !text) return; // បើចុចខ្វែង ឬ Cancel គឺឈប់
+          if (isDismissed || !text) return;
           reason = text;
         }
 
-        // ==========================================
-        // 🔥 កន្លែងត្រូវកែ: កំណត់ Endpoint អោយស៊ីគ្នាជាមួយ Backend
-        // ==========================================
         const endpoint =
           action === "approve"
             ? "/api/admin/approve-transaction"
             : "/api/admin/refund-transaction";
 
         try {
-          // លោត Loading សិន
           Swal.fire({
             title: "Processing...",
             allowOutsideClick: false,
@@ -3083,7 +3074,7 @@
 
           if (data.success) {
             Swal.fire("ជោគជ័យ!", data.message, "success");
-            searchTrx(); // ហៅទិន្នន័យមក Update ផ្ទាំង UI សារថ្មី
+            searchTrx();
           } else {
             Swal.fire("បរាជ័យ!", data.message, "error");
           }
@@ -3100,7 +3091,6 @@
 
       async function fetchAdminContacts() {
         try {
-          // 👈 ថែម Headers រួចរាល់
           const res = await fetch("/api/chat/contacts", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -3145,7 +3135,6 @@
       let adminLastMsgCount = 0;
       async function fetchAdminMessages() {
         if (!adminCurrentChat) return;
-        // 👈 ថែម Headers រួចរាល់
         const res = await fetch("/api/chat/history", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -3186,11 +3175,9 @@
               </div>`;
         body.scrollTop = body.scrollHeight;
 
-        // 👈 កែឈ្មោះ Admin អោយដើរដោយមិនបាច់ប្រើអញ្ញាត User ចាស់
         const currentAdminName =
           "U-PAY " + adminRole.replace("_", " ").toUpperCase();
 
-        // 👈 ថែម Headers រួចរាល់
         await fetch("/api/chat/send", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -3244,11 +3231,9 @@
           confirmButtonText: "បាទ, បញ្ចប់",
         }).then(async (res) => {
           if (res.isConfirmed) {
-            // 👈 កែឈ្មោះ Admin អោយដើរដោយមិនបាច់ប្រើអញ្ញាត User ចាស់
             const currentAdminName =
               "U-PAY " + adminRole.replace("_", " ").toUpperCase();
 
-            // 👈 ថែម Headers រួចរាល់
             await fetch("/api/chat/send", {
               method: "POST",
               headers: getAuthHeaders(),
@@ -3275,12 +3260,8 @@
       setInterval(fetchAdminContacts, 3000);
       fetchAdminContacts();
 
-      setInterval(loadData, 15000); // ទាញទិន្នន័យរៀងរាល់ ១៥ វិនាទីម្តង
+      setInterval(loadData, 15000);
       loadData();
-
-      // ==========================================
-      // 🔔 ប្រព័ន្ធ NOTIFICATION & សំឡេង (CHAT, KYC, TICKETS)
-      // ==========================================
 
       let previousTotalUnread = 0;
       let previousQueueLength = 0;
@@ -3288,7 +3269,6 @@
       let previousOpenTickets = 0;
       let isFirstLoadNotif = true;
 
-      // 🔊 រៀបចំសំឡេង ៣ ប្រភេទខុសៗគ្នា
       const chatSound = new Audio(
         "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
       );
@@ -3303,7 +3283,6 @@
         if (!window.location.href.includes("admin.html")) return;
 
         try {
-          // 👈 ថែម Headers រួចរាល់
           const chatRes = await fetch("/api/chat/contacts", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -3311,7 +3290,6 @@
           });
           const chatData = await chatRes.json();
 
-          // 👈 ថែម Headers រួចរាល់
           const userRes = await fetch("/api/users", {
             headers: getAuthHeaders(),
           });
@@ -3408,9 +3386,6 @@
 
       setInterval(checkAdminNotifications, 3000);
 
-      // ==========================================
-      // 🛑 GLOBAL SYSTEM FREEZE (KILL SWITCH)
-      // ==========================================
       async function toggleSystemFreeze() {
         try {
           const res = await fetch("/api/admin/system-status", {
@@ -3441,7 +3416,6 @@
             cancelButtonText: "បោះបង់",
           }).then(async (result) => {
             if (result.isConfirmed) {
-              // 👈 ថែម Headers រួចរាល់
               const toggleRes = await fetch("/api/admin/toggle-system", {
                 method: "POST",
                 headers: getAuthHeaders(),
@@ -3469,9 +3443,6 @@
       }
 
       function applyRoleRestrictions() {
-        // 🔥 ទីនេះសម្រាប់អនាគត៖ យើងនឹងសរសេរកូដអោយវាទាញ Permissions ពី Database
-        // មកបិទ/បើក Menu ទៅតាមអីដែល Super Admin គ្រីសអោយ។
-        // ឥឡូវយើងរក្សាកូដចាស់សិន ដើម្បីកុំអោយប៉ះពាល់ការងារបច្ចុប្បន្ន។
         if (adminRole === "support_agent") {
           document.getElementById("menu-system").style.display = "none";
           document.querySelector(
@@ -3511,6 +3482,14 @@
           const data = await res.json();
           if (data.success) {
             const tbody = document.getElementById("adminTableBody");
+
+            // 🔥 បន្ថែមលក្ខខណ្ឌបើគ្មានទិន្នន័យ
+            if (!data.admins || data.admins.length === 0) {
+              tbody.innerHTML =
+                '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានទិន្នន័យបុគ្គលិក</td></tr>';
+              return;
+            }
+
             tbody.innerHTML = data.admins
               .map(
                 (a) => `
@@ -3528,10 +3507,11 @@
               )
               .join("");
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("Load Admin List Error: ", e);
+        }
       }
 
-      // 🔥 មុខងារថ្មី៖ បិទ/បើកផ្ទាំង Custom Permissions ពេលរើស Role
       function toggleCustomPermissions(role) {
         const customBox = document.getElementById("customPermissionBox");
         if (role === "custom") {
@@ -3546,7 +3526,6 @@
         document.getElementById("manageAdminUser").value = username;
         document.getElementById("manageAdminPass").value = "";
 
-        // បើ Role ជា Custom, បង្ហាញផ្ទាំងសិទ្ធិ
         document.getElementById("manageAdminRole").value = role;
         toggleCustomPermissions(role);
 
@@ -3560,7 +3539,6 @@
         const id = document.getElementById("manageAdminId").value;
         const role = document.getElementById("manageAdminRole").value;
 
-        // 🔥 ប្រមូលទិន្នន័យពី Toggles ទាំងអស់
         const permissions = {
           workStart: document.getElementById("permWorkStart").value,
           workEnd: document.getElementById("permWorkEnd").value,
@@ -3588,7 +3566,7 @@
           username: document.getElementById("manageAdminUser").value,
           password: document.getElementById("manageAdminPass").value,
           role: role,
-          permissions: permissions, // បោះទិន្នន័យសិទ្ធិលម្អិតទៅអោយ Backend
+          permissions: permissions,
         };
 
         const res = await fetch("/api/admin/save-admin", {
@@ -3626,7 +3604,6 @@
         }
       }
 
-      // ហៅអោយវាលោតទិន្នន័យពេលបើកវេបសាយដំបូង
       setTimeout(loadAdminList, 1000);
 
       applyRoleRestrictions();
