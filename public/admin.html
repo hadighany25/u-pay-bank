@@ -1035,7 +1035,7 @@
           toggleSidebar(false);
         "
       >
-        <i class="fa-solid fa-list-check"></i> Audit Logs (ប្រវត្តិសកម្មភាព)
+        <i class="fa-solid fa-list-check"></i> Audit Logs
       </div>
       <div class="menu-item" id="menu-system" onclick="toggleSystemFreeze()">
         <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
@@ -1691,6 +1691,40 @@
       </div>
     </div>
 
+    <div id="sec-logs" style="display: none; max-width: 1400px; margin: 0 auto">
+      <div class="table-header-controls">
+        <div>
+          <h2 class="dash-title">Admin Audit Logs</h2>
+          <p class="dash-desc">
+            តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+          </p>
+        </div>
+        <button class="btn-cancel" onclick="loadAdminLogs()">
+          <i class="fa-solid fa-rotate-right"></i> ទាញយកទិន្នន័យថ្មី
+        </button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>កាលបរិច្ឆេទ (Date)</th>
+              <th>គណនី Admin</th>
+              <th>សកម្មភាព (Action)</th>
+              <th>គោលដៅ (Target)</th>
+              <th>ព័ត៌មានលម្អិត (Details)</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 20px">
+                កំពុងទាញយកទិន្នន័យ...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -2081,6 +2115,7 @@
           "tickets",
           "live-chat",
           "admins",
+          "logs",
         ];
 
         sections.forEach((sec) => {
@@ -3297,6 +3332,7 @@
             // លាក់ប៊ូតុង Admin ធំ
             document.getElementById("menu-super-only").style.display = "none";
             document.getElementById("menu-admins").style.display = "none";
+            document.getElementById("menu-logs").style.display = "none";
             document.getElementById("menu-system").style.display = "none";
           }
         } catch (err) {
@@ -3436,8 +3472,38 @@
           }
         }
       }
-
       setTimeout(loadAdminList, 1000);
+
+      // ២. មុខងារទាញយក Logs
+      async function loadAdminLogs() {
+        if (adminRole !== "super_admin") return; // មានតែមេធំទេទើបអាចមើលបាន
+        try {
+          const res = await fetch("/api/admin/logs", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          const tbody = document.getElementById("logsTableBody");
+
+          if (data.success && data.logs.length > 0) {
+            tbody.innerHTML = data.logs
+              .map(
+                (l) => `
+              <tr>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">${l.date}</td>
+                <td style="font-weight: bold; color: var(--primary);">@${l.admin}</td>
+                <td><span style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td>
+                <td style="font-family: monospace;">${l.target || "-"}</td>
+                <td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td>
+              </tr>
+            `,
+              )
+              .join("");
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="5" style="text-align: center; padding: 20px;">គ្មានប្រវត្តិសកម្មភាពទេ</td></tr>';
+          }
+        } catch (e) {}
+      }
 
       // ហៅមុខងាររៀបចំសិទ្ធិ និងលាក់ Menu ពេលបើកវេបសាយភ្លាម
       applyDynamicPermissions();
