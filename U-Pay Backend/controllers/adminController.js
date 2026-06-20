@@ -658,6 +658,78 @@ const getFXRates = (req, res) => {
   res.json({ success: true, rates });
 };
 
+const Admin = require("../models/Admin"); // សូមប្រាកដថាបងបានហៅ Admin Model មក
+const bcrypt = require("bcryptjs"); // សម្រាប់បម្លែងលេខសម្ងាត់
+
+// ទាញយកបញ្ជីបុគ្គលិកទាំងអស់
+const getAdminsList = async (req, res) => {
+  try {
+    const admins = await Admin.find({}, "-password"); // ទាញយកទាំងអស់ តែមិនយកលេខសម្ងាត់មកទេ
+    res.json({ success: true, admins });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// បង្កើត ឬកែប្រែគណនីបុគ្គលិក
+const saveAdminAccount = async (req, res) => {
+  const { id, username, password, role } = req.body;
+  try {
+    if (id) {
+      // ករណីកែប្រែគណនីចាស់
+      const adminToUpdate = await Admin.findById(id);
+      if (!adminToUpdate)
+        return res.json({ success: false, message: "រកមិនឃើញគណនី" });
+
+      adminToUpdate.username = username;
+      adminToUpdate.role = role;
+      if (password && password.trim() !== "") {
+        adminToUpdate.password = await bcrypt.hash(password, 10);
+      }
+      await adminToUpdate.save();
+      return res.json({ success: true, message: "កែប្រែបានជោគជ័យ!" });
+    } else {
+      // ករណីបង្កើតថ្មី
+      const exists = await Admin.findOne({ username });
+      if (exists)
+        return res.json({
+          success: false,
+          message: "ឈ្មោះនេះមានអ្នកប្រើប្រាស់ហើយ!",
+        });
+      if (!password)
+        return res.json({ success: false, message: "សូមបញ្ចូលលេខសម្ងាត់!" });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newAdmin = new Admin({ username, password: hashedPassword, role });
+      await newAdmin.save();
+      return res.json({
+        success: true,
+        message: "បង្កើតគណនីបុគ្គលិកថ្មីជោគជ័យ!",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// លុបគណនីបុគ្គលិក
+const deleteAdminAccount = async (req, res) => {
+  const { id } = req.body;
+  try {
+    const adminToDelete = await Admin.findById(id);
+    if (adminToDelete && adminToDelete.username === "admin") {
+      return res.json({
+        success: false,
+        message: "មិនអាចលុបគណនី មេធំ (Master Admin) បានទេ!",
+      });
+    }
+    await Admin.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -674,4 +746,7 @@ module.exports = {
   ticketReply,
   getSystemStatus,
   getFXRates,
+  getAdminsList,
+  saveAdminAccount,
+  deleteAdminAccount,
 };

@@ -54,6 +54,22 @@ router.post(
   adminController.updateFX,
 );
 
+router.get(
+  "/list-admins",
+  checkRole([ROLE_SUPER]),
+  adminController.getAdminsList,
+);
+router.post(
+  "/save-admin",
+  checkRole([ROLE_SUPER]),
+  adminController.saveAdminAccount,
+);
+router.post(
+  "/delete-admin",
+  checkRole([ROLE_SUPER]),
+  adminController.deleteAdminAccount,
+);
+
 // ៣. មុខងារទូទៅ (Admin ទាំង ៣ ប្រភេទអាចមើលបាន)
 router.get(
   "/stats",

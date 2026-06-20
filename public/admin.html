@@ -975,6 +975,17 @@
       </div>
 
       <div class="menu-label">Security & Support</div>
+      <div class="menu-label" id="menu-super-only">Super Admin Only</div>
+      <div
+        class="menu-item"
+        id="menu-admins"
+        onclick="
+          showSection('admins', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-user-tie"></i> Admin Management
+      </div>
 
       <div class="menu-item" onclick="toggleSystemFreeze()" id="menu-system">
         <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
@@ -1042,7 +1053,7 @@
           <i class="fa-solid fa-bars-staggered"></i>
         </div>
       </div>
-
+      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -1218,7 +1229,7 @@
           </div>
         </div>
       </div>
-
+      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1251,6 +1262,7 @@
         </div>
       </div>
 
+      <!-- Transaction Verification -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
           Transaction Verification
@@ -1309,6 +1321,7 @@
         </div>
       </div>
 
+      <!-- Exchange Rate Settings -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
           Exchange Rate Settings
@@ -1350,6 +1363,7 @@
         </div>
       </div>
 
+      <!-- Card Management -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1384,6 +1398,7 @@
         </div>
       </div>
 
+      <!-- KYC & Identity Approvals -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1416,6 +1431,7 @@
         </div>
       </div>
 
+      <!-- Support Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1444,6 +1460,7 @@
         </div>
       </div>
 
+      <!-- Live Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1607,6 +1624,44 @@
       </div>
     </div>
 
+    <!-- Admin Management -->
+    <div
+      id="sec-admins"
+      style="display: none; max-width: 1400px; margin: 0 auto"
+    >
+      <div class="table-header-controls">
+        <div>
+          <h2 class="dash-title">Admin Management</h2>
+          <p class="dash-desc">
+            គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
+          </p>
+        </div>
+        <button class="btn-primary" onclick="openAdminModal()">
+          <i class="fa-solid fa-plus"></i> បង្កើតគណនីបុគ្គលិកថ្មី
+        </button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>តួនាទី (Role)</th>
+              <th>ថ្ងៃបង្កើត</th>
+              <th style="text-align: right">សកម្មភាព (Action)</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <tr>
+              <td colspan="4" style="text-align: center; padding: 20px">
+                កំពុងទាញយកទិន្នន័យ...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1693,6 +1748,58 @@
       </div>
     </div>
 
+    <!-- Admin Account Modal -->
+    <div id="adminAccModal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <i class="fa-solid fa-user-shield" style="font-size: 1.2rem"></i>
+          <h3 id="adminModalTitle">បន្ថែមបុគ្គលិកថ្មី</h3>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="manageAdminId" />
+          <div class="form-group">
+            <label>Username (ឈ្មោះចូលប្រើ)</label>
+            <input
+              id="manageAdminUser"
+              class="form-input"
+              placeholder="ឧទាហរណ៍: admin_sok"
+            />
+          </div>
+          <div class="form-group">
+            <label>Password (លេខសម្ងាត់)</label>
+            <input
+              id="manageAdminPass"
+              type="password"
+              class="form-input"
+              placeholder="ទុកទទេបើមិនចង់ដូរលេខសម្ងាត់ (សម្រាប់ពេល Edit)"
+            />
+          </div>
+          <div class="form-group">
+            <label>Role (តួនាទី និងសិទ្ធិ)</label>
+            <select id="manageAdminRole" class="form-input">
+              <option value="super_admin">
+                Super Admin (មេធំ គ្រប់គ្រងទាំងអស់)
+              </option>
+              <option value="finance_admin">
+                Finance Admin (ផ្នែកហិរញ្ញវត្ថុ វេរលុយ)
+              </option>
+              <option value="support_agent">
+                Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('adminAccModal')">
+            បោះបង់
+          </button>
+          <button class="btn-save" onclick="saveAdminAccount()">
+            រក្សាទុក
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // ១. ទាញយកសោរ និងតួនាទីពី sessionStorage
       const adminToken = sessionStorage.getItem("adminToken");
@@ -1736,6 +1843,7 @@
       function showSection(id, btn) {
         sessionStorage.setItem("activeSection", id);
 
+        // 🔥 ថែមពាក្យ "admins" នៅខាងចុងគេ
         const sections = [
           "dashboard",
           "users",
@@ -1746,6 +1854,7 @@
           "kyc",
           "tickets",
           "live-chat",
+          "admins",
         ];
 
         sections.forEach((sec) => {
@@ -3188,6 +3297,103 @@
           ).style.display = "none";
         }
       }
+
+      // លាក់ Menu មិនអោយកូនចៅឃើញ
+      if (adminRole !== "super_admin") {
+        const mLabel = document.getElementById("menu-super-only");
+        const mAdmin = document.getElementById("menu-admins");
+        if (mLabel) mLabel.style.display = "none";
+        if (mAdmin) mAdmin.style.display = "none";
+      }
+
+      // ថែម 'admins' ចូលទៅក្នុង Array នៃមុខងារ showSection() ខាងលើផងណា៎
+      // ឧ. const sections = ["dashboard", "users", ... , "admins"];
+
+      async function loadAdminList() {
+        if (adminRole !== "super_admin") return;
+        try {
+          const res = await fetch("/api/admin/list-admins", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.success) {
+            const tbody = document.getElementById("adminTableBody");
+            tbody.innerHTML = data.admins
+              .map(
+                (a) => `
+              <tr>
+                <td style="font-weight: 600;">@${a.username}</td>
+                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${a.role.toUpperCase()}</span></td>
+                <td>${new Date(a.createdAt).toLocaleDateString()}</td>
+                <td style="text-align: right;">
+                  <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}', '${a.username}', '${a.role}')"><i class="fa-solid fa-pen"></i></button>
+                  ${a.username !== "admin" ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')"><i class="fa-solid fa-trash"></i></button>` : ""}
+                </td>
+              </tr>
+            `,
+              )
+              .join("");
+          }
+        } catch (e) {}
+      }
+
+      function openAdminModal(id = "", username = "", role = "support_agent") {
+        document.getElementById("manageAdminId").value = id;
+        document.getElementById("manageAdminUser").value = username;
+        document.getElementById("manageAdminPass").value = "";
+        document.getElementById("manageAdminRole").value = role;
+        document.getElementById("adminModalTitle").innerText = id
+          ? "កែប្រែគណនីបុគ្គលិក"
+          : "បន្ថែមបុគ្គលិកថ្មី";
+        document.getElementById("adminAccModal").style.display = "flex";
+      }
+
+      async function saveAdminAccount() {
+        const id = document.getElementById("manageAdminId").value;
+        const payload = {
+          id: id,
+          username: document.getElementById("manageAdminUser").value,
+          password: document.getElementById("manageAdminPass").value,
+          role: document.getElementById("manageAdminRole").value,
+        };
+
+        const res = await fetch("/api/admin/save-admin", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire("ជោគជ័យ!", data.message, "success");
+          closeModal("adminAccModal");
+          loadAdminList();
+        } else {
+          Swal.fire("បរាជ័យ", data.message, "error");
+        }
+      }
+
+      async function deleteAdminAcc(id) {
+        const confirm = await Swal.fire({
+          title: "លុបគណនីនេះ?",
+          icon: "warning",
+          showCancelButton: true,
+        });
+        if (confirm.isConfirmed) {
+          const res = await fetch("/api/admin/delete-admin", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ id }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire("លុបរួចរាល់", "", "success");
+            loadAdminList();
+          }
+        }
+      }
+
+      // ហៅអោយវាលោតទិន្នន័យពេលបើកវេបសាយដំបូង
+      setTimeout(loadAdminList, 1000);
 
       applyRoleRestrictions();
     </script>
