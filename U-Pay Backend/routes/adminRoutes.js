@@ -18,6 +18,8 @@ router.post(
   checkRole([ROLE_SUPER]),
   adminController.deleteUser,
 );
+// បន្ថែមបន្ទាត់នេះ ដើម្បីអោយ Super Admin អាចទាញមើលប្រវត្តិ Logs បាន
+router.get("/logs", checkRole(["super_admin"]), adminController.getAdminLogs);
 // 🔥 អាប់ដេត៖ ដកសិទ្ធិ Finance ចេញ អោយតែ Super ទើបអាច Refund បាន!
 router.post(
   "/refund-transaction",
