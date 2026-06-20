@@ -795,6 +795,16 @@ const deleteAdminAccount = async (req, res) => {
   }
 };
 
+// មុខងារសម្រាប់អោយ Admin ម្នាក់ៗ ឆែកមើលសិទ្ធិរបស់ខ្លួនឯងពេល Login ចូល
+const getMe = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id || req.admin._id);
+    res.json({ success: true, admin });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -815,4 +825,9 @@ module.exports = {
   saveAdminAccount,
   deleteAdminAccount,
   checkAdminAccess,
+  getNotifications,
+  readNotifications,
+  broadcast,
+  deleteBroadcast,
+  getMe,
 };

@@ -41,7 +41,6 @@
         color: var(--text-main);
       }
 
-      /* Custom Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -57,7 +56,6 @@
         background: #94a3b8;
       }
 
-      /* ==================== SIDEBAR ==================== */
       .sidebar {
         width: 280px;
         background: var(--primary);
@@ -130,7 +128,6 @@
         color: #f87171 !important;
       }
 
-      /* ==================== MAIN CONTENT ==================== */
       .main-content {
         flex: 1;
         padding: 30px 40px;
@@ -165,7 +162,6 @@
         z-index: 900;
       }
 
-      /* ==================== DASHBOARD PREMIUM ==================== */
       .dash-wrapper {
         max-width: 1600px;
         margin: 0 auto;
@@ -288,7 +284,6 @@
         width: 100%;
       }
 
-      /* Activity Feed */
       .activity-feed {
         padding-left: 10px;
         border-left: 2px solid #f1f5f9;
@@ -334,7 +329,6 @@
         font-weight: 500;
       }
 
-      /* ==================== USERS & TABLES ==================== */
       .table-header-controls {
         display: flex;
         justify-content: space-between;
@@ -492,7 +486,6 @@
         transform: translateX(20px);
       }
 
-      /* ==================== TRANSACTION CHECK ==================== */
       .trx-check-wrapper {
         max-width: 900px;
         margin: 0 auto;
@@ -527,7 +520,6 @@
         cursor: pointer;
         transition: 0.2s;
       }
-
       .trx-result-card {
         background: white;
         border-radius: 24px;
@@ -566,7 +558,6 @@
         background: rgba(245, 158, 11, 0.15);
         color: #f59e0b;
       }
-
       .trx-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -618,7 +609,6 @@
         border-top: 1px solid var(--border);
       }
 
-      /* ==================== FX SETTINGS ==================== */
       .fx-card {
         background: white;
         padding: 30px;
@@ -646,7 +636,6 @@
         outline: none;
       }
 
-      /* ==================== MODAL FIXED ==================== */
       .modal-overlay {
         display: none !important;
         position: fixed !important;
@@ -663,7 +652,7 @@
       .modal-card {
         background: white;
         width: 100%;
-        max-width: 500px; /* Increased for permissions */
+        max-width: 500px;
         border-radius: 24px;
         overflow: hidden;
         animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -740,7 +729,6 @@
         color: #475569;
       }
 
-      /* 🔥 Style សម្រាប់រៀបចំលេខកុង និងទឹកប្រាក់ច្រើនជួរ */
       .acc-stack {
         display: flex;
         flex-direction: column;
@@ -767,7 +755,6 @@
         border: 1px solid #a7f3d0;
       }
 
-      /* Style សម្រាប់ប៊ូតុងដកលុយ (-) ពណ៌ក្រហម */
       .action-btn-red {
         background-color: #fef2f2;
         color: #ef4444;
@@ -776,12 +763,11 @@
       .action-btn-red:hover {
         background-color: #fee2e2;
       }
-      /* 🔥 បន្ថែម Style នេះដើម្បីឱ្យប៊ូតុង "យល់ព្រម" ស្អាត Premium */
       .premium-btn-confirm {
-        background-color: #004d40 !important; /* ពណ៌បៃតងចាស់ U-Pay */
+        background-color: #004d40 !important;
         color: white !important;
         border: none !important;
-        border-radius: 12px !important; /* រាងកោងស្អាត */
+        border-radius: 12px !important;
         padding: 12px 30px !important;
         font-weight: 600 !important;
         font-family: "Kantumruy Pro", sans-serif !important;
@@ -789,17 +775,14 @@
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
         transition: all 0.2s ease !important;
       }
-
       .premium-btn-confirm:hover {
         background-color: #00695c !important;
         transform: translateY(-1px) !important;
       }
-
       .premium-btn-confirm:active {
         transform: scale(0.95) !important;
       }
 
-      /* 🔥 Style សម្រាប់ Permission Grid */
       .perm-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -818,7 +801,6 @@
         color: var(--text-main);
       }
 
-      /* Responsive Rules */
       @media (max-width: 1400px) {
         .dash-stats {
           grid-template-columns: repeat(4, 1fr);
@@ -874,7 +856,6 @@
           grid-template-columns: 1fr;
         }
       }
-      /* 🔥 ធ្វើឱ្យសារបញ្ជាក់ (SweetAlert) លោតមកនៅខាងមុខ និងលើគេបំផុតជានិច្ច */
       .swal2-container {
         z-index: 99999 !important;
       }
@@ -937,10 +918,10 @@
         ></div>
       </div>
 
-      <!-- 🔥 រៀបចំ Sidebar ឡើងវិញយ៉ាងស្អាត មិនអោយមានពាក្យត្រួតគ្នា -->
-      <div class="menu-label">Main Menu</div>
+      <div class="menu-label" id="label-main">Main Menu</div>
       <div
         class="menu-item active"
+        id="menu-dashboard"
         onclick="
           showSection('dashboard', this);
           toggleSidebar(false);
@@ -950,6 +931,7 @@
       </div>
       <div
         class="menu-item"
+        id="menu-users"
         onclick="
           showSection('users', this);
           toggleSidebar(false);
@@ -958,9 +940,10 @@
         <i class="fa-solid fa-users"></i> User Management
       </div>
 
-      <div class="menu-label">Operations</div>
+      <div class="menu-label" id="label-ops">Operations</div>
       <div
         class="menu-item"
+        id="menu-checktrx"
         onclick="
           showSection('check-trx', this);
           toggleSidebar(false);
@@ -970,6 +953,7 @@
       </div>
       <div
         class="menu-item"
+        id="menu-broadcast"
         onclick="
           showSection('broadcast-history', this);
           toggleSidebar(false);
@@ -978,9 +962,10 @@
         <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
-      <div class="menu-label">Finance & Cards</div>
+      <div class="menu-label" id="label-finance">Finance & Cards</div>
       <div
         class="menu-item"
+        id="menu-fx"
         onclick="
           showSection('fx', this);
           toggleSidebar(false);
@@ -990,6 +975,7 @@
       </div>
       <div
         class="menu-item"
+        id="menu-cards"
         onclick="
           showSection('cards', this);
           toggleSidebar(false);
@@ -998,9 +984,10 @@
         <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
 
-      <div class="menu-label">Security & Support</div>
+      <div class="menu-label" id="label-security">Security & Support</div>
       <div
         class="menu-item"
+        id="menu-kyc"
         onclick="
           showSection('kyc', this);
           toggleSidebar(false);
@@ -1010,6 +997,7 @@
       </div>
       <div
         class="menu-item"
+        id="menu-tickets"
         onclick="
           showSection('tickets', this);
           toggleSidebar(false);
@@ -1019,6 +1007,7 @@
       </div>
       <div
         class="menu-item"
+        id="menu-chat"
         onclick="
           showSection('live-chat', this);
           toggleSidebar(false);
@@ -1038,7 +1027,7 @@
       >
         <i class="fa-solid fa-user-tie"></i> Admin Management
       </div>
-      <div class="menu-item" onclick="toggleSystemFreeze()" id="menu-system">
+      <div class="menu-item" id="menu-system" onclick="toggleSystemFreeze()">
         <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
         Control
       </div>
@@ -1079,7 +1068,6 @@
         </div>
       </div>
 
-      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -1256,7 +1244,6 @@
         </div>
       </div>
 
-      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1289,7 +1276,6 @@
         </div>
       </div>
 
-      <!-- Transaction Verification -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
           Transaction Verification
@@ -1348,7 +1334,6 @@
         </div>
       </div>
 
-      <!-- Exchange Rate Settings -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
           Exchange Rate Settings
@@ -1364,8 +1349,9 @@
               </p>
             </div>
             <div style="display: flex; align-items: center; gap: 10px">
-              <input type="number" id="fxBuy" class="fx-input" value="4050" />
-              <b>៛</b>
+              <input type="number" id="fxBuy" class="fx-input" value="4050" /><b
+                >៛</b
+              >
             </div>
           </div>
           <div class="fx-row">
@@ -1378,8 +1364,12 @@
               </p>
             </div>
             <div style="display: flex; align-items: center; gap: 10px">
-              <input type="number" id="fxSell" class="fx-input" value="4100" />
-              <b>៛</b>
+              <input
+                type="number"
+                id="fxSell"
+                class="fx-input"
+                value="4100"
+              /><b>៛</b>
             </div>
           </div>
           <div style="text-align: center; margin-top: 25px">
@@ -1390,7 +1380,6 @@
         </div>
       </div>
 
-      <!-- Card Management -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1425,7 +1414,6 @@
         </div>
       </div>
 
-      <!-- KYC & Identity Approvals -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1458,7 +1446,6 @@
         </div>
       </div>
 
-      <!-- Support Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1487,7 +1474,6 @@
         </div>
       </div>
 
-      <!-- Live Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1650,7 +1636,6 @@
         </div>
       </div>
 
-      <!-- 🔥 ផ្ទាំង Admin Management ដែលទើបជូតសម្អាតរួច (មានតែមួយគត់) -->
       <div
         id="sec-admins"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1695,9 +1680,7 @@
         </div>
       </div>
     </div>
-    <!-- បញ្ចប់ Main Content ត្រឹមនេះ -->
 
-    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1742,17 +1725,15 @@
             <label>Account Number (USD)</label
             ><input id="editAccNum" class="form-input" type="number" />
           </div>
-
           <div class="form-group">
-            <label>Account Number (KHR)</label>
-            <input
+            <label>Account Number (KHR)</label
+            ><input
               type="number"
               id="editAccNumKHR"
               class="form-input"
               placeholder="គ្មាន"
             />
           </div>
-
           <div class="form-group">
             <label>Reset PIN</label
             ><input
@@ -1784,7 +1765,6 @@
       </div>
     </div>
 
-    <!-- 🔥 Admin Account Modal (UPDATED WITH ADVANCED PERMISSIONS) -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1794,16 +1774,16 @@
         <div class="modal-body">
           <input type="hidden" id="manageAdminId" />
           <div class="form-group">
-            <label>Username (ឈ្មោះចូលប្រើ)</label>
-            <input
+            <label>Username (ឈ្មោះចូលប្រើ)</label
+            ><input
               id="manageAdminUser"
               class="form-input"
               placeholder="ឧទាហរណ៍: admin_sok"
             />
           </div>
           <div class="form-group">
-            <label>Password (លេខសម្ងាត់)</label>
-            <input
+            <label>Password (លេខសម្ងាត់)</label
+            ><input
               id="manageAdminPass"
               type="password"
               class="form-input"
@@ -1831,7 +1811,29 @@
             </select>
           </div>
 
-          <!-- 🔥 ផ្ទាំងកំណត់សិទ្ធិ និងម៉ោងធ្វើការ (Custom Permissions) -->
+          <div
+            class="form-group"
+            id="customRoleInputGroup"
+            style="
+              display: none;
+              background: #f0fdfa;
+              padding: 15px;
+              border-radius: 10px;
+              border: 1px dashed #10b981;
+              margin-top: -5px;
+            "
+          >
+            <label style="color: #047857"
+              >ឈ្មោះតួនាទីនេះ (Custom Role Title)</label
+            >
+            <input
+              id="customRoleName"
+              class="form-input"
+              placeholder="ឧទាហរណ៍: អ្នកគ្រប់គ្រងកាត"
+              style="border-color: #34d399"
+            />
+          </div>
+
           <div
             id="customPermissionBox"
             style="
@@ -1972,7 +1974,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>លុបគណនី (Delete)</span
+                <span>លុបគណនី</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_delete_user" /><span
                     class="slider"
@@ -1980,7 +1982,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>ផ្អាកគណនី (Freeze)</span
+                <span>ផ្អាកគណនី</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_freeze_user" /><span
                     class="slider"
@@ -1996,7 +1998,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Refund វិក្កយបត្រ</span
+                <span>Refund លុយ</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_refund" /><span
                     class="slider"
@@ -2018,23 +2020,21 @@
     </div>
 
     <script>
-      // ១. ទាញយកសោរ និងតួនាទីពី sessionStorage
       const adminToken = sessionStorage.getItem("adminToken");
       const adminRole = sessionStorage.getItem("adminRole");
+      let myAdminPermissions = null; // ទុកកត់ត្រាសិទ្ធិផ្ទាល់ខ្លួន
 
-      // ២. បើគ្មាន Token ទេ បណ្តេញទៅកាន់ទំព័រ Login ថ្មីភ្លាមៗ
       if (!adminToken || !adminRole) {
         window.location.href = "admin-login.html";
       }
 
-      // ៣. បង្កើតមុខងារជំនួយសម្រាប់ភ្ជាប់ Token ទៅគ្រប់ API ទាំងអស់
       const getAuthHeaders = () => {
         return {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`, // 👈 បញ្ចូល Token នៅទីនេះ
+          Authorization: `Bearer ${adminToken}`,
         };
       };
-      // បង្ហាញឈ្មោះ Admin លើ UI
+
       document.getElementById("adminNameDisplay").innerText =
         "U-PAY " + adminRole.split("_")[0].toUpperCase();
       document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
@@ -2091,10 +2091,7 @@
 
       async function loadData() {
         try {
-          // 👈 ថែម Headers រួចរាល់
-          const res = await fetch("/api/users", {
-            headers: getAuthHeaders(),
-          });
+          const res = await fetch("/api/users", { headers: getAuthHeaders() });
           const users = await res.json();
           globalUsersData = users;
           const clients = users.filter((u) => u.role !== "admin");
@@ -2104,7 +2101,6 @@
           let cardsHtml = "";
           let kycHtml = "";
           let ticketsHtml = "";
-
           let activeToday = 0,
             newUsers = 0,
             totalFunds = 0,
@@ -2115,14 +2111,12 @@
           let totalTransfers = 0,
             frozenCount = 0;
           let allAdminNotifs = new Set();
-
           const todayStr = new Date().toISOString().split("T")[0];
 
           clients.forEach((u) => {
             if (u.isOnline) activeToday++;
             if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
             if (u.isFrozen) frozenCount++;
-
             totalFunds += Number(u.balance) || 0;
 
             if (u.deposits && Array.isArray(u.deposits)) {
@@ -2130,7 +2124,6 @@
                 (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
               );
             }
-
             if (u.transactions && Array.isArray(u.transactions)) {
               totalTrxCount += u.transactions.length;
               u.transactions.forEach((trx) => {
@@ -2146,19 +2139,16 @@
                 if (
                   trx.type === "Transfer" ||
                   trx.trxMethod === "U-PAY Transfer"
-                ) {
+                )
                   totalTransfers++;
-                }
               });
             }
-
             if (u.notifications && Array.isArray(u.notifications)) {
               u.notifications.forEach((n) => {
                 if (n.sender === "admin")
                   allAdminNotifs.add(n.id || n.title + n.date);
               });
             }
-
             if (u.virtualCards) {
               u.virtualCards.forEach((c) => {
                 const statusHtml = c.isLocked
@@ -2167,52 +2157,19 @@
                 const btnHtml = c.isLocked
                   ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
                   : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
-
-                cardsHtml += `<tr>
-                        <td><div style="font-weight:600;">${u.fullName || u.username}</div></td>
-                        <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${c.number.slice(-4)}</td>
-                        <td>Virtual ${c.type || "Card"}</td>
-                        <td>${statusHtml}</td>
-                        <td style="text-align: right;">${btnHtml}</td>
-                    </tr>`;
+                cardsHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div></td><td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${c.number.slice(-4)}</td><td>Virtual ${c.type || "Card"}</td><td>${statusHtml}</td><td style="text-align: right;">${btnHtml}</td></tr>`;
               });
             }
-
             if (u.kycStatus === "pending") {
-              kycHtml += `<tr>
-                  <td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td>
-                  <td>Identity Document</td>
-                  <td>${u.kycSubmittedAt || "Recent"}</td>
-                  <td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td>
-                  <td style="text-align: right;">
-                      <button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button>
-                      <button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button>
-                      <button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button>
-                  </td>
-              </tr>`;
+              kycHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td><td>Identity Document</td><td>${u.kycSubmittedAt || "Recent"}</td><td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td><td style="text-align: right;"><button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button><button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button><button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button></td></tr>`;
             }
-
             if (u.tickets) {
               u.tickets.forEach((t) => {
                 const statusColor =
                   t.status === "Open"
                     ? "color:#d97706; background:#fef3c7;"
                     : "color:#10b981; background:#dcfce7;";
-
-                ticketsHtml += `<tr>
-                      <td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td>
-                      <td><div style="font-weight:600;">${u.username}</div></td>
-                      <td>${t.subject}</td>
-                      <td style="text-align: center;">
-                        <button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" 
-                                onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message">
-                          <i class="fa-solid fa-eye"></i>
-                        </button>
-                      </td>
-                      <td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td>
-                      <td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td>
-                      <td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td>
-                  </tr>`;
+                ticketsHtml += `<tr><td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td><td><div style="font-weight:600;">${u.username}</div></td><td>${t.subject}</td><td style="text-align: center;"><button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message"><i class="fa-solid fa-eye"></i></button></td><td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td><td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td><td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td></tr>`;
               });
             }
           });
@@ -2251,7 +2208,6 @@
           document.getElementById("d-frozen").innerText = frozenCount;
 
           try {
-            // 👈 ថែម Headers រួចរាល់
             const chartRes = await fetch("/api/admin/stats", {
               headers: getAuthHeaders(),
             });
@@ -2260,7 +2216,6 @@
             let gradient = ctx.createLinearGradient(0, 0, 0, 350);
             gradient.addColorStop(0, "rgba(16, 185, 129, 0.4)");
             gradient.addColorStop(1, "rgba(16, 185, 129, 0.0)");
-
             if (myChart) {
               myChart.data.labels = chartData.labels;
               myChart.data.datasets[0].data = chartData.data;
@@ -2301,7 +2256,6 @@
           }
 
           try {
-            // 👈 ថែម Headers រួចរាល់
             const extraRes = await fetch("/api/admin/dashboard-extra", {
               headers: getAuthHeaders(),
             });
@@ -2312,7 +2266,6 @@
                 extraData.revenue.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                 });
-
               const activityBox = document.getElementById("activity-feed");
               const currentDataStr = JSON.stringify(extraData.activities);
               if (activityBox.dataset.lastData !== currentDataStr) {
@@ -2343,13 +2296,7 @@
                         bg = "#fef3c7";
                         col = "#d97706";
                       }
-                      return `<div class="activity-item">
-                                <div class="act-icon" style="background:${bg}; color:${col};">${icon}</div>
-                                <div class="act-text">
-                                  <h5>${act.user} <span style="font-weight:400; color:#64748b;">- ${act.type}</span></h5>
-                                  <p>${act.date}</p>
-                                </div>
-                              </div>`;
+                      return `<div class="activity-item"><div class="act-icon" style="background:${bg}; color:${col};">${icon}</div><div class="act-text"><h5>${act.user} <span style="font-weight:400; color:#64748b;">- ${act.type}</span></h5><p>${act.date}</p></div></div>`;
                     })
                     .join("");
                 }
@@ -2377,69 +2324,52 @@
         const tbody = document.querySelector("#userTable tbody");
         tbody.innerHTML = "";
 
-        const displayUsers = users;
+        // 🔥 ទាញយកសិទ្ធិ Action ដែលបានរៀបចំទុកដើម្បីលាក់ប៊ូតុង
+        let canEdit =
+          adminRole === "super_admin" ||
+          (myAdminPermissions && myAdminPermissions.actions?.editUser);
+        let canDelete =
+          adminRole === "super_admin" ||
+          (myAdminPermissions && myAdminPermissions.actions?.deleteUser);
+        let canFreeze =
+          adminRole === "super_admin" ||
+          (myAdminPermissions && myAdminPermissions.actions?.freezeUser);
+        let canAdjust =
+          adminRole === "super_admin" ||
+          (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
-        displayUsers.forEach((u) => {
-          let accountsHtml = `<div class="acc-stack">
-              <div class="acc-badge usd"><span>$</span> ${u.accountNumber}</div>
-              ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
-          </div>`;
-
-          let balanceHtml = `<div class="acc-stack">
-              <div style="color: #0369a1; font-weight: bold;">$${u.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-              <div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
-          </div>`;
-
+        users.forEach((u) => {
+          let accountsHtml = `<div class="acc-stack"><div class="acc-badge usd"><span>$</span> ${u.accountNumber}</div>${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}</div>`;
+          let balanceHtml = `<div class="acc-stack"><div style="color: #0369a1; font-weight: bold;">$${u.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div><div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div></div>`;
           const isCentralBank = u.accountNumber === "888888888";
 
           let actionButtonsHtml = "";
           if (isCentralBank) {
-            actionButtonsHtml = `
-                <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
-            `;
+            if (canEdit)
+              actionButtonsHtml = `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>`;
           } else {
-            actionButtonsHtml = `
-                <button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')">
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-                <button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')">
-                  <i class="fa-solid fa-minus"></i>
-                </button>
-                <button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>
-            `;
+            if (canAdjust)
+              actionButtonsHtml += `<button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')"><i class="fa-solid fa-plus"></i></button><button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')"><i class="fa-solid fa-minus"></i></button>`;
+            if (canEdit)
+              actionButtonsHtml += `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>`;
+            if (canDelete)
+              actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>`;
           }
+
+          let freezeHtml = isCentralBank
+            ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
+            : canFreeze
+              ? `<label class="switch"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)"><span class="slider"></span></label>`
+              : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
 
           const tr = document.createElement("tr");
           tr.style.backgroundColor = isCentralBank ? "#fef9c3" : "";
-
           tr.innerHTML = `
-            <td>
-              <div style="display: flex; align-items: center; gap: 10px">
-                <img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" />
-                <div>
-                  <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
-                  <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
-                </div>
-              </div>
-            </td>
+            <td><div style="display: flex; align-items: center; gap: 10px"><img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" /><div><div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div><div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div></div></div></td>
             <td>${accountsHtml}</td>
             <td>${balanceHtml}</td>
-            <td>
-              ${
-                isCentralBank
-                  ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
-                  : `<label class="switch">
-                  <input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)">
-                  <span class="slider"></span>
-                </label>`
-              }
-            </td>
-            <td>
-              <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                ${actionButtonsHtml}
-              </div>
-            </td>
+            <td>${freezeHtml}</td>
+            <td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
           `;
           tbody.appendChild(tr);
         });
@@ -2450,7 +2380,6 @@
           (user) => user.id === id || user.username === id,
         );
         if (!u) return;
-
         document.getElementById("editUserId").value = u.id;
         document.getElementById("editUsername").value = u.username;
         document.getElementById("editAccNum").value = u.accountNumber;
@@ -2458,18 +2387,14 @@
           u.accountNumberKHR || "";
         document.getElementById("editPin").value = u.pin || "";
         document.getElementById("editPassword").value = "";
-
-        if (u.profileImage && u.profileImage.startsWith("data:image")) {
+        if (u.profileImage && u.profileImage.startsWith("data:image"))
           document.getElementById("editProfileImg").value =
             "Base64 Image Data...";
-        } else {
+        else
           document.getElementById("editProfileImg").value =
             u.profileImage || "";
-        }
-
         document.getElementById("e-preview").src =
           u.profileImage || "images/logo.png";
-
         document
           .getElementById("editUserModal")
           .style.setProperty("display", "flex", "important");
@@ -2484,7 +2409,6 @@
       async function saveUserEdit() {
         const id = document.getElementById("editUserId").value;
         const imgInputVal = document.getElementById("editProfileImg").value;
-
         const bodyData = {
           id: id,
           username: document.getElementById("editUsername").value,
@@ -2493,18 +2417,14 @@
           pin: document.getElementById("editPin").value,
           password: document.getElementById("editPassword").value,
         };
-
-        if (imgInputVal !== "Base64 Image Data...") {
+        if (imgInputVal !== "Base64 Image Data...")
           bodyData.profileImage = imgInputVal;
-        }
-
         const res = await fetch("/api/admin/edit-user", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify(bodyData),
         });
         const data = await res.json();
-
         if (data.success) {
           Swal.fire({
             toast: true,
@@ -2516,9 +2436,7 @@
           });
           closeModal("editUserModal");
           loadData();
-        } else {
-          Swal.fire("បរាជ័យ!", data.message, "error");
-        }
+        } else Swal.fire("បរាជ័យ!", data.message, "error");
       }
 
       function openAdjustBalance(username, type) {
@@ -2526,23 +2444,9 @@
           type === "add" ? "ដាក់ប្រាក់ (Add Money)" : "ដកប្រាក់ (Deduct Money)";
         const confirmBtnColor = type === "add" ? "#10b981" : "#ef4444";
         const icon = type === "add" ? "plus-circle" : "minus-circle";
-
         Swal.fire({
           title: `<i class="fa-solid fa-${icon}"></i> ${title}`,
-          html: `
-            <div style="text-align: left; font-family: 'Kantumruy Pro';">
-                <p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p>
-                
-                <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label>
-                <select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;">
-                    <option value="USD">គណនី USD ($)</option>
-                    <option value="KHR">គណនី KHR (៛)</option>
-                </select>
-
-                <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label>
-                <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;">
-            </div>
-          `,
+          html: `<div style="text-align: left; font-family: 'Kantumruy Pro';"><p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p><label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label><select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;"><option value="USD">គណនី USD ($)</option><option value="KHR">គណនី KHR (៛)</option></select><label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label><input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;"></div>`,
           showCancelButton: true,
           confirmButtonColor: confirmBtnColor,
           cancelButtonColor: "#64748b",
@@ -2550,11 +2454,10 @@
           preConfirm: () => {
             const currency = document.getElementById("adjCurrency").value;
             const amount = document.getElementById("adjAmount").value;
-            if (!amount || amount <= 0) {
+            if (!amount || amount <= 0)
               Swal.showValidationMessage(
                 "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
               );
-            }
             return { currency, amount };
           },
         }).then(async (result) => {
@@ -2634,21 +2537,18 @@
       async function updateFX() {
         const buy = document.getElementById("fxBuy").value;
         const sell = document.getElementById("fxSell").value;
-
         try {
           Swal.fire({
             title: "កំពុងរក្សាទុក...",
             didOpen: () => Swal.showLoading(),
           });
-
           const res = await fetch("/api/admin/fx/update", {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({ buy, sell }),
           });
           const data = await res.json();
-
-          if (data.success) {
+          if (data.success)
             Swal.fire({
               toast: true,
               position: "top-end",
@@ -2657,19 +2557,14 @@
               showConfirmButton: false,
               timer: 1500,
             });
-          } else {
+          else
             Swal.fire(
               "បរាជ័យ!",
               data.message || "មិនអាចកែប្រែអត្រាប្តូរប្រាក់បានទេ",
               "error",
             );
-          }
         } catch (error) {
-          Swal.fire(
-            "Error",
-            "បញ្ហាតភ្ជាប់ទៅកាន់ Server (Route មិនត្រឹមត្រូវ)",
-            "error",
-          );
+          Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
 
@@ -2747,28 +2642,23 @@
       async function searchTrx() {
         const id = document.getElementById("searchTrxId").value.trim();
         if (!id) return;
-
         Swal.fire({
           title: "Searching...",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
         });
-
         const res = await fetch(`/api/admin/transaction/${id}`, {
           headers: getAuthHeaders(),
         });
         const data = await res.json();
         const box = document.getElementById("trxResult");
-
         Swal.close();
 
         if (data.success) {
           const t = data.transaction;
           const isPending = t.status === "Pending";
-
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
-
           const fmtAmt = isKHR
             ? Math.abs(t.amount || 0).toLocaleString("en-US", {
                 maximumFractionDigits: 0,
@@ -2804,12 +2694,9 @@
           if (
             sName.toLowerCase().includes("system") ||
             t.trxMethod === "System Deposit"
-          ) {
+          )
             sAcc = "SYSTEM-WALLET";
-          }
-          if (rName.toLowerCase().includes("system")) {
-            rAcc = "SYSTEM-WALLET";
-          }
+          if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
 
           let sKyc = t.senderKyc || t.kycStatus || "Unverified";
           let rKyc = t.receiverKyc || t.kycStatus || "Unverified";
@@ -2824,6 +2711,14 @@
               ? "#10b981"
               : "#ef4444";
 
+          // 🔥 លាក់ប៊ូតុង Refund បើគ្មានសិទ្ធិ
+          let canRefund =
+            adminRole === "super_admin" ||
+            (myAdminPermissions && myAdminPermissions.actions?.refund);
+          let refundHtml = canRefund
+            ? `<button onclick="handleAdminAction('refund', '${t.refId || t.id}')" style="padding: 8px 15px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-rotate-left"></i> Refund Transaction</button>`
+            : `<span style="color: var(--text-muted);">គ្មានសិទ្ធិ Refund ទេ</span>`;
+
           box.style.display = "block";
           box.innerHTML = `
       <div class="trx-grid">
@@ -2837,7 +2732,6 @@
               <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${sKycColor}">${sKyc}</span></div>
               <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "N/A"}</span></div>
           </div>
-
           <div class="trx-box">
               <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
               <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
@@ -2848,7 +2742,6 @@
               <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${rKycColor}">${rKyc}</span></div>
               <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "N/A"}</span></div>
           </div>
-
           <div class="trx-box full">
               <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
               <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
@@ -2860,14 +2753,7 @@
               <div class="t-row"><span class="t-label">Reference ID</span> <span class="t-value" style="font-family: monospace;">${t.refId || t.id || "N/A"}</span></div>
               <div class="t-row"><span class="t-label">Blockchain/Hash</span> <span class="t-value hash" style="font-family: monospace;">${t.hash || "N/A"}</span></div>
               <div class="t-row"><span class="t-label">Date & Time</span> <span class="t-value">${t.date || t.createdAt || "N/A"}</span></div>
-              <div class="t-row" style="align-items: center;">
-                 <span class="t-label">Action</span> 
-                 <span class="t-value">
-                   <button onclick="handleAdminAction('refund', '${t.refId || t.id}')" style="padding: 8px 15px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
-                     <i class="fa-solid fa-rotate-left"></i> Refund Transaction
-                   </button>
-                 </span>
-              </div>          
+              <div class="t-row" style="align-items: center;"><span class="t-label">Action</span><span class="t-value">${refundHtml}</span></div>          
           </div>
       </div>
       ${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve Only</button></div>` : ""}
@@ -2891,14 +2777,13 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         const searchInput = document.getElementById("searchTrxId");
-        if (searchInput) {
+        if (searchInput)
           searchInput.addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
               event.preventDefault();
               searchTrx();
             }
           });
-        }
       });
 
       function logout() {
@@ -2911,11 +2796,7 @@
         const { value: formValues } = await Swal.fire({
           title:
             '<i class="fa-solid fa-bullhorn" style="color:var(--secondary); font-size: 2.5rem; margin-bottom: 10px;"></i><br>Send Broadcast',
-          html:
-            '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Notification Title</div>' +
-            '<input id="swal-title" class="swal2-input" placeholder="e.g., System Maintenance" style="width: 100%; box-sizing: border-box; margin: 0 0 20px 0; border-radius: 10px;">' +
-            '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Message Content</div>' +
-            '<textarea id="swal-msg" class="swal2-textarea" placeholder="Type your message here..." style="width: 100%; box-sizing: border-box; margin: 0; border-radius: 10px;"></textarea>',
+          html: '<div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Notification Title</div><input id="swal-title" class="swal2-input" placeholder="e.g., System Maintenance" style="width: 100%; box-sizing: border-box; margin: 0 0 20px 0; border-radius: 10px;"><div style="text-align: left; margin-bottom: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Message Content</div><textarea id="swal-msg" class="swal2-textarea" placeholder="Type your message here..." style="width: 100%; box-sizing: border-box; margin: 0; border-radius: 10px;"></textarea>',
           focusConfirm: false,
           showCancelButton: true,
           confirmButtonText: "Blast to All Users",
@@ -2932,12 +2813,11 @@
         });
 
         if (formValues && formValues.title && formValues.message) {
-          const payload = { ...formValues, sender: "admin" };
           try {
             const res = await fetch("/api/admin/broadcast", {
               method: "POST",
               headers: getAuthHeaders(),
-              body: JSON.stringify(payload),
+              body: JSON.stringify({ ...formValues, sender: "admin" }),
             });
             const data = await res.json();
             if (data.success) {
@@ -2947,9 +2827,7 @@
                 "success",
               );
               loadData();
-            } else {
-              Swal.fire("Error!", "Failed to send broadcast.", "error");
-            }
+            } else Swal.fire("Error!", "Failed to send broadcast.", "error");
           } catch (error) {
             Swal.fire("Error!", "Connection issue.", "error");
           }
@@ -2961,30 +2839,20 @@
         const users = await res.json();
         let allNotifications = [];
         users.forEach((u) => {
-          if (u.notifications) {
+          if (u.notifications)
             allNotifications.push(
               ...u.notifications.filter((n) => n.sender === "admin"),
             );
-          }
         });
         const uniqueNotifications = Array.from(
           new Map(allNotifications.map((n) => [n.id, n])).values(),
         );
         const list = document.getElementById("broadcastList");
         list.innerHTML = "";
-
         uniqueNotifications
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .forEach((n) => {
-            list.innerHTML += `
-              <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date}</td>
-                  <td style="font-weight:600; color:var(--text-main);">${n.title}</td>
-                  <td style="color:var(--text-muted); font-size: 0.9rem;">${n.message}</td>
-                  <td style="text-align: right;">
-                      <button onclick="deleteBroadcast('${n.id}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall</button>
-                  </td>
-              </tr>`;
+            list.innerHTML += `<tr style="border-bottom: 1px solid var(--border);"><td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date}</td><td style="font-weight:600; color:var(--text-main);">${n.title}</td><td style="color:var(--text-muted); font-size: 0.9rem;">${n.message}</td><td style="text-align: right;"><button onclick="deleteBroadcast('${n.id}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall</button></td></tr>`;
           });
       }
 
@@ -3020,9 +2888,8 @@
             if (
               item.getAttribute("onclick") &&
               item.getAttribute("onclick").includes(`'${savedSection}'`)
-            ) {
+            )
               targetBtn = item;
-            }
           });
           showSection(savedSection, targetBtn);
         }
@@ -3035,19 +2902,16 @@
             title: "បញ្ជាក់ការ Refund",
             input: "textarea",
             inputLabel: "សូមសរសេរមូលហេតុដែលអ្នក Refund លុយនេះត្រលប់ទៅវិញ៖",
-            inputPlaceholder: "ឧទាហរណ៍៖ អតិថិជនវាយលេខកុងខុស...",
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
             cancelButtonColor: "#94a3b8",
             confirmButtonText: "បញ្ជាក់ការ Refund",
             cancelButtonText: "បោះបង់",
             inputValidator: (value) => {
-              if (!value || value.trim() === "") {
+              if (!value || value.trim() === "")
                 return "អ្នកត្រូវតែសរសេរមូលហេតុជាដាច់ខាត!";
-              }
             },
           });
-
           if (isDismissed || !text) return;
           reason = text;
         }
@@ -3056,39 +2920,29 @@
           action === "approve"
             ? "/api/admin/approve-transaction"
             : "/api/admin/refund-transaction";
-
         try {
           Swal.fire({
             title: "Processing...",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading(),
           });
-
           const res = await fetch(endpoint, {
             method: "POST",
             headers: getAuthHeaders(),
             body: JSON.stringify({ refId: id, reason: reason }),
           });
-
           const data = await res.json();
-
           if (data.success) {
             Swal.fire("ជោគជ័យ!", data.message, "success");
             searchTrx();
-          } else {
-            Swal.fire("បរាជ័យ!", data.message, "error");
-          }
+          } else Swal.fire("បរាជ័យ!", data.message, "error");
         } catch (err) {
           Swal.fire("Error", "បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
 
-      // ==========================================
-      // 💬 ADMIN LIVE CHAT LOGIC
-      // ==========================================
       let adminCurrentChat = null;
       let adminChatInterval = null;
-
       async function fetchAdminContacts() {
         try {
           const res = await fetch("/api/chat/contacts", {
@@ -3097,27 +2951,17 @@
             body: JSON.stringify({ myAcc: "ADMIN" }),
           });
           const data = await res.json();
-
           const list = document.getElementById("adminContactList");
           if (data.success && data.contacts.length > 0) {
             list.innerHTML = data.contacts
               .map(
-                (c) => `
-                      <div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" style="display:flex; align-items:center; gap:12px; padding:15px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); border: 1px solid ${adminCurrentChat === c.accountNumber ? "#3b82f6" : "transparent"};">
-                          <div style="width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div>
-                          <div style="flex:1; overflow:hidden;">
-                              <h4 style="margin:0; font-size:0.95rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
-                              <p style="margin:3px 0 0 0; font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastMessage}</p>
-                          </div>
-                          ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
-                      </div>
-                  `,
+                (c) =>
+                  `<div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" style="display:flex; align-items:center; gap:12px; padding:15px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); border: 1px solid ${adminCurrentChat === c.accountNumber ? "#3b82f6" : "transparent"};"><div style="width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div><div style="flex:1; overflow:hidden;"><h4 style="margin:0; font-size:0.95rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4><p style="margin:3px 0 0 0; font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastMessage}</p></div>${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}</div>`,
               )
               .join("");
-          } else {
+          } else
             list.innerHTML =
               '<div style="text-align:center; padding:20px; color:var(--text-muted);">គ្មានសារចូលទេ</div>';
-          }
         } catch (e) {}
       }
 
@@ -3126,7 +2970,6 @@
         document.getElementById("adminChatHeader").innerHTML =
           `<h3 style="margin: 0; color: var(--text-main);"><i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} (${accNum})</h3><button onclick="endAdminChat()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">បញ្ចប់ការសន្ទនា (End Chat)</button>`;
         document.getElementById("adminChatInputBox").style.display = "flex";
-
         fetchAdminMessages();
         if (adminChatInterval) clearInterval(adminChatInterval);
         adminChatInterval = setInterval(fetchAdminMessages, 2000);
@@ -3144,17 +2987,12 @@
           }),
         });
         const data = await res.json();
-
         if (data.success && data.history.length !== adminLastMsgCount) {
           const body = document.getElementById("adminChatBody");
           body.innerHTML = "";
           data.history.forEach((m) => {
             const isSent = m.senderAcc === "ADMIN";
-            body.innerHTML += `
-                      <div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;">
-                          <div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${isSent ? "var(--primary)" : "white"}; color: ${isSent ? "white" : "var(--text-main)"}; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${m.message}</div>
-                          <div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px;">${m.time.split(",")[1] || m.time}</div>
-                      </div>`;
+            body.innerHTML += `<div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;"><div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${isSent ? "var(--primary)" : "white"}; color: ${isSent ? "white" : "var(--text-main)"}; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${m.message}</div><div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px;">${m.time.split(",")[1] || m.time}</div></div>`;
           });
           body.scrollTop = body.scrollHeight;
           adminLastMsgCount = data.history.length;
@@ -3166,18 +3004,12 @@
         const text = input.value.trim();
         if (!text || !adminCurrentChat) return;
         input.value = "";
-
         const body = document.getElementById("adminChatBody");
-        body.innerHTML += `
-              <div style="align-self: flex-end; max-width: 75%;">
-                  <div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div>
-                  <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px;">Sending...</div>
-              </div>`;
+        body.innerHTML += `<div style="align-self: flex-end; max-width: 75%;"><div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div><div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px;">Sending...</div></div>`;
         body.scrollTop = body.scrollHeight;
-
-        const currentAdminName =
-          "U-PAY " + adminRole.replace("_", " ").toUpperCase();
-
+        let roleDisplayName =
+          document.getElementById("adminRoleDisplay").innerText;
+        const currentAdminName = "U-PAY " + roleDisplayName;
         await fetch("/api/chat/send", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -3196,23 +3028,11 @@
         const ticket = targetUser?.tickets?.find(
           (t) => t.ticketId === ticketId,
         );
-
         if (!ticket) return;
-
         Swal.fire({
           title:
             '<i class="fa-solid fa-envelope-open-text" style="color:#004d40;"></i> សារពីអតិថិជន',
-          html: `
-            <div style="text-align: left; font-family: 'Kantumruy Pro';">
-                <div style="margin-bottom: 15px; padding: 18px; background: #f1f5f9; border-radius: 16px; border: 1px solid #e2e8f0;">
-                    <p style="margin: 0 0 8px; font-size: 0.85rem; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">សេចក្តីពិពណ៌នាបញ្ហា៖</p>
-                    <p style="margin: 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">${ticket.description}</p>
-                </div>
-                <div style="font-size: 0.8rem; color: #94a3b8; padding-left: 5px;">
-                    <i class="fa-regular fa-clock"></i> បញ្ជូននៅថ្ងៃ៖ ${ticket.date}
-                </div>
-            </div>
-        `,
+          html: `<div style="text-align: left; font-family: 'Kantumruy Pro';"><div style="margin-bottom: 15px; padding: 18px; background: #f1f5f9; border-radius: 16px; border: 1px solid #e2e8f0;"><p style="margin: 0 0 8px; font-size: 0.85rem; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">សេចក្តីពិពណ៌នាបញ្ហា៖</p><p style="margin: 0; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">${ticket.description}</p></div><div style="font-size: 0.8rem; color: #94a3b8; padding-left: 5px;"><i class="fa-regular fa-clock"></i> បញ្ជូននៅថ្ងៃ៖ ${ticket.date}</div></div>`,
           confirmButtonText: "យល់ព្រម",
           buttonsStyling: false,
           customClass: {
@@ -3231,9 +3051,9 @@
           confirmButtonText: "បាទ, បញ្ចប់",
         }).then(async (res) => {
           if (res.isConfirmed) {
-            const currentAdminName =
-              "U-PAY " + adminRole.replace("_", " ").toUpperCase();
-
+            let roleDisplayName =
+              document.getElementById("adminRoleDisplay").innerText;
+            const currentAdminName = "U-PAY " + roleDisplayName;
             await fetch("/api/chat/send", {
               method: "POST",
               headers: getAuthHeaders(),
@@ -3245,7 +3065,6 @@
                 adminName: currentAdminName,
               }),
             });
-
             adminCurrentChat = null;
             document.getElementById("adminChatHeader").innerHTML =
               `<h3 style="margin: 0; color: var(--text-main);">ជ្រើសរើសអតិថិជនដើម្បីឆាត</h3>`;
@@ -3260,15 +3079,11 @@
       setInterval(fetchAdminContacts, 3000);
       fetchAdminContacts();
 
-      setInterval(loadData, 15000);
-      loadData();
-
       let previousTotalUnread = 0;
       let previousQueueLength = 0;
       let previousPendingKyc = 0;
       let previousOpenTickets = 0;
       let isFirstLoadNotif = true;
-
       const chatSound = new Audio(
         "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
       );
@@ -3281,7 +3096,6 @@
 
       async function checkAdminNotifications() {
         if (!window.location.href.includes("admin.html")) return;
-
         try {
           const chatRes = await fetch("/api/chat/contacts", {
             method: "POST",
@@ -3289,22 +3103,18 @@
             body: JSON.stringify({ myAcc: "ADMIN" }),
           });
           const chatData = await chatRes.json();
-
           const userRes = await fetch("/api/users", {
             headers: getAuthHeaders(),
           });
           const userData = await userRes.json();
-
           if (chatData.success && Array.isArray(userData)) {
             let currentTotalUnread = 0;
             let currentQueueLength = chatData.contacts.length;
             let currentPendingKyc = 0;
             let currentOpenTickets = 0;
-
             chatData.contacts.forEach((c) => {
               currentTotalUnread += c.unreadCount;
             });
-
             userData.forEach((u) => {
               if (u.kycStatus === "pending") currentPendingKyc++;
               if (u.tickets && Array.isArray(u.tickets)) {
@@ -3313,24 +3123,20 @@
                 });
               }
             });
-
             if (!isFirstLoadNotif) {
               let shouldRefreshTable = false;
-
-              if (currentQueueLength > previousQueueLength) {
+              if (currentQueueLength > previousQueueLength)
                 playCustomNotif(
                   "អតិថិជនថ្មី សុំជួបភ្នាក់ងារ! 👨‍💻",
                   chatSound,
                   "#0ea5e9",
                 );
-              } else if (currentTotalUnread > previousTotalUnread) {
+              else if (currentTotalUnread > previousTotalUnread)
                 playCustomNotif(
                   "មានសារថ្មីពីអតិថិជន! 💬",
                   chatSound,
                   "#0ea5e9",
                 );
-              }
-
               if (currentPendingKyc > previousPendingKyc) {
                 playCustomNotif(
                   "មានសំណើផ្ទៀងផ្ទាត់ KYC ថ្មី! 🪪",
@@ -3339,7 +3145,6 @@
                 );
                 shouldRefreshTable = true;
               }
-
               if (currentOpenTickets > previousOpenTickets) {
                 playCustomNotif(
                   "មានសំបុត្រជំនួយ (Ticket) ថ្មី! 🎫",
@@ -3348,28 +3153,19 @@
                 );
                 shouldRefreshTable = true;
               }
-
-              if (shouldRefreshTable && typeof loadData === "function") {
+              if (shouldRefreshTable && typeof loadData === "function")
                 loadData();
-              }
             }
-
             previousQueueLength = currentQueueLength;
             previousTotalUnread = currentTotalUnread;
             previousPendingKyc = currentPendingKyc;
             previousOpenTickets = currentOpenTickets;
             isFirstLoadNotif = false;
           }
-        } catch (e) {
-          console.log("Admin Notif Error:", e);
-        }
+        } catch (e) {}
       }
-
       function playCustomNotif(message, soundObj, iconColorHex) {
-        soundObj.play().catch(() => {
-          console.log("ទាមទារអោយ Admin ចុចលើអេក្រង់ម្តងសិន ទើបអាចលោតសំឡេងបាន");
-        });
-
+        soundObj.play().catch(() => {});
         Swal.fire({
           toast: true,
           position: "top-end",
@@ -3383,7 +3179,6 @@
           customClass: { popup: "premium-swal" },
         });
       }
-
       setInterval(checkAdminNotifications, 3000);
 
       async function toggleSystemFreeze() {
@@ -3393,26 +3188,20 @@
           });
           const sys = await res.json();
           const isCurrentlyFrozen = sys.isSystemFrozen;
-
-          const titleText = isCurrentlyFrozen
-            ? "បើកដំណើរការប្រព័ន្ធវិញ?"
-            : "ផ្អាកប្រព័ន្ធទាំងមូល?";
-          const confirmBtnText = isCurrentlyFrozen
-            ? "បាទ, បើកវិញ 🟢"
-            : "បាទ, ផ្អាក 🛑";
-          const confirmColor = isCurrentlyFrozen ? "#10b981" : "#ef4444";
-          const htmlText = isCurrentlyFrozen
-            ? "អតិថិជននឹងអាចធ្វើប្រតិបត្តិការវេរលុយ/ដកលុយបានធម្មតាវិញ។"
-            : "អតិថិជនទាំងអស់នឹង <b>មិនអាច</b> ធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានទេរហូតដល់អ្នកបើកវាវិញ!";
-
           Swal.fire({
-            title: titleText,
-            html: htmlText,
+            title: isCurrentlyFrozen
+              ? "បើកដំណើរការប្រព័ន្ធវិញ?"
+              : "ផ្អាកប្រព័ន្ធទាំងមូល?",
+            html: isCurrentlyFrozen
+              ? "អតិថិជននឹងអាចធ្វើប្រតិបត្តិការវេរលុយ/ដកលុយបានធម្មតាវិញ។"
+              : "អតិថិជនទាំងអស់នឹង <b>មិនអាច</b> ធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានទេរហូតដល់អ្នកបើកវាវិញ!",
             icon: "warning",
             showCancelButton: true,
-            confirmButtonColor: confirmColor,
+            confirmButtonColor: isCurrentlyFrozen ? "#10b981" : "#ef4444",
             cancelButtonColor: "#64748b",
-            confirmButtonText: confirmBtnText,
+            confirmButtonText: isCurrentlyFrozen
+              ? "បាទ, បើកវិញ 🟢"
+              : "បាទ, ផ្អាក 🛑",
             cancelButtonText: "បោះបង់",
           }).then(async (result) => {
             if (result.isConfirmed) {
@@ -3421,8 +3210,7 @@
                 headers: getAuthHeaders(),
               });
               const toggleData = await toggleRes.json();
-
-              if (toggleData.success) {
+              if (toggleData.success)
                 Swal.fire({
                   title: toggleData.isSystemFrozen
                     ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
@@ -3434,43 +3222,80 @@
                   background: "#1e293b",
                   color: "white",
                 });
-              }
             }
           });
-        } catch (e) {
-          console.error("System Toggle Error:", e);
-        }
+        } catch (e) {}
       }
 
-      function applyRoleRestrictions() {
-        if (adminRole === "support_agent") {
-          document.getElementById("menu-system").style.display = "none";
-          document.querySelector(
-            "[onclick*=\"showSection('fx'\"]",
-          ).style.display = "none";
-          document.querySelector(
-            "[onclick*=\"showSection('cards'\"]",
-          ).style.display = "none";
-        } else if (adminRole === "finance_admin") {
-          document.getElementById("menu-system").style.display = "none";
-          document.querySelector(
-            "[onclick*=\"showSection('kyc'\"]",
-          ).style.display = "none";
-          document.querySelector(
-            "[onclick*=\"showSection('tickets'\"]",
-          ).style.display = "none";
-          document.querySelector(
-            "[onclick*=\"showSection('live-chat'\"]",
-          ).style.display = "none";
+      // ==========================================
+      // 🔥 មុខងារថ្មី សម្រាប់លាក់ Menu និងប៊ូតុងតាម Toggles (Dynamic Menu Hiding)
+      // ==========================================
+      async function applyDynamicPermissions() {
+        if (adminRole === "super_admin") {
+          // បើជាមេធំ មិនបាច់លាក់អីទេ បើកអោយទាំងអស់ ហើយហៅទិន្នន័យមកតែម្តង
+          setInterval(loadData, 15000);
+          loadData();
+          return;
         }
-      }
 
-      // លាក់ Menu មិនអោយកូនចៅឃើញ
-      if (adminRole !== "super_admin") {
-        const mLabel = document.getElementById("menu-super-only");
-        const mAdmin = document.getElementById("menu-admins");
-        if (mLabel) mLabel.style.display = "none";
-        if (mAdmin) mAdmin.style.display = "none";
+        try {
+          // ទាញសួរ Database ថាគណនីខ្ញុំនេះ មានសិទ្ធិអីខ្លះ
+          const res = await fetch("/api/admin/me", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+
+          if (data.success && data.admin && data.admin.permissions) {
+            myAdminPermissions = data.admin.permissions; // រក្សាទុកសិទ្ធិ ដើម្បីអោយតារាងអាចយកទៅប្រើលាក់ប៊ូតុង Edit/Delete បាន
+            const menus = data.admin.permissions.menus;
+
+            // 1. លាក់ Menu ខាងឆ្វេង បើអត់មានសិទ្ធិ
+            if (!menus.users)
+              document.getElementById("menu-users").style.display = "none";
+            if (!menus.checktrx)
+              document.getElementById("menu-checktrx").style.display = "none";
+            if (!menus.broadcast)
+              document.getElementById("menu-broadcast").style.display = "none";
+            if (!menus.fx)
+              document.getElementById("menu-fx").style.display = "none";
+            if (!menus.cards)
+              document.getElementById("menu-cards").style.display = "none";
+            if (!menus.kyc)
+              document.getElementById("menu-kyc").style.display = "none";
+            if (!menus.tickets)
+              document.getElementById("menu-tickets").style.display = "none";
+            if (!menus.chat)
+              document.getElementById("menu-chat").style.display = "none";
+
+            // លាក់ Label អោយស្អាត បើកូនចៅវាបាត់អស់
+            if (!menus.checktrx && !menus.broadcast)
+              document.getElementById("label-ops").style.display = "none";
+            if (!menus.fx && !menus.cards)
+              document.getElementById("label-finance").style.display = "none";
+            if (!menus.kyc && !menus.tickets && !menus.chat)
+              document.getElementById("label-security").style.display = "none";
+
+            // 2. ដូរឈ្មោះតួនាទី (Role) ផ្នែកខាងលើឆ្វេង អោយចេញឈ្មោះ Custom
+            if (
+              data.admin.role === "custom" &&
+              data.admin.permissions.customRoleName
+            ) {
+              document.getElementById("adminRoleDisplay").innerText =
+                data.admin.permissions.customRoleName.toUpperCase();
+            }
+
+            // លាក់ប៊ូតុង Admin ធំ
+            document.getElementById("menu-super-only").style.display = "none";
+            document.getElementById("menu-admins").style.display = "none";
+            document.getElementById("menu-system").style.display = "none";
+          }
+        } catch (err) {
+          console.log("Error fetching permissions", err);
+        }
+
+        // ក្រោយពេលរៀបចំសិទ្ធិ និងលាក់ប៊ូតុងរួចរាល់ ទើបហៅទិន្នន័យមកបង្ហាញ
+        setInterval(loadData, 15000);
+        loadData();
       }
 
       async function loadAdminList() {
@@ -3482,42 +3307,42 @@
           const data = await res.json();
           if (data.success) {
             const tbody = document.getElementById("adminTableBody");
-
-            // 🔥 បន្ថែមលក្ខខណ្ឌបើគ្មានទិន្នន័យ
             if (!data.admins || data.admins.length === 0) {
               tbody.innerHTML =
                 '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានទិន្នន័យបុគ្គលិក</td></tr>';
               return;
             }
-
             tbody.innerHTML = data.admins
-              .map(
-                (a) => `
-              <tr>
+              .map((a) => {
+                let displayRole =
+                  a.role === "custom" && a.permissions?.customRoleName
+                    ? a.permissions.customRoleName
+                    : a.role || "support_agent";
+                return `<tr>
                 <td style="font-weight: 600;">@${a.username}</td>
-                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${(a.role || "support_agent").toUpperCase()}</span></td>
+                <td><span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold;">${displayRole.toUpperCase()}</span></td>
                 <td style="font-family: monospace; font-size: 0.9rem;">${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
                 <td>${new Date(a.createdAt).toLocaleDateString()}</td>
                 <td style="text-align: right;">
                   <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}', '${a.username}', '${a.role}')"><i class="fa-solid fa-pen"></i></button>
                   ${a.username !== "admin" ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')"><i class="fa-solid fa-trash"></i></button>` : ""}
                 </td>
-              </tr>
-            `,
-              )
+              </tr>`;
+              })
               .join("");
           }
-        } catch (e) {
-          console.error("Load Admin List Error: ", e);
-        }
+        } catch (e) {}
       }
 
       function toggleCustomPermissions(role) {
         const customBox = document.getElementById("customPermissionBox");
+        const customInput = document.getElementById("customRoleInputGroup");
         if (role === "custom") {
           customBox.style.display = "block";
+          customInput.style.display = "block";
         } else {
           customBox.style.display = "none";
+          customInput.style.display = "none";
         }
       }
 
@@ -3525,15 +3350,11 @@
         document.getElementById("manageAdminId").value = id;
         document.getElementById("manageAdminUser").value = username;
         document.getElementById("manageAdminPass").value = "";
-
         document.getElementById("manageAdminRole").value = role;
         toggleCustomPermissions(role);
-
         document.getElementById("adminModalTitle").innerText = id
           ? "កែប្រែគណនីបុគ្គលិក"
           : "បន្ថែមបុគ្គលិកថ្មី";
-
-        // 🔥 កែបន្ទាត់នេះ ទើបវាអាចបង្ខំលោតផ្ទាំង Popup មកបាន
         document
           .getElementById("adminAccModal")
           .style.setProperty("display", "flex", "important");
@@ -3544,6 +3365,7 @@
         const role = document.getElementById("manageAdminRole").value;
 
         const permissions = {
+          customRoleName: document.getElementById("customRoleName").value,
           workStart: document.getElementById("permWorkStart").value,
           workEnd: document.getElementById("permWorkEnd").value,
           menus: {
@@ -3572,7 +3394,6 @@
           role: role,
           permissions: permissions,
         };
-
         const res = await fetch("/api/admin/save-admin", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -3583,9 +3404,7 @@
           Swal.fire("ជោគជ័យ!", data.message, "success");
           closeModal("adminAccModal");
           loadAdminList();
-        } else {
-          Swal.fire("បរាជ័យ", data.message, "error");
-        }
+        } else Swal.fire("បរាជ័យ", data.message, "error");
       }
 
       async function deleteAdminAcc(id) {
@@ -3610,7 +3429,8 @@
 
       setTimeout(loadAdminList, 1000);
 
-      applyRoleRestrictions();
+      // ហៅមុខងាររៀបចំសិទ្ធិ និងលាក់ Menu ពេលបើកវេបសាយភ្លាម
+      applyDynamicPermissions();
     </script>
   </body>
 </html>

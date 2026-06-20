@@ -101,5 +101,11 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_SUPPORT]),
   adminController.ticketReply,
 );
+// បន្ថែមពាក្យ "custom" ចូលទៅក្នុង Array ផង ដើម្បីអោយអ្នកមាន Role នេះអាចចូលបាន
+router.get(
+  "/me",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  adminController.getMe,
+);
 
 module.exports = router;

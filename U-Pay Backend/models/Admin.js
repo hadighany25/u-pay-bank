@@ -17,6 +17,7 @@ const adminSchema = new mongoose.Schema({
   },
   // 🔥 បន្ថែម Object នេះដើម្បីផ្ទុកសិទ្ធិទាំងអស់
   permissions: {
+    customRoleName: { type: String, default: "" },
     workStart: { type: String, default: "00:00" },
     workEnd: { type: String, default: "23:59" },
     menus: {
