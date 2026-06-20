@@ -825,9 +825,5 @@ module.exports = {
   saveAdminAccount,
   deleteAdminAccount,
   checkAdminAccess,
-  getNotifications,
-  readNotifications,
-  broadcast,
-  deleteBroadcast,
   getMe,
 };
