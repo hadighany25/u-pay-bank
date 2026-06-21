@@ -560,7 +560,7 @@ const refundTransaction = async (req, res) => {
 // 🔥 មុខងារ Admin បិទ/បើកកាត (មានអំណាចលើសអតិថិជន)
 // ========================================================
 const toggleAdminCardLock = async (req, res) => {
-  // ១. ឆែកសិទ្ធិ: ប្រើសិទ្ធិ freezeUser ឬ editUser ក៏បាន
+  // ឆែកសិទ្ធិ (ប្រើសិទ្ធិ freezeUser)
   const access = await checkAdminAccess(req.admin, "freezeUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
@@ -575,19 +575,19 @@ const toggleAdminCardLock = async (req, res) => {
     if (!card)
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
 
-    // ២. អនុវត្តការបិទ/បើក និងដាក់សញ្ញាសម្គាល់ថា "Admin ជាអ្នកបិទ"
+    // អនុវត្តការបិទ/បើក និងដាក់សញ្ញាសម្គាល់ថា "Admin ជាអ្នកបិទ"
     card.isLocked = isLocked;
     card.lockedByAdmin = isLocked; // 👈 នេះជាសោរសម្ងាត់! បើ Admin បិទ User មិនអាចបើកវិញបានទេ
 
     user.markModified("virtualCards");
     await user.save();
 
-    // ៣. កត់ត្រាចូល Audit Log ដោយស្ងាត់ៗ
+    // កត់ត្រាចូល Audit Log
     await logAdminAction(
       req.admin.username,
       "Toggle Card",
       user.username,
-      `Card ${card.number.slice(-4)} set to ${isLocked ? "FROZEN" : "ACTIVE"}`,
+      `Card ${card.number?.slice(-4) || ""} set to ${isLocked ? "FROZEN" : "ACTIVE"}`,
     );
 
     res.json({
