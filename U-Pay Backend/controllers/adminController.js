@@ -12,6 +12,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
 const mongoose = require("mongoose");
+const PromoCode = require("../models/PromoCode");
 const { getFormattedDate, generateHash } = require("../services/helpers");
 
 // ========================================================
@@ -1044,6 +1045,47 @@ const updateFeeSettings = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🎁 មុខងារគ្រប់គ្រង PROMO CODE (API សម្រាប់ Admin)
+// ==========================================
+const createPromoCode = async (req, res) => {
+  if (req.admin.role !== "super_admin" && req.admin.role !== "finance_admin") {
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិបង្កើត Promo Code ទេ!",
+    });
+  }
+
+  const { code, rewardValue, maxUsage, expiresAt } = req.body;
+  try {
+    const existing = await PromoCode.findOne({ code: code.toUpperCase() });
+    if (existing)
+      return res.json({ success: false, message: "កូដនេះមានរួចហើយ!" });
+
+    const newPromo = new PromoCode({
+      code: code.toUpperCase(),
+      rewardValue: parseFloat(rewardValue),
+      maxUsage: parseInt(maxUsage) || 100,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+    });
+
+    await newPromo.save();
+
+    await logAdminAction(
+      req.admin.username,
+      "Create Promo Code",
+      code,
+      `Reward: $${rewardValue}, Max: ${maxUsage}`,
+    );
+    res.json({
+      success: true,
+      message: `កូដ ${code.toUpperCase()} ត្រូវបានបង្កើតជោគជ័យ!`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1071,4 +1113,5 @@ module.exports = {
   getAdminLogs,
   getFeeSettings,
   updateFeeSettings,
+  createPromoCode,
 };

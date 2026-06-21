@@ -24,5 +24,5 @@ router.post(
   enforceSystemActive,
   rewardCashback,
 );
-
+router.post("/claim-promo", authenticateToken, userController.claimPromoCode);
 module.exports = router;

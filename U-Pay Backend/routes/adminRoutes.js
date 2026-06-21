@@ -135,5 +135,9 @@ router.post(
   checkRole(["super_admin"]),
   adminController.updateFeeSettings,
 );
-
+router.post(
+  "/promo/create",
+  checkRole(["super_admin", "finance_admin"]),
+  adminController.createPromoCode,
+);
 module.exports = router;

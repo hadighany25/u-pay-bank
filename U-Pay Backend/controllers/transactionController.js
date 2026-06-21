@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const System = require("../models/System"); // 👈 ហៅ System Model មកប្រើផ្ទាល់
 const bot = require("../services/telegramBot");
+const PromoCode = require("../models/PromoCode"); // 👈 ហៅ PromoCode Model មកប្រើផ្ទាល់
 const {
   getFormattedDate,
   generateRefId,
@@ -60,13 +61,10 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message:
-          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+    });
   }
 
   try {
@@ -422,4 +420,122 @@ const rewardCashback = async (req, res) => {
   }
 };
 
-module.exports = { checkAccount, transfer, payBankBill, rewardCashback };
+// ==========================================
+// 🚀 API សម្រាប់ឲ្យ App ផ្សេងៗហៅមកទាញលុយ (Redeem Promo API)
+// ==========================================
+const claimPromoCode = async (req, res) => {
+  const { username, code } = req.body;
+
+  // របាំងការពារ Security
+  if (req.user.username !== username) {
+    return res
+      .status(403)
+      .json({ success: false, message: "បម្រាមសុវត្ថិភាព API!" });
+  }
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីអតិថិជន!" });
+
+    // ១. ស្កេនរកកូដក្នុងប្រព័ន្ធ
+    const promo = await PromoCode.findOne({ code: code.toUpperCase() });
+    if (!promo)
+      return res.json({ success: false, message: "កូដមិនត្រឹមត្រូវទេ!" });
+    if (!promo.isActive)
+      return res.json({
+        success: false,
+        message: "កូដនេះត្រូវបានបិទលែងអោយប្រើហើយ!",
+      });
+    if (promo.expiresAt && new Date() > promo.expiresAt)
+      return res.json({ success: false, message: "កូដនេះផុតកំណត់ហើយ!" });
+    if (promo.usedCount >= promo.maxUsage)
+      return res.json({
+        success: false,
+        message: "កូដនេះត្រូវបានគេប្រើអស់ហើយ (Fully Claimed)!",
+      });
+    if (promo.usedBy.includes(username))
+      return res.json({
+        success: false,
+        message: "អ្នកបានប្រើកូដនេះយកលុយរួចហើយ!",
+      });
+
+    // ២. ទាញយកលុយចេញពីធនាគារកណ្តាល មកឲ្យអតិថិជន
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    if (!centralBank)
+      return res.json({
+        success: false,
+        message: "System Error: Central Bank Not Found!",
+      });
+
+    const rewardAmt = promo.rewardValue;
+
+    // បូកលុយ
+    user.balance += rewardAmt;
+    centralBank.balance -= rewardAmt;
+
+    const date = getFormattedDate();
+    const newHash = generateHash();
+    const newRef = "PRM-" + Date.now().toString().slice(-6);
+
+    // កត់ត្រាប្រវត្តិ
+    user.transactions.unshift({
+      refId: newRef,
+      hash: newHash,
+      date: date,
+      type: "Promo Reward",
+      amount: rewardAmt,
+      currency: "USD",
+      fee: 0,
+      senderName: "U-Pay Promos",
+      receiverName: user.username,
+      remark: `Claimed Code: ${promo.code}`,
+      status: "Success",
+      trxMethod: "API Endpoint",
+    });
+
+    centralBank.transactions.unshift({
+      refId: newRef,
+      hash: newHash,
+      date: date,
+      type: "Promo Expense",
+      amount: -rewardAmt,
+      currency: "USD",
+      fee: 0,
+      senderName: "U-Pay Promos",
+      receiverName: user.username,
+      remark: `Paid Promo ${promo.code} to ${user.username}`,
+      status: "Success",
+      trxMethod: "API Endpoint",
+    });
+
+    // កត់ឈ្មោះអ្នកដែលបានយកលុយរួច
+    promo.usedCount += 1;
+    promo.usedBy.push(username);
+
+    user.markModified("transactions");
+    centralBank.markModified("transactions");
+
+    await promo.save();
+    await user.save();
+    await centralBank.save();
+
+    res.json({
+      success: true,
+      message: `អបអរសាទរ! អ្នកទទួលបាន $${rewardAmt.toFixed(2)} ពីកូដ ${promo.code}!`,
+      newBalance: user.balance,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+module.exports = {
+  checkAccount,
+  transfer,
+  payBankBill,
+  rewardCashback,
+  claimPromoCode,
+};

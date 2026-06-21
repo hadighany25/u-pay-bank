@@ -951,6 +951,16 @@
       </div>
       <div
         class="menu-item"
+        id="menu-promo"
+        onclick="
+          showSection('promo', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-ticket"></i> Promo Codes
+      </div>
+      <div
+        class="menu-item"
         id="menu-cards"
         onclick="
           showSection('cards', this);
@@ -1369,6 +1379,7 @@
         </div>
       </div>
 
+      <!-- Fee -->
       <div
         id="sec-fees"
         style="display: none; max-width: 1000px; margin: 0 auto"
@@ -1405,6 +1416,40 @@
           </div>
         </div>
 
+        <!-- Promo Codes -->
+        <div
+          id="sec-promo"
+          style="display: none; max-width: 1400px; margin: 0 auto"
+        >
+          <div class="table-header-controls">
+            <div>
+              <h2 class="dash-title">Promo Codes Management</h2>
+              <p class="dash-desc">
+                បង្កើតកូដប្រូម៉ូសិន (Voucher) ដើម្បីទាក់ទាញអតិថិជនថ្មី
+                ឬចែករង្វាន់។
+              </p>
+            </div>
+            <button class="btn-primary" onclick="openPromoModal()">
+              <i class="fa-solid fa-plus"></i> បង្កើតកូដថ្មី
+            </button>
+          </div>
+
+          <div class="dash-card" style="text-align: center; padding: 50px 20px">
+            <i
+              class="fa-solid fa-ticket"
+              style="font-size: 4rem; color: #cbd5e1; margin-bottom: 20px"
+            ></i>
+            <h3 style="color: var(--text-main); margin-bottom: 10px">
+              ប្រព័ន្ធកូដប្រូម៉ូសិនត្រៀមរួចរាល់!
+            </h3>
+            <p style="color: var(--text-muted)">
+              ចុចប៊ូតុង "បង្កើតកូដថ្មី"
+              ខាងលើដើម្បីចាប់ផ្តើមចែករង្វាន់ដល់អតិថិជនរបស់អ្នក។
+            </p>
+          </div>
+        </div>
+
+        <!-- Fx card -->
         <div class="fx-card" style="max-width: 100%">
           <div
             style="
@@ -2142,6 +2187,59 @@
         </div>
       </div>
     </div>
+    <!-- Promo Modal -->
+    <div id="promoModal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <i class="fa-solid fa-ticket" style="font-size: 1.2rem"></i>
+          <h3>បង្កើតកូដប្រូម៉ូសិនថ្មី</h3>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>ឈ្មោះកូដ (Promo Code)</label>
+            <input
+              id="prmCode"
+              class="form-input"
+              placeholder="ឧទាហរណ៍: UPAY2026"
+              style="
+                text-transform: uppercase;
+                font-weight: bold;
+                letter-spacing: 2px;
+              "
+            />
+          </div>
+          <div class="form-group">
+            <label>ទឹកប្រាក់រង្វាន់ (Reward Value in $)</label>
+            <input
+              id="prmReward"
+              type="number"
+              class="form-input"
+              placeholder="ឧទាហរណ៍: 2.00"
+            />
+          </div>
+          <div class="form-group">
+            <label>ចំនួនអ្នកអាចប្រើបានអតិបរមា (Max Usage)</label>
+            <input
+              id="prmMax"
+              type="number"
+              class="form-input"
+              placeholder="ឧទាហរណ៍: 100 នាក់"
+              value="100"
+            />
+          </div>
+          <div class="form-group">
+            <label>ថ្ងៃផុតកំណត់ (Expiry Date) - មិនដាក់ក៏បាន</label>
+            <input id="prmExpiry" type="date" class="form-input" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('promoModal')">
+            បោះបង់
+          </button>
+          <button class="btn-save" onclick="savePromoCode()">បង្កើតកូដ</button>
+        </div>
+      </div>
+    </div>
 
     <script>
       const adminToken = sessionStorage.getItem("adminToken");
@@ -2198,6 +2296,7 @@
           "admins",
           "logs",
           "fees",
+          "promo",
         ];
 
         sections.forEach((sec) => {
@@ -3610,6 +3709,61 @@
 
       // ហៅ loadFeeSettings() ឲ្យដំណើរការពេលទំព័រដើរ
       setTimeout(loadFeeSettings, 1000);
+
+      // ==========================================
+      // 🎁 PROMO CODES MANAGEMENT
+      // ==========================================
+      function openPromoModal() {
+        document.getElementById("prmCode").value = "";
+        document.getElementById("prmReward").value = "";
+        document.getElementById("prmMax").value = "100";
+        document.getElementById("prmExpiry").value = "";
+        document
+          .getElementById("promoModal")
+          .style.setProperty("display", "flex", "important");
+      }
+
+      async function savePromoCode() {
+        const code = document.getElementById("prmCode").value.trim();
+        const reward = document.getElementById("prmReward").value;
+        const max = document.getElementById("prmMax").value;
+        const expiry = document.getElementById("prmExpiry").value;
+
+        if (!code || !reward) {
+          return Swal.fire(
+            "បំពេញមិនគ្រប់",
+            "សូមបញ្ចូលឈ្មោះកូដ និងទឹកប្រាក់រង្វាន់!",
+            "warning",
+          );
+        }
+
+        Swal.fire({
+          title: "កំពុងបង្កើត...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const res = await fetch("/api/admin/promo/create", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              code: code,
+              rewardValue: reward,
+              maxUsage: max,
+              expiresAt: expiry || null,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire("ជោគជ័យ!", data.message, "success");
+            closeModal("promoModal");
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (e) {
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
+      }
 
       setTimeout(loadAdminList, 1000);
       applyDynamicPermissions();
