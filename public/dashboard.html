@@ -302,11 +302,37 @@
       }
 
       /* --- MENU GRID (DRAG & DROP) --- */
+      /* --- MENU GRID (DRAG & DROP) --- */
       .menu-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 15px;
         padding: 5px 20px 20px 20px;
+        max-height: 220px; /* 👈 កំណត់កម្ពស់ឲ្យឃើញតែ ២ជួរពេញ */
+        overflow-y: auto; /* 👈 អនុញ្ញាតឲ្យអូសចុះក្រោមបាន */
+        overflow-x: hidden;
+        scrollbar-width: none; /* លាក់របារ Scrollbar ឲ្យស្អាត */
+      }
+      .menu-grid::-webkit-scrollbar {
+        display: none;
+      }
+      /* បន្ថែមសញ្ញាប្រាប់ថាអាចអូសបាននៅខាងក្រោម Menu */
+      .scroll-hint {
+        text-align: center;
+        color: #cbd5e1;
+        font-size: 1.2rem;
+        margin-top: -15px;
+        margin-bottom: 10px;
+        animation: bounceUpDown 2s infinite;
+      }
+      @keyframes bounceUpDown {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(5px);
+        }
       }
       .menu-item {
         display: flex;
@@ -989,8 +1015,9 @@
           </div>
         </div>
       </div>
-
+      <!-- MENU GRID -->
       <div class="menu-grid" id="sortableMenu">
+        <!-- Transfer -->
         <button
           class="menu-item"
           id="m1"
@@ -1001,6 +1028,7 @@
           </div>
           <span class="menu-text" data-lang="btn_transfer">Transfer</span>
         </button>
+        <!-- Scan QR -->
         <button
           class="menu-item"
           id="m2"
@@ -1011,6 +1039,7 @@
           </div>
           <span class="menu-text" data-lang="btn_scan">Scan QR</span>
         </button>
+        <!-- Promo -->
         <button
           class="menu-item"
           id="m3"
@@ -1021,6 +1050,7 @@
           </div>
           <span class="menu-text" data-lang="btn_payment">Payment</span>
         </button>
+        <!-- Fixed Deposit -->
         <button
           class="menu-item"
           id="m4"
@@ -1031,6 +1061,7 @@
           </div>
           <span class="menu-text" data-lang="btn_card">Cards</span>
         </button>
+        <!-- Analytics -->
         <button
           class="menu-item"
           id="m5"
@@ -1041,6 +1072,7 @@
           </div>
           <span class="menu-text" data-lang="btn_analytics">Analytics</span>
         </button>
+        <!-- Savings -->
         <button
           class="menu-item"
           id="m6"
@@ -1051,6 +1083,7 @@
           </div>
           <span class="menu-text" data-lang="btn_savings">Savings</span>
         </button>
+        <!-- Split Bill -->
         <button
           class="menu-item"
           id="m7"
@@ -1061,6 +1094,7 @@
           </div>
           <span class="menu-text" data-lang="btn_split">Split Bill</span>
         </button>
+        <!-- Fixed Deposit -->
         <button
           class="menu-item"
           id="m8"
@@ -1071,6 +1105,17 @@
           </div>
           <span class="menu-text" data-lang="btn_deposit">Deposit</span>
         </button>
+        <!-- Promo -->
+        <button class="menu-item" id="m9" onclick="claimPromoPopup()">
+          <div class="icon-box" style="background: #fce7f3; color: #db2777">
+            <i class="fa-solid fa-gift"></i>
+          </div>
+          <span class="menu-text" data-lang="btn_promo">Promo</span>
+        </button>
+      </div>
+
+      <div class="scroll-hint">
+        <i class="fa-solid fa-angle-down"></i>
       </div>
 
       <div class="promo-section">
@@ -1231,6 +1276,7 @@
           nav_scan: "Scan",
           nav_history: "History",
           nav_settings: "Settings",
+          btn_promo: "Promo",
         },
         kh: {
           btn_transfer: "វេរប្រាក់",
@@ -1245,6 +1291,7 @@
           nav_scan: "ស្កេន",
           nav_history: "ប្រវត្តិ",
           nav_settings: "ការកំណត់",
+          btn_promo: "ប្រូម៉ូសិន",
         },
       };
 
@@ -1603,6 +1650,57 @@
           : orig.includes(",")
             ? orig.split(",")[1].trim()
             : "";
+      }
+
+      // ==========================================
+      // 🎁 មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code)
+      // ==========================================
+      async function claimPromoPopup() {
+        const { value: code } = await Swal.fire({
+          title: "🎁 បញ្ចូលកូដប្រូម៉ូសិន",
+          input: "text",
+          inputPlaceholder: "ឧទាហរណ៍៖ UPAY2026",
+          showCancelButton: true,
+          confirmButtonText: "ទទួលយកលុយរង្វាន់",
+          cancelButtonText: "បោះបង់",
+          confirmButtonColor: "#10b981",
+          customClass: { popup: "premium-swal" },
+        });
+
+        if (code) {
+          Swal.fire({
+            title: "កំពុងត្រួតពិនិត្យ...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/claim-promo", {
+              method: "POST",
+              headers: authHeaders, // ប្រើ authHeaders ដែលបងមានស្រាប់
+              body: JSON.stringify({
+                username: user.username,
+                code: code,
+              }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              Swal.fire("អបអរសាទរ! 🎉", data.message, "success");
+              // លោតលុយថ្មីចូល App ភ្លាមៗមិនបាច់ Refresh
+              user.balance = data.newBalance;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              updateUI(user);
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch(() => {});
+            } else {
+              Swal.fire("សុំទោស!", data.message, "error");
+            }
+          } catch (e) {
+            Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
+          }
+        }
       }
 
       // ==========================================
