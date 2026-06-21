@@ -589,28 +589,47 @@
       }
 
       // ==========================================
-      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC)
+      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC - UPDATED)
       // ==========================================
+
       let paymentPollingInterval = null;
-      let initialTrxCount = user.transactions ? user.transactions.length : 0;
+      let lastServerTrxCount = 0;
+      let isFirstPoll = true;
 
       async function checkIncomingPayment() {
         try {
-          const res = await fetch("/api/users");
+          // 🔥 ផ្លាស់ប្តូរ៖ ត្រូវតែភ្ជាប់ authHeaders ដើម្បីមានសិទ្ធិទាញទិន្នន័យពី Backend ថ្មី
+          const res = await fetch("/api/users", {
+            method: "GET",
+            headers: authHeaders,
+          });
+
+          if (!res.ok) return; // បើ Server Error កុំអោយវាគាំង
           const users = await res.json();
-          // រកគណនីបច្ចុប្បន្នពី Database
+
+          // រកគណនីបច្ចុប្បន្នពី Database ពិតប្រាកដ
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser && serverUser.transactions) {
-            // បើចំនួនប្រតិបត្តិការកើនឡើង
-            if (serverUser.transactions.length > initialTrxCount) {
+            // ១. ពេលបើក QR ភ្លាម ទាញចំនួនប្រតិបត្តិការពី Server ផ្ទាល់ទុកសិន
+            if (isFirstPoll) {
+              lastServerTrxCount = serverUser.transactions.length;
+              isFirstPoll = false;
+              return;
+            }
+
+            // ២. បើចំនួនកើនឡើង មានន័យថាមានប្រតិបត្តិការថ្មីចូលមកហើយ!
+            if (serverUser.transactions.length > lastServerTrxCount) {
               const latestTrx = serverUser.transactions[0];
 
-              // បើវាជាការទទួលប្រាក់ (Amount > 0)
+              // Update ចំនួនថ្មីទុក
+              lastServerTrxCount = serverUser.transactions.length;
+
+              // បើវាជាការ "ទទួលប្រាក់" (Amount > 0)
               if (latestTrx.amount > 0) {
-                // Update ចំនួន Trx បច្ចុប្បន្ន ដើម្បីកុំឱ្យវាលោតសារដដែលៗ
-                initialTrxCount = serverUser.transactions.length;
+                // Update Session អោយថ្មី
                 sessionStorage.setItem("user", JSON.stringify(serverUser));
+                user = serverUser; // ធ្វើអោយអថេរ user ស្គាល់លុយថ្មី
 
                 let sym = latestTrx.currency === "KHR" ? "៛" : "$";
                 let amt = Math.abs(latestTrx.amount).toLocaleString("en-US", {
@@ -618,8 +637,10 @@
                 });
 
                 // 🔥 ឆែកមើលថាតើ QR នេះមានកំណត់ចំនួនលុយឬទេ?
-                const setAmount =
-                  parseFloat(document.getElementById("qrSetAmount").value) || 0;
+                const setAmountInput = document.getElementById("qrSetAmount");
+                const setAmount = setAmountInput
+                  ? parseFloat(setAmountInput.value)
+                  : 0;
 
                 if (setAmount > 0) {
                   // ករណីទី១៖ កំណត់លុយជាក់លាក់ -> លោត Alert ធំ ហើយរត់ទៅ Dashboard
@@ -638,11 +659,12 @@
                     confirmButtonText:
                       currentLang === "kh" ? "បិទ (OK)" : "Close",
                     allowOutsideClick: false,
+                    customClass: { popup: "premium-swal" },
                   }).then(() => {
                     window.location.href = "dashboard.html";
                   });
                 } else {
-                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូចនៅជ្រុងលើ (មិនរត់ទៅណាទេ)
+                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូច (Toast) ហើយអាចអោយគេស្កេនបន្តទៀតបាន
                   Swal.fire({
                     toast: true,
                     position: "top-end",
@@ -658,11 +680,9 @@
                     showConfirmButton: false,
                     timer: 4000,
                     timerProgressBar: true,
+                    customClass: { popup: "premium-swal" },
                   });
                 }
-              } else {
-                // បើជាការដកលុយចេញ គ្រាន់តែ Update Count ទុក
-                initialTrxCount = serverUser.transactions.length;
               }
             }
           }
@@ -672,16 +692,17 @@
       }
 
       function startPaymentListener() {
-        // កំណត់ Count ដើមឡើងវិញរាល់ពេលបើក QR
-        initialTrxCount = user.transactions ? user.transactions.length : 0;
+        isFirstPoll = true; // កំណត់ជា True វិញរាល់ពេលបើក QR ថ្មី
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
-        // ឆែករៀងរាល់ ៣ វិនាទី
         paymentPollingInterval = setInterval(checkIncomingPayment, 3000);
       }
 
       function stopPaymentListener() {
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
       }
+
+      // ចាប់ផ្តើមស្តាប់ភ្លាមៗពេលបើកទំព័រនេះ
+      startPaymentListener();
       // ==========================================
 
       let html5QrCode = new Html5Qrcode("reader");
