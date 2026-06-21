@@ -6,7 +6,8 @@ const {
 } = require("../services/systemService");
 
 const Admin = require("../models/Admin");
-const AdminLog = require("../models/AdminLog"); // 👈 ឃ្លាំងផ្ទុក Log
+const AdminLog = require("../models/AdminLog");
+const System = require("../models/System"); // 👈 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត!
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
@@ -990,21 +991,25 @@ const getMe = async (req, res) => {
 // ========================================================
 // 🔥 មុខងារគ្រប់គ្រងសេវាវេរលុយ និង កម្រិតកំណត់
 // ========================================================
-const getFeeSettings = (req, res) => {
+const getFeeSettings = async (req, res) => {
   try {
-    const settings = readFeeSettings();
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) {
+      sys = new System();
+      await sys.save();
+    }
     res.json({
       success: true,
-      transferLimit: settings.transferLimit,
-      feeTiers: settings.feeTiers,
+      transferLimit: sys.transferLimit,
+      feeTiers: sys.feeTiers,
     });
   } catch (err) {
+    // បើមាន Error បោះសារទៅប្រាប់អោយដឹងច្បាស់ៗ
     res.json({ success: false, message: err.message });
   }
 };
 
 const updateFeeSettings = async (req, res) => {
-  // ការពារសិទ្ធិ មានតែ Super Admin ឬអ្នកមានសិទ្ធិច្រើនទើបអាចកែបាន
   if (req.admin.role !== "super_admin") {
     return res.status(403).json({
       success: false,
@@ -1015,25 +1020,27 @@ const updateFeeSettings = async (req, res) => {
   const { transferLimit, feeTiers } = req.body;
   try {
     let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-    if (sys) {
-      sys.transferLimit = parseFloat(transferLimit);
-      sys.feeTiers = feeTiers;
-      await sys.save();
-
-      // កត់ត្រាចូល Audit Logs ដោយស្ងាត់ៗ
-      await logAdminAction(
-        req.admin.username,
-        "Update Fees & Limits",
-        "System Settings",
-        `New Limit: $${transferLimit}, Tiers Updated.`,
-      );
-
-      res.json({ success: true, message: "រក្សាទុកការកំណត់ជោគជ័យ!" });
-    } else {
-      res.json({ success: false });
+    if (!sys) {
+      sys = new System();
     }
+
+    sys.transferLimit = parseFloat(transferLimit);
+    sys.feeTiers = feeTiers;
+    await sys.save();
+
+    await logAdminAction(
+      req.admin.username,
+      "Update Fees & Limits",
+      "System Settings",
+      `New Limit: $${transferLimit}, Tiers Updated.`,
+    );
+
+    res.json({ success: true, message: "រក្សាទុកការកំណត់ជោគជ័យ!" });
   } catch (err) {
-    res.status(500).json({ success: false });
+    // បោះសារ Error ទៅអោយ Frontend ឃើញច្បាស់ៗ
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + err.message });
   }
 };
 
