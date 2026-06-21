@@ -12,8 +12,8 @@ const {
   getCompanyDetails,
 } = require("../services/payhubService");
 
-// 🔥 ទាញយកមុខងារអាន FX Rate ពិតប្រាកដពី MongoDB (ជំនួសអោយការកំណត់ចោល)
-const { readFXRates } = require("../services/systemService");
+// 🔥 ទាញយកមុខងារអាន FX Rate និង Fee Settings ពីកន្លែងតែមួយ
+const { readFXRates, readFeeSettings } = require("../services/systemService");
 
 // ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ
 const checkAccount = async (req, res) => {
@@ -27,7 +27,7 @@ const checkAccount = async (req, res) => {
     });
     if (targetUser) {
       const isReceiverKHR = targetUser.accountNumberKHR === accountNumber;
-      const currentFXRates = readFXRates(); // ទាញ Rate ថ្មីបំផុតពី Admin
+      const currentFXRates = readFXRates();
 
       res.json({
         success: true,
@@ -41,7 +41,7 @@ const checkAccount = async (req, res) => {
   }
 };
 
-// ២. មុខងារវេរលុយ (Transfer)
+// ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវា
 const transfer = async (req, res) => {
   const {
     senderUsername,
@@ -53,7 +53,7 @@ const transfer = async (req, res) => {
     currency,
   } = req.body;
 
-  // របាំងការពារទី១៖ ការពារការលួចបន្លំគណនីវេរលុយ (Anti-Fraud)
+  // របាំងការពារទី១៖ ការពារការលួចបន្លំគណនីវេរលុយ
   if (req.user.username !== senderUsername) {
     return res.status(403).json({
       success: false,
@@ -97,36 +97,101 @@ const transfer = async (req, res) => {
     if (!receiver)
       return res.json({ success: false, message: "Receiver not found" });
 
-    // ការគិតលុយ និងអត្រាប្តូរប្រាក់
-    const transferAmount = parseFloat(amount);
-    const isSenderKHR = currency === "KHR";
-    const isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
-
-    if (isSenderKHR && (sender.balanceKHR || 0) < transferAmount)
-      return res.json({ success: false, message: "Insufficient KHR Balance" });
-    if (!isSenderKHR && sender.balance < transferAmount)
-      return res.json({ success: false, message: "Insufficient USD Balance" });
-
     if (
       sender.accountNumber === receiverAccount ||
       sender.accountNumberKHR === receiverAccount
     )
       return res.json({ success: false, message: "Cannot transfer to self" });
 
-    // ប្រើប្រាស់អត្រាប្តូរប្រាក់ពិតប្រាកដដែល Admin ទើបកំណត់
+    const transferAmount = parseFloat(amount);
+    const isSenderKHR = currency === "KHR";
+    const isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
     const currentFXRates = readFXRates();
-    let receiverAmount = transferAmount;
 
+    // =========================================================
+    // 🧠 ចាប់ផ្តើម៖ ខួរក្បាលគណនាសេវា និង កម្រិតវេរលុយប្រចាំថ្ងៃ
+    // =========================================================
+    const { transferLimit, feeTiers } = readFeeSettings();
+
+    // បម្លែងលុយដែលចង់វេរទៅជាដុល្លារសិន ដើម្បីងាយស្រួលប្រៀបធៀបជាមួយ Limit និង Fee Tiers
+    let transferUsdAmount = transferAmount;
+    if (isSenderKHR) {
+      transferUsdAmount = transferAmount / currentFXRates.usdToKhrSell;
+    }
+
+    // [ក] ឆែកមើលកម្រិតវេរលុយប្រចាំថ្ងៃ (Daily Limit Check)
+    const todayStr = getFormattedDate().split(",")[0]; // យកតែថ្ងៃខែឆ្នាំ
+    let todayTotalUsd = 0;
+
+    if (sender.transactions) {
+      sender.transactions.forEach((t) => {
+        if (
+          t.type === "Transfer" &&
+          t.amount < 0 &&
+          t.date.startsWith(todayStr)
+        ) {
+          let pastUsdAmt = Math.abs(t.amount);
+          if (t.currency === "KHR")
+            pastUsdAmt = pastUsdAmt / currentFXRates.usdToKhrSell;
+          todayTotalUsd += pastUsdAmt;
+        }
+      });
+    }
+
+    if (todayTotalUsd + transferUsdAmount > transferLimit) {
+      return res.json({
+        success: false,
+        message: `បដិសេធ! ដែនកំណត់ប្រចាំថ្ងៃរបស់អ្នកគឺ $${transferLimit}។ ថ្ងៃនេះអ្នកវេរអស់ $${todayTotalUsd.toFixed(2)} រួចហើយ! 🛑`,
+      });
+    }
+
+    // [ខ] គណនាតម្លៃសេវាវេរលុយ (Fee Calculation)
+    let appliedFeeUsd = 0;
+    for (let i = 0; i < feeTiers.length; i++) {
+      if (
+        transferUsdAmount >= feeTiers[i].min &&
+        transferUsdAmount <= feeTiers[i].max
+      ) {
+        appliedFeeUsd = feeTiers[i].fee;
+        break;
+      }
+    }
+
+    // បម្លែងលុយសេវាទៅជារូបិយប័ណ្ណរបស់អ្នកផ្ញើ
+    let appliedFee = appliedFeeUsd;
+    if (isSenderKHR) {
+      appliedFee = appliedFeeUsd * currentFXRates.usdToKhrSell;
+    }
+    // ================== បញ្ចប់ខួរក្បាល =====================
+
+    // ឆែកសមតុល្យលុយ (លុយដែលវេរ + ថ្លៃសេវាកម្ម)
+    const totalDeduction = transferAmount + appliedFee;
+
+    if (isSenderKHR && (sender.balanceKHR || 0) < totalDeduction) {
+      return res.json({
+        success: false,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់! ចំនួនវេរ: ${transferAmount}៛ + សេវា: ${appliedFee}៛`,
+      });
+    }
+    if (!isSenderKHR && sender.balance < totalDeduction) {
+      return res.json({
+        success: false,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់! ចំនួនវេរ: $${transferAmount} + សេវា: $${appliedFee}`,
+      });
+    }
+
+    // ការគិតលុយអ្នកទទួល
+    let receiverAmount = transferAmount;
     if (!isSenderKHR && isReceiverKHR)
       receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
     else if (isSenderKHR && !isReceiverKHR)
       receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-    // កាត់លុយ
-    if (isSenderKHR) sender.balanceKHR -= transferAmount;
-    else sender.balance -= transferAmount;
+    // កាត់លុយពីអ្នកផ្ញើ (កាត់ទាំងដើម ទាំងសេវា)
+    if (isSenderKHR) sender.balanceKHR -= totalDeduction;
+    else sender.balance -= totalDeduction;
 
-    // បញ្ចូលលុយ
+    // បញ្ចូលលុយអោយអ្នកទទួល (បានតែលុយដើមសុទ្ធ)
     if (isReceiverKHR)
       receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
     else receiver.balance += receiverAmount;
@@ -141,9 +206,9 @@ const transfer = async (req, res) => {
       hash: trxHash,
       date,
       type: "Transfer",
-      amount: -transferAmount,
+      amount: -totalDeduction, // បង្ហាញលុយដែលកាត់សរុប (ដើម+សេវា)
       currency: isSenderKHR ? "KHR" : "USD",
-      fee: 0.0,
+      fee: appliedFee, // 👈 កត់ត្រាលុយសេវាចូលក្នុងប្រវត្តិ
       senderName: sender.username,
       senderAcc: isSenderKHR ? sender.accountNumberKHR : sender.accountNumber,
       receiverName: receiver.username,
@@ -157,7 +222,8 @@ const transfer = async (req, res) => {
 
     const receiverTrx = {
       ...senderTrx,
-      amount: receiverAmount,
+      amount: receiverAmount, // អ្នកទទួល ឃើញតែលុយដែលចូល
+      fee: 0,
       currency: isReceiverKHR ? "KHR" : "USD",
       type: "Received",
     };
@@ -173,6 +239,47 @@ const transfer = async (req, res) => {
       date: date,
       isRead: false,
     });
+
+    // ==========================================
+    // 🏦 ប្រមូលលុយចំណេញសេវា ចូលគណនី U-PAY Fee (@system_fee)
+    // ==========================================
+    if (appliedFee > 0) {
+      // ស្វែងរកគណនីប្រមូលសេវា
+      const feeAccount = await User.findOne({ username: "system_fee" });
+
+      if (feeAccount) {
+        if (isSenderKHR)
+          feeAccount.balanceKHR = (feeAccount.balanceKHR || 0) + appliedFee;
+        else feeAccount.balance += appliedFee;
+
+        feeAccount.transactions.unshift({
+          refId: "FEE-" + refId,
+          hash: generateHash(),
+          date,
+          type: "System Income",
+          amount: appliedFee,
+          currency: isSenderKHR ? "KHR" : "USD",
+          fee: 0,
+          senderName: sender.username,
+          senderAcc: isSenderKHR
+            ? sender.accountNumberKHR
+            : sender.accountNumber,
+          receiverName: feeAccount.fullName || "U-PAY Fee",
+          receiverAcc: isSenderKHR ? "999999998" : "999999999",
+          remark: "Transfer Fee Revenue",
+          status: "Success",
+          device: "System",
+          ip: "127.0.0.1",
+          trxMethod: "System Auto-Deduct",
+        });
+        feeAccount.markModified("transactions");
+        await feeAccount.save();
+      } else {
+        console.error(
+          "⚠️ បម្រាម៖ រកមិនឃើញគណនី @system_fee ដើម្បីប្រមូលលុយសេវាទេ!",
+        );
+      }
+    }
 
     sender.markModified("transactions");
     receiver.markModified("transactions");
@@ -197,7 +304,6 @@ const transfer = async (req, res) => {
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
 
-  // របាំងការពារទី២៖ ការពារការលួចបន្លំគណនីបង់វិក្កយបត្រ
   if (req.user.username !== username) {
     return res.status(403).json({
       success: false,
@@ -217,7 +323,6 @@ const payBankBill = async (req, res) => {
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    // ហៅ Service របស់ PayHub
     const payhubData = await payBillToPayHub(bill_id);
 
     if (payhubData && payhubData.success) {
@@ -261,7 +366,6 @@ const payBankBill = async (req, res) => {
 const rewardCashback = async (req, res) => {
   const { username, amount, refId } = req.body;
 
-  // របាំងការពារ Security: ត្រូវប្រាកដថា Token ជារបស់អ្នកដែលត្រូវទទួលរង្វាន់មែន
   if (req.user.username !== username) {
     return res
       .status(403)
@@ -270,7 +374,6 @@ const rewardCashback = async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-    // ទាញយកគណនីធនាគារកណ្តាល (សន្មត់ថាមានលេខគណនី 888888888)
     const centralBank = await User.findOne({ accountNumber: "888888888" });
 
     if (user && centralBank) {
@@ -280,7 +383,6 @@ const rewardCashback = async (req, res) => {
         const newHash = generateHash();
         const newRef = "RWD-" + Date.now().toString().slice(-6);
 
-        // ១. បញ្ចូលលុយទៅអោយ User ធម្មតា
         user.balance += reward;
         if (!user.transactions) user.transactions = [];
         user.transactions.unshift({
@@ -299,7 +401,6 @@ const rewardCashback = async (req, res) => {
           ip: req.ip || "127.0.0.1",
         });
 
-        // ២. កាត់លុយចេញពី U-Pay Central Bank
         centralBank.balance -= reward;
         if (!centralBank.transactions) centralBank.transactions = [];
         centralBank.transactions.unshift({
@@ -333,5 +434,4 @@ const rewardCashback = async (req, res) => {
   }
 };
 
-// បន្ថែម `rewardCashback` ចូលទៅក្នុង module.exports
 module.exports = { checkAccount, transfer, payBankBill, rewardCashback };
