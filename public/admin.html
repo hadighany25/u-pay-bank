@@ -1416,39 +1416,6 @@
           </div>
         </div>
 
-        <!-- Promo Codes -->
-        <div
-          id="sec-promo"
-          style="display: none; max-width: 1400px; margin: 0 auto"
-        >
-          <div class="table-header-controls">
-            <div>
-              <h2 class="dash-title">Promo Codes Management</h2>
-              <p class="dash-desc">
-                បង្កើតកូដប្រូម៉ូសិន (Voucher) ដើម្បីទាក់ទាញអតិថិជនថ្មី
-                ឬចែករង្វាន់។
-              </p>
-            </div>
-            <button class="btn-primary" onclick="openPromoModal()">
-              <i class="fa-solid fa-plus"></i> បង្កើតកូដថ្មី
-            </button>
-          </div>
-
-          <div class="dash-card" style="text-align: center; padding: 50px 20px">
-            <i
-              class="fa-solid fa-ticket"
-              style="font-size: 4rem; color: #cbd5e1; margin-bottom: 20px"
-            ></i>
-            <h3 style="color: var(--text-main); margin-bottom: 10px">
-              ប្រព័ន្ធកូដប្រូម៉ូសិនត្រៀមរួចរាល់!
-            </h3>
-            <p style="color: var(--text-muted)">
-              ចុចប៊ូតុង "បង្កើតកូដថ្មី"
-              ខាងលើដើម្បីចាប់ផ្តើមចែករង្វាន់ដល់អតិថិជនរបស់អ្នក។
-            </p>
-          </div>
-        </div>
-
         <!-- Fx card -->
         <div class="fx-card" style="max-width: 100%">
           <div
@@ -1511,6 +1478,39 @@
               <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកំណត់
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Promo Codes -->
+      <div
+        id="sec-promo"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title">Promo Codes Management</h2>
+            <p class="dash-desc">
+              បង្កើតកូដប្រូម៉ូសិន (Voucher) ដើម្បីទាក់ទាញអតិថិជនថ្មី
+              ឬចែករង្វាន់។
+            </p>
+          </div>
+          <button class="btn-primary" onclick="openPromoModal()">
+            <i class="fa-solid fa-plus"></i> បង្កើតកូដថ្មី
+          </button>
+        </div>
+
+        <div class="dash-card" style="text-align: center; padding: 50px 20px">
+          <i
+            class="fa-solid fa-ticket"
+            style="font-size: 4rem; color: #cbd5e1; margin-bottom: 20px"
+          ></i>
+          <h3 style="color: var(--text-main); margin-bottom: 10px">
+            ប្រព័ន្ធកូដប្រូម៉ូសិនត្រៀមរួចរាល់!
+          </h3>
+          <p style="color: var(--text-muted)">
+            ចុចប៊ូតុង "បង្កើតកូដថ្មី"
+            ខាងលើដើម្បីចាប់ផ្តើមចែករង្វាន់ដល់អតិថិជនរបស់អ្នក។
+          </p>
         </div>
       </div>
 
@@ -2187,7 +2187,7 @@
         </div>
       </div>
     </div>
-    <!-- Promo Modal -->
+
     <div id="promoModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -2308,7 +2308,8 @@
 
         if (id === "broadcast-history") loadBroadcastHistory();
         if (id === "fx") fetchFXRates();
-        if (id === "logs") loadAdminLogs(); // 🔥 ទាញទិន្នន័យពេលចុច
+        if (id === "logs") loadAdminLogs();
+        if (id === "promo") loadPromoCodes();
 
         document
           .querySelectorAll(".menu-item")
@@ -3765,6 +3766,60 @@
         }
       }
 
+      // មុខងារហៅ API យកកូដមកបង្ហាញ
+      async function loadPromoCodes() {
+        try {
+          const res = await fetch("/api/admin/promos", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          const tbody = document.getElementById("promoTableBody");
+
+          if (data.success && data.promos && data.promos.length > 0) {
+            tbody.innerHTML = data.promos
+              .map((p) => {
+                const status = p.isActive
+                  ? `<span style="color:#10b981; font-weight:bold;">Active 🟢</span>`
+                  : `<span style="color:#ef4444; font-weight:bold;">Disabled 🛑</span>`;
+                const usage = `${p.usedCount} / ${p.maxUsage}`;
+                const expiry = p.expiresAt
+                  ? new Date(p.expiresAt).toLocaleDateString("en-GB")
+                  : "គ្មានកំណត់";
+
+                return `
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="font-weight:900; color:var(--primary); font-size:1.1rem; letter-spacing:1.5px;">${p.code}</td>
+                  <td style="color:#10b981; font-weight:bold; font-size:1.1rem;">$${p.rewardValue.toFixed(2)}</td>
+                  <td><b>${usage} នាក់</b><br><span style="font-size:0.8rem; color:var(--text-muted);">ផុតកំណត់: ${expiry}</span></td>
+                  <td>${status}</td>
+                  <td style="text-align: right;">
+                    <label class="switch">
+                      <input type="checkbox" ${p.isActive ? "checked" : ""} onchange="togglePromoStatus('${p._id}')">
+                      <span class="slider"></span>
+                    </label>
+                  </td>
+                </tr>
+              `;
+              })
+              .join("");
+          } else {
+            tbody.innerHTML =
+              '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-ticket" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i><br>មិនទាន់មានកូដប្រូម៉ូសិននៅឡើយទេ</td></tr>';
+          }
+        } catch (e) {
+          console.error("Error loading promos", e);
+        }
+      }
+
+      // មុខងារពេល Admin ចុចកុងតាក់ បិទ/បើក
+      async function togglePromoStatus(id) {
+        await fetch("/api/admin/promo/toggle", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ id }),
+        });
+        loadPromoCodes(); // Refresh តារាងវិញ
+      }
       setTimeout(loadAdminList, 1000);
       applyDynamicPermissions();
     </script>

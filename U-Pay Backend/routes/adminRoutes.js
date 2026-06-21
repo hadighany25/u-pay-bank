@@ -140,4 +140,15 @@ router.post(
   checkRole(["super_admin", "finance_admin"]),
   adminController.createPromoCode,
 );
+// ផ្លូវសម្រាប់ទាញយក និង បិទ/បើកកូដ
+router.get(
+  "/promos",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.getPromoCodes,
+);
+router.post(
+  "/promo/toggle",
+  checkRole(["super_admin", "finance_admin"]),
+  adminController.togglePromoCode,
+);
 module.exports = router;

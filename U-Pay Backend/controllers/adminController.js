@@ -1086,6 +1086,32 @@ const createPromoCode = async (req, res) => {
   }
 };
 
+// ទាញយកបញ្ជី Promo Codes ទាំងអស់មកបង្ហាញ
+const getPromoCodes = async (req, res) => {
+  try {
+    const promos = await PromoCode.find().sort({ createdAt: -1 });
+    res.json({ success: true, promos });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// បិទឬបើក Promo Code ណាមួយ
+const togglePromoCode = async (req, res) => {
+  try {
+    const promo = await PromoCode.findById(req.body.id);
+    if (promo) {
+      promo.isActive = !promo.isActive;
+      await promo.save();
+      res.json({ success: true });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1114,4 +1140,6 @@ module.exports = {
   getFeeSettings,
   updateFeeSettings,
   createPromoCode,
+  getPromoCodes,
+  togglePromoCode,
 };
