@@ -42,6 +42,23 @@ const writeFXRates = async (data) => {
   }
 };
 
+// 🔥 ថែម ២ មុខងារនេះ សម្រាប់គ្រប់គ្រង Fee & Limit
+const readFeeSettings = () => {
+  if (!cachedSystem) return { transferLimit: 5000, feeTiers: [] };
+  return {
+    transferLimit: cachedSystem.transferLimit || 5000,
+    feeTiers: cachedSystem.feeTiers || [],
+  };
+};
+
+const writeFeeSettings = async (data) => {
+  if (cachedSystem) {
+    cachedSystem.transferLimit = data.transferLimit;
+    cachedSystem.feeTiers = data.feeTiers;
+    await cachedSystem.save();
+  }
+};
+
 // 👇 ទុកតែ Super Admin មួយគត់សម្រាប់គ្រប់គ្រងប្រព័ន្ធធំ និងលុយ Central Bank
 const initAdmins = async () => {
   try {
@@ -108,4 +125,6 @@ module.exports = {
   readFXRates,
   writeFXRates,
   initAdmins,
+  readFeeSettings,
+  writeFeeSettings,
 };
