@@ -32,21 +32,22 @@ const userSchema = new mongoose.Schema(
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
     suspiciousActivities: { type: Array, default: [] },
+
+    // 🔥 កែត្រង់នេះ: សរសេរជា Object {} ដើម្បីការពារ Mongoose កុំអោយយល់ច្រឡំ
     virtualCards: [
       {
-        id: String,
-        type: String,
-        name: String,
-        number: String,
-        cvv: String,
-        expiry: String,
+        id: { type: String },
+        type: { type: String }, // 👈 ដោះស្រាយបញ្ហាបាត់កាតនៅទីនេះ!
+        name: { type: String },
+        number: { type: String },
+        cvv: { type: String },
+        expiry: { type: String },
         isLocked: { type: Boolean, default: false },
         isOnlinePayEnabled: { type: Boolean, default: true },
-        dailyLimit: Number,
-        linkedAccount: String,
-        pin: String,
-        // 👇 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត ទើបអតិថិជនបើកកាតវិញមិនកើត (បងធ្វើត្រូវហើយ!)
-        lockedByAdmin: { type: Boolean, default: false },
+        dailyLimit: { type: Number },
+        linkedAccount: { type: String },
+        pin: { type: String },
+        lockedByAdmin: { type: Boolean, default: false }, // សោរអំណាច Admin នៅដដែល!
       },
     ],
   },
