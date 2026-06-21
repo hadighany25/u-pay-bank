@@ -1148,7 +1148,7 @@
       // 🔒 JWT SECURITY & SESSION MANAGEMENT
       // ==========================================
       let user = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken"); // Token សម្រាប់ User Security
+      let token = sessionStorage.getItem("userToken");
 
       // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
       if (!user) window.location.href = "index.html";
@@ -1186,7 +1186,9 @@
         });
       });
 
-      // វចនានុក្រម
+      // ==========================================
+      // 🌐 វចនានុក្រម (TRANSLATION)
+      // ==========================================
       const translations = {
         en: {
           btn_transfer: "Transfer",
@@ -1227,30 +1229,34 @@
         });
         const hour = new Date().getHours();
         const greetEl = document.getElementById("greetText");
-        greetEl.innerText =
-          hour < 12
-            ? currentLang === "kh"
-              ? "អរុណសួស្តី,"
-              : "Good Morning,"
-            : hour < 18
+        if (greetEl) {
+          greetEl.innerText =
+            hour < 12
               ? currentLang === "kh"
-                ? "ទិវាសួស្តី,"
-                : "Good Afternoon,"
-              : currentLang === "kh"
-                ? "សាយណ្ហសួស្តី,"
-                : "Good Evening,";
+                ? "អរុណសួស្តី,"
+                : "Good Morning,"
+              : hour < 18
+                ? currentLang === "kh"
+                  ? "ទិវាសួស្តី,"
+                  : "Good Afternoon,"
+                : currentLang === "kh"
+                  ? "សាយណ្ហសួស្តី,"
+                  : "Good Evening,";
+        }
       }
 
       // ==========================================
-      // 🔄 DATA FETCHING & UI UPDATE (JWT SECURED)
+      // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       // ==========================================
-      async function fetchUserData(isAuto = true) {
+      async function loadDashboardData(isAuto = true) {
         try {
+          // បាញ់សំណួរទៅ Server តែម្តងគត់ ដើម្បីសន្សំសំចៃ Network
           const res = await fetch("/api/users", { headers: authHeaders });
           const users = await res.json();
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser) {
+            // ១. ឆែកលុយចូល (Update Balance)
             if (isAuto && serverUser.balance > lastBalance) {
               Swal.fire({
                 toast: true,
@@ -1265,36 +1271,49 @@
             lastBalance = serverUser.balance;
             user = serverUser;
             sessionStorage.setItem("user", JSON.stringify(serverUser));
-            updateUI(serverUser);
 
+            // ២. ធ្វើអោយ UI ថ្មី (លុយខាងក្រៅ, កាត, ប្រវត្តិ)
+            updateUI(serverUser);
             if (currentViewingCurrency)
               renderTransactionsInModal(serverUser, currentViewingCurrency);
+
+            // ៣. បាញ់សារចូល UI (Update Notifications) ភ្លាមៗដោយមិនបាច់រង់ចាំ
+            updateNotificationsUI(serverUser);
           }
         } catch (err) {
-          console.error("Fetch Error:", err);
+          console.error("Turbo Load Error:", err);
         }
       }
 
       function updateUI(currentUser) {
         applyLang();
-        document.getElementById("username").innerText =
-          currentUser.fullName || currentUser.username;
-        document.getElementById("accNum").innerText =
-          currentUser.accountNumber.replace(
+        const usernameEl = document.getElementById("username");
+        if (usernameEl)
+          usernameEl.innerText = currentUser.fullName || currentUser.username;
+
+        const accNumEl = document.getElementById("accNum");
+        if (accNumEl)
+          accNumEl.innerText = currentUser.accountNumber.replace(
             /(\d{3})(\d{3})(\d{3})/,
             "$1 $2 $3",
           );
-        document.getElementById("balance").innerText =
-          currentUser.balance.toFixed(2);
+
+        const balEl = document.getElementById("balance");
+        if (balEl) balEl.innerText = currentUser.balance.toFixed(2);
 
         let khrAcc = currentUser.accountNumberKHR || "N/A";
-        document.getElementById("accNumKHR").innerText = khrAcc.replace(
-          /(\d{3})(\d{3})(\d{3})/,
-          "$1 $2 $3",
-        );
-        document.getElementById("balanceKHR").innerText = (
-          currentUser.balanceKHR || 0
-        ).toLocaleString("en-US");
+        const accNumKHREl = document.getElementById("accNumKHR");
+        if (accNumKHREl)
+          accNumKHREl.innerText = khrAcc.replace(
+            /(\d{3})(\d{3})(\d{3})/,
+            "$1 $2 $3",
+          );
+
+        const balKHREl = document.getElementById("balanceKHR");
+        if (balKHREl)
+          balKHREl.innerText = (currentUser.balanceKHR || 0).toLocaleString(
+            "en-US",
+          );
 
         let totalHold = currentUser.transactions
           ? currentUser.transactions
@@ -1308,9 +1327,97 @@
             totalHold.toFixed(2);
         } else if (holdArea) holdArea.style.display = "none";
 
-        if (currentUser.profileImage)
-          document.getElementById("avatarBox").innerHTML =
-            `<img src="${currentUser.profileImage}">`;
+        const avatarBox = document.getElementById("avatarBox");
+        if (currentUser.profileImage && avatarBox)
+          avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
+      }
+
+      // ==========================================
+      // 🔔 មុខងាររៀបចំសារ Notif ភ្លាមៗ
+      // ==========================================
+      let currentUnreadCount = 0;
+      function updateNotificationsUI(currentUser) {
+        const unread = (currentUser.notifications || []).filter(
+          (n) => !n.isRead,
+        );
+
+        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
+        if (unread.length > currentUnreadCount) {
+          new Audio(
+            "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
+          )
+            .play()
+            .catch(() => {});
+          const bell = document.getElementById("bellShake");
+          if (bell) {
+            bell.classList.add("fa-shake");
+            setTimeout(() => bell.classList.remove("fa-shake"), 2000);
+          }
+        }
+
+        currentUnreadCount = unread.length;
+
+        const badge = document.getElementById("notiBadge");
+        if (badge) {
+          badge.innerText = currentUnreadCount;
+          badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
+        }
+
+        const list = document.getElementById("notifList");
+        if (list) {
+          if (unread.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
+          } else {
+            list.innerHTML = unread
+              .map((n) => {
+                let icon = "fa-bullhorn",
+                  bg = "#e0f2fe",
+                  col = "#0284c7";
+                if (n.title.includes("Received")) {
+                  icon = "fa-hand-holding-dollar";
+                  bg = "#ecfdf5";
+                  col = "#10b981";
+                } else if (
+                  n.title.includes("សំណើទូទាត់ប្រាក់") ||
+                  n.type === "payment_request"
+                ) {
+                  icon = "fa-cart-shopping";
+                  bg = "#fff7ed";
+                  col = "#ea580c";
+                }
+
+                return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px;">
+                        <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
+                        <div><h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4><p style="margin:4px 0; font-size:0.85rem; color:#475569;">${n.message}</p><span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span></div>
+                      </div>`;
+              })
+              .reverse()
+              .join("");
+          }
+        }
+      }
+
+      function readNotifications() {
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "flex";
+      }
+
+      async function closeNotifications() {
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "none";
+
+        const badge = document.getElementById("notiBadge");
+        if (badge && parseInt(badge.innerText) > 0) {
+          try {
+            await fetch("/api/user/read-notifications", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({ username: user.username }),
+            });
+            // Update UI ភ្លាមៗ
+            loadDashboardData(false);
+          } catch (e) {}
+        }
       }
 
       // ==========================================
@@ -1323,39 +1430,41 @@
         const modal = document.getElementById("accountBottomSheet");
         const overlay = document.getElementById("accountModalOverlay");
 
-        document.getElementById("sheetAccType").innerText =
-          currency === "USD"
-            ? "គណនីប្រាក់ដុល្លារ (USD)"
-            : "គណនីប្រាក់រៀល (KHR)";
-        document.getElementById("sheetBalance").innerText =
-          currency === "USD"
-            ? `$${user.balance.toFixed(2)}`
-            : `${(user.balanceKHR || 0).toLocaleString("en-US")} ៛`;
-        document.getElementById("sheetAccNum").innerText =
-          currency === "USD"
-            ? user.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
-            : (user.accountNumberKHR || "").replace(
-                /(\d{3})(\d{3})(\d{3})/,
-                "$1 $2 $3",
-              );
+        if (modal && overlay) {
+          document.getElementById("sheetAccType").innerText =
+            currency === "USD"
+              ? "គណនីប្រាក់ដុល្លារ (USD)"
+              : "គណនីប្រាក់រៀល (KHR)";
+          document.getElementById("sheetBalance").innerText =
+            currency === "USD"
+              ? `$${user.balance.toFixed(2)}`
+              : `${(user.balanceKHR || 0).toLocaleString("en-US")} ៛`;
+          document.getElementById("sheetAccNum").innerText =
+            currency === "USD"
+              ? user.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
+              : (user.accountNumberKHR || "").replace(
+                  /(\d{3})(\d{3})(\d{3})/,
+                  "$1 $2 $3",
+                );
 
-        renderTransactionsInModal(user, currency);
-        overlay.classList.add("active");
-        modal.classList.add("active");
+          renderTransactionsInModal(user, currency);
+          overlay.classList.add("active");
+          modal.classList.add("active");
+        }
       }
 
       function closeAccountDetails() {
         currentViewingCurrency = null;
-        document
-          .getElementById("accountBottomSheet")
-          .classList.remove("active");
-        document
-          .getElementById("accountModalOverlay")
-          .classList.remove("active");
+        const modal = document.getElementById("accountBottomSheet");
+        const overlay = document.getElementById("accountModalOverlay");
+        if (modal) modal.classList.remove("active");
+        if (overlay) overlay.classList.remove("active");
       }
 
       function renderTransactionsInModal(currentUser, currency) {
         const list = document.getElementById("sheetTrxList");
+        if (!list) return;
+
         if (
           !currentUser.transactions ||
           currentUser.transactions.length === 0
@@ -1415,7 +1524,8 @@
           const item = document.createElement("div");
           item.className = "trx-item";
           item.onclick = function () {
-            openGlobalSlip(t, user.username);
+            if (typeof openGlobalSlip === "function")
+              openGlobalSlip(t, user.username);
           };
           item.innerHTML = `
                 <div class="trx-left">
@@ -1434,6 +1544,7 @@
           d = new Date(dateStr.split(",")[0].trim());
         return isNaN(d.getTime()) ? new Date() : d;
       }
+
       function getSmartDateLabel(d) {
         let t = new Date();
         t.setHours(0, 0, 0, 0);
@@ -1453,6 +1564,7 @@
           year: "numeric",
         });
       }
+
       function getTimeString(d, orig) {
         return !isNaN(d.getTime())
           ? d.toLocaleTimeString("en-US", {
@@ -1465,96 +1577,14 @@
             : "";
       }
 
-      // ឧទាហរណ៍នៅក្នុង history.html
-      function showSlip(index) {
-        const t = currentTransactions[index];
-        openGlobalSlip(t, user.username); // ហៅមកប្រើខ្លីៗបែបនេះ
-      }
-
-      function readNotifications() {
-        document.getElementById("notifModal").style.display = "flex";
-      }
-      async function closeNotifications() {
-        document.getElementById("notifModal").style.display = "none";
-        if (document.getElementById("notiBadge").innerText > 0) {
-          try {
-            await fetch("/api/user/read-notifications", {
-              method: "POST",
-              headers: authHeaders,
-              body: JSON.stringify({ username: user.username }),
-            });
-            fetchUserData(false);
-          } catch (e) {}
-        }
-      }
-
-      let currentUnreadCount = 0;
-      async function loadUserNotifications() {
-        try {
-          const res = await fetch("/api/users", { headers: authHeaders });
-          const users = await res.json();
-          const currentUser = users.find((u) => u.username === user.username);
-          if (currentUser) {
-            const unread = (currentUser.notifications || []).filter(
-              (n) => !n.isRead,
-            );
-            if (unread.length > currentUnreadCount) {
-              new Audio(
-                "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
-              )
-                .play()
-                .catch(() => {});
-              document.getElementById("bellShake").classList.add("fa-shake");
-              setTimeout(
-                () =>
-                  document
-                    .getElementById("bellShake")
-                    .classList.remove("fa-shake"),
-                2000,
-              );
-            }
-            currentUnreadCount = unread.length;
-            document.getElementById("notiBadge").innerText = currentUnreadCount;
-            document.getElementById("notiBadge").style.display =
-              currentUnreadCount > 0 ? "flex" : "none";
-
-            const list = document.getElementById("notifList");
-            if (unread.length === 0) {
-              list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
-            } else {
-              list.innerHTML = unread
-                .map((n) => {
-                  let icon = "fa-bullhorn",
-                    bg = "#e0f2fe",
-                    col = "#0284c7";
-                  if (n.title.includes("Received")) {
-                    icon = "fa-hand-holding-dollar";
-                    bg = "#ecfdf5";
-                    col = "#10b981";
-                  } else if (
-                    n.title.includes("សំណើទូទាត់ប្រាក់") ||
-                    n.type === "payment_request"
-                  ) {
-                    icon = "fa-cart-shopping";
-                    bg = "#fff7ed";
-                    col = "#ea580c";
-                  }
-                  return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px;">
-                          <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
-                          <div><h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4><p style="margin:4px 0; font-size:0.85rem; color:#475569;">${n.message}</p><span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span></div>
-                        </div>`;
-                })
-                .reverse()
-                .join("");
-            }
-          }
-        } catch (e) {}
-      }
-
-      setInterval(() => fetchUserData(true), 5000);
-      setInterval(loadUserNotifications, 4000);
+      // ==========================================
+      // ⚙️ INITIALIZATION (ចាប់ផ្តើមដំណើរការ)
+      // ==========================================
       updateUI(user);
-      fetchUserData(false);
+      loadDashboardData(false); // ទាញលើកទី១ពេលបើក App
+
+      // ជំនួសអោយ Interval ២ដើរជាន់គ្នា យើងប្រើតែ ១ នេះទេ (រៀងរាល់ ៤វិនាទី)
+      setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>
 </html>

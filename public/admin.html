@@ -2106,10 +2106,21 @@
         if (btn) btn.classList.add("active");
       }
 
+      // 🔥 មុខងារទាញទិន្នន័យដែលបានបង្កើនល្បឿន (Turbo Load)
       async function loadData() {
         try {
-          const res = await fetch("/api/users", { headers: getAuthHeaders() });
-          const users = await res.json();
+          // ១. ប្រើ Promise.all ដើម្បីបាញ់សំណួរទៅទាញទិន្នន័យទាំង ៣ ព្រមគ្នាតែម្តង (លឿនជាងមុន ៣ដង)
+          const [userRes, chartRes, extraRes] = await Promise.all([
+            fetch("/api/users", { headers: getAuthHeaders() }),
+            fetch("/api/admin/stats", { headers: getAuthHeaders() }),
+            fetch("/api/admin/dashboard-extra", { headers: getAuthHeaders() }),
+          ]);
+
+          const users = await userRes.json();
+          const chartData = await chartRes.json();
+          const extraData = await extraRes.json();
+
+          // ២. រៀបចំទិន្នន័យអតិថិជន
           globalUsersData = users;
           const clients = users.filter((u) => u.role !== "admin");
           renderUsersTable(globalUsersData);
@@ -2133,7 +2144,9 @@
             if (u.isOnline) activeToday++;
             if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
             if (u.isFrozen) frozenCount++;
+
             totalFunds += Number(u.balance) || 0;
+
             if (u.deposits && Array.isArray(u.deposits))
               u.deposits.forEach(
                 (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
@@ -2161,6 +2174,7 @@
                 if (n.sender === "admin")
                   allAdminNotifs.add(n.id || n.title + n.date);
               });
+
             if (u.virtualCards) {
               u.virtualCards.forEach((c) => {
                 const statusHtml = c.isLocked
@@ -2169,12 +2183,16 @@
                 const btnHtml = c.isLocked
                   ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
                   : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
-                cardsHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div></td><td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${c.number.slice(-4)}</td><td>Virtual ${c.type || "Card"}</td><td>${statusHtml}</td><td style="text-align: right;">${btnHtml}</td></tr>`;
+                // ការពារ Error បើគ្មានលេខកាត
+                const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
+                cardsHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div></td><td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td><td>Virtual ${c.type || "Card"}</td><td>${statusHtml}</td><td style="text-align: right;">${btnHtml}</td></tr>`;
               });
             }
+
             if (u.kycStatus === "pending") {
               kycHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td><td>Identity Document</td><td>${u.kycSubmittedAt || "Recent"}</td><td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td><td style="text-align: right;"><button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button><button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button><button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button></td></tr>`;
             }
+
             if (u.tickets) {
               u.tickets.forEach((t) => {
                 const statusColor =
@@ -2219,11 +2237,8 @@
           document.getElementById("d-transfers").innerText = totalTransfers;
           document.getElementById("d-frozen").innerText = frozenCount;
 
+          // ៣. រៀបចំតារាង (Chart)
           try {
-            const chartRes = await fetch("/api/admin/stats", {
-              headers: getAuthHeaders(),
-            });
-            const chartData = await chartRes.json();
             const ctx = document.getElementById("trxChart").getContext("2d");
             let gradient = ctx.createLinearGradient(0, 0, 0, 350);
             gradient.addColorStop(0, "rgba(16, 185, 129, 0.4)");
@@ -2263,17 +2278,16 @@
                 },
               });
             }
-          } catch (err) {}
+          } catch (err) {
+            console.error("Chart Loading Error:", err);
+          }
 
+          // ៤. រៀបចំប្រវត្តិសកម្មភាព (Recent Activity)
           try {
-            const extraRes = await fetch("/api/admin/dashboard-extra", {
-              headers: getAuthHeaders(),
-            });
-            if (extraRes.ok) {
-              const extraData = await extraRes.json();
+            if (extraData.success || extraData.revenue !== undefined) {
               document.getElementById("d-revenue").innerText =
                 "$" +
-                extraData.revenue.toLocaleString("en-US", {
+                (extraData.revenue || 0).toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                 });
               const activityBox = document.getElementById("activity-feed");
@@ -2312,8 +2326,12 @@
                 }
               }
             }
-          } catch (err) {}
-        } catch (e) {}
+          } catch (err) {
+            console.error("Recent Activity Loading Error:", err);
+          }
+        } catch (e) {
+          console.error("Error Loading Data:", e);
+        }
       }
 
       function viewKycDocument(base64Image) {
@@ -3051,24 +3069,29 @@
       async function checkAdminNotifications() {
         if (!window.location.href.includes("admin.html")) return;
         try {
-          const chatRes = await fetch("/api/chat/contacts", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ myAcc: "ADMIN" }),
-          });
+          // 🔥 ប្រើ Promise.all ដើម្បីទាញសារ និងទិន្នន័យ Users ព្រមគ្នាក្នុងពេលតែមួយ (Turbo Load)
+          const [chatRes, userRes] = await Promise.all([
+            fetch("/api/chat/contacts", {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ myAcc: "ADMIN" }),
+            }),
+            fetch("/api/users", { headers: getAuthHeaders() }),
+          ]);
+
           const chatData = await chatRes.json();
-          const userRes = await fetch("/api/users", {
-            headers: getAuthHeaders(),
-          });
           const userData = await userRes.json();
+
           if (chatData.success && Array.isArray(userData)) {
             let currentTotalUnread = 0;
             let currentQueueLength = chatData.contacts.length;
             let currentPendingKyc = 0;
             let currentOpenTickets = 0;
+
             chatData.contacts.forEach((c) => {
               currentTotalUnread += c.unreadCount;
             });
+
             userData.forEach((u) => {
               if (u.kycStatus === "pending") currentPendingKyc++;
               if (u.tickets && Array.isArray(u.tickets)) {
@@ -3077,6 +3100,7 @@
                 });
               }
             });
+
             if (!isFirstLoadNotif) {
               let shouldRefreshTable = false;
               if (currentQueueLength > previousQueueLength)
@@ -3091,6 +3115,7 @@
                   chatSound,
                   "#0ea5e9",
                 );
+
               if (currentPendingKyc > previousPendingKyc) {
                 playCustomNotif(
                   "មានសំណើផ្ទៀងផ្ទាត់ KYC ថ្មី! 🪪",
@@ -3107,6 +3132,7 @@
                 );
                 shouldRefreshTable = true;
               }
+
               if (shouldRefreshTable && typeof loadData === "function")
                 loadData();
             }
@@ -3116,7 +3142,9 @@
             previousOpenTickets = currentOpenTickets;
             isFirstLoadNotif = false;
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("Notif Error:", e);
+        }
       }
       function playCustomNotif(message, soundObj, iconColorHex) {
         soundObj.play().catch(() => {});
