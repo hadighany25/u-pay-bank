@@ -136,8 +136,8 @@ router.post(
   adminController.updateFeeSettings,
 );
 router.post(
-  "/claim-promo",
-  authenticateToken,
-  transactionController.claimPromoCode,
+  "/promo/create",
+  checkRole(["super_admin", "finance_admin"]),
+  adminController.createPromoCode,
 );
 module.exports = router;
