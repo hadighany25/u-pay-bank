@@ -51,9 +51,25 @@ function openGlobalSlip(t, currentUsername) {
   const isKHR = t.currency === "KHR";
   const currSym = isKHR ? "៛" : "$";
 
-  // Format លុយ
-  const formattedAmt = Math.abs(t.amount).toLocaleString("en-US", {
+  // ១. ទាញយកតម្លៃសេវា (Fee)
+  const feeAmount = t.fee ? parseFloat(t.fee) : 0;
+
+  // ២. គណនាទឹកប្រាក់សុទ្ធ (លុយដែលអ្នកទទួលទទួលបាន) សម្រាប់បង្ហាញនៅខាងលើ
+  // ដោយសារប្រវត្តិអ្នកផ្ញើបានកត់ត្រាលុយសរុប (ដើម+សេវា) ទើបយើងត្រូវដកសេវាចេញវិញ
+  let principalAmount = Math.abs(t.amount);
+  if (t.amount < 0 && feeAmount > 0) {
+    principalAmount = Math.abs(t.amount) - feeAmount;
+  }
+
+  // ៣. Format លុយទាំង ២ (លុយដើម និង លុយសេវា)
+  const formattedAmt = principalAmount.toLocaleString("en-US", {
     minimumFractionDigits: isKHR ? 0 : 2,
+    maximumFractionDigits: isKHR ? 0 : 2,
+  });
+
+  const formattedFee = feeAmount.toLocaleString("en-US", {
+    minimumFractionDigits: isKHR ? 0 : 2,
+    maximumFractionDigits: isKHR ? 0 : 2,
   });
 
   // កំណត់ពណ៌
@@ -90,7 +106,9 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipIcon").className = `fa-solid ${iconClass}`;
   document.getElementById("slipTitle").innerText = titleText;
 
+  // បង្ហាញលុយដើមធំៗនៅខាងលើ ($10.00)
   document.getElementById("slipAmount").innerText = currSym + formattedAmt;
+
   document.getElementById("slipRef").innerText = t.refId || "N/A";
   document.getElementById("slipHash").innerText = t.hash || "N/A";
   document.getElementById("slipDate").innerText = t.date;
@@ -101,7 +119,9 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipMethod").innerText =
     t.trxMethod || "U-PAY System";
   document.getElementById("slipRemark").innerText = t.remark || "-";
-  document.getElementById("slipFee").innerText = currSym + "0.00";
+
+  // បង្ហាញលុយ Fee នៅខាងក្រោម ($1.00)
+  document.getElementById("slipFee").innerText = currSym + formattedFee;
 
   document.getElementById("slipModal").style.display = "flex";
 }
