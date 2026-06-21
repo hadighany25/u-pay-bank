@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema(
         dailyLimit: Number,
         linkedAccount: String,
         pin: String,
-        // 👇 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត ទើបអតិថិជនបើកកាតវិញមិនកើត
+        // 👇 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត ទើបអតិថិជនបើកកាតវិញមិនកើត (បងធ្វើត្រូវហើយ!)
         lockedByAdmin: { type: Boolean, default: false },
       },
     ],
