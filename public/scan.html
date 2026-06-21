@@ -589,22 +589,24 @@
       }
 
       // ==========================================
-      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC - UPDATED)
+      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC - FIXED)
       // ==========================================
 
       let paymentPollingInterval = null;
       let lastServerTrxCount = 0;
       let isFirstPoll = true;
 
+      // ប្រើ /api/users ព្រោះ file នេះរត់នៅលើ U-PAY Server ស្រាប់
+      const UPAY_API_URL = "/api/users";
+
       async function checkIncomingPayment() {
         try {
-          // 🔥 ផ្លាស់ប្តូរ៖ ត្រូវតែភ្ជាប់ authHeaders ដើម្បីមានសិទ្ធិទាញទិន្នន័យពី Backend ថ្មី
-          const res = await fetch("/api/users", {
+          // ❌ បានលុប headers: authHeaders ចេញព្រោះវាមិនចាំបាច់ និងធ្វើអោយគាំង
+          const res = await fetch(UPAY_API_URL, {
             method: "GET",
-            headers: authHeaders,
           });
 
-          if (!res.ok) return; // បើ Server Error កុំអោយវាគាំង
+          if (!res.ok) return;
           const users = await res.json();
 
           // រកគណនីបច្ចុប្បន្នពី Database ពិតប្រាកដ
@@ -659,7 +661,6 @@
                     confirmButtonText:
                       currentLang === "kh" ? "បិទ (OK)" : "Close",
                     allowOutsideClick: false,
-                    customClass: { popup: "premium-swal" },
                   }).then(() => {
                     window.location.href = "dashboard.html";
                   });
@@ -680,7 +681,6 @@
                     showConfirmButton: false,
                     timer: 4000,
                     timerProgressBar: true,
-                    customClass: { popup: "premium-swal" },
                   });
                 }
               }
