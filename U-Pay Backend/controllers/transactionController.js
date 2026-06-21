@@ -1,7 +1,7 @@
 const User = require("../models/User");
-const System = require("../models/System"); // 👈 ហៅ System Model មកប្រើផ្ទាល់
+const System = require("../models/System");
+const PromoCode = require("../models/PromoCode");
 const bot = require("../services/telegramBot");
-const PromoCode = require("../models/PromoCode"); // 👈 ហៅ PromoCode Model មកប្រើផ្ទាល់
 const {
   getFormattedDate,
   generateRefId,
@@ -14,11 +14,12 @@ const {
   getCompanyDetails,
 } = require("../services/payhubService");
 
-const { authenticateToken } = require("../middleware/authMiddleware");
 // 🔥 ទាញយកមុខងារអាន FX Rate
 const { readFXRates } = require("../services/systemService");
 
+// ==========================================
 // ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ (បន្ថែមការបញ្ជូនតារាង Fee ទៅអោយ Frontend)
+// ==========================================
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
@@ -43,13 +44,17 @@ const checkAccount = async (req, res) => {
         fxRates: currentFXRates,
         feeTiers: sys ? sys.feeTiers : [], // 👈 បញ្ជូនតារាងសេវាទៅអោយទូរស័ព្ទអតិថិជន
       });
-    } else res.json({ success: false, message: "Account not found" });
+    } else {
+      res.json({ success: false, message: "Account not found" });
+    }
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+// ==========================================
 // ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវាដែលបានជួសជុលរួច
+// ==========================================
 const transfer = async (req, res) => {
   const {
     senderUsername,
@@ -106,8 +111,9 @@ const transfer = async (req, res) => {
     if (
       sender.accountNumber === receiverAccount ||
       sender.accountNumberKHR === receiverAccount
-    )
+    ) {
       return res.json({ success: false, message: "Cannot transfer to self" });
+    }
 
     // ទាញទិន្នន័យពី Database ផ្ទាល់ៗ (ជួសជុលបញ្ហាជាប់ $10 រហូត)
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
@@ -287,7 +293,9 @@ const transfer = async (req, res) => {
   }
 };
 
+// ==========================================
 // ៣. បង់វិក្កយបត្រជាមួយ PayHub
+// ==========================================
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
 
@@ -422,7 +430,7 @@ const rewardCashback = async (req, res) => {
 };
 
 // ==========================================
-// 🚀 API សម្រាប់ឲ្យ App ផ្សេងៗហៅមកទាញលុយ (Redeem Promo API)
+// 🚀 ៥. API សម្រាប់ឲ្យ App ផ្សេងៗហៅមកទាញលុយ (Redeem Promo API)
 // ==========================================
 const claimPromoCode = async (req, res) => {
   const { username, code } = req.body;
