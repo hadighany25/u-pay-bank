@@ -240,7 +240,7 @@ const transfer = async (req, res) => {
     receiver.notifications.unshift({
       id: "NOTIF-" + Date.now(),
       title: "Money Received!",
-      message: `You have received money from ${sender.fullName || sender.username}.`,
+      message: `You have received ${signReceiver}${receiverAmount.toLocaleString("en-US", { minimumFractionDigits: isReceiverKHR ? 0 : 2 })} from ${sender.fullName || sender.username}.`,
       date: date,
       isRead: false,
     });
