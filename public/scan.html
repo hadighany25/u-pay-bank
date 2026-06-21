@@ -727,14 +727,11 @@
 
         let targetAcc = decodedText;
         let targetAmount = "";
-        let targetRemark = ""; // 🔥 បន្ថែមអថេរថ្មី ដើម្បីចាប់យកលេខកក់ (BK-...)
         let lockMoney = false;
-
         if (decodedText.includes(":")) {
           const parts = decodedText.split(":");
           targetAcc = parts[0];
           targetAmount = parts[1];
-          if (parts[2]) targetRemark = parts[2]; // 🔥 ចាប់យកកង់ទី៣ (លេខកក់)
           lockMoney = true;
         }
 
@@ -744,12 +741,7 @@
             url += `&amount=${targetAmount}`;
             if (lockMoney) url += `&lockAmount=true`;
           }
-          // 🔥 បាញ់លេខកក់ (Remark/OrderId) បន្តទៅកាន់ទំព័រ transfer.html
-          if (targetRemark) {
-            url += `&orderId=${encodeURIComponent(targetRemark)}&remark=${encodeURIComponent(targetRemark)}`;
-          }
-
-          window.location.href = url; // ហោះទៅទំព័រផ្ទេរប្រាក់
+          window.location.href = url;
         }
       }
 
