@@ -987,6 +987,60 @@ const getMe = async (req, res) => {
   }
 };
 
+// ========================================================
+// 🔥 មុខងារគ្រប់គ្រងសេវាវេរលុយ និង កម្រិតកំណត់
+// ========================================================
+const getFeeSettings = async (req, res) => {
+  try {
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) {
+      sys = new System();
+      await sys.save();
+    }
+    res.json({
+      success: true,
+      transferLimit: sys.transferLimit,
+      feeTiers: sys.feeTiers,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+const updateFeeSettings = async (req, res) => {
+  // ការពារសិទ្ធិ មានតែ Super Admin ឬអ្នកមានសិទ្ធិច្រើនទើបអាចកែបាន
+  if (req.admin.role !== "super_admin") {
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិកែប្រែតម្លៃសេវាកម្មនេះទេ!",
+    });
+  }
+
+  const { transferLimit, feeTiers } = req.body;
+  try {
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (sys) {
+      sys.transferLimit = parseFloat(transferLimit);
+      sys.feeTiers = feeTiers;
+      await sys.save();
+
+      // កត់ត្រាចូល Audit Logs ដោយស្ងាត់ៗ
+      await logAdminAction(
+        req.admin.username,
+        "Update Fees & Limits",
+        "System Settings",
+        `New Limit: $${transferLimit}, Tiers Updated.`,
+      );
+
+      res.json({ success: true, message: "រក្សាទុកការកំណត់ជោគជ័យ!" });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1012,4 +1066,6 @@ module.exports = {
   broadcast,
   deleteBroadcast,
   getAdminLogs,
+  getFeeSettings,
+  updateFeeSettings,
 };

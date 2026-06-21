@@ -941,6 +941,16 @@
       </div>
       <div
         class="menu-item"
+        id="menu-fees"
+        onclick="
+          showSection('fees', this);
+          toggleSidebar(false);
+        "
+      >
+        <i class="fa-solid fa-percent"></i> Fee & Limits
+      </div>
+      <div
+        class="menu-item"
         id="menu-cards"
         onclick="
           showSection('cards', this);
@@ -1354,6 +1364,106 @@
           <div style="text-align: center; margin-top: 25px">
             <button class="btn-primary" onclick="updateFX()">
               <i class="fa-solid fa-floppy-disk"></i> Save Rates
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="sec-fees"
+        style="display: none; max-width: 1000px; margin: 0 auto"
+      >
+        <h2 class="dash-title" style="text-align: center; margin-bottom: 10px">
+          Fee & Transfer Limits
+        </h2>
+        <p class="dash-desc" style="text-align: center; margin-bottom: 30px">
+          កំណត់តម្លៃសេវាវេរប្រាក់ និងកម្រិតទឹកប្រាក់អតិបរមាក្នុងមួយថ្ងៃ។
+        </p>
+
+        <div class="fx-card" style="margin-bottom: 20px">
+          <h3 style="margin-top: 0">
+            <i class="fa-solid fa-chart-line" style="color: var(--accent)"></i>
+            Daily Transfer Limit
+          </h3>
+          <div class="fx-row">
+            <div>
+              <h4 style="margin: 0 0 5px 0">កម្រិតលុយវេរចេញ (មួយថ្ងៃ)</h4>
+              <p
+                style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
+              >
+                លុយច្រើនបំផុតដែលអតិថិជនអាចវេរបាន
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <input
+                type="number"
+                id="dailyTrxLimit"
+                class="fx-input"
+                value="5000"
+              /><b>$</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="fx-card" style="max-width: 100%">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+            "
+          >
+            <h3 style="margin: 0">
+              <i
+                class="fa-solid fa-hand-holding-dollar"
+                style="color: var(--secondary)"
+              ></i>
+              Transaction Fees (កម្រៃសេវា)
+            </h3>
+            <button
+              class="btn-action"
+              style="background: var(--secondary)"
+              onclick="addFeeTier()"
+              title="ថែមជួរ"
+            >
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+
+          <table
+            style="width: 100%; border-collapse: collapse; margin-bottom: 20px"
+          >
+            <thead>
+              <tr style="background: #f1f5f9; text-align: left">
+                <th style="padding: 10px; border-radius: 10px 0 0 10px">
+                  ចាប់ពីចំនួន ($)
+                </th>
+                <th style="padding: 10px">ដល់ចំនួន ($)</th>
+                <th style="padding: 10px">កាត់សេវា ($)</th>
+                <th
+                  style="
+                    padding: 10px;
+                    border-radius: 0 10px 10px 0;
+                    text-align: right;
+                  "
+                >
+                  លុប
+                </th>
+              </tr>
+            </thead>
+            <tbody id="feeTiersBody"></tbody>
+          </table>
+
+          <div
+            style="
+              text-align: center;
+              border-top: 1px dashed var(--border);
+              padding-top: 20px;
+            "
+          >
+            <button class="btn-primary" onclick="saveFeeSettings()">
+              <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកំណត់
             </button>
           </div>
         </div>
@@ -2087,6 +2197,7 @@
           "live-chat",
           "admins",
           "logs",
+          "fees",
         ];
 
         sections.forEach((sec) => {
@@ -3420,6 +3531,85 @@
           }
         }
       }
+
+      // ==========================================
+      // 🔥 មុខងារ Javascript សម្រាប់ Fee & Limits
+      // ==========================================
+      let feeTiersList = [];
+
+      async function loadFeeSettings() {
+        try {
+          const res = await fetch("/api/admin/fees", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById("dailyTrxLimit").value = data.transferLimit;
+            feeTiersList = data.feeTiers || [];
+            renderFeeTiers();
+          }
+        } catch (e) {
+          console.error("Error loading fees");
+        }
+      }
+
+      function renderFeeTiers() {
+        const tbody = document.getElementById("feeTiersBody");
+        tbody.innerHTML = "";
+        feeTiersList.forEach((tier, index) => {
+          tbody.innerHTML += `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center;" value="${tier.min}" onchange="updateTier(${index}, 'min', this.value)"></td>
+              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center;" value="${tier.max}" onchange="updateTier(${index}, 'max', this.value)"></td>
+              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center; color: #ef4444; font-weight: bold;" value="${tier.fee}" onchange="updateTier(${index}, 'fee', this.value)"></td>
+              <td style="padding: 10px; text-align: right;"><button class="btn-action btn-delete" onclick="removeTier(${index})"><i class="fa-solid fa-xmark"></i></button></td>
+            </tr>
+          `;
+        });
+      }
+
+      function updateTier(index, field, value) {
+        feeTiersList[index][field] = parseFloat(value) || 0;
+      }
+
+      function addFeeTier() {
+        feeTiersList.push({ min: 0, max: 0, fee: 0 });
+        renderFeeTiers();
+      }
+
+      function removeTier(index) {
+        feeTiersList.splice(index, 1);
+        renderFeeTiers();
+      }
+
+      async function saveFeeSettings() {
+        const limit = document.getElementById("dailyTrxLimit").value;
+        try {
+          Swal.fire({
+            title: "កំពុងរក្សាទុក...",
+            didOpen: () => Swal.showLoading(),
+          });
+          const res = await fetch("/api/admin/fees", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              transferLimit: limit,
+              feeTiers: feeTiersList,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.fire("ជោគជ័យ!", data.message, "success");
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
+      }
+
+      // ហៅ loadFeeSettings() ឲ្យដំណើរការពេលទំព័រដើរ
+      setTimeout(loadFeeSettings, 1000);
 
       setTimeout(loadAdminList, 1000);
       applyDynamicPermissions();

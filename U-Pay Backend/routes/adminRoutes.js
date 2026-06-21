@@ -125,5 +125,15 @@ router.post(
   checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
   adminController.deleteBroadcast,
 );
+router.get(
+  "/fees",
+  checkRole(["super_admin", "finance_admin", "custom"]),
+  adminController.getFeeSettings,
+);
+router.post(
+  "/fees",
+  checkRole(["super_admin"]),
+  adminController.updateFeeSettings,
+);
 
 module.exports = router;
