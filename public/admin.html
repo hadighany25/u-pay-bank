@@ -2570,8 +2570,9 @@
           icon: "warning",
           showCancelButton: true,
         });
+
         if (confirm.isConfirmed) {
-          // 🔥 ផ្លាស់ប្តូរពី /api/card/toggle-lock ទៅជា /api/admin/toggle-card-lock វិញ
+          // 🔥 ប្តូរពី /api/card/.. មក /api/admin/.. ដើម្បីប្រើអំណាច Admin
           const res = await fetch("/api/admin/toggle-card-lock", {
             method: "POST",
             headers: getAuthHeaders(),
@@ -2588,9 +2589,9 @@
               `Card has been ${isCurrentlyLocked ? "unblocked" : "frozen"}.`,
               "success",
             );
-            loadData();
+            loadData(); // ហៅទិន្នន័យមក Update តារាង
           } else {
-            Swal.fire("បរាជ័យ", data.message || "មានបញ្ហា", "error");
+            Swal.fire("បរាជ័យ", data.message, "error");
           }
         }
       }
