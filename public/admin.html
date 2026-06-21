@@ -1499,18 +1499,28 @@
           </button>
         </div>
 
-        <div class="dash-card" style="text-align: center; padding: 50px 20px">
-          <i
-            class="fa-solid fa-ticket"
-            style="font-size: 4rem; color: #cbd5e1; margin-bottom: 20px"
-          ></i>
-          <h3 style="color: var(--text-main); margin-bottom: 10px">
-            ប្រព័ន្ធកូដប្រូម៉ូសិនត្រៀមរួចរាល់!
-          </h3>
-          <p style="color: var(--text-muted)">
-            ចុចប៊ូតុង "បង្កើតកូដថ្មី"
-            ខាងលើដើម្បីចាប់ផ្តើមចែករង្វាន់ដល់អតិថិជនរបស់អ្នក។
-          </p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ឈ្មោះកូដ (Code)</th>
+                <th>រង្វាន់ (Reward)</th>
+                <th>អ្នកប្រើប្រាស់ (Usage)</th>
+                <th>ស្ថានភាព (Status)</th>
+                <th style="text-align: right">បិទ / បើកកូដ</th>
+              </tr>
+            </thead>
+            <tbody id="promoTableBody">
+              <tr>
+                <td
+                  colspan="5"
+                  style="text-align: center; padding: 20px; color: #94a3b8"
+                >
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
