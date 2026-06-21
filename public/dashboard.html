@@ -301,28 +301,43 @@
         font-weight: bold;
       }
 
-      /* --- MENU GRID (DRAG & DROP) --- */
+      /* --- MENU GRID (SMOOTH EXPAND/COLLAPSE) --- */
       .menu-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 20px 15px; /* ចន្លោះលើក្រោម 20px ឆ្វេងស្តាំ 15px */
+        gap: 20px 15px;
         padding: 5px 20px 10px 20px;
-        max-height: 190px; /* 👈 កំណត់ត្រឹម 190px ដើម្បីឲ្យបង្ហាញតែ ២ជួរល្មម */
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch; /* ធ្វើឲ្យការអូសរលូនលើទូរស័ព្ទ */
+        max-height: 190px; /* កម្ពស់ដើម (ឃើញតែ២ជួរ) */
+        overflow: hidden; /* លាក់អាខាងក្រោមជិតឈឹង */
+        transition: max-height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); /* ធ្វើឲ្យរលូនពេលទម្លាក់ចុះ */
+        position: relative;
+        touch-action: pan-y;
       }
-      .menu-grid::-webkit-scrollbar {
-        display: none;
+      /* ពេលវាលាតចុះក្រោម */
+      .menu-grid.expanded {
+        max-height: 400px; /* លាតកម្ពស់ឲ្យឃើញជួរទី៣ ទី៤... */
       }
+      /* សញ្ញាព្រួញចុះក្រោម */
       .scroll-hint {
         text-align: center;
         color: #94a3b8;
         font-size: 1.2rem;
-        margin-top: 5px; /* 👈 ទម្លាក់វាឲ្យឃ្លាតពី Menu បន្តិច */
+        margin-top: 5px;
         margin-bottom: 20px;
+        cursor: pointer;
         animation: bounceUpDown 2s infinite;
+        transition: 0.3s ease;
+      }
+      .scroll-hint i {
+        transition: transform 0.4s ease;
+      }
+      /* ពេលលាតហើយ អោយព្រួញចង្អុលឡើងលើវិញ ហើយឈប់លោត */
+      .scroll-hint.expanded {
+        animation: none;
+        margin-top: 15px;
+      }
+      .scroll-hint.expanded i {
+        transform: rotate(180deg);
       }
       @keyframes bounceUpDown {
         0%,
@@ -987,10 +1002,6 @@
           </div>
           <div class="card-footer">
             <p class="card-number" id="accNum">....</p>
-            <i
-              class="fa-solid fa-chevron-right"
-              style="color: rgba(0, 0, 0, 0.3)"
-            ></i>
           </div>
         </div>
 
@@ -1009,10 +1020,6 @@
           </div>
           <div class="card-footer">
             <p class="card-number" id="accNumKHR">....</p>
-            <i
-              class="fa-solid fa-chevron-right"
-              style="color: rgba(0, 0, 0, 0.3)"
-            ></i>
           </div>
         </div>
       </div>
@@ -1115,7 +1122,11 @@
         </button>
       </div>
 
-      <div class="scroll-hint">
+      <div
+        class="scroll-hint"
+        id="menuToggleBtn"
+        onclick="toggleMenuExpansion()"
+      >
         <i class="fa-solid fa-angle-down"></i>
       </div>
 
@@ -1701,6 +1712,54 @@
           } catch (e) {
             Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
           }
+        }
+      }
+
+      // ==========================================
+      // 🚀 មុខងារលាត Menu បែបទំនើប (Click & Swipe)
+      // ==========================================
+      function toggleMenuExpansion() {
+        const grid = document.getElementById("sortableMenu");
+        const btn = document.getElementById("menuToggleBtn");
+
+        // បិទបើក Class 'expanded' ដើម្បើឲ្យ CSS ធ្វើការលាតចុះលាតឡើង
+        grid.classList.toggle("expanded");
+        btn.classList.toggle("expanded");
+      }
+
+      // មុខងារចាប់សញ្ញាពេលអតិថិជនយកដៃអូសទាញចុះ ឬរុញឡើងលើ
+      let touchStartY = 0;
+      let touchEndY = 0;
+      const menuGridEl = document.getElementById("sortableMenu");
+
+      menuGridEl.addEventListener(
+        "touchstart",
+        (e) => {
+          touchStartY = e.changedTouches[0].screenY;
+        },
+        { passive: true },
+      );
+
+      menuGridEl.addEventListener(
+        "touchend",
+        (e) => {
+          touchEndY = e.changedTouches[0].screenY;
+          handleMenuSwipe();
+        },
+        { passive: true },
+      );
+
+      function handleMenuSwipe() {
+        const swipeDistance = touchStartY - touchEndY;
+        const isExpanded = menuGridEl.classList.contains("expanded");
+
+        // បើទាញចុះក្រោម (Swipe Down) ខ្លាំងល្មម ហើយវាមិនទាន់លាត -> លាតវាចេញ
+        if (swipeDistance < -30 && !isExpanded) {
+          toggleMenuExpansion();
+        }
+        // បើរុញឡើងលើ (Swipe Up) ខ្លាំងល្មម ហើយវាកំពុងលាត -> បិទវាវិញ
+        else if (swipeDistance > 30 && isExpanded) {
+          toggleMenuExpansion();
         }
       }
 
