@@ -990,20 +990,48 @@ const getMe = async (req, res) => {
 // ========================================================
 // 🔥 មុខងារគ្រប់គ្រងសេវាវេរលុយ និង កម្រិតកំណត់
 // ========================================================
-const getFeeSettings = async (req, res) => {
+const getFeeSettings = (req, res) => {
   try {
-    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-    if (!sys) {
-      sys = new System();
-      await sys.save();
-    }
+    const settings = readFeeSettings();
     res.json({
       success: true,
-      transferLimit: sys.transferLimit,
-      feeTiers: sys.feeTiers,
+      transferLimit: settings.transferLimit,
+      feeTiers: settings.feeTiers,
     });
   } catch (err) {
-    res.status(500).json({ success: false });
+    res.json({ success: false, message: err.message });
+  }
+};
+
+const updateFeeSettings = async (req, res) => {
+  // ការពារសិទ្ធិ: បើមិនមែន Super Admin ទេ ទាត់ចោល
+  if (req.admin.role !== "super_admin") {
+    return res.json({
+      success: false,
+      message:
+        "បម្រាម៖ មានតែ Super Admin ទេទើបមានសិទ្ធិកែប្រែតម្លៃសេវាកម្មនេះបាន! 🛑",
+    });
+  }
+
+  const { transferLimit, feeTiers } = req.body;
+  try {
+    // ប្រើ SystemService ដើម្បី Save អោយវាស្គាល់ក្នុង Memory ម៉ាស៊ីន
+    await writeFeeSettings({
+      transferLimit: parseFloat(transferLimit),
+      feeTiers: feeTiers,
+    });
+
+    // កត់ត្រាចូល Audit Logs ដោយស្ងាត់ៗ
+    await logAdminAction(
+      req.admin.username,
+      "Update Fees & Limits",
+      "System Settings",
+      `New Limit: $${transferLimit}, Tiers Updated.`,
+    );
+
+    res.json({ success: true, message: "រក្សាទុកការកំណត់សេវាកម្មជោគជ័យ!" });
+  } catch (err) {
+    res.json({ success: false, message: "មានបញ្ហានៅ Backend: " + err.message });
   }
 };
 

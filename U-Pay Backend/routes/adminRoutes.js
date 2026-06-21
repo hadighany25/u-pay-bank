@@ -127,7 +127,7 @@ router.post(
 );
 router.get(
   "/fees",
-  checkRole(["super_admin", "finance_admin", "custom"]),
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
   adminController.getFeeSettings,
 );
 router.post(
