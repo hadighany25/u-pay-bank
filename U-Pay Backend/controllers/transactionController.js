@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const System = require("../models/System"); // 👈 ហៅ System Model មកប្រើផ្ទាល់
 const bot = require("../services/telegramBot");
 const {
   getFormattedDate,
@@ -12,10 +13,10 @@ const {
   getCompanyDetails,
 } = require("../services/payhubService");
 
-// 🔥 ទាញយកមុខងារអាន FX Rate និង Fee Settings ពីកន្លែងតែមួយ
-const { readFXRates, readFeeSettings } = require("../services/systemService");
+// 🔥 ទាញយកមុខងារអាន FX Rate
+const { readFXRates } = require("../services/systemService");
 
-// ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ
+// ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ (បន្ថែមការបញ្ជូនតារាង Fee ទៅអោយ Frontend)
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
@@ -25,15 +26,20 @@ const checkAccount = async (req, res) => {
         { accountNumberKHR: accountNumber },
       ],
     });
+
     if (targetUser) {
       const isReceiverKHR = targetUser.accountNumberKHR === accountNumber;
       const currentFXRates = readFXRates();
+
+      // ទាញយក Fee Tiers ពី Database ផ្ទាល់ៗដើម្បីបញ្ជូនទៅ Frontend
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
 
       res.json({
         success: true,
         username: targetUser.fullName || targetUser.username,
         isReceiverKHR: isReceiverKHR,
         fxRates: currentFXRates,
+        feeTiers: sys ? sys.feeTiers : [], // 👈 បញ្ជូនតារាងសេវាទៅអោយទូរស័ព្ទអតិថិជន
       });
     } else res.json({ success: false, message: "Account not found" });
   } catch (err) {
@@ -41,7 +47,7 @@ const checkAccount = async (req, res) => {
   }
 };
 
-// ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវា
+// ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវាដែលបានជួសជុលរួច
 const transfer = async (req, res) => {
   const {
     senderUsername,
@@ -53,12 +59,14 @@ const transfer = async (req, res) => {
     currency,
   } = req.body;
 
-  // របាំងការពារទី១៖ ការពារការលួចបន្លំគណនីវេរលុយ
   if (req.user.username !== senderUsername) {
-    return res.status(403).json({
-      success: false,
-      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-    });
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message:
+          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+      });
   }
 
   try {
@@ -74,7 +82,7 @@ const transfer = async (req, res) => {
     if (sender.isFrozen)
       return res.json({ success: false, message: "Account Frozen" });
 
-    // ឆែក PIN កូដ
+    // ឆែក PIN
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -92,35 +100,33 @@ const transfer = async (req, res) => {
         message: `Wrong PIN! Attempts left: ${3 - sender.pinAttempts}`,
       });
     }
-    sender.pinAttempts = 0; // Reset វិញបើវាយត្រូវ
+    sender.pinAttempts = 0;
 
     if (!receiver)
       return res.json({ success: false, message: "Receiver not found" });
-
     if (
       sender.accountNumber === receiverAccount ||
       sender.accountNumberKHR === receiverAccount
     )
       return res.json({ success: false, message: "Cannot transfer to self" });
 
+    // ទាញទិន្នន័យពី Database ផ្ទាល់ៗ (ជួសជុលបញ្ហាជាប់ $10 រហូត)
+    const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    const transferLimit = sys ? parseFloat(sys.transferLimit) : 5000;
+    const feeTiers = sys ? sys.feeTiers : [];
+
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
     const isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
     const currentFXRates = readFXRates();
 
-    // =========================================================
-    // 🧠 ចាប់ផ្តើម៖ ខួរក្បាលគណនាសេវា និង កម្រិតវេរលុយប្រចាំថ្ងៃ
-    // =========================================================
-    const { transferLimit, feeTiers } = readFeeSettings();
-
-    // បម្លែងលុយដែលចង់វេរទៅជាដុល្លារសិន ដើម្បីងាយស្រួលប្រៀបធៀបជាមួយ Limit និង Fee Tiers
     let transferUsdAmount = transferAmount;
     if (isSenderKHR) {
       transferUsdAmount = transferAmount / currentFXRates.usdToKhrSell;
     }
 
-    // [ក] ឆែកមើលកម្រិតវេរលុយប្រចាំថ្ងៃ (Daily Limit Check)
-    const todayStr = getFormattedDate().split(",")[0]; // យកតែថ្ងៃខែឆ្នាំ
+    // ឆែកមើល Limit ប្រចាំថ្ងៃ
+    const todayStr = getFormattedDate().split(",")[0];
     let todayTotalUsd = 0;
 
     if (sender.transactions) {
@@ -145,58 +151,53 @@ const transfer = async (req, res) => {
       });
     }
 
-    // [ខ] គណនាតម្លៃសេវាវេរលុយ (Fee Calculation)
+    // គណនាសេវាកម្ម (Force as parseFloat) ការពារ Error បូកអក្សរ
     let appliedFeeUsd = 0;
     for (let i = 0; i < feeTiers.length; i++) {
-      if (
-        transferUsdAmount >= feeTiers[i].min &&
-        transferUsdAmount <= feeTiers[i].max
-      ) {
-        appliedFeeUsd = feeTiers[i].fee;
+      let tMin = parseFloat(feeTiers[i].min);
+      let tMax = parseFloat(feeTiers[i].max);
+      let tFee = parseFloat(feeTiers[i].fee);
+
+      if (transferUsdAmount >= tMin && transferUsdAmount <= tMax) {
+        appliedFeeUsd = tFee;
         break;
       }
     }
 
-    // បម្លែងលុយសេវាទៅជារូបិយប័ណ្ណរបស់អ្នកផ្ញើ
     let appliedFee = appliedFeeUsd;
     if (isSenderKHR) {
       appliedFee = appliedFeeUsd * currentFXRates.usdToKhrSell;
     }
-    // ================== បញ្ចប់ខួរក្បាល =====================
 
-    // ឆែកសមតុល្យលុយ (លុយដែលវេរ + ថ្លៃសេវាកម្ម)
-    const totalDeduction = transferAmount + appliedFee;
+    // សរុបលុយដែលត្រូវកាត់ (Number រួចរាល់)
+    const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
 
     if (isSenderKHR && (sender.balanceKHR || 0) < totalDeduction) {
       return res.json({
         success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់! ចំនួនវេរ: ${transferAmount}៛ + សេវា: ${appliedFee}៛`,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់! វេរ: ${transferAmount}៛ + សេវា: ${appliedFee}៛`,
       });
     }
     if (!isSenderKHR && sender.balance < totalDeduction) {
       return res.json({
         success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់! ចំនួនវេរ: $${transferAmount} + សេវា: $${appliedFee}`,
+        message: `សមតុល្យមិនគ្រប់គ្រាន់! វេរ: $${transferAmount} + សេវា: $${appliedFee}`,
       });
     }
 
-    // ការគិតលុយអ្នកទទួល
     let receiverAmount = transferAmount;
     if (!isSenderKHR && isReceiverKHR)
       receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
     else if (isSenderKHR && !isReceiverKHR)
       receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-    // កាត់លុយពីអ្នកផ្ញើ (កាត់ទាំងដើម ទាំងសេវា)
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
 
-    // បញ្ចូលលុយអោយអ្នកទទួល (បានតែលុយដើមសុទ្ធ)
     if (isReceiverKHR)
       receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
     else receiver.balance += receiverAmount;
 
-    // បង្កើតប្រវត្តិប្រតិបត្តិការ
     const date = getFormattedDate();
     const refId = generateRefId();
     const trxHash = generateHash();
@@ -206,9 +207,9 @@ const transfer = async (req, res) => {
       hash: trxHash,
       date,
       type: "Transfer",
-      amount: -totalDeduction, // បង្ហាញលុយដែលកាត់សរុប (ដើម+សេវា)
+      amount: -totalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
-      fee: appliedFee, // 👈 កត់ត្រាលុយសេវាចូលក្នុងប្រវត្តិ
+      fee: appliedFee,
       senderName: sender.username,
       senderAcc: isSenderKHR ? sender.accountNumberKHR : sender.accountNumber,
       receiverName: receiver.username,
@@ -222,7 +223,7 @@ const transfer = async (req, res) => {
 
     const receiverTrx = {
       ...senderTrx,
-      amount: receiverAmount, // អ្នកទទួល ឃើញតែលុយដែលចូល
+      amount: receiverAmount,
       fee: 0,
       currency: isReceiverKHR ? "KHR" : "USD",
       type: "Received",
@@ -231,7 +232,6 @@ const transfer = async (req, res) => {
     sender.transactions.unshift(senderTrx);
     receiver.transactions.unshift(receiverTrx);
 
-    // ជូនដំណឹងទៅអ្នកទទួល
     receiver.notifications.unshift({
       id: "NOTIF-" + Date.now(),
       title: "Money Received!",
@@ -240,13 +240,8 @@ const transfer = async (req, res) => {
       isRead: false,
     });
 
-    // ==========================================
-    // 🏦 ប្រមូលលុយចំណេញសេវា ចូលគណនី U-PAY Fee (@system_fee)
-    // ==========================================
     if (appliedFee > 0) {
-      // ស្វែងរកគណនីប្រមូលសេវា
       const feeAccount = await User.findOne({ username: "system_fee" });
-
       if (feeAccount) {
         if (isSenderKHR)
           feeAccount.balanceKHR = (feeAccount.balanceKHR || 0) + appliedFee;
@@ -274,17 +269,12 @@ const transfer = async (req, res) => {
         });
         feeAccount.markModified("transactions");
         await feeAccount.save();
-      } else {
-        console.error(
-          "⚠️ បម្រាម៖ រកមិនឃើញគណនី @system_fee ដើម្បីប្រមូលលុយសេវាទេ!",
-        );
       }
     }
 
     sender.markModified("transactions");
     receiver.markModified("transactions");
     receiver.markModified("notifications");
-
     await sender.save();
     await receiver.save();
 
@@ -294,9 +284,7 @@ const transfer = async (req, res) => {
       slipData: senderTrx,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "Server មានបញ្ហាក្នុងការផ្ទេរប្រាក់" });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
