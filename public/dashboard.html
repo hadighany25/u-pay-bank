@@ -1140,6 +1140,34 @@
       </div>
     </div>
 
+    <div class="notif-modal" id="notifModal">
+      <div class="notif-card">
+        <div class="notif-header">
+          <h3>
+            <i class="fa-solid fa-bell" style="color: #3b82f6"></i> ការជូនដំណឹង
+          </h3>
+          <button class="notif-close-btn" onclick="closeNotifications()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="notif-body" id="notifList">
+          <div style="text-align: center; padding: 40px 0">
+            <i
+              class="fa-solid fa-spinner fa-spin"
+              style="font-size: 2rem; color: #94a3b8"
+            ></i>
+            <p style="color: #64748b; margin-top: 10px">កំពុងទាញយក...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      id="accountModalOverlay"
+      class="bottom-sheet-overlay"
+      onclick="closeAccountDetails()"
+    ></div>
+    <div id="accountBottomSheet" class="bottom-sheet"></div>
+
     <script src="/js/auth.js"></script>
     <script src="/js/slip.js"></script>
 

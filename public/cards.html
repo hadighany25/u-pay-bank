@@ -1332,17 +1332,56 @@
         }
       }
 
+      // 🔥 មុខងារបិទ/បើកកាត (មានបំពាក់ប្រព័ន្ធចាប់ Error ពី Admin)
       async function toggleLockCard() {
+        // ចាប់យកស្ថានភាពប៊ូតុង (Toggle Switch) ដែលអតិថិជនទើបចុច
         const isLocked = document.getElementById("lockToggle").checked;
-        const data = await fetchAPI("/api/card/toggle-lock", {
-          username: user.username,
-          cardId: cards[currentCardIndex].id,
-          isLocked,
-        });
-        if (data.success) {
-          user.virtualCards = data.cards;
-          sessionStorage.setItem("user", JSON.stringify(user));
-          renderCards();
+        const currentCard = cards[currentCardIndex];
+
+        try {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          // បាញ់សំណួរទៅកាន់ Backend
+          const data = await fetchAPI("/api/card/toggle-lock", {
+            username: user.username,
+            cardId: currentCard.id,
+            isLocked: isLocked,
+          });
+
+          if (data.success) {
+            // បើជោគជ័យ Update ទិន្នន័យ
+            user.virtualCards = data.cards;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            renderCards(); // គូរ UI កាតឡើងវិញ
+
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: `កាតត្រូវបាន ${isLocked ? "បង្កក" : "បើកដំណើរការវិញ"} ជោគជ័យ!`,
+              showConfirmButton: false,
+              timer: 1500,
+            });
+          } else {
+            // 🛑 បើ Backend ទាត់ចោល (ដោយសារ Admin បិទកាតនេះ)
+            Swal.fire({
+              title: "បដិសេធ!",
+              text: data.message || "មិនអាចកែប្រែស្ថានភាពកាតបានទេ!",
+              icon: "error",
+              confirmButtonColor: "#ef4444",
+              customClass: { popup: "premium-swal" },
+            });
+
+            // 🔥 ចំណុចសំខាន់៖ ទាញប៊ូតុង Toggle អោយត្រឡប់ទៅសភាពដើមវិញ (ទប់កុំអោយវាគាំងមើលទៅដូចបើកបាន)
+            document.getElementById("lockToggle").checked = !isLocked;
+          }
+        } catch (err) {
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+          // ទាញប៊ូតុងត្រឡប់មកវិញបើ Error អ៊ីនធឺណិត
+          document.getElementById("lockToggle").checked = !isLocked;
         }
       }
 
