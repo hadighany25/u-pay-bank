@@ -14,6 +14,7 @@ const {
   getCompanyDetails,
 } = require("../services/payhubService");
 
+const { authenticateToken } = require("../middleware/authMiddleware");
 // 🔥 ទាញយកមុខងារអាន FX Rate
 const { readFXRates } = require("../services/systemService");
 
