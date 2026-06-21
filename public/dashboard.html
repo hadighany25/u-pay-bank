@@ -290,7 +290,7 @@
         width: 100%;
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
+        align-items: center; /* 👈 ប្តូរពី flex-end មក center វិញ */
       }
       .card-number {
         font-family: monospace;
@@ -302,27 +302,26 @@
       }
 
       /* --- MENU GRID (DRAG & DROP) --- */
-      /* --- MENU GRID (DRAG & DROP) --- */
       .menu-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        padding: 5px 20px 20px 20px;
-        max-height: 220px; /* 👈 កំណត់កម្ពស់ឲ្យឃើញតែ ២ជួរពេញ */
-        overflow-y: auto; /* 👈 អនុញ្ញាតឲ្យអូសចុះក្រោមបាន */
+        gap: 20px 15px; /* ចន្លោះលើក្រោម 20px ឆ្វេងស្តាំ 15px */
+        padding: 5px 20px 10px 20px;
+        max-height: 190px; /* 👈 កំណត់ត្រឹម 190px ដើម្បីឲ្យបង្ហាញតែ ២ជួរល្មម */
+        overflow-y: auto;
         overflow-x: hidden;
-        scrollbar-width: none; /* លាក់របារ Scrollbar ឲ្យស្អាត */
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch; /* ធ្វើឲ្យការអូសរលូនលើទូរស័ព្ទ */
       }
       .menu-grid::-webkit-scrollbar {
         display: none;
       }
-      /* បន្ថែមសញ្ញាប្រាប់ថាអាចអូសបាននៅខាងក្រោម Menu */
       .scroll-hint {
         text-align: center;
-        color: #cbd5e1;
+        color: #94a3b8;
         font-size: 1.2rem;
-        margin-top: -15px;
-        margin-bottom: 10px;
+        margin-top: 5px; /* 👈 ទម្លាក់វាឲ្យឃ្លាតពី Menu បន្តិច */
+        margin-bottom: 20px;
         animation: bounceUpDown 2s infinite;
       }
       @keyframes bounceUpDown {
@@ -401,7 +400,9 @@
         padding: 25px 0 25px 20px;
         border-top-left-radius: 30px;
         border-top-right-radius: 30px;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.04); /* 👈 ថែមស្រមោលអោយលេចស្អាត */
+        position: relative;
+        z-index: 10; /* 👈 ទាញវាឲ្យមកនៅពីលើគេ ដើម្បីលាក់ Menu ដែលអូសចុះមក */
       }
       .section-title {
         font-size: 1.1rem;
