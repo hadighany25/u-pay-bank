@@ -21,7 +21,6 @@ const userSchema = new mongoose.Schema(
     transactions: { type: Array, default: [] },
     notifications: { type: Array, default: [] },
     tickets: { type: Array, default: [] },
-    virtualCards: { type: Array, default: [] },
     savings: { type: Array, default: [] },
     deposits: { type: Array, default: [] },
     kycStatus: { type: String, default: "unverified" },
@@ -33,6 +32,23 @@ const userSchema = new mongoose.Schema(
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
     suspiciousActivities: { type: Array, default: [] },
+    virtualCards: [
+      {
+        id: String,
+        type: String,
+        name: String,
+        number: String,
+        cvv: String,
+        expiry: String,
+        isLocked: { type: Boolean, default: false },
+        isOnlinePayEnabled: { type: Boolean, default: true },
+        dailyLimit: Number,
+        linkedAccount: String,
+        pin: String,
+        // 👇 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត ទើបអតិថិជនបើកកាតវិញមិនកើត
+        lockedByAdmin: { type: Boolean, default: false },
+      },
+    ],
   },
   { timestamps: true },
 );
