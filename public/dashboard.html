@@ -1785,13 +1785,34 @@
       }
 
       // ==========================================
-      // ⚙️ INITIALIZATION (ចាប់ផ្តើមដំណើរការ)
+      // ⚙️ INITIALIZATION (ការពារ Server គាំង / Auto-Pause)
       // ==========================================
       updateUI(user);
       loadDashboardData(false); // ទាញលើកទី១ពេលបើក App
 
-      // ជំនួសអោយ Interval ២ដើរជាន់គ្នា យើងប្រើតែ ១ នេះទេ (រៀងរាល់ ៤វិនាទី)
-      setInterval(() => loadDashboardData(true), 4000);
+      let dashInterval;
+
+      function startDashPolling() {
+        if (dashInterval) clearInterval(dashInterval);
+        // 🔥 ដូរពី ៤វិនាទី ទៅ ១៥វិនាទី ដើម្បីឲ្យ Server មានពេលដកដង្ហើម ធានាលែងគាំង!
+        dashInterval = setInterval(() => loadDashboardData(true), 15000);
+      }
+
+      function stopDashPolling() {
+        if (dashInterval) clearInterval(dashInterval);
+      }
+
+      startDashPolling(); // ចាប់ផ្តើមដើរពេលបើក App
+
+      // 🔥 AUTO-PAUSE: ពេលបិទអេក្រង់ ឬចេញពី App ទៅលេងផ្សេង វាឈប់ទាញទិន្នន័យ (សំខាន់បំផុត!)
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopDashPolling(); // ឈប់ទាញទិន្នន័យពេលលាក់ App
+        } else {
+          startDashPolling(); // ចាប់ផ្តើមទាញវិញពេលបើក App
+          loadDashboardData(true); // ទាញយកលុយថ្មីភ្លាមៗពេលចូល App វិញ
+        }
+      });
     </script>
   </body>
 </html>
