@@ -1120,27 +1120,6 @@
           </div>
           <span class="menu-text" data-lang="btn_promo">Promo</span>
         </button>
-        <!-- Promo -->
-        <button class="menu-item" id="m9" onclick="claimPromoPopup()">
-          <div class="icon-box" style="background: #fce7f3; color: #db2777">
-            <i class="fa-solid fa-gift"></i>
-          </div>
-          <span class="menu-text" data-lang="btn_promo">Promo</span>
-        </button>
-        <!-- Promo -->
-        <button class="menu-item" id="m9" onclick="claimPromoPopup()">
-          <div class="icon-box" style="background: #fce7f3; color: #db2777">
-            <i class="fa-solid fa-gift"></i>
-          </div>
-          <span class="menu-text" data-lang="btn_promo">Promo</span>
-        </button>
-        <!-- Promo -->
-        <button class="menu-item" id="m9" onclick="claimPromoPopup()">
-          <div class="icon-box" style="background: #fce7f3; color: #db2777">
-            <i class="fa-solid fa-gift"></i>
-          </div>
-          <span class="menu-text" data-lang="btn_promo">Promo</span>
-        </button>
       </div>
 
       <div
@@ -1151,6 +1130,7 @@
         <i class="fa-solid fa-angle-down"></i>
       </div>
 
+      <!-- ពាណិជ្ជម្ម -->
       <div class="promo-section">
         <h3 class="section-title">Promotions & Offers</h3>
         <div class="promo-slider">
@@ -1785,34 +1765,13 @@
       }
 
       // ==========================================
-      // ⚙️ INITIALIZATION (ការពារ Server គាំង / Auto-Pause)
+      // ⚙️ INITIALIZATION (ចាប់ផ្តើមដំណើរការ)
       // ==========================================
       updateUI(user);
       loadDashboardData(false); // ទាញលើកទី១ពេលបើក App
 
-      let dashInterval;
-
-      function startDashPolling() {
-        if (dashInterval) clearInterval(dashInterval);
-        // 🔥 ដូរពី ៤វិនាទី ទៅ ១៥វិនាទី ដើម្បីឲ្យ Server មានពេលដកដង្ហើម ធានាលែងគាំង!
-        dashInterval = setInterval(() => loadDashboardData(true), 15000);
-      }
-
-      function stopDashPolling() {
-        if (dashInterval) clearInterval(dashInterval);
-      }
-
-      startDashPolling(); // ចាប់ផ្តើមដើរពេលបើក App
-
-      // 🔥 AUTO-PAUSE: ពេលបិទអេក្រង់ ឬចេញពី App ទៅលេងផ្សេង វាឈប់ទាញទិន្នន័យ (សំខាន់បំផុត!)
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-          stopDashPolling(); // ឈប់ទាញទិន្នន័យពេលលាក់ App
-        } else {
-          startDashPolling(); // ចាប់ផ្តើមទាញវិញពេលបើក App
-          loadDashboardData(true); // ទាញយកលុយថ្មីភ្លាមៗពេលចូល App វិញ
-        }
-      });
+      // ជំនួសអោយ Interval ២ដើរជាន់គ្នា យើងប្រើតែ ១ នេះទេ (រៀងរាល់ ៤វិនាទី)
+      setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>
 </html>
