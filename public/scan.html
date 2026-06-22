@@ -524,22 +524,8 @@
     </div>
 
     <script>
-      // ==========================================
-      // 🔒 រៀបចំ Session និង Token
-      // ==========================================
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      const token = sessionStorage.getItem("userToken");
-
-      // ការពារសុវត្ថិភាព ត្រូវប្រាកដថាអតិថិជនបាន Login
-      if (!user || !token) {
-        window.location.href = "index.html";
-      }
-
-      // រៀបចំ Headers សម្រាប់បញ្ជាក់សិទ្ធិពេលទាញ API
-      const authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
 
       const translations = {
         en: {
@@ -610,14 +596,14 @@
       let lastServerTrxCount = 0;
       let isFirstPoll = true;
 
+      // ប្រើ /api/users ព្រោះ file នេះរត់នៅលើ U-PAY Server ស្រាប់
       const UPAY_API_URL = "/api/users";
 
       async function checkIncomingPayment() {
         try {
-          // បន្ថែម headers: authHeaders ដែលមាន Token ទើប Server ព្រមអោយទិន្នន័យ
+          // ❌ បានលុប headers: authHeaders ចេញព្រោះវាមិនចាំបាច់ និងធ្វើអោយគាំង
           const res = await fetch(UPAY_API_URL, {
             method: "GET",
-            headers: authHeaders,
           });
 
           if (!res.ok) return;
@@ -661,12 +647,6 @@
                 if (setAmount > 0) {
                   // ករណីទី១៖ កំណត់លុយជាក់លាក់ -> លោត Alert ធំ ហើយរត់ទៅ Dashboard
                   stopPaymentListener();
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  )
-                    .play()
-                    .catch(() => {});
-
                   Swal.fire({
                     icon: "success",
                     title:
@@ -686,12 +666,6 @@
                   });
                 } else {
                   // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូច (Toast) ហើយអាចអោយគេស្កេនបន្តទៀតបាន
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  )
-                    .play()
-                    .catch(() => {});
-
                   Swal.fire({
                     toast: true,
                     position: "top-end",
@@ -727,6 +701,8 @@
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
       }
 
+      // ចាប់ផ្តើមស្តាប់ភ្លាមៗពេលបើកទំព័រនេះ
+      startPaymentListener();
       // ==========================================
 
       let html5QrCode = new Html5Qrcode("reader");
