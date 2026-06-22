@@ -3643,7 +3643,7 @@
       }
 
       // ==========================================
-      // 🔥 មុខងារ Javascript សម្រាប់ Fee & Limits
+      // 🔥 មុខងារ Javascript សម្រាប់ Fee & Limits (បានកែសម្រួល)
       // ==========================================
       let feeTiersList = [];
 
@@ -3663,16 +3663,80 @@
         }
       }
 
+      // ១. មុខងារសម្រាប់បំប្លែងសញ្ញា , ទៅជា . និងការពារការវាយអក្សរ
+      function formatDecimal(input) {
+        let val = input.value.replace(/,/g, "."); // ប្តូរ , ទៅ .
+        val = val.replace(/[^0-9.]/g, ""); // លុបរាល់អក្សរដែលមិនមែនជាលេខ
+        // ការពារកុំឲ្យវាយសញ្ញាចុច (.) លើសពីមួយដង
+        if ((val.match(/\./g) || []).length > 1) {
+          val = val.substring(0, val.lastIndexOf("."));
+        }
+        input.value = val;
+        return val;
+      }
+
+      // ២. មុខងារទាញយកអត្រាប្តូរប្រាក់បច្ចុប្បន្នលើទំព័រ (បើអត់មានយក 4000)
+      function getCurrentFXRate() {
+        // សាកល្បងរកមើលប្រអប់អត្រាប្តូរប្រាក់ដែល Admin ធ្លាប់មាន
+        const fxSellInput =
+          document.getElementById("usdToKhrSell") ||
+          document.getElementById("fxSell");
+        return fxSellInput ? parseFloat(fxSellInput.value) || 4000 : 4000;
+      }
+
+      // ៣. មុខងារគណនាលុយអូតូ ពេលវាយបញ្ចូល
+      function syncFeeCurrency(element, type, index) {
+        const exchangeRate = getCurrentFXRate();
+        let value = parseFloat(element.value) || 0;
+
+        if (type === "USD") {
+          // បើវាយដុល្លារ គណនាជាខ្មែរ ហើយបង្ហាញ
+          let khrValue = Math.round(value * exchangeRate);
+          document.getElementById(`feeKhr_${index}`).value = khrValue;
+          updateTier(index, "fee", value); // រក្សាទុកតម្លៃដុល្លារចូល Database
+        } else if (type === "KHR") {
+          // បើវាយខ្មែរ គណនាជាដុល្លារ ហើយបង្ហាញ
+          let usdValue = (value / exchangeRate).toFixed(2);
+          document.getElementById(`feeUsd_${index}`).value = usdValue;
+          updateTier(index, "fee", usdValue); // រក្សាទុកតម្លៃដុល្លារចូល Database
+        }
+      }
+
       function renderFeeTiers() {
         const tbody = document.getElementById("feeTiersBody");
         tbody.innerHTML = "";
+
+        const currentRate = getCurrentFXRate();
+
         feeTiersList.forEach((tier, index) => {
+          // គណនាលុយខ្មែរបឋម ដើម្បីបង្ហាញពេល Load មកភ្លាម
+          const initialFeeKhr = Math.round(
+            (parseFloat(tier.fee) || 0) * currentRate,
+          );
+
           tbody.innerHTML += `
             <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center;" value="${tier.min}" onchange="updateTier(${index}, 'min', this.value)"></td>
-              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center;" value="${tier.max}" onchange="updateTier(${index}, 'max', this.value)"></td>
-              <td style="padding: 10px;"><input type="number" class="form-input" style="width: 100px; text-align:center; color: #ef4444; font-weight: bold;" value="${tier.fee}" onchange="updateTier(${index}, 'fee', this.value)"></td>
-              <td style="padding: 10px; text-align: right;"><button class="btn-action btn-delete" onclick="removeTier(${index})"><i class="fa-solid fa-xmark"></i></button></td>
+              <td style="padding: 10px;">
+                <input type="text" inputmode="decimal" class="form-input" style="width: 100px; text-align:center;" value="${tier.min}" oninput="let v = formatDecimal(this); updateTier(${index}, 'min', v)">
+              </td>
+              <td style="padding: 10px;">
+                <input type="text" inputmode="decimal" class="form-input" style="width: 100px; text-align:center;" value="${tier.max}" oninput="let v = formatDecimal(this); updateTier(${index}, 'max', v)">
+              </td>
+              <td style="padding: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">$</span>
+                    <input type="text" id="feeUsd_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; color: #ef4444; font-weight: bold;" value="${tier.fee}" placeholder="0.00" oninput="formatDecimal(this); syncFeeCurrency(this, 'USD', ${index})">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">៛</span>
+                    <input type="text" id="feeKhr_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-size: 0.85rem; background: #f8fafc;" value="${initialFeeKhr}" placeholder="0 ៛" oninput="formatDecimal(this); syncFeeCurrency(this, 'KHR', ${index})">
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 10px; text-align: right;">
+                <button class="btn-action btn-delete" onclick="removeTier(${index})"><i class="fa-solid fa-xmark"></i></button>
+              </td>
             </tr>
           `;
         });
@@ -3831,6 +3895,42 @@
         loadPromoCodes(); // Refresh តារាងវិញ
       }
       setTimeout(loadAdminList, 1000);
+
+      // ១. មុខងារសម្រាប់បំប្លែងសញ្ញា , ទៅជា . និងការពារការវាយអក្សរ
+      function formatDecimal(input) {
+        // ប្តូរសញ្ញា , ទៅ .
+        let val = input.value.replace(/,/g, ".");
+        // លុបចោលរាល់តួអក្សរដែលមិនមែនជាលេខ និងចំណុច
+        val = val.replace(/[^0-9.]/g, "");
+        // ការពារការវាយសញ្ញាចំណុច (.) លើសពីមួយដង (ឧទាហរណ៍: 10.5.2)
+        if ((val.match(/\./g) || []).length > 1) {
+          val = val.substring(0, val.lastIndexOf("."));
+        }
+        input.value = val;
+      }
+
+      // ២. មុខងារគណនាលុយដុល្លារ និងខ្មែរអូតូ (Auto-Sync USD & KHR)
+      function syncFeeCurrency(element, type, index) {
+        // ទាញយកអត្រាប្តូរប្រាក់ (Exchange Rate) បច្ចុប្បន្ន
+        // (សន្មតថាអ្នកមានប្រអប់ input ដែលមាន id="fxSell" នៅលើទំព័រ បើអត់ទេវានឹងយក 4000 ជាគោល)
+        const exchangeRateInput = document.getElementById("fxSell");
+        let exchangeRate = exchangeRateInput
+          ? parseFloat(exchangeRateInput.value)
+          : 4000;
+
+        let value = parseFloat(element.value) || 0;
+
+        if (type === "USD") {
+          // បើ Admin វាយបញ្ចូលលុយដុល្លារ -> លោតលុយខ្មែរអូតូ
+          let khrValue = Math.round(value * exchangeRate);
+          document.getElementById(`feeKhr_${index}`).value = khrValue;
+        } else if (type === "KHR") {
+          // បើ Admin វាយបញ្ចូលលុយខ្មែរ -> លោតលុយដុល្លារអូតូ
+          let usdValue = (value / exchangeRate).toFixed(2);
+          document.getElementById(`feeUsd_${index}`).value = usdValue;
+        }
+      }
+
       applyDynamicPermissions();
     </script>
   </body>
