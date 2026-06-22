@@ -34,9 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <div onclick="downloadSlipGlobal()" style="cursor:pointer; text-align:center; color:#004d40;">
               <div style="width:50px; height:50px; border-radius:50%; border:1px solid #eee; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 5px;"><i class="fa-solid fa-share-nodes"></i></div><span style="font-size:0.8rem; font-weight:bold;">Share</span>
             </div>
-            <div onclick="document.getElementById('slipModal').style.display='none'" style="cursor:pointer; text-align:center; color:#004d40;">
-              <div style="width:50px; height:50px; border-radius:50%; border:1px solid #eee; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 5px;"><i class="fa-solid fa-xmark"></i></div><span style="font-size:0.8rem; font-weight:bold;">Done</span>
-            </div>
+            <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:#004d40;">
+  <div style="width:50px; height:50px; border-radius:50%; border:1px solid #eee; display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 5px;"><i class="fa-solid fa-xmark"></i></div>
+  <span style="font-size:0.8rem; font-weight:bold;">Done</span>
+</div>
           </div>
         </div>
       </div>
@@ -143,4 +144,10 @@ function downloadSlipGlobal() {
     link.href = canvas.toDataURL();
     link.click();
   });
+}
+
+function closeSlipGlobal() {
+  document.getElementById("slipModal").style.display = "none";
+  // រុញអ្នកប្រើប្រាស់ទៅកាន់ Dashboard ភ្លាមៗ
+  window.location.href = "dashboard.html";
 }
