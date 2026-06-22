@@ -524,8 +524,15 @@
     </div>
 
     <script>
-      const user = JSON.parse(sessionStorage.getItem("user"));
-      if (!user) window.location.href = "index.html";
+      // ==========================================
+      // 🔒 រៀបចំ Session និង Token
+      // ==========================================
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      const token = sessionStorage.getItem("userToken");
+
+      if (!user || !token) {
+        window.location.href = "index.html";
+      }
 
       const translations = {
         en: {
@@ -589,41 +596,66 @@
       }
 
       // ==========================================
-      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC)
+      // 🔥 SMART POLLING (ស្រាល និងមិនគាំង Server)
       // ==========================================
+
       let paymentPollingInterval = null;
-      let initialTrxCount = user.transactions ? user.transactions.length : 0;
+      let lastServerTrxCount = 0;
+      let isFirstPoll = true;
+
+      // ប្រើ API ថ្មីដែលទាញតែទិន្នន័យខ្លួនឯង មិនធ្ងន់ Server ទេ!
+      const UPAY_API_URL = "/api/transactions/my-status";
 
       async function checkIncomingPayment() {
         try {
-          const res = await fetch("/api/users");
-          const users = await res.json();
-          // រកគណនីបច្ចុប្បន្នពី Database
-          const serverUser = users.find((u) => u.username === user.username);
+          const authHeaders = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+          };
 
-          if (serverUser && serverUser.transactions) {
-            // បើចំនួនប្រតិបត្តិការកើនឡើង
-            if (serverUser.transactions.length > initialTrxCount) {
+          const res = await fetch(UPAY_API_URL, {
+            method: "GET",
+            headers: authHeaders,
+          });
+
+          if (!res.ok) return;
+          const data = await res.json();
+
+          if (data.success && data.user && data.user.transactions) {
+            const serverUser = data.user;
+
+            if (isFirstPoll) {
+              lastServerTrxCount = serverUser.transactions.length;
+              isFirstPoll = false;
+              return;
+            }
+
+            if (serverUser.transactions.length > lastServerTrxCount) {
               const latestTrx = serverUser.transactions[0];
+              lastServerTrxCount = serverUser.transactions.length;
 
-              // បើវាជាការទទួលប្រាក់ (Amount > 0)
               if (latestTrx.amount > 0) {
-                // Update ចំនួន Trx បច្ចុប្បន្ន ដើម្បីកុំឱ្យវាលោតសារដដែលៗ
-                initialTrxCount = serverUser.transactions.length;
                 sessionStorage.setItem("user", JSON.stringify(serverUser));
+                user = serverUser;
 
                 let sym = latestTrx.currency === "KHR" ? "៛" : "$";
                 let amt = Math.abs(latestTrx.amount).toLocaleString("en-US", {
                   minimumFractionDigits: latestTrx.currency === "KHR" ? 0 : 2,
                 });
 
-                // 🔥 ឆែកមើលថាតើ QR នេះមានកំណត់ចំនួនលុយឬទេ?
-                const setAmount =
-                  parseFloat(document.getElementById("qrSetAmount").value) || 0;
+                const setAmountInput = document.getElementById("qrSetAmount");
+                const setAmount = setAmountInput
+                  ? parseFloat(setAmountInput.value)
+                  : 0;
 
                 if (setAmount > 0) {
-                  // ករណីទី១៖ កំណត់លុយជាក់លាក់ -> លោត Alert ធំ ហើយរត់ទៅ Dashboard
                   stopPaymentListener();
+                  new Audio(
+                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                  )
+                    .play()
+                    .catch(() => {});
+
                   Swal.fire({
                     icon: "success",
                     title:
@@ -642,7 +674,12 @@
                     window.location.href = "dashboard.html";
                   });
                 } else {
-                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូចនៅជ្រុងលើ (មិនរត់ទៅណាទេ)
+                  new Audio(
+                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                  )
+                    .play()
+                    .catch(() => {});
+
                   Swal.fire({
                     toast: true,
                     position: "top-end",
@@ -660,9 +697,6 @@
                     timerProgressBar: true,
                   });
                 }
-              } else {
-                // បើជាការដកលុយចេញ គ្រាន់តែ Update Count ទុក
-                initialTrxCount = serverUser.transactions.length;
               }
             }
           }
@@ -672,16 +706,31 @@
       }
 
       function startPaymentListener() {
-        // កំណត់ Count ដើមឡើងវិញរាល់ពេលបើក QR
-        initialTrxCount = user.transactions ? user.transactions.length : 0;
+        isFirstPoll = true;
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
-        // ឆែករៀងរាល់ ៣ វិនាទី
-        paymentPollingInterval = setInterval(checkIncomingPayment, 3000);
+        // ដូរមក ៤ វិនាទីម្តង ដើម្បីអោយ Server មានពេលដកដង្ហើម
+        paymentPollingInterval = setInterval(checkIncomingPayment, 4000);
       }
 
       function stopPaymentListener() {
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
       }
+
+      // 🔥 AUTO-PAUSE ប្រព័ន្ធសន្សំកម្លាំង Server ពេលបិទអេក្រង់ ឬចេញទៅលេង App ផ្សេង
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopPaymentListener();
+        } else {
+          // បើត្រឡប់មកវិញ ហើយកំពុងបើកផ្ទាំង QR នោះវាចាប់ផ្តើមសួរ Server វិញ
+          if (
+            document.getElementById("qrModal").style.display === "flex" ||
+            isFromDashboard
+          ) {
+            startPaymentListener();
+          }
+        }
+      });
+
       // ==========================================
 
       let html5QrCode = new Html5Qrcode("reader");
@@ -782,11 +831,11 @@
 
       function showMyQR() {
         document.getElementById("qrModal").style.display = "flex";
-        startPaymentListener(); // 🔥 ចាប់ផ្តើមស្តាប់ការវេរលុយចូលនៅពេលបើក QR
+        startPaymentListener();
       }
 
       function closeMyQR() {
-        stopPaymentListener(); // 🔥 បញ្ឈប់ការស្តាប់ពេលបិទ QR
+        stopPaymentListener();
 
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get("showQR") === "true") {
@@ -836,7 +885,7 @@
         modal.style.display = "flex";
         document.body.style.backgroundColor = "#f1f5f9";
 
-        startPaymentListener(); // 🔥 ចាប់ផ្តើមស្តាប់ប្រសិនបើលោតចូលមកពី Dashboard ផ្ទាល់
+        startPaymentListener();
       } else {
         startScanner();
       }
