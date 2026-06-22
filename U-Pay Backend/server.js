@@ -80,3 +80,4 @@ app.get("/", (req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀🔥 U-PAY Server is running with Socket.io on port ${PORT}`);
 });
+module.exports = app;
