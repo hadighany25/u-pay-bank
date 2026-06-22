@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "U-Pay Backend/server.js",
+      "src": "backend/server.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/U-Pay Backend/server.js"
+      "dest": "/backend/server.js"
     }
   ]
 }
