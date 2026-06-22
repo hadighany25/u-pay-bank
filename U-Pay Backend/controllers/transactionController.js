@@ -237,6 +237,9 @@ const transfer = async (req, res) => {
     sender.transactions.unshift(senderTrx);
     receiver.transactions.unshift(receiverTrx);
 
+    // បង្កើតសញ្ញាលុយ ផ្អែកលើប្រភេទគណនីអ្នកទទួល
+    const signReceiver = isReceiverKHR ? "៛" : "$";
+
     receiver.notifications.unshift({
       id: "NOTIF-" + Date.now(),
       title: "Money Received!",
