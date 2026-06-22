@@ -589,49 +589,28 @@
       }
 
       // ==========================================
-      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC - FIXED)
+      // 🔥 AUTO DETECT PAYMENT (POLLING LOGIC)
       // ==========================================
-
       let paymentPollingInterval = null;
-      let lastServerTrxCount = 0;
-      let isFirstPoll = true;
-
-      // ប្រើ /api/users ព្រោះ file នេះរត់នៅលើ U-PAY Server ស្រាប់
-      const UPAY_API_URL = "/api/users";
+      let initialTrxCount = user.transactions ? user.transactions.length : 0;
 
       async function checkIncomingPayment() {
         try {
-          // ❌ បានលុប headers: authHeaders ចេញព្រោះវាមិនចាំបាច់ និងធ្វើអោយគាំង
-          const res = await fetch(UPAY_API_URL, {
-            method: "GET",
-          });
-
-          if (!res.ok) return;
+          const res = await fetch("/api/users");
           const users = await res.json();
-
-          // រកគណនីបច្ចុប្បន្នពី Database ពិតប្រាកដ
+          // រកគណនីបច្ចុប្បន្នពី Database
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser && serverUser.transactions) {
-            // ១. ពេលបើក QR ភ្លាម ទាញចំនួនប្រតិបត្តិការពី Server ផ្ទាល់ទុកសិន
-            if (isFirstPoll) {
-              lastServerTrxCount = serverUser.transactions.length;
-              isFirstPoll = false;
-              return;
-            }
-
-            // ២. បើចំនួនកើនឡើង មានន័យថាមានប្រតិបត្តិការថ្មីចូលមកហើយ!
-            if (serverUser.transactions.length > lastServerTrxCount) {
+            // បើចំនួនប្រតិបត្តិការកើនឡើង
+            if (serverUser.transactions.length > initialTrxCount) {
               const latestTrx = serverUser.transactions[0];
 
-              // Update ចំនួនថ្មីទុក
-              lastServerTrxCount = serverUser.transactions.length;
-
-              // បើវាជាការ "ទទួលប្រាក់" (Amount > 0)
+              // បើវាជាការទទួលប្រាក់ (Amount > 0)
               if (latestTrx.amount > 0) {
-                // Update Session អោយថ្មី
+                // Update ចំនួន Trx បច្ចុប្បន្ន ដើម្បីកុំឱ្យវាលោតសារដដែលៗ
+                initialTrxCount = serverUser.transactions.length;
                 sessionStorage.setItem("user", JSON.stringify(serverUser));
-                user = serverUser; // ធ្វើអោយអថេរ user ស្គាល់លុយថ្មី
 
                 let sym = latestTrx.currency === "KHR" ? "៛" : "$";
                 let amt = Math.abs(latestTrx.amount).toLocaleString("en-US", {
@@ -639,10 +618,8 @@
                 });
 
                 // 🔥 ឆែកមើលថាតើ QR នេះមានកំណត់ចំនួនលុយឬទេ?
-                const setAmountInput = document.getElementById("qrSetAmount");
-                const setAmount = setAmountInput
-                  ? parseFloat(setAmountInput.value)
-                  : 0;
+                const setAmount =
+                  parseFloat(document.getElementById("qrSetAmount").value) || 0;
 
                 if (setAmount > 0) {
                   // ករណីទី១៖ កំណត់លុយជាក់លាក់ -> លោត Alert ធំ ហើយរត់ទៅ Dashboard
@@ -665,7 +642,7 @@
                     window.location.href = "dashboard.html";
                   });
                 } else {
-                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូច (Toast) ហើយអាចអោយគេស្កេនបន្តទៀតបាន
+                  // ករណីទី២៖ QR ទូទៅ -> លោតត្រឹមសារ Notification តូចនៅជ្រុងលើ (មិនរត់ទៅណាទេ)
                   Swal.fire({
                     toast: true,
                     position: "top-end",
@@ -683,6 +660,9 @@
                     timerProgressBar: true,
                   });
                 }
+              } else {
+                // បើជាការដកលុយចេញ គ្រាន់តែ Update Count ទុក
+                initialTrxCount = serverUser.transactions.length;
               }
             }
           }
@@ -692,17 +672,16 @@
       }
 
       function startPaymentListener() {
-        isFirstPoll = true; // កំណត់ជា True វិញរាល់ពេលបើក QR ថ្មី
+        // កំណត់ Count ដើមឡើងវិញរាល់ពេលបើក QR
+        initialTrxCount = user.transactions ? user.transactions.length : 0;
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
+        // ឆែករៀងរាល់ ៣ វិនាទី
         paymentPollingInterval = setInterval(checkIncomingPayment, 3000);
       }
 
       function stopPaymentListener() {
         if (paymentPollingInterval) clearInterval(paymentPollingInterval);
       }
-
-      // ចាប់ផ្តើមស្តាប់ភ្លាមៗពេលបើកទំព័រនេះ
-      startPaymentListener();
       // ==========================================
 
       let html5QrCode = new Html5Qrcode("reader");
