@@ -286,6 +286,16 @@ const transfer = async (req, res) => {
     await sender.save();
     await receiver.save();
 
+    // 🔥 កូដ Socket.io ដាក់នៅកន្លែងនេះទើបត្រឹមត្រូវ (ក្រោយ Save ចូល Database ជោគជ័យ)
+    const io = req.app.get("io");
+    if (io) {
+      io.to(receiver.username).emit("paymentReceived", {
+        amount: receiverAmount,
+        currency: isReceiverKHR ? "KHR" : "USD",
+        senderName: sender.fullName || sender.username,
+      });
+    }
+
     res.json({
       success: true,
       newBalance: isSenderKHR ? sender.balanceKHR : sender.balance,
@@ -423,7 +433,7 @@ const rewardCashback = async (req, res) => {
         await user.save();
         await centralBank.save();
       }
-      res.json({ success: true, balance: user.balance });
+      res.json({ success: true, balance: user.balance }); // ត្រឹមត្រូវ (លុបកូដដែលច្រឡំដាក់ចូលចោលហើយ)
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីធនាគារកណ្តាល!" });
     }

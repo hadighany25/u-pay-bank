@@ -11,6 +11,7 @@
       type="text/javascript"
     ></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
@@ -22,7 +23,7 @@
     />
 
     <style>
-      /* --- GENERAL --- */
+      /* ... ទុក Style ចាស់របស់អ្នកដដែលទាំងអស់នៅទីនេះ ... */
       body {
         background-color: #f2f4f6;
         margin: 0;
@@ -32,7 +33,6 @@
       .kh-text {
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
-
       .app-container {
         max-width: 450px;
         margin: 0 auto;
@@ -43,7 +43,6 @@
         flex-direction: column;
         overflow: hidden;
       }
-
       #reader {
         width: 100%;
         height: 100%;
@@ -53,7 +52,6 @@
         left: 0;
         z-index: 1;
       }
-
       .scan-header {
         position: absolute;
         top: 0;
@@ -78,7 +76,6 @@
         opacity: 0.5;
         transform: scale(0.9);
       }
-
       .scan-overlay-ui {
         position: absolute;
         top: 0;
@@ -136,7 +133,6 @@
         border-top: 0;
         border-bottom-right-radius: 25px;
       }
-
       .scan-laser {
         width: 100%;
         height: 3px;
@@ -163,7 +159,6 @@
           opacity: 0;
         }
       }
-
       .scan-text {
         color: white;
         margin-top: 30px;
@@ -171,7 +166,6 @@
         letter-spacing: 0.5px;
         opacity: 0.8;
       }
-
       .scan-controls {
         position: absolute;
         bottom: 60px;
@@ -200,8 +194,6 @@
         transform: scale(0.85);
         background: rgba(255, 255, 255, 0.3);
       }
-
-      /* 🔥 MODAL "MY QR" */
       .qr-modal {
         display: none;
         position: absolute;
@@ -223,7 +215,6 @@
           transform: translateY(0);
         }
       }
-
       .qr-card-container {
         flex: 1;
         width: 100%;
@@ -245,7 +236,6 @@
         position: relative;
         box-sizing: border-box;
       }
-
       .currency-toggle {
         display: flex;
         background: #f1f5f9;
@@ -271,7 +261,6 @@
         color: #004d40;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
-
       .qr-logo-top {
         height: 40px;
         margin-bottom: 15px;
@@ -291,7 +280,6 @@
         font-weight: 700;
         letter-spacing: 1px;
       }
-
       .qr-img-wrapper {
         background: #ffffff;
         padding: 15px;
@@ -307,7 +295,6 @@
         display: block;
         border-radius: 12px;
       }
-
       .amount-input-area {
         border-top: 1px dashed #e2e8f0;
         padding-top: 20px;
@@ -331,7 +318,6 @@
         color: #94a3b8;
         margin-top: -2px;
       }
-
       #qrSetAmount {
         border: none;
         background: transparent;
@@ -346,7 +332,6 @@
       #qrSetAmount::placeholder {
         color: #cbd5e1;
       }
-
       .btn-save-qr {
         width: calc(100% - 40px);
         max-width: 350px;
@@ -365,7 +350,6 @@
       .btn-save-qr:active {
         transform: scale(0.96);
       }
-
       .close-qr-btn {
         position: absolute;
         top: 25px;
@@ -467,7 +451,6 @@
         <div class="close-qr-btn" onclick="closeMyQR()">
           <i class="fa-solid fa-xmark"></i>
         </div>
-
         <div class="qr-card-container">
           <div class="qr-white-box" id="myQRContent">
             <div class="currency-toggle" id="qrToggleBar">
@@ -486,15 +469,17 @@
                 KHR (៛)
               </div>
             </div>
-
-            <img src="images/logo.png" class="qr-logo-top" alt="U-Pay" />
+            <img
+              src="images/logo.png"
+              class="qr-logo-top"
+              alt="U-Pay"
+              onerror="this.style.display = 'none'"
+            />
             <h3 id="qrUserName" class="qr-user-name">...</h3>
             <p id="qrUserAcc" class="qr-user-acc">...</p>
-
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
-
             <div class="amount-input-area">
               <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
@@ -511,7 +496,6 @@
             </div>
           </div>
         </div>
-
         <button
           onclick="downloadMyQR()"
           class="btn-save-qr kh-text"
@@ -524,15 +508,65 @@
     </div>
 
     <script>
-      // ==========================================
-      // 🔒 រៀបចំ Session និង Token
-      // ==========================================
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      const token = sessionStorage.getItem("userToken");
+      const user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
 
-      if (!user || !token) {
-        window.location.href = "index.html";
-      }
+      // ==========================================
+      // 🔥 2. ការតភ្ជាប់ Socket.io សម្រាប់ចាប់យកសញ្ញាលុយចូល
+      // ==========================================
+      const socket = io("https://u-pay-bank-nwfn.onrender.com"); // ដាក់ URL Backend របស់អ្នក
+
+      // ប្រាប់ Server ថាអតិថិជនម្នាក់នេះចូលក្នុងបន្ទប់របស់គាត់
+      socket.emit("joinRoom", user.username);
+
+      socket.on("paymentReceived", (data) => {
+        // លេងសំឡេងលុយចូល
+        const ringtone = new Audio(
+          "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+        );
+        ringtone
+          .play()
+          .catch((e) => console.log("Audio blocked by browser", e));
+
+        const amountInput = document.getElementById("qrSetAmount").value;
+        const isAmountSet = amountInput && parseFloat(amountInput) > 0;
+        const symbol = data.currency === "USD" ? "$" : "៛";
+        const formattedAmount = Number(data.amount).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+        });
+
+        if (isAmountSet) {
+          // ករណីទី១៖ កំណត់លុយ -> លោតផ្ទាំងធំ រួចទៅ Dashboard វិញ
+          Swal.fire({
+            icon: "success",
+            title: '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>',
+            html: `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
+            confirmButtonText: "យល់ព្រម",
+            confirmButtonColor: "#00b894",
+            allowOutsideClick: false,
+          }).then(() => {
+            window.location.href = "dashboard.html";
+          });
+        } else {
+          // ករណីទី២៖ មិនកំណត់លុយ -> លោតសារតូច (Toast) រួចនៅទីតាំងដដែលអោយគេស្កេនបន្ត
+          const Toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener("mouseenter", Swal.stopTimer);
+              toast.addEventListener("mouseleave", Swal.resumeTimer);
+            },
+          });
+          Toast.fire({
+            icon: "success",
+            title: `<span style="font-family: Kantumruy Pro">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
+          });
+        }
+      });
+      // ==========================================
 
       const translations = {
         en: {
@@ -594,144 +628,6 @@
         document.getElementById("myQrImg").src =
           `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${qrData}&color=${qrColor}`;
       }
-
-      // ==========================================
-      // 🔥 SMART POLLING (ស្រាល និងមិនគាំង Server)
-      // ==========================================
-
-      let paymentPollingInterval = null;
-      let lastServerTrxCount = 0;
-      let isFirstPoll = true;
-
-      // ប្រើ API ថ្មីដែលទាញតែទិន្នន័យខ្លួនឯង មិនធ្ងន់ Server ទេ!
-      const UPAY_API_URL = "/api/transactions/my-status";
-
-      async function checkIncomingPayment() {
-        try {
-          const authHeaders = {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
-          };
-
-          const res = await fetch(UPAY_API_URL, {
-            method: "GET",
-            headers: authHeaders,
-          });
-
-          if (!res.ok) return;
-          const data = await res.json();
-
-          if (data.success && data.user && data.user.transactions) {
-            const serverUser = data.user;
-
-            if (isFirstPoll) {
-              lastServerTrxCount = serverUser.transactions.length;
-              isFirstPoll = false;
-              return;
-            }
-
-            if (serverUser.transactions.length > lastServerTrxCount) {
-              const latestTrx = serverUser.transactions[0];
-              lastServerTrxCount = serverUser.transactions.length;
-
-              if (latestTrx.amount > 0) {
-                sessionStorage.setItem("user", JSON.stringify(serverUser));
-                user = serverUser;
-
-                let sym = latestTrx.currency === "KHR" ? "៛" : "$";
-                let amt = Math.abs(latestTrx.amount).toLocaleString("en-US", {
-                  minimumFractionDigits: latestTrx.currency === "KHR" ? 0 : 2,
-                });
-
-                const setAmountInput = document.getElementById("qrSetAmount");
-                const setAmount = setAmountInput
-                  ? parseFloat(setAmountInput.value)
-                  : 0;
-
-                if (setAmount > 0) {
-                  stopPaymentListener();
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  )
-                    .play()
-                    .catch(() => {});
-
-                  Swal.fire({
-                    icon: "success",
-                    title:
-                      currentLang === "kh"
-                        ? "ទទួលបានប្រាក់ជោគជ័យ!"
-                        : "Payment Received!",
-                    html:
-                      currentLang === "kh"
-                        ? `អ្នកទទួលបាន <b>${sym}${amt}</b> ពី <b>${latestTrx.senderName || "Unknown"}</b>`
-                        : `You received <b>${sym}${amt}</b> from <b>${latestTrx.senderName || "Unknown"}</b>`,
-                    confirmButtonColor: "#004d40",
-                    confirmButtonText:
-                      currentLang === "kh" ? "បិទ (OK)" : "Close",
-                    allowOutsideClick: false,
-                  }).then(() => {
-                    window.location.href = "dashboard.html";
-                  });
-                } else {
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  )
-                    .play()
-                    .catch(() => {});
-
-                  Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "success",
-                    title:
-                      currentLang === "kh"
-                        ? `ប្រាក់ចូល: ${sym}${amt}`
-                        : `Received: ${sym}${amt}`,
-                    text:
-                      currentLang === "kh"
-                        ? `ពី: ${latestTrx.senderName || "Unknown"}`
-                        : `From: ${latestTrx.senderName || "Unknown"}`,
-                    showConfirmButton: false,
-                    timer: 4000,
-                    timerProgressBar: true,
-                  });
-                }
-              }
-            }
-          }
-        } catch (err) {
-          console.log("Polling Error:", err);
-        }
-      }
-
-      function startPaymentListener() {
-        isFirstPoll = true;
-        if (paymentPollingInterval) clearInterval(paymentPollingInterval);
-        // ដូរមក ៤ វិនាទីម្តង ដើម្បីអោយ Server មានពេលដកដង្ហើម
-        paymentPollingInterval = setInterval(checkIncomingPayment, 4000);
-      }
-
-      function stopPaymentListener() {
-        if (paymentPollingInterval) clearInterval(paymentPollingInterval);
-      }
-
-      // 🔥 AUTO-PAUSE ប្រព័ន្ធសន្សំកម្លាំង Server ពេលបិទអេក្រង់ ឬចេញទៅលេង App ផ្សេង
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-          stopPaymentListener();
-        } else {
-          // បើត្រឡប់មកវិញ ហើយកំពុងបើកផ្ទាំង QR នោះវាចាប់ផ្តើមសួរ Server វិញ
-          if (
-            document.getElementById("qrModal").style.display === "flex" ||
-            isFromDashboard
-          ) {
-            startPaymentListener();
-          }
-        }
-      });
-
-      // ==========================================
 
       let html5QrCode = new Html5Qrcode("reader");
       let isCameraRunning = false;
@@ -831,12 +727,9 @@
 
       function showMyQR() {
         document.getElementById("qrModal").style.display = "flex";
-        startPaymentListener();
       }
 
       function closeMyQR() {
-        stopPaymentListener();
-
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get("showQR") === "true") {
           window.location.href = "dashboard.html";
@@ -879,16 +772,14 @@
       if (isFromDashboard) {
         document.querySelector(".scan-overlay-ui").style.display = "none";
         document.querySelector(".scan-controls").style.display = "none";
-
         const modal = document.getElementById("qrModal");
         modal.style.animation = "none";
         modal.style.display = "flex";
         document.body.style.backgroundColor = "#f1f5f9";
-
-        startPaymentListener();
       } else {
         startScanner();
       }
+      // កត់ចំណាំ៖ ខ្ញុំបានលុប startScanner(); ដែលត្រួតគ្នាពីរដងនៅខាងចុងចោលមួយហើយ
     </script>
   </body>
 </html>
