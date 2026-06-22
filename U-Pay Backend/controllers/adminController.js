@@ -1027,6 +1027,10 @@ const updateFeeSettings = async (req, res) => {
 
     sys.transferLimit = parseFloat(transferLimit);
     sys.feeTiers = feeTiers;
+
+    // 🔥 បន្ថែមបន្ទាត់នេះដាច់ខាត ដើម្បីអោយ Database ព្រម Save Array នេះចូល
+    sys.markModified("feeTiers");
+
     await sys.save();
 
     await logAdminAction(
@@ -1044,7 +1048,6 @@ const updateFeeSettings = async (req, res) => {
       .json({ success: false, message: "Server Error: " + err.message });
   }
 };
-
 // ==========================================
 // 🎁 មុខងារគ្រប់គ្រង PROMO CODE (API សម្រាប់ Admin)
 // ==========================================

@@ -1468,14 +1468,26 @@
           </table>
 
           <div
-            style="
-              text-align: center;
-              border-top: 1px dashed var(--border);
-              padding-top: 20px;
-            "
+            style="text-align: center; margin-top: 25px; margin-bottom: 20px"
           >
-            <button class="btn-primary" onclick="saveFeeSettings()">
-              <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកំណត់
+            <button
+              onclick="saveFeeSettings()"
+              style="
+                background: #10b981;
+                color: white;
+                border: none;
+                padding: 12px 28px;
+                border-radius: 10px;
+                font-size: 1rem;
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+                transition: all 0.2s ease;
+              "
+            >
+              <i class="fa-solid fa-floppy-disk" style="margin-right: 8px"></i>
+              រក្សាទុកការកំណត់
             </button>
           </div>
         </div>
@@ -3643,7 +3655,7 @@
       }
 
       // ==========================================
-      // 🔥 មុខងារ Javascript សម្រាប់ Fee & Limits (បានកែសម្រួល)
+      // 🔥 មុខងារ Javascript សម្រាប់ Fee & Limits (ជំនាន់ថ្មី)
       // ==========================================
       let feeTiersList = [];
 
@@ -3663,11 +3675,9 @@
         }
       }
 
-      // ១. មុខងារសម្រាប់បំប្លែងសញ្ញា , ទៅជា . និងការពារការវាយអក្សរ
       function formatDecimal(input) {
-        let val = input.value.replace(/,/g, "."); // ប្តូរ , ទៅ .
-        val = val.replace(/[^0-9.]/g, ""); // លុបរាល់អក្សរដែលមិនមែនជាលេខ
-        // ការពារកុំឲ្យវាយសញ្ញាចុច (.) លើសពីមួយដង
+        let val = input.value.replace(/,/g, ".");
+        val = val.replace(/[^0-9.]/g, "");
         if ((val.match(/\./g) || []).length > 1) {
           val = val.substring(0, val.lastIndexOf("."));
         }
@@ -3675,30 +3685,26 @@
         return val;
       }
 
-      // ២. មុខងារទាញយកអត្រាប្តូរប្រាក់បច្ចុប្បន្នលើទំព័រ (បើអត់មានយក 4000)
       function getCurrentFXRate() {
-        // សាកល្បងរកមើលប្រអប់អត្រាប្តូរប្រាក់ដែល Admin ធ្លាប់មាន
         const fxSellInput =
           document.getElementById("usdToKhrSell") ||
           document.getElementById("fxSell");
         return fxSellInput ? parseFloat(fxSellInput.value) || 4000 : 4000;
       }
 
-      // ៣. មុខងារគណនាលុយអូតូ ពេលវាយបញ្ចូល
-      function syncFeeCurrency(element, type, index) {
+      // មុខងាររួមសម្រាប់គណនាលុយអូតូ ទាំង Min, Max និង Fee
+      function syncCurrency(element, type, index, field) {
         const exchangeRate = getCurrentFXRate();
         let value = parseFloat(element.value) || 0;
 
         if (type === "USD") {
-          // បើវាយដុល្លារ គណនាជាខ្មែរ ហើយបង្ហាញ
           let khrValue = Math.round(value * exchangeRate);
-          document.getElementById(`feeKhr_${index}`).value = khrValue;
-          updateTier(index, "fee", value); // រក្សាទុកតម្លៃដុល្លារចូល Database
+          document.getElementById(`${field}Khr_${index}`).value = khrValue;
+          feeTiersList[index][field] = value; // រក្សាទុកក្នុងអថេរ
         } else if (type === "KHR") {
-          // បើវាយខ្មែរ គណនាជាដុល្លារ ហើយបង្ហាញ
           let usdValue = (value / exchangeRate).toFixed(2);
-          document.getElementById(`feeUsd_${index}`).value = usdValue;
-          updateTier(index, "fee", usdValue); // រក្សាទុកតម្លៃដុល្លារចូល Database
+          document.getElementById(`${field}Usd_${index}`).value = usdValue;
+          feeTiersList[index][field] = parseFloat(usdValue); // រក្សាទុកក្នុងអថេរ
         }
       }
 
@@ -3709,41 +3715,60 @@
         const currentRate = getCurrentFXRate();
 
         feeTiersList.forEach((tier, index) => {
-          // គណនាលុយខ្មែរបឋម ដើម្បីបង្ហាញពេល Load មកភ្លាម
-          const initialFeeKhr = Math.round(
-            (parseFloat(tier.fee) || 0) * currentRate,
-          );
+          // គណនាលុយខ្មែរបឋម ពេលទើប Load ចេញមក
+          const minKhr = Math.round((parseFloat(tier.min) || 0) * currentRate);
+          const maxKhr = Math.round((parseFloat(tier.max) || 0) * currentRate);
+          const feeKhr = Math.round((parseFloat(tier.fee) || 0) * currentRate);
 
           tbody.innerHTML += `
-            <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding: 10px;">
-                <input type="text" inputmode="decimal" class="form-input" style="width: 100px; text-align:center;" value="${tier.min}" oninput="let v = formatDecimal(this); updateTier(${index}, 'min', v)">
-              </td>
-              <td style="padding: 10px;">
-                <input type="text" inputmode="decimal" class="form-input" style="width: 100px; text-align:center;" value="${tier.max}" oninput="let v = formatDecimal(this); updateTier(${index}, 'max', v)">
-              </td>
-              <td style="padding: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+            <tr style="border-bottom: 1px dashed var(--border);">
+              <td style="padding: 12px 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
                   <div style="display: flex; align-items: center; gap: 5px;">
                     <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">$</span>
-                    <input type="text" id="feeUsd_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; color: #ef4444; font-weight: bold;" value="${tier.fee}" placeholder="0.00" oninput="formatDecimal(this); syncFeeCurrency(this, 'USD', ${index})">
+                    <input type="text" id="minUsd_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-weight: 600;" value="${tier.min}" placeholder="0.00" oninput="formatDecimal(this); syncCurrency(this, 'USD', ${index}, 'min')">
                   </div>
                   <div style="display: flex; align-items: center; gap: 5px;">
                     <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">៛</span>
-                    <input type="text" id="feeKhr_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-size: 0.85rem; background: #f8fafc;" value="${initialFeeKhr}" placeholder="0 ៛" oninput="formatDecimal(this); syncFeeCurrency(this, 'KHR', ${index})">
+                    <input type="text" id="minKhr_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-size: 0.85rem; background: #f8fafc;" value="${minKhr}" placeholder="0 ៛" oninput="formatDecimal(this); syncCurrency(this, 'KHR', ${index}, 'min')">
                   </div>
                 </div>
               </td>
-              <td style="padding: 10px; text-align: right;">
-                <button class="btn-action btn-delete" onclick="removeTier(${index})"><i class="fa-solid fa-xmark"></i></button>
+
+              <td style="padding: 12px 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">$</span>
+                    <input type="text" id="maxUsd_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-weight: 600;" value="${tier.max}" placeholder="0.00" oninput="formatDecimal(this); syncCurrency(this, 'USD', ${index}, 'max')">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">៛</span>
+                    <input type="text" id="maxKhr_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-size: 0.85rem; background: #f8fafc;" value="${maxKhr}" placeholder="0 ៛" oninput="formatDecimal(this); syncCurrency(this, 'KHR', ${index}, 'max')">
+                  </div>
+                </div>
+              </td>
+
+              <td style="padding: 12px 10px;">
+                <div style="display: flex; flex-direction: column; gap: 6px; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">$</span>
+                    <input type="text" id="feeUsd_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; color: #00b894; font-weight: bold;" value="${tier.fee}" placeholder="0.00" oninput="formatDecimal(this); syncCurrency(this, 'USD', ${index}, 'fee')">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 0.8rem; color: #64748b; font-weight:bold;">៛</span>
+                    <input type="text" id="feeKhr_${index}" inputmode="decimal" class="form-input" style="width: 80px; text-align:center; font-size: 0.85rem; background: #f8fafc;" value="${feeKhr}" placeholder="0 ៛" oninput="formatDecimal(this); syncCurrency(this, 'KHR', ${index}, 'fee')">
+                  </div>
+                </div>
+              </td>
+
+              <td style="padding: 12px 10px; text-align: center; vertical-align: middle;">
+                <button class="btn-action btn-delete" onclick="removeTier(${index})" style="background: #ef4444; color: white; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
               </td>
             </tr>
           `;
         });
-      }
-
-      function updateTier(index, field, value) {
-        feeTiersList[index][field] = parseFloat(value) || 0;
       }
 
       function addFeeTier() {
@@ -3758,6 +3783,14 @@
 
       async function saveFeeSettings() {
         const limit = document.getElementById("dailyTrxLimit").value;
+
+        // 🔥 សំអាតទិន្នន័យអោយទៅជា Number សុទ្ធ ការពារមិនអោយ Database Error
+        const cleanTiers = feeTiersList.map((t) => ({
+          min: parseFloat(t.min) || 0,
+          max: parseFloat(t.max) || 0,
+          fee: parseFloat(t.fee) || 0,
+        }));
+
         try {
           Swal.fire({
             title: "កំពុងរក្សាទុក...",
@@ -3768,12 +3801,17 @@
             headers: getAuthHeaders(),
             body: JSON.stringify({
               transferLimit: limit,
-              feeTiers: feeTiersList,
+              feeTiers: cleanTiers,
             }),
           });
           const data = await res.json();
           if (data.success) {
-            Swal.fire("ជោគជ័យ!", data.message, "success");
+            Swal.fire(
+              "ជោគជ័យ!",
+              data.message || "រក្សាទុកការកំណត់បានជោគជ័យ!",
+              "success",
+            );
+            loadFeeSettings(); // Load សារថ្មីដើម្បីបញ្ជាក់ថា Database ពិតជាបាន Save
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
           }
@@ -3782,7 +3820,6 @@
         }
       }
 
-      // ហៅ loadFeeSettings() ឲ្យដំណើរការពេលទំព័រដើរ
       setTimeout(loadFeeSettings, 1000);
 
       // ==========================================
