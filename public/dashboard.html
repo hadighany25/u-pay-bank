@@ -1790,8 +1790,29 @@
       updateUI(user);
       loadDashboardData(false); // ទាញលើកទី១ពេលបើក App
 
-      // ជំនួសអោយ Interval ២ដើរជាន់គ្នា យើងប្រើតែ ១ នេះទេ (រៀងរាល់ ៤វិនាទី)
-      setInterval(() => loadDashboardData(true), 4000);
+      let dashInterval;
+
+      function startDashPolling() {
+        if (dashInterval) clearInterval(dashInterval);
+        // 🔥 បន្ធូរបន្ថយមក ១៥ វិនាទីម្តង ដើម្បីការពារ Server គាំង
+        dashInterval = setInterval(() => loadDashboardData(true), 15000);
+      }
+
+      function stopDashPolling() {
+        if (dashInterval) clearInterval(dashInterval);
+      }
+
+      startDashPolling();
+
+      // 🔥 AUTO-PAUSE: ពេលអតិថិជនចេញពី App ទៅលេងហ្វេសប៊ុក វាឈប់សួរ Server អូតូ!
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopDashPolling();
+        } else {
+          startDashPolling();
+          loadDashboardData(true); // Update ភ្លាមៗពេលត្រឡប់ចូល App វិញ
+        }
+      });
     </script>
   </body>
 </html>
