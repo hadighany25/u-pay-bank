@@ -45,8 +45,13 @@ connectDB()
 // 🔥 រៀបចំ Socket.io
 // ==========================================
 const server = http.createServer(app);
+
+// ✅ រៀបចំ Socket ត្រឹមត្រូវ (ទុកតែមួយនេះគត់!)
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: "*", // អនុញ្ញាតអោយ Frontend ភ្ជាប់មកបាន
+    methods: ["GET", "POST"],
+  },
 });
 
 // រក្សាទុក io ទៅក្នុង app ដើម្បីអាចយកទៅប្រើក្នុង Controller ផ្សេងៗបាន
@@ -74,15 +79,8 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });
 
-const io = require("socket.io")(server, {
-  cors: {
-    origin: "*", // អនុញ្ញាតអោយ Frontend ភ្ជាប់មកបាន
-    methods: ["GET", "POST"],
-  },
-});
-
 // ==========================================
-// 🚀 ចាប់ផ្តើម Server (ដក app.listen ចេញ ប្រើតែ server.listen)
+// 🚀 ចាប់ផ្តើម Server
 // ==========================================
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀🔥 U-PAY Server is running with Socket.io on port ${PORT}`);
