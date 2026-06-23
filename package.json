@@ -100,5 +100,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10"
+  }
 }

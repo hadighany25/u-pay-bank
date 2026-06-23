@@ -1,8 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-// const http = require("http");
-// const { Server } = require("socket.io");
+const http = require("http");
+const { Server } = require("socket.io");
 
 require("dotenv").config();
 
@@ -41,24 +41,24 @@ connectDB()
     console.error("❌ Database connection failed:", error);
   });
 
-// // ==========================================
-// // 🔥 រៀបចំ Socket.io
-// // ==========================================
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: { origin: "*" },
-// });
+// ==========================================
+// 🔥 រៀបចំ Socket.io
+// ==========================================
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" },
+});
 
-// // រក្សាទុក io ទៅក្នុង app ដើម្បីអាចយកទៅប្រើក្នុង Controller ផ្សេងៗបាន
-// app.set("io", io);
+// រក្សាទុក io ទៅក្នុង app ដើម្បីអាចយកទៅប្រើក្នុង Controller ផ្សេងៗបាន
+app.set("io", io);
 
-// io.on("connection", (socket) => {
-//   // ពេល App ទូរស័ព្ទ ឬ Web ភ្ជាប់មក វាត្រូវប្រាប់ថាខ្លួនវាជា User ណា
-//   socket.on("joinRoom", (username) => {
-//     socket.join(username);
-//     console.log(`User ${username} joined socket room.`);
-//   });
-// });
+io.on("connection", (socket) => {
+  // ពេល App ទូរស័ព្ទ ឬ Web ភ្ជាប់មក វាត្រូវប្រាប់ថាខ្លួនវាជា User ណា
+  socket.on("joinRoom", (username) => {
+    socket.join(username);
+    console.log(`User ${username} joined socket room.`);
+  });
+});
 
 // ==========================================
 // 🌐 ប្រើប្រាស់ Routes (ត្រូវដាក់មុនពេល Listen)
@@ -80,4 +80,3 @@ app.get("/", (req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀🔥 U-PAY Server is running with Socket.io on port ${PORT}`);
 });
-module.exports = app;
