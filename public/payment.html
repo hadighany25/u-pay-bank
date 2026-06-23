@@ -843,9 +843,13 @@
         });
 
         try {
-          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
+          // កូដថ្មីដែលត្រូវកែ៖
+          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user.token}`, // 🔥 ថែមជួរនេះដើម្បីប្រាប់ថាមានសោ
+            },
             body: JSON.stringify({ bill_id: query }),
           });
           const data = await res.json();
@@ -946,15 +950,18 @@
           );
 
           try {
-            // 🔥 បញ្ជូន username និង amount ទៅអោយ U-PAY Server ដឹងថាអ្នកណាបង់
+            // កូដថ្មីដែលត្រូវកែ៖
             const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${user.token}`, // 🔥 ថែមជួរនេះដូចគ្នា
+              },
               body: JSON.stringify({
                 bill_id: actualBillId,
                 company: actualCompany,
-                username: user.username, // សំខាន់ណាស់នៅត្រង់នេះ
-                amount: payAmount, // សំខាន់ណាស់នៅត្រង់នេះ
+                username: user.username,
+                amount: payAmount,
               }),
             });
             const data = await res.json();
