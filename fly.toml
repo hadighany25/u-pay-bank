@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for u-pay-bank on 2026-06-23T12:41:50+07:00
+# fly.toml app configuration file generated for u-pay-bank
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,6 +7,14 @@ app = 'u-pay-bank'
 primary_region = 'sin'
 
 [build]
+  # កន្លែងនេះទុកទំនេរធម្មតា
+
+[env]
+  PORT = "3000"
+
+# 🔥 បន្ថែមផ្នែកនេះ ដើម្បីប្រាប់ Fly.io ពីទីតាំងពិតប្រាកដរបស់ server.js របស់អ្នក
+[processes]
+  app = 'node "U-Pay Backend/server.js"'
 
 [http_service]
   internal_port = 3000
