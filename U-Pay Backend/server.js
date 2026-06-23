@@ -74,6 +74,13 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });
 
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "*", // អនុញ្ញាតអោយ Frontend ភ្ជាប់មកបាន
+    methods: ["GET", "POST"],
+  },
+});
+
 // ==========================================
 // 🚀 ចាប់ផ្តើម Server (ដក app.listen ចេញ ប្រើតែ server.listen)
 // ==========================================
