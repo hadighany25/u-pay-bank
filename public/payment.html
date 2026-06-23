@@ -722,7 +722,7 @@
       document.getElementById("topBalance").innerText =
         `Bal: $${(user.balance || 0).toFixed(2)}`;
 
-      const UPAY_SERVER_URL = "https://u-pay-bank.onrender.com"; // (ដូរដាក់ Link U-PAY ពិតរបស់អ្នក)
+      const UPAY_SERVER_URL = "https://u-pay-bank.fly.dev"; // (ដូរដាក់ Link U-PAY ពិតរបស់អ្នក)
       let actualBillId = null;
       let actualCompany = null;
       let actualCompanyAccount = null;
@@ -843,7 +843,7 @@
         });
 
         try {
-          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
+          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ bill_id: query }),
