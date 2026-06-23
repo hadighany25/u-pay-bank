@@ -513,16 +513,16 @@
 
         <div id="billDetailsCard" class="bill-details-card kh-font">
           <div class="detail-info-row">
-            <span class="info-label">វិក្កយបត្រ (Bill ID):</span
-            ><span class="info-value" id="infoBillId">---</span>
+            <span class="info-label">វិក្កយបត្រ (Bill ID):</span>
+            <span class="info-value" id="infoBillId">---</span>
           </div>
           <div class="detail-info-row">
-            <span class="info-label">អតិថិជន (Name):</span
-            ><span class="info-value" id="infoName">---</span>
+            <span class="info-label">អតិថិជន (Name):</span>
+            <span class="info-value" id="infoName">---</span>
           </div>
           <div class="detail-info-row">
-            <span class="info-label">សម្រាប់ខែ (Month):</span
-            ><span class="info-value" id="infoMonth">---</span>
+            <span class="info-label">សម្រាប់ខែ (Month):</span>
+            <span class="info-value" id="infoMonth">---</span>
           </div>
           <div class="total-amount" id="infoAmount">$0.00</div>
           <button
@@ -628,12 +628,12 @@
           </div>
           <div class="slip-body">
             <div class="detail-row">
-              <span class="d-label">Trx ID</span
-              ><span class="d-value d-mono" id="slipRef">...</span>
+              <span class="d-label">Trx ID</span>
+              <span class="d-value d-mono" id="slipRef">...</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">Hash</span
-              ><span
+              <span class="d-label">Hash</span>
+              <span
                 class="d-value d-mono text-slate-400"
                 id="slipHash"
                 style="font-size: 0.8rem"
@@ -642,24 +642,24 @@
             </div>
             <div class="dashed-line"></div>
             <div class="detail-row">
-              <span class="d-label">From</span
-              ><span class="d-value" id="slipFrom">...</span>
+              <span class="d-label">From</span>
+              <span class="d-value" id="slipFrom">...</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">Biller</span
-              ><span class="d-value" id="slipBiller">...</span>
+              <span class="d-label">Biller</span>
+              <span class="d-value" id="slipBiller">...</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">Customer</span
-              ><span class="d-value kh-font" id="slipCustomer">...</span>
+              <span class="d-label">Customer</span>
+              <span class="d-value kh-font" id="slipCustomer">...</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">Date</span
-              ><span class="d-value" id="slipDate">...</span>
+              <span class="d-label">Date</span>
+              <span class="d-value" id="slipDate">...</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">Remark</span
-              ><span class="d-value" id="slipRemark">...</span>
+              <span class="d-label">Remark</span>
+              <span class="d-value" id="slipRemark">...</span>
             </div>
 
             <div class="slip-footer-info mt-4">
@@ -719,10 +719,14 @@
       }
       let user = JSON.parse(uPayUserString);
 
+      // 🔥 ទាញយក Token ពី Storage ឱ្យបានត្រឹមត្រូវ
+      const myToken =
+        sessionStorage.getItem("token") || localStorage.getItem("token");
+
       document.getElementById("topBalance").innerText =
         `Bal: $${(user.balance || 0).toFixed(2)}`;
 
-      const UPAY_SERVER_URL = "https://u-pay-bank.fly.dev"; // (ដូរដាក់ Link U-PAY ពិតរបស់អ្នក)
+      const UPAY_SERVER_URL = "https://u-pay-bank.fly.dev"; // អាសយដ្ឋាន Server ថ្មី
       let actualBillId = null;
       let actualCompany = null;
       let actualCompanyAccount = null;
@@ -843,12 +847,12 @@
         });
 
         try {
-          // កូដថ្មីដែលត្រូវកែ៖
+          // 🔥 ប្រើ myToken ដើម្បីឆ្លងកាត់សន្តិសុខ
           const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${user.token}`, // 🔥 ថែមជួរនេះដើម្បីប្រាប់ថាមានសោ
+              Authorization: `Bearer ${myToken}`,
             },
             body: JSON.stringify({ bill_id: query }),
           });
@@ -925,7 +929,7 @@
         if (c.value.length >= 1) document.getElementById(n).focus();
       }
 
-      // 🔥 មុខងារទូទាត់ប្រាក់ដែលបានជួសជុលហើយ (បញ្ចូល username និង amount)
+      // 🔥 មុខងារទូទាត់ប្រាក់ដែលប្រើ myToken
       async function submitPay() {
         const pin =
           document.getElementById("p1").value +
@@ -950,12 +954,12 @@
           );
 
           try {
-            // កូដថ្មីដែលត្រូវកែរួច
+            // 🔥 ប្រើ myToken នៅទីនេះដូចគ្នា
             const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${user.token}`, // 🔥 ថែមជួរនេះដូចគ្នា
+                Authorization: `Bearer ${myToken}`,
               },
               body: JSON.stringify({
                 bill_id: actualBillId,
