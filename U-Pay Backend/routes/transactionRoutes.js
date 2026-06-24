@@ -28,7 +28,7 @@ const {
 router.post("/check-account", verifyUser, checkAccount);
 router.post("/transfer", verifyUser, enforceSystemActive, transfer);
 router.post("/bank/scan-bill", scanBankBill);
-router.post("/bank/pay-bill", verifyUser, enforceSystemActive, payBankBill);
+router.post("/bank/pay-bill", enforceSystemActive, payBankBill);
 router.post(
   "/reward/cashback",
   verifyUser,

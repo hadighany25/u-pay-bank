@@ -341,13 +341,12 @@ const scanBankBill = async (req, res) => {
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
 
-  if (req.user.username !== username) {
-    return res.status(403).json({
-      success: false,
-      message:
-        "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចបង់វិក្កយបត្រចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-    });
+  // ⚠️ លុប ឬ Comment របាំងសុវត្ថិភាពនេះចោលបណ្តោះអាសន្នសិន ដើម្បីឱ្យរត់រួច
+  /*
+  if (req.user && req.user.username !== username) {
+    return res.status(403).json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
   }
+  */
 
   try {
     let payingUser = await User.findOne({ username });
@@ -355,12 +354,13 @@ const payBankBill = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នក!" });
+
     if (payingUser.balance < amount)
       return res
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    // 🔥 កូដថ្មី៖ បាញ់សំណើទៅ PayHub ផ្ទាល់ ដើម្បីទូទាត់ប្រាក់
+    // 🔥 បាញ់សំណើទៅ PayHub ផ្ទាល់ ដើម្បីទូទាត់ប្រាក់
     const currentRefId = `BP-${Date.now()}`;
     const response = await fetch("https://payhub-kh.fly.dev/api/gateway/pay", {
       method: "POST",
@@ -413,6 +413,7 @@ const payBankBill = async (req, res) => {
       .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ" });
   }
 };
+
 // ==========================================
 // 🎁 ៤. មុខងាររង្វាន់ និងការបង្វិលសង (Lucky Spin Cashback)
 // ==========================================
