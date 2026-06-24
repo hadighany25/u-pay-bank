@@ -307,6 +307,35 @@ const transfer = async (req, res) => {
 };
 
 // ==========================================
+// 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
+// ==========================================
+const scanBankBill = async (req, res) => {
+  const { bill_id } = req.body;
+  try {
+    // U-Pay Backend បាញ់សំណើទៅសួរ PayHub ផ្ទាល់
+    const response = await fetch(
+      `https://payhub-kh.fly.dev/api/gateway/check-bill?query=${bill_id}`,
+    );
+    const data = await response.json();
+
+    if (data.success) {
+      // payment.html ត្រូវការទិន្នន័យក្នុងឈ្មោះ `billData`
+      res.json({ success: true, billData: data.bill });
+    } else {
+      res.json({
+        success: false,
+        message: data.message || "រកមិនឃើញវិក្កយបត្រនេះទេ!",
+      });
+    }
+  } catch (err) {
+    console.error("Scan Bill Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ!" });
+  }
+};
+
+// ==========================================
 // ៣. បង់វិក្កយបត្រជាមួយ PayHub
 // ==========================================
 const payBankBill = async (req, res) => {
@@ -560,4 +589,5 @@ module.exports = {
   payBankBill,
   rewardCashback,
   claimPromoCode,
+  scanBankBill,
 };
