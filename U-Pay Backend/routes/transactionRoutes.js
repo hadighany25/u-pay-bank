@@ -27,10 +27,7 @@ const {
 
 router.post("/check-account", verifyUser, checkAccount);
 router.post("/transfer", verifyUser, enforceSystemActive, transfer);
-
-// 🔥 Route សម្រាប់ស្វែងរកវិក្កយបត្រ (Scan Bill)
-router.post("/bank/scan-bill", verifyUser, scanBankBill);
-
+router.post("/bank/scan-bill", scanBankBill);
 router.post("/bank/pay-bill", verifyUser, enforceSystemActive, payBankBill);
 router.post(
   "/reward/cashback",
