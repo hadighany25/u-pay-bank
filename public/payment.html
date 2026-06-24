@@ -708,7 +708,6 @@
         </div>
       </div>
     </div>
-
     <script>
       lucide.createIcons();
 
@@ -719,9 +718,17 @@
       }
       let user = JSON.parse(uPayUserString);
 
-      // 🔥 ទាញយក Token ពី Storage ឱ្យបានត្រឹមត្រូវ
-      const myToken =
+      // 🔥 កូដថ្មី៖ ទាញយក Token ឱ្យបានគ្រប់ជ្រុងជ្រោយ (ការពារករណីវា Save ក្នុង user)
+      let myToken =
         sessionStorage.getItem("token") || localStorage.getItem("token");
+      if (!myToken && user.token) {
+        myToken = user.token;
+      }
+
+      // ប្រសិនបើរករឹតតែអត់ឃើញ Token ទៀត ឱ្យវាលោតប្រាប់
+      if (!myToken) {
+        console.error("រកមិនឃើញ Token ទេ! លោកអ្នកប្រហែលជាត្រូវ Login ម្តងទៀត។");
+      }
 
       document.getElementById("topBalance").innerText =
         `Bal: $${(user.balance || 0).toFixed(2)}`;
@@ -847,12 +854,10 @@
         });
 
         try {
-          // 🔥 ប្រើ myToken ដើម្បីឆ្លងកាត់សន្តិសុខ
           const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${myToken}`,
             },
             body: JSON.stringify({ bill_id: query }),
           });
@@ -929,7 +934,7 @@
         if (c.value.length >= 1) document.getElementById(n).focus();
       }
 
-      // 🔥 មុខងារទូទាត់ប្រាក់ដែលប្រើ myToken
+      // 🔥 មុខងារទូទាត់ប្រាក់ដែលប្រើ myToken ត្រឹមត្រូវ
       async function submitPay() {
         const pin =
           document.getElementById("p1").value +
@@ -954,7 +959,7 @@
           );
 
           try {
-            // 🔥 ប្រើ myToken នៅទីនេះដូចគ្នា
+            // 🔥 បញ្ជូន myToken ទៅបញ្ជាក់ជាមួយ Server
             const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
               method: "POST",
               headers: {
@@ -971,7 +976,6 @@
             const data = await res.json();
 
             if (data.success) {
-              // កាត់លុយជាក់ស្តែងពីកុងភ្ញៀវតាមរយ: Backend ឆ្លើយតបមក
               user.balance =
                 data.newBalance !== undefined
                   ? data.newBalance
@@ -982,14 +986,13 @@
 
               Swal.close();
 
-              // កែសម្រួលត្រង់ផ្នែកបង្ហាញ Slip៖
               const txId = data.transaction_id || `BP-${Date.now()}`;
-              const txHash = data.hash; // នេះគឺ Hash ដែលបាញ់មកពី Server ផ្ទាល់
+              const txHash = data.hash;
 
               document.getElementById("slipAmount").innerText =
                 `$${payAmount.toFixed(2)}`;
               document.getElementById("slipRef").innerText = txId;
-              document.getElementById("slipHash").innerText = txHash; // នឹងបង្ហាញអក្សរលាយលេខ ៨ ខ្ទង់
+              document.getElementById("slipHash").innerText = txHash;
               document.getElementById("slipFrom").innerText = user.username;
               document.getElementById("slipBiller").innerText = actualCompany;
               document.getElementById("slipCustomer").innerText =
@@ -1008,7 +1011,6 @@
                   second: "2-digit",
                 });
 
-              // បង្ហាញផ្ទាំងវិក្កយបត្រ
               document.getElementById("slipModal").style.display = "flex";
             } else {
               Swal.fire("បរាជ័យ", data.message, "error");
