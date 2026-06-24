@@ -360,12 +360,25 @@ const payBankBill = async (req, res) => {
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    const payhubData = await payBillToPayHub(bill_id);
+    // 🔥 កូដថ្មី៖ បាញ់សំណើទៅ PayHub ផ្ទាល់ ដើម្បីទូទាត់ប្រាក់
+    const currentRefId = `BP-${Date.now()}`;
+    const response = await fetch("https://payhub-kh.fly.dev/api/gateway/pay", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        bill_id: bill_id,
+        upay_trx_id: currentRefId, // បញ្ជូនលេខកូដប្រតិបត្តិការទៅអោយ PayHub
+      }),
+    });
 
+    const payhubData = await response.json();
+
+    // ឆែកមើលថាបើ PayHub ទទួលលុយជោគជ័យ ទើបកាត់លុយពីកុង U-Pay
     if (payhubData && payhubData.success) {
       payingUser.balance -= amount;
       const newHash = generateHash();
-      const currentRefId = `BP-${Date.now()}`;
 
       payingUser.transactions.unshift({
         refId: currentRefId,
@@ -380,6 +393,7 @@ const payBankBill = async (req, res) => {
       payingUser.markModified("transactions");
       await payingUser.save();
 
+      // ឆ្លើយតបទៅ payment.html វិញ
       res.json({
         success: true,
         newBalance: payingUser.balance,
@@ -393,10 +407,12 @@ const payBankBill = async (req, res) => {
       });
     }
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Pay Bill Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ" });
   }
 };
-
 // ==========================================
 // 🎁 ៤. មុខងាររង្វាន់ និងការបង្វិលសង (Lucky Spin Cashback)
 // ==========================================
