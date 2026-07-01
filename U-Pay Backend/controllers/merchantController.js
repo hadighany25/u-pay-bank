@@ -13,48 +13,54 @@ const generateRandomNumber = (length) => {
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
 exports.createMerchant = async (req, res) => {
   try {
-    const { name, city, linkedAccount } = req.body;
-    const userId = req.user.id; // ទាញពី authMiddleware
+    console.log("Request Body:", req.body); // មើលទិន្នន័យមកពី Front
+    console.log("User ID:", req.user.id); // មើលថា User មានសិទ្ធិអត់
+    try {
+      const { name, city, linkedAccount } = req.body;
+      const userId = req.user.id; // ទាញពី authMiddleware
 
-    // បង្កើត Merchant ID ១៥ ខ្ទង់ (ឧ. ផ្តើមដោយ 500 + លេខ ១២ ខ្ទង់)
-    const merchantId = "500" + generateRandomNumber(12);
+      // បង្កើត Merchant ID ១៥ ខ្ទង់ (ឧ. ផ្តើមដោយ 500 + លេខ ១២ ខ្ទង់)
+      const merchantId = "500" + generateRandomNumber(12);
 
-    // បង្កើត លេខគណនី ១២ ខ្ទង់ (ឧ. ផ្តើមដោយ 888 + លេខ ៩ ខ្ទង់)
-    const accountNumber = "888" + generateRandomNumber(9);
+      // បង្កើត លេខគណនី ១២ ខ្ទង់ (ឧ. ផ្តើមដោយ 888 + លេខ ៩ ខ្ទង់)
+      const accountNumber = "888" + generateRandomNumber(9);
 
-    // បង្កើត API Key & Secret
-    const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
-    const apiSecret = crypto.randomBytes(32).toString("hex");
+      // បង្កើត API Key & Secret
+      const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
+      const apiSecret = crypto.randomBytes(32).toString("hex");
 
-    const newMerchant = new Merchant({
-      userId,
-      name,
-      city,
-      linkedAccount,
-      merchantId,
-      accountNumber,
-      apiKey,
-      apiSecret,
-    });
+      const newMerchant = new Merchant({
+        userId,
+        name,
+        city,
+        linkedAccount,
+        merchantId,
+        accountNumber,
+        apiKey,
+        apiSecret,
+      });
+      await newMerchant.save();
 
-    await newMerchant.save();
-
-    res.status(201).json({
-      success: true,
-      message: "Merchant created successfully",
-      merchant: {
-        id: newMerchant._id,
-        name: newMerchant.name,
-        merchantId: newMerchant.merchantId,
-        accountNumber: newMerchant.accountNumber,
-        balance: newMerchant.balance,
-        apiKey: newMerchant.apiKey, // បង្ហាញតែពេលបង្កើតដំបូង
-        apiSecret: newMerchant.apiSecret,
-      },
-    });
+      res.status(201).json({
+        success: true,
+        message: "Merchant created successfully",
+        merchant: {
+          id: newMerchant._id,
+          name: newMerchant.name,
+          merchantId: newMerchant.merchantId,
+          accountNumber: newMerchant.accountNumber,
+          balance: newMerchant.balance,
+          apiKey: newMerchant.apiKey, // បង្ហាញតែពេលបង្កើតដំបូង
+          apiSecret: newMerchant.apiSecret,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating merchant:", error);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
   } catch (error) {
-    console.error("Error creating merchant:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("FULL ERROR DETAILS:", error); // នេះនឹងប្រាប់ Error 100%
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
