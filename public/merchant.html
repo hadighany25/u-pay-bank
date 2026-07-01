@@ -803,10 +803,29 @@
           </div>
         </div>
 
+        <!-- បន្ថែម onclick លើ Tab នីមួយៗ -->
         <div class="tab-header kh-text">
-          <div class="tab-item active" data-lang="merch_tab_branch">សាខា</div>
-          <div class="tab-item" data-lang="merch_tab_cashier">អ្នកគិតលុយ</div>
-          <div class="tab-item" data-lang="merch_tab_report">របាយការណ៍</div>
+          <div
+            class="tab-item active"
+            data-lang="merch_tab_branch"
+            onclick="switchMerchantTab(this, 'branches')"
+          >
+            សាខា
+          </div>
+          <div
+            class="tab-item"
+            data-lang="merch_tab_cashier"
+            onclick="switchMerchantTab(this, 'cashiers')"
+          >
+            អ្នកគិតលុយ
+          </div>
+          <div
+            class="tab-item"
+            data-lang="merch_tab_report"
+            onclick="switchMerchantTab(this, 'reports')"
+          >
+            របាយការណ៍
+          </div>
         </div>
 
         <div id="merchantListContainer" style="padding: 0 20px"></div>
@@ -1476,43 +1495,122 @@
       // ==========================================
       function renderMerchantList() {
         const container = document.getElementById("merchantListContainer");
-        container.innerHTML = ""; // សម្អាតប្រអប់ជាមុន
+        container.innerHTML = "";
 
-        // ករណីទី ១៖ បើអត់ទាន់មានហាងសោះ (អត់ទាន់បង្កើត)
         if (user.merchantProfile.merchants.length === 0) {
           let lang = localStorage.getItem("lang") || "en";
-
-          // ទាញពាក្យ "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ" ពីក្នុងវចនានុក្រម (Translations)
           let noShopTxt =
             translations[lang].merch_no_shop || "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ";
-
-          // បង្ហាញរូប Icon ព្រិលៗ នឹងអក្សរ
           container.innerHTML = `
-      <div style="text-align:center; margin-top:50px; opacity:0.7;">
-        <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
-        <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>
-        <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) នៅខាងក្រោម ដើម្បីបន្ថែមសាខាថ្មី</p>
-      </div>
-    `;
-          return; // បញ្ឈប់កូដត្រឹមនេះ ដើម្បីកុំឱ្យវាទៅអានកូដបង្ហាញហាងនៅខាងក្រោម
+            <div style="text-align:center; margin-top:50px; opacity:0.7;">
+              <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
+              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>
+              <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) ដើម្បីបន្ថែមសាខាថ្មី</p>
+            </div>
+          `;
+          return;
         }
 
-        // ករណីទី ២៖ បើមានហាង (វានឹងអានរំលងករណីទី១ ហើយមកបង្ហាញបញ្ជីហាងនៅទីនេះវិញ)
         user.merchantProfile.merchants.forEach((m) => {
           const div = document.createElement("div");
           div.className = "merchant-item";
           div.onclick = () => openMerchant(m.id);
           div.innerHTML = `
-      <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
-      <div style="flex:1;">
-        <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
-        <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);">
-          <span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
-        </p>
-      </div>
-      <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px;"></i>
-    `;
+            <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
+            <div style="flex:1;">
+              <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
+            </div>
+            <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px 15px;" onclick="event.stopPropagation(); showMerchantOptions('${m.id}')"></i>
+          `;
           container.appendChild(div);
+        });
+      }
+
+      // --- មុខងារសម្រាប់កែប្រែ និង លុបហាង ---
+      function showMerchantOptions(id) {
+        const m = user.merchantProfile.merchants.find((x) => x.id === id);
+        let lang = localStorage.getItem("lang") || "en";
+
+        Swal.fire({
+          title: lang === "kh" ? "ជម្រើសហាង" : "Shop Options",
+          html: `<b style="font-family: 'Inter', sans-serif;">${m.name}</b>`,
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: `<i class="fa-solid fa-pen"></i> ${lang === "kh" ? "កែប្រែឈ្មោះ" : "Edit Name"}`,
+          denyButtonText: `<i class="fa-solid fa-trash"></i> ${lang === "kh" ? "លុបហាងនេះ" : "Delete Shop"}`,
+          cancelButtonText: lang === "kh" ? "បិទ" : "Cancel",
+          confirmButtonColor: "#3b82f6",
+          denyButtonColor: "#ef4444",
+          customClass: { popup: "premium-swal" },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            editMerchant(id);
+          } else if (result.isDenied) {
+            deleteMerchant(id);
+          }
+        });
+      }
+
+      async function editMerchant(id) {
+        const m = user.merchantProfile.merchants.find((x) => x.id === id);
+        let lang = localStorage.getItem("lang") || "en";
+
+        const { value: newName } = await Swal.fire({
+          title: lang === "kh" ? "កែប្រែឈ្មោះហាង" : "Edit Shop Name",
+          input: "text",
+          inputValue: m.name,
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          inputValidator: (value) => {
+            if (!value)
+              return lang === "kh"
+                ? "សូមបញ្ចូលឈ្មោះហាង!"
+                : "Please enter a name!";
+          },
+        });
+
+        if (newName && newName !== m.name) {
+          m.name = newName;
+          sessionStorage.setItem("user", JSON.stringify(user));
+          renderMerchantList();
+          Swal.fire({
+            icon: "success",
+            title: lang === "kh" ? "ជោគជ័យ" : "Success",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        }
+      }
+
+      function deleteMerchant(id) {
+        let lang = localStorage.getItem("lang") || "en";
+        Swal.fire({
+          title: lang === "kh" ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
+          text:
+            lang === "kh"
+              ? "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោល!"
+              : "This shop will be deleted!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: lang === "kh" ? "បាទ/ចាស, លុប!" : "Yes, delete!",
+          cancelButtonText: lang === "kh" ? "បោះបង់" : "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // លុបទិន្នន័យចេញពី Array
+            user.merchantProfile.merchants =
+              user.merchantProfile.merchants.filter((x) => x.id !== id);
+            sessionStorage.setItem("user", JSON.stringify(user));
+            renderMerchantList(); // Load បញ្ជីឡើងវិញ
+            Swal.fire({
+              icon: "success",
+              title: lang === "kh" ? "លុបរួចរាល់" : "Deleted",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+          }
         });
       }
 
@@ -1617,6 +1715,53 @@
       function toggleSidebar() {
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("sidebarOverlay").classList.toggle("active");
+      }
+
+      // ==========================================
+      // 🔄 TAB SWITCHING LOGIC (Branches, Cashiers, Reports)
+      // ==========================================
+      function switchMerchantTab(element, tabName) {
+        // ដកពណ៌ចេញពី Tab ទាំងអស់ រួចដាក់ពណ៌ឱ្យ Tab ដែលទើបនឹងចុច
+        document
+          .querySelectorAll(".tab-item")
+          .forEach((tab) => tab.classList.remove("active"));
+        element.classList.add("active");
+
+        const container = document.getElementById("merchantListContainer");
+        const fabBtn = document.querySelector(".fab-add");
+        let lang = localStorage.getItem("lang") || "en";
+
+        if (tabName === "branches") {
+          // បើចុចលើសាខា ឱ្យទាញបញ្ជីហាងមកបង្ហាញវិញ និងបង្ហាញប៊ូតុងបូក (+)
+          renderMerchantList();
+          fabBtn.style.display = "flex";
+        } else if (tabName === "cashiers") {
+          // បើចុចលើ អ្នកគិតលុយ
+          let title = lang === "kh" ? "មុខងារអ្នកគិតលុយ" : "Cashier Management";
+          let desc =
+            lang === "kh" ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
+          container.innerHTML = `
+            <div style="text-align:center; margin-top:60px; opacity:0.6; animation: fadeIn 0.3s ease;">
+              <i class="fa-solid fa-users-gear" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
+              <h4 style="margin:0; font-size:1.1rem; color:var(--text-main); font-family:'Kantumruy Pro', 'Inter', sans-serif;">${title}</h4>
+              <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;" class="kh-text">${desc}</p>
+            </div>
+          `;
+          fabBtn.style.display = "none"; // លាក់ប៊ូតុងបូកសិន
+        } else if (tabName === "reports") {
+          // បើចុចលើ របាយការណ៍
+          let title = lang === "kh" ? "របាយការណ៍អាជីវកម្ម" : "Business Reports";
+          let desc =
+            lang === "kh" ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
+          container.innerHTML = `
+            <div style="text-align:center; margin-top:60px; opacity:0.6; animation: fadeIn 0.3s ease;">
+              <i class="fa-solid fa-chart-line" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
+              <h4 style="margin:0; font-size:1.1rem; color:var(--text-main); font-family:'Kantumruy Pro', 'Inter', sans-serif;">${title}</h4>
+              <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;" class="kh-text">${desc}</p>
+            </div>
+          `;
+          fabBtn.style.display = "none"; // លាក់ប៊ូតុងបូកសិន
+        }
       }
 
       // ==========================================
