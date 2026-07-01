@@ -1213,10 +1213,95 @@
 
     <script>
       // ==========================================
+      // 🌐 វចនានុក្រម (TRANSLATION) & THEME
+      // ==========================================
+      const translations = {
+        en: {
+          merch_title: "Manage Business",
+          merch_add: "Add Branch",
+          merch_setup: "Setup Merchant",
+          merch_select_acc: "Select Receive Account",
+          merch_add_new: "Add New Branch",
+          merch_store_name: "Shop Name",
+          merch_city: "City",
+          merch_your_biz: "Manage Business",
+          merch_biz_desc: "Select a shop to manage",
+          merch_total_rev: "Total Revenue (Today)",
+          merch_receive: "Receive Money",
+          merch_trx: "Transactions",
+          merch_stand_qr: "Stand QR Code",
+          merch_report: "Sales Report",
+          merch_enter_amt: "Enter Amount",
+          set_amount: "Specify Amount",
+          save_qr: "Save to Gallery",
+        },
+        kh: {
+          merch_title: "គ្រប់គ្រងអាជីវកម្ម",
+          merch_add: "បន្ថែមសាខា",
+          merch_setup: "រៀបចំគណនី Merchant",
+          merch_select_acc: "ជ្រើសរើសគណនីទទួលប្រាក់",
+          merch_add_new: "បន្ថែមសាខា/ហាងថ្មី",
+          merch_store_name: "ឈ្មោះហាង ឬ សាខា",
+          merch_city: "ទីក្រុង / ខេត្ត",
+          merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
+          merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
+          merch_total_rev: "ចំណូលសរុប (ថ្ងៃនេះ)",
+          merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
+          merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
+          merch_stand_qr: "ស្កេនកូដ QR",
+          merch_report: "របាយការណ៍លក់",
+          merch_enter_amt: "បញ្ចូលចំនួនទឹកប្រាក់",
+          set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
+          save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+        },
+      };
+
+      function applyLang() {
+        let lang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[lang] && translations[lang][key]) {
+            // មុខងារបន្ថែម៖ បើវាជាប្រអប់វាយអក្សរ (Input) អោយវាប្តូរអក្សរ Placeholder
+            if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+              el.placeholder = translations[lang][key];
+            } else {
+              el.innerText = translations[lang][key];
+            }
+          }
+        });
+
+        // ប្តូរ Font ទៅតាមភាសា
+        if (lang === "kh") {
+          document.body.style.fontFamily =
+            '"Kantumruy Pro", "Inter", sans-serif';
+        } else {
+          document.body.style.fontFamily = '"Inter", sans-serif';
+        }
+      }
+
+      function applyTheme() {
+        // ឆែកមើលទាំង key 'darkMode' (ពី scan.html) និង 'theme' ដើម្បីធានាថាវាដើរ ១០០% ជាមួយ Setting ដើម
+        if (
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem("darkMode") === "true"
+        ) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
+
+      // ធានាថាមុខងារទាំង២នេះដើរភ្លាមៗពេលបើក Page
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        applyLang();
+      });
+
+      // ==========================================
       // ⚙️ INITIALIZATION & DATA
       // ==========================================
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      if (!user) window.location.href = "index.html";
+      // let user = JSON.parse(sessionStorage.getItem("user"));
+      // if (!user) window.location.href = "index.html";
 
       if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
 
