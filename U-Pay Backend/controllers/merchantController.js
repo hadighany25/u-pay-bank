@@ -1,7 +1,7 @@
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
 
-// Function ជំនួយសម្រាប់បង្កើតលេខ Random តាមចំនួនខ្ទង់ដែលចង់បាន
+// Function ជំនួយសម្រាប់បង្កើតលេខ Random
 const generateRandomNumber = (length) => {
   let result = "";
   for (let i = 0; i < length; i++) {
@@ -14,19 +14,21 @@ const generateRandomNumber = (length) => {
 exports.createMerchant = async (req, res) => {
   try {
     const { name, city, linkedAccount } = req.body;
-    const userId = req.user.id; // ទាញពី authMiddleware
 
-    // បង្កើត Merchant ID ១៥ ខ្ទង់ (ឧ. ផ្តើមដោយ 500 + លេខ ១២ ខ្ទង់)
+    // សំខាន់៖ ឆែកមើលថាតើ id ស្ថិតក្នុង .id ឬ ._id
+    const userId = req.user.id || req.user._id;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not authenticated" });
+    }
+
     const merchantId = "500" + generateRandomNumber(12);
-
-    // បង្កើត លេខគណនី ១២ ខ្ទង់ (ឧ. ផ្តើមដោយ 888 + លេខ ៩ ខ្ទង់)
     const accountNumber = "888" + generateRandomNumber(9);
-
-    // បង្កើត API Key & Secret
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
-    // បង្កើតហាង (កែត្រង់នេះ)
     const newMerchant = new Merchant({
       userId,
       name,
@@ -38,45 +40,44 @@ exports.createMerchant = async (req, res) => {
       apiSecret,
     });
 
-    // ប្តូរពី await newMerchant.save() មកជាការចាប់យកលទ្ធផល
     const savedMerchant = await newMerchant.save();
 
-    // ឥឡូវនេះប្រើ savedMerchant ដែលមានទិន្នន័យពី DB មកឆ្លើយតប
     res.status(201).json({
       success: true,
       merchant: {
-        id: savedMerchant._id, // ត្រូវប្រាកដថាប្រើឈ្មោះនេះ
+        id: savedMerchant._id,
         merchantId: savedMerchant.merchantId,
         accountNumber: savedMerchant.accountNumber,
         name: savedMerchant.name,
         balance: savedMerchant.balance,
+        apiKey: savedMerchant.apiKey,
+        apiSecret: savedMerchant.apiSecret,
       },
     });
   } catch (error) {
-    console.error("DEBUG ERROR:", error); // ដាក់ log នេះដើម្បីដឹងថាវាខុសត្រង់ណា
+    console.error("DEBUG ERROR in createMerchant:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ២. មុខងារទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
+// ២. មុខងារទាញយកហាងទាំងអស់
 exports.getMyMerchants = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    // ទាញទិន្នន័យ (យើងមិនបង្ហាញ apiSecret ទេពេលទាញធម្មតា ដើម្បីសុវត្ថិភាព)
+    const userId = req.user.id || req.user._id;
     const merchants = await Merchant.find({ userId }).select("-apiSecret");
 
     res.status(200).json({ success: true, merchants });
   } catch (error) {
+    console.error("DEBUG ERROR in getMyMerchants:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ៣. មុខងារលុបហាង (Delete Merchant)
+// ៣. មុខងារលុបហាង
 exports.deleteMerchant = async (req, res) => {
   try {
     const { merchantId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
@@ -93,6 +94,7 @@ exports.deleteMerchant = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Merchant deleted successfully" });
   } catch (error) {
+    console.error("DEBUG ERROR in deleteMerchant:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

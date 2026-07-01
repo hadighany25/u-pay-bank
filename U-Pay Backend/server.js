@@ -20,6 +20,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const cardRoutes = require("./routes/cardRoutes");
 const financeRoutes = require("./routes/financeRoutes");
 const communicationRoutes = require("./routes/communicationRoutes");
+const merchantRoutes = require("./routes/merchantRoutes");
+app.use("/api/merchants", merchantRoutes);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,9 +80,6 @@ app.use("/api", communicationRoutes);
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });
-
-const merchantRoutes = require("./routes/merchantRoutes");
-app.use("/api/merchants", merchantRoutes);
 
 // ==========================================
 // 🚀 ចាប់ផ្តើម Server

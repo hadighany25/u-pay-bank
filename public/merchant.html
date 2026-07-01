@@ -1633,12 +1633,13 @@
           val = val.substring(0, 4);
         }
         updatePinDots(val.length);
+        // កែពី handlePinInput(val) មកជាបែបនេះវិញ
         if (val.length === 4) {
           setTimeout(() => {
             document.getElementById("pinModal").style.display = "none";
             document.getElementById("hiddenPin").blur();
 
-            // ត្រង់នេះយើងបញ្ជូនលេខ PIN ដែលអតិថិជនវាយបញ្ចូល ទៅកាន់មុខងារ Save
+            // បញ្ជូន val ដែលជាលេខកូដ PIN ទៅឱ្យ saveNewMerchant
             saveNewMerchant(val);
           }, 300);
         }
