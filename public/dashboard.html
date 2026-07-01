@@ -369,6 +369,10 @@
         background: rgba(0, 0, 0, 0.05);
         border-radius: 15px;
       } /* Drag Animation */
+      .menu-item:hover .icon-box {
+        transform: scale(1.1); /* ធ្វើឱ្យ Icon ធំបន្តិចពេលយក mouse ដាក់ពីលើ */
+        transition: transform 0.3s ease;
+      }
 
       .icon-box {
         width: 55px;
@@ -1120,7 +1124,7 @@
           onclick="window.location.href = 'merchant.html'"
         >
           <div class="icon-box" style="background: #fff7ed; color: #2d14ce">
-            <i class="fa-solid fa-vault"></i>
+            <i class="fa-solid fa-store"></i>
           </div>
           <span class="menu-text" data-lang="btn_merchant">Merchant</span>
         </button>
