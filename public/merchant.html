@@ -8,26 +8,26 @@
     />
     <title>U-Pay Merchant</title>
 
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
     />
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
     <style>
       /* ==========================================
-       🎨 U-PAY MERCHANT GLOBAL STYLES & VARIABLES
+       🎨 GLOBAL STYLES & VARIABLES (U-PAY)
        ========================================== */
       :root {
         --primary: #004d40;
         --primary-light: #e0f2f1;
-        --secondary: #10b981;
+        --secondary: #00b894;
         --bg-main: #f2f4f6;
         --bg-card: #ffffff;
         --text-main: #1e293b;
@@ -39,28 +39,22 @@
       body.dark-mode {
         --primary: #00b894;
         --primary-light: #002d26;
-        --bg-main: #0f172a;
-        --bg-card: #1e293b;
-        --text-main: #f8fafc;
+        --bg-main: #121212;
+        --bg-card: #1e1e1e;
+        --text-main: #ffffff;
         --text-muted: #94a3b8;
-        --border-color: #334155;
+        --border-color: #333333;
       }
 
-      /* 📱 Desktop Centering Strategy */
       body {
-        background-color: #cbd5e1;
+        background-color: #000;
         margin: 0;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
-        color: var(--text-main);
-        -webkit-font-smoothing: antialiased;
-      }
-
-      body.dark-mode {
-        background-color: #020617;
+        overflow: hidden;
       }
 
       .app-container {
@@ -71,20 +65,20 @@
         position: relative;
         display: flex;
         flex-direction: column;
-        overflow-x: hidden;
-        overflow-y: hidden;
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        color: var(--text-main);
       }
 
-      @media (min-height: 850px) {
+      @media (min-width: 451px) {
         .app-container {
           height: 90vh;
           border-radius: 30px;
           border: 8px solid #334155;
+          box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
         }
       }
 
-      /* 🔄 View States Management */
+      /* 🔄 STATE MANAGEMENT */
       .view-state {
         display: none;
         flex-direction: column;
@@ -94,7 +88,7 @@
         top: 0;
         left: 0;
         background: var(--bg-main);
-        animation: fadeIn 0.3s ease;
+        animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
         z-index: 1;
       }
@@ -102,10 +96,10 @@
         display: flex;
         z-index: 2;
       }
-      @keyframes fadeIn {
+      @keyframes slideIn {
         from {
           opacity: 0;
-          transform: translateY(15px);
+          transform: translateY(20px);
         }
         to {
           opacity: 1;
@@ -114,11 +108,12 @@
       }
 
       /* ==========================================
-       🛠 REUSABLE UI COMPONENTS
+       🛠 REUSABLE COMPONENTS
        ========================================== */
       .header-bar {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         padding: 20px;
         background: var(--primary);
         color: white;
@@ -126,52 +121,62 @@
         top: 0;
         z-index: 10;
       }
-      .header-bar .back-btn,
-      .header-bar .menu-btn {
+      .header-bar.transparent {
+        background: transparent;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-color);
+      }
+      .header-btn {
         background: transparent;
         border: none;
-        color: white;
-        font-size: 1.2rem;
+        color: inherit;
+        font-size: 1.3rem;
         cursor: pointer;
         padding: 5px;
-      }
-      .header-bar h2 {
-        margin: 0;
-        flex: 1;
-        text-align: center;
-        font-size: 1.1rem;
-        font-weight: 600;
-      }
-
-      .btn-primary {
-        background: var(--primary);
-        color: white;
-        border: none;
-        padding: 15px;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-        width: 100%;
         transition: 0.2s;
-        font-family: inherit;
       }
-      .btn-primary:disabled {
-        background: var(--text-muted);
-        opacity: 0.5;
-        cursor: not-allowed;
+      .header-btn:active {
+        transform: scale(0.9);
+        opacity: 0.7;
       }
-      .btn-primary:active:not(:disabled) {
-        transform: scale(0.98);
+      .header-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-align: center;
+        flex: 1;
       }
 
       .card-box {
         background: var(--bg-card);
         border-radius: 20px;
         padding: 20px;
-        margin: 15px;
+        margin: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
         border: 1px solid var(--border-color);
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: 0.2s;
+        font-family: inherit;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-primary:active {
+        transform: scale(0.96);
+      }
+      .btn-primary:disabled {
+        background: var(--text-muted);
+        box-shadow: none;
+        opacity: 0.5;
       }
 
       /* Form Elements */
@@ -197,14 +202,16 @@
         font-size: 1rem;
         box-sizing: border-box;
         font-family: inherit;
+        transition: 0.2s;
       }
       .input-group input:focus {
-        outline: 2px solid var(--primary);
+        outline: none;
+        border-color: var(--secondary);
         background: var(--bg-card);
       }
 
       /* ==========================================
-       🏬 MERCHANT LIST & CREATION
+       🏬 MERCHANT LIST 
        ========================================== */
       .merchant-item {
         display: flex;
@@ -217,76 +224,59 @@
         cursor: pointer;
         border: 1px solid var(--border-color);
         transition: 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
       }
       .merchant-item:active {
         transform: scale(0.98);
+        border-color: var(--secondary);
       }
       .merchant-icon {
         width: 50px;
         height: 50px;
         background: var(--primary-light);
         color: var(--primary);
-        border-radius: 12px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-      }
-      .add-merchant-btn {
-        position: absolute;
-        bottom: 30px;
-        right: 20px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: var(--secondary);
-        color: white;
-        font-size: 2rem;
-        border: none;
-        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
+        font-weight: bold;
       }
 
       /* ==========================================
-       📊 DASHBOARD STATE (ABA STYLE)
+       📊 DASHBOARD (ABA STYLE)
        ========================================== */
-      .dash-header {
-        background: var(--primary);
+      .dash-header-bg {
+        background: linear-gradient(135deg, var(--primary) 0%, #00695c 100%);
         color: white;
-        padding: 20px 20px 50px;
-        border-bottom-left-radius: 30px;
-        border-bottom-right-radius: 30px;
+        padding: 20px 20px 70px;
+        border-bottom-left-radius: 35px;
+        border-bottom-right-radius: 35px;
       }
-      .dash-shop-name {
+      .dash-shop-info {
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 25px;
       }
-      .dash-shop-name h2 {
-        margin: 0;
-        font-size: 1.2rem;
-      }
 
       .revenue-card {
         background: var(--bg-card);
         border-radius: 20px;
-        padding: 20px;
-        margin: -30px 20px 20px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        padding: 20px 25px;
+        margin: -50px 20px 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         position: relative;
         z-index: 2;
         border: 1px solid var(--border-color);
       }
       .revenue-amount {
         font-size: 2.5rem;
-        margin: 5px 0 0;
+        margin: 5px 0;
         color: var(--text-main);
         font-weight: 700;
+        font-family: "JetBrains Mono", sans-serif;
+        letter-spacing: -1px;
       }
 
       .action-grid {
@@ -298,23 +288,29 @@
       .dash-action-btn {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 20px 10px;
+        border-radius: 20px;
+        padding: 25px 15px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 10px;
+        justify-content: center;
+        gap: 12px;
         cursor: pointer;
         transition: 0.2s;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
       }
       .dash-action-btn:active {
         transform: scale(0.95);
+        background: var(--bg-main);
       }
-      .dash-action-btn i {
-        font-size: 2rem;
+      .dash-action-btn img {
+        width: 45px;
+        height: 45px;
+        object-fit: contain;
+        margin-bottom: 5px;
       }
       .dash-action-btn span {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
         color: var(--text-main);
         text-align: center;
@@ -323,34 +319,34 @@
       /* ==========================================
        🧮 RECEIVE MONEY (CALCULATOR)
        ========================================== */
-      .receive-display {
-        background: var(--primary);
-        color: white;
-        padding: 20px;
+      .calc-display {
+        background: var(--bg-main);
+        padding: 30px 20px;
         text-align: center;
       }
-      .receive-display .amount-input {
+      .calc-amount {
         font-size: 3.5rem;
         font-weight: 700;
-        margin: 0;
-        height: 60px;
+        color: var(--primary);
+        font-family: "JetBrains Mono", sans-serif;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 5px;
+        height: 70px;
       }
-
       .keypad {
         flex: 1;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         background: var(--bg-card);
         padding: 10px;
+        border-top: 1px solid var(--border-color);
       }
       .key-btn {
         background: transparent;
-        border: 1px solid var(--border-color);
-        font-size: 1.5rem;
+        border: none;
+        font-size: 1.6rem;
         font-weight: 500;
         color: var(--text-main);
         display: flex;
@@ -358,24 +354,26 @@
         justify-content: center;
         cursor: pointer;
         transition: 0.1s;
+        border-radius: 50%;
+        width: 70px;
+        height: 70px;
+        margin: auto;
       }
       .key-btn:active {
         background: var(--bg-main);
       }
       .key-action {
-        background: var(--bg-main);
         color: var(--primary);
         font-weight: bold;
+        font-size: 1.4rem;
+        background: var(--primary-light);
       }
-      .receive-footer {
-        padding: 15px;
-        background: var(--bg-card);
-        display: flex;
-        gap: 10px;
+      .key-action:active {
+        background: #b2dfdb;
       }
 
       /* ==========================================
-       📱 QR MODAL (FROM SCAN.HTML)
+       📱 QR MODAL (EXACTLY FROM SCAN.HTML)
        ========================================== */
       .qr-modal {
         display: none;
@@ -384,19 +382,14 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: var(--bg-main);
-        z-index: 2000;
+        background: #f1f5f9;
+        z-index: 100;
         flex-direction: column;
         align-items: center;
         animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      @keyframes slideUp {
-        from {
-          transform: translateY(100%);
-        }
-        to {
-          transform: translateY(0);
-        }
+      body.dark-mode .qr-modal {
+        background: #121212;
       }
 
       .qr-card-container {
@@ -410,7 +403,7 @@
         box-sizing: border-box;
       }
       .qr-white-box {
-        background: var(--bg-card);
+        background: #ffffff;
         width: 100%;
         max-width: 350px;
         padding: 30px 25px;
@@ -420,14 +413,23 @@
         position: relative;
         box-sizing: border-box;
       }
+      body.dark-mode .qr-white-box {
+        background: #1e1e1e;
+        border: 1px solid #333;
+        box-shadow: none;
+      }
+
       .currency-toggle {
         display: flex;
-        background: var(--bg-main);
+        background: #f1f5f9;
         border-radius: 14px;
         padding: 5px;
         margin-bottom: 25px;
         width: 100%;
         box-sizing: border-box;
+      }
+      body.dark-mode .currency-toggle {
+        background: #2a2a2a;
       }
       .toggle-btn {
         flex: 1;
@@ -435,32 +437,47 @@
         padding: 10px 0;
         font-size: 0.9rem;
         font-weight: 700;
-        color: var(--text-muted);
+        color: #64748b;
         border-radius: 10px;
         cursor: pointer;
         transition: 0.3s;
       }
+      body.dark-mode .toggle-btn {
+        color: #888;
+      }
       .toggle-btn.active {
-        background: var(--bg-card);
-        color: var(--primary);
+        background: white;
+        color: #004d40;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
+      body.dark-mode .toggle-btn.active {
+        background: #444;
+        color: #fff;
+      }
 
+      .qr-logo-top {
+        height: 40px;
+        margin-bottom: 15px;
+      }
       .qr-user-name {
-        margin: 10px 0 0;
+        margin: 0;
         font-size: 1.3rem;
-        color: var(--text-main);
+        color: #1e293b;
         font-weight: 700;
         text-transform: uppercase;
       }
+      body.dark-mode .qr-user-name {
+        color: #fff;
+      }
       .qr-user-acc {
         margin: 5px 0 20px;
-        color: var(--secondary);
+        color: #00b894;
         font-family: "JetBrains Mono", monospace;
         font-size: 1.1rem;
         font-weight: 700;
         letter-spacing: 1px;
       }
+
       .qr-img-wrapper {
         background: #ffffff;
         padding: 15px;
@@ -470,6 +487,10 @@
         border: 1px solid #e2e8f0;
         box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
       }
+      body.dark-mode .qr-img-wrapper {
+        background: #fff;
+        border: none;
+      }
       #myQrImg {
         width: 220px;
         height: 220px;
@@ -478,13 +499,16 @@
       }
 
       .amount-input-area {
-        border-top: 1px dashed var(--border-color);
+        border-top: 1px dashed #e2e8f0;
         padding-top: 20px;
         width: 100%;
       }
+      body.dark-mode .amount-input-area {
+        border-top-color: #444;
+      }
       .amount-label {
         font-size: 0.8rem;
-        color: var(--text-muted);
+        color: #64748b;
         font-weight: 600;
         margin-bottom: 10px;
       }
@@ -497,7 +521,7 @@
       .currency-symbol {
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--text-muted);
+        color: #94a3b8;
         margin-top: -2px;
       }
       #qrSetAmount {
@@ -507,20 +531,22 @@
         text-align: center;
         font-size: 2.2rem;
         font-weight: 700;
-        color: var(--primary);
+        color: #004d40;
         outline: none;
         font-family: "JetBrains Mono", sans-serif;
       }
+      body.dark-mode #qrSetAmount {
+        color: #00b894;
+      }
       #qrSetAmount::placeholder {
-        color: var(--text-muted);
-        opacity: 0.5;
+        color: #cbd5e1;
       }
 
       .btn-save-qr {
         width: calc(100% - 40px);
         max-width: 350px;
         padding: 18px;
-        background: var(--primary);
+        background: #004d40;
         color: white;
         border: none;
         border-radius: 20px;
@@ -539,9 +565,9 @@
         top: 25px;
         left: 20px;
         font-size: 1.2rem;
-        color: var(--text-main);
+        color: #1e293b;
         cursor: pointer;
-        background: var(--bg-card);
+        background: #fff;
         width: 40px;
         height: 40px;
         display: flex;
@@ -549,148 +575,95 @@
         justify-content: center;
         border-radius: 50%;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        border: 1px solid var(--border-color);
+        border: 1px solid #e2e8f0;
         transition: 0.2s;
+      }
+      body.dark-mode .close-qr-btn {
+        background: #333;
+        color: white;
+        border: none;
       }
       .close-qr-btn:active {
         transform: scale(0.9);
-      }
-
-      /* ==========================================
-       ☰ SIDEBAR MENU
-       ========================================== */
-      .sidebar-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 999;
-        opacity: 0;
-        pointer-events: none;
-        transition: 0.3s;
-      }
-      .sidebar-overlay.active {
-        opacity: 1;
-        pointer-events: all;
-      }
-
-      .sidebar {
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 280px;
-        height: 100%;
-        background: var(--primary);
-        z-index: 1000;
-        transition: left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        color: white;
-        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
-      }
-      .sidebar.active {
-        left: 0;
-      }
-      .sidebar-header {
-        padding: 40px 20px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      .sidebar-avatar {
-        width: 50px;
-        height: 50px;
-        background: white;
-        color: var(--primary);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        font-weight: bold;
-      }
-      .sidebar-menu {
-        padding: 20px 0;
-        overflow-y: auto;
-      }
-      .sidebar-item {
-        padding: 15px 25px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        color: white;
-        text-decoration: none;
-        font-size: 1.05rem;
-        cursor: pointer;
-      }
-      .sidebar-item:active {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .sidebar-item i {
-        width: 25px;
-        text-align: center;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <div id="state-link-account" class="view-state">
+      <div id="state-setup" class="view-state">
         <div class="header-bar">
           <button
-            class="back-btn"
+            class="header-btn"
             onclick="window.location.href = 'dashboard.html'"
           >
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 data-lang="merch_setup">រៀបចំគណនី Merchant</h2>
-          <div style="width: 24px"></div>
+          <h2 class="header-title" data-lang="merch_setup">
+            រៀបចំគណនី Merchant
+          </h2>
+          <div style="width: 34px"></div>
         </div>
         <div class="card-box">
-          <h3 style="margin-top: 0" data-lang="merch_select_acc">
-            ជ្រើសរើសគណនីទទួលប្រាក់
-          </h3>
-          <p
-            style="font-size: 0.85rem; color: var(--text-muted)"
-            data-lang="merch_acc_desc"
+          <div style="text-align: center; margin-bottom: 20px">
+            <div
+              style="
+                width: 70px;
+                height: 70px;
+                background: var(--primary-light);
+                color: var(--primary);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2rem;
+                margin: 0 auto 15px;
+              "
+            >
+              <i class="fa-solid fa-store"></i>
+            </div>
+            <h3 style="margin: 0" data-lang="merch_select_acc">
+              ជ្រើសរើសគណនីភ្ជាប់
+            </h3>
+            <p
+              style="
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 5px;
+              "
+              data-lang="merch_acc_desc"
+            >
+              កំណត់គណនីសម្រាប់ទទួលប្រាក់ចំណូលពីអតិថិជន។
+            </p>
+          </div>
+
+          <div class="input-group">
+            <select id="linkAccountSelect">
+              <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
+              <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
+            </select>
+          </div>
+          <button
+            class="btn-primary"
+            onclick="completeSetup()"
+            data-lang="btn_continue"
           >
-            ចំណូលនឹងត្រូវផ្ទេរចូលគណនីនេះដោយស្វ័យប្រវត្តិ។
-          </p>
-          <select
-            id="linkAccountSelect"
-            class="input-group"
-            style="
-              width: 100%;
-              padding: 15px;
-              border-radius: 12px;
-              border: 1px solid var(--border-color);
-              background: var(--bg-main);
-              color: var(--text-main);
-            "
-          >
-            <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
-            <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
-          </select>
-          <button class="btn-primary" onclick="completeSetup()">
             យល់ព្រម និងបន្ត
           </button>
         </div>
       </div>
 
-      <div id="state-merchant-list" class="view-state">
+      <div id="state-list" class="view-state">
         <div class="header-bar">
           <button
-            class="back-btn"
+            class="header-btn"
             onclick="window.location.href = 'dashboard.html'"
           >
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2>U-Pay Merchant</h2>
-          <div style="width: 24px"></div>
+          <h2 class="header-title" data-lang="merch_title">U-Pay Merchant</h2>
+          <div style="width: 34px"></div>
         </div>
-        <div style="padding: 20px 20px 0">
+        <div style="padding: 25px 20px 10px">
           <h3 style="margin: 0" data-lang="merch_your_biz">
             គ្រប់គ្រងអាជីវកម្ម
           </h3>
@@ -705,22 +678,30 @@
             ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង
           </p>
         </div>
-        <div id="merchantListContainer" style="padding: 10px 20px"></div>
-        <button
-          class="add-merchant-btn"
-          onclick="switchState('state-create-merchant')"
-        >
-          <i class="fa-solid fa-plus"></i>
-        </button>
+
+        <div id="merchantListContainer" style="padding: 0 20px"></div>
+
+        <div style="padding: 20px">
+          <button
+            class="btn-primary"
+            onclick="switchState('state-create')"
+            style="background: var(--secondary)"
+          >
+            <i class="fa-solid fa-plus"></i>
+            <span data-lang="merch_add_new">បន្ថែមហាងថ្មី</span>
+          </button>
+        </div>
       </div>
 
-      <div id="state-create-merchant" class="view-state">
-        <div class="header-bar">
-          <button class="back-btn" onclick="goBackFromCreate()">
+      <div id="state-create" class="view-state">
+        <div class="header-bar transparent">
+          <button class="header-btn" onclick="goBackFromCreate()">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 data-lang="merch_add_new">បន្ថែមសាខា/ហាងថ្មី</h2>
-          <div style="width: 24px"></div>
+          <h2 class="header-title" data-lang="merch_add_new">
+            បន្ថែមសាខា/ហាងថ្មី
+          </h2>
+          <div style="width: 34px"></div>
         </div>
         <div class="card-box">
           <div class="input-group">
@@ -739,91 +720,180 @@
               <option value="Battambang">បាត់ដំបង</option>
             </select>
           </div>
-          <div class="input-group">
-            <label data-lang="merch_link_acc">ភ្ជាប់ទៅកាន់គណនី</label>
-            <select id="storeLinkedAcc">
-              <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
-              <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
-            </select>
-          </div>
-          <button class="btn-primary" onclick="saveNewMerchant()">
+          <button
+            class="btn-primary"
+            onclick="saveNewMerchant()"
+            data-lang="merch_save"
+          >
             រក្សាទុក
           </button>
         </div>
       </div>
 
       <div id="state-dashboard" class="view-state">
-        <div class="dash-header">
-          <div class="dash-shop-name">
-            <div style="display: flex; align-items: center; gap: 10px">
-              <button class="menu-btn" onclick="toggleSidebar()">
-                <i class="fa-solid fa-bars"></i>
-              </button>
-              <h2 id="dashStoreName">Smart Shop</h2>
-            </div>
-            <i class="fa-regular fa-bell" style="font-size: 1.2rem"></i>
+        <div class="dash-header-bg">
+          <div class="dash-shop-info">
+            <button class="header-btn" onclick="switchState('state-list')">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h2
+              id="dashStoreName"
+              style="margin: 0; font-size: 1.2rem; font-weight: 600"
+            >
+              Smart Shop
+            </h2>
+            <button class="header-btn"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
+
         <div class="revenue-card">
-          <h4 data-lang="merch_total_rev">ចំណូលសរុប (ថ្ងៃនេះ)</h4>
-          <h1 class="revenue-amount" id="dashBalance">$0.00</h1>
-          <p
+          <div
             style="
-              font-size: 0.8rem;
-              color: var(--text-muted);
-              margin-top: 10px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
             "
-            id="dashAccInfo"
           >
-            Merchant ID: 500123456
-          </p>
+            <p
+              style="
+                margin: 0;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                font-weight: 600;
+              "
+              data-lang="merch_total_rev"
+            >
+              ចំណូលសរុប (ថ្ងៃនេះ)
+            </p>
+            <i
+              class="fa-solid fa-rotate-right"
+              style="color: var(--primary); cursor: pointer"
+            ></i>
+          </div>
+          <h1 class="revenue-amount" id="dashBalance">$0.00</h1>
+
+          <div
+            style="
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 1px dashed var(--border-color);
+              display: flex;
+              justify-content: space-between;
+            "
+          >
+            <span style="font-size: 0.85rem; color: var(--text-muted)"
+              >Merchant ID:</span
+            >
+            <span
+              id="dashAccInfo"
+              style="
+                font-family: &quot;JetBrains Mono&quot;;
+                font-weight: bold;
+                color: var(--secondary);
+              "
+              >500 000 000</span
+            >
+          </div>
         </div>
+
         <div class="action-grid">
           <div class="dash-action-btn" onclick="switchState('state-receive')">
-            <i
-              class="fa-solid fa-hand-holding-dollar"
-              style="color: var(--secondary)"
-            ></i>
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                background: #e0f2fe;
+                color: #0284c7;
+                border-radius: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
             <span data-lang="merch_receive">ទូទាត់ប្រាក់ពីភ្ញៀវ</span>
           </div>
-          <div class="dash-action-btn">
-            <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
-            <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
-          </div>
           <div class="dash-action-btn" onclick="showQRModal(null)">
-            <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                background: #ecfdf5;
+                color: #059669;
+                border-radius: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fa-solid fa-qrcode"></i>
+            </div>
             <span data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
           <div class="dash-action-btn">
-            <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                background: #fef3c7;
+                color: #d97706;
+                border-radius: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fa-solid fa-file-invoice"></i>
+            </div>
+            <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
+          </div>
+          <div class="dash-action-btn">
+            <div
+              style="
+                width: 50px;
+                height: 50px;
+                background: #f3e8ff;
+                color: #9333ea;
+                border-radius: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+              "
+            >
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
             <span data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
         </div>
       </div>
 
       <div id="state-receive" class="view-state">
-        <div
-          class="header-bar"
-          style="
-            background: var(--bg-main);
-            color: var(--text-main);
-            border-bottom: 1px solid var(--border-color);
-          "
-        >
-          <button
-            class="back-btn"
-            style="color: var(--text-main)"
-            onclick="switchState('state-dashboard')"
-          >
+        <div class="header-bar transparent">
+          <button class="header-btn" onclick="switchState('state-dashboard')">
             <i class="fa-solid fa-xmark"></i>
           </button>
-          <h2 style="font-size: 1rem" id="recvStoreName">Smart Shop</h2>
-          <div style="width: 24px"></div>
+          <h2 class="header-title" data-lang="merch_enter_amt">
+            បញ្ចូលចំនួនទឹកប្រាក់
+          </h2>
+          <div style="width: 34px"></div>
         </div>
-        <div class="receive-display">
-          <h4 data-lang="merch_enter_amt">បញ្ចូលចំនួនទឹកប្រាក់</h4>
-          <div class="amount-input">
-            <span id="calcSym">$</span><span id="calcDisplay">0</span>
+        <div class="calc-display">
+          <div class="calc-amount">
+            <span
+              id="calcSym"
+              style="
+                font-size: 2rem;
+                margin-top: -5px;
+                color: var(--text-muted);
+              "
+              >$</span
+            >
+            <span id="calcDisplay">0</span>
           </div>
         </div>
         <div class="keypad" id="keypad">
@@ -843,19 +913,21 @@
           <button class="key-btn" onclick="pressKey('0')">0</button>
           <button
             class="key-btn key-action"
-            style="color: var(--danger)"
+            style="color: var(--danger); background: #fee2e2"
             onclick="pressKey('C')"
           >
             <i class="fa-solid fa-delete-left"></i>
           </button>
           <button class="key-btn key-action" onclick="pressKey('+')">+</button>
         </div>
-        <div class="receive-footer">
-          <button
-            class="btn-primary"
-            style="flex: 4"
-            onclick="generateQRAmount()"
-          >
+        <div
+          style="
+            padding: 15px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+          "
+        >
+          <button class="btn-primary" onclick="generateQRAmount()">
             <i class="fa-solid fa-qrcode"></i> បង្ហាញ QR
           </button>
         </div>
@@ -869,7 +941,7 @@
           <div class="qr-white-box" id="myQRContent">
             <div class="currency-toggle" id="qrToggleBar">
               <div
-                class="toggle-btn"
+                class="toggle-btn active"
                 id="btnUSD"
                 onclick="switchQRCurrency('USD')"
               >
@@ -883,17 +955,20 @@
                 KHR (៛)
               </div>
             </div>
+
             <img
-              src="images/logo-nobg.png"
-              style="height: 35px; margin-bottom: 10px"
+              src="images/logo.png"
+              class="qr-logo-top"
               alt="U-Pay"
               onerror="this.style.display = 'none'"
             />
             <h3 id="qrUserName" class="qr-user-name">...</h3>
             <p id="qrUserAcc" class="qr-user-acc">...</p>
+
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
+
             <div class="amount-input-area">
               <div class="amount-label" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
@@ -915,79 +990,46 @@
           <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
         </button>
       </div>
-
-      <div
-        class="sidebar-overlay"
-        id="sidebarOverlay"
-        onclick="toggleSidebar()"
-      ></div>
-      <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-          <div class="sidebar-avatar" id="sbAvatar">M</div>
-          <div>
-            <h3 style="margin: 0; font-size: 1.1rem" id="sbName">User Name</h3>
-            <p style="margin: 0; font-size: 0.8rem; opacity: 0.8">
-              ID: <span id="sbId">...</span>
-            </p>
-          </div>
-        </div>
-        <div class="sidebar-menu">
-          <a
-            class="sidebar-item"
-            onclick="
-              switchState('state-merchant-list');
-              toggleSidebar();
-            "
-            ><i class="fa-solid fa-store"></i> គ្រប់គ្រងអាជីវកម្ម</a
-          >
-          <a class="sidebar-item" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-gear"></i> ការកំណត់</a
-          >
-          <a
-            class="sidebar-item"
-            onclick="window.location.href = 'dashboard.html'"
-            style="
-              color: #fca5a5;
-              margin-top: 20px;
-              border-top: 1px solid rgba(255, 255, 255, 0.1);
-            "
-            ><i class="fa-solid fa-arrow-right-from-bracket"></i> ចាកចេញទៅ
-            U-Pay</a
-          >
-        </div>
-      </div>
     </div>
 
     <script>
       // ==========================================
-      // 🌐 TRANSLATION & THEME
+      // 🌐 TRANSLATION & THEME (Standard U-Pay)
       // ==========================================
       const translations = {
         en: {
+          merch_title: "U-Pay Merchant",
           merch_setup: "Setup Merchant",
-          merch_select_acc: "Select Receive Account",
+          merch_select_acc: "Select Linked Account",
+          merch_acc_desc: "Funds will be settled to this account.",
+          btn_continue: "Agree & Continue",
+          merch_your_biz: "Manage Business",
+          merch_biz_desc: "Select a store to manage",
           merch_add_new: "Add New Branch",
           merch_store_name: "Shop Name",
           merch_city: "City",
-          merch_your_biz: "Manage Business",
-          merch_biz_desc: "Select a shop to manage",
+          merch_save: "Save",
           merch_total_rev: "Total Revenue (Today)",
           merch_receive: "Receive Money",
           merch_trx: "Transactions",
-          merch_stand_qr: "Stand QR Code",
+          merch_stand_qr: "Stand QR",
           merch_report: "Sales Report",
           merch_enter_amt: "Enter Amount",
           set_amount: "Specify Amount",
           save_qr: "Save to Gallery",
         },
         kh: {
+          merch_title: "យូ-ផេ អាជីវកម្ម",
           merch_setup: "រៀបចំគណនី Merchant",
-          merch_select_acc: "ជ្រើសរើសគណនីទទួលប្រាក់",
-          merch_add_new: "បន្ថែមសាខា/ហាងថ្មី",
-          merch_store_name: "ឈ្មោះហាង ឬ សាខា",
-          merch_city: "ទីក្រុង / ខេត្ត",
+          merch_select_acc: "ជ្រើសរើសគណនីភ្ជាប់",
+          merch_acc_desc: "កំណត់គណនីសម្រាប់ទទួលប្រាក់ចំណូល។",
+          btn_continue: "យល់ព្រម និងបន្ត",
           merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
           merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
+          merch_add_new: "បន្ថែមហាងថ្មី",
+          merch_store_name: "ឈ្មោះហាង ឬ សាខា",
+          merch_city: "ទីក្រុង / ខេត្ត",
+          merch_save: "រក្សាទុក",
           merch_total_rev: "ចំណូលសរុប (ថ្ងៃនេះ)",
           merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
           merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
@@ -1009,9 +1051,8 @@
       }
 
       function applyTheme() {
-        if (localStorage.getItem("theme") === "dark") {
+        if (localStorage.getItem("theme") === "dark")
           document.body.classList.add("dark-mode");
-        }
       }
 
       // ==========================================
@@ -1020,9 +1061,13 @@
       let user = JSON.parse(sessionStorage.getItem("user"));
       if (!user) window.location.href = "index.html";
 
-      // ធានាថាមាន Merchant Profile ជានិច្ច
+      // ធានាថាមាន Data Structure
       if (!user.merchantProfile) {
-        user.merchantProfile = { isSetup: false, merchants: [] };
+        user.merchantProfile = {
+          isSetup: false,
+          linkedAccount: "USD",
+          merchants: [],
+        };
       }
 
       let currentMerchant = null;
@@ -1033,14 +1078,14 @@
         applyTheme();
         applyLang();
 
-        // ពិនិត្យមើលថាបើមានហាងហើយ ចូលទៅបញ្ជីហាងតែម្តង (ដោះស្រាយបញ្ហាចូលហើយបង្កើតរហូត)
+        // Flow Control: ដោះស្រាយបញ្ហាចុចចូលបង្កើតហាងរហូត
         if (!user.merchantProfile.isSetup) {
-          switchState("state-link-account");
+          switchState("state-setup"); // បើអត់ទាន់មាន ទើបឱ្យភ្ជាប់
         } else if (user.merchantProfile.merchants.length > 0) {
           renderMerchantList();
-          switchState("state-merchant-list");
+          switchState("state-list"); // បើមានហាងហើយ លោតទៅបញ្ជីហាងតែម្តង!
         } else {
-          switchState("state-create-merchant");
+          switchState("state-create"); // បើភ្ជាប់ហើយ តែអត់ទាន់មានហាង លោតទៅបង្កើត
         }
       });
 
@@ -1052,38 +1097,45 @@
       }
 
       function completeSetup() {
+        user.merchantProfile.linkedAccount =
+          document.getElementById("linkAccountSelect").value;
         user.merchantProfile.isSetup = true;
         saveUserSession();
-        switchState("state-create-merchant");
+        switchState("state-create");
       }
 
       function goBackFromCreate() {
         if (user.merchantProfile.merchants.length > 0)
-          switchState("state-merchant-list");
+          switchState("state-list");
         else window.location.href = "dashboard.html";
       }
 
       // ==========================================
-      // 🏬 MERCHANT CRUD LOGIC
+      // 🏬 MERCHANT CRUD (លេខកូដសុទ្ធ 9 ខ្ទង់)
       // ==========================================
+      function formatID(id) {
+        return id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+      }
+
       function saveNewMerchant() {
         const name = document.getElementById("storeName").value;
         const city = document.getElementById("storeCity").value;
-        const linkedAcc = document.getElementById("storeLinkedAcc").value; // USD or KHR
 
         if (!name) {
           Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
           return;
         }
 
+        // បង្កើតលេខគណនី Merchant ៩ខ្ទង់សុទ្ធ (ឧ. 500123456)
+        // នេះជាចំណុចសំខាន់ដើម្បីឱ្យ scan.html ស្កេនចូលដូចគណនីធម្មតា!
         const random9Digit =
           "500" + Math.floor(100000 + Math.random() * 900000).toString();
+
         const newMerchant = {
           id: Date.now().toString(),
           merchantId: random9Digit,
           name: name,
           city: city,
-          linkedAccount: linkedAcc,
           balance: 0,
         };
 
@@ -1103,7 +1155,7 @@
             <div class="merchant-icon">${m.name.substring(0, 1).toUpperCase()}</div>
             <div style="flex:1;">
               <h4 style="margin:0; font-size:1.05rem;">${m.name}</h4>
-              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);">MID: ${m.merchantId}</p>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-hashtag"></i> ${formatID(m.merchantId)}</p>
             </div>
             <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
           `;
@@ -1116,27 +1168,19 @@
           (m) => m.id === id,
         );
 
-        // Update Dashboard Data
         document.getElementById("dashStoreName").innerText =
           currentMerchant.name;
         document.getElementById("recvStoreName").innerText =
           currentMerchant.name;
 
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
+        const curSym = user.merchantProfile.linkedAccount === "USD" ? "$" : "៛";
         document.getElementById("dashBalance").innerText =
           curSym + currentMerchant.balance.toFixed(2);
-        document.getElementById("dashAccInfo").innerText =
-          `ID: ${currentMerchant.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")} • Linked: ${currentMerchant.linkedAccount}`;
+        document.getElementById("dashAccInfo").innerText = formatID(
+          currentMerchant.merchantId,
+        );
 
-        // Sidebar Data
-        document.getElementById("sbName").innerText = currentMerchant.name;
-        document.getElementById("sbId").innerText = currentMerchant.merchantId;
-        document.getElementById("sbAvatar").innerText = currentMerchant.name
-          .substring(0, 2)
-          .toUpperCase();
-
-        // ពេលចូលម៉ាស៊ីនគិតលេខ ទាញយកលុយតាម Linked Account របស់ហាងនេះជានិច្ច
-        qrCurrency = currentMerchant.linkedAccount;
+        qrCurrency = user.merchantProfile.linkedAccount;
         document.getElementById("calcSym").innerText = curSym;
 
         switchState("state-dashboard");
@@ -1144,11 +1188,6 @@
 
       function saveUserSession() {
         sessionStorage.setItem("user", JSON.stringify(user));
-      }
-
-      function toggleSidebar() {
-        document.getElementById("sidebar").classList.toggle("active");
-        document.getElementById("sidebarOverlay").classList.toggle("active");
       }
 
       // ==========================================
@@ -1181,23 +1220,18 @@
       }
 
       // ==========================================
-      // 📱 QR MODAL LOGIC (Directly from scan.html)
+      // 📱 QR MODAL (EXACTLY FROM SCAN.HTML)
       // ==========================================
       function showQRModal(amount) {
         const modal = document.getElementById("qrModal");
 
-        // Setup details based on current merchant
         document.getElementById("qrUserName").textContent =
           currentMerchant.name;
+        // ទាញយក Account រូបិយប័ណ្ណតាមការកំណត់របស់ Merchant
+        switchQRCurrency(user.merchantProfile.linkedAccount);
 
-        // Only allow the currency that the merchant linked
-        switchQRCurrency(currentMerchant.linkedAccount);
-
-        if (amount) {
-          document.getElementById("qrSetAmount").value = amount;
-        } else {
-          document.getElementById("qrSetAmount").value = "";
-        }
+        if (amount) document.getElementById("qrSetAmount").value = amount;
+        else document.getElementById("qrSetAmount").value = "";
 
         updateMyQR();
         modal.style.display = "flex";
@@ -1222,27 +1256,20 @@
           .classList.toggle("active", currency === "KHR");
         document.getElementById("qrCurrencySymbol").innerText =
           currency === "USD" ? "$" : "៛";
-
-        // Display real user account number that will receive the money
-        const targetAcc =
-          currency === "USD" ? user.accountNumber : user.accountNumberKHR;
-        document.getElementById("qrUserAcc").textContent = targetAcc.replace(
-          /(\d{3})(\d{3})(\d{3})/,
-          "$1 $2 $3",
+        document.getElementById("qrUserAcc").textContent = formatID(
+          currentMerchant.merchantId,
         );
         updateMyQR();
       }
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
-        const targetAcc =
-          qrCurrency === "USD" ? user.accountNumber : user.accountNumberKHR;
+        // ចំណុចសំខាន់៖ យកលេខ Merchant ៩ខ្ទង់ មកធ្វើជាទិន្នន័យ QR ឱ្យ scan.html ស្គាល់
+        const targetAcc = currentMerchant.merchantId;
 
-        // កូដដែលអនុញ្ញាតឱ្យ Scan.html របស់អតិថិជនកាត់លុយចូលគណនីពិតរបស់អ្នកលក់
         let qrData = targetAcc;
         if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
 
-        // ប្រើពណ៌បៃតងចាស់សម្រាប់ USD និងបៃតងស្រាលសម្រាប់ KHR
         const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
         document.getElementById("myQrImg").src =
           `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${qrData}&color=${qrColor}`;
@@ -1263,32 +1290,13 @@
           scale: 3,
         }).then((canvas) => {
           const link = document.createElement("a");
-          link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}-${qrCurrency}.png`;
+          link.download = `Merchant-QR-${currentMerchant.merchantId}-${qrCurrency}.png`;
           link.href = canvas.toDataURL();
           link.click();
-
           btnSave.style.display = "block";
           btnClose.style.display = "flex";
           toggleBar.style.display = "flex";
         });
-      }
-
-      // Add dark mode overwrites for QR Modal exactly like scan.html
-      if (localStorage.getItem("theme") === "dark") {
-        const style = document.createElement("style");
-        style.innerHTML = `
-          .qr-modal { background: #121212 !important; } 
-          .qr-white-box { background: #1e1e1e !important; border: 1px solid #333; } 
-          .close-qr-btn { background: #333 !important; color: white !important; border: none !important; } 
-          .currency-toggle { background: #2a2a2a !important; } 
-          .toggle-btn { color: #888 !important; } 
-          .toggle-btn.active { background: #444 !important; color: #fff !important; } 
-          .qr-user-name { color: #fff !important; } 
-          .qr-img-wrapper { background: #fff !important; } 
-          .amount-input-area { border-top-color: #444 !important; } 
-          #qrSetAmount { color: #00b894 !important; }
-        `;
-        document.head.appendChild(style);
       }
     </script>
   </body>
