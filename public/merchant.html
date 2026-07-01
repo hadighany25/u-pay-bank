@@ -848,6 +848,18 @@
               </option>
               <option value="Siem Reap" data-lang="city_sr">សៀមរាប</option>
               <option value="Battambang" data-lang="city_bb">បាត់ដំបង</option>
+              <option value="Kampong Thom" data-lang="city_kt">
+                ត្បងឃ្មុំ
+              </option>
+              <option value="Kampong Chhnang" data-lang="city_kc">
+                កំពង់ឆ្នាំង
+              </option>
+              <option value="Kampong Speu" data-lang="city_ks">
+                កំពង់ស្ពឺ
+              </option>
+              <option value="Kandal" data-lang="city_kd">កណ្តាល</option>
+              <option value="Siem Reap" data-lang="city_sr">សៀមរាប</option>
+              <option value="Prey Veng" data-lang="city_pv">ព្រៃវែង</option>
             </select>
           </div>
           <div class="input-group">
@@ -1332,6 +1344,13 @@
           city_pp: "Phnom Penh",
           city_sr: "Siem Reap",
           city_bb: "Battambang",
+          city_kd: "Kandal",
+          city_kt: "Kampong Thom",
+          city_kc: "Kampong Chhnang",
+          city_ks: "Kampong Speu",
+          city_sm: "Sihanoukville",
+          city_pv: "Prey Veng",
+          city_ps: "Pursat",
         },
         kh: {
           merch_title: "គ្រប់គ្រងអាជីវកម្ម",
@@ -1372,6 +1391,12 @@
           city_pp: "រាជធានីភ្នំពេញ",
           city_sr: "សៀមរាប",
           city_bb: "បាត់ដំបង",
+          city_kd: "កណ្តាល",
+          city_kt: "ត្បងឃ្មុំ",
+          city_kc: "កំពង់ឆ្នាំង",
+          city_ks: "កំពង់ស្ពឺ",
+          city_sm: "ព្រះសីហនុ",
+          city_pv: "ព្រៃវែង",
         },
       };
 
@@ -1441,12 +1466,9 @@
       }
 
       function initApp() {
-        if (user.merchantProfile.merchants.length > 0) {
-          renderMerchantList();
-          switchState("state-list");
-        } else {
-          switchState("state-create");
-        }
+        // តែងតែបង្ហាញផ្ទាំង 'បញ្ជីហាង' (គ្រប់គ្រងអាជីវកម្ម) ជាមុនជានិច្ច
+        renderMerchantList();
+        switchState("state-list");
       }
 
       // ==========================================
@@ -1454,27 +1476,42 @@
       // ==========================================
       function renderMerchantList() {
         const container = document.getElementById("merchantListContainer");
-        container.innerHTML = "";
+        container.innerHTML = ""; // សម្អាតប្រអប់ជាមុន
 
+        // ករណីទី ១៖ បើអត់ទាន់មានហាងសោះ (អត់ទាន់បង្កើត)
         if (user.merchantProfile.merchants.length === 0) {
           let lang = localStorage.getItem("lang") || "en";
-          let noShopTxt = translations[lang].merch_no_shop;
-          container.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:30px;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>`;
-          return;
+
+          // ទាញពាក្យ "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ" ពីក្នុងវចនានុក្រម (Translations)
+          let noShopTxt =
+            translations[lang].merch_no_shop || "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ";
+
+          // បង្ហាញរូប Icon ព្រិលៗ នឹងអក្សរ
+          container.innerHTML = `
+      <div style="text-align:center; margin-top:50px; opacity:0.7;">
+        <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
+        <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>
+        <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) នៅខាងក្រោម ដើម្បីបន្ថែមសាខាថ្មី</p>
+      </div>
+    `;
+          return; // បញ្ឈប់កូដត្រឹមនេះ ដើម្បីកុំឱ្យវាទៅអានកូដបង្ហាញហាងនៅខាងក្រោម
         }
 
+        // ករណីទី ២៖ បើមានហាង (វានឹងអានរំលងករណីទី១ ហើយមកបង្ហាញបញ្ជីហាងនៅទីនេះវិញ)
         user.merchantProfile.merchants.forEach((m) => {
           const div = document.createElement("div");
           div.className = "merchant-item";
           div.onclick = () => openMerchant(m.id);
           div.innerHTML = `
-            <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
-            <div style="flex:1;">
-              <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
-              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
-            </div>
-            <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px;"></i>
-          `;
+      <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
+      <div style="flex:1;">
+        <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
+        <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);">
+          <span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}
+        </p>
+      </div>
+      <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px;"></i>
+    `;
           container.appendChild(div);
         });
       }

@@ -1351,7 +1351,22 @@
                   : "Good Evening,";
         }
       }
+      function applyTheme() {
+        // ឆែកមើលទាំង key 'darkMode' (ពី scan.html) និង 'theme' ដើម្បីធានាថាវាដើរ ១០០% ជាមួយ Setting ដើម
+        if (
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem("darkMode") === "true"
+        ) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
 
+      // ធានាថាមុខងារទាំង២នេះដើរភ្លាមៗពេលបើក Page
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+      });
       // ==========================================
       // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       // ==========================================
