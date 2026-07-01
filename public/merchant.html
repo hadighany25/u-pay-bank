@@ -1637,7 +1637,9 @@
           setTimeout(() => {
             document.getElementById("pinModal").style.display = "none";
             document.getElementById("hiddenPin").blur();
-            saveNewMerchant();
+
+            // ត្រង់នេះយើងបញ្ជូនលេខ PIN ដែលអតិថិជនវាយបញ្ចូល ទៅកាន់មុខងារ Save
+            saveNewMerchant(val);
           }, 300);
         }
       }
@@ -1655,61 +1657,125 @@
         }
       }
 
-      function saveNewMerchant() {
+      // ==========================================
+      // មុខងារបង្កើតហាងថ្មី និងបញ្ជូនទៅកាន់ Backend
+      // ==========================================
+
+      // បន្ថែម enteredPin ជា Parameter ដើម្បីទទួលលេខកូដដែលបញ្ជូនមក
+      async function saveNewMerchant(enteredPin) {
         const name = document.getElementById("storeName").value;
         const city = document.getElementById("storeCity").value;
         const linkedAcc = document.getElementById("storeLinkedAcc").value;
 
-        const random9Digit =
-          "500" + Math.floor(100000 + Math.random() * 900000).toString();
+        let lang = localStorage.getItem("lang") || "en";
 
-        const newMerchant = {
-          id: Date.now().toString(),
-          merchantId: random9Digit,
-          name: name,
-          city: city,
-          linkedAccount: linkedAcc,
-          balance: 0,
-        };
-
-        user.merchantProfile.merchants.push(newMerchant);
-        sessionStorage.setItem("user", JSON.stringify(user));
-
-        document.getElementById("storeName").value = ""; // Reset
-        openMerchant(newMerchant.id);
-      }
-
-      function openMerchant(id) {
-        currentMerchant = user.merchantProfile.merchants.find(
-          (m) => m.id === id,
-        );
-
-        document.getElementById("dashStoreName").innerText =
-          currentMerchant.name;
-        document.getElementById("recvStoreName").innerText =
-          currentMerchant.name;
-
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
-        document.getElementById("dashBalance").innerText =
-          curSym + currentMerchant.balance.toFixed(2);
-        document.getElementById("dashAccInfo").innerText =
-          currentMerchant.merchantId.replace(
-            /(\d{3})(\d{3})(\d{3})/,
-            "$1 $2 $3",
+        if (!name) {
+          Swal.fire(
+            lang === "kh" ? "បញ្ជាក់" : "Notice",
+            lang === "kh" ? "សូមបញ្ចូលឈ្មោះហាង" : "Please enter shop name",
+            "warning",
           );
+          return;
+        }
 
-        document.getElementById("sbName").innerText = currentMerchant.name;
-        document.getElementById("sbId").innerText =
-          currentMerchant.merchantId.replace(
-            /(\d{3})(\d{3})(\d{3})/,
-            "$1 $2 $3",
+        // +++++++++++++++++++++++++++++++++++++++
+        // 🔒 មុខងារផ្ទៀងផ្ទាត់ PIN (Security Check)
+        // +++++++++++++++++++++++++++++++++++++++
+        // ទាញយក PIN របស់គណនី (user.pin) មកផ្ទៀងផ្ទាត់ជាមួយលេខដែលទើបនឹងវាយ
+        if (user.pin && enteredPin !== user.pin.toString()) {
+          Swal.fire({
+            icon: "error",
+            title: lang === "kh" ? "បរាជ័យ" : "Error",
+            text:
+              lang === "kh"
+                ? "លេខកូដ PIN មិនត្រឹមត្រូវទេ!"
+                : "Incorrect PIN code!",
+            confirmButtonColor: "var(--primary)",
+          });
+          return; // បញ្ឈប់ការបង្កើតហាងភ្លាមៗ ប្រសិនបើ PIN ខុស
+        }
+        // +++++++++++++++++++++++++++++++++++++++
+
+        // ១. បង្ហាញផ្ទាំង Loading ពេល PIN ត្រឹមត្រូវ និងកំពុងរង់ចាំ Server ធ្វើការ
+        Swal.fire({
+          title: lang === "kh" ? "កំពុងបង្កើតហាង..." : "Creating Shop...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        try {
+          // ទាញយក Token សម្រាប់បញ្ជាក់អត្តសញ្ញាណសុវត្ថិភាព
+          const token = sessionStorage.getItem("userToken");
+
+          // ២. បញ្ជូនទិន្នន័យទៅកាន់ API Backend
+          const response = await fetch("/api/merchants/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`, // ភ្ជាប់សិទ្ធិអនុញ្ញាត
+            },
+            body: JSON.stringify({
+              name: name,
+              city: city,
+              linkedAccount: linkedAcc,
+            }),
+          });
+
+          const data = await response.json();
+
+          // ៣. បើ Server បង្កើតជោគជ័យ
+          if (response.ok && data.success) {
+            // ទាញយកទិន្នន័យហាងពិតពី Server មកដាក់ក្នុង App
+            const newMerchant = {
+              id: data.merchant.id, // _id របស់ MongoDB
+              merchantId: data.merchant.merchantId, // លេខសម្គាល់ ១៥ខ្ទង់
+              accountNumber: data.merchant.accountNumber, // លេខគណនីហាង ១២ខ្ទង់
+              name: data.merchant.name,
+              city: city,
+              linkedAccount: linkedAcc,
+              balance: data.merchant.balance || 0,
+              apiKey: data.merchant.apiKey,
+              apiSecret: data.merchant.apiSecret,
+            };
+
+            // រក្សាទុកក្នុង Session ដើម្បងាយស្រួលបង្ហាញ
+            if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
+            user.merchantProfile.merchants.push(newMerchant);
+            sessionStorage.setItem("user", JSON.stringify(user));
+
+            document.getElementById("storeName").value = ""; // សម្អាតប្រអប់វាយអក្សរ
+
+            // លោតសារជោគជ័យ រួចបើកផ្ទាំង Dashboard ហាងថ្មី
+            Swal.fire({
+              icon: "success",
+              title: lang === "kh" ? "ជោគជ័យ" : "Success",
+              text:
+                lang === "kh"
+                  ? "ហាងត្រូវបានបង្កើត!"
+                  : "Shop created successfully!",
+              timer: 1500,
+              showConfirmButton: false,
+            }).then(() => {
+              openMerchant(newMerchant.id);
+            });
+          } else {
+            // បើ Server បដិសេធ (ឧ. មានបញ្ហាអ្វីមួយ)
+            Swal.fire(
+              "បរាជ័យ / Error",
+              data.message || "Failed to create merchant",
+              "error",
+            );
+          }
+        } catch (error) {
+          console.error("Error creating merchant:", error);
+          Swal.fire(
+            "បរាជ័យ / Error",
+            "មានបញ្ហាភ្ជាប់ទៅកាន់ប្រព័ន្ធ (Server Error)",
+            "error",
           );
-        document.getElementById("sbAvatar").innerText = currentMerchant.name
-          .substring(0, 1)
-          .toUpperCase();
-
-        setCalcCur(currentMerchant.linkedAccount);
-        switchState("state-dashboard");
+        }
       }
 
       function toggleSidebar() {

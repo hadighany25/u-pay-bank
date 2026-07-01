@@ -79,6 +79,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });
 
+const merchantRoutes = require("./routes/merchantRoutes");
+app.use("/api/merchants", merchantRoutes);
+
 // ==========================================
 // 🚀 ចាប់ផ្តើម Server
 // ==========================================
