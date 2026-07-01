@@ -33,7 +33,6 @@
         --danger: #ef4444;
       }
 
-      /* 🌙 Dark Mode Variables (ទាញពី Settings) */
       body.dark-mode {
         --primary: #00b894;
         --primary-light: #002d26;
@@ -45,47 +44,66 @@
       }
 
       body {
-        background-color: var(--bg-main);
+        background-color: #cbd5e1; /* ពណ៌ផ្ទៃខាងក្រៅពេលបើកលើកុំព្យូទ័រ */
         margin: 0;
         display: flex;
         justify-content: center;
+        align-items: center;
         min-height: 100vh;
         font-family: "Kantumruy Pro", "Inter", sans-serif;
-        color: var(--text-main);
         -webkit-font-smoothing: antialiased;
-        overflow: hidden; /* Prevent body scroll, handle inside app-container */
       }
 
+      /* 🔥 ជួសជុលបញ្ហា Desktop - គ្រប់គ្រងអ្វីៗឱ្យនៅតែក្នុងនេះ */
       .app-container {
         width: 100%;
         max-width: 480px;
+        height: 100vh;
         background: var(--bg-main);
-        min-height: 100vh;
         position: relative;
-        display: flex;
-        flex-direction: column;
         overflow-x: hidden;
         overflow-y: auto;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        color: var(--text-main);
+      }
+
+      @media (min-height: 900px) {
+        .app-container {
+          height: 90vh;
+          border-radius: 30px;
+          border: 8px solid #334155;
+        }
       }
 
       /* 🔄 View States Management */
       .view-state {
         display: none;
         flex-direction: column;
-        height: 100%;
+        min-height: 100%;
+        background: var(--bg-main);
         animation: fadeIn 0.3s ease;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        z-index: 1;
       }
       .view-state.active {
         display: flex;
+        z-index: 2;
       }
       @keyframes fadeIn {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: scale(0.98);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
+          transform: scale(1);
         }
       }
 
@@ -115,7 +133,7 @@
         margin: 0;
         flex: 1;
         text-align: center;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 600;
       }
 
@@ -125,19 +143,14 @@
         border: none;
         padding: 15px;
         border-radius: 12px;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
         cursor: pointer;
         width: 100%;
         transition: 0.2s;
         font-family: inherit;
       }
-      .btn-primary:disabled {
-        background: var(--text-muted);
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .btn-primary:active:not(:disabled) {
+      .btn-primary:active {
         transform: scale(0.98);
       }
 
@@ -150,57 +163,35 @@
         border: 1px solid var(--border-color);
       }
 
-      /* ==========================================
-       📄 1. LINK ACCOUNT & T&C STATE
-       ========================================== */
-      .tnc-box {
-        background: var(--bg-main);
-        padding: 15px;
-        border-radius: 12px;
-        height: 200px;
-        overflow-y: auto;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        line-height: 1.6;
-        border: 1px solid var(--border-color);
+      .input-group {
         margin-bottom: 20px;
       }
-      .checkbox-group {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-      .checkbox-group input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        accent-color: var(--primary);
-        margin-top: 2px;
-      }
-      .checkbox-group label {
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
         font-size: 0.9rem;
-        color: var(--text-main);
-        cursor: pointer;
+        color: var(--text-muted);
       }
-      .account-select {
+      .input-group input,
+      .input-group select,
+      .input-group textarea {
         width: 100%;
         padding: 15px;
         border-radius: 12px;
         border: 1px solid var(--border-color);
-        background: var(--bg-card);
+        background: var(--bg-main);
         color: var(--text-main);
         font-size: 1rem;
+        box-sizing: border-box;
         font-family: inherit;
-        margin-bottom: 20px;
-        outline: none;
+      }
+      .input-group input:focus {
+        outline: 2px solid var(--primary);
       }
 
       /* ==========================================
-       🏬 2. MERCHANT LIST STATE
+       🏬 MERCHANT LIST & CREATION
        ========================================== */
-      .merchant-list-header {
-        padding: 20px 20px 0;
-      }
       .merchant-item {
         display: flex;
         align-items: center;
@@ -228,9 +219,9 @@
         font-size: 1.5rem;
       }
       .add-merchant-btn {
-        position: fixed;
+        position: absolute; /* Relative to app-container */
         bottom: 30px;
-        right: 30px;
+        right: 20px;
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -247,43 +238,12 @@
       }
 
       /* ==========================================
-       📝 3. CREATE MERCHANT STATE
-       ========================================== */
-      .input-group {
-        margin-bottom: 20px;
-      }
-      .input-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        font-weight: 500;
-      }
-      .input-group input,
-      .input-group textarea {
-        width: 100%;
-        padding: 15px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-main);
-        color: var(--text-main);
-        font-size: 1rem;
-        box-sizing: border-box;
-        font-family: inherit;
-      }
-      .input-group input:focus,
-      .input-group textarea:focus {
-        outline: 2px solid var(--primary);
-        background: var(--bg-card);
-      }
-
-      /* ==========================================
-       📊 4. DASHBOARD STATE
+       📊 DASHBOARD (ABA STYLE)
        ========================================== */
       .dash-header {
         background: var(--primary);
         color: white;
-        padding: 20px 20px 40px;
+        padding: 20px 20px 60px;
         border-bottom-left-radius: 30px;
         border-bottom-right-radius: 30px;
       }
@@ -291,26 +251,26 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 25px;
+        margin-bottom: 15px;
       }
       .dash-shop-name h2 {
         margin: 0;
-        font-size: 1.3rem;
+        font-size: 1.2rem;
       }
 
       .revenue-card {
         background: var(--bg-card);
         border-radius: 20px;
         padding: 20px;
-        margin: -30px 20px 20px;
+        margin: -40px 20px 20px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
         position: relative;
         z-index: 2;
       }
       .revenue-card h4 {
-        margin: 0 0 10px;
+        margin: 0 0 5px;
         color: var(--text-muted);
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: normal;
       }
       .revenue-amount {
@@ -318,23 +278,6 @@
         margin: 0;
         color: var(--text-main);
         font-weight: 700;
-      }
-      .chart-placeholder {
-        height: 100px;
-        background: repeating-linear-gradient(
-          45deg,
-          var(--bg-main),
-          var(--bg-main) 10px,
-          var(--bg-card) 10px,
-          var(--bg-card) 20px
-        );
-        border-radius: 12px;
-        margin-top: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-        font-size: 0.8rem;
       }
 
       .action-grid {
@@ -354,23 +297,23 @@
         gap: 10px;
         cursor: pointer;
         transition: 0.2s;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
       }
       .dash-action-btn:active {
         transform: scale(0.95);
       }
       .dash-action-btn i {
         font-size: 2rem;
-        color: var(--primary);
       }
       .dash-action-btn span {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
         color: var(--text-main);
         text-align: center;
       }
 
       /* ==========================================
-       🧮 5. RECEIVE MONEY (CALCULATOR)
+       🧮 RECEIVE MONEY (CALCULATOR)
        ========================================== */
       .receive-display {
         background: var(--primary);
@@ -378,16 +321,10 @@
         padding: 30px 20px;
         text-align: center;
       }
-      .receive-display h4 {
-        margin: 0 0 10px;
-        font-weight: normal;
-        opacity: 0.8;
-      }
       .receive-display .amount-input {
         font-size: 3.5rem;
         font-weight: 700;
-        margin: 0;
-        height: 60px;
+        margin: 10px 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -398,7 +335,6 @@
         background: rgba(255, 255, 255, 0.2);
         border-radius: 20px;
         padding: 4px;
-        margin-top: 15px;
       }
       .currency-toggle button {
         background: transparent;
@@ -431,7 +367,6 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: 0.1s;
       }
       .key-btn:active {
         background: var(--bg-main);
@@ -447,13 +382,14 @@
         background: var(--bg-card);
         display: flex;
         gap: 10px;
+        border-top: 1px solid var(--border-color);
       }
 
       /* ==========================================
-       ☰ 6. SIDEBAR MENU
+       ☰ SIDEBAR MENU (ABSOLUTE TO CONTAINER)
        ========================================== */
       .sidebar-overlay {
-        position: fixed;
+        position: absolute;
         top: 0;
         left: 0;
         width: 100%;
@@ -470,9 +406,9 @@
       }
 
       .sidebar {
-        position: fixed;
+        position: absolute;
         top: 0;
-        left: -300px;
+        left: -100%;
         width: 280px;
         height: 100%;
         background: var(--primary);
@@ -517,8 +453,8 @@
         color: white;
         text-decoration: none;
         font-size: 1.05rem;
-        transition: 0.2s;
         cursor: pointer;
+        border-bottom: 1px solid transparent;
       }
       .sidebar-item:active {
         background: rgba(255, 255, 255, 0.1);
@@ -528,47 +464,26 @@
         text-align: center;
       }
 
-      /* ==========================================
-       🔐 PIN MODAL
-       ========================================== */
-      .pin-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
+      /* QR Code Display Modal */
+      .qr-modal {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-main);
         z-index: 2000;
-        align-items: center;
-        justify-content: center;
-      }
-      .pin-box {
-        background: var(--bg-card);
-        padding: 30px;
-        border-radius: 20px;
-        width: 80%;
-        max-width: 300px;
-        text-align: center;
-      }
-      .pin-dots {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin: 20px 0;
-      }
-      .dot {
-        width: 15px;
-        height: 15px;
-        border-radius: 50%;
-        border: 2px solid var(--text-muted);
-      }
-      .dot.filled {
-        background: var(--primary);
-        border-color: var(--primary);
+        display: none;
+        flex-direction: column;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <div id="state-link-account" class="view-state">
+      <!-- ==========================================
+         🏬 STATE 1: MERCHANT LIST
+         ========================================== -->
+      <div id="state-merchant-list" class="view-state active">
         <div class="header-bar">
           <button
             class="back-btn"
@@ -576,78 +491,13 @@
           >
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 data-lang="merch_setup">រៀបចំគណនី Merchant</h2>
+          <h2 data-lang="merch_title">U-Pay Merchant</h2>
           <div style="width: 24px"></div>
         </div>
 
-        <div class="card-box">
-          <h3 style="margin-top: 0" data-lang="merch_select_acc">
-            ជ្រើសរើសគណនីទទួលប្រាក់
-          </h3>
-          <p
-            style="font-size: 0.85rem; color: var(--text-muted)"
-            data-lang="merch_acc_desc"
-          >
-            រាល់ប្រាក់ចំណូលពី Merchant នឹងត្រូវផ្ទេរចូលគណនីនេះដោយស្វ័យប្រវត្តិ។
-          </p>
-
-          <select id="linkAccountSelect" class="account-select">
-            <option value="USD">គណនីប្រាក់ដុល្លារ (USD) - ផ្ទាល់ខ្លួន</option>
-            <option value="KHR">គណនីប្រាក់រៀល (KHR) - ផ្ទាល់ខ្លួន</option>
-          </select>
-
-          <h3 data-lang="merch_tnc_title">លក្ខខណ្ឌប្រើប្រាស់សេវាកម្ម</h3>
-          <div class="tnc-box">
-            <strong>លក្ខខណ្ឌនៃការប្រើប្រាស់សេវាកម្ម U-Pay Merchant</strong
-            ><br /><br />
-            ១. ការយល់ព្រម (Acceptance)<br />
-            ការចុះឈ្មោះប្រើប្រាស់សេវាកម្មនេះ
-            មានន័យថាអ្នកយល់ព្រមទាំងស្រុងទៅនឹងលក្ខខណ្ឌរបស់ធនាគារ U-Pay។<br /><br />
-            ២. គណនីភ្ជាប់ (Linked Account)<br />
-            រាល់ថវិកាដែលអតិថិជនទូទាត់
-            នឹងត្រូវទម្លាក់ចូលគណនីដែលអ្នកបានជ្រើសរើសខាងលើភ្លាមៗ។
-            ធនាគារមិនទទួលខុសត្រូវរាល់ការជ្រើសរើសគណនីខុសរបស់អ្នកឡើយ។<br /><br />
-            ៣. ទំនួលខុសត្រូវ (Responsibility)<br />
-            ម្ចាស់អាជីវកម្មត្រូវធានាថារាល់ប្រតិបត្តិការ
-            និងការលក់ទំនិញស្របតាមច្បាប់នៃព្រះរាជាណាចក្រកម្ពុជា។<br /><br />
-            ៤. កម្រៃសេវា (Fees)<br />
-            សម្រាប់ការប្រើប្រាស់ស្តង់ដារ គឺឥតគិតថ្លៃសម្រាប់ការទូទាត់តាមរយៈ U-Pay
-            KHQR។
-          </div>
-
-          <div class="checkbox-group">
-            <input type="checkbox" id="tncCheckbox" onchange="toggleTncBtn()" />
-            <label for="tncCheckbox" data-lang="merch_agree"
-              >ខ្ញុំបានអាន និងយល់ព្រមទទួលយកលក្ខខណ្ឌខាងលើ</label
-            >
-          </div>
-
-          <button
-            id="btnAgreeTnc"
-            class="btn-primary"
-            disabled
-            onclick="showPinModal('setup')"
-          >
-            យល់ព្រម និងបន្ត
-          </button>
-        </div>
-      </div>
-
-      <div id="state-merchant-list" class="view-state">
-        <div class="header-bar">
-          <button
-            class="back-btn"
-            onclick="window.location.href = 'dashboard.html'"
-          >
-            <i class="fa-solid fa-arrow-left"></i>
-          </button>
-          <h2>U-Pay Merchant</h2>
-          <div style="width: 24px"></div>
-        </div>
-
-        <div class="merchant-list-header">
+        <div style="padding: 20px">
           <h3 style="margin: 0" data-lang="merch_your_biz">
-            គ្រប់គ្រងអាជីវកម្មរបស់អ្នក
+            គ្រប់គ្រងអាជីវកម្ម
           </h3>
           <p
             style="
@@ -661,16 +511,9 @@
           </p>
         </div>
 
-        <div
-          class="card-box"
-          id="merchantListContainer"
-          style="
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            padding: 10px 20px;
-          "
-        ></div>
+        <div id="merchantListContainer" style="padding: 0 20px">
+          <!-- Inject by JS -->
+        </div>
 
         <button
           class="add-merchant-btn"
@@ -680,9 +523,12 @@
         </button>
       </div>
 
+      <!-- ==========================================
+         📝 STATE 2: CREATE MERCHANT
+         ========================================== -->
       <div id="state-create-merchant" class="view-state">
         <div class="header-bar">
-          <button class="back-btn" onclick="goBackFromCreate()">
+          <button class="back-btn" onclick="switchState('state-merchant-list')">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <h2 data-lang="merch_add_new">បន្ថែមសាខា/ហាងថ្មី</h2>
@@ -701,15 +547,10 @@
 
           <div class="input-group">
             <label data-lang="merch_city">ទីក្រុង / ខេត្ត</label>
-            <select
-              id="storeCity"
-              class="account-select"
-              style="margin-bottom: 0"
-            >
+            <select id="storeCity">
               <option value="Phnom Penh">រាជធានីភ្នំពេញ</option>
               <option value="Siem Reap">សៀមរាប</option>
               <option value="Battambang">បាត់ដំបង</option>
-              <option value="Sihanoukville">ព្រះសីហនុ</option>
             </select>
           </div>
 
@@ -722,12 +563,27 @@
             ></textarea>
           </div>
 
-          <button class="btn-primary" onclick="saveNewMerchant()">
+          <div class="input-group">
+            <label data-lang="merch_link_acc">ភ្ជាប់ទៅកាន់គណនី</label>
+            <select id="linkAccount">
+              <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
+              <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
+            </select>
+          </div>
+
+          <button
+            class="btn-primary"
+            onclick="saveNewMerchant()"
+            data-lang="merch_save"
+          >
             រក្សាទុក
           </button>
         </div>
       </div>
 
+      <!-- ==========================================
+         📊 STATE 3: DASHBOARD
+         ========================================== -->
       <div id="state-dashboard" class="view-state">
         <div class="dash-header">
           <div class="dash-shop-name">
@@ -746,10 +602,16 @@
           <div style="display: flex; align-items: flex-end; gap: 5px">
             <h1 class="revenue-amount" id="dashBalance">$0.00</h1>
           </div>
-          <div class="chart-placeholder">
-            <i class="fa-solid fa-chart-line" style="margin-right: 8px"></i>
-            ទិន្នន័យក្រាហ្វិកនឹងបង្ហាញនៅទីនេះ
-          </div>
+          <p
+            style="
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              margin-top: 10px;
+            "
+            id="dashAccInfo"
+          >
+            Merchant ID: 500123456
+          </p>
         </div>
 
         <div class="action-grid">
@@ -764,7 +626,7 @@
             <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
             <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
           </div>
-          <div class="dash-action-btn">
+          <div class="dash-action-btn" onclick="showStaticQR()">
             <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
             <span data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
@@ -775,15 +637,14 @@
         </div>
       </div>
 
-      <div
-        id="state-receive"
-        class="view-state"
-        style="background: var(--bg-card)"
-      >
+      <!-- ==========================================
+         🧮 STATE 4: RECEIVE MONEY (CALCULATOR)
+         ========================================== -->
+      <div id="state-receive" class="view-state">
         <div
           class="header-bar"
           style="
-            background: var(--bg-card);
+            background: var(--bg-main);
             color: var(--text-main);
             border-bottom: 1px solid var(--border-color);
           "
@@ -795,7 +656,7 @@
           >
             <i class="fa-solid fa-xmark"></i>
           </button>
-          <h2 style="font-size: 1rem" id="recvStoreName">Smart Shop by A.T</h2>
+          <h2 style="font-size: 1rem" id="recvStoreName">Smart Shop</h2>
           <div style="width: 24px"></div>
         </div>
 
@@ -817,17 +678,14 @@
           <button class="key-btn" onclick="pressKey('2')">2</button>
           <button class="key-btn" onclick="pressKey('3')">3</button>
           <button class="key-btn key-action" onclick="pressKey('%')">%</button>
-
           <button class="key-btn" onclick="pressKey('4')">4</button>
           <button class="key-btn" onclick="pressKey('5')">5</button>
           <button class="key-btn" onclick="pressKey('6')">6</button>
           <button class="key-btn key-action" onclick="pressKey('/')">÷</button>
-
           <button class="key-btn" onclick="pressKey('7')">7</button>
           <button class="key-btn" onclick="pressKey('8')">8</button>
           <button class="key-btn" onclick="pressKey('9')">9</button>
           <button class="key-btn key-action" onclick="pressKey('-')">-</button>
-
           <button class="key-btn" onclick="pressKey('00')">00</button>
           <button class="key-btn" onclick="pressKey('0')">0</button>
           <button
@@ -858,6 +716,76 @@
         </div>
       </div>
 
+      <!-- ==========================================
+         📱 QR DISPLAY MODAL
+         ========================================== -->
+      <div class="qr-modal" id="qrModal">
+        <div
+          class="header-bar"
+          style="background: var(--primary); color: white"
+        >
+          <button class="back-btn" onclick="closeQR()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <h2 data-lang="merch_qr_title">កូដទទួលប្រាក់</h2>
+          <div style="width: 24px"></div>
+        </div>
+        <div
+          style="
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          "
+        >
+          <div
+            style="
+              background: white;
+              padding: 20px;
+              border-radius: 20px;
+              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+              text-align: center;
+              width: 100%;
+              box-sizing: border-box;
+            "
+          >
+            <h3 id="qrStoreName" style="color: #1e293b; margin: 0 0 5px 0">
+              Store Name
+            </h3>
+            <p
+              style="color: #64748b; margin: 0 0 20px 0; font-size: 0.9rem"
+              id="qrMerchantId"
+            >
+              ID: 500 000 000
+            </p>
+            <img
+              id="qrImage"
+              src=""
+              alt="QR Code"
+              style="
+                width: 250px;
+                height: 250px;
+                border: 1px solid #eee;
+                border-radius: 10px;
+              "
+            />
+            <h1
+              id="qrAmountDisplay"
+              style="
+                color: var(--primary);
+                margin: 20px 0 0 0;
+                font-size: 2.5rem;
+              "
+            ></h1>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+         ☰ SIDEBAR MENU (FIXED TO CONTAINER)
+         ========================================== -->
       <div
         class="sidebar-overlay"
         id="sidebarOverlay"
@@ -865,20 +793,22 @@
       ></div>
       <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <div class="sidebar-avatar" id="sbAvatar">AT</div>
+          <div class="sidebar-avatar" id="sbAvatar">U</div>
           <div>
             <h3 style="margin: 0; font-size: 1.1rem" id="sbName">User Name</h3>
             <p style="margin: 0; font-size: 0.8rem; opacity: 0.8">
-              ID: <span id="sbId">123456</span>
+              ID: <span id="sbId">...</span>
             </p>
           </div>
         </div>
         <div class="sidebar-menu">
           <a class="sidebar-item" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-file-invoice"></i> ប្រវត្តិប្រតិបត្តិការ</a
+            ><i class="fa-solid fa-file-invoice"></i>
+            <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span></a
           >
           <a class="sidebar-item" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-chart-pie"></i> ទិន្នន័យវិភាគ</a
+            ><i class="fa-solid fa-chart-pie"></i>
+            <span data-lang="merch_report">ទិន្នន័យវិភាគ</span></a
           >
           <a
             class="sidebar-item"
@@ -886,84 +816,114 @@
               switchState('state-merchant-list');
               toggleSidebar();
             "
-            ><i class="fa-solid fa-store"></i> គ្រប់គ្រងអាជីវកម្ម</a
+            ><i class="fa-solid fa-store"></i>
+            <span data-lang="merch_manage">គ្រប់គ្រងហាង</span></a
           >
           <a class="sidebar-item" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-gear"></i> ការកំណត់</a
+            ><i class="fa-solid fa-gear"></i>
+            <span data-lang="merch_settings">ការកំណត់</span></a
           >
           <a
             class="sidebar-item"
             onclick="window.location.href = 'dashboard.html'"
             style="
-              color: var(--danger);
+              color: #fca5a5;
               margin-top: 20px;
               border-top: 1px solid rgba(255, 255, 255, 0.1);
             "
-            ><i class="fa-solid fa-arrow-right-from-bracket"></i> ចាកចេញទៅ
-            U-Pay</a
+            ><i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span data-lang="merch_exit">ចាកចេញទៅ U-Pay</span></a
           >
-        </div>
-      </div>
-
-      <div class="pin-modal" id="pinModal">
-        <div class="pin-box">
-          <h3 style="margin-top: 0">បញ្ចូលលេខកូដសម្ងាត់</h3>
-          <p style="font-size: 0.85rem; color: var(--text-muted)">
-            សូមបញ្ចូលលេខកូដ PIN ៤ ខ្ទង់របស់អ្នកដើម្បីបញ្ជាក់។
-          </p>
-          <div class="pin-dots">
-            <div class="dot" id="dot1"></div>
-            <div class="dot" id="dot2"></div>
-            <div class="dot" id="dot3"></div>
-            <div class="dot" id="dot4"></div>
-          </div>
-          <input
-            type="number"
-            id="hiddenPin"
-            style="opacity: 0; position: absolute; z-index: -1"
-            oninput="handlePinInput(this.value)"
-            pattern="[0-9]*"
-            inputmode="numeric"
-          />
-          <button
-            class="btn-primary"
-            style="background: var(--bg-main); color: var(--text-main)"
-            onclick="document.getElementById('hiddenPin').focus()"
-          >
-            ចុចបញ្ចូលលេខកូដ
-          </button>
         </div>
       </div>
     </div>
+    <!-- End App Container -->
+
     <script>
+      // ==========================================
+      // 🌐 វចនានុក្រម (TRANSLATION)
+      // ==========================================
+      const translations = {
+        en: {
+          merch_title: "U-Pay Merchant",
+          merch_your_biz: "Manage Business",
+          merch_biz_desc: "Select a shop to manage",
+          merch_add_new: "Add New Branch/Shop",
+          merch_store_name: "Shop Name",
+          merch_city: "City / Province",
+          merch_address: "Detailed Address",
+          merch_link_acc: "Link to Account",
+          merch_save: "Save",
+          merch_total_rev: "Total Revenue (Today)",
+          merch_receive: "Receive Money",
+          merch_trx: "Transactions",
+          merch_stand_qr: "Stand QR Code",
+          merch_report: "Sales Report",
+          merch_enter_amt: "Enter Amount",
+          merch_qr_title: "Receive QR",
+          merch_manage: "Manage Shops",
+          merch_settings: "Settings",
+          merch_exit: "Exit to U-Pay",
+        },
+        kh: {
+          merch_title: "យូ-ផេ អាជីវកម្ម",
+          merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
+          merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
+          merch_add_new: "បន្ថែមសាខា/ហាងថ្មី",
+          merch_store_name: "ឈ្មោះហាង ឬ សាខា",
+          merch_city: "ទីក្រុង / ខេត្ត",
+          merch_address: "អាសយដ្ឋានលម្អិត",
+          merch_link_acc: "ភ្ជាប់ទៅកាន់គណនី",
+          merch_save: "រក្សាទុក",
+          merch_total_rev: "ចំណូលសរុប (ថ្ងៃនេះ)",
+          merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
+          merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
+          merch_stand_qr: "ស្កេនកូដ QR",
+          merch_report: "របាយការណ៍លក់",
+          merch_enter_amt: "បញ្ចូលចំនួនទឹកប្រាក់",
+          merch_qr_title: "កូដទទួលប្រាក់",
+          merch_manage: "គ្រប់គ្រងហាង",
+          merch_settings: "ការកំណត់",
+          merch_exit: "ចាកចេញទៅ U-Pay",
+        },
+      };
+
+      function applyLang() {
+        let currentLang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key])
+            el.innerText = translations[currentLang][key];
+        });
+      }
+
+      function applyTheme() {
+        if (localStorage.getItem("theme") === "dark") {
+          document.body.classList.add("dark-mode");
+        }
+      }
+
       // ==========================================
       // ⚙️ GLOBAL VARIABLES & INITIALIZATION
       // ==========================================
       let user = JSON.parse(sessionStorage.getItem("user"));
       if (!user) {
         window.location.href = "index.html";
-      } // Kick out if not logged in
+      }
 
-      // Mock Merchant Profile in user object for demo
+      // Mock Merchant Profile in user object
       if (!user.merchantProfile) {
-        user.merchantProfile = {
-          isSetup: false,
-          linkedAccount: null,
-          merchants: [],
-        };
+        user.merchantProfile = { merchants: [] };
       }
 
       let currentMerchant = null;
-      let pinAction = null; // 'setup' or 'payment'
 
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
+        applyLang();
         initAppFlow();
       });
 
-      // ==========================================
-      // 🔄 STATE MANAGEMENT
-      // ==========================================
       function switchState(stateId) {
         document
           .querySelectorAll(".view-state")
@@ -972,9 +932,7 @@
       }
 
       function initAppFlow() {
-        if (!user.merchantProfile.isSetup) {
-          switchState("state-link-account");
-        } else if (user.merchantProfile.merchants.length === 0) {
+        if (user.merchantProfile.merchants.length === 0) {
           switchState("state-create-merchant");
         } else {
           renderMerchantList();
@@ -983,70 +941,7 @@
       }
 
       // ==========================================
-      // 📄 STATE 1: LINK ACCOUNT LOGIC
-      // ==========================================
-      function toggleTncBtn() {
-        const isChecked = document.getElementById("tncCheckbox").checked;
-        document.getElementById("btnAgreeTnc").disabled = !isChecked;
-      }
-
-      function completeSetup() {
-        const selectedAcc = document.getElementById("linkAccountSelect").value;
-        user.merchantProfile.isSetup = true;
-        user.merchantProfile.linkedAccount = selectedAcc;
-        sessionStorage.setItem("user", JSON.stringify(user));
-
-        Swal.fire({
-          icon: "success",
-          title: "ជោគជ័យ!",
-          text: "គណនីរបស់អ្នកត្រូវបានភ្ជាប់។",
-          timer: 2000,
-          showConfirmButton: false,
-        }).then(() => {
-          initAppFlow(); // Will naturally go to create-merchant
-        });
-      }
-
-      // ==========================================
-      // 🔐 PIN MODAL LOGIC
-      // ==========================================
-      function showPinModal(action) {
-        pinAction = action;
-        document.getElementById("pinModal").style.display = "flex";
-        document.getElementById("hiddenPin").value = "";
-        updatePinDots(0);
-        setTimeout(() => document.getElementById("hiddenPin").focus(), 100);
-      }
-      function hidePinModal() {
-        document.getElementById("pinModal").style.display = "none";
-        document.getElementById("hiddenPin").blur();
-      }
-      function handlePinInput(val) {
-        if (val.length > 4) {
-          document.getElementById("hiddenPin").value = val.substring(0, 4);
-          val = val.substring(0, 4);
-        }
-        updatePinDots(val.length);
-
-        if (val.length === 4) {
-          // Mock verification
-          setTimeout(() => {
-            hidePinModal();
-            if (pinAction === "setup") completeSetup();
-            // Add other pin actions here if needed
-          }, 300);
-        }
-      }
-      function updatePinDots(len) {
-        for (let i = 1; i <= 4; i++) {
-          const dot = document.getElementById("dot" + i);
-          if (i <= len) dot.classList.add("filled");
-          else dot.classList.remove("filled");
-        }
-      }
-
-      // ==========================================
-      // 🏬 STATE 2 & 3: MERCHANT MANAGEMENT
+      // 🏬 MERCHANT LIST & CREATION LOGIC
       // ==========================================
       function renderMerchantList() {
         const container = document.getElementById("merchantListContainer");
@@ -1062,7 +957,7 @@
           <div class="merchant-icon">${initial}</div>
           <div style="flex:1;">
             <h4 style="margin:0; font-size:1.05rem;">${m.name}</h4>
-            <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-location-dot"></i> ${m.city}</p>
+            <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-hashtag"></i> ID: ${formatID(m.merchantId)}</p>
           </div>
           <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
         `;
@@ -1070,28 +965,29 @@
         });
       }
 
-      function goBackFromCreate() {
-        if (user.merchantProfile.merchants.length > 0)
-          switchState("state-merchant-list");
-        else window.location.href = "dashboard.html";
-      }
-
       function saveNewMerchant() {
         const name = document.getElementById("storeName").value;
         const city = document.getElementById("storeCity").value;
         const address = document.getElementById("storeAddress").value;
+        const linkedAcc = document.getElementById("linkAccount").value;
 
         if (!name) {
           Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
           return;
         }
 
+        // បង្កើតលេខគណនី Merchant ៩ខ្ទង់ (ឧ. 500 xxx xxx)
+        const random9Digit =
+          "500" + Math.floor(100000 + Math.random() * 900000).toString();
+
         const newId = Date.now().toString();
         const newMerchant = {
           id: newId,
+          merchantId: random9Digit,
           name: name,
           city: city,
           address: address,
+          linkedAccount: linkedAcc,
           balance: 0,
           transactions: [],
         };
@@ -1102,6 +998,10 @@
         openMerchant(newId);
       }
 
+      function formatID(id) {
+        return id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+      }
+
       function openMerchant(id) {
         currentMerchant = user.merchantProfile.merchants.find(
           (m) => m.id === id,
@@ -1110,14 +1010,21 @@
         // Setup Dashboard UI
         document.getElementById("dashStoreName").innerText =
           currentMerchant.name;
+        let currencySym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
         document.getElementById("dashBalance").innerText =
-          "$" + currentMerchant.balance.toFixed(2);
+          currencySym +
+          currentMerchant.balance.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+          });
+        document.getElementById("dashAccInfo").innerText =
+          `ID: ${formatID(currentMerchant.merchantId)} • Linked: ${currentMerchant.linkedAccount}`;
 
         // Setup Sidebar UI
         document.getElementById("sbName").innerText =
           user.fullName || user.username;
-        document.getElementById("sbId").innerText =
-          "MID-" + id.substring(id.length - 6);
+        document.getElementById("sbId").innerText = formatID(
+          currentMerchant.merchantId,
+        );
         document.getElementById("sbAvatar").innerText = (
           user.fullName || user.username
         )
@@ -1138,7 +1045,7 @@
       }
 
       // ==========================================
-      // 🧮 STATE 5: CALCULATOR LOGIC
+      // 🧮 CALCULATOR & QR LOGIC
       // ==========================================
       let calcValue = "";
       let calcCurrency = "USD";
@@ -1148,7 +1055,6 @@
         document.getElementById("btnCurUSD").classList.remove("active");
         document.getElementById("btnCurKHR").classList.remove("active");
         document.getElementById("btnCur" + cur).classList.add("active");
-
         document.getElementById("calcSym").innerText =
           cur === "USD" ? "$" : "៛";
         updateCalcDisplay();
@@ -1158,22 +1064,7 @@
         if (key === "C") {
           calcValue = calcValue.slice(0, -1);
         } else if (["+", "-", "*", "/", "%"].includes(key)) {
-          // Simple logic for demo: ignore complex math, just allow reset or basic appending
-          if (
-            calcValue.length > 0 &&
-            !["+", "-", "*", "/", "%"].includes(calcValue.slice(-1))
-          ) {
-            // For a real app, implement full eval() safely. Here we just mock it.
-            // calcValue += key;
-            Swal.fire({
-              toast: true,
-              position: "top",
-              title: "មុខងារគណនាកំពុងអភិវឌ្ឍ",
-              icon: "info",
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          }
+          /* Ignored for demo UI */
         } else {
           if (calcValue === "0" && key !== "00") calcValue = key;
           else if (calcValue.length < 10) calcValue += key;
@@ -1183,15 +1074,8 @@
 
       function updateCalcDisplay() {
         let display = calcValue || "0";
-        // Format number
-        if (calcCurrency === "USD") {
-          // Mocking decimal for USD if needed, but keeping it simple integer logic for now
-          document.getElementById("calcDisplay").innerText =
-            parseInt(display).toLocaleString("en-US");
-        } else {
-          document.getElementById("calcDisplay").innerText =
-            parseInt(display).toLocaleString("en-US");
-        }
+        document.getElementById("calcDisplay").innerText =
+          parseInt(display).toLocaleString("en-US");
       }
 
       function generateQR() {
@@ -1203,30 +1087,42 @@
           );
           return;
         }
-
-        // In a real app, redirect to a QR generation page or open a modal
-        Swal.fire({
-          title: "បង្កើត QR ជោគជ័យ",
-          text: `សម្រាប់ទឹកប្រាក់ ${calcCurrency === "USD" ? "$" : "៛"} ${parseInt(calcValue).toLocaleString("en-US")}`,
-          icon: "success",
-          confirmButtonText: "បិទ",
-          confirmButtonColor: "var(--primary)",
-        }).then(() => {
-          calcValue = "";
-          updateCalcDisplay();
-          switchState("state-dashboard");
-        });
+        showQR(calcValue);
       }
 
-      // ==========================================
-      // 🌐 THEME & TRANSLATION (Inherit from U-Pay)
-      // ==========================================
-      function applyTheme() {
-        if (localStorage.getItem("theme") === "dark") {
-          document.body.classList.add("dark-mode");
+      function showStaticQR() {
+        showQR(null); // No specific amount
+      }
+
+      function showQR(amount) {
+        document.getElementById("qrModal").style.display = "flex";
+        document.getElementById("qrStoreName").innerText = currentMerchant.name;
+        document.getElementById("qrMerchantId").innerText =
+          "ID: " + formatID(currentMerchant.merchantId);
+
+        // Generate real QR code image using API
+        let qrData = `upay://merchant/${currentMerchant.merchantId}`;
+        if (amount) qrData += `?amount=${amount}&cur=${calcCurrency}`;
+
+        document.getElementById("qrImage").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`;
+
+        const amtDisplay = document.getElementById("qrAmountDisplay");
+        if (amount) {
+          amtDisplay.innerText =
+            (calcCurrency === "USD" ? "$" : "") +
+            parseInt(amount).toLocaleString("en-US") +
+            (calcCurrency === "KHR" ? " ៛" : "");
+          amtDisplay.style.display = "block";
+        } else {
+          amtDisplay.style.display = "none";
         }
-        // Note: Full translation dictionary can be added here matching dashboard.html
-        // Using basic data-lang attributes in HTML for UI mapping.
+      }
+
+      function closeQR() {
+        document.getElementById("qrModal").style.display = "none";
+        calcValue = "";
+        updateCalcDisplay();
       }
     </script>
   </body>
