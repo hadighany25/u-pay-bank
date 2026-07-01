@@ -33,14 +33,14 @@
         --text-main: #1e293b;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
+        --danger: #ef4444;
       }
 
       body {
-        background-color: var(--bg-main); /* ដូរមកពណ៌ស្តង់ដារវិញ */
+        background-color: var(--bg-main);
         margin: 0;
         display: flex;
         justify-content: center;
-        /* លុប align-items: center; ចេញដើម្បីឱ្យវាលាតពេញពីលើចុះក្រោម */
         min-height: 100vh;
         font-family: "Kantumruy Pro", "Inter", sans-serif;
         color: var(--text-main);
@@ -54,15 +54,14 @@
       /* 📱 Fix Desktop Spillage - Container Strategy */
       .app-container {
         width: 100%;
-        max-width: 480px; /* ដាក់ 480px អោយស្មើ File ផ្សេងៗ */
-        min-height: 100vh; /* ដូរពី height: 100vh មក min-height វិញ */
+        max-width: 480px;
+        min-height: 100vh;
         background: var(--bg-main);
         position: relative;
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
         overflow-y: hidden;
-        /* បានលុប box-shadow ចេញដើម្បីកុំឱ្យមានស្រមោលអាក្រក់មើល */
       }
 
       /* 🔄 View States Management */
@@ -786,7 +785,7 @@
           >
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 class="header-title" data-lang="merch_title">
+          <h2 class="header-title kh-text" data-lang="merch_title">
             គ្រប់គ្រងអាជីវកម្ម
           </h2>
           <div style="width: 24px"></div>
@@ -794,15 +793,20 @@
 
         <div class="intro-header">
           <div class="intro-text">
-            <h2 class="kh-text">សួស្តី <span id="introName">...</span>!</h2>
-            <p class="kh-text">ស្វាគមន៍មកកាន់ មុខងារអាជីវករ U-Pay!</p>
+            <h2 class="kh-text">
+              <span data-lang="merch_greet">សួស្តី</span>
+              <span id="introName">...</span>!
+            </h2>
+            <p class="kh-text" data-lang="merch_welcome">
+              ស្វាគមន៍មកកាន់ មុខងារអាជីវករ U-Pay!
+            </p>
           </div>
         </div>
 
         <div class="tab-header kh-text">
-          <div class="tab-item active">សាខា</div>
-          <div class="tab-item">អ្នកគិតលុយ</div>
-          <div class="tab-item">របាយការណ៍</div>
+          <div class="tab-item active" data-lang="merch_tab_branch">សាខា</div>
+          <div class="tab-item" data-lang="merch_tab_cashier">អ្នកគិតលុយ</div>
+          <div class="tab-item" data-lang="merch_tab_report">របាយការណ៍</div>
         </div>
 
         <div id="merchantListContainer" style="padding: 0 20px"></div>
@@ -823,30 +827,43 @@
 
         <div class="card-box">
           <div class="input-group">
-            <label class="kh-text">ឈ្មោះហាង ឬ សាខា</label>
+            <label class="kh-text" data-lang="merch_store_name"
+              >ឈ្មោះហាង ឬ សាខា</label
+            >
             <input
               type="text"
               id="storeName"
               placeholder="ឧ. Smart Shop by A.T"
               class="kh-text"
+              data-lang="merch_store_ph"
             />
           </div>
           <div class="input-group">
-            <label class="kh-text">ទីក្រុង / ខេត្ត</label>
+            <label class="kh-text" data-lang="merch_city"
+              >ទីក្រុង / ខេត្ត</label
+            >
             <select id="storeCity" class="kh-text">
-              <option value="Phnom Penh">រាជធានីភ្នំពេញ</option>
-              <option value="Siem Reap">សៀមរាប</option>
-              <option value="Battambang">បាត់ដំបង</option>
+              <option value="Phnom Penh" data-lang="city_pp">
+                រាជធានីភ្នំពេញ
+              </option>
+              <option value="Siem Reap" data-lang="city_sr">សៀមរាប</option>
+              <option value="Battambang" data-lang="city_bb">បាត់ដំបង</option>
             </select>
           </div>
           <div class="input-group">
-            <label class="kh-text">ភ្ជាប់ទៅកាន់គណនី</label>
+            <label class="kh-text" data-lang="merch_link_acc"
+              >ភ្ជាប់ទៅកាន់គណនី</label
+            >
             <select id="storeLinkedAcc" class="kh-text">
               <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
               <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
             </select>
           </div>
-          <button class="btn-primary kh-text" onclick="showPinModal()">
+          <button
+            class="btn-primary kh-text"
+            onclick="showPinModal()"
+            data-lang="merch_save"
+          >
             រក្សាទុក
           </button>
         </div>
@@ -859,7 +876,14 @@
               <button class="menu-btn" onclick="toggleSidebar()">
                 <i class="fa-solid fa-bars"></i>
               </button>
-              <h2 id="dashStoreName" style="margin: 0; font-size: 1.2rem">
+              <h2
+                id="dashStoreName"
+                style="
+                  margin: 0;
+                  font-size: 1.2rem;
+                  font-family: &quot;Inter&quot;, sans-serif;
+                "
+              >
                 Smart Shop
               </h2>
             </div>
@@ -883,6 +907,7 @@
                 cursor: pointer;
               "
               class="kh-text"
+              data-lang="merch_personal"
             >
               បុគ្គល
             </div>
@@ -898,6 +923,7 @@
                 font-size: 0.9rem;
               "
               class="kh-text"
+              data-lang="merch_business"
             >
               អាជីវកម្ម U-Pay
             </div>
@@ -905,8 +931,15 @@
         </div>
 
         <div class="revenue-card">
-          <p class="kh-text">ចំណូលសរុប ក្នុងថ្ងៃនេះ</p>
-          <h1 id="dashBalance">$0.00</h1>
+          <p class="kh-text" data-lang="merch_total_rev">
+            ចំណូលសរុប ក្នុងថ្ងៃនេះ
+          </p>
+          <h1
+            id="dashBalance"
+            style="font-family: &quot;Inter&quot;, sans-serif"
+          >
+            $0.00
+          </h1>
           <div
             style="
               margin-top: 15px;
@@ -916,7 +949,8 @@
               color: var(--text-muted);
             "
           >
-            <i class="fa-solid fa-hashtag"></i> គណនីហាង៖
+            <i class="fa-solid fa-hashtag"></i>
+            <span data-lang="merch_acc_shop" class="kh-text">គណនីហាង៖</span>
             <span
               id="dashAccInfo"
               style="
@@ -935,19 +969,23 @@
               class="fa-solid fa-hand-holding-dollar"
               style="color: var(--secondary)"
             ></i>
-            <span class="kh-text">ទូទាត់ប្រាក់ពីភ្ញៀវ</span>
+            <span class="kh-text" data-lang="merch_receive"
+              >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
+            >
           </div>
           <div class="dash-btn">
             <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
-            <span class="kh-text">ប្រវត្តិប្រតិបត្តិការ</span>
+            <span class="kh-text" data-lang="merch_trx"
+              >ប្រវត្តិប្រតិបត្តិការ</span
+            >
           </div>
           <div class="dash-btn" onclick="openQRModal(null)">
             <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
-            <span class="kh-text">ស្កេនកូដ QR</span>
+            <span class="kh-text" data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
           <div class="dash-btn">
             <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
-            <span class="kh-text">របាយការណ៍លក់</span>
+            <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
         </div>
       </div>
@@ -957,12 +995,20 @@
           <button class="back-btn" onclick="switchState('state-dashboard')">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 class="header-title" id="recvStoreName">Smart Shop</h2>
+          <h2
+            class="header-title"
+            id="recvStoreName"
+            style="font-family: &quot;Inter&quot;, sans-serif"
+          >
+            Smart Shop
+          </h2>
           <div style="width: 24px"></div>
         </div>
 
         <div class="calc-display">
-          <h4 class="kh-text">បញ្ចូលចំនួនទឹកប្រាក់</h4>
+          <h4 class="kh-text" data-lang="merch_enter_amt">
+            បញ្ចូលចំនួនទឹកប្រាក់
+          </h4>
           <div class="calc-amount">
             <span id="calcSym">$</span><span id="calcDisplay">0</span>
           </div>
@@ -1016,7 +1062,8 @@
             style="flex: 4"
             onclick="generateQRFromCalc()"
           >
-            <i class="fa-solid fa-qrcode"></i> បង្ហាញ QR
+            <i class="fa-solid fa-qrcode"></i>
+            <span data-lang="merch_show_qr">បង្ហាញ QR</span>
           </button>
         </div>
       </div>
@@ -1049,7 +1096,13 @@
               alt="U-Pay"
               onerror="this.style.display = 'none'"
             />
-            <h3 id="qrUserName" class="qr-user-name">...</h3>
+            <h3
+              id="qrUserName"
+              class="qr-user-name"
+              style="font-family: &quot;Inter&quot;, sans-serif"
+            >
+              ...
+            </h3>
             <p id="qrUserAcc" class="qr-user-acc">...</p>
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
@@ -1075,8 +1128,8 @@
           class="btn-save-qr kh-text"
           id="btnSaveQR"
         >
-          <i class="fa-solid fa-download" style="margin-right: 8px"></i>
-          <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+          <i class="fa-solid fa-download" style="margin-right: 8px"></i
+          ><span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
         </button>
       </div>
 
@@ -1087,9 +1140,24 @@
       ></div>
       <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <div class="sidebar-avatar" id="sbAvatar">U</div>
+          <div
+            class="sidebar-avatar"
+            id="sbAvatar"
+            style="font-family: &quot;Inter&quot;, sans-serif"
+          >
+            U
+          </div>
           <div>
-            <h3 style="margin: 0; font-size: 1.1rem" id="sbName">Name</h3>
+            <h3
+              style="
+                margin: 0;
+                font-size: 1.1rem;
+                font-family: &quot;Inter&quot;, sans-serif;
+              "
+              id="sbName"
+            >
+              Name
+            </h3>
             <p style="margin: 0; font-size: 0.8rem; opacity: 0.8">
               ID:
               <span id="sbId" style="font-family: &quot;JetBrains Mono&quot;"
@@ -1100,10 +1168,12 @@
         </div>
         <div class="sidebar-menu">
           <a class="sidebar-item kh-text" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-file-invoice"></i> ប្រវត្តិប្រតិបត្តិការ</a
+            ><i class="fa-solid fa-file-invoice"></i>
+            <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span></a
           >
           <a class="sidebar-item kh-text" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-chart-pie"></i> ទិន្នន័យវិភាគ</a
+            ><i class="fa-solid fa-chart-pie"></i>
+            <span data-lang="merch_report">ទិន្នន័យវិភាគ</span></a
           >
           <a
             class="sidebar-item kh-text"
@@ -1111,10 +1181,12 @@
               switchState('state-list');
               toggleSidebar();
             "
-            ><i class="fa-solid fa-store"></i> គ្រប់គ្រងអាជីវកម្ម</a
+            ><i class="fa-solid fa-store"></i>
+            <span data-lang="merch_title">គ្រប់គ្រងអាជីវកម្ម</span></a
           >
           <a class="sidebar-item kh-text" onclick="toggleSidebar()"
-            ><i class="fa-solid fa-gear"></i> ការកំណត់</a
+            ><i class="fa-solid fa-gear"></i>
+            <span data-lang="merch_settings">ការកំណត់</span></a
           >
           <a
             class="sidebar-item kh-text"
@@ -1124,9 +1196,10 @@
               margin-top: 20px;
               border-top: 1px solid rgba(255, 255, 255, 0.1);
             "
-            ><i class="fa-solid fa-arrow-right-from-bracket"></i> ចាកចេញទៅ
-            U-Pay</a
           >
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span data-lang="merch_exit">ចាកចេញទៅ U-Pay</span>
+          </a>
         </div>
       </div>
 
@@ -1135,10 +1208,13 @@
           class="card-box"
           style="width: 80%; max-width: 300px; text-align: center"
         >
-          <h3 style="margin-top: 0" class="kh-text">បញ្ជាក់លេខកូដ</h3>
+          <h3 style="margin-top: 0" class="kh-text" data-lang="merch_pin_title">
+            បញ្ជាក់លេខកូដ
+          </h3>
           <p
             style="font-size: 0.85rem; color: var(--text-muted)"
             class="kh-text"
+            data-lang="merch_pin_desc"
           >
             សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។
           </p>
@@ -1204,6 +1280,7 @@
             class="btn-primary kh-text"
             style="background: var(--bg-main); color: var(--text-main)"
             onclick="document.getElementById('hiddenPin').focus()"
+            data-lang="merch_btn_pin"
           >
             ចុចបញ្ចូលលេខកូដ
           </button>
@@ -1223,7 +1300,9 @@
           merch_select_acc: "Select Receive Account",
           merch_add_new: "Add New Branch",
           merch_store_name: "Shop Name",
-          merch_city: "City",
+          merch_store_ph: "e.g. Smart Shop",
+          merch_city: "City / Province",
+          merch_link_acc: "Link Account",
           merch_your_biz: "Manage Business",
           merch_biz_desc: "Select a shop to manage",
           merch_total_rev: "Total Revenue (Today)",
@@ -1234,6 +1313,25 @@
           merch_enter_amt: "Enter Amount",
           set_amount: "Specify Amount",
           save_qr: "Save to Gallery",
+          merch_greet: "Hi",
+          merch_welcome: "Welcome to U-Pay Merchant!",
+          merch_tab_branch: "Branches",
+          merch_tab_cashier: "Cashiers",
+          merch_tab_report: "Reports",
+          merch_personal: "Personal",
+          merch_business: "U-Pay Business",
+          merch_acc_shop: "Shop Account:",
+          merch_show_qr: "Show QR",
+          merch_pin_title: "Confirm PIN",
+          merch_pin_desc: "Enter your PIN to create the shop.",
+          merch_btn_pin: "Enter PIN",
+          merch_no_shop: "No cashiers or shops yet",
+          merch_settings: "Settings",
+          merch_exit: "Exit to U-Pay",
+          merch_save: "Save",
+          city_pp: "Phnom Penh",
+          city_sr: "Siem Reap",
+          city_bb: "Battambang",
         },
         kh: {
           merch_title: "គ្រប់គ្រងអាជីវកម្ម",
@@ -1242,10 +1340,12 @@
           merch_select_acc: "ជ្រើសរើសគណនីទទួលប្រាក់",
           merch_add_new: "បន្ថែមសាខា/ហាងថ្មី",
           merch_store_name: "ឈ្មោះហាង ឬ សាខា",
+          merch_store_ph: "ឧ. Smart Shop by A.T",
           merch_city: "ទីក្រុង / ខេត្ត",
+          merch_link_acc: "ភ្ជាប់ទៅកាន់គណនី",
           merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
           merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
-          merch_total_rev: "ចំណូលសរុប (ថ្ងៃនេះ)",
+          merch_total_rev: "ចំណូលសរុប ក្នុងថ្ងៃនេះ",
           merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
           merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
           merch_stand_qr: "ស្កេនកូដ QR",
@@ -1253,6 +1353,25 @@
           merch_enter_amt: "បញ្ចូលចំនួនទឹកប្រាក់",
           set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
           save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+          merch_greet: "សួស្តី",
+          merch_welcome: "ស្វាគមន៍មកកាន់ មុខងារអាជីវករ U-Pay!",
+          merch_tab_branch: "សាខា",
+          merch_tab_cashier: "អ្នកគិតលុយ",
+          merch_tab_report: "របាយការណ៍",
+          merch_personal: "បុគ្គល",
+          merch_business: "អាជីវកម្ម U-Pay",
+          merch_acc_shop: "គណនីហាង៖",
+          merch_show_qr: "បង្ហាញ QR",
+          merch_pin_title: "បញ្ជាក់លេខកូដ",
+          merch_pin_desc: "សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។",
+          merch_btn_pin: "ចុចបញ្ចូលលេខកូដ",
+          merch_no_shop: "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ",
+          merch_settings: "ការកំណត់",
+          merch_exit: "ចាកចេញទៅ U-Pay",
+          merch_save: "រក្សាទុក",
+          city_pp: "រាជធានីភ្នំពេញ",
+          city_sr: "សៀមរាប",
+          city_bb: "បាត់ដំបង",
         },
       };
 
@@ -1261,7 +1380,6 @@
         document.querySelectorAll("[data-lang]").forEach((el) => {
           const key = el.getAttribute("data-lang");
           if (translations[lang] && translations[lang][key]) {
-            // មុខងារបន្ថែម៖ បើវាជាប្រអប់វាយអក្សរ (Input) អោយវាប្តូរអក្សរ Placeholder
             if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
               el.placeholder = translations[lang][key];
             } else {
@@ -1270,7 +1388,6 @@
           }
         });
 
-        // ប្តូរ Font ទៅតាមភាសា
         if (lang === "kh") {
           document.body.style.fontFamily =
             '"Kantumruy Pro", "Inter", sans-serif';
@@ -1280,7 +1397,6 @@
       }
 
       function applyTheme() {
-        // ឆែកមើលទាំង key 'darkMode' (ពី scan.html) និង 'theme' ដើម្បីធានាថាវាដើរ ១០០% ជាមួយ Setting ដើម
         if (
           localStorage.getItem("theme") === "dark" ||
           localStorage.getItem("darkMode") === "true"
@@ -1291,17 +1407,15 @@
         }
       }
 
-      // ធានាថាមុខងារទាំង២នេះដើរភ្លាមៗពេលបើក Page
-      document.addEventListener("DOMContentLoaded", () => {
-        applyTheme();
-        applyLang();
-      });
-
       // ==========================================
       // ⚙️ INITIALIZATION & DATA
       // ==========================================
-      // let user = JSON.parse(sessionStorage.getItem("user"));
-      // if (!user) window.location.href = "index.html";
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) {
+        // បង្ការការរត់ Error ប្រសិនបើអត់ទាន់ Login រួចធ្វើការទាត់ទៅកាន់ទំព័រដើម
+        window.location.href = "index.html";
+        user = { username: "Guest", merchantProfile: { merchants: [] } };
+      }
 
       if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
 
@@ -1310,17 +1424,14 @@
       let calcCurrency = "USD";
       let qrCurrency = "USD";
 
+      // ធ្វើការបង្រួបបង្រួម DOMContentLoaded ឱ្យសល់តែមួយ
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
+        applyLang();
         document.getElementById("introName").innerText =
           user.fullName || user.username;
         initApp();
       });
-
-      function applyTheme() {
-        if (localStorage.getItem("theme") === "dark")
-          document.body.classList.add("dark-mode");
-      }
 
       function switchState(stateId) {
         document
@@ -1334,7 +1445,7 @@
           renderMerchantList();
           switchState("state-list");
         } else {
-          switchState("state-create"); // Force create if none
+          switchState("state-create");
         }
       }
 
@@ -1346,7 +1457,9 @@
         container.innerHTML = "";
 
         if (user.merchantProfile.merchants.length === 0) {
-          container.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:30px;" class="kh-text">មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ</p>`;
+          let lang = localStorage.getItem("lang") || "en";
+          let noShopTxt = translations[lang].merch_no_shop;
+          container.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:30px;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>`;
           return;
         }
 
@@ -1357,8 +1470,8 @@
           div.innerHTML = `
             <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
             <div style="flex:1;">
-              <h4 style="margin:0; font-size:1.05rem;">${m.name}</h4>
-              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">សកម្ម</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
+              <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
             </div>
             <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px;"></i>
           `;
@@ -1412,7 +1525,6 @@
         const city = document.getElementById("storeCity").value;
         const linkedAcc = document.getElementById("storeLinkedAcc").value;
 
-        // បង្កើតលេខគណនី Merchant ៩ខ្ទង់សុទ្ធ (Pure Number API Standard)
         const random9Digit =
           "500" + Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -1461,7 +1573,6 @@
           .substring(0, 1)
           .toUpperCase();
 
-        // ដូរ Calculator Currency តាមការកំណត់ហាង
         setCalcCur(currentMerchant.linkedAccount);
         switchState("state-dashboard");
       }
@@ -1505,11 +1616,12 @@
 
       function generateQRFromCalc() {
         if (!calcValue || parseInt(calcValue) <= 0) {
-          Swal.fire(
-            "បញ្ជាក់",
-            "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល",
-            "warning",
-          );
+          let lang = localStorage.getItem("lang") || "en";
+          let warnMsg =
+            lang === "kh"
+              ? "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល"
+              : "Please enter amount to receive";
+          Swal.fire(lang === "kh" ? "បញ្ជាក់" : "Notice", warnMsg, "warning");
           return;
         }
         openQRModal(calcValue, calcCurrency);
@@ -1518,7 +1630,7 @@
       }
 
       // ==========================================
-      // 📱 QR MODAL (EXACTLY LIKE SCAN.HTML)
+      // 📱 QR MODAL
       // ==========================================
       function openQRModal(amount, currency = null) {
         const modal = document.getElementById("qrModal");
@@ -1526,7 +1638,6 @@
         document.getElementById("qrUserName").textContent =
           currentMerchant.name;
 
-        // បើកពី Calculator យក Currency នោះ បើមិនចឹងយក Currency ដើមរបស់ហាង
         let targetCur = currency ? currency : currentMerchant.linkedAccount;
         switchQRCurrency(targetCur);
 
@@ -1560,7 +1671,6 @@
         document.getElementById("qrCurrencySymbol").innerText =
           currency === "USD" ? "$" : "៛";
 
-        // បង្ហាញលេខគណនី Merchant ៩ខ្ទង់សុទ្ធនៅលើ QR
         const displayID = currentMerchant.merchantId.replace(
           /(\d{3})(\d{3})(\d{3})/,
           "$1 $2 $3",
@@ -1571,7 +1681,7 @@
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
-        const targetAcc = currentMerchant.merchantId; // QR ចាប់យកលេខ Merchant លេខសុទ្ធ
+        const targetAcc = currentMerchant.merchantId;
 
         let qrData = targetAcc;
         if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
@@ -1592,7 +1702,10 @@
 
         html2canvas(document.getElementById("myQRContent"), {
           backgroundColor:
-            localStorage.getItem("theme") === "dark" ? "#1e1e1e" : "#ffffff",
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem("darkMode") === "true"
+              ? "#1e1e1e"
+              : "#ffffff",
           scale: 3,
         }).then((canvas) => {
           const link = document.createElement("a");
