@@ -3,9 +3,196 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Merchant</title>
+    <title>U-Pay Merchant</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      /* U-Pay Brand Colors */
+      :root {
+        --primary: #2d14ce;
+        --bg: #f2f4f6;
+        --card: #ffffff;
+        --text: #1e293b;
+      }
+      body {
+        font-family: "Kantumruy Pro", sans-serif;
+        background: var(--bg);
+        margin: 0;
+        padding: 0;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        margin: auto;
+        min-height: 100vh;
+        background: var(--card);
+      }
+
+      /* Header */
+      .header {
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border-bottom: 1px solid #eee;
+      }
+
+      /* Onboarding Styles */
+      .onboard-box {
+        padding: 20px;
+      }
+      .terms-box {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        height: 200px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 1px solid #e2e8f0;
+      }
+      .btn-main {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        background: var(--primary);
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .btn-main:disabled {
+        background: #cbd5e1;
+      }
+
+      /* Merchant Dashboard */
+      .merchant-card {
+        background: var(--primary);
+        color: white;
+        padding: 20px;
+        border-radius: 20px;
+        margin: 20px;
+      }
+      .grid-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        padding: 20px;
+      }
+      .action-box {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      /* Utility */
+      .hidden {
+        display: none;
+      }
+    </style>
   </head>
   <body>
-    <h1>Comming soom</h1>
+    <div class="app-container">
+      <div id="step-onboard" class="onboard-box">
+        <div class="header"><h2>ភ្ជាប់ទៅ U-Pay Merchant</h2></div>
+        <div class="terms-box">
+          <h4>លក្ខខណ្ឌប្រើប្រាស់៖</h4>
+          <p>
+            ១. រាល់ប្រតិបត្តិការទូទាត់ត្រូវឆ្លងកាត់ការត្រួតពិនិត្យដោយប្រព័ន្ធ
+            U-Pay...<br />
+            ២. ក្រុមហ៊ុនរក្សាសិទ្ធិផ្លាស់ប្តូរលក្ខខណ្ឌដោយមិនជម្រាបដំណឹង...<br />
+            (អត្ថបទលក្ខខណ្ឌវែងៗ...)
+          </p>
+        </div>
+        <input type="checkbox" id="agreeCheck" onchange="toggleContinue()" />
+        ខ្ញុំយល់ព្រមតាមលក្ខខណ្ឌខាងលើ <br /><br />
+        <button
+          id="btnContinue"
+          class="btn-main"
+          disabled
+          onclick="verifyPIN()"
+        >
+          បន្ទាប់
+        </button>
+      </div>
+
+      <div id="step-create" class="onboard-box hidden">
+        <div class="header"><h2>បង្កើតហាងថ្មី</h2></div>
+        <input
+          type="text"
+          placeholder="ឈ្មោះហាង (Store Name)"
+          style="
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+          "
+        />
+        <input
+          type="text"
+          placeholder="ប្រភេទអាជីវកម្ម"
+          style="
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+          "
+        />
+        <button class="btn-main" onclick="finishSetup()">បង្កើតឥឡូវនេះ</button>
+      </div>
+
+      <div id="step-dashboard" class="hidden">
+        <div class="header" style="justify-content: space-between">
+          <h2 id="merchantNameDisplay">Smart Shop by A.T</h2>
+          <i
+            class="fa-solid fa-store"
+            style="font-size: 1.5rem; color: var(--primary)"
+          ></i>
+        </div>
+        <div class="merchant-card">
+          <p>ទឹកប្រាក់សរុប (ខែនេះ)</p>
+          <h1>$ 0.00</h1>
+        </div>
+        <div class="grid-actions">
+          <div class="action-box">
+            <i class="fa-solid fa-hand-holding-dollar"></i><br />ទទួលលុយ
+          </div>
+          <div class="action-box">
+            <i class="fa-solid fa-file-invoice"></i><br />ប្រវត្តិ
+          </div>
+          <div class="action-box">
+            <i class="fa-solid fa-qrcode"></i><br />ស្កេន QR
+          </div>
+          <div class="action-box">
+            <i class="fa-solid fa-chart-line"></i><br />របាយការណ៍
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function toggleContinue() {
+        document.getElementById("btnContinue").disabled =
+          !document.getElementById("agreeCheck").checked;
+      }
+
+      function verifyPIN() {
+        // ប្រើ SweetAlert វាយ PIN
+        alert("សូមវាយលេខ PIN របស់អ្នក");
+        document.getElementById("step-onboard").classList.add("hidden");
+        document.getElementById("step-create").classList.remove("hidden");
+      }
+
+      function finishSetup() {
+        document.getElementById("step-create").classList.add("hidden");
+        document.getElementById("step-dashboard").classList.remove("hidden");
+      }
+    </script>
   </body>
 </html>
