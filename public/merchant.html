@@ -36,11 +36,11 @@
       }
 
       body {
-        background-color: #cbd5e1; /* Desktop backdrop */
+        background-color: var(--bg-main); /* ដូរមកពណ៌ស្តង់ដារវិញ */
         margin: 0;
         display: flex;
         justify-content: center;
-        align-items: center;
+        /* លុប align-items: center; ចេញដើម្បីឱ្យវាលាតពេញពីលើចុះក្រោម */
         min-height: 100vh;
         font-family: "Kantumruy Pro", "Inter", sans-serif;
         color: var(--text-main);
@@ -54,21 +54,15 @@
       /* 📱 Fix Desktop Spillage - Container Strategy */
       .app-container {
         width: 100%;
-        max-width: 450px;
-        height: 100vh;
+        max-width: 480px; /* ដាក់ 480px អោយស្មើ File ផ្សេងៗ */
+        min-height: 100vh; /* ដូរពី height: 100vh មក min-height វិញ */
         background: var(--bg-main);
         position: relative;
         display: flex;
         flex-direction: column;
-        overflow: hidden; /* strictly contain all overlays/sidebars */
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
-      }
-      @media (min-height: 850px) {
-        .app-container {
-          height: 90vh;
-          border-radius: 30px;
-          border: 8px solid #334155;
-        }
+        overflow-x: hidden;
+        overflow-y: hidden;
+        /* បានលុប box-shadow ចេញដើម្បីកុំឱ្យមានស្រមោលអាក្រក់មើល */
       }
 
       /* 🔄 View States Management */
