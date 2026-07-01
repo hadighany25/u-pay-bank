@@ -26,6 +26,7 @@ exports.createMerchant = async (req, res) => {
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
+    // បង្កើតហាង (កែត្រង់នេះ)
     const newMerchant = new Merchant({
       userId,
       name,
@@ -36,13 +37,15 @@ exports.createMerchant = async (req, res) => {
       apiKey,
       apiSecret,
     });
-    await newMerchant.save();
 
-    // ត្រូវប្រាកដថាផ្ញើទៅវិញមានទម្រង់ត្រឹមត្រូវ (កុំឱ្យវា undefined)
+    // ប្តូរពី await newMerchant.save() មកជាការចាប់យកលទ្ធផល
+    const savedMerchant = await newMerchant.save();
+
+    // ឥឡូវនេះប្រើ savedMerchant ដែលមានទិន្នន័យពី DB មកឆ្លើយតប
     res.status(201).json({
       success: true,
       merchant: {
-        id: savedMerchant._id, // ប្រើ _id ពី MongoDB
+        id: savedMerchant._id, // ត្រូវប្រាកដថាប្រើឈ្មោះនេះ
         merchantId: savedMerchant.merchantId,
         accountNumber: savedMerchant.accountNumber,
         name: savedMerchant.name,
