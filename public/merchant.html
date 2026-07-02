@@ -1080,16 +1080,8 @@
           </div>
 
           <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick បង្ហាញសារជូនដំណឹងសម្រាប់ Sales Report -->
-          <div
-            class="dash-btn"
-            onclick="
-              Swal.fire(
-                'មុខងារថ្មី',
-                'របាយការណ៍លក់លម្អិតនឹងមកដល់ឆាប់ៗនេះ!',
-                'info',
-              )
-            "
-          >
+          <!-- កែប៊ូតុង Sales Report -->
+          <div class="dash-btn" onclick="openSalesReport()">
             <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
             <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
@@ -1144,9 +1136,40 @@
               <i class="fa-solid fa-file-excel"></i> Export
             </button>
           </div>
-
           <div id="transactionList" style="margin-top: 10px">
             <!-- កន្លែងបង្ហាញ List ប្រតិបត្តិការ -->
+          </div>
+        </div>
+      </div>
+
+      <!-- របាយការណ៍លក់ -->
+      <div id="state-sales-report" class="view-state">
+        <div class="header-bar">
+          <button class="back-btn" onclick="switchState('state-dashboard')">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <h2 class="header-title kh-text">របាយការណ៍លក់</h2>
+          <div style="width: 24px"></div>
+        </div>
+
+        <div style="padding: 20px">
+          <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
+            <p class="kh-text" style="color: var(--text-muted)">
+              ចំណូលសរុបដែលបានបូកសរុប
+            </p>
+            <h1
+              id="totalSalesAmount"
+              style="font-size: 2rem; color: var(--primary)"
+            >
+              $0.00
+            </h1>
+          </div>
+
+          <div class="card-box" style="margin: 0">
+            <h4 class="kh-text">ស្ថិតិការលក់</h4>
+            <div id="salesStats" style="margin-top: 15px">
+              <!-- ទិន្នន័យនឹងលោតមកទីនេះ -->
+            </div>
           </div>
         </div>
       </div>
@@ -2366,6 +2389,47 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      }
+
+      // ==========================================
+      // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report)
+      // ==========================================
+      async function openSalesReport() {
+        // ទាញយក Transactions ទាំងអស់ដែលមានក្នុង currentTransactions
+        if (currentTransactions.length === 0) {
+          Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យលក់ទេ!", "info");
+          return;
+        }
+
+        // គណនាផលបូក
+        let total = 0;
+        let countUSD = 0;
+        let countKHR = 0;
+
+        currentTransactions.forEach((t) => {
+          if (t.type === "Received") {
+            total += t.amount;
+            if (t.currency === "USD") countUSD++;
+            else countKHR++;
+          }
+        });
+
+        // បង្ហាញលទ្ធផល
+        document.getElementById("totalSalesAmount").innerText =
+          `$${total.toFixed(2)}`;
+        document.getElementById("salesStats").innerHTML = `
+        <div style="display:flex; justify-content:space-between; padding:10px 0;">
+            <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${currentTransactions.length}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:10px 0;">
+            <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:10px 0;">
+            <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
+        </div>
+    `;
+
+        switchState("state-sales-report");
       }
     </script>
   </body>
