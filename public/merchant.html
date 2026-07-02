@@ -1777,12 +1777,15 @@
         user.merchantProfile.merchants.forEach((m) => {
           const div = document.createElement("div");
           div.className = "merchant-item";
+          // ត្រូវប្រាកដថាអថេរ m.id គឺជា string ត្រឹមត្រូវ
           div.onclick = () => openMerchant(m.id);
           div.innerHTML = `
             <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
             <div style="flex:1;">
               <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
-             <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • Merchant ID: ${m.merchantId}</p>
+             <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);">
+                <span style="color:var(--secondary)">Active</span> • Merchant ID: ${m.merchantId}
+             </p>
             </div>
             <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px 15px;" onclick="event.stopPropagation(); showMerchantOptions('${m.id}')"></i>
           `;
