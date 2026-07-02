@@ -1007,10 +1007,12 @@
               "
               onchange="fetchMerchantRevenue()"
             >
-              <option value="today">ថ្ងៃនេះ</option>
-              <option value="week">សប្តាហ៍នេះ</option>
-              <option value="month">ខែនេះ</option>
-              <option value="total" selected>សរុបទាំងអស់</option>
+              <option value="today" data-lang="filter_today">ថ្ងៃនេះ</option>
+              <option value="week" data-lang="filter_week">សប្តាហ៍នេះ</option>
+              <option value="month" data-lang="filter_month">ខែនេះ</option>
+              <option value="total" data-lang="filter_total" selected>
+                សរុបទាំងអស់
+              </option>
             </select>
           </div>
 
@@ -1407,7 +1409,7 @@
           merch_link_acc: "Link Account",
           merch_your_biz: "Manage Business",
           merch_biz_desc: "Select a shop to manage",
-          merch_total_rev: "Total Revenue (Today)",
+          merch_total_rev: "Total Revenue ",
           merch_receive: "Receive Money",
           merch_trx: "Transactions",
           merch_stand_qr: "Stand QR Code",
@@ -1441,6 +1443,10 @@
           city_sm: "Sihanoukville",
           city_pv: "Prey Veng",
           city_ps: "Pursat",
+          filter_today: "Today",
+          filter_week: "This Week",
+          filter_month: "This Month",
+          filter_total: "Total",
         },
         kh: {
           merch_title: "គ្រប់គ្រងអាជីវកម្ម",
@@ -1454,7 +1460,7 @@
           merch_link_acc: "ភ្ជាប់ទៅកាន់គណនី",
           merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
           merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
-          merch_total_rev: "ចំណូលសរុប ក្នុងថ្ងៃនេះ",
+          merch_total_rev: "ចំណូលសរុប",
           merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
           merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
           merch_stand_qr: "ស្កេនកូដ QR",
@@ -1487,6 +1493,10 @@
           city_ks: "កំពង់ស្ពឺ",
           city_sm: "ព្រះសីហនុ",
           city_pv: "ព្រៃវែង",
+          filter_today: "ថ្ងៃនេះ",
+          filter_week: "សប្តាហ៍នេះ",
+          filter_month: "ខែនេះ",
+          filter_total: "សរុបទាំងអស់",
         },
       };
 
@@ -1497,6 +1507,9 @@
           if (translations[lang] && translations[lang][key]) {
             if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
               el.placeholder = translations[lang][key];
+            } else if (el.tagName === "OPTION") {
+              // 🔥 បន្ថែមបន្ទាត់នេះសម្រាប់ Option
+              el.innerText = translations[lang][key];
             } else {
               el.innerText = translations[lang][key];
             }
