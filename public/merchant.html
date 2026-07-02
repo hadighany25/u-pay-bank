@@ -957,7 +957,7 @@
           </button>
         </div>
       </div>
-      <!-- ផ្នែកផ្ទាល់ -->
+      <!-- ផ្នែកផ្ទាល់ (Dashboard) -->
       <div id="state-dashboard" class="view-state">
         <div class="dash-top">
           <div class="dash-top-nav">
@@ -965,14 +965,7 @@
               <button class="menu-btn" onclick="toggleSidebar()">
                 <i class="fa-solid fa-bars"></i>
               </button>
-              <h2
-                id="dashStoreName"
-                style="
-                  margin: 0;
-                  font-size: 1.2rem;
-                  font-family: &quot;Inter&quot;, sans-serif;
-                "
-              >
+              <h2 id="dashStoreName" style="margin: 0; font-size: 1.2rem; font-family: 'Inter', sans-serif;">
                 Smart Shop
               </h2>
             </div>
@@ -982,133 +975,50 @@
           <!-- 🎚️ កន្លែងប៊ូតុងចុចប្តូរគណនី (មាន Animation) -->
           <div class="acc-toggle">
             <div class="acc-slider" id="accSlider"></div>
-            <div
-              class="acc-option kh-text"
-              id="btnPersonal"
-              onclick="switchToPersonal()"
-              data-lang="merch_personal"
-            >
+            <div class="acc-option kh-text" id="btnPersonal" onclick="switchToPersonal()" data-lang="merch_personal">
               បុគ្គល
             </div>
-            <div
-              class="acc-option active kh-text"
-              id="btnMerchant"
-              data-lang="merch_business"
-            >
+            <div class="acc-option active kh-text" id="btnMerchant" data-lang="merch_business">
               U-Pay Merchant
             </div>
           </div>
         </div>
 
         <div class="revenue-card">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 8px;
-            "
-          >
-            <p
-              class="kh-text"
-              style="margin: 0; font-weight: 600"
-              data-lang="merch_total_rev"
-            >
-              ចំណូលសរុប
-            </p>
-            <select
-              id="revenueFilter"
-              class="kh-text"
-              style="
-                border: 1px solid var(--border-color);
-                border-radius: 8px;
-                padding: 4px 8px;
-                font-size: 0.8rem;
-                background: var(--bg-main);
-                outline: none;
-                cursor: pointer;
-              "
-              onchange="fetchMerchantRevenue()"
-            >
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <p class="kh-text" style="margin: 0; font-weight: 600" data-lang="merch_total_rev">ចំណូលសរុប</p>
+            <select id="revenueFilter" class="kh-text" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; background: var(--bg-main); outline: none; cursor: pointer;" onchange="fetchMerchantRevenue()">
               <option value="today" data-lang="filter_today">ថ្ងៃនេះ</option>
               <option value="week" data-lang="filter_week">សប្តាហ៍នេះ</option>
               <option value="month" data-lang="filter_month">ខែនេះ</option>
-              <option value="total" data-lang="filter_total" selected>
-                សរុបទាំងអស់
-              </option>
+              <option value="total" data-lang="filter_total" selected>សរុបទាំងអស់</option>
             </select>
           </div>
 
           <!-- 💰 ឥឡូវនេះលុយទាំង ២ មានទំហំ និងពណ៌ធំស្មើគ្នា ១០០% -->
-          <h1
-            style="
-              font-family: &quot;Inter&quot;, sans-serif;
-              display: flex;
-              align-items: baseline;
-              gap: 10px;
-              margin: 5px 0 0;
-            "
-          >
-            <span
-              id="dashBalUSD"
-              style="color: var(--text-main); font-weight: 700"
-              >$0.00</span
-            >
-            <span
-              id="dashBalKHR"
-              style="color: var(--text-main); font-weight: 700"
-              >/ ៛0</span
-            >
-          </h1>
+          <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0 0;">
+            <span id="dashBalUSD" style="color: var(--text-main); font-weight: 700; font-size: 2.5rem; font-family: 'Inter', sans-serif;">$0.00</span>
+            <span style="color: var(--text-muted); font-size: 2.5rem; font-weight: 300;">/</span>
+            <span id="dashBalKHR" style="color: var(--text-main); font-weight: 700; font-size: 2.5rem; font-family: 'Inter', sans-serif;">៛0</span>
+          </div>
 
-          <div
-            style="
-              margin-top: 15px;
-              border-top: 1px dashed #e2e8f0;
-              padding-top: 10px;
-              font-size: 0.85rem;
-              color: var(--text-muted);
-            "
-          >
+          <div style="margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 10px; font-size: 0.85rem; color: var(--text-muted);">
             <i class="fa-solid fa-hashtag"></i>
-            <span data-lang="merch_acc_shop" class="merch_acc_shop"
-              >Merchant ID៖</span
-            >
-            <span
-              id="dashAccInfo"
-              style="
-                font-family: &quot;JetBrains Mono&quot;;
-                font-weight: bold;
-                color: var(--secondary);
-              "
-              >...</span
-            >
+            <span data-lang="merch_acc_shop" class="merch_acc_shop">Merchant ID៖</span>
+            <span id="dashAccInfo" style="font-family: 'JetBrains Mono'; font-weight: bold; color: var(--secondary);">...</span>
           </div>
         </div>
 
-        <!-- 🔥 ខ្ញុំបានលុប </div> ដែលលើសចោលហើយ ឥឡូវ Action Grid នឹងលោតមកវិញ -->
+        <!-- ប៊ូតុងទាំង ៤ ខាងក្រោម (Action Grid) ត្រូវបានតម្រៀបយ៉ាងត្រឹមត្រូវ -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
-            <i
-              class="fa-solid fa-hand-holding-dollar"
-              style="color: var(--secondary)"
-            ></i>
-            <span class="kh-text" data-lang="merch_receive"
-              >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
-            >
+            <i class="fa-solid fa-hand-holding-dollar" style="color: var(--secondary)"></i>
+            <span class="kh-text" data-lang="merch_receive">ទូទាត់ប្រាក់ពីភ្ញៀវ</span>
           </div>
 
-          <div
-            class="dash-btn"
-            onclick="
-              switchState('state-reports');
-              loadTransactions();
-            "
-          >
+          <div class="dash-btn" onclick="switchState('state-reports'); loadTransactions();">
             <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
-            <span class="kh-text" data-lang="merch_trx"
-              >ប្រវត្តិប្រតិបត្តិការ</span
-            >
+            <span class="kh-text" data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
           </div>
 
           <div class="dash-btn" onclick="openQRModal(null)">
@@ -1121,6 +1031,8 @@
             <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
         </div>
+      </div>
+
         <!--  -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
@@ -2114,7 +2026,7 @@
 
         // ៥. 🔥 កន្លែងដែលយើងត្រូវកែ! (ប្តូរពី dashBalance មកហៅ dashBalUSD និង dashBalKHR វិញ)
         document.getElementById("dashBalUSD").innerText = "$...";
-        document.getElementById("dashBalKHR").innerText = "/ ៛...";
+        document.getElementById("dashBalKHR").innerText = "| ៛...";
 
         // ទាញទិន្នន័យចំណូល
         fetchMerchantRevenue();
@@ -2322,9 +2234,9 @@
 
         const filter = document.getElementById("revenueFilter").value;
 
-        // ដាក់ Loading ពេលកំពុងទាញទិន្នន័យ
-        document.getElementById("dashBalUSD").innerText = "$...";
-        document.getElementById("dashBalKHR").innerText = "/ ៛...";
+       // បង្ហាញលទ្ធផលលុយទាំង ២ (លុបសញ្ញា / ចេញពីទីនេះ)
+          document.getElementById("dashBalUSD").innerText = `$${totalUSD.toFixed(2)}`;
+          document.getElementById("dashBalKHR").innerText = `៛${totalKHR.toLocaleString()}`;
 
         try {
           const token = sessionStorage.getItem("userToken");
