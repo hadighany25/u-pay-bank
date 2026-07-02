@@ -698,6 +698,47 @@
       .sidebar-item:active {
         background: rgba(255, 255, 255, 0.1);
       }
+      /* ==========================================
+         🎚️ ACCOUNT TOGGLE ANIMATION
+         ========================================== */
+      .acc-toggle {
+        position: relative;
+        display: flex;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 4px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .acc-slider {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc(50% - 4px);
+        height: calc(100% - 8px);
+        background: white;
+        border-radius: 16px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateX(100%); /* ចាប់ផ្តើមនៅខាងស្តាំ (Merchant) */
+        z-index: 1;
+      }
+      .acc-slider.move-left {
+        transform: translateX(0); /* រំកិលមកឆ្វេង (Personal) */
+      }
+      .acc-option {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 2;
+        color: white;
+        transition: color 0.3s;
+      }
+      .acc-option.active {
+        color: var(--primary);
+      }
 
       /* ==========================================
        🔐 PIN MODAL
@@ -936,49 +977,29 @@
             </div>
             <i class="fa-regular fa-bell" style="font-size: 1.3rem"></i>
           </div>
-          <div
-            style="
-              display: flex;
-              background: rgba(255, 255, 255, 0.2);
-              border-radius: 20px;
-              padding: 4px;
-            "
-          >
+
+          <!-- 🎚️ កន្លែងប៊ូតុងចុចប្តូរគណនី (មាន Animation) -->
+          <div class="acc-toggle">
+            <div class="acc-slider" id="accSlider"></div>
             <div
-              style="
-                flex: 1;
-                text-align: center;
-                padding: 8px;
-                font-size: 0.9rem;
-                font-weight: 600;
-                cursor: pointer;
-              "
-              class="kh-text"
+              class="acc-option kh-text"
+              id="btnPersonal"
+              onclick="switchToPersonal()"
               data-lang="merch_personal"
             >
               បុគ្គល
             </div>
             <div
-              style="
-                flex: 1;
-                text-align: center;
-                padding: 8px;
-                background: white;
-                color: var(--primary);
-                border-radius: 16px;
-                font-weight: 600;
-                font-size: 0.9rem;
-              "
-              class="kh-text"
+              class="acc-option active kh-text"
+              id="btnMerchant"
               data-lang="merch_business"
             >
-              អាជីវកម្ម U-Pay
+              U-Pay Merchant
             </div>
           </div>
         </div>
 
         <div class="revenue-card">
-          <!-- ផ្នែកខាងលើ៖ អក្សរ "ចំណូលសរុប" និង Filter -->
           <div
             style="
               display: flex;
@@ -1017,13 +1038,32 @@
             </select>
           </div>
 
-          <!-- ផ្នែកខាងក្រោម៖ លុយ និង លេខកុង -->
+          <!-- 💰 កន្លែងបង្ហាញលុយ ២ ប្រភេទ -->
           <h1
-            id="dashBalance"
-            style="font-family: &quot;Inter&quot;, sans-serif"
+            style="
+              font-family: &quot;Inter&quot;, sans-serif;
+              display: flex;
+              align-items: baseline;
+              gap: 8px;
+              margin: 5px 0 0;
+            "
           >
-            $0.00
+            <span
+              id="dashBalUSD"
+              style="color: var(--text-main); font-weight: 700"
+              >$0.00</span
+            >
+            <span
+              id="dashBalKHR"
+              style="
+                font-size: 1.2rem;
+                color: var(--text-muted);
+                font-weight: 600;
+              "
+              >/ ៛0</span
+            >
           </h1>
+
           <div
             style="
               margin-top: 15px;
@@ -1523,7 +1563,7 @@
           merch_tab_cashier: "Cashiers",
           merch_tab_report: "Reports",
           merch_personal: "Personal",
-          merch_business: "U-Pay Business",
+          merch_business: "U-Pay Merchant",
           merch_acc_shop: "Merchant ID:",
           merch_show_qr: "Show QR",
           merch_pin_title: "Confirm PIN",
@@ -1574,7 +1614,7 @@
           merch_tab_cashier: "អ្នកគិតលុយ",
           merch_tab_report: "របាយការណ៍",
           merch_personal: "បុគ្គល",
-          merch_business: "អាជីវកម្ម U-Pay",
+          merch_business: "U-Pay Merchant",
           merch_acc_shop: "Merchant ID៖",
           merch_show_qr: "បង្ហាញ QR",
           merch_pin_title: "បញ្ជាក់លេខកូដ",
@@ -2250,31 +2290,42 @@
         if (!currentMerchant) return;
 
         const filter = document.getElementById("revenueFilter").value;
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
 
-        // ដាក់ Loading សិនពេលកំពុងទាញទិន្នន័យ
-        document.getElementById("dashBalance").innerText = curSym + "...";
+        // ដាក់ Loading ពេលកំពុងទាញទិន្នន័យ
+        document.getElementById("dashBalUSD").innerText = "$...";
+        document.getElementById("dashBalKHR").innerText = "/ ៛...";
 
         try {
           const token = sessionStorage.getItem("userToken");
+
+          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
           const response = await fetch(
-            `/api/merchants/revenue/${currentMerchant.id}?filter=${filter}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+            { headers: { Authorization: `Bearer ${token}` } },
           );
           const data = await response.json();
 
-          if (data.success) {
-            // បង្ហាញលុយពិតប្រាកដដែលទទួលបានពី Backend
-            document.getElementById("dashBalance").innerText =
-              curSym + data.revenue.toFixed(2);
-          } else {
-            document.getElementById("dashBalance").innerText = curSym + "0.00";
+          let totalUSD = 0;
+          let totalKHR = 0;
+
+          if (data.success && data.transactions) {
+            data.transactions.forEach((t) => {
+              if (t.type === "Received" || t.amount > 0) {
+                if (t.currency === "USD") totalUSD += t.amount;
+                if (t.currency === "KHR") totalKHR += t.amount;
+              }
+            });
           }
+
+          // បង្ហាញលទ្ធផលលុយទាំង ២
+          document.getElementById("dashBalUSD").innerText =
+            `$${totalUSD.toFixed(2)}`;
+          document.getElementById("dashBalKHR").innerText =
+            `/ ៛${totalKHR.toLocaleString()}`;
         } catch (error) {
           console.error("Error fetching revenue:", error);
-          document.getElementById("dashBalance").innerText = curSym + "0.00";
+          document.getElementById("dashBalUSD").innerText = "$0.00";
+          document.getElementById("dashBalKHR").innerText = "/ ៛0";
         }
       }
 
@@ -2460,6 +2511,23 @@
         `;
 
         switchState("state-sales-report");
+      }
+
+      // ==========================================
+      // មុខងារប្តូរទៅគណនីផ្ទាល់ខ្លួន (Personal Account)
+      // ==========================================
+      function switchToPersonal() {
+        // ១. ធ្វើឱ្យផ្ទៃពណ៌សរំកិលទៅឆ្វេង
+        document.getElementById("accSlider").classList.add("move-left");
+
+        // ២. ដូរពណ៌អក្សរឱ្យត្រូវ
+        document.getElementById("btnPersonal").classList.add("active");
+        document.getElementById("btnMerchant").classList.remove("active");
+
+        // ៣. រង់ចាំ 0.3 វិនាទី (ឱ្យដើរ Animation ចប់) សឹមលោតទៅទំព័រ dashboard.html
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 300);
       }
     </script>
   </body>
