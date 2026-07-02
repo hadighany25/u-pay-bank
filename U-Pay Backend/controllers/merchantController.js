@@ -132,18 +132,36 @@ exports.getMerchantTransactions = async (req, res) => {
     const user = await User.findOne({ username: merchant.userId });
     let transactions = user.transactions || [];
 
-    // Filter តាមហាង (ព្រោះក្នុង user.transactions មានបញ្ចូលទាំងឈ្មោះហាង)
+    // Filter តាមហាង
     transactions = transactions.filter((t) => t.receiverName === merchant.name);
 
-    // ត្រងតាមពេលវេលា
-    const now = new Date();
+    // 🔥 កែត្រង់នេះ៖ ត្រងតាមពេលវេលា (បំប្លែងទៅជាម៉ោងកម្ពុជា UTC+7)
+    const currentUTC = new Date();
+    // បូក ៧ ម៉ោង ដើម្បីឱ្យស្មើម៉ោងនៅស្រុកខ្មែរ
+    const nowKhmerTime = new Date(currentUTC.getTime() + 7 * 60 * 60 * 1000);
+
     transactions = transactions.filter((t) => {
-      const trxDate = new Date(t.date);
-      if (filter === "today")
-        return trxDate.toDateString() === now.toDateString();
+      const trxUTC = new Date(t.date);
+      // បូក ៧ ម៉ោងឱ្យប្រតិបត្តិការនីមួយៗ ដើម្បីប្រៀបធៀបគ្នាឱ្យត្រូវ
+      const trxKhmerTime = new Date(trxUTC.getTime() + 7 * 60 * 60 * 1000);
+
+      if (filter === "today") {
+        // ប្រៀបធៀបតែ ឆ្នាំ-ខែ-ថ្ងៃ (YYYY-MM-DD)
+        return (
+          trxKhmerTime.toISOString().split("T")[0] ===
+          nowKhmerTime.toISOString().split("T")[0]
+        );
+      }
       if (filter === "week") {
-        const lastWeek = new Date(now.setDate(now.getDate() - 7));
-        return trxDate >= lastWeek;
+        const lastWeek = new Date(nowKhmerTime);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        return trxKhmerTime >= lastWeek;
+      }
+      if (filter === "month") {
+        return (
+          trxKhmerTime.getMonth() === nowKhmerTime.getMonth() &&
+          trxKhmerTime.getFullYear() === nowKhmerTime.getFullYear()
+        );
       }
       return true; // default: total
     });
@@ -154,7 +172,7 @@ exports.getMerchantTransactions = async (req, res) => {
   }
 };
 
-// ៤. មុខងារទាញយកចំណូលហាង (Revenue)
+// ៥. មុខងារទាញយកចំណូលហាង (Revenue)
 exports.getMerchantRevenue = async (req, res) => {
   try {
     const { merchantId } = req.params;
