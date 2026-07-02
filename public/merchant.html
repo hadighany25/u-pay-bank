@@ -11,7 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js)"></script>
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
@@ -92,22 +91,6 @@
         to {
           opacity: 1;
           transform: scale(1);
-        }
-      }
-
-      @media print {
-        /* លាក់អ្វីៗទាំងអស់ដែលមិនមែនជា Template */
-        body > *:not(#pdf-template) {
-          display: none !important;
-        }
-        #pdf-template {
-          display: block !important;
-          width: 100% !important;
-          padding: 20px !important;
-        }
-        @page {
-          size: A4;
-          margin: 20mm;
         }
       }
 
@@ -1336,37 +1319,16 @@
             padding-bottom: 20px;
           "
         >
-          <!-- ប្រើ logo-nobg.png ដែលបងមានក្នុង folder images -->
-          <img src="images/logo-nobg.png" style="width: 120px" />
-          <h2 style="color: #004d40; margin-top: 10px">
-            របាយការណ៍លក់ប្រចាំហាង
-          </h2>
-          <p
-            id="pdf-merchant-name"
-            style="font-weight: bold; font-size: 1.2rem"
-          ></p>
+          <img src="images/logo.png" style="width: 100px" />
+          <!-- ប្តូរទៅ Logo បង -->
+          <h2 style="color: #004d40">របាយការណ៍លក់ប្រចាំហាង</h2>
+          <p id="pdf-merchant-name" style="font-weight: bold"></p>
+          <p id="pdf-date-range"></p>
         </div>
 
         <div style="margin: 30px 0">
-          <table style="width: 100%; border-collapse: collapse">
-            <tr>
-              <td style="padding: 10px">ចំណូល USD:</td>
-              <td id="pdf-usd" style="text-align: right"></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px">ចំណូល KHR:</td>
-              <td id="pdf-khr" style="text-align: right"></td>
-            </tr>
-            <tr style="border-top: 1px solid #ccc">
-              <td style="padding: 10px; font-weight: bold">
-                ប្រតិបត្តិការសរុប:
-              </td>
-              <td
-                id="pdf-total"
-                style="text-align: right; font-weight: bold"
-              ></td>
-            </tr>
-          </table>
+          <h3 style="color: #64748b">សេចក្តីសង្ខេប៖</h3>
+          <div id="pdf-stats" style="font-size: 1.1rem; line-height: 2"></div>
         </div>
 
         <div
@@ -1378,10 +1340,11 @@
         >
           <div>
             <p>ម្ចាស់ហាង:</p>
-            <br /><br />-----------------
+            <br /><br />____________________
           </div>
           <div>
-            <p>ថ្ងៃទី: <span id="pdf-gen-date"></span></p>
+            <p>ថ្ងៃចេញរបាយការណ៍:</p>
+            <br /><span id="pdf-gen-date"></span>
           </div>
         </div>
       </div>
@@ -2367,6 +2330,161 @@
         }
       }
 
+      // ==========================================
+      // 🧮 CALCULATOR LOGIC
+      // ==========================================
+      function setCalcCur(cur) {
+        calcCurrency = cur;
+        document
+          .getElementById("btnCurUSD")
+          .classList.toggle("active", cur === "USD");
+        document
+          .getElementById("btnCurKHR")
+          .classList.toggle("active", cur === "KHR");
+        document.getElementById("calcSym").innerText =
+          cur === "USD" ? "$" : "៛";
+        updateCalcDisplay();
+      }
+
+      function pressKey(key) {
+        if (key === "C") {
+          calcValue = calcValue.slice(0, -1);
+        } else if (!["+", "-", "*", "/", "%"].includes(key)) {
+          if (calcValue === "0" && key !== "00") calcValue = key;
+          else if (calcValue.length < 10) calcValue += key;
+        }
+        updateCalcDisplay();
+      }
+
+      function updateCalcDisplay() {
+        document.getElementById("calcDisplay").innerText = calcValue
+          ? parseInt(calcValue).toLocaleString("en-US")
+          : "0";
+      }
+
+      function generateQRFromCalc() {
+        if (!calcValue || parseInt(calcValue) <= 0) {
+          let lang = localStorage.getItem("lang") || "en";
+          let warnMsg =
+            lang === "kh"
+              ? "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល"
+              : "Please enter amount to receive";
+          Swal.fire(lang === "kh" ? "បញ្ជាក់" : "Notice", warnMsg, "warning");
+          return;
+        }
+        openQRModal(calcValue, calcCurrency);
+        calcValue = "";
+        updateCalcDisplay();
+      }
+
+      // ==========================================
+      // 📱 QR MODAL (កែសម្រួលថ្មី)
+      // ==========================================
+      function openQRModal(amount, currency = null) {
+        const modal = document.getElementById("qrModal");
+
+        // បង្ហាញឈ្មោះហាង និង Merchant ID
+        document.getElementById("qrUserName").textContent =
+          currentMerchant.name;
+
+        // បង្ហាញ Merchant ID ក្រោមឈ្មោះហាង
+        document.getElementById("qrMerchantID").textContent =
+          "MID: " + currentMerchant.merchantId;
+
+        let targetCur = currency ? currency : currentMerchant.linkedAccount;
+        switchQRCurrency(targetCur);
+
+        if (amount) {
+          document.getElementById("qrSetAmount").value = amount;
+        } else {
+          document.getElementById("qrSetAmount").value = "";
+        }
+
+        updateMyQR();
+        modal.style.display = "flex";
+      }
+
+      function closeQRModal() {
+        document.getElementById("qrModal").style.display = "none";
+        if (
+          document.getElementById("state-receive").classList.contains("active")
+        ) {
+          switchState("state-dashboard");
+        }
+      }
+
+      function switchQRCurrency(currency) {
+        qrCurrency = currency;
+
+        // ១. ធ្វើឱ្យប៊ូតុងរំកិលពណ៌ (Animation)
+        const btnUSD = document.getElementById("btnQRUSD");
+        const btnKHR = document.getElementById("btnQRKHR");
+
+        if (currency === "USD") {
+          btnUSD.classList.add("active");
+          btnKHR.classList.remove("active");
+          document.getElementById("qrCurrencySymbol").innerText = "$";
+        } else {
+          btnKHR.classList.add("active");
+          btnUSD.classList.remove("active");
+          document.getElementById("qrCurrencySymbol").innerText = "៛";
+        }
+
+        // ២. ប្តូរលេខគណនី
+        const targetAcc = currentMerchant.accountNumbers[currency];
+        document.getElementById("qrUserAcc").textContent = targetAcc;
+
+        // ៣. ប្តូរលេខគណនីបង្ហាញនៅខាងក្រោម QR
+        document.getElementById("qrAccountNum").textContent = targetAcc;
+
+        updateMyQR();
+      }
+
+      function updateMyQR() {
+        const amount = document.getElementById("qrSetAmount").value;
+        const targetAcc = currentMerchant.accountNumbers[qrCurrency];
+
+        // កំណត់សញ្ញាលុយក្នុង Input ឱ្យត្រូវ
+        document.getElementById("qrCurrencySymbol").innerText =
+          qrCurrency === "USD" ? "$" : "៛";
+
+        let qrData = targetAcc;
+        if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
+
+        // ប្តូរពណ៌ QR តាមប្រភេទលុយ
+        const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
+        document.getElementById("myQrImg").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&color=${qrColor}`;
+      }
+
+      function downloadMyQR() {
+        const btnSave = document.getElementById("btnSaveQR");
+        const btnClose = document.querySelector(".close-qr-btn");
+        const toggleBar = document.getElementById("qrToggleBar");
+
+        btnSave.style.display = "none";
+        btnClose.style.display = "none";
+        toggleBar.style.display = "none";
+
+        html2canvas(document.getElementById("myQRContent"), {
+          backgroundColor:
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem("darkMode") === "true"
+              ? "#1e1e1e"
+              : "#ffffff",
+          scale: 3,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+
+          btnSave.style.display = "block";
+          btnClose.style.display = "flex";
+          toggleBar.style.display = "flex";
+        });
+      }
+
       // អថេរសម្រាប់ផ្ទុកទិន្នន័យប្រតិបត្តិការបណ្តោះអាសន្ន ដើម្បីយកទៅ Export
       let currentTransactions = [];
       // ==========================================
@@ -2643,197 +2761,37 @@
       }
 
       async function exportToPDF() {
-        const element = document.getElementById("pdf-template");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF("p", "pt", "a4");
 
-        // ១. បំពេញទិន្នន័យ (ព្រោះវាត្រូវទាញទិន្នន័យពីអេក្រង់មកដាក់ក្នុង Template)
+        // ១. បំពេញទិន្នន័យចូល Template
         document.getElementById("pdf-merchant-name").innerText =
           currentMerchant.name;
+        document.getElementById("pdf-date-range").innerText =
+          "រយៈពេល: " +
+          document.getElementById("salesFilter").options[
+            document.getElementById("salesFilter").selectedIndex
+          ].text;
         document.getElementById("pdf-gen-date").innerText =
           new Date().toLocaleDateString();
+
+        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
         document.getElementById("pdf-stats").innerHTML =
           document.getElementById("salesStats").innerHTML;
 
-        // ២. បង្ហាញ Template បណ្តោះអាសន្ន
-        element.style.display = "block";
+        // ២. បំប្លែង Template ទៅជា PDF
+        const element = document.getElementById("pdf-template");
+        element.style.display = "block"; // បង្ហាញវាបណ្តោះអាសន្ន
 
-        // ៣. បំប្លែងវាទៅជារូបភាពស្អាតមួយសន្លឹក
-        await html2canvas(element, { scale: 2 }).then((canvas) => {
-          const dataUrl = canvas.toDataURL("image/png");
-
-          // ៤. បង្កើតផ្ទាំង Print ថ្មីដែលមានរូបភាពនេះតែមួយ
-          const printWindow = window.open("", "_blank");
-          printWindow.document.write(`
-      <html>
-        <head><title>Report</title></head>
-        <body style="margin:0; padding:0; display:flex; justify-content:center;">
-          <img src="${dataUrl}" style="width:100%; max-width:800px;">
-        </body>
-      </html>
-    `);
-
-          // ៥. បញ្ជាឱ្យវា Print
-          setTimeout(() => {
-            printWindow.document.close();
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-          }, 500);
-        });
-
-        element.style.display = "none"; // លាក់ Template វិញ
-      }
-
-      // ==========================================
-      // 🧮 CALCULATOR LOGIC
-      // ==========================================
-      function setCalcCur(cur) {
-        calcCurrency = cur;
-        document
-          .getElementById("btnCurUSD")
-          .classList.toggle("active", cur === "USD");
-        document
-          .getElementById("btnCurKHR")
-          .classList.toggle("active", cur === "KHR");
-        document.getElementById("calcSym").innerText =
-          cur === "USD" ? "$" : "៛";
-        updateCalcDisplay();
-      }
-
-      function pressKey(key) {
-        if (key === "C") {
-          calcValue = calcValue.slice(0, -1);
-        } else if (!["+", "-", "*", "/", "%"].includes(key)) {
-          if (calcValue === "0" && key !== "00") calcValue = key;
-          else if (calcValue.length < 10) calcValue += key;
-        }
-        updateCalcDisplay();
-      }
-
-      function updateCalcDisplay() {
-        document.getElementById("calcDisplay").innerText = calcValue
-          ? parseInt(calcValue).toLocaleString("en-US")
-          : "0";
-      }
-
-      function generateQRFromCalc() {
-        if (!calcValue || parseInt(calcValue) <= 0) {
-          let lang = localStorage.getItem("lang") || "en";
-          let warnMsg =
-            lang === "kh"
-              ? "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល"
-              : "Please enter amount to receive";
-          Swal.fire(lang === "kh" ? "បញ្ជាក់" : "Notice", warnMsg, "warning");
-          return;
-        }
-        openQRModal(calcValue, calcCurrency);
-        calcValue = "";
-        updateCalcDisplay();
-      }
-
-      // ==========================================
-      // 📱 QR MODAL (កែសម្រួលថ្មី)
-      // ==========================================
-      function openQRModal(amount, currency = null) {
-        const modal = document.getElementById("qrModal");
-
-        // បង្ហាញឈ្មោះហាង និង Merchant ID
-        document.getElementById("qrUserName").textContent =
-          currentMerchant.name;
-
-        // បង្ហាញ Merchant ID ក្រោមឈ្មោះហាង
-        document.getElementById("qrMerchantID").textContent =
-          "MID: " + currentMerchant.merchantId;
-
-        let targetCur = currency ? currency : currentMerchant.linkedAccount;
-        switchQRCurrency(targetCur);
-
-        if (amount) {
-          document.getElementById("qrSetAmount").value = amount;
-        } else {
-          document.getElementById("qrSetAmount").value = "";
-        }
-
-        updateMyQR();
-        modal.style.display = "flex";
-      }
-
-      function closeQRModal() {
-        document.getElementById("qrModal").style.display = "none";
-        if (
-          document.getElementById("state-receive").classList.contains("active")
-        ) {
-          switchState("state-dashboard");
-        }
-      }
-      function switchQRCurrency(currency) {
-        qrCurrency = currency;
-
-        // ១. ធ្វើឱ្យប៊ូតុងរំកិលពណ៌ (Animation)
-        const btnUSD = document.getElementById("btnQRUSD");
-        const btnKHR = document.getElementById("btnQRKHR");
-
-        if (currency === "USD") {
-          btnUSD.classList.add("active");
-          btnKHR.classList.remove("active");
-          document.getElementById("qrCurrencySymbol").innerText = "$";
-        } else {
-          btnKHR.classList.add("active");
-          btnUSD.classList.remove("active");
-          document.getElementById("qrCurrencySymbol").innerText = "៛";
-        }
-
-        // ២. ប្តូរលេខគណនី
-        const targetAcc = currentMerchant.accountNumbers[currency];
-        document.getElementById("qrUserAcc").textContent = targetAcc;
-
-        // ៣. ប្តូរលេខគណនីបង្ហាញនៅខាងក្រោម QR
-        document.getElementById("qrAccountNum").textContent = targetAcc;
-
-        updateMyQR();
-      }
-
-      function updateMyQR() {
-        const amount = document.getElementById("qrSetAmount").value;
-        const targetAcc = currentMerchant.accountNumbers[qrCurrency];
-
-        // កំណត់សញ្ញាលុយក្នុង Input ឱ្យត្រូវ
-        document.getElementById("qrCurrencySymbol").innerText =
-          qrCurrency === "USD" ? "$" : "៛";
-
-        let qrData = targetAcc;
-        if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
-
-        // ប្តូរពណ៌ QR តាមប្រភេទលុយ
-        const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
-        document.getElementById("myQrImg").src =
-          `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&color=${qrColor}`;
-      }
-
-      function downloadMyQR() {
-        const btnSave = document.getElementById("btnSaveQR");
-        const btnClose = document.querySelector(".close-qr-btn");
-        const toggleBar = document.getElementById("qrToggleBar");
-
-        btnSave.style.display = "none";
-        btnClose.style.display = "none";
-        toggleBar.style.display = "none";
-
-        html2canvas(document.getElementById("myQRContent"), {
-          backgroundColor:
-            localStorage.getItem("theme") === "dark" ||
-            localStorage.getItem("darkMode") === "true"
-              ? "#1e1e1e"
-              : "#ffffff",
-          scale: 3,
-        }).then((canvas) => {
-          const link = document.createElement("a");
-          link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
-          link.href = canvas.toDataURL();
-          link.click();
-
-          btnSave.style.display = "block";
-          btnClose.style.display = "flex";
-          toggleBar.style.display = "flex";
+        doc.html(element, {
+          callback: function (doc) {
+            doc.save(`Sales_Report_${currentMerchant.name}.pdf`);
+            element.style.display = "none"; // លាក់វិញ
+          },
+          x: 40,
+          y: 40,
+          width: 520, // កំណត់ទទឹង A4
+          windowWidth: 600,
         });
       }
 
