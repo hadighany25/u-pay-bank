@@ -11,5 +11,9 @@ const { verifyUser } = require("../middleware/authMiddleware");
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
 router.delete("/:merchantId", verifyUser, merchantController.deleteMerchant);
-
+router.get(
+  "/merchants/revenue/:merchantId",
+  authMiddleware,
+  merchantController.getMerchantRevenue,
+);
 module.exports = router;
