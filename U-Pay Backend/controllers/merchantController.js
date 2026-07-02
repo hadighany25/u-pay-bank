@@ -1,5 +1,6 @@
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
+const User = require("../models/User");
 
 // Function ជំនួយសម្រាប់បង្កើតលេខ Random តាមចំនួនខ្ទង់ដែលចង់បាន
 const generateRandomNumber = (length) => {
@@ -70,11 +71,17 @@ exports.createMerchant = async (req, res) => {
 // ២. មុខងារទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
 exports.getMyMerchants = async (req, res) => {
   try {
-    // 🔥 កែទី៣៖ ពេលទាញយកហាង ក៏ត្រូវឆែកតាម username ដូចគ្នាទើបវាចេញ
-    const userId = req.user.username || req.user.id || req.user._id;
+    // ១. រកមើល User ជាមុនសិន ដើម្បីទាញយក username ឱ្យបានច្បាស់លាស់ ១០០%
+    const me = await User.findById(req.user.id || req.user._id);
+    if (!me)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
 
-    // ទាញទិន្នន័យ (យើងមិនបង្ហាញ apiSecret ទេពេលទាញធម្មតា ដើម្បីសុវត្ថិភាព)
-    const merchants = await Merchant.find({ userId }).select("-apiSecret");
+    // ២. យក username របស់គាត់ទៅឆែករកហាងទាំងអស់
+    const merchants = await Merchant.find({ userId: me.username }).select(
+      "-apiSecret",
+    );
 
     res.status(200).json({ success: true, merchants });
   } catch (error) {

@@ -240,10 +240,16 @@ const transfer = async (req, res) => {
     // ៥. កាត់លុយ sender និងបង្កើត Transaction
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
-    await sender.save();
 
     const date = getFormattedDate();
     const refId = generateRefId();
+
+    // កំណត់ប្រភេទ Payment Method
+    const currentMethod = isMerchant
+      ? "Merchant Payment"
+      : trxMethod || "Account Transfer";
+
+    // វិក្កយបត្រ (Slip) សម្រាប់អ្នកវេរប្រាក់ចេញ (Sender)
     const senderTrx = {
       refId,
       hash: generateHash(),
@@ -252,19 +258,40 @@ const transfer = async (req, res) => {
       amount: -totalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
       fee: appliedFee,
-      senderName: sender.username,
-      receiverName: isMerchant ? receiverMerchant.name : receiver.fullName,
+      senderName: sender.fullName || sender.username,
+      receiverName: isMerchant
+        ? receiverMerchant.name
+        : receiver.fullName || receiver.username, // លោតឈ្មោះហាង បើវេរចូលហាង
       receiverAcc: receiverAccount,
+      trxMethod: currentMethod,
+      remark: remark || "General",
       status: "Success",
     };
 
-    sender.transactions.unshift(senderTrx);
-    receiver.transactions.unshift({
-      ...senderTrx,
-      amount: receiverAmount,
-      fee: 0,
+    // វិក្កយបត្រ (Slip) សម្រាប់គណនីមេដែលទទួលប្រាក់ (Receiver)
+    const receiverTrx = {
+      refId,
+      hash: generateHash(),
+      date,
       type: "Received",
-    });
+      amount: receiverAmount,
+      currency: isReceiverKHR ? "KHR" : "USD",
+      fee: 0,
+      senderName: sender.fullName || sender.username, // ឃើញឈ្មោះអ្នកបាញ់ (From)
+      receiverName: isMerchant
+        ? receiverMerchant.name
+        : receiver.fullName || receiver.username, // ឃើញឈ្មោះហាង (To)
+      receiverAcc: receiverAccount,
+      trxMethod: currentMethod, // លោតប្រភេទ Merchant Payment
+      remark: isMerchant
+        ? `Payment via ${receiverMerchant.name}`
+        : remark || "General",
+      status: "Success",
+    };
+
+    // 👈 ត្រូវបញ្ជូន senderTrx និង receiverTrx ដែលបានរៀបចំរួច ចូលទៅក្នុង Database
+    sender.transactions.unshift(senderTrx);
+    receiver.transactions.unshift(receiverTrx);
 
     // បញ្ជាក់ការ Save ម្តងទៀត ដើម្បីធានាថា Transaction ចូល
     await sender.save();
@@ -274,7 +301,7 @@ const transfer = async (req, res) => {
     if (io)
       io.to(receiver.username).emit("paymentReceived", {
         amount: receiverAmount,
-        senderName: sender.fullName,
+        senderName: sender.fullName || sender.username, // អោយលោតឈ្មោះអ្នកបាញ់នៅលើ Notification
       });
 
     res.json({
@@ -287,6 +314,7 @@ const transfer = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 // ==========================================
 // 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
 // ==========================================
