@@ -1529,12 +1529,19 @@
           const token = sessionStorage.getItem("userToken");
 
           // ២. ហៅ API ទៅកាន់ Backend ដើម្បីទាញយកហាងទាំងអស់របស់ User នេះ
-          const response = await fetch("/api/merchants/my-merchants", {
-            method: "GET",
+          const response = await fetch("/api/merchants/create", {
+            method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`, // ភ្ជាប់សិទ្ធិអនុញ្ញាត
             },
+            body: JSON.stringify({
+              name: name,
+              city: city,
+              linkedAccount: linkedAcc,
+              userId: user.username, // 👈 បន្ថែមបន្ទាត់នេះ ដើម្បីបញ្ជូន Username ម្ចាស់ហាងទៅ Backend
+              ownerAccount: user.username, // 👈 បន្ថែមបន្ទាត់នេះ ការពារក្រែងលោ Backend របស់អ្នកប្រើឈ្មោះមួយនេះ
+            }),
           });
 
           const data = await response.json();

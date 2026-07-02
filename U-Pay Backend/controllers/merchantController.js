@@ -13,9 +13,12 @@ const generateRandomNumber = (length) => {
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
 exports.createMerchant = async (req, res) => {
   try {
-    const { name, city, linkedAccount } = req.body;
-    // ត្រូវប្រាកដថាទាញបាន userId ត្រឹមត្រូវ
-    const userId = req.user.id || req.user._id;
+    // 🔥 កែទី១៖ ទទួលយក userId ពី Frontend ដែលយើងបានបញ្ជូនមក
+    const { name, city, linkedAccount, userId: bodyUserId } = req.body;
+
+    // 🔥 កែទី២៖ ប្រើ username របស់ម្ចាស់ហាងជាអាទិភាព (ដើម្បីងាយស្រួលផ្ទេរលុយ Auto-Sweep)
+    const userId =
+      req.user.username || bodyUserId || req.user.id || req.user._id;
 
     const merchantId = "500" + generateRandomNumber(12);
     const accountNumberUSD = "888" + generateRandomNumber(9);
@@ -25,7 +28,7 @@ exports.createMerchant = async (req, res) => {
 
     // ត្រូវតែប្រាកដថាដាក់ឈ្មោះនេះ (មាន s នៅខាងក្រោយ)
     const newMerchant = new Merchant({
-      userId,
+      userId, // ឥឡូវនេះវានឹង Save ជា 'dara123' មិនមែនលេខ Timestamp ទេ!
       name,
       city,
       linkedAccount,
@@ -67,7 +70,8 @@ exports.createMerchant = async (req, res) => {
 // ២. មុខងារទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
 exports.getMyMerchants = async (req, res) => {
   try {
-    const userId = req.user.id || req.user._id;
+    // 🔥 កែទី៣៖ ពេលទាញយកហាង ក៏ត្រូវឆែកតាម username ដូចគ្នាទើបវាចេញ
+    const userId = req.user.username || req.user.id || req.user._id;
 
     // ទាញទិន្នន័យ (យើងមិនបង្ហាញ apiSecret ទេពេលទាញធម្មតា ដើម្បីសុវត្ថិភាព)
     const merchants = await Merchant.find({ userId }).select("-apiSecret");
@@ -83,7 +87,8 @@ exports.getMyMerchants = async (req, res) => {
 exports.deleteMerchant = async (req, res) => {
   try {
     const { merchantId } = req.params;
-    const userId = req.user.id || req.user._id;
+    // 🔥 កែទី៤៖ ពេលលុប ក៏ត្រូវផ្ទៀងផ្ទាត់តាម username ដូចគ្នា
+    const userId = req.user.username || req.user.id || req.user._id;
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
