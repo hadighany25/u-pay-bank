@@ -2426,9 +2426,9 @@
       }
 
       function switchQRCurrency(currency) {
-        qrCurrency = currency;
+        if (!currentMerchant) return; // បន្ថែមការការពារនេះ
 
-        // ១. ធ្វើឱ្យប៊ូតុងរំកិលពណ៌ (Animation)
+        qrCurrency = currency;
         const btnUSD = document.getElementById("btnQRUSD");
         const btnKHR = document.getElementById("btnQRKHR");
 
@@ -2442,11 +2442,8 @@
           document.getElementById("qrCurrencySymbol").innerText = "៛";
         }
 
-        // ២. ប្តូរលេខគណនី
         const targetAcc = currentMerchant.accountNumbers[currency];
         document.getElementById("qrUserAcc").textContent = targetAcc;
-
-        // ៣. ប្តូរលេខគណនីបង្ហាញនៅខាងក្រោម QR
         document.getElementById("qrAccountNum").textContent = targetAcc;
 
         updateMyQR();
