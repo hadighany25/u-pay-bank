@@ -2403,6 +2403,20 @@
       // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report)
       // ==========================================
       async function openSalesReport() {
+        // ១. បង្ហាញ Loading សិន
+        Swal.fire({
+          title: "កំពុងផ្ទុកទិន្នន័យ...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        // ២. ទាញយកទិន្នន័យថ្មីៗពី Server មុននឹងគណនា
+        await loadTransactions();
+
+        // ៣. បិទ Loading
+        Swal.close();
+
+        // ៤. ពិនិត្យទិន្នន័យ
         if (currentTransactions.length === 0) {
           Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យលក់ទេ!", "info");
           return;
@@ -2414,8 +2428,8 @@
         let countKHR = 0;
 
         currentTransactions.forEach((t) => {
-          // 🔥 កែត្រង់នេះ៖ ត្រួតពិនិត្យថាជាលុយចូល (Received) ទើបបូក
-          if (t.type === "Received") {
+          // ប្រើលក្ខខណ្ឌដែលយើងបានព្រមព្រៀងគ្នា (Received ឬ amount > 0)
+          if (t.type === "Received" || t.amount > 0) {
             if (t.currency === "USD") {
               totalUSD += t.amount;
               countUSD++;
@@ -2426,11 +2440,24 @@
           }
         });
 
-        // បង្ហាញសរុប (បំបែករូបិយប័ណ្ណដើម្បីកុំឱ្យខុស)
+        // ៥. បង្ហាញសរុប
         document.getElementById("totalSalesAmount").innerHTML = `
-    <span style="color: var(--primary);">$${totalUSD.toFixed(2)}</span>
-    <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px;">/ ៛${totalKHR.toLocaleString()}</span>
-`;
+            <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
+            <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+        `;
+
+        // ៦. បង្ហាញស្ថិតិដែលបាត់ (កុំភ្លេចដាក់កូដនេះចូលវិញ)
+        document.getElementById("salesStats").innerHTML = `
+            <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
+                <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${currentTransactions.length}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
+                <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:15px 0;">
+                <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
+            </div>
+        `;
 
         switchState("state-sales-report");
       }
