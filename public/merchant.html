@@ -735,7 +735,22 @@
         background: var(--primary);
         border-color: var(--primary);
       }
+      /* ធ្វើឱ្យលេខគណនីនៅក្រោម QR ស្អាត */
+      #qrAccountNum {
+        margin-top: 15px !important; /* បន្ថែមគម្លាតពី QR */
+        order: 2; /* ឱ្យវានៅទីតាំងទី២ ក្រោម QR */
+        font-family: "JetBrains Mono", monospace;
+        font-weight: bold;
+        color: #004d40;
+        display: block; /* ធានាថាវានៅដាច់ដោយឡែកមួយបន្ទាត់ */
+      }
 
+      /* ធានាថា QR នៅទីតាំងទីមួយ */
+      .qr-img-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
       /* ==========================================
        🌙 DARK MODE OVERRIDES (Like scan.html)
        ========================================== */
@@ -1141,11 +1156,7 @@
               id="qrMerchantID"
               style="color: #64748b; font-size: 0.9rem; margin-bottom: 10px"
             ></p>
-            <p id="qrUserAcc" class="qr-user-acc"></p>
-            <div class="qr-img-wrapper">
-              <img id="myQrImg" src="" alt="QR Code" />
-            </div>
-            <!-- ដាក់នៅក្រោម <img id="myQrImg"... -->
+
             <p
               id="qrAccountNum"
               style="
@@ -1155,6 +1166,11 @@
                 color: #004d40;
               "
             ></p>
+            <div class="qr-img-wrapper">
+              <img id="myQrImg" src="" alt="QR Code" />
+              <p id="qrAccountNum"></p>
+              <!-- ដាក់នៅក្រោម IMG -->
+            </div>
             <div class="amount-input-area">
               <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
