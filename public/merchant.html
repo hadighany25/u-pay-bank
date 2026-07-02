@@ -1059,17 +1059,37 @@
               >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
             >
           </div>
-          <div class="dash-btn">
+
+          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick ឱ្យទៅបើកផ្ទាំង Report និងទាញទិន្នន័យ -->
+          <div
+            class="dash-btn"
+            onclick="
+              switchState('state-reports');
+              loadTransactions();
+            "
+          >
             <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
             <span class="kh-text" data-lang="merch_trx"
               >ប្រវត្តិប្រតិបត្តិការ</span
             >
           </div>
+
           <div class="dash-btn" onclick="openQRModal(null)">
             <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
             <span class="kh-text" data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
-          <div class="dash-btn">
+
+          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick បង្ហាញសារជូនដំណឹងសម្រាប់ Sales Report -->
+          <div
+            class="dash-btn"
+            onclick="
+              Swal.fire(
+                'មុខងារថ្មី',
+                'របាយការណ៍លក់លម្អិតនឹងមកដល់ឆាប់ៗនេះ!',
+                'info',
+              )
+            "
+          >
             <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
             <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
