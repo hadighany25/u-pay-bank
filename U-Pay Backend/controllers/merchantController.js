@@ -115,3 +115,25 @@ exports.deleteMerchant = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+exports.getMerchantRevenue = async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant)
+      return res
+        .status(404)
+        .json({ success: false, message: "Shop not found" });
+
+    // គណនាចំណូលថ្ងៃនេះ (Total Revenue Today)
+    // ដោយសារអ្នកមាន Object 'collected' រួចហើយ យើងគ្រាន់តែទាញយកមកប្រើ
+    const todayRevenue =
+      merchant.linkedAccount === "USD"
+        ? merchant.collected.USD
+        : merchant.collected.KHR;
+
+    res.status(200).json({ success: true, todayRevenue });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

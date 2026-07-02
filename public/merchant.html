@@ -1856,45 +1856,41 @@
       // ==========================================
       // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard)
       // ==========================================
-      function openMerchant(id) {
-        // រកមើលទិន្នន័យហាងតាមរយៈ ID
+      async function openMerchant(id) {
         currentMerchant = user.merchantProfile.merchants.find(
           (m) => m.id === id,
         );
 
-        if (!currentMerchant) {
-          console.error("Merchant not found in session!");
-          return;
-        }
+        if (!currentMerchant) return;
 
-        // ដាក់ឈ្មោះហាងនៅក្បាលលើ
+        // ១. បង្ហាញព័ត៌មានមូលដ្ឋាន
         document.getElementById("dashStoreName").innerText =
           currentMerchant.name;
         document.getElementById("recvStoreName").innerText =
           currentMerchant.name;
-
-        // កំណត់សញ្ញាដុល្លារ ($) ឬ រៀល (៛) តាមការជ្រើសរើសរបស់ហាង
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
-
-        // បង្ហាញលុយ
-        document.getElementById("dashBalance").innerText =
-          curSym + (currentMerchant.balance || 0).toFixed(2);
-
-        // បង្ហាញលេខ ID ហាង (គ្មានការដកឃ្លា)
         document.getElementById("dashAccInfo").innerText =
           currentMerchant.merchantId;
 
-        // ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu បញ្ឈរ
-        document.getElementById("sbName").innerText = currentMerchant.name;
-        document.getElementById("sbId").innerText = currentMerchant.merchantId;
-        document.getElementById("sbAvatar").innerText = currentMerchant.name
-          .substring(0, 1)
-          .toUpperCase();
+        // ២. 🔥 ហៅ API ទាញយកចំណូលថ្ងៃនេះ (Revenue)
+        try {
+          const token = sessionStorage.getItem("userToken");
+          const response = await fetch(
+            `/api/merchants/revenue/${currentMerchant.id}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const data = await response.json();
 
-        // ដូរម៉ាស៊ីនគិតលេខឱ្យត្រូវនឹងរូបិយប័ណ្ណហាង
-        setCalcCur(currentMerchant.linkedAccount);
+          if (data.success) {
+            const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
+            document.getElementById("dashBalance").innerText =
+              curSym + data.todayRevenue.toFixed(2);
+          }
+        } catch (err) {
+          console.error("Error updating revenue:", err);
+        }
 
-        // ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាង
         switchState("state-dashboard");
       }
 
