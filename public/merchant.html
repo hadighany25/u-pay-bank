@@ -1017,7 +1017,23 @@
               ចំណូលសរុប
             </p>
             <div style="display: flex; gap: 5px">
-              <select id="filterDashboard" onchange="applyFilter('dashboard')">
+              <select
+                id="revenueFilter"
+                class="kh-text"
+                style="
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                  padding: 4px 8px;
+                  font-size: 0.8rem;
+                  background: var(--bg-main);
+                  outline: none;
+                  cursor: pointer;
+                "
+                onchange="
+                  toggleCustomDate('revenue');
+                  fetchMerchantRevenue();
+                "
+              >
                 <option value="today">ថ្ងៃនេះ</option>
                 <option value="week">សប្តាហ៍នេះ</option>
                 <option value="month">ខែនេះ</option>
@@ -1166,8 +1182,13 @@
             "
           >
             <select
-              id="filterTransactions"
-              onchange="applyFilter('transactions')"
+              id="salesFilter"
+              class="input-group kh-text"
+              style="margin-bottom: 0; flex: 1; padding: 10px"
+              onchange="
+                toggleCustomDate('sales');
+                loadSalesReport();
+              "
             >
               <option value="today">ថ្ងៃនេះ</option>
               <option value="week">សប្តាហ៍នេះ</option>
@@ -1183,13 +1204,13 @@
               onchange="loadSalesReport()"
             />
           </div>
-          currentTransactions = filtered;
+
           <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
             <button
               onclick="exportToExcel()"
               class="btn-primary kh-text"
               style="
-                width: 100%;
+                width: 35%;
                 padding: 10px;
                 font-size: 0.9rem;
                 background: var(--secondary);
@@ -1229,7 +1250,15 @@
               gap: 10px;
             "
           >
-            <select id="filterSales" onchange="applyFilter('sales')">
+            <select
+              id="salesFilter"
+              class="input-group kh-text"
+              style="margin-bottom: 0; flex: 1; padding: 10px"
+              onchange="
+                toggleCustomDate('sales');
+                loadSalesReport();
+              "
+            >
               <option value="today">ថ្ងៃនេះ</option>
               <option value="week">សប្តាហ៍នេះ</option>
               <option value="month">ខែនេះ</option>
@@ -2173,8 +2202,8 @@
         const customDateVal =
           document.getElementById("revenueCustomDate").value;
 
-        document.getElementById("dashBalUSD").innerText = "$0.00";
-        document.getElementById("dashBalKHR").innerText = "៛0";
+        document.getElementById("dashBalUSD").innerText = "$...";
+        document.getElementById("dashBalKHR").innerText = "៛...";
 
         try {
           const token = sessionStorage.getItem("userToken");
@@ -2555,124 +2584,66 @@
       }
 
       // ==========================================
-      // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) ថ្មី
+      // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) - បែបលឿន
       // ==========================================
       async function openSalesReport() {
+        // ១. ប្តូរទៅផ្ទាំង Report ភ្លាមៗ (លឿនដូចផ្លេកបន្ទោរ គ្មានការរង់ចាំ)
         switchState("state-sales-report");
-        // លោតមកផ្ទាំង Report គឺរើសយក Total ជាស្វ័យប្រវត្តិ
-        document.getElementById("salesFilter").value = "total";
-        document.getElementById("salesCustomDate").style.display = "none";
-        document.getElementById("salesCustomDate").value = "";
 
-        await loadSalesReport(); // ហៅកូដគណនាមក
-      }
-
-      // មុខងារគណនាលុយរបាយការណ៍លក់ផ្តាច់មុខ
-      async function loadSalesReport() {
-        const filter = document.getElementById("salesFilter").value;
-        const customDateVal = document.getElementById("salesCustomDate").value;
-
-        document.getElementById("totalSalesAmount").innerHTML =
-          `<span style="color: var(--text-muted); font-size: 1.2rem;">កំពុងគណនា...</span>`;
+        // ២. ដាក់អក្សរ "កំពុងគណនា..." ទាន់សម័យ ពេលវាកំពុងបូកលុយ
+        document.getElementById("totalSalesAmount").innerHTML = `
+            <span style="color: var(--text-muted); font-size: 1.2rem;">កំពុងគណនា...</span>
+        `;
         document.getElementById("salesStats").innerHTML = "";
 
-        try {
-          const token = sessionStorage.getItem("userToken");
-          const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          const data = await response.json();
+        // ៣. ទាញទិន្នន័យស្ងាត់ៗនៅខាងក្រោយ
+        await loadTransactions();
 
-          let totalUSD = 0,
-            totalKHR = 0,
-            countUSD = 0,
-            countKHR = 0,
-            totalTx = 0;
-
-          if (data.success && data.transactions) {
-            const now = new Date();
-            data.transactions.forEach((t) => {
-              const tDate = new Date(t.date);
-              let isMatch = false;
-
-              if (filter === "today")
-                isMatch = tDate.toDateString() === now.toDateString();
-              else if (filter === "week") {
-                const pastWeek = new Date(now);
-                pastWeek.setDate(now.getDate() - 7);
-                isMatch = tDate >= pastWeek;
-              } else if (filter === "month")
-                isMatch =
-                  tDate.getMonth() === now.getMonth() &&
-                  tDate.getFullYear() === now.getFullYear();
-              else if (filter === "custom") {
-                if (customDateVal) {
-                  const cDate = new Date(customDateVal);
-                  isMatch = tDate.toDateString() === cDate.toDateString();
-                } else isMatch = true;
-              } else isMatch = true;
-
-              if (isMatch && (t.type === "Received" || t.amount > 0)) {
-                totalTx++;
-                if (t.currency === "USD") {
-                  totalUSD += t.amount;
-                  countUSD++;
-                }
-                if (t.currency === "KHR") {
-                  totalKHR += t.amount;
-                  countKHR++;
-                }
-              }
-            });
-          }
-
+        // ៤. បើគ្មានទិន្នន័យ លោតលេខ 0 ភ្លាម
+        if (currentTransactions.length === 0) {
           document.getElementById("totalSalesAmount").innerHTML = `
-              <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
-              <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+              <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$0.00</span>
+              <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛0</span>
           `;
-
-          document.getElementById("salesStats").innerHTML = `
-              <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
-                  <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${totalTx}</strong>
-              </div>
-              <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
-                  <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
-              </div>
-              <div style="display:flex; justify-content:space-between; padding:15px 0;">
-                  <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
-              </div>
-          `;
-        } catch (error) {
-          document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
+          return;
         }
+
+        let totalUSD = 0;
+        let totalKHR = 0;
+        let countUSD = 0;
+        let countKHR = 0;
+
+        currentTransactions.forEach((t) => {
+          if (t.type === "Received" || t.amount > 0) {
+            if (t.currency === "USD") {
+              totalUSD += t.amount;
+              countUSD++;
+            } else if (t.currency === "KHR") {
+              totalKHR += t.amount;
+              countKHR++;
+            }
+          }
+        });
+
+        // ៥. លោតលេខសរុបមកជំនួសវិញភ្លាមៗពេលគណនាចប់
+        document.getElementById("totalSalesAmount").innerHTML = `
+            <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
+            <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+        `;
+
+        document.getElementById("salesStats").innerHTML = `
+            <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
+                <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${currentTransactions.length}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
+                <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:15px 0;">
+                <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
+            </div>
+        `;
       }
 
-      async function applyFilter(view) {
-        let filterId =
-          view === "dashboard"
-            ? "filterDashboard"
-            : view === "transactions"
-              ? "filterTransactions"
-              : "filterSales";
-        let dateId =
-          view === "dashboard"
-            ? "revenueCustomDate"
-            : view === "transactions"
-              ? "reportCustomDate"
-              : "salesCustomDate";
-
-        const filter = document.getElementById(filterId).value;
-        const customDate = document.getElementById(dateId).value;
-        const dateInput = document.getElementById(dateId);
-        if (dateInput)
-          dateInput.style.display = filter === "custom" ? "block" : "none";
-
-        // ហៅទៅមុខងារនីមួយៗដើម្បី Update ផ្ទាំងនោះ
-        if (view === "dashboard") fetchMerchantRevenue();
-        if (view === "transactions") loadTransactions();
-        if (view === "sales") loadSalesReport();
-      }
       // ==========================================
       // មុខងារប្តូរទៅគណនីផ្ទាល់ខ្លួន (Personal Account)
       // ==========================================
