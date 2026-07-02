@@ -3,8 +3,7 @@ const mongoose = require("mongoose");
 const merchantSchema = new mongoose.Schema(
   {
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String, // ប្តូរពី ObjectId មកជា String ធម្មតា
       required: true,
     },
     name: {
