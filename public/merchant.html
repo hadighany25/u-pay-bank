@@ -850,6 +850,7 @@
         </button>
       </div>
 
+      <!-- បង្កើតសាខា -->
       <div id="state-create" class="view-state">
         <div class="header-bar">
           <button class="back-btn" onclick="switchState('state-list')">
@@ -914,7 +915,7 @@
           </button>
         </div>
       </div>
-
+      <!-- ផ្នែកផ្ទាល់ -->
       <div id="state-dashboard" class="view-state">
         <div class="dash-top">
           <div class="dash-top-nav">
@@ -1047,7 +1048,7 @@
             >
           </div>
         </div>
-
+        <!--  -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
             <i
@@ -1074,7 +1075,63 @@
           </div>
         </div>
       </div>
+      <!--​ របាយការណ៍ -->
+      <div id="state-reports" class="view-state">
+        <div class="header-bar">
+          <button class="back-btn" onclick="switchState('state-dashboard')">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <h2 class="header-title kh-text">ប្រវត្តិប្រតិបត្តិការ</h2>
+          <div style="width: 24px"></div>
+        </div>
 
+        <div style="padding: 20px">
+          <!-- ផ្នែក Filter និងប៊ូតុង Export -->
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 15px;
+            "
+          >
+            <select
+              id="reportFilter"
+              class="input-group kh-text"
+              style="margin-bottom: 0; width: 60%; padding: 10px"
+              onchange="loadTransactions()"
+            >
+              <option value="today">ថ្ងៃនេះ</option>
+              <option value="week">សប្តាហ៍នេះ</option>
+              <option value="month">ខែនេះ</option>
+              <option value="total" selected>សរុបទាំងអស់</option>
+            </select>
+
+            <button
+              onclick="exportToExcel()"
+              class="btn-primary kh-text"
+              style="
+                width: 35%;
+                padding: 10px;
+                font-size: 0.9rem;
+                background: var(--secondary);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 5px;
+              "
+            >
+              <i class="fa-solid fa-file-excel"></i> Export
+            </button>
+          </div>
+
+          <div id="transactionList" style="margin-top: 10px">
+            <!-- កន្លែងបង្ហាញ List ប្រតិបត្តិការ -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ទទួលប្រាក់ -->
       <div id="state-receive" class="view-state">
         <div class="header-bar" style="background: var(--primary)">
           <button class="back-btn" onclick="switchState('state-dashboard')">
@@ -2176,6 +2233,119 @@
           console.error("Error fetching revenue:", error);
           document.getElementById("dashBalance").innerText = curSym + "0.00";
         }
+      }
+
+      // អថេរសម្រាប់ផ្ទុកទិន្នន័យប្រតិបត្តិការបណ្តោះអាសន្ន ដើម្បីយកទៅ Export
+      let currentTransactions = [];
+
+      // ==========================================
+      // មុខងារហៅទិន្នន័យប្រវត្តិប្រតិបត្តិការមកបង្ហាញ
+      // ==========================================
+      async function loadTransactions() {
+        const filter = document.getElementById("reportFilter").value;
+        const list = document.getElementById("transactionList");
+        list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">កំពុងផ្ទុក...</div>`;
+
+        try {
+          const response = await fetch(
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+            {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+              },
+            },
+          );
+          const data = await response.json();
+
+          if (data.success && data.transactions.length > 0) {
+            currentTransactions = data.transactions; // Save ទុកសម្រាប់ Export
+
+            list.innerHTML = data.transactions
+              .map(
+                (t) => `
+              <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${t.type === "Received" ? "var(--secondary)" : "var(--danger)"}">
+                <div>
+                  <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
+                  <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
+                  <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
+                </div>
+                <div style="text-align:right;">
+                  <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${t.type === "Received" ? "var(--secondary)" : "var(--danger)"}">
+                    ${t.type === "Received" ? "+" : "-"}${t.amount.toFixed(2)} ${t.currency}
+                  </h4>
+                  <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
+                </div>
+              </div>
+            `,
+              )
+              .join("");
+          } else {
+            currentTransactions = []; // Clear ទិន្នន័យ
+            list.innerHTML = `
+              <div style="text-align:center; padding: 40px 20px; opacity:0.6;">
+                <i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i>
+                <p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p>
+              </div>`;
+          }
+        } catch (error) {
+          console.error("Error loading transactions:", error);
+          list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
+        }
+      }
+
+      // ==========================================
+      // មុខងារ Export ទិន្នន័យទៅជាឯកសារ Excel (CSV)
+      // ==========================================
+      function exportToExcel() {
+        if (currentTransactions.length === 0) {
+          Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យសម្រាប់ Export ទេ!", "warning");
+          return;
+        }
+
+        // ១. បង្កើត Header សម្រាប់ File (ប្រើ \uFEFF ដើម្បីឱ្យ Excel ស្គាល់អក្សរខ្មែរ)
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent +=
+          "កាលបរិច្ឆេទ,លេខប្រតិបត្តិការ (Ref ID),អ្នកវេរ,ប្រភេទ,ចំនួនប្រាក់,រូបិយប័ណ្ណ,ស្ថានភាព,ចំណាំ\n";
+
+        // ២. បញ្ចូលទិន្នន័យនីមួយៗចូលទៅក្នុង Column
+        currentTransactions.forEach((t) => {
+          // ការពារបញ្ហាដកឃ្លា ឬសញ្ញាក្បៀស ត្រូវដាក់វាក្នុងរង្វង់ក្រចក " "
+          const date = `"${t.date}"`;
+          const refId = `"${t.refId}"`;
+          const sender = `"${t.senderName}"`;
+          const type = `"${t.type}"`;
+          const amount = `"${t.amount}"`;
+          const currency = `"${t.currency}"`;
+          const status = `"${t.status}"`;
+          const remark = `"${t.remark || "គ្មាន"}"`;
+
+          const row = [
+            date,
+            refId,
+            sender,
+            type,
+            amount,
+            currency,
+            status,
+            remark,
+          ].join(",");
+          csvContent += row + "\n";
+        });
+
+        // ៣. បង្កើត Link និងទាញយកដោយស្វ័យប្រវត្តិ
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        const todayStr = new Date().toISOString().split("T")[0]; // ចាប់យកថ្ងៃខែឆ្នាំ
+
+        link.setAttribute("href", encodedUri);
+        link.setAttribute(
+          "download",
+          `Report_${currentMerchant.name.replace(/\s+/g, "_")}_${todayStr}.csv`,
+        );
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     </script>
   </body>

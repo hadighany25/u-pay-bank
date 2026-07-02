@@ -117,7 +117,7 @@ exports.deleteMerchant = async (req, res) => {
 };
 
 // ៤. មុខងារទាញយកចំណូលហាង (Revenue)
-exports.getMerchantRevenue = async (req, res) => {
+exports.getMerchantTransactions = async (req, res) => {
   try {
     const { merchantId } = req.params;
     const { filter } = req.query; // ទទួលយក filter: today, week, month, total
@@ -128,18 +128,28 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // សម្រាប់ជំហាននេះ យើងទាញយកចំណូល "សរុបទាំងអស់" ពី Object `collected` មកបង្ហាញសិន។
-    // (នៅពេលយើងធ្វើដល់ផ្នែក Transaction Report យើងនឹងបូកបញ្ចូលការ Filter ថ្ងៃ/ខែ ជាក់លាក់បន្ថែម)
-    let revenue = 0;
-    if (merchant.linkedAccount === "USD") {
-      revenue = merchant.collected.USD || 0;
-    } else {
-      revenue = merchant.collected.KHR || 0;
-    }
+    // ទាញយក Transactions ទាំងអស់ពីគណនីមេ (ម្ចាស់ហាង)
+    const user = await User.findOne({ username: merchant.userId });
+    let transactions = user.transactions || [];
 
-    res.status(200).json({ success: true, revenue });
+    // Filter តាមហាង (ព្រោះក្នុង user.transactions មានបញ្ចូលទាំងឈ្មោះហាង)
+    transactions = transactions.filter((t) => t.receiverName === merchant.name);
+
+    // ត្រងតាមពេលវេលា
+    const now = new Date();
+    transactions = transactions.filter((t) => {
+      const trxDate = new Date(t.date);
+      if (filter === "today")
+        return trxDate.toDateString() === now.toDateString();
+      if (filter === "week") {
+        const lastWeek = new Date(now.setDate(now.getDate() - 7));
+        return trxDate >= lastWeek;
+      }
+      return true; // default: total
+    });
+
+    res.status(200).json({ success: true, transactions });
   } catch (error) {
-    console.error("DEBUG ERROR (REVENUE):", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
