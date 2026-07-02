@@ -1532,7 +1532,7 @@
             user.merchantProfile.merchants = data.merchants.map((m) => ({
               id: m._id, // Mongo ប្រើ _id តែ Frontend ប្រើ id
               merchantId: m.merchantId,
-              accountNumber: m.accountNumber,
+              accountNumbers: m.accountNumbers,
               name: m.name,
               city: m.city,
               linkedAccount: m.linkedAccount,
@@ -1792,7 +1792,7 @@
             const newMerchant = {
               id: data.merchant.id || data.merchant._id, // ការពារកុំឱ្យ Error ពេលអត់មាន ID
               merchantId: data.merchant.merchantId,
-              accountNumber: data.merchant.accountNumber,
+              accountNumbers: data.merchant.accountNumbers || [],
               name: data.merchant.name,
               city: city,
               linkedAccount: linkedAcc,
@@ -2037,7 +2037,7 @@
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
         // ប្រើ Account Number ជាទិន្នន័យក្នុង QR ដើម្បីឱ្យការបាញ់លុយចូលកុងត្រឹមត្រូវ
-        const targetAcc = currentMerchant.accountNumber;
+        const targetAcc = currentMerchant.accountNumbers[qrCurrency];
 
         let qrData = targetAcc;
         if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
