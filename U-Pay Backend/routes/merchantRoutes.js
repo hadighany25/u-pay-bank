@@ -4,15 +4,17 @@ const router = express.Router();
 // ១. Import Controllers
 const merchantController = require("../controllers/merchantController");
 
-// ២. Import Middleware ឱ្យចំឈ្មោះពិតប្រាកដ (verifyUser)
+// ២. Import Middleware (ត្រូវប្រាកដថាឈ្មោះនេះមានក្នុង authMiddleware.js)
 const { verifyUser } = require("../middleware/authMiddleware");
 
-// ៣. កំណត់ Routes (ប្រើ verifyUser ដើម្បីឱ្យប្រាកដថាមាន req.user)
+// ៣. កំណត់ Routes (ត្រូវប្រើ verifyUser ទាំងអស់ដើម្បីឱ្យមាន req.user)
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
+
+// 🔥 កែត្រង់នេះ៖ ប្តូរពី authMiddleware មកប្រើ verifyUser វិញ
 router.get(
   "/revenue/:merchantId",
-  authMiddleware,
+  verifyUser,
   merchantController.getMerchantRevenue,
 );
 
