@@ -273,7 +273,7 @@ const transfer = async (req, res) => {
       refId,
       hash: generateHash(),
       date,
-      type: "Received",
+      type: "Receive",
       amount: receiverAmount,
       currency: isReceiverKHR ? "KHR" : "USD",
       fee: 0,
