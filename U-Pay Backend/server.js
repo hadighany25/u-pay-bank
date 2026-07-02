@@ -21,15 +21,15 @@ const cardRoutes = require("./routes/cardRoutes");
 const financeRoutes = require("./routes/financeRoutes");
 const communicationRoutes = require("./routes/communicationRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
-app.use("/api/merchants", merchantRoutes);
 
-const app = express();
 const PORT = process.env.PORT || 3000;
 
+const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "../public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
 app.use(cors({ origin: "*" }));
+app.use("/api/merchants", merchantRoutes);
 
 // ភ្ជាប់ Database និងចាប់ផ្តើមប្រព័ន្ធ
 connectDB()
