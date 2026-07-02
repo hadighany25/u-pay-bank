@@ -96,7 +96,11 @@ const transfer = async (req, res) => {
   if (req.user.username !== senderUsername) {
     return res
       .status(403)
-      .json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
+      .json({
+        success: false,
+        message:
+          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+      });
   }
 
   try {
@@ -160,7 +164,6 @@ const transfer = async (req, res) => {
       ? transferAmount / currentFXRates.usdToKhrSell
       : transferAmount;
 
-    // ៤. គណនាសេវា (Fee)
     let appliedFeeUsd = 0;
     for (let tier of feeTiers) {
       if (
@@ -181,31 +184,31 @@ const transfer = async (req, res) => {
     if (!isSenderKHR && sender.balance < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
-    // ៥. ដំណើរការវេរលុយ
+    // ៤. ដំណើរការវេរលុយ
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
 
     if (isMerchant) {
-      // កំណត់ថាជា KHR ឬ USD ផ្អែកលើលេខគណនីដែលគេស្កេន
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
 
       // ក. ចូល Ledger របស់ Merchant
-      if (isReceiverKHR)
-        receiverMerchant.collected.KHR =
-          (receiverMerchant.collected.KHR || 0) + transferAmount;
-      else
-        receiverMerchant.collected.USD =
-          (receiverMerchant.collected.USD || 0) + transferAmount;
+      if (isReceiverKHR) receiverMerchant.collected.KHR += transferAmount;
+      else receiverMerchant.collected.USD += transferAmount;
       await receiverMerchant.save();
 
-      // ខ. Auto-Sweep: ប្រើ findOne({ username: userId }) ជំនួសឱ្យ findById ដើម្បីចៀសវាង ObjectId Error
-      const owner = await User.findOne({ _id: receiverMerchant.userId });
+      // ខ. Auto-Sweep: រកម្ចាស់ហាងតាម username (ព្រោះ userId ក្នុង Merchant គឺជា String)
+      const owner = await User.findOne({ username: receiverMerchant.userId });
       if (owner) {
         if (isReceiverKHR)
           owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
         else owner.balance = (owner.balance || 0) + transferAmount;
         await owner.save();
-        receiver = owner; // សម្រាប់ធ្វើ Transaction
+        receiver = owner; // ប្រើ owner ជា receiver ដើម្បីបន្តធ្វើ Transaction
+      } else {
+        console.error(
+          "Auto-Sweep Error: Owner not found for userId:",
+          receiverMerchant.userId,
+        );
       }
     } else {
       isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
@@ -220,7 +223,7 @@ const transfer = async (req, res) => {
       await receiver.save();
     }
 
-    // ៦. កាត់លុយ sender និងបង្កើត Transaction
+    // ៥. កាត់លុយ sender និងបង្កើត Transaction
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
     await sender.save();
