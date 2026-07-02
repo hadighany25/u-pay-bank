@@ -494,20 +494,12 @@
         box-sizing: border-box;
       }
       .toggle-btn {
-        flex: 1;
-        text-align: center;
-        padding: 10px 0;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #64748b;
-        border-radius: 10px;
-        cursor: pointer;
         transition: 0.3s;
       }
       .toggle-btn.active {
         background: white;
         color: #004d40;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
       .qr-logo-top {
@@ -2141,59 +2133,45 @@
         const customDateVal =
           document.getElementById("revenueCustomDate").value;
 
-        document.getElementById("dashBalUSD").innerText = "$0.00";
-        document.getElementById("dashBalKHR").innerText = "៛0";
-
-        try {
-          const token = sessionStorage.getItem("userToken");
-          const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          const data = await response.json();
-
-          let totalUSD = 0,
-            totalKHR = 0;
-
-          if (data.success && data.transactions) {
-            const now = new Date();
-            data.transactions.forEach((t) => {
-              const tDate = new Date(t.date);
-              let isMatch = false;
-
-              if (filter === "today")
-                isMatch = tDate.toDateString() === now.toDateString();
-              else if (filter === "week") {
-                const pastWeek = new Date(now);
-                pastWeek.setDate(now.getDate() - 7);
-                isMatch = tDate >= pastWeek;
-              } else if (filter === "month")
-                isMatch =
-                  tDate.getMonth() === now.getMonth() &&
-                  tDate.getFullYear() === now.getFullYear();
-              else if (filter === "custom") {
-                if (customDateVal) {
-                  const cDate = new Date(customDateVal);
-                  isMatch = tDate.toDateString() === cDate.toDateString();
-                } else isMatch = true;
-              } else isMatch = true;
-
-              if (isMatch && (t.type === "Received" || t.amount > 0)) {
-                if (t.currency === "USD") totalUSD += t.amount;
-                if (t.currency === "KHR") totalKHR += t.amount;
-              }
-            });
-          }
-
-          document.getElementById("dashBalUSD").innerText =
-            `$${totalUSD.toFixed(2)}`;
-          document.getElementById("dashBalKHR").innerText =
-            `៛${totalKHR.toLocaleString()}`;
-        } catch (error) {
-          console.error("Error:", error);
-          document.getElementById("dashBalUSD").innerText = "$0.00";
-          document.getElementById("dashBalKHR").innerText = "៛0";
+        // ១. ជំនួសឱ្យការ Fetch ទៅ Backend ថ្មី យើងប្រើទិន្នន័យដែលមានស្រាប់ក្នុង currentTransactions
+        // បើ currentTransactions ទទេ ទើបយើង Fetch
+        if (currentTransactions.length === 0) {
+          await loadTransactions();
         }
+
+        let totalUSD = 0,
+          totalKHR = 0;
+        const now = new Date();
+
+        currentTransactions.forEach((t) => {
+          const tDate = new Date(t.date);
+          let isMatch = false;
+
+          if (filter === "today")
+            isMatch = tDate.toDateString() === now.toDateString();
+          else if (filter === "week") {
+            const pastWeek = new Date(now);
+            pastWeek.setDate(now.getDate() - 7);
+            isMatch = tDate >= pastWeek;
+          } else if (filter === "month")
+            isMatch =
+              tDate.getMonth() === now.getMonth() &&
+              tDate.getFullYear() === now.getFullYear();
+          else if (filter === "custom" && customDateVal) {
+            isMatch =
+              tDate.toDateString() === new Date(customDateVal).toDateString();
+          } else isMatch = true;
+
+          if (isMatch && (t.type === "Received" || t.amount > 0)) {
+            if (t.currency === "USD") totalUSD += t.amount;
+            if (t.currency === "KHR") totalKHR += t.amount;
+          }
+        });
+
+        document.getElementById("dashBalUSD").innerText =
+          `$${totalUSD.toFixed(2)}`;
+        document.getElementById("dashBalKHR").innerText =
+          `៛${totalKHR.toLocaleString()}`;
       }
 
       // ==========================================
@@ -2328,27 +2306,46 @@
 
       function switchQRCurrency(currency) {
         qrCurrency = currency;
-        // ប្តូរលេខគណនីឱ្យចំទៅតាមប្រភេទរូបិយប័ណ្ណ
-        const targetAcc =
-          currency === "USD"
-            ? currentMerchant.accountNumbers.USD
-            : currentMerchant.accountNumbers.KHR;
 
-        document.getElementById("qrUserAcc").textContent = targetAcc; // បង្ហាញលេខគណនីឱ្យត្រូវ
-        updateMyQR(); // update ទៅតាមលេខគណនីថ្មីនេះ
+        // ១. ធ្វើឱ្យប៊ូតុងរំកិលពណ៌ (Animation)
+        const btnUSD = document.getElementById("btnQRUSD");
+        const btnKHR = document.getElementById("btnQRKHR");
+
+        if (currency === "USD") {
+          btnUSD.classList.add("active");
+          btnKHR.classList.remove("active");
+          document.getElementById("qrCurrencySymbol").innerText = "$";
+        } else {
+          btnKHR.classList.add("active");
+          btnUSD.classList.remove("active");
+          document.getElementById("qrCurrencySymbol").innerText = "៛";
+        }
+
+        // ២. ប្តូរលេខគណនី
+        const targetAcc = currentMerchant.accountNumbers[currency];
+        document.getElementById("qrUserAcc").textContent = targetAcc;
+
+        // ៣. ប្តូរលេខគណនីបង្ហាញនៅខាងក្រោម QR
+        document.getElementById("qrAccountNum").textContent = targetAcc;
+
+        updateMyQR();
       }
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
-        // ប្រើ Account Number ជាទិន្នន័យក្នុង QR ដើម្បីឱ្យការបាញ់លុយចូលកុងត្រឹមត្រូវ
         const targetAcc = currentMerchant.accountNumbers[qrCurrency];
+
+        // កំណត់សញ្ញាលុយក្នុង Input ឱ្យត្រូវ
+        document.getElementById("qrCurrencySymbol").innerText =
+          qrCurrency === "USD" ? "$" : "៛";
 
         let qrData = targetAcc;
         if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;
 
+        // ប្តូរពណ៌ QR តាមប្រភេទលុយ
         const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
         document.getElementById("myQrImg").src =
-          `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${qrData}&color=${qrColor}`;
+          `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&color=${qrColor}`;
       }
 
       function downloadMyQR() {
