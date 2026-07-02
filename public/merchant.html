@@ -10,7 +10,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
@@ -93,7 +92,20 @@
           transform: scale(1);
         }
       }
-
+      @media print {
+        /* លាក់គ្រប់យ៉ាងដែលមិនមែនជា template */
+        body > *:not(#pdf-template) {
+          display: none !important;
+        }
+        #pdf-template {
+          display: block !important;
+          width: 100% !important;
+        }
+        @page {
+          size: A4;
+          margin: 20mm;
+        }
+      }
       /* ==========================================
        🛠 HEADER & COMMON UI
        ========================================== */
@@ -1122,7 +1134,7 @@
           </div>
         </div>
 
-        <!--  -->
+        <!-- ប្រតិបត្តិការ -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
             <i
@@ -2760,10 +2772,7 @@
         }
       }
 
-      async function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF("p", "pt", "a4");
-
+      function exportToPDF() {
         // ១. បំពេញទិន្នន័យចូល Template
         document.getElementById("pdf-merchant-name").innerText =
           currentMerchant.name;
@@ -2774,25 +2783,18 @@
           ].text;
         document.getElementById("pdf-gen-date").innerText =
           new Date().toLocaleDateString();
-
-        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
         document.getElementById("pdf-stats").innerHTML =
           document.getElementById("salesStats").innerHTML;
 
-        // ២. បំប្លែង Template ទៅជា PDF
+        // ២. បង្ហាញ Template តែមួយគត់
         const element = document.getElementById("pdf-template");
-        element.style.display = "block"; // បង្ហាញវាបណ្តោះអាសន្ន
+        element.style.display = "block";
 
-        doc.html(element, {
-          callback: function (doc) {
-            doc.save(`Sales_Report_${currentMerchant.name}.pdf`);
-            element.style.display = "none"; // លាក់វិញ
-          },
-          x: 40,
-          y: 40,
-          width: 520, // កំណត់ទទឹង A4
-          windowWidth: 600,
-        });
+        // ៣. បញ្ជាឱ្យ Browser បោះពុម្ព (Print)
+        window.print();
+
+        // ៤. លាក់ Template វិញ
+        element.style.display = "none";
       }
 
       // ==========================================
