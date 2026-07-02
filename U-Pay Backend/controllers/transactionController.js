@@ -3,6 +3,7 @@ const System = require("../models/System");
 const PromoCode = require("../models/PromoCode");
 const bot = require("../services/telegramBot");
 const Merchant = require("../models/Merchant");
+const mongoose = require("mongoose");
 const {
   getFormattedDate,
   generateRefId,
@@ -93,13 +94,10 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message:
-          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+    });
   }
 
   try {
@@ -197,7 +195,7 @@ const transfer = async (req, res) => {
       await receiverMerchant.save();
 
       // ខ. Auto-Sweep: បូកចូលគណនីម្ចាស់ហាង (Owner)
-      const owner = await User.findById(receiverMerchant.userId);
+      const sender = await User.findById(new mongoose.Types.ObjectId(senderId));
       if (isReceiverKHR)
         owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
       else owner.balance = (owner.balance || 0) + transferAmount;
