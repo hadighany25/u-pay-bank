@@ -10,6 +10,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
@@ -1297,6 +1298,53 @@
           <div class="card-box" style="margin: 0">
             <h4 class="kh-text">ស្ថិតិការលក់</h4>
             <div id="salesStats" style="margin-top: 15px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- PDF Template -->
+      <div
+        id="pdf-template"
+        style="
+          display: none;
+          width: 595px;
+          padding: 40px;
+          background: white;
+          font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+        "
+      >
+        <div
+          style="
+            text-align: center;
+            border-bottom: 2px solid #004d40;
+            padding-bottom: 20px;
+          "
+        >
+          <img src="https://upay.com/logo.png" style="width: 100px" />
+          <!-- ប្តូរទៅ Logo បង -->
+          <h2 style="color: #004d40">របាយការណ៍លក់ប្រចាំហាង</h2>
+          <p id="pdf-merchant-name" style="font-weight: bold"></p>
+          <p id="pdf-date-range"></p>
+        </div>
+
+        <div style="margin: 30px 0">
+          <h3 style="color: #64748b">សេចក្តីសង្ខេប៖</h3>
+          <div id="pdf-stats" style="font-size: 1.1rem; line-height: 2"></div>
+        </div>
+
+        <div
+          style="
+            margin-top: 100px;
+            display: flex;
+            justify-content: space-between;
+          "
+        >
+          <div>
+            <p>ម្ចាស់ហាង:</p>
+            <br /><br />____________________
+          </div>
+          <div>
+            <p>ថ្ងៃចេញរបាយការណ៍:</p>
+            <br /><span id="pdf-gen-date"></span>
           </div>
         </div>
       </div>
@@ -2626,6 +2674,9 @@
         <div style="display:flex; justify-content:space-between; padding:15px 0;">
             <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
         </div>
+        <div style="display:flex; justify-content:space-between; padding:15px 0;">
+            <span>ប្រតិបត្តិការសរុប:</span> <strong>${countUSD + countKHR}</strong>
+        </div>
     `;
         } catch (e) {
           document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
@@ -2709,17 +2760,38 @@
         }
       }
 
-      // មុខងារ Export PDF (ប្រើ HTML2Canvas)
-      function exportToPDF() {
-        const element = document.getElementById("state-sales-report");
-        html2canvas(element).then((canvas) => {
-          const imgData = canvas.toDataURL("image/png");
-          // បងអាចប្រើ jsPDF ដើម្បីបង្កើត PDF នៅទីនេះ (ត្រូវការ library jsPDF)
-          // សម្រាប់ឥឡូវ បងអាចឱ្យវា Save ជារូបភាពសិនដើម្បីលឿន
-          const link = document.createElement("a");
-          link.download = `Report_${currentMerchant.name}.png`;
-          link.href = imgData;
-          link.click();
+      async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF("p", "pt", "a4");
+
+        // ១. បំពេញទិន្នន័យចូល Template
+        document.getElementById("pdf-merchant-name").innerText =
+          currentMerchant.name;
+        document.getElementById("pdf-date-range").innerText =
+          "រយៈពេល: " +
+          document.getElementById("salesFilter").options[
+            document.getElementById("salesFilter").selectedIndex
+          ].text;
+        document.getElementById("pdf-gen-date").innerText =
+          new Date().toLocaleDateString();
+
+        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
+        document.getElementById("pdf-stats").innerHTML =
+          document.getElementById("salesStats").innerHTML;
+
+        // ២. បំប្លែង Template ទៅជា PDF
+        const element = document.getElementById("pdf-template");
+        element.style.display = "block"; // បង្ហាញវាបណ្តោះអាសន្ន
+
+        doc.html(element, {
+          callback: function (doc) {
+            doc.save(`Sales_Report_${currentMerchant.name}.pdf`);
+            element.style.display = "none"; // លាក់វិញ
+          },
+          x: 40,
+          y: 40,
+          width: 520, // កំណត់ទទឹង A4
+          windowWidth: 600,
         });
       }
 
