@@ -10,6 +10,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="[https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js](https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js)"></script>
 
     <link
@@ -91,6 +92,22 @@
         to {
           opacity: 1;
           transform: scale(1);
+        }
+      }
+
+      @media print {
+        /* លាក់អ្វីៗទាំងអស់ដែលមិនមែនជា Template */
+        body > *:not(#pdf-template) {
+          display: none !important;
+        }
+        #pdf-template {
+          display: block !important;
+          width: 100% !important;
+          padding: 20px !important;
+        }
+        @page {
+          size: A4;
+          margin: 20mm;
         }
       }
 
@@ -2625,39 +2642,26 @@
         }
       }
 
-      async function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-
-        // ១. បំពេញទិន្នន័យចូល Template
+      function exportToPDF() {
+        // ១. បំពេញទិន្នន័យចូល Template ដែលយើងបានរៀបចំទុក
         document.getElementById("pdf-merchant-name").innerText =
           currentMerchant.name;
-        document.getElementById("pdf-date-range").innerText =
-          "រយៈពេល: " +
-          document.getElementById("salesFilter").options[
-            document.getElementById("salesFilter").selectedIndex
-          ].text;
         document.getElementById("pdf-gen-date").innerText =
           new Date().toLocaleDateString();
+
+        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
         document.getElementById("pdf-stats").innerHTML =
           document.getElementById("salesStats").innerHTML;
 
+        // ២. បង្ហាញ Template បណ្តោះអាសន្ន
         const element = document.getElementById("pdf-template");
-        element.style.display = "block"; // បង្ហាញដើម្បី Capture
+        element.style.display = "block";
 
-        // ២. ប្រើ html2canvas ចាប់យករូបភាពពី Template
-        await html2canvas(element, { scale: 2 }).then((canvas) => {
-          const imgData = canvas.toDataURL("image/png");
-          const pdf = new jsPDF("p", "pt", "a4");
+        // ៣. ប្រើក្បាច់ Print ដែលដើរគ្រប់កន្លែង (Browser បងនឹងលោតផ្ទាំង Print ឡើងមក)
+        window.print();
 
-          const imgProps = pdf.getImageProperties(imgData);
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-          pdf.addImage(imgData, "PNG", 0, 40, pdfWidth, pdfHeight);
-          pdf.save(`Sales_Report_${currentMerchant.name}.pdf`);
-        });
-
-        element.style.display = "none"; // លាក់វិញ
+        // ៤. លាក់ Template វិញ
+        element.style.display = "none";
       }
 
       // ==========================================
