@@ -2,6 +2,7 @@ const User = require("../models/User");
 const System = require("../models/System");
 const PromoCode = require("../models/PromoCode");
 const bot = require("../services/telegramBot");
+const Merchant = require("../models/Merchant");
 const {
   getFormattedDate,
   generateRefId,
@@ -23,31 +24,56 @@ const { readFXRates } = require("../services/systemService");
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
-    const targetUser = await User.findOne({
+    // ១. ឆែករកក្នុង User សិន
+    let target = await User.findOne({
       $or: [
         { accountNumber: accountNumber },
         { accountNumberKHR: accountNumber },
       ],
     });
 
-    if (targetUser) {
-      const isReceiverKHR = targetUser.accountNumberKHR === accountNumber;
-      const currentFXRates = readFXRates();
+    let isMerchant = false;
+    let targetName = "";
 
-      // ទាញយក Fee Tiers ពី Database ផ្ទាល់ៗដើម្បីបញ្ជូនទៅ Frontend
+    // ២. បើមិនឃើញក្នុង User, ឆែករកក្នុង Merchant បន្ត
+    if (!target) {
+      target = await Merchant.findOne({
+        $or: [
+          { "accountNumbers.USD": accountNumber },
+          { "accountNumbers.KHR": accountNumber },
+        ],
+      });
+
+      if (target) {
+        isMerchant = true; // ប្រាប់ថាវាជាហាង
+        targetName = target.name; // យកឈ្មោះហាង
+      }
+    } else {
+      targetName = target.fullName || target.username;
+    }
+
+    // ៣. បើរកឃើញទិន្នន័យ (មិនថា User ឬ Merchant)
+    if (target) {
+      const isReceiverKHR =
+        target.accountNumberKHR === accountNumber ||
+        (target.accountNumbers && target.accountNumbers.KHR === accountNumber);
+
+      const currentFXRates = readFXRates();
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
 
       res.json({
         success: true,
-        username: targetUser.fullName || targetUser.username,
+        username: targetName, // បញ្ជូនឈ្មោះទៅវិញ
         isReceiverKHR: isReceiverKHR,
+        isMerchant: isMerchant, // ផ្ញើទៅ Frontend ឱ្យដឹងថាជាហាង
         fxRates: currentFXRates,
-        feeTiers: sys ? sys.feeTiers : [], // 👈 បញ្ជូនតារាងសេវាទៅអោយទូរស័ព្ទអតិថិជន
+        feeTiers: sys ? sys.feeTiers : [],
       });
     } else {
       res.json({ success: false, message: "Account not found" });
     }
   } catch (err) {
+    console.error("CHECK ACCOUNT ERROR:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
