@@ -2642,26 +2642,45 @@
         }
       }
 
-      function exportToPDF() {
-        // ១. បំពេញទិន្នន័យចូល Template ដែលយើងបានរៀបចំទុក
+      async function exportToPDF() {
+        const element = document.getElementById("pdf-template");
+
+        // ១. បំពេញទិន្នន័យ (ព្រោះវាត្រូវទាញទិន្នន័យពីអេក្រង់មកដាក់ក្នុង Template)
         document.getElementById("pdf-merchant-name").innerText =
           currentMerchant.name;
         document.getElementById("pdf-gen-date").innerText =
           new Date().toLocaleDateString();
-
-        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
         document.getElementById("pdf-stats").innerHTML =
           document.getElementById("salesStats").innerHTML;
 
         // ២. បង្ហាញ Template បណ្តោះអាសន្ន
-        const element = document.getElementById("pdf-template");
         element.style.display = "block";
 
-        // ៣. ប្រើក្បាច់ Print ដែលដើរគ្រប់កន្លែង (Browser បងនឹងលោតផ្ទាំង Print ឡើងមក)
-        window.print();
+        // ៣. បំប្លែងវាទៅជារូបភាពស្អាតមួយសន្លឹក
+        await html2canvas(element, { scale: 2 }).then((canvas) => {
+          const dataUrl = canvas.toDataURL("image/png");
 
-        // ៤. លាក់ Template វិញ
-        element.style.display = "none";
+          // ៤. បង្កើតផ្ទាំង Print ថ្មីដែលមានរូបភាពនេះតែមួយ
+          const printWindow = window.open("", "_blank");
+          printWindow.document.write(`
+      <html>
+        <head><title>Report</title></head>
+        <body style="margin:0; padding:0; display:flex; justify-content:center;">
+          <img src="${dataUrl}" style="width:100%; max-width:800px;">
+        </body>
+      </html>
+    `);
+
+          // ៥. បញ្ជាឱ្យវា Print
+          setTimeout(() => {
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+          }, 500);
+        });
+
+        element.style.display = "none"; // លាក់ Template វិញ
       }
 
       // ==========================================
@@ -2746,7 +2765,6 @@
           switchState("state-dashboard");
         }
       }
-
       function switchQRCurrency(currency) {
         qrCurrency = currency;
 
