@@ -14,30 +14,14 @@ const generateRandomNumber = (length) => {
 exports.createMerchant = async (req, res) => {
   try {
     const { name, city, linkedAccount } = req.body;
+    // ត្រូវប្រាកដថាទាញបាន userId ត្រឹមត្រូវ
+    const userId = req.user.id || req.user._id;
 
-    // ការពារ Error បើគ្មាន User
-    if (!req.user) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "មិនមានសិទ្ធិអនុញ្ញាត (User not found)",
-        });
-    }
-
-    const userId = req.user.id || req.user._id; // ទាញពី authMiddleware (verifyUser)
-
-    // បង្កើត Merchant ID ១៥ ខ្ទង់ (ឧ. ផ្តើមដោយ 500 + លេខ ១២ ខ្ទង់)
     const merchantId = "500" + generateRandomNumber(12);
-
-    // បង្កើត លេខគណនី ១២ ខ្ទង់ (ឧ. ផ្តើមដោយ 888 + លេខ ៩ ខ្ទង់)
     const accountNumber = "888" + generateRandomNumber(9);
-
-    // បង្កើត API Key & Secret
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
-    // បង្កើតហាង
     const newMerchant = new Merchant({
       userId,
       name,
@@ -49,19 +33,19 @@ exports.createMerchant = async (req, res) => {
       apiSecret,
     });
 
-    // ចាប់យកលទ្ធផលពី MongoDB
     const savedMerchant = await newMerchant.save();
-    console.log("Merchant saved successfully:", savedMerchant.name); // លោតប្រាប់ក្នុង Server
 
-    // ឆ្លើយតបទៅ Frontend វិញជាមួយទម្រង់ត្រឹមត្រូវ
+    // ត្រឡប់ទិន្នន័យឱ្យចំឈ្មោះដែល Frontend ត្រូវការ (ជាពិសេសគឺ id)
     res.status(201).json({
       success: true,
       merchant: {
-        id: savedMerchant._id,
+        id: savedMerchant._id.toString(), // បម្លែងទៅជា String ឱ្យប្រាកដ
         merchantId: savedMerchant.merchantId,
         accountNumber: savedMerchant.accountNumber,
         name: savedMerchant.name,
         balance: savedMerchant.balance,
+        apiKey: savedMerchant.apiKey,
+        apiSecret: savedMerchant.apiSecret,
       },
     });
   } catch (error) {

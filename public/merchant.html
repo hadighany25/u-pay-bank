@@ -1484,10 +1484,52 @@
         document.getElementById(stateId).classList.add("active");
       }
 
-      function initApp() {
-        // តែងតែបង្ហាញផ្ទាំង 'បញ្ជីហាង' (គ្រប់គ្រងអាជីវកម្ម) ជាមុនជានិច្ច
-        renderMerchantList();
+      // ==========================================
+      // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង
+      // ==========================================
+      async function initApp() {
+        // ១. បង្ហាញផ្ទាំង 'បញ្ជីហាង' ជាមុន
         switchState("state-list");
+
+        try {
+          const token = sessionStorage.getItem("userToken");
+
+          // ២. ហៅ API ទៅកាន់ Backend ដើម្បីទាញយកហាងទាំងអស់របស់ User នេះ
+          const response = await fetch("/api/merchants/my-merchants", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+
+          // ៣. ប្រសិនបើទាញបានជោគជ័យ យកវាទៅ Save ក្នុង Session
+          if (response.ok && data.success) {
+            if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
+
+            // រៀបចំទម្រង់ទិន្នន័យពី Database ឱ្យត្រូវជាមួយ Frontend
+            user.merchantProfile.merchants = data.merchants.map((m) => ({
+              id: m._id, // Mongo ប្រើ _id តែ Frontend ប្រើ id
+              merchantId: m.merchantId,
+              accountNumber: m.accountNumber,
+              name: m.name,
+              city: m.city,
+              linkedAccount: m.linkedAccount,
+              balance: m.balance,
+              apiKey: m.apiKey,
+            }));
+
+            // Update ទិន្នន័យថ្មីទៅក្នុង Session Storage
+            sessionStorage.setItem("user", JSON.stringify(user));
+          }
+        } catch (error) {
+          console.error("Error fetching merchants:", error);
+        }
+
+        // ៤. បញ្ចេញទិន្នន័យហាងមកបង្ហាញលើអេក្រង់
+        renderMerchantList();
       }
 
       // ==========================================
@@ -1727,12 +1769,11 @@
           const data = await response.json();
 
           // ៣. បើ Server បង្កើតជោគជ័យ
-          if (response.ok && data.success) {
-            // ទាញយកទិន្នន័យហាងពិតពី Server មកដាក់ក្នុង App
+          if (response.ok && data.success && data.merchant) {
             const newMerchant = {
-              id: data.merchant.id, // _id របស់ MongoDB
-              merchantId: data.merchant.merchantId, // លេខសម្គាល់ ១៥ខ្ទង់
-              accountNumber: data.merchant.accountNumber, // លេខគណនីហាង ១២ខ្ទង់
+              id: data.merchant.id || data.merchant._id, // ការពារកុំឱ្យ Error ពេលអត់មាន ID
+              merchantId: data.merchant.merchantId,
+              accountNumber: data.merchant.accountNumber,
               name: data.merchant.name,
               city: city,
               linkedAccount: linkedAcc,
