@@ -1963,8 +1963,7 @@
           );
         }
       }
-
-      // ==========================================
+// ==========================================
       // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard)
       // ==========================================
       async function openMerchant(id) {
@@ -1980,32 +1979,26 @@
         }
 
         // ២. ដាក់ឈ្មោះហាងនៅក្បាលលើ Dashboard
-        document.getElementById("dashStoreName").innerText =
-          currentMerchant.name;
-        document.getElementById("recvStoreName").innerText =
-          currentMerchant.name;
+        document.getElementById("dashStoreName").innerText = currentMerchant.name;
+        document.getElementById("recvStoreName").innerText = currentMerchant.name;
 
         // ៣. ដាក់លេខ ID ហាង (Merchant ID)
-        document.getElementById("dashAccInfo").innerText =
-          currentMerchant.merchantId;
+        document.getElementById("dashAccInfo").innerText = currentMerchant.merchantId;
 
-        // ៤. 🔥 កន្លែងដែលអ្នកត្រូវកែ៖ ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu
-        document.getElementById("sbName").innerText = currentMerchant.name; // បង្ហាញឈ្មោះហាង
-        document.getElementById("sbId").innerText = currentMerchant.merchantId; // បង្ហាញ ID ហាង
+        // ៤. ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu
+        document.getElementById("sbName").innerText = currentMerchant.name;
+        document.getElementById("sbId").innerText = currentMerchant.merchantId;
 
-        // កំណត់ Avatar ជានិមិត្តសញ្ញាអក្សរដំបូង
         const avatarEl = document.getElementById("sbAvatar");
         if (avatarEl) {
-          avatarEl.innerText = currentMerchant.name
-            .substring(0, 1)
-            .toUpperCase();
+          avatarEl.innerText = currentMerchant.name.substring(0, 1).toUpperCase();
         }
 
-        // ៥. បង្ហាញលុយ
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
-        document.getElementById("dashBalance").innerText =
-          curSym + (currentMerchant.balance || 0).toFixed(2);
+        // ៥. 🔥 កន្លែងដែលយើងត្រូវកែ! (ប្តូរពី dashBalance មកហៅ dashBalUSD និង dashBalKHR វិញ)
+        document.getElementById("dashBalUSD").innerText = "$...";
+        document.getElementById("dashBalKHR").innerText = "/ ៛...";
 
+        // ទាញទិន្នន័យចំណូល
         fetchMerchantRevenue();
 
         // ៦. ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាង
@@ -2210,31 +2203,41 @@
         if (!currentMerchant) return;
 
         const filter = document.getElementById("revenueFilter").value;
-        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
 
-        // ដាក់ Loading សិនពេលកំពុងទាញទិន្នន័យ
-        document.getElementById("dashBalance").innerText = curSym + "...";
+        // ដាក់ Loading ពេលកំពុងទាញទិន្នន័យ
+        document.getElementById("dashBalUSD").innerText = "$...";
+        document.getElementById("dashBalKHR").innerText = "/ ៛...";
 
         try {
           const token = sessionStorage.getItem("userToken");
+          
+          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
           const response = await fetch(
-            `/api/merchants/revenue/${currentMerchant.id}?filter=${filter}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+            { headers: { Authorization: `Bearer ${token}` } }
           );
           const data = await response.json();
 
-          if (data.success) {
-            // បង្ហាញលុយពិតប្រាកដដែលទទួលបានពី Backend
-            document.getElementById("dashBalance").innerText =
-              curSym + data.revenue.toFixed(2);
-          } else {
-            document.getElementById("dashBalance").innerText = curSym + "0.00";
+          let totalUSD = 0;
+          let totalKHR = 0;
+
+          if (data.success && data.transactions) {
+            data.transactions.forEach((t) => {
+              if (t.type === "Received" || t.amount > 0) {
+                if (t.currency === "USD") totalUSD += t.amount;
+                if (t.currency === "KHR") totalKHR += t.amount;
+              }
+            });
           }
+
+          // បង្ហាញលទ្ធផលលុយទាំង ២
+          document.getElementById("dashBalUSD").innerText = `$${totalUSD.toFixed(2)}`;
+          document.getElementById("dashBalKHR").innerText = `/ ៛${totalKHR.toLocaleString()}`;
+
         } catch (error) {
           console.error("Error fetching revenue:", error);
-          document.getElementById("dashBalance").innerText = curSym + "0.00";
+          document.getElementById("dashBalUSD").innerText = "$0.00";
+          document.getElementById("dashBalKHR").innerText = "/ ៛0";
         }
       }
 
