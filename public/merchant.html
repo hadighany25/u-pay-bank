@@ -965,48 +965,161 @@
               <button class="menu-btn" onclick="toggleSidebar()">
                 <i class="fa-solid fa-bars"></i>
               </button>
-              <h2 id="dashStoreName" style="margin: 0; font-size: 1.2rem; font-family: 'Inter', sans-serif;">
+              <h2
+                id="dashStoreName"
+                style="
+                  margin: 0;
+                  font-size: 1.2rem;
+                  font-family: &quot;Inter&quot;, sans-serif;
+                "
+              >
                 Smart Shop
               </h2>
             </div>
             <i class="fa-regular fa-bell" style="font-size: 1.3rem"></i>
           </div>
-          
+
           <!-- 🎚️ កន្លែងប៊ូតុងចុចប្តូរគណនី (មាន Animation) -->
           <div class="acc-toggle">
             <div class="acc-slider" id="accSlider"></div>
-            <div class="acc-option kh-text" id="btnPersonal" onclick="switchToPersonal()" data-lang="merch_personal">
+            <div
+              class="acc-option kh-text"
+              id="btnPersonal"
+              onclick="switchToPersonal()"
+              data-lang="merch_personal"
+            >
               បុគ្គល
             </div>
-            <div class="acc-option active kh-text" id="btnMerchant" data-lang="merch_business">
+            <div
+              class="acc-option active kh-text"
+              id="btnMerchant"
+              data-lang="merch_business"
+            >
               U-Pay Merchant
             </div>
           </div>
         </div>
 
         <div class="revenue-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <p class="kh-text" style="margin: 0; font-weight: 600" data-lang="merch_total_rev">ចំណូលសរុប</p>
-            <select id="revenueFilter" class="kh-text" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; background: var(--bg-main); outline: none; cursor: pointer;" onchange="fetchMerchantRevenue()">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 8px;
+            "
+          >
+            <p
+              class="kh-text"
+              style="margin: 0; font-weight: 600"
+              data-lang="merch_total_rev"
+            >
+              ចំណូលសរុប
+            </p>
+            <select
+              id="revenueFilter"
+              class="kh-text"
+              style="
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 4px 8px;
+                font-size: 0.8rem;
+                background: var(--bg-main);
+                outline: none;
+                cursor: pointer;
+              "
+              onchange="fetchMerchantRevenue()"
+            >
               <option value="today" data-lang="filter_today">ថ្ងៃនេះ</option>
               <option value="week" data-lang="filter_week">សប្តាហ៍នេះ</option>
               <option value="month" data-lang="filter_month">ខែនេះ</option>
-              <option value="total" data-lang="filter_total" selected>សរុបទាំងអស់</option>
+              <option value="total" data-lang="filter_total" selected>
+                សរុបទាំងអស់
+              </option>
             </select>
           </div>
 
-          <!-- 💰 កន្លែងបង្ហាញលុយ ២ ប្រភេទ -->
-          <h1 style="font-family: 'Inter', sans-serif; display: flex; align-items: baseline; gap: 8px; margin: 5px 0 0;">
-            <span id="dashBalUSD" style="color: var(--text-main); font-weight: 700;">$0.00</span>
-            <span id="dashBalKHR" style="font-size: 1.2rem; color: var(--text-muted); font-weight: 600;">/ ៛0</span>
+          <!-- 💰 ឥឡូវនេះលុយទាំង ២ មានទំហំ និងពណ៌ធំស្មើគ្នា ១០០% -->
+          <h1
+            style="
+              font-family: &quot;Inter&quot;, sans-serif;
+              display: flex;
+              align-items: baseline;
+              gap: 10px;
+              margin: 5px 0 0;
+            "
+          >
+            <span
+              id="dashBalUSD"
+              style="color: var(--text-main); font-weight: 700"
+              >$0.00</span
+            >
+            <span
+              id="dashBalKHR"
+              style="color: var(--text-main); font-weight: 700"
+              >/ ៛0</span
+            >
           </h1>
-          
-          <div style="margin-top: 15px; border-top: 1px dashed #e2e8f0; padding-top: 10px; font-size: 0.85rem; color: var(--text-muted);">
+
+          <div
+            style="
+              margin-top: 15px;
+              border-top: 1px dashed #e2e8f0;
+              padding-top: 10px;
+              font-size: 0.85rem;
+              color: var(--text-muted);
+            "
+          >
             <i class="fa-solid fa-hashtag"></i>
-            <span data-lang="merch_acc_shop" class="merch_acc_shop">Merchant ID៖</span>
-            <span id="dashAccInfo" style="font-family: 'JetBrains Mono'; font-weight: bold; color: var(--secondary);">...</span>
+            <span data-lang="merch_acc_shop" class="merch_acc_shop"
+              >Merchant ID៖</span
+            >
+            <span
+              id="dashAccInfo"
+              style="
+                font-family: &quot;JetBrains Mono&quot;;
+                font-weight: bold;
+                color: var(--secondary);
+              "
+              >...</span
+            >
           </div>
         </div>
+
+        <!-- 🔥 ខ្ញុំបានលុប </div> ដែលលើសចោលហើយ ឥឡូវ Action Grid នឹងលោតមកវិញ -->
+        <div class="action-grid">
+          <div class="dash-btn" onclick="switchState('state-receive')">
+            <i
+              class="fa-solid fa-hand-holding-dollar"
+              style="color: var(--secondary)"
+            ></i>
+            <span class="kh-text" data-lang="merch_receive"
+              >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
+            >
+          </div>
+
+          <div
+            class="dash-btn"
+            onclick="
+              switchState('state-reports');
+              loadTransactions();
+            "
+          >
+            <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
+            <span class="kh-text" data-lang="merch_trx"
+              >ប្រវត្តិប្រតិបត្តិការ</span
+            >
+          </div>
+
+          <div class="dash-btn" onclick="openQRModal(null)">
+            <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
+            <span class="kh-text" data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
+          </div>
+
+          <div class="dash-btn" onclick="openSalesReport()">
+            <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
+            <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
+          </div>
         </div>
         <!--  -->
         <div class="action-grid">
@@ -1963,7 +2076,7 @@
           );
         }
       }
-// ==========================================
+      // ==========================================
       // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard)
       // ==========================================
       async function openMerchant(id) {
@@ -1979,11 +2092,14 @@
         }
 
         // ២. ដាក់ឈ្មោះហាងនៅក្បាលលើ Dashboard
-        document.getElementById("dashStoreName").innerText = currentMerchant.name;
-        document.getElementById("recvStoreName").innerText = currentMerchant.name;
+        document.getElementById("dashStoreName").innerText =
+          currentMerchant.name;
+        document.getElementById("recvStoreName").innerText =
+          currentMerchant.name;
 
         // ៣. ដាក់លេខ ID ហាង (Merchant ID)
-        document.getElementById("dashAccInfo").innerText = currentMerchant.merchantId;
+        document.getElementById("dashAccInfo").innerText =
+          currentMerchant.merchantId;
 
         // ៤. ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu
         document.getElementById("sbName").innerText = currentMerchant.name;
@@ -1991,7 +2107,9 @@
 
         const avatarEl = document.getElementById("sbAvatar");
         if (avatarEl) {
-          avatarEl.innerText = currentMerchant.name.substring(0, 1).toUpperCase();
+          avatarEl.innerText = currentMerchant.name
+            .substring(0, 1)
+            .toUpperCase();
         }
 
         // ៥. 🔥 កន្លែងដែលយើងត្រូវកែ! (ប្តូរពី dashBalance មកហៅ dashBalUSD និង dashBalKHR វិញ)
@@ -2210,11 +2328,11 @@
 
         try {
           const token = sessionStorage.getItem("userToken");
-          
+
           // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
           const response = await fetch(
             `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: { Authorization: `Bearer ${token}` } },
           );
           const data = await response.json();
 
@@ -2231,9 +2349,10 @@
           }
 
           // បង្ហាញលទ្ធផលលុយទាំង ២
-          document.getElementById("dashBalUSD").innerText = `$${totalUSD.toFixed(2)}`;
-          document.getElementById("dashBalKHR").innerText = `/ ៛${totalKHR.toLocaleString()}`;
-
+          document.getElementById("dashBalUSD").innerText =
+            `$${totalUSD.toFixed(2)}`;
+          document.getElementById("dashBalKHR").innerText =
+            `/ ៛${totalKHR.toLocaleString()}`;
         } catch (error) {
           console.error("Error fetching revenue:", error);
           document.getElementById("dashBalUSD").innerText = "$0.00";
@@ -2431,7 +2550,7 @@
       function switchToPersonal() {
         // ១. ធ្វើឱ្យផ្ទៃពណ៌សរំកិលទៅឆ្វេង
         document.getElementById("accSlider").classList.add("move-left");
-        
+
         // ២. ដូរពណ៌អក្សរឱ្យត្រូវ
         document.getElementById("btnPersonal").classList.add("active");
         document.getElementById("btnMerchant").classList.remove("active");
