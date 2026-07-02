@@ -1016,45 +1016,27 @@
             >
               ចំណូលសរុប
             </p>
-            <div style="display: flex; gap: 5px">
-              <select
-                id="revenueFilter"
-                class="kh-text"
-                style="
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  padding: 4px 8px;
-                  font-size: 0.8rem;
-                  background: var(--bg-main);
-                  outline: none;
-                  cursor: pointer;
-                "
-                onchange="
-                  toggleCustomDate('revenue');
-                  fetchMerchantRevenue();
-                "
-              >
-                <option value="today">ថ្ងៃនេះ</option>
-                <option value="week">សប្តាហ៍នេះ</option>
-                <option value="month">ខែនេះ</option>
-                <option value="custom">ជ្រើសរើសថ្ងៃ</option>
-                <option value="total" selected>សរុបទាំងអស់</option>
-              </select>
-              <input
-                type="date"
-                id="revenueCustomDate"
-                class="kh-text"
-                style="
-                  display: none;
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  padding: 3px 5px;
-                  font-size: 0.8rem;
-                  outline: none;
-                "
-                onchange="fetchMerchantRevenue()"
-              />
-            </div>
+            <select
+              id="revenueFilter"
+              class="kh-text"
+              style="
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 4px 8px;
+                font-size: 0.8rem;
+                background: var(--bg-main);
+                outline: none;
+                cursor: pointer;
+              "
+              onchange="fetchMerchantRevenue()"
+            >
+              <option value="today" data-lang="filter_today">ថ្ងៃនេះ</option>
+              <option value="week" data-lang="filter_week">សប្តាហ៍នេះ</option>
+              <option value="month" data-lang="filter_month">ខែនេះ</option>
+              <option value="total" data-lang="filter_total" selected>
+                សរុបទាំងអស់
+              </option>
+            </select>
           </div>
 
           <!-- 💰 ឥឡូវនេះលុយទាំង ២ មានទំហំ និងពណ៌ធំស្មើគ្នា ១០០% -->
@@ -1171,41 +1153,27 @@
         </div>
 
         <div style="padding: 20px">
-          <!-- ផ្នែក Filter ថ្មីសម្រាប់ Sales Report -->
+          <!-- ផ្នែក Filter និងប៊ូតុង Export -->
           <div
             style="
               display: flex;
               justify-content: space-between;
               align-items: center;
               margin-bottom: 15px;
-              gap: 10px;
             "
           >
             <select
-              id="salesFilter"
+              id="reportFilter"
               class="input-group kh-text"
-              style="margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="
-                toggleCustomDate('sales');
-                loadSalesReport();
-              "
+              style="margin-bottom: 0; width: 60%; padding: 10px"
+              onchange="loadTransactions()"
             >
               <option value="today">ថ្ងៃនេះ</option>
               <option value="week">សប្តាហ៍នេះ</option>
               <option value="month">ខែនេះ</option>
-              <option value="custom">ជ្រើសរើសថ្ងៃ</option>
               <option value="total" selected>សរុបទាំងអស់</option>
             </select>
-            <input
-              type="date"
-              id="salesCustomDate"
-              class="input-group kh-text"
-              style="display: none; margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="loadSalesReport()"
-            />
-          </div>
 
-          <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
             <button
               onclick="exportToExcel()"
               class="btn-primary kh-text"
@@ -1240,40 +1208,6 @@
         </div>
 
         <div style="padding: 20px">
-          <!-- ផ្នែក Filter ថ្មីសម្រាប់ Sales Report -->
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 15px;
-              gap: 10px;
-            "
-          >
-            <select
-              id="salesFilter"
-              class="input-group kh-text"
-              style="margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="
-                toggleCustomDate('sales');
-                loadSalesReport();
-              "
-            >
-              <option value="today">ថ្ងៃនេះ</option>
-              <option value="week">សប្តាហ៍នេះ</option>
-              <option value="month">ខែនេះ</option>
-              <option value="custom">ជ្រើសរើសថ្ងៃ</option>
-              <option value="total" selected>សរុបទាំងអស់</option>
-            </select>
-            <input
-              type="date"
-              id="salesCustomDate"
-              class="input-group kh-text"
-              style="display: none; margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="loadSalesReport()"
-            />
-          </div>
-
           <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
             <p class="kh-text" style="color: var(--text-muted)">
               ចំណូលសរុបដែលបានបូកសរុប
@@ -2181,77 +2115,46 @@
       }
 
       // ==========================================
-      // មុខងារបង្ហាញ/លាក់ ប្រអប់ជ្រើសរើសថ្ងៃ (Custom Date)
-      // ==========================================
-      function toggleCustomDate(prefix) {
-        const filterVal = document.getElementById(prefix + "Filter").value;
-        const dateInput = document.getElementById(prefix + "CustomDate");
-        if (filterVal === "custom") {
-          dateInput.style.display = "block";
-        } else {
-          dateInput.style.display = "none";
-        }
-      }
-
-      // ==========================================
       // មុខងារទាញយកចំណូល (Revenue Fetching)
       // ==========================================
       async function fetchMerchantRevenue() {
         if (!currentMerchant) return;
-        const filter = document.getElementById("revenueFilter").value;
-        const customDateVal =
-          document.getElementById("revenueCustomDate").value;
 
+        const filter = document.getElementById("revenueFilter").value;
+
+        // ដាក់ Loading សិន ពេលកំពុងទាញទិន្នន័យ
         document.getElementById("dashBalUSD").innerText = "$...";
         document.getElementById("dashBalKHR").innerText = "៛...";
 
         try {
           const token = sessionStorage.getItem("userToken");
+
+          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
           const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
           const data = await response.json();
 
-          let totalUSD = 0,
-            totalKHR = 0;
+          let totalUSD = 0;
+          let totalKHR = 0;
 
           if (data.success && data.transactions) {
-            const now = new Date();
             data.transactions.forEach((t) => {
-              const tDate = new Date(t.date);
-              let isMatch = false;
-
-              if (filter === "today")
-                isMatch = tDate.toDateString() === now.toDateString();
-              else if (filter === "week") {
-                const pastWeek = new Date(now);
-                pastWeek.setDate(now.getDate() - 7);
-                isMatch = tDate >= pastWeek;
-              } else if (filter === "month")
-                isMatch =
-                  tDate.getMonth() === now.getMonth() &&
-                  tDate.getFullYear() === now.getFullYear();
-              else if (filter === "custom") {
-                if (customDateVal) {
-                  const cDate = new Date(customDateVal);
-                  isMatch = tDate.toDateString() === cDate.toDateString();
-                } else isMatch = true;
-              } else isMatch = true;
-
-              if (isMatch && (t.type === "Received" || t.amount > 0)) {
+              if (t.type === "Received" || t.amount > 0) {
                 if (t.currency === "USD") totalUSD += t.amount;
                 if (t.currency === "KHR") totalKHR += t.amount;
               }
             });
           }
 
+          // បង្ហាញលទ្ធផលលុយទាំង ២ បន្ទាប់ពីគណនារួច
           document.getElementById("dashBalUSD").innerText =
             `$${totalUSD.toFixed(2)}`;
           document.getElementById("dashBalKHR").innerText =
             `៛${totalKHR.toLocaleString()}`;
         } catch (error) {
-          console.error("Error:", error);
+          console.error("Error fetching revenue:", error);
           document.getElementById("dashBalUSD").innerText = "$0.00";
           document.getElementById("dashBalKHR").innerText = "៛0";
         }
@@ -2444,17 +2347,16 @@
       let currentTransactions = [];
 
       // ==========================================
-      // មុខងារហៅទិន្នន័យប្រវត្តិប្រតិបត្តិការ (Transactions)
+      // មុខងារហៅទិន្នន័យប្រវត្តិប្រតិបត្តិការមកបង្ហាញ
       // ==========================================
       async function loadTransactions() {
         const filter = document.getElementById("reportFilter").value;
-        const customDateVal = document.getElementById("reportCustomDate").value;
         const list = document.getElementById("transactionList");
         list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">កំពុងផ្ទុក...</div>`;
 
         try {
           const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
             {
               headers: {
                 Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
@@ -2464,66 +2366,45 @@
           const data = await response.json();
 
           if (data.success && data.transactions.length > 0) {
-            const now = new Date();
-            const filteredTx = data.transactions.filter((t) => {
-              const tDate = new Date(t.date);
-              if (filter === "today")
-                return tDate.toDateString() === now.toDateString();
-              if (filter === "week") {
-                const pastWeek = new Date(now);
-                pastWeek.setDate(now.getDate() - 7);
-                return tDate >= pastWeek;
-              }
-              if (filter === "month")
-                return (
-                  tDate.getMonth() === now.getMonth() &&
-                  tDate.getFullYear() === now.getFullYear()
-                );
-              if (filter === "custom") {
-                if (customDateVal) {
-                  const cDate = new Date(customDateVal);
-                  return tDate.toDateString() === cDate.toDateString();
-                }
-                return true;
-              }
-              return true;
-            });
+            currentTransactions = data.transactions;
 
-            currentTransactions = filteredTx;
+            list.innerHTML = data.transactions
+              .map((t) => {
+                // 🔥 កែ Logic ត្រង់នេះ៖ ពិនិត្យឈ្មោះតួអក្សរឱ្យប្រាកដ
+                // បើអ្នកមិនប្រាកដពីឈ្មោះ Type ក្នុង DB ទេ ប្រើលក្ខខណ្ឌនេះ៖
+                const isReceived = t.type === "Received" || t.amount > 0;
+                const colorClass = isReceived
+                  ? "var(--secondary)"
+                  : "var(--danger)";
+                const sign = isReceived ? "+" : "-";
 
-            if (filteredTx.length > 0) {
-              list.innerHTML = filteredTx
-                .map((t) => {
-                  const isReceived = t.type === "Received" || t.amount > 0;
-                  const colorClass = isReceived
-                    ? "var(--secondary)"
-                    : "var(--danger)";
-                  const sign = isReceived ? "+" : "-";
-
-                  return `
-                <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
-                  <div>
-                    <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
-                    <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
-                    <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
-                  </div>
-                  <div style="text-align:right;">
-                    <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
-                      ${sign}${t.amount.toFixed(2)} ${t.currency}
-                    </h4>
-                    <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
-                  </div>
-                </div>`;
-                })
-                .join("");
-            } else {
-              list.innerHTML = `<div style="text-align:center; padding: 40px 20px; opacity:0.6;"><i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេសម្រាប់ថ្ងៃនេះ</p></div>`;
-            }
+                return `
+              <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
+                <div>
+                  <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
+                  <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
+                  <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
+                </div>
+                <div style="text-align:right;">
+                  <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
+                    ${sign}${t.amount.toFixed(2)} ${t.currency}
+                  </h4>
+                  <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
+                </div>
+              </div>
+            `;
+              })
+              .join("");
           } else {
-            currentTransactions = [];
-            list.innerHTML = `<div style="text-align:center; padding: 40px 20px; opacity:0.6;"><i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
+            currentTransactions = []; // Clear ទិន្នន័យ
+            list.innerHTML = `
+              <div style="text-align:center; padding: 40px 20px; opacity:0.6;">
+                <i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i>
+                <p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p>
+              </div>`;
           }
         } catch (error) {
+          console.error("Error loading transactions:", error);
           list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
         }
       }
@@ -2643,6 +2524,8 @@
             </div>
         `;
       }
+
+      switchState("state-sales-report");
 
       // ==========================================
       // មុខងារប្តូរទៅគណនីផ្ទាល់ខ្លួន (Personal Account)
