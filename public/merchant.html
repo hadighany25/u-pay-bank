@@ -1522,54 +1522,43 @@
       // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង
       // ==========================================
       async function initApp() {
-        // ១. បង្ហាញផ្ទាំង 'បញ្ជីហាង' ជាមុន
         switchState("state-list");
 
         try {
           const token = sessionStorage.getItem("userToken");
 
-          // ២. ហៅ API ទៅកាន់ Backend ដើម្បីទាញយកហាងទាំងអស់របស់ User នេះ
-          const response = await fetch("/api/merchants/create", {
-            method: "POST",
+          // 🔥 កែ៖ ប្រើ GET ដើម្បីទាញយក មិនមែន POST ទេ
+          const response = await fetch("/api/merchants/my-merchants", {
+            method: "GET",
             headers: {
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`, // ភ្ជាប់សិទ្ធិអនុញ្ញាត
             },
-            body: JSON.stringify({
-              name: name,
-              city: city,
-              linkedAccount: linkedAcc,
-              userId: user.username, // 👈 បន្ថែមបន្ទាត់នេះ ដើម្បីបញ្ជូន Username ម្ចាស់ហាងទៅ Backend
-              ownerAccount: user.username, // 👈 បន្ថែមបន្ទាត់នេះ ការពារក្រែងលោ Backend របស់អ្នកប្រើឈ្មោះមួយនេះ
-            }),
           });
 
           const data = await response.json();
 
-          // ៣. ប្រសិនបើទាញបានជោគជ័យ យកវាទៅ Save ក្នុង Session
           if (response.ok && data.success) {
             if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
 
-            // រៀបចំទម្រង់ទិន្នន័យពី Database ឱ្យត្រូវជាមួយ Frontend
+            // 🔥 កែត្រង់នេះ៖ ប្រើ m.city ជំនួសឱ្យ city ដែលធ្វើឱ្យ error
             user.merchantProfile.merchants = data.merchants.map((m) => ({
-              id: m._id, // Mongo ប្រើ _id តែ Frontend ប្រើ id
+              id: m._id,
               merchantId: m.merchantId,
               accountNumbers: m.accountNumbers,
               name: m.name,
-              city: m.city,
+              city: m.city, // ត្រូវតែមាន m. ពីមុខ
               linkedAccount: m.linkedAccount,
               balance: m.balance,
               apiKey: m.apiKey,
             }));
 
-            // Update ទិន្នន័យថ្មីទៅក្នុង Session Storage
             sessionStorage.setItem("user", JSON.stringify(user));
           }
         } catch (error) {
           console.error("Error fetching merchants:", error);
         }
 
-        // ៤. បញ្ចេញទិន្នន័យហាងមកបង្ហាញលើអេក្រង់
         renderMerchantList();
       }
 
@@ -1794,16 +1783,19 @@
           const token = sessionStorage.getItem("userToken");
 
           // ២. បញ្ជូនទិន្នន័យទៅកាន់ API Backend
+
           const response = await fetch("/api/merchants/create", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`, // ភ្ជាប់សិទ្ធិអនុញ្ញាត
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
               name: name,
               city: city,
               linkedAccount: linkedAcc,
+              userId: user.username, // <--- កែត្រង់នេះ
+              ownerAccount: user.username, // <--- កែត្រង់នេះ
             }),
           });
 
