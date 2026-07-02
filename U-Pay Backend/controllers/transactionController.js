@@ -176,25 +176,29 @@ const transfer = async (req, res) => {
       : appliedFeeUsd;
     const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
 
-    // ៥. ឆែកសមតុល្យ
     if (isSenderKHR && (sender.balanceKHR || 0) < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
     if (!isSenderKHR && sender.balance < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
-    // ៦. ដំណើរការវេរលុយ
+    // ៥. ដំណើរការវេរលុយ
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
 
     if (isMerchant) {
+      // កំណត់ថាជា KHR ឬ USD ផ្អែកលើលេខគណនីដែលគេស្កេន
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
 
       // ក. ចូល Ledger របស់ Merchant
-      if (isReceiverKHR) receiverMerchant.collected.KHR += transferAmount;
-      else receiverMerchant.collected.USD += transferAmount;
+      if (isReceiverKHR)
+        receiverMerchant.collected.KHR =
+          (receiverMerchant.collected.KHR || 0) + transferAmount;
+      else
+        receiverMerchant.collected.USD =
+          (receiverMerchant.collected.USD || 0) + transferAmount;
       await receiverMerchant.save();
 
-      // ខ. Auto-Sweep: ប្រើ findOne({ username: ... }) ដើម្បីកុំឱ្យ Error ObjectId
+      // ខ. Auto-Sweep: ប្រើ findOne({ username: userId }) ជំនួសឱ្យ findById ដើម្បីចៀសវាង ObjectId Error
       const owner = await User.findOne({ _id: receiverMerchant.userId });
       if (owner) {
         if (isReceiverKHR)
@@ -216,7 +220,7 @@ const transfer = async (req, res) => {
       await receiver.save();
     }
 
-    // ៧. កាត់លុយ sender និងបង្កើត Transaction
+    // ៦. កាត់លុយ sender និងបង្កើត Transaction
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
     await sender.save();
@@ -247,7 +251,6 @@ const transfer = async (req, res) => {
     await sender.save();
     await receiver.save();
 
-    // ៨. Socket.io Update
     const io = req.app.get("io");
     if (io)
       io.to(receiver.username).emit("paymentReceived", {
@@ -265,6 +268,7 @@ const transfer = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 // ==========================================
 // 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
 // ==========================================
