@@ -2427,17 +2427,10 @@
         });
 
         // បង្ហាញសរុប (បំបែករូបិយប័ណ្ណដើម្បីកុំឱ្យខុស)
-        document.getElementById("totalSalesAmount").innerHTML =
-          `$${totalUSD.toFixed(2)} <span style="font-size:1rem; color:gray;">/ ៛${totalKHR.toLocaleString()}</span>`;
-
-        document.getElementById("salesStats").innerHTML = `
-        <div style="display:flex; justify-content:space-between; padding:10px 0;">
-            <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:10px 0;">
-            <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
-        </div>
-    `;
+        document.getElementById("totalSalesAmount").innerHTML = `
+    <span style="color: var(--primary);">$${totalUSD.toFixed(2)}</span>
+    <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px;">/ ៛${totalKHR.toLocaleString()}</span>
+`;
 
         switchState("state-sales-report");
       }
