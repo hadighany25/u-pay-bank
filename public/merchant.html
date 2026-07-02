@@ -2121,17 +2121,14 @@
         if (!currentMerchant) return;
 
         const filter = document.getElementById("revenueFilter").value;
-
-        // ដាក់ Loading សិន ពេលកំពុងទាញទិន្នន័យ
-        document.getElementById("dashBalUSD").innerText = "$...";
-        document.getElementById("dashBalKHR").innerText = "៛...";
+        document.getElementById("dashBalUSD").innerText = "$0.00";
+        document.getElementById("dashBalKHR").innerText = "៛0";
 
         try {
           const token = sessionStorage.getItem("userToken");
-
-          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
+          // ⚠️ កែត្រង់នេះ៖ ទាញយកទិន្នន័យទាំងអស់មក រួចចាំ Filter ក្នុង Frontend
           const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+            `/api/merchants/transactions/${currentMerchant.id}`,
             { headers: { Authorization: `Bearer ${token}` } },
           );
           const data = await response.json();
@@ -2140,15 +2137,36 @@
           let totalKHR = 0;
 
           if (data.success && data.transactions) {
+            const now = new Date(); // ចាប់យកម៉ោង និងថ្ងៃខែពិតប្រាកដនៅលើម៉ាស៊ីន
+
             data.transactions.forEach((t) => {
-              if (t.type === "Received" || t.amount > 0) {
+              // បំប្លែងថ្ងៃខែប្រតិបត្តិការទៅជា Date Object
+              const tDate = new Date(t.date);
+              let isMatch = false;
+
+              // ⏱️ Logic ចម្រាញ់ពេលវេលា (Frontend Timezone)
+              if (filter === "today") {
+                isMatch = tDate.toDateString() === now.toDateString(); // ត្រូវគ្នាត្រឹមថ្ងៃខែឆ្នាំ
+              } else if (filter === "week") {
+                const pastWeek = new Date(now);
+                pastWeek.setDate(now.getDate() - 7);
+                isMatch = tDate >= pastWeek;
+              } else if (filter === "month") {
+                isMatch =
+                  tDate.getMonth() === now.getMonth() &&
+                  tDate.getFullYear() === now.getFullYear();
+              } else {
+                isMatch = true; // សរុបទាំងអស់ (Total)
+              }
+
+              // បើជាលុយចូល និងស្ថិតក្នុងថ្ងៃដែលបានរើស ទើបបូកបញ្ចូល
+              if (isMatch && (t.type === "Received" || t.amount > 0)) {
                 if (t.currency === "USD") totalUSD += t.amount;
                 if (t.currency === "KHR") totalKHR += t.amount;
               }
             });
           }
 
-          // បង្ហាញលទ្ធផលលុយទាំង ២ បន្ទាប់ពីគណនារួច
           document.getElementById("dashBalUSD").innerText =
             `$${totalUSD.toFixed(2)}`;
           document.getElementById("dashBalKHR").innerText =
