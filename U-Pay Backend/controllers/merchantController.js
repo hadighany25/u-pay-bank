@@ -115,3 +115,31 @@ exports.deleteMerchant = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ៤. មុខងារទាញយកចំណូលហាង (Revenue)
+exports.getMerchantRevenue = async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+    const { filter } = req.query; // ទទួលយក filter: today, week, month, total
+
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant)
+      return res
+        .status(404)
+        .json({ success: false, message: "Shop not found" });
+
+    // សម្រាប់ជំហាននេះ យើងទាញយកចំណូល "សរុបទាំងអស់" ពី Object `collected` មកបង្ហាញសិន។
+    // (នៅពេលយើងធ្វើដល់ផ្នែក Transaction Report យើងនឹងបូកបញ្ចូលការ Filter ថ្ងៃ/ខែ ជាក់លាក់បន្ថែម)
+    let revenue = 0;
+    if (merchant.linkedAccount === "USD") {
+      revenue = merchant.collected.USD || 0;
+    } else {
+      revenue = merchant.collected.KHR || 0;
+    }
+
+    res.status(200).json({ success: true, revenue });
+  } catch (error) {
+    console.error("DEBUG ERROR (REVENUE):", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

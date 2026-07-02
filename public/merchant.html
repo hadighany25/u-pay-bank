@@ -977,9 +977,44 @@
         </div>
 
         <div class="revenue-card">
-          <p class="kh-text" data-lang="merch_total_rev">
-            ចំណូលសរុប ក្នុងថ្ងៃនេះ
-          </p>
+          <!-- ផ្នែកខាងលើ៖ អក្សរ "ចំណូលសរុប" និង Filter -->
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 8px;
+            "
+          >
+            <p
+              class="kh-text"
+              style="margin: 0; font-weight: 600"
+              data-lang="merch_total_rev"
+            >
+              ចំណូលសរុប
+            </p>
+            <select
+              id="revenueFilter"
+              class="kh-text"
+              style="
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 4px 8px;
+                font-size: 0.8rem;
+                background: var(--bg-main);
+                outline: none;
+                cursor: pointer;
+              "
+              onchange="fetchMerchantRevenue()"
+            >
+              <option value="today">ថ្ងៃនេះ</option>
+              <option value="week">សប្តាហ៍នេះ</option>
+              <option value="month">ខែនេះ</option>
+              <option value="total" selected>សរុបទាំងអស់</option>
+            </select>
+          </div>
+
+          <!-- ផ្នែកខាងក្រោម៖ លុយ និង លេខកុង -->
           <h1
             id="dashBalance"
             style="font-family: &quot;Inter&quot;, sans-serif"
@@ -996,7 +1031,9 @@
             "
           >
             <i class="fa-solid fa-hashtag"></i>
-            <span data-lang="merch_acc_shop" class="kh-text">គណនីហាង៖</span>
+            <span data-lang="merch_acc_shop" class="merch_acc_shop"
+              >Merchant ID៖</span
+            >
             <span
               id="dashAccInfo"
               style="
@@ -1004,7 +1041,7 @@
                 font-weight: bold;
                 color: var(--secondary);
               "
-              >500 000 000</span
+              >...</span
             >
           </div>
         </div>
@@ -1896,6 +1933,8 @@
         document.getElementById("dashBalance").innerText =
           curSym + (currentMerchant.balance || 0).toFixed(2);
 
+        fetchMerchantRevenue();
+
         // ៦. ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាង
         switchState("state-dashboard");
       }
@@ -2089,6 +2128,41 @@
           btnClose.style.display = "flex";
           toggleBar.style.display = "flex";
         });
+      }
+
+      // ==========================================
+      // មុខងារទាញយកចំណូល (Revenue Fetching)
+      // ==========================================
+      async function fetchMerchantRevenue() {
+        if (!currentMerchant) return;
+
+        const filter = document.getElementById("revenueFilter").value;
+        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
+
+        // ដាក់ Loading សិនពេលកំពុងទាញទិន្នន័យ
+        document.getElementById("dashBalance").innerText = curSym + "...";
+
+        try {
+          const token = sessionStorage.getItem("userToken");
+          const response = await fetch(
+            `/api/merchants/revenue/${currentMerchant.id}?filter=${filter}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          const data = await response.json();
+
+          if (data.success) {
+            // បង្ហាញលុយពិតប្រាកដដែលទទួលបានពី Backend
+            document.getElementById("dashBalance").innerText =
+              curSym + data.revenue.toFixed(2);
+          } else {
+            document.getElementById("dashBalance").innerText = curSym + "0.00";
+          }
+        } catch (error) {
+          console.error("Error fetching revenue:", error);
+          document.getElementById("dashBalance").innerText = curSym + "0.00";
+        }
       }
     </script>
   </body>
