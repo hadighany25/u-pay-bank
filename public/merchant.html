@@ -1099,6 +1099,7 @@
         </div>
       </div>
 
+      <!-- QR Modal -->
       <div id="qrModal" class="qr-modal">
         <div class="close-qr-btn" onclick="closeQRModal()">
           <i class="fa-solid fa-xmark"></i>
@@ -1121,6 +1122,7 @@
                 KHR (៛)
               </div>
             </div>
+
             <img
               src="images/logo-nobg.png"
               class="qr-logo-top"
@@ -1134,10 +1136,25 @@
             >
               ...
             </h3>
+            <!-- ដាក់នៅក្រោម <h3 id="qrUserName"... -->
+            <p
+              id="qrMerchantID"
+              style="color: #64748b; font-size: 0.9rem; margin-bottom: 10px"
+            ></p>
             <p id="qrUserAcc" class="qr-user-acc">...</p>
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
+            <!-- ដាក់នៅក្រោម <img id="myQrImg"... -->
+            <p
+              id="qrAccountNum"
+              style="
+                margin-top: 10px;
+                font-family: &quot;JetBrains Mono&quot;;
+                font-weight: bold;
+                color: #004d40;
+              "
+            ></p>
             <div class="amount-input-area">
               <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
@@ -1164,6 +1181,7 @@
         </button>
       </div>
 
+      <!-- Sidebar Overlay -->
       <div
         class="sidebar-overlay"
         id="sidebarOverlay"
@@ -1234,6 +1252,7 @@
         </div>
       </div>
 
+      <!-- PIN Modal -->
       <div class="pin-modal" id="pinModal">
         <div
           class="card-box"
@@ -1561,7 +1580,7 @@
             <div class="merchant-icon"><i class="fa-solid fa-store"></i></div>
             <div style="flex:1;">
               <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${m.name}</h4>
-             <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • ID: ${m.merchantId}</p>
+             <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-muted);"><span style="color:var(--secondary)">Active</span> • Merchant ID: ${m.merchantId}</p>
             </div>
             <i class="fa-solid fa-ellipsis-vertical" style="color:var(--text-muted); padding:10px 15px;" onclick="event.stopPropagation(); showMerchantOptions('${m.id}')"></i>
           `;
@@ -1968,13 +1987,18 @@
       }
 
       // ==========================================
-      // 📱 QR MODAL
+      // 📱 QR MODAL (កែសម្រួលថ្មី)
       // ==========================================
       function openQRModal(amount, currency = null) {
         const modal = document.getElementById("qrModal");
 
+        // បង្ហាញឈ្មោះហាង និង Merchant ID
         document.getElementById("qrUserName").textContent =
           currentMerchant.name;
+
+        // បង្ហាញ Merchant ID ក្រោមឈ្មោះហាង
+        document.getElementById("qrMerchantID").textContent =
+          "MID: " + currentMerchant.merchantId;
 
         let targetCur = currency ? currency : currentMerchant.linkedAccount;
         switchQRCurrency(targetCur);
@@ -2009,17 +2033,16 @@
         document.getElementById("qrCurrencySymbol").innerText =
           currency === "USD" ? "$" : "៛";
 
-        const displayID = currentMerchant.merchantId.replace(
-          /(\d{3})(\d{3})(\d{3})/,
-          "$1 $2 $3",
-        );
-        document.getElementById("qrUserAcc").textContent = displayID;
+        // បង្ហាញ Account Number ក្រោម QR Code (លេខនេះប្រើសម្រាប់បាញ់លុយ)
+        document.getElementById("qrAccountNum").textContent =
+          currentMerchant.accountNumber;
         updateMyQR();
       }
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
-        const targetAcc = currentMerchant.merchantId;
+        // ប្រើ Account Number ជាទិន្នន័យក្នុង QR ដើម្បីឱ្យការបាញ់លុយចូលកុងត្រឹមត្រូវ
+        const targetAcc = currentMerchant.accountNumber;
 
         let qrData = targetAcc;
         if (amount && parseFloat(amount) > 0) qrData = `${targetAcc}:${amount}`;

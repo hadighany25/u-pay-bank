@@ -32,9 +32,9 @@ const merchantSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    balance: {
-      type: Number,
-      default: 0.0,
+    collected: {
+      USD: { type: Number, default: 0.0 },
+      KHR: { type: Number, default: 0 },
     },
     // Keys សម្រាប់ភ្ជាប់ API
     apiKey: {
