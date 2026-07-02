@@ -2301,26 +2301,34 @@
           const data = await response.json();
 
           if (data.success && data.transactions.length > 0) {
-            currentTransactions = data.transactions; // Save ទុកសម្រាប់ Export
+            currentTransactions = data.transactions;
 
             list.innerHTML = data.transactions
-              .map(
-                (t) => `
-              <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${t.type === "Received" ? "var(--secondary)" : "var(--danger)"}">
+              .map((t) => {
+                // 🔥 កែ Logic ត្រង់នេះ៖ ពិនិត្យឈ្មោះតួអក្សរឱ្យប្រាកដ
+                // បើអ្នកមិនប្រាកដពីឈ្មោះ Type ក្នុង DB ទេ ប្រើលក្ខខណ្ឌនេះ៖
+                const isReceived = t.type === "Received" || t.amount > 0;
+                const colorClass = isReceived
+                  ? "var(--secondary)"
+                  : "var(--danger)";
+                const sign = isReceived ? "+" : "-";
+
+                return `
+              <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
                 <div>
                   <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
                   <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
                   <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
                 </div>
                 <div style="text-align:right;">
-                  <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${t.type === "Received" ? "var(--secondary)" : "var(--danger)"}">
-                    ${t.type === "Received" ? "+" : "-"}${t.amount.toFixed(2)} ${t.currency}
+                  <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
+                    ${sign}${t.amount.toFixed(2)} ${t.currency}
                   </h4>
                   <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
                 </div>
               </div>
-            `,
-              )
+            `;
+              })
               .join("");
           } else {
             currentTransactions = []; // Clear ទិន្នន័យ
@@ -2395,32 +2403,34 @@
       // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report)
       // ==========================================
       async function openSalesReport() {
-        // ទាញយក Transactions ទាំងអស់ដែលមានក្នុង currentTransactions
         if (currentTransactions.length === 0) {
           Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យលក់ទេ!", "info");
           return;
         }
 
-        // គណនាផលបូក
-        let total = 0;
+        let totalUSD = 0;
+        let totalKHR = 0;
         let countUSD = 0;
         let countKHR = 0;
 
         currentTransactions.forEach((t) => {
+          // 🔥 កែត្រង់នេះ៖ ត្រួតពិនិត្យថាជាលុយចូល (Received) ទើបបូក
           if (t.type === "Received") {
-            total += t.amount;
-            if (t.currency === "USD") countUSD++;
-            else countKHR++;
+            if (t.currency === "USD") {
+              totalUSD += t.amount;
+              countUSD++;
+            } else if (t.currency === "KHR") {
+              totalKHR += t.amount;
+              countKHR++;
+            }
           }
         });
 
-        // បង្ហាញលទ្ធផល
-        document.getElementById("totalSalesAmount").innerText =
-          `$${total.toFixed(2)}`;
+        // បង្ហាញសរុប (បំបែករូបិយប័ណ្ណដើម្បីកុំឱ្យខុស)
+        document.getElementById("totalSalesAmount").innerHTML =
+          `$${totalUSD.toFixed(2)} <span style="font-size:1rem; color:gray;">/ ៛${totalKHR.toLocaleString()}</span>`;
+
         document.getElementById("salesStats").innerHTML = `
-        <div style="display:flex; justify-content:space-between; padding:10px 0;">
-            <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${currentTransactions.length}</strong>
-        </div>
         <div style="display:flex; justify-content:space-between; padding:10px 0;">
             <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
         </div>
