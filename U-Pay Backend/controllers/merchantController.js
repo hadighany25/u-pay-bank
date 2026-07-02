@@ -153,3 +153,25 @@ exports.getMerchantTransactions = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ៤. មុខងារទាញយកចំណូលហាង (Revenue)
+exports.getMerchantRevenue = async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+    const merchant = await Merchant.findById(merchantId);
+    if (!merchant)
+      return res
+        .status(404)
+        .json({ success: false, message: "Shop not found" });
+
+    // ទាញយកលុយដែលបានពីការលក់ (collected)
+    const revenue =
+      merchant.linkedAccount === "USD"
+        ? merchant.collected?.USD || 0
+        : merchant.collected?.KHR || 0;
+
+    res.status(200).json({ success: true, revenue });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
