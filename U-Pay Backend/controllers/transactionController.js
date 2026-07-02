@@ -94,10 +94,9 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res.status(403).json({
-      success: false,
-      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-    });
+    return res
+      .status(403)
+      .json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
   }
 
   try {
@@ -189,19 +188,21 @@ const transfer = async (req, res) => {
 
     if (isMerchant) {
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
+
       // ក. ចូល Ledger របស់ Merchant
       if (isReceiverKHR) receiverMerchant.collected.KHR += transferAmount;
       else receiverMerchant.collected.USD += transferAmount;
       await receiverMerchant.save();
 
-      // ខ. Auto-Sweep: បូកចូលគណនីម្ចាស់ហាង (Owner)
-      const sender = await User.findById(new mongoose.Types.ObjectId(senderId));
-      if (isReceiverKHR)
-        owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
-      else owner.balance = (owner.balance || 0) + transferAmount;
-      await owner.save();
-
-      receiver = owner; // កំណត់ជាម្ចាស់ហាងដើម្បីធ្វើ Transaction
+      // ខ. Auto-Sweep: ប្រើ findOne({ username: ... }) ដើម្បីកុំឱ្យ Error ObjectId
+      const owner = await User.findOne({ _id: receiverMerchant.userId });
+      if (owner) {
+        if (isReceiverKHR)
+          owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
+        else owner.balance = (owner.balance || 0) + transferAmount;
+        await owner.save();
+        receiver = owner; // សម្រាប់ធ្វើ Transaction
+      }
     } else {
       isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
       if (!isSenderKHR && isReceiverKHR)
@@ -260,11 +261,10 @@ const transfer = async (req, res) => {
       slipData: senderTrx,
     });
   } catch (err) {
-    console.error(err);
+    console.error("TRANSFER ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 // ==========================================
 // 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
 // ==========================================
