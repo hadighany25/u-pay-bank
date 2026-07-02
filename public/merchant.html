@@ -995,7 +995,7 @@
               id="btnMerchant"
               data-lang="merch_business"
             >
-              U-Pay Merchant
+              My Merchant
             </div>
           </div>
         </div>
@@ -1240,23 +1240,63 @@
         </div>
 
         <div style="padding: 20px">
+          <!-- Filter Bar -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px">
+            <select
+              id="salesFilter"
+              class="input-group kh-text"
+              style="margin: 0; flex: 2; padding: 10px"
+              onchange="
+                toggleCustomDate('sales');
+                loadSalesReport();
+              "
+            >
+              <option value="today">ថ្ងៃនេះ</option>
+              <option value="week">សប្តាហ៍នេះ</option>
+              <option value="month">ខែនេះ</option>
+              <option value="custom">ជ្រើសរើសថ្ងៃ</option>
+              <option value="total" selected>សរុបទាំងអស់</option>
+            </select>
+            <input
+              type="date"
+              id="salesCustomDate"
+              class="input-group kh-text"
+              style="display: none; margin: 0; flex: 1; padding: 10px"
+              onchange="loadSalesReport()"
+            />
+          </div>
+
           <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
-            <p class="kh-text" style="color: var(--text-muted)">
-              ចំណូលសរុបដែលបានបូកសរុប
-            </p>
+            <p class="kh-text" style="color: var(--text-muted)">ចំណូលសរុប</p>
             <h1
               id="totalSalesAmount"
               style="font-size: 2rem; color: var(--primary)"
             >
               $0.00
             </h1>
+
+            <!-- Export Buttons -->
+            <div style="display: flex; gap: 10px; margin-top: 15px">
+              <button
+                onclick="exportToExcel()"
+                class="btn-primary"
+                style="flex: 1; background: var(--secondary); padding: 10px"
+              >
+                <i class="fa-solid fa-file-excel"></i> Excel
+              </button>
+              <button
+                onclick="exportToPDF()"
+                class="btn-primary"
+                style="flex: 1; background: var(--danger); padding: 10px"
+              >
+                <i class="fa-solid fa-file-pdf"></i> PDF
+              </button>
+            </div>
           </div>
 
           <div class="card-box" style="margin: 0">
             <h4 class="kh-text">ស្ថិតិការលក់</h4>
-            <div id="salesStats" style="margin-top: 15px">
-              <!-- ទិន្នន័យនឹងលោតមកទីនេះ -->
-            </div>
+            <div id="salesStats" style="margin-top: 15px"></div>
           </div>
         </div>
       </div>
@@ -1609,7 +1649,7 @@
           merch_tab_cashier: "Cashiers",
           merch_tab_report: "Reports",
           merch_personal: "Personal",
-          merch_business: "U-Pay Merchant",
+          merch_business: "My Merchant",
           merch_acc_shop: "Merchant ID:",
           merch_show_qr: "Show QR",
           merch_pin_title: "Confirm PIN",
@@ -1660,7 +1700,7 @@
           merch_tab_cashier: "អ្នកគិតលុយ",
           merch_tab_report: "របាយការណ៍",
           merch_personal: "បុគ្គល",
-          merch_business: "U-Pay Merchant",
+          merch_business: "My Merchant",
           merch_acc_shop: "Merchant ID៖",
           merch_show_qr: "បង្ហាញ QR",
           merch_pin_title: "បញ្ជាក់លេខកូដ",
@@ -2537,10 +2577,10 @@
       // ==========================================
       // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) ថ្មី
       // ==========================================
-      async function openSalesReport() {
-        switchState("state-sales-report");
+      async function loadSalesReport() {
+        const filter = document.getElementById("salesFilter").value;
+        const customDateVal = document.getElementById("salesCustomDate").value;
 
-        // បង្ហាញ Loading តិចៗ
         document.getElementById("totalSalesAmount").innerHTML =
           `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
 
@@ -2558,11 +2598,33 @@
           let totalUSD = 0,
             totalKHR = 0,
             countUSD = 0,
-            countKHR = 0;
+            countKHR = 0,
+            totalTx = 0;
 
           if (data.success && data.transactions) {
+            const now = new Date();
             data.transactions.forEach((t) => {
-              if (t.type === "Received" || t.amount > 0) {
+              const tDate = new Date(t.date);
+              let isMatch = false;
+
+              if (filter === "today")
+                isMatch = tDate.toDateString() === now.toDateString();
+              else if (filter === "week") {
+                const pastWeek = new Date(now);
+                pastWeek.setDate(now.getDate() - 7);
+                isMatch = tDate >= pastWeek;
+              } else if (filter === "month")
+                isMatch =
+                  tDate.getMonth() === now.getMonth() &&
+                  tDate.getFullYear() === now.getFullYear();
+              else if (filter === "custom" && customDateVal)
+                isMatch =
+                  tDate.toDateString() ===
+                  new Date(customDateVal).toDateString();
+              else isMatch = true;
+
+              if (isMatch && (t.type === "Received" || t.amount > 0)) {
+                totalTx++;
                 if (t.currency === "USD") {
                   totalUSD += t.amount;
                   countUSD++;
@@ -2575,21 +2637,32 @@
           }
 
           document.getElementById("totalSalesAmount").innerHTML = `
-        <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
-        <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+      <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
+      <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
     `;
 
           document.getElementById("salesStats").innerHTML = `
-        <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
-            <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:15px 0;">
-            <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
-        </div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${totalTx}</strong></div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong></div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0;"><span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong></div>
     `;
         } catch (e) {
           document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
         }
+      }
+
+      // មុខងារ Export PDF (ប្រើ HTML2Canvas)
+      function exportToPDF() {
+        const element = document.getElementById("state-sales-report");
+        html2canvas(element).then((canvas) => {
+          const imgData = canvas.toDataURL("image/png");
+          // បងអាចប្រើ jsPDF ដើម្បីបង្កើត PDF នៅទីនេះ (ត្រូវការ library jsPDF)
+          // សម្រាប់ឥឡូវ បងអាចឱ្យវា Save ជារូបភាពសិនដើម្បីលឿន
+          const link = document.createElement("a");
+          link.download = `Report_${currentMerchant.name}.png`;
+          link.href = imgData;
+          link.click();
+        });
       }
 
       // ==========================================
