@@ -1141,7 +1141,7 @@
               id="qrMerchantID"
               style="color: #64748b; font-size: 0.9rem; margin-bottom: 10px"
             ></p>
-            <p id="qrUserAcc" class="qr-user-acc">...</p>
+            <p id="qrUserAcc" class="qr-user-acc"></p>
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
@@ -2024,19 +2024,14 @@
 
       function switchQRCurrency(currency) {
         qrCurrency = currency;
-        document
-          .getElementById("btnQRUSD")
-          .classList.toggle("active", currency === "USD");
-        document
-          .getElementById("btnQRKHR")
-          .classList.toggle("active", currency === "KHR");
-        document.getElementById("qrCurrencySymbol").innerText =
-          currency === "USD" ? "$" : "៛";
+        // ប្តូរលេខគណនីឱ្យចំទៅតាមប្រភេទរូបិយប័ណ្ណ
+        const targetAcc =
+          currency === "USD"
+            ? currentMerchant.accountNumbers.USD
+            : currentMerchant.accountNumbers.KHR;
 
-        // បង្ហាញ Account Number ក្រោម QR Code (លេខនេះប្រើសម្រាប់បាញ់លុយ)
-        document.getElementById("qrAccountNum").textContent =
-          currentMerchant.accountNumber;
-        updateMyQR();
+        document.getElementById("qrUserAcc").textContent = targetAcc; // បង្ហាញលេខគណនីឱ្យត្រូវ
+        updateMyQR(); // update ទៅតាមលេខគណនីថ្មីនេះ
       }
 
       function updateMyQR() {

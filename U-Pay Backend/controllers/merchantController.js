@@ -18,7 +18,8 @@ exports.createMerchant = async (req, res) => {
     const userId = req.user.id || req.user._id;
 
     const merchantId = "500" + generateRandomNumber(12);
-    const accountNumber = "888" + generateRandomNumber(9);
+    const accountNumberUSD = "888" + generateRandomNumber(9);
+    const accountNumberKHR = "999" + generateRandomNumber(9); // ឧទាហរណ៍ ផ្តើមដោយ 999 សម្រាប់រៀល
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
@@ -28,9 +29,16 @@ exports.createMerchant = async (req, res) => {
       city,
       linkedAccount,
       merchantId,
-      accountNumber,
+      accountNumbers: {
+        USD: accountNumberUSD,
+        KHR: accountNumberKHR,
+      },
       apiKey,
       apiSecret,
+      collected: {
+        USD: 0.0,
+        KHR: 0,
+      },
     });
 
     const savedMerchant = await newMerchant.save();
@@ -41,7 +49,7 @@ exports.createMerchant = async (req, res) => {
       merchant: {
         id: savedMerchant._id.toString(), // បម្លែងទៅជា String ឱ្យប្រាកដ
         merchantId: savedMerchant.merchantId,
-        accountNumber: savedMerchant.accountNumber,
+        accountNumbers: savedMerchant.accountNumbers,
         name: savedMerchant.name,
         balance: savedMerchant.balance,
         apiKey: savedMerchant.apiKey,
