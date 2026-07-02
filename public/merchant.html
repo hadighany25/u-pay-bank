@@ -1319,16 +1319,37 @@
             padding-bottom: 20px;
           "
         >
-          <img src="https://upay.com/logo.png" style="width: 100px" />
-          <!-- ប្តូរទៅ Logo បង -->
-          <h2 style="color: #004d40">របាយការណ៍លក់ប្រចាំហាង</h2>
-          <p id="pdf-merchant-name" style="font-weight: bold"></p>
-          <p id="pdf-date-range"></p>
+          <!-- ប្រើ logo-nobg.png ដែលបងមានក្នុង folder images -->
+          <img src="images/logo-nobg.png" style="width: 120px" />
+          <h2 style="color: #004d40; margin-top: 10px">
+            របាយការណ៍លក់ប្រចាំហាង
+          </h2>
+          <p
+            id="pdf-merchant-name"
+            style="font-weight: bold; font-size: 1.2rem"
+          ></p>
         </div>
 
         <div style="margin: 30px 0">
-          <h3 style="color: #64748b">សេចក្តីសង្ខេប៖</h3>
-          <div id="pdf-stats" style="font-size: 1.1rem; line-height: 2"></div>
+          <table style="width: 100%; border-collapse: collapse">
+            <tr>
+              <td style="padding: 10px">ចំណូល USD:</td>
+              <td id="pdf-usd" style="text-align: right"></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px">ចំណូល KHR:</td>
+              <td id="pdf-khr" style="text-align: right"></td>
+            </tr>
+            <tr style="border-top: 1px solid #ccc">
+              <td style="padding: 10px; font-weight: bold">
+                ប្រតិបត្តិការសរុប:
+              </td>
+              <td
+                id="pdf-total"
+                style="text-align: right; font-weight: bold"
+              ></td>
+            </tr>
+          </table>
         </div>
 
         <div
@@ -1340,11 +1361,10 @@
         >
           <div>
             <p>ម្ចាស់ហាង:</p>
-            <br /><br />____________________
+            <br /><br />-----------------
           </div>
           <div>
-            <p>ថ្ងៃចេញរបាយការណ៍:</p>
-            <br /><span id="pdf-gen-date"></span>
+            <p>ថ្ងៃទី: <span id="pdf-gen-date"></span></p>
           </div>
         </div>
       </div>
