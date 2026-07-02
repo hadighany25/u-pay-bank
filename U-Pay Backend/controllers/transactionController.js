@@ -93,31 +93,50 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res.status(403).json({
-      success: false,
-      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-    });
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message:
+          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+      });
   }
 
   try {
     const sender = await User.findOne({ username: senderUsername });
-    const receiver = await User.findOne({
+    if (!sender) return res.json({ success: false, message: "Account Error" });
+    if (sender.isFrozen)
+      return res.json({ success: false, message: "Account Frozen" });
+
+    // ១. រកអ្នកទទួល (ឆែកទាំង User និង Merchant)
+    let receiver = await User.findOne({
       $or: [
         { accountNumber: receiverAccount },
         { accountNumberKHR: receiverAccount },
       ],
     });
 
-    if (!sender) return res.json({ success: false, message: "Account Error" });
-    if (sender.isFrozen)
-      return res.json({ success: false, message: "Account Frozen" });
+    let receiverMerchant = null;
+    let isMerchant = false;
 
-    // ឆែក PIN
+    if (!receiver) {
+      receiverMerchant = await Merchant.findOne({
+        $or: [
+          { "accountNumbers.USD": receiverAccount },
+          { "accountNumbers.KHR": receiverAccount },
+        ],
+      });
+      if (receiverMerchant) isMerchant = true;
+    }
+
+    if (!receiver && !receiverMerchant)
+      return res.json({ success: false, message: "Receiver not found" });
+
+    // ២. ឆែក PIN
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
         sender.isFrozen = true;
-        sender.pinAttempts = 0;
         await sender.save();
         return res.json({
           success: false,
@@ -132,195 +151,110 @@ const transfer = async (req, res) => {
     }
     sender.pinAttempts = 0;
 
-    if (!receiver)
-      return res.json({ success: false, message: "Receiver not found" });
-    if (
-      sender.accountNumber === receiverAccount ||
-      sender.accountNumberKHR === receiverAccount
-    ) {
-      return res.json({ success: false, message: "Cannot transfer to self" });
-    }
-
-    // ទាញទិន្នន័យពី Database ផ្ទាល់ៗ (ជួសជុលបញ្ហាជាប់ $10 រហូត)
+    // ៣. គណនីដែនកំណត់ និង Fee
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferLimit = sys ? parseFloat(sys.transferLimit) : 5000;
     const feeTiers = sys ? sys.feeTiers : [];
 
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
-    const isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
     const currentFXRates = readFXRates();
+    let transferUsdAmount = isSenderKHR
+      ? transferAmount / currentFXRates.usdToKhrSell
+      : transferAmount;
 
-    let transferUsdAmount = transferAmount;
-    if (isSenderKHR) {
-      transferUsdAmount = transferAmount / currentFXRates.usdToKhrSell;
-    }
-
-    // ឆែកមើល Limit ប្រចាំថ្ងៃ
-    const todayStr = getFormattedDate().split(",")[0];
-    let todayTotalUsd = 0;
-
-    if (sender.transactions) {
-      sender.transactions.forEach((t) => {
-        if (
-          t.type === "Transfer" &&
-          t.amount < 0 &&
-          t.date.startsWith(todayStr)
-        ) {
-          let pastUsdAmt = Math.abs(t.amount);
-          if (t.currency === "KHR")
-            pastUsdAmt = pastUsdAmt / currentFXRates.usdToKhrSell;
-          todayTotalUsd += pastUsdAmt;
-        }
-      });
-    }
-
-    if (todayTotalUsd + transferUsdAmount > transferLimit) {
-      return res.json({
-        success: false,
-        message: `បដិសេធ! ដែនកំណត់ប្រចាំថ្ងៃរបស់អ្នកគឺ $${transferLimit}។ ថ្ងៃនេះអ្នកវេរអស់ $${todayTotalUsd.toFixed(2)} រួចហើយ! 🛑`,
-      });
-    }
-
-    // គណនាសេវាកម្ម (Force as parseFloat) ការពារ Error បូកអក្សរ
+    // ៤. គណនាសេវា (Fee)
     let appliedFeeUsd = 0;
-    for (let i = 0; i < feeTiers.length; i++) {
-      let tMin = parseFloat(feeTiers[i].min);
-      let tMax = parseFloat(feeTiers[i].max);
-      let tFee = parseFloat(feeTiers[i].fee);
-
-      if (transferUsdAmount >= tMin && transferUsdAmount <= tMax) {
-        appliedFeeUsd = tFee;
+    for (let tier of feeTiers) {
+      if (
+        transferUsdAmount >= parseFloat(tier.min) &&
+        transferUsdAmount <= parseFloat(tier.max)
+      ) {
+        appliedFeeUsd = parseFloat(tier.fee);
         break;
       }
     }
-
-    let appliedFee = appliedFeeUsd;
-    if (isSenderKHR) {
-      appliedFee = appliedFeeUsd * currentFXRates.usdToKhrSell;
-    }
-
-    // សរុបលុយដែលត្រូវកាត់ (Number រួចរាល់)
+    let appliedFee = isSenderKHR
+      ? appliedFeeUsd * currentFXRates.usdToKhrSell
+      : appliedFeeUsd;
     const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
 
-    if (isSenderKHR && (sender.balanceKHR || 0) < totalDeduction) {
-      return res.json({
-        success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់! វេរ: ${transferAmount}៛ + សេវា: ${appliedFee}៛`,
-      });
-    }
-    if (!isSenderKHR && sender.balance < totalDeduction) {
-      return res.json({
-        success: false,
-        message: `សមតុល្យមិនគ្រប់គ្រាន់! វេរ: $${transferAmount} + សេវា: $${appliedFee}`,
-      });
-    }
+    // ៥. ឆែកសមតុល្យ
+    if (isSenderKHR && (sender.balanceKHR || 0) < totalDeduction)
+      return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
+    if (!isSenderKHR && sender.balance < totalDeduction)
+      return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
+    // ៦. ដំណើរការវេរលុយ
     let receiverAmount = transferAmount;
-    if (!isSenderKHR && isReceiverKHR)
-      receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
-    else if (isSenderKHR && !isReceiverKHR)
-      receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
+    let isReceiverKHR = false;
 
+    if (isMerchant) {
+      isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
+      // ក. ចូល Ledger របស់ Merchant
+      if (isReceiverKHR) receiverMerchant.collected.KHR += transferAmount;
+      else receiverMerchant.collected.USD += transferAmount;
+      await receiverMerchant.save();
+
+      // ខ. Auto-Sweep: បូកចូលគណនីម្ចាស់ហាង (Owner)
+      const owner = await User.findById(receiverMerchant.userId);
+      if (isReceiverKHR)
+        owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
+      else owner.balance = (owner.balance || 0) + transferAmount;
+      await owner.save();
+
+      receiver = owner; // កំណត់ជាម្ចាស់ហាងដើម្បីធ្វើ Transaction
+    } else {
+      isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
+      if (!isSenderKHR && isReceiverKHR)
+        receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
+      else if (isSenderKHR && !isReceiverKHR)
+        receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
+
+      if (isReceiverKHR)
+        receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
+      else receiver.balance = (receiver.balance || 0) + receiverAmount;
+      await receiver.save();
+    }
+
+    // ៧. កាត់លុយ sender និងបង្កើត Transaction
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
-
-    if (isReceiverKHR)
-      receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
-    else receiver.balance += receiverAmount;
+    await sender.save();
 
     const date = getFormattedDate();
     const refId = generateRefId();
-    const trxHash = generateHash();
-
     const senderTrx = {
       refId,
-      hash: trxHash,
+      hash: generateHash(),
       date,
       type: "Transfer",
       amount: -totalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
       fee: appliedFee,
       senderName: sender.username,
-      senderAcc: isSenderKHR ? sender.accountNumberKHR : sender.accountNumber,
-      receiverName: receiver.username,
+      receiverName: isMerchant ? receiverMerchant.name : receiver.fullName,
       receiverAcc: receiverAccount,
-      remark: remark || "General",
       status: "Success",
-      device: getDevice(req.headers["user-agent"]),
-      ip: req.ip || "127.0.0.1",
-      trxMethod: trxMethod || "Account Input",
-    };
-
-    const receiverTrx = {
-      ...senderTrx,
-      amount: receiverAmount,
-      fee: 0,
-      currency: isReceiverKHR ? "KHR" : "USD",
-      type: "Received",
     };
 
     sender.transactions.unshift(senderTrx);
-    receiver.transactions.unshift(receiverTrx);
-
-    // បង្កើតសញ្ញាលុយ ផ្អែកលើប្រភេទគណនីអ្នកទទួល
-    const signReceiver = isReceiverKHR ? "៛" : "$";
-
-    receiver.notifications.unshift({
-      id: "NOTIF-" + Date.now(),
-      title: "Money Received!",
-      message: `You have received ${signReceiver}${receiverAmount.toLocaleString("en-US", { minimumFractionDigits: isReceiverKHR ? 0 : 2 })} from ${sender.fullName || sender.username}.`,
-      date: date,
-      isRead: false,
+    receiver.transactions.unshift({
+      ...senderTrx,
+      amount: receiverAmount,
+      fee: 0,
+      type: "Received",
     });
-
-    if (appliedFee > 0) {
-      const feeAccount = await User.findOne({ username: "system_fee" });
-      if (feeAccount) {
-        if (isSenderKHR)
-          feeAccount.balanceKHR = (feeAccount.balanceKHR || 0) + appliedFee;
-        else feeAccount.balance += appliedFee;
-
-        feeAccount.transactions.unshift({
-          refId: "FEE-" + refId,
-          hash: generateHash(),
-          date,
-          type: "System Income",
-          amount: appliedFee,
-          currency: isSenderKHR ? "KHR" : "USD",
-          fee: 0,
-          senderName: sender.username,
-          senderAcc: isSenderKHR
-            ? sender.accountNumberKHR
-            : sender.accountNumber,
-          receiverName: feeAccount.fullName || "U-PAY Fee",
-          receiverAcc: isSenderKHR ? "999999998" : "999999999",
-          remark: "Transfer Fee Revenue",
-          status: "Success",
-          device: "System",
-          ip: "127.0.0.1",
-          trxMethod: "System Auto-Deduct",
-        });
-        feeAccount.markModified("transactions");
-        await feeAccount.save();
-      }
-    }
-
-    sender.markModified("transactions");
-    receiver.markModified("transactions");
-    receiver.markModified("notifications");
     await sender.save();
     await receiver.save();
 
-    // 🔥 កូដ Socket.io ដាក់នៅកន្លែងនេះទើបត្រឹមត្រូវ (ក្រោយ Save ចូល Database ជោគជ័យ)
+    // ៨. Socket.io Update
     const io = req.app.get("io");
-    if (io) {
+    if (io)
       io.to(receiver.username).emit("paymentReceived", {
         amount: receiverAmount,
-        currency: isReceiverKHR ? "KHR" : "USD",
-        senderName: sender.fullName || sender.username,
+        senderName: sender.fullName,
       });
-    }
 
     res.json({
       success: true,
@@ -328,6 +262,7 @@ const transfer = async (req, res) => {
       slipData: senderTrx,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
