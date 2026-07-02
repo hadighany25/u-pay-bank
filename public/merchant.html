@@ -1160,7 +1160,8 @@
           </div>
         </div>
       </div>
-      <!--​ របាយការណ៍ -->
+
+      <!--​ ប្រតិបត្តិការ -->
       <div id="state-reports" class="view-state">
         <div class="header-bar">
           <button class="back-btn" onclick="switchState('state-dashboard')">
@@ -1171,47 +1172,60 @@
         </div>
 
         <div style="padding: 20px">
-          <!-- ផ្នែក Filter និងប៊ូតុង Export -->
+          <!-- ផ្នែក Filter ស្អាតៗ -->
           <div
             style="
               display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 15px;
+              flex-direction: column;
+              gap: 10px;
+              margin-bottom: 20px;
             "
           >
-            <select
-              id="reportFilter"
-              class="input-group kh-text"
-              style="margin-bottom: 0; width: 60%; padding: 10px"
-              onchange="loadTransactions()"
-            >
-              <option value="today">ថ្ងៃនេះ</option>
-              <option value="week">សប្តាហ៍នេះ</option>
-              <option value="month">ខែនេះ</option>
-              <option value="total" selected>សរុបទាំងអស់</option>
-            </select>
-
-            <button
-              onclick="exportToExcel()"
-              class="btn-primary kh-text"
+            <div style="display: flex; gap: 10px">
+              <select
+                id="reportFilter"
+                class="kh-text"
+                style="
+                  flex: 2;
+                  padding: 12px;
+                  border-radius: 12px;
+                  border: 1px solid var(--border-color);
+                  background: white;
+                "
+                onchange="
+                  toggleCustomDate('report');
+                  loadTransactions();
+                "
+              >
+                <option value="today">ថ្ងៃនេះ</option>
+                <option value="week">សប្តាហ៍នេះ</option>
+                <option value="month">ខែនេះ</option>
+                <option value="custom">ជ្រើសរើសថ្ងៃ</option>
+                <option value="total" selected>សរុបទាំងអស់</option>
+              </select>
+              <button
+                onclick="exportToExcel()"
+                class="btn-primary"
+                style="flex: 1; margin: 0; background: var(--secondary)"
+              >
+                <i class="fa-solid fa-file-excel"></i> Export
+              </button>
+            </div>
+            <input
+              type="date"
+              id="reportCustomDate"
+              class="kh-text"
               style="
-                width: 35%;
-                padding: 10px;
-                font-size: 0.9rem;
-                background: var(--secondary);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 5px;
+                display: none;
+                padding: 12px;
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
               "
-            >
-              <i class="fa-solid fa-file-excel"></i> Export
-            </button>
+              onchange="loadTransactions()"
+            />
           </div>
-          <div id="transactionList" style="margin-top: 10px">
-            <!-- កន្លែងបង្ហាញ List ប្រតិបត្តិការ -->
-          </div>
+
+          <div id="transactionList" style="margin-top: 10px"></div>
         </div>
       </div>
 
@@ -1368,7 +1382,6 @@
               id="qrMerchantID"
               style="color: #64748b; font-size: 0.9rem; margin-bottom: 10px"
             ></p>
-            <p id="qrUserAcc" class="qr-user-acc"></p>
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
@@ -1379,7 +1392,7 @@
                 margin-top: 10px;
                 font-family: &quot;JetBrains Mono&quot;;
                 font-weight: bold;
-                color: #004d40;
+                color: #024333;
               "
             ></p>
             <div class="amount-input-area">
@@ -2386,13 +2399,17 @@
 
       // អថេរសម្រាប់ផ្ទុកទិន្នន័យប្រតិបត្តិការបណ្តោះអាសន្ន ដើម្បីយកទៅ Export
       let currentTransactions = [];
-
+      // ==========================================
+      // មុខងារទាញទិន្នន័យប្រតិបត្តិការ�
+      // =========================================
       async function loadTransactions() {
+        const filter = document.getElementById("reportFilter").value;
+        const customDate = document.getElementById("reportCustomDate").value;
         const list = document.getElementById("transactionList");
+
         list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">កំពុងផ្ទុក...</div>`;
 
         try {
-          // ទាញទិន្នន័យទាំងអស់មកដោយផ្ទាល់ (លឿនបំផុត)
           const response = await fetch(
             `/api/merchants/transactions/${currentMerchant.id}`,
             {
@@ -2404,36 +2421,61 @@
           const data = await response.json();
 
           if (data.success && data.transactions.length > 0) {
-            currentTransactions = data.transactions;
-            list.innerHTML = data.transactions
-              .map((t) => {
-                const isReceived = t.type === "Received" || t.amount > 0;
-                const colorClass = isReceived
-                  ? "var(--secondary)"
-                  : "var(--danger)";
-                const sign = isReceived ? "+" : "-";
+            const now = new Date();
 
-                return `
-          <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
-            <div>
-              <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
-              <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
-              <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
-            </div>
-            <div style="text-align:right;">
-              <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
-                ${sign}${t.amount.toFixed(2)} ${t.currency}
-              </h4>
-              <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
-            </div>
-          </div>`;
-              })
-              .join("");
+            // ចម្រាញ់ទិន្នន័យ (Filtering)
+            const filteredData = data.transactions.filter((t) => {
+              const tDate = new Date(t.date);
+              if (filter === "today")
+                return tDate.toDateString() === now.toDateString();
+              if (filter === "week") {
+                const pastWeek = new Date(now);
+                pastWeek.setDate(now.getDate() - 7);
+                return tDate >= pastWeek;
+              }
+              if (filter === "month")
+                return (
+                  tDate.getMonth() === now.getMonth() &&
+                  tDate.getFullYear() === now.getFullYear()
+                );
+              if (filter === "custom" && customDate)
+                return (
+                  tDate.toDateString() === new Date(customDate).toDateString()
+                );
+              return true;
+            });
+
+            currentTransactions = filteredData; // សំខាន់៖ យកទិន្នន័យដែល Filter រួចមកដាក់នៅទីនេះដើម្បី Export
+
+            if (filteredData.length > 0) {
+              list.innerHTML = filteredData
+                .map((t) => {
+                  const isReceived = t.type === "Received" || t.amount > 0;
+                  const colorClass = isReceived
+                    ? "var(--secondary)"
+                    : "var(--danger)";
+                  const sign = isReceived ? "+" : "-";
+                  return `
+                  <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
+                    <div>
+                      <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
+                      <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
+                    </div>
+                    <div style="text-align:right;">
+                      <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">${sign}${t.amount.toFixed(2)} ${t.currency}</h4>
+                      <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
+                    </div>
+                  </div>`;
+                })
+                .join("");
+            } else {
+              list.innerHTML = `<div style="text-align:center; padding: 40px 20px;"><p class="kh-text">មិនមានប្រតិបត្តិការសម្រាប់ជម្រើសនេះ</p></div>`;
+            }
           } else {
-            list.innerHTML = `<div style="text-align:center; padding: 40px 20px; opacity:0.6;"><i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted);"></i><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
+            list.innerHTML = `<div style="text-align:center; padding: 40px 20px;"><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
           }
         } catch (error) {
-          list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហា</p>`;
+          list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
         }
       }
 
