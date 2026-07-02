@@ -2383,90 +2383,100 @@
       let currentTransactions = [];
 
       // ==========================================
-      // មុខងារហៅទិន្នន័យប្រវត្តិប្រតិបត្តិការ (Transactions)
+
+      // មុខងារហៅទិន្នន័យប្រវត្តិប្រតិបត្តិការមកបង្ហាញ
+
       // ==========================================
+
       async function loadTransactions() {
         const filter = document.getElementById("reportFilter").value;
-        const customDateVal = document.getElementById("reportCustomDate").value;
+
         const list = document.getElementById("transactionList");
+
         list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">កំពុងផ្ទុក...</div>`;
 
         try {
           const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}`,
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+
             {
               headers: {
                 Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
               },
             },
           );
+
           const data = await response.json();
 
           if (data.success && data.transactions.length > 0) {
-            const now = new Date();
-            const filteredTx = data.transactions.filter((t) => {
-              const tDate = new Date(t.date);
-              if (filter === "today")
-                return tDate.toDateString() === now.toDateString();
-              if (filter === "week") {
-                const pastWeek = new Date(now);
-                pastWeek.setDate(now.getDate() - 7);
-                return tDate >= pastWeek;
-              }
-              if (filter === "month")
-                return (
-                  tDate.getMonth() === now.getMonth() &&
-                  tDate.getFullYear() === now.getFullYear()
-                );
-              if (filter === "custom") {
-                if (customDateVal) {
-                  const cDate = new Date(customDateVal);
-                  return tDate.toDateString() === cDate.toDateString();
-                }
-                return true;
-              }
-              return true;
-            });
+            currentTransactions = data.transactions;
 
-            currentTransactions = filteredTx;
+            list.innerHTML = data.transactions
 
-            if (filteredTx.length > 0) {
-              list.innerHTML = filteredTx
-                .map((t) => {
-                  const isReceived = t.type === "Received" || t.amount > 0;
-                  const colorClass = isReceived
-                    ? "var(--secondary)"
-                    : "var(--danger)";
-                  const sign = isReceived ? "+" : "-";
+              .map((t) => {
+                // 🔥 កែ Logic ត្រង់នេះ៖ ពិនិត្យឈ្មោះតួអក្សរឱ្យប្រាកដ
 
-                  return `
-                <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
-                  <div>
-                    <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
-                    <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
-                    <p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
-                  </div>
-                  <div style="text-align:right;">
-                    <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
-                      ${sign}${t.amount.toFixed(2)} ${t.currency}
-                    </h4>
-                    <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
-                  </div>
-                </div>`;
-                })
-                .join("");
-            } else {
-              list.innerHTML = `<div style="text-align:center; padding: 40px 20px; opacity:0.6;"><i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេសម្រាប់ថ្ងៃនេះ</p></div>`;
-            }
+                // បើអ្នកមិនប្រាកដពីឈ្មោះ Type ក្នុង DB ទេ ប្រើលក្ខខណ្ឌនេះ៖
+
+                const isReceived = t.type === "Received" || t.amount > 0;
+
+                const colorClass = isReceived
+                  ? "var(--secondary)"
+                  : "var(--danger)";
+
+                const sign = isReceived ? "+" : "-";
+
+                return `
+
+<div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
+
+<div>
+
+<h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
+
+<p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
+
+<p style="margin:0; font-size:0.7rem; color:gray;">Ref: ${t.refId}</p>
+
+</div>
+
+<div style="text-align:right;">
+
+<h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">
+
+${sign}${t.amount.toFixed(2)} ${t.currency}
+
+</h4>
+
+<p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
+
+</div>
+
+</div>
+
+`;
+              })
+
+              .join("");
           } else {
-            currentTransactions = [];
-            list.innerHTML = `<div style="text-align:center; padding: 40px 20px; opacity:0.6;"><i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
+            currentTransactions = []; // Clear ទិន្នន័យ
+
+            list.innerHTML = `
+
+<div style="text-align:center; padding: 40px 20px; opacity:0.6;">
+
+<i class="fa-solid fa-receipt" style="font-size:3rem; color:var(--text-muted); margin-bottom:15px;"></i>
+
+<p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p>
+
+</div>`;
           }
         } catch (error) {
+          console.error("Error loading transactions:", error);
+
           list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
         }
       }
-
       // ==========================================
       // មុខងារ Export ទិន្នន័យទៅជាឯកសារ Excel (CSV)
       // ==========================================
