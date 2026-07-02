@@ -1017,23 +1017,7 @@
               ចំណូលសរុប
             </p>
             <div style="display: flex; gap: 5px">
-              <select
-                id="revenueFilter"
-                class="kh-text"
-                style="
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  padding: 4px 8px;
-                  font-size: 0.8rem;
-                  background: var(--bg-main);
-                  outline: none;
-                  cursor: pointer;
-                "
-                onchange="
-                  toggleCustomDate('revenue');
-                  fetchMerchantRevenue();
-                "
-              >
+              <select id="filterDashboard" onchange="applyFilter('dashboard')">
                 <option value="today">ថ្ងៃនេះ</option>
                 <option value="week">សប្តាហ៍នេះ</option>
                 <option value="month">ខែនេះ</option>
@@ -1182,13 +1166,8 @@
             "
           >
             <select
-              id="salesFilter"
-              class="input-group kh-text"
-              style="margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="
-                toggleCustomDate('sales');
-                loadSalesReport();
-              "
+              id="filterTransactions"
+              onchange="applyFilter('transactions')"
             >
               <option value="today">ថ្ងៃនេះ</option>
               <option value="week">សប្តាហ៍នេះ</option>
@@ -1204,13 +1183,13 @@
               onchange="loadSalesReport()"
             />
           </div>
-
+          currentTransactions = filtered;
           <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
             <button
               onclick="exportToExcel()"
               class="btn-primary kh-text"
               style="
-                width: 35%;
+                width: 100%;
                 padding: 10px;
                 font-size: 0.9rem;
                 background: var(--secondary);
@@ -1250,15 +1229,7 @@
               gap: 10px;
             "
           >
-            <select
-              id="salesFilter"
-              class="input-group kh-text"
-              style="margin-bottom: 0; flex: 1; padding: 10px"
-              onchange="
-                toggleCustomDate('sales');
-                loadSalesReport();
-              "
-            >
+            <select id="filterSales" onchange="applyFilter('sales')">
               <option value="today">ថ្ងៃនេះ</option>
               <option value="week">សប្តាហ៍នេះ</option>
               <option value="month">ខែនេះ</option>
@@ -2677,6 +2648,31 @@
         }
       }
 
+      async function applyFilter(view) {
+        let filterId =
+          view === "dashboard"
+            ? "filterDashboard"
+            : view === "transactions"
+              ? "filterTransactions"
+              : "filterSales";
+        let dateId =
+          view === "dashboard"
+            ? "revenueCustomDate"
+            : view === "transactions"
+              ? "reportCustomDate"
+              : "salesCustomDate";
+
+        const filter = document.getElementById(filterId).value;
+        const customDate = document.getElementById(dateId).value;
+        const dateInput = document.getElementById(dateId);
+        if (dateInput)
+          dateInput.style.display = filter === "custom" ? "block" : "none";
+
+        // ហៅទៅមុខងារនីមួយៗដើម្បី Update ផ្ទាំងនោះ
+        if (view === "dashboard") fetchMerchantRevenue();
+        if (view === "transactions") loadTransactions();
+        if (view === "sales") loadSalesReport();
+      }
       // ==========================================
       // មុខងារប្តូរទៅគណនីផ្ទាល់ខ្លួន (Personal Account)
       // ==========================================
