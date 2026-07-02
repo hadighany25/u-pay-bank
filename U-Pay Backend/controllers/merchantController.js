@@ -71,21 +71,20 @@ exports.createMerchant = async (req, res) => {
 // ២. មុខងារទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
 exports.getMyMerchants = async (req, res) => {
   try {
-    // ១. រកមើល User ជាមុនសិន ដើម្បីទាញយក username ឱ្យបានច្បាស់លាស់ ១០០%
-    const me = await User.findById(req.user.id || req.user._id);
-    if (!me)
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+    // យក username ពី req.user ដែលបានមកពី Auth Middleware
+    const username = req.user.username;
+    console.log("Fetching merchants for username:", username); // បន្ថែម Log នេះដើម្បីមើលក្នុង terminal
 
-    // ២. យក username របស់គាត់ទៅឆែករកហាងទាំងអស់
-    const merchants = await Merchant.find({ userId: me.username }).select(
+    // ស្វែងរកហាងតាម userId ដែលយើងបាន Save ជា username
+    const merchants = await Merchant.find({ userId: username }).select(
       "-apiSecret",
     );
 
+    console.log("Found merchants:", merchants); // បន្ថែម Log នេះដើម្បីមើលថាតើវាឃើញហាងដែរឬទេ
+
     res.status(200).json({ success: true, merchants });
   } catch (error) {
-    console.error("DEBUG ERROR (GET):", error);
+    console.error("ERROR IN getMyMerchants:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
