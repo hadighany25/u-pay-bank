@@ -78,7 +78,6 @@ const checkAccount = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 // ==========================================
 // ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវាដែលបានជួសជុលរួច
 // ==========================================
@@ -94,13 +93,10 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message:
-          "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
+    });
   }
 
   try {
@@ -191,24 +187,42 @@ const transfer = async (req, res) => {
     if (isMerchant) {
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
 
-      // ក. ចូល Ledger របស់ Merchant
-      if (isReceiverKHR) receiverMerchant.collected.KHR += transferAmount;
-      else receiverMerchant.collected.USD += transferAmount;
+      // 🔥 ជួសជុលទី១: បម្លែងអត្រាប្រាក់មុននឹងបូកបញ្ចូល Ledger របស់ហាង
+      if (!isSenderKHR && isReceiverKHR)
+        receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
+      else if (isSenderKHR && !isReceiverKHR)
+        receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
+
+      // ក. ចូល Ledger របស់ Merchant (ប្រើ receiverAmount)
+      if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
+      else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
-      // ខ. Auto-Sweep: រកម្ចាស់ហាងតាម username (ព្រោះ userId ក្នុង Merchant គឺជា String)
-      const owner = await User.findOne({ username: receiverMerchant.userId });
+      // ខ. Auto-Sweep: ស្វែងរកម្ចាស់ហាងឱ្យទូលំទូលាយជាងមុន
+      const owner = await User.findOne({
+        $or: [
+          { username: receiverMerchant.userId },
+          { accountNumber: receiverMerchant.userId },
+          { accountNumberKHR: receiverMerchant.userId },
+        ],
+      });
+
       if (owner) {
         if (isReceiverKHR)
-          owner.balanceKHR = (owner.balanceKHR || 0) + transferAmount;
-        else owner.balance = (owner.balance || 0) + transferAmount;
+          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
+        else owner.balance = (owner.balance || 0) + receiverAmount;
         await owner.save();
         receiver = owner; // ប្រើ owner ជា receiver ដើម្បីបន្តធ្វើ Transaction
       } else {
+        // 🔥 ជួសជុលទី២ និង ទី៣: ការពារការគាំងប្រព័ន្ធ (Crash) ប្រសិនបើររកម្ចាស់ហាងមិនឃើញ
         console.error(
           "Auto-Sweep Error: Owner not found for userId:",
           receiverMerchant.userId,
         );
+        return res.json({
+          success: false,
+          message: "ប្រព័ន្ធមានបញ្ហា៖ រកគណនីម្ចាស់ហាងមិនឃើញ",
+        });
       }
     } else {
       isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
@@ -251,6 +265,8 @@ const transfer = async (req, res) => {
       fee: 0,
       type: "Received",
     });
+
+    // បញ្ជាក់ការ Save ម្តងទៀត ដើម្បីធានាថា Transaction ចូល
     await sender.save();
     await receiver.save();
 
@@ -271,7 +287,6 @@ const transfer = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 // ==========================================
 // 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
 // ==========================================
