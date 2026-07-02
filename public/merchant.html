@@ -2058,8 +2058,9 @@
           );
         }
       }
+
       // ==========================================
-      // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard)
+      // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard) - បែបលឿន
       // ==========================================
       async function openMerchant(id) {
         // ១. រកមើលទិន្នន័យហាងតាមរយៈ ID
@@ -2094,14 +2095,14 @@
             .toUpperCase();
         }
 
-        // ៥. ប្តូរពី dashBalance មកហៅ dashBalUSD និង dashBalKHR វិញ
-        document.getElementById("dashBalUSD").innerText = "$...";
-        document.getElementById("dashBalKHR").innerText = "៛..."; // លុបសញ្ញា / ចេញ
+        // ៥. 🔥 កន្លែងធ្វើឱ្យលឿន៖ ដាក់លេខ 0 ភ្លាមៗ (មិនបាច់ដាក់ ... នាំឱ្យមានអារម្មណ៍ថាយឺតទេ)
+        document.getElementById("dashBalUSD").innerText = "$0.00";
+        document.getElementById("dashBalKHR").innerText = "៛0";
 
         // ទាញទិន្នន័យចំណូល
         fetchMerchantRevenue();
 
-        // ៦. ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាង
+        // ៦. ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាងភ្លាមៗដោយគ្មានការរង់ចាំ
         switchState("state-dashboard");
       }
 
@@ -2464,25 +2465,27 @@
       }
 
       // ==========================================
-      // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report)
+      // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) - បែបលឿន
       // ==========================================
       async function openSalesReport() {
-        // ១. បង្ហាញ Loading សិន
-        Swal.fire({
-          title: "កំពុងផ្ទុកទិន្នន័យ...",
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
-        });
+        // ១. ប្តូរទៅផ្ទាំង Report ភ្លាមៗ (លឿនដូចផ្លេកបន្ទោរ គ្មានការរង់ចាំ)
+        switchState("state-sales-report");
 
-        // ២. ទាញយកទិន្នន័យថ្មីៗពី Server មុននឹងគណនា
+        // ២. ដាក់អក្សរ "កំពុងគណនា..." ទាន់សម័យ ពេលវាកំពុងបូកលុយ
+        document.getElementById("totalSalesAmount").innerHTML = `
+            <span style="color: var(--text-muted); font-size: 1.2rem;">កំពុងគណនា...</span>
+        `;
+        document.getElementById("salesStats").innerHTML = "";
+
+        // ៣. ទាញទិន្នន័យស្ងាត់ៗនៅខាងក្រោយ
         await loadTransactions();
 
-        // ៣. បិទ Loading
-        Swal.close();
-
-        // ៤. ពិនិត្យទិន្នន័យ
+        // ៤. បើគ្មានទិន្នន័យ លោតលេខ 0 ភ្លាម
         if (currentTransactions.length === 0) {
-          Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យលក់ទេ!", "info");
+          document.getElementById("totalSalesAmount").innerHTML = `
+              <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$0.00</span>
+              <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛0</span>
+          `;
           return;
         }
 
@@ -2492,7 +2495,6 @@
         let countKHR = 0;
 
         currentTransactions.forEach((t) => {
-          // ប្រើលក្ខខណ្ឌដែលយើងបានព្រមព្រៀងគ្នា (Received ឬ amount > 0)
           if (t.type === "Received" || t.amount > 0) {
             if (t.currency === "USD") {
               totalUSD += t.amount;
@@ -2504,13 +2506,12 @@
           }
         });
 
-        // ៥. បង្ហាញសរុប
+        // ៥. លោតលេខសរុបមកជំនួសវិញភ្លាមៗពេលគណនាចប់
         document.getElementById("totalSalesAmount").innerHTML = `
             <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
             <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
         `;
 
-        // ៦. បង្ហាញស្ថិតិដែលបាត់ (កុំភ្លេចដាក់កូដនេះចូលវិញ)
         document.getElementById("salesStats").innerHTML = `
             <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
                 <span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${currentTransactions.length}</strong>
@@ -2522,8 +2523,6 @@
                 <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
             </div>
         `;
-
-        switchState("state-sales-report");
       }
 
       // ==========================================
