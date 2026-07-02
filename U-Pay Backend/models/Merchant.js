@@ -27,10 +27,9 @@ const merchantSchema = new mongoose.Schema(
       unique: true,
     },
     // លេខគណនីហាង ១២ ខ្ទង់ (សម្រាប់ទទួលលុយ)
-    accountNumber: {
-      type: String,
-      required: true,
-      unique: true,
+    accountNumbers: {
+      USD: { type: String, required: true },
+      KHR: { type: String, required: true },
     },
     collected: {
       USD: { type: Number, default: 0.0 },
