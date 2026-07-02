@@ -1103,52 +1103,6 @@
           </div>
         </div>
 
-        <!-- Minu -->
-        <div class="action-grid">
-          <div class="dash-btn" onclick="switchState('state-receive')">
-            <i
-              class="fa-solid fa-hand-holding-dollar"
-              style="color: var(--secondary)"
-            ></i>
-            <span class="kh-text" data-lang="merch_receive"
-              >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
-            >
-          </div>
-
-          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick ឱ្យទៅបើកផ្ទាំង Report និងទាញទិន្នន័យ -->
-          <div
-            class="dash-btn"
-            onclick="
-              switchState('state-reports');
-              loadTransactions();
-            "
-          >
-            <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
-            <span class="kh-text" data-lang="merch_trx"
-              >ប្រវត្តិប្រតិបត្តិការ</span
-            >
-          </div>
-
-          <div class="dash-btn" onclick="openQRModal(null)">
-            <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
-            <span class="kh-text" data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
-          </div>
-
-          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick បង្ហាញសារជូនដំណឹងសម្រាប់ Sales Report -->
-          <div
-            class="dash-btn"
-            onclick="
-              Swal.fire(
-                'មុខងារថ្មី',
-                'របាយការណ៍លក់លម្អិតនឹងមកដល់ឆាប់ៗនេះ!',
-                'info',
-              )
-            "
-          >
-            <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
-            <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
-          </div>
-        </div>
         <!--  -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
@@ -2160,6 +2114,52 @@
       }
 
       // ==========================================
+      // មុខងារទាញយកចំណូល (Revenue Fetching)
+      // ==========================================
+      async function fetchMerchantRevenue() {
+        if (!currentMerchant) return;
+
+        const filter = document.getElementById("revenueFilter").value;
+
+        // ដាក់ Loading សិន ពេលកំពុងទាញទិន្នន័យ
+        document.getElementById("dashBalUSD").innerText = "$...";
+        document.getElementById("dashBalKHR").innerText = "៛...";
+
+        try {
+          const token = sessionStorage.getItem("userToken");
+
+          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
+          const response = await fetch(
+            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          const data = await response.json();
+
+          let totalUSD = 0;
+          let totalKHR = 0;
+
+          if (data.success && data.transactions) {
+            data.transactions.forEach((t) => {
+              if (t.type === "Received" || t.amount > 0) {
+                if (t.currency === "USD") totalUSD += t.amount;
+                if (t.currency === "KHR") totalKHR += t.amount;
+              }
+            });
+          }
+
+          // បង្ហាញលទ្ធផលលុយទាំង ២ បន្ទាប់ពីគណនារួច
+          document.getElementById("dashBalUSD").innerText =
+            `$${totalUSD.toFixed(2)}`;
+          document.getElementById("dashBalKHR").innerText =
+            `៛${totalKHR.toLocaleString()}`;
+        } catch (error) {
+          console.error("Error fetching revenue:", error);
+          document.getElementById("dashBalUSD").innerText = "$0.00";
+          document.getElementById("dashBalKHR").innerText = "៛0";
+        }
+      }
+
+      // ==========================================
       // 🔄 TAB SWITCHING LOGIC (Branches, Cashiers, Reports)
       // ==========================================
       function switchMerchantTab(element, tabName) {
@@ -2340,53 +2340,6 @@
           btnClose.style.display = "flex";
           toggleBar.style.display = "flex";
         });
-      }
-
-      // ==========================================
-      // មុខងារទាញយកចំណូល (Revenue Fetching)
-      // ==========================================
-      async function fetchMerchantRevenue() {
-        if (!currentMerchant) return;
-
-        const filter = document.getElementById("revenueFilter").value;
-
-        // បង្ហាញលទ្ធផលលុយទាំង ២ (លុបសញ្ញា / ចេញពីទីនេះ)
-        document.getElementById("dashBalUSD").innerText =
-          `$${totalUSD.toFixed(2)}`;
-        document.getElementById("dashBalKHR").innerText =
-          `៛${totalKHR.toLocaleString()}`;
-        try {
-          const token = sessionStorage.getItem("userToken");
-
-          // ប្រើ API ប្រវត្តិប្រតិបត្តិការ ដើម្បីយកមកបូកបញ្ចូលគ្នា (ដូច Sales Report ដែរ)
-          const response = await fetch(
-            `/api/merchants/transactions/${currentMerchant.id}?filter=${filter}`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          const data = await response.json();
-
-          let totalUSD = 0;
-          let totalKHR = 0;
-
-          if (data.success && data.transactions) {
-            data.transactions.forEach((t) => {
-              if (t.type === "Received" || t.amount > 0) {
-                if (t.currency === "USD") totalUSD += t.amount;
-                if (t.currency === "KHR") totalKHR += t.amount;
-              }
-            });
-          }
-
-          // បង្ហាញលទ្ធផលលុយទាំង ២
-          document.getElementById("dashBalUSD").innerText =
-            `$${totalUSD.toFixed(2)}`;
-          document.getElementById("dashBalKHR").innerText =
-            `/ ៛${totalKHR.toLocaleString()}`;
-        } catch (error) {
-          console.error("Error fetching revenue:", error);
-          document.getElementById("dashBalUSD").innerText = "$0.00";
-          document.getElementById("dashBalKHR").innerText = "/ ៛0";
-        }
       }
 
       // អថេរសម្រាប់ផ្ទុកទិន្នន័យប្រតិបត្តិការបណ្តោះអាសន្ន ដើម្បីយកទៅ Export
