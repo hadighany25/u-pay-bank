@@ -2577,6 +2577,64 @@
       // ==========================================
       // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) ថ្មី
       // ==========================================
+      async function openSalesReport() {
+        switchState("state-sales-report");
+
+        // បង្ហាញ Loading តិចៗ
+        document.getElementById("totalSalesAmount").innerHTML =
+          `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
+
+        try {
+          const response = await fetch(
+            `/api/merchants/transactions/${currentMerchant.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+              },
+            },
+          );
+          const data = await response.json();
+
+          let totalUSD = 0,
+            totalKHR = 0,
+            countUSD = 0,
+            countKHR = 0;
+
+          if (data.success && data.transactions) {
+            data.transactions.forEach((t) => {
+              if (t.type === "Received" || t.amount > 0) {
+                if (t.currency === "USD") {
+                  totalUSD += t.amount;
+                  countUSD++;
+                } else if (t.currency === "KHR") {
+                  totalKHR += t.amount;
+                  countKHR++;
+                }
+              }
+            });
+          }
+
+          document.getElementById("totalSalesAmount").innerHTML = `
+        <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
+        <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+    `;
+
+          document.getElementById("salesStats").innerHTML = `
+        <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
+            <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:15px 0;">
+            <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
+        </div>
+    `;
+        } catch (e) {
+          document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
+        }
+      }
+
+      // ==========================================
+      // មុខងារទាញទិន្នន័យរបាយការណ៍លក់ (Sales Report) ជាមួយ Filter
+      // ==========================================
       async function loadSalesReport() {
         const filter = document.getElementById("salesFilter").value;
         const customDateVal = document.getElementById("salesCustomDate").value;
