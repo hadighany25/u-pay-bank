@@ -1121,7 +1121,7 @@
           </div>
         </div>
 
-        <!--  -->
+        <!-- ប្រតិបត្តិការ -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
             <i
@@ -1240,23 +1240,110 @@
         </div>
 
         <div style="padding: 20px">
+          <!-- Filter Bar -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px">
+            <select
+              id="salesFilter"
+              class="input-group kh-text"
+              style="margin: 0; flex: 2; padding: 10px"
+              onchange="
+                toggleCustomDate('sales');
+                loadSalesReport();
+              "
+            >
+              <option value="today">ថ្ងៃនេះ</option>
+              <option value="week">សប្តាហ៍នេះ</option>
+              <option value="month">ខែនេះ</option>
+              <option value="custom">ជ្រើសរើសថ្ងៃ</option>
+              <option value="total" selected>សរុបទាំងអស់</option>
+            </select>
+            <input
+              type="date"
+              id="salesCustomDate"
+              class="input-group kh-text"
+              style="display: none; margin: 0; flex: 1; padding: 10px"
+              onchange="loadSalesReport()"
+            />
+          </div>
+
           <div class="card-box" style="text-align: center; margin: 0 0 20px 0">
-            <p class="kh-text" style="color: var(--text-muted)">
-              ចំណូលសរុបដែលបានបូកសរុប
-            </p>
+            <p class="kh-text" style="color: var(--text-muted)">ចំណូលសរុប</p>
             <h1
               id="totalSalesAmount"
               style="font-size: 2rem; color: var(--primary)"
             >
               $0.00
             </h1>
+
+            <!-- Export Buttons -->
+            <div style="display: flex; gap: 10px; margin-top: 15px">
+              <button
+                onclick="exportToExcel()"
+                class="btn-primary"
+                style="flex: 1; background: var(--secondary); padding: 10px"
+              >
+                <i class="fa-solid fa-file-excel"></i> Excel
+              </button>
+              <button
+                onclick="exportToPDF()"
+                class="btn-primary"
+                style="flex: 1; background: var(--danger); padding: 10px"
+              >
+                <i class="fa-solid fa-file-pdf"></i> PDF
+              </button>
+            </div>
           </div>
 
           <div class="card-box" style="margin: 0">
             <h4 class="kh-text">ស្ថិតិការលក់</h4>
-            <div id="salesStats" style="margin-top: 15px">
-              <!-- ទិន្នន័យនឹងលោតមកទីនេះ -->
-            </div>
+            <div id="salesStats" style="margin-top: 15px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- PDF Template -->
+      <div
+        id="pdf-template"
+        style="
+          display: none;
+          width: 595px;
+          padding: 40px;
+          background: white;
+          font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+        "
+      >
+        <div
+          style="
+            text-align: center;
+            border-bottom: 2px solid #004d40;
+            padding-bottom: 20px;
+          "
+        >
+          <img src="images/logo.png" style="width: 100px" />
+          <!-- ប្តូរទៅ Logo បង -->
+          <h2 style="color: #004d40">របាយការណ៍លក់ប្រចាំហាង</h2>
+          <p id="pdf-merchant-name" style="font-weight: bold"></p>
+          <p id="pdf-date-range"></p>
+        </div>
+
+        <div style="margin: 30px 0">
+          <h3 style="color: #64748b">សេចក្តីសង្ខេប៖</h3>
+          <div id="pdf-stats" style="font-size: 1.1rem; line-height: 2"></div>
+        </div>
+
+        <div
+          style="
+            margin-top: 100px;
+            display: flex;
+            justify-content: space-between;
+          "
+        >
+          <div>
+            <p>ម្ចាស់ហាង:</p>
+            <br /><br />____________________
+          </div>
+          <div>
+            <p>ថ្ងៃចេញរបាយការណ៍:</p>
+            <br /><span id="pdf-gen-date"></span>
           </div>
         </div>
       </div>
@@ -2586,10 +2673,125 @@
         <div style="display:flex; justify-content:space-between; padding:15px 0;">
             <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
         </div>
+        <div style="display:flex; justify-content:space-between; padding:15px 0;">
+            <span>ប្រតិបត្តិការសរុប:</span> <strong>${countUSD + countKHR}</strong>
+        </div>
     `;
         } catch (e) {
           document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
         }
+      }
+
+      // ==========================================
+      // មុខងារទាញទិន្នន័យរបាយការណ៍លក់ (Sales Report) ជាមួយ Filter
+      // ==========================================
+      async function loadSalesReport() {
+        const filter = document.getElementById("salesFilter").value;
+        const customDateVal = document.getElementById("salesCustomDate").value;
+
+        document.getElementById("totalSalesAmount").innerHTML =
+          `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
+
+        try {
+          const response = await fetch(
+            `/api/merchants/transactions/${currentMerchant.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+              },
+            },
+          );
+          const data = await response.json();
+
+          let totalUSD = 0,
+            totalKHR = 0,
+            countUSD = 0,
+            countKHR = 0,
+            totalTx = 0;
+
+          if (data.success && data.transactions) {
+            const now = new Date();
+            data.transactions.forEach((t) => {
+              const tDate = new Date(t.date);
+              let isMatch = false;
+
+              if (filter === "today")
+                isMatch = tDate.toDateString() === now.toDateString();
+              else if (filter === "week") {
+                const pastWeek = new Date(now);
+                pastWeek.setDate(now.getDate() - 7);
+                isMatch = tDate >= pastWeek;
+              } else if (filter === "month")
+                isMatch =
+                  tDate.getMonth() === now.getMonth() &&
+                  tDate.getFullYear() === now.getFullYear();
+              else if (filter === "custom" && customDateVal)
+                isMatch =
+                  tDate.toDateString() ===
+                  new Date(customDateVal).toDateString();
+              else isMatch = true;
+
+              if (isMatch && (t.type === "Received" || t.amount > 0)) {
+                totalTx++;
+                if (t.currency === "USD") {
+                  totalUSD += t.amount;
+                  countUSD++;
+                } else if (t.currency === "KHR") {
+                  totalKHR += t.amount;
+                  countKHR++;
+                }
+              }
+            });
+          }
+
+          document.getElementById("totalSalesAmount").innerHTML = `
+      <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
+      <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
+    `;
+
+          document.getElementById("salesStats").innerHTML = `
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${totalTx}</strong></div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong></div>
+      <div style="display:flex; justify-content:space-between; padding:10px 0;"><span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong></div>
+    `;
+        } catch (e) {
+          document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
+        }
+      }
+
+      async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF("p", "pt", "a4");
+
+        // ១. បំពេញទិន្នន័យចូល Template
+        document.getElementById("pdf-merchant-name").innerText =
+          currentMerchant.name;
+        document.getElementById("pdf-date-range").innerText =
+          "រយៈពេល: " +
+          document.getElementById("salesFilter").options[
+            document.getElementById("salesFilter").selectedIndex
+          ].text;
+        document.getElementById("pdf-gen-date").innerText =
+          new Date().toLocaleDateString();
+
+        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
+        document.getElementById("pdf-stats").innerHTML =
+          document.getElementById("salesStats").innerHTML;
+
+        // ២. បំប្លែង Template ទៅជា PDF
+        const element = document.getElementById("pdf-template");
+        element.style.display = "block"; // បង្ហាញវាបណ្តោះអាសន្ន
+
+        doc.html(element, {
+          callback: function (doc) {
+            doc.save(`Sales_Report_${currentMerchant.name}.pdf`);
+            element.style.display = "none"; // លាក់វិញ
+          },
+          x: 40,
+          y: 40,
+          width: 520, // កំណត់ទទឹង A4
+          windowWidth: 600,
+        });
       }
 
       // ==========================================
