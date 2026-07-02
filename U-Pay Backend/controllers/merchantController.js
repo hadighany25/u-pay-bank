@@ -23,6 +23,7 @@ exports.createMerchant = async (req, res) => {
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
+    // ត្រូវតែប្រាកដថាដាក់ឈ្មោះនេះ (មាន s នៅខាងក្រោយ)
     const newMerchant = new Merchant({
       userId,
       name,
@@ -30,6 +31,7 @@ exports.createMerchant = async (req, res) => {
       linkedAccount,
       merchantId,
       accountNumbers: {
+        // ត្រូវប្រាកដថាប្រើឈ្មោះនេះ
         USD: accountNumberUSD,
         KHR: accountNumberKHR,
       },
