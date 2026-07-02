@@ -1779,6 +1779,57 @@
         }
       }
 
+      // ==========================================
+      // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard)
+      // ==========================================
+      function openMerchant(id) {
+        // រកមើលទិន្នន័យហាងតាមរយៈ ID
+        currentMerchant = user.merchantProfile.merchants.find(
+          (m) => m.id === id,
+        );
+
+        if (!currentMerchant) {
+          console.error("Merchant not found in session!");
+          return;
+        }
+
+        // ដាក់ឈ្មោះហាងនៅក្បាលលើ
+        document.getElementById("dashStoreName").innerText =
+          currentMerchant.name;
+        document.getElementById("recvStoreName").innerText =
+          currentMerchant.name;
+
+        // កំណត់សញ្ញាដុល្លារ ($) ឬ រៀល (៛) តាមការជ្រើសរើសរបស់ហាង
+        const curSym = currentMerchant.linkedAccount === "USD" ? "$" : "៛";
+
+        // បង្ហាញលុយ
+        document.getElementById("dashBalance").innerText =
+          curSym + (currentMerchant.balance || 0).toFixed(2);
+
+        // បង្ហាញលេខ ID ហាង (កាត់ជា ៣ដុំ ឧ. 500 123 456)
+        const displayID = currentMerchant.merchantId.replace(
+          /(\d{3})(\d{3})(\d{3})/,
+          "$1 $2 $3",
+        );
+        document.getElementById("dashAccInfo").innerText = displayID;
+
+        // ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu បញ្ឈរ
+        document.getElementById("sbName").innerText = currentMerchant.name;
+        document.getElementById("sbId").innerText = displayID;
+        document.getElementById("sbAvatar").innerText = currentMerchant.name
+          .substring(0, 1)
+          .toUpperCase();
+
+        // ដូរម៉ាស៊ីនគិតលេខឱ្យត្រូវនឹងរូបិយប័ណ្ណហាង
+        setCalcCur(currentMerchant.linkedAccount);
+
+        // ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាង
+        switchState("state-dashboard");
+      }
+
+      // ==========================================
+      // 🖱️ SIDEBAR TOGGLE LOGIC
+      // ==========================================
       function toggleSidebar() {
         document.getElementById("sidebar").classList.toggle("active");
         document.getElementById("sidebarOverlay").classList.toggle("active");
