@@ -1,6 +1,9 @@
 const translations = {
+  // English Translation
   en: {
+    // =====================================
     // --- DASHBOARD ---
+    // =====================================
     greeting_morning: "Good Morning",
     greeting_afternoon: "Good Afternoon",
     greeting_evening: "Good Evening",
@@ -14,9 +17,20 @@ const translations = {
     nav_home: "Home",
     nav_scan: "Scan",
     nav_setting: "Settings",
+    nav_history: "History",
+    nav_settings: "Settings",
     no_trx: "No transactions yet",
+    btn_card: "Cards",
+    btn_analytics: "Analytics",
+    btn_savings: "Savings",
+    btn_split: "Split Bill",
+    btn_deposit: "Deposit",
+    btn_merchant: "Merchant",
+    btn_promo: "Promo",
 
+    // =====================================
     // --- TRANSFER & PAYMENT ---
+    // =====================================
     nav_transaction: "Transactions",
     tab_transfer: "Transfer Money",
     tab_payment: "Bill Payment",
@@ -29,7 +43,9 @@ const translations = {
     checking_name: "Checking...",
     unknown_user: "Unknown User",
 
+    // =====================================
     // --- SCAN QR (NEW) ---
+    // =====================================
     scan_title: "Scan QR Code",
     scan_instruction: "Place QR code inside the frame",
     btn_gallery: "Gallery",
@@ -37,7 +53,9 @@ const translations = {
     my_qr_title: "My Receive QR",
     save_qr: "Save QR",
 
+    // =====================================
     // --- SETTINGS ---
+    // =====================================
     settings_title: "Settings",
     profile_role: "Personal Account",
     security_header: "SECURITY",
@@ -115,8 +133,11 @@ const translations = {
     filter_month: "This Month",
     filter_total: "Total",
   },
+  // ភាសាខ្មែរ (Khmer) Translation
   kh: {
+    // ===============================
     // --- DASHBOARD ---
+    // ===============================
     greeting_morning: "អរុណសួស្ដី",
     greeting_afternoon: "ទិវាសួស្ដី",
     greeting_evening: "សាយ័នសួស្ដី",
@@ -130,9 +151,20 @@ const translations = {
     nav_home: "ទំព័រដើម",
     nav_scan: "ស្កេន",
     nav_setting: "ការកំណត់",
+    nav_history: "ប្រវត្តិ",
+    nav_settings: "ការកំណត់",
     no_trx: "មិនទាន់មានប្រតិបត្តិការ",
+    btn_card: "កាតខ្ញុំ",
+    btn_analytics: "វិភាគ",
+    btn_savings: "សន្សំប្រាក់",
+    btn_split: "ចែកលុយគ្នា",
+    btn_deposit: "ប្រាក់បញ្ញើ",
+    btn_merchant: "អាជីវករ",
+    btn_promo: "ប្រូម៉ូសិន",
 
+    // ===============================
     // --- TRANSFER & PAYMENT ---
+    // ===============================
     nav_transaction: "ប្រតិបត្តិការ",
     tab_transfer: "ផ្ទេរប្រាក់",
     tab_payment: "បង់វិក្កយបត្រ",
@@ -145,7 +177,9 @@ const translations = {
     checking_name: "កំពុងឆែកឈ្មោះ...",
     unknown_user: "គណនីមិនត្រឹមត្រូវ",
 
+    //=================================
     // --- SCAN QR (NEW) ---
+    //=================================
     scan_title: "ស្កេន QR កូដ",
     scan_instruction: "ដាក់ QR កូដក្នុងប្រអប់ដើម្បីស្កេន",
     btn_gallery: "រូបភាព",
@@ -153,7 +187,9 @@ const translations = {
     my_qr_title: "QR ទទួលប្រាក់របស់ខ្ញុំ",
     save_qr: "រក្សាទុក",
 
+    // =====================================
     // --- SETTINGS ---
+    // =====================================
     settings_title: "ការកំណត់",
     profile_role: "គណនីផ្ទាល់ខ្លួន",
     security_header: "សុវត្ថិភាព",
@@ -239,23 +275,28 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (translations[lang] && translations[lang][key]) {
-      // 💡 កែសម្រួលត្រង់នេះ៖ បើជា Input ឱ្យវាប្តូរអក្សរស្រមោល (placeholder)
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
         el.placeholder = translations[lang][key];
+      } else if (el.tagName === "OPTION") {
+        // បន្ថែមសម្រាប់ select options
+        el.innerText = translations[lang][key];
       } else {
         el.innerText = translations[lang][key];
       }
     }
   });
 
-  // 2. ប្តូរ Font (ដាក់ Class kh-font)
+  // 2. ហៅ updateGreeting តែម្តងគត់នៅខាងក្រៅ Loop
+  updateGreeting();
+
+  // 3. ប្តូរ Font
   if (lang === "kh") {
     document.body.classList.add("kh-font");
   } else {
     document.body.classList.remove("kh-font");
   }
 
-  // 3. Update UI ផ្សេងៗ (សម្រាប់ Settings)
+  // 4. Update UI Settings
   const langLabel = document.getElementById("currentLangLabel");
   if (langLabel) langLabel.innerText = lang === "en" ? "EN" : "KH";
 
@@ -270,6 +311,27 @@ function applyLanguage() {
     document
       .getElementById("lang-kh")
       .classList.toggle("active", lang === "kh");
+  }
+}
+
+// បន្ថែមមុខងារនេះចូលក្នុង lang.js របស់បងទៅ
+function updateGreeting() {
+  const hour = new Date().getHours();
+  const greetEl = document.getElementById("greetText");
+  if (greetEl) {
+    let lang = localStorage.getItem("lang") || "en";
+    greetEl.innerText =
+      hour < 12
+        ? lang === "kh"
+          ? "អរុណសួស្ដី,"
+          : "Good Morning,"
+        : hour < 18
+          ? lang === "kh"
+            ? "ទិវាសួស្ដី,"
+            : "Good Afternoon,"
+          : lang === "kh"
+            ? "សាយណ្ហសួស្ដី,"
+            : "Good Evening,";
   }
 }
 

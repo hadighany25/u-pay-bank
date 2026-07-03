@@ -20,6 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="js/lang.js"></script>
 
     <style>
       /* --- GLOBAL STYLES --- */
@@ -1038,7 +1039,7 @@
           <div class="icon-box icon-transfer">
             <i class="fa-solid fa-paper-plane"></i>
           </div>
-          <span class="menu-text" data-lang="btn_transfer">Transfer</span>
+          <span class="menu-text" data-i18n="btn_transfer">Transfer</span>
         </button>
         <!-- Scan QR -->
         <button
@@ -1049,7 +1050,7 @@
           <div class="icon-box icon-scan">
             <i class="fa-solid fa-qrcode"></i>
           </div>
-          <span class="menu-text" data-lang="btn_scan">Scan QR</span>
+          <span class="menu-text" data-i18n="btn_scan">Scan QR</span>
         </button>
         <!-- Promo -->
         <button
@@ -1060,7 +1061,7 @@
           <div class="icon-box icon-payment">
             <i class="fa-solid fa-file-invoice-dollar"></i>
           </div>
-          <span class="menu-text" data-lang="btn_payment">Payment</span>
+          <span class="menu-text" data-i18n="btn_payment">Payment</span>
         </button>
         <!-- Fixed Deposit -->
         <button
@@ -1071,7 +1072,7 @@
           <div class="icon-box icon-card">
             <i class="fa-regular fa-credit-card"></i>
           </div>
-          <span class="menu-text" data-lang="btn_card">Cards</span>
+          <span class="menu-text" data-i18n="btn_card">Cards</span>
         </button>
         <!-- Analytics -->
         <button
@@ -1082,7 +1083,7 @@
           <div class="icon-box icon-analytics">
             <i class="fa-solid fa-chart-pie"></i>
           </div>
-          <span class="menu-text" data-lang="btn_analytics">Analytics</span>
+          <span class="menu-text" data-i18n="btn_analytics">Analytics</span>
         </button>
         <!-- Savings -->
         <button
@@ -1093,7 +1094,7 @@
           <div class="icon-box" style="background: #fce4ec; color: #d81b60">
             <i class="fa-solid fa-piggy-bank"></i>
           </div>
-          <span class="menu-text" data-lang="btn_savings">Savings</span>
+          <span class="menu-text" data-i18n="btn_savings">Savings</span>
         </button>
         <!-- Split Bill -->
         <button
@@ -1104,7 +1105,7 @@
           <div class="icon-box" style="background: #fff3e0; color: #e65100">
             <i class="fa-solid fa-pizza-slice"></i>
           </div>
-          <span class="menu-text" data-lang="btn_split">Split Bill</span>
+          <span class="menu-text" data-i18n="btn_split">Split Bill</span>
         </button>
         <!-- Fixed Deposit -->
         <button
@@ -1115,25 +1116,26 @@
           <div class="icon-box" style="background: #fff7ed; color: #f97316">
             <i class="fa-solid fa-vault"></i>
           </div>
-          <span class="menu-text" data-lang="btn_deposit">Deposit</span>
+          <span class="menu-text" data-i18n="btn_deposit">Deposit</span>
         </button>
         <!-- Merchant -->
+
         <button
           class="menu-item"
-          id="m8"
+          id="m10"
           onclick="window.location.href = 'merchant.html'"
         >
           <div class="icon-box" style="background: #fff7ed; color: #2d14ce">
             <i class="fa-solid fa-store"></i>
           </div>
-          <span class="menu-text" data-lang="btn_merchant">Merchant</span>
+          <span class="menu-text" data-i18n="btn_merchant">Merchant</span>
         </button>
         <!-- Promo -->
         <button class="menu-item" id="m9" onclick="claimPromoPopup()">
           <div class="icon-box" style="background: #fce7f3; color: #db2777">
             <i class="fa-solid fa-gift"></i>
           </div>
-          <span class="menu-text" data-lang="btn_promo">Promo</span>
+          <span class="menu-text" data-i18n="btn_promo">Promo</span>
         </button>
       </div>
 
@@ -1172,19 +1174,19 @@
     <div class="bottom-nav">
       <a href="dashboard.html" class="nav-item active"
         ><i class="fa-solid fa-house"></i
-        ><span data-lang="nav_home">Home</span></a
+        ><span data-i18n="nav_home">Home</span></a
       >
       <a href="scan.html" class="nav-item"
         ><i class="fa-solid fa-qrcode"></i
-        ><span data-lang="nav_scan">Scan</span></a
+        ><span data-i18n="nav_scan">Scan</span></a
       >
       <a href="history.html" class="nav-item"
         ><i class="fa-solid fa-clock-rotate-left"></i
-        ><span data-lang="nav_history">History</span></a
+        ><span data-i18n="nav_history">History</span></a
       >
       <a href="settings.html" class="nav-item"
         ><i class="fa-solid fa-gear"></i
-        ><span data-lang="nav_settings">Settings</span></a
+        ><span data-i18n="nav_settings">Settings</span></a
       >
     </div>
 
@@ -1234,12 +1236,6 @@
         </div>
       </div>
     </div>
-    <div
-      id="accountModalOverlay"
-      class="bottom-sheet-overlay"
-      onclick="closeAccountDetails()"
-    ></div>
-    <div id="accountBottomSheet" class="bottom-sheet"></div>
 
     <script src="/js/auth.js"></script>
     <script src="/js/slip.js"></script>
@@ -1287,70 +1283,6 @@
         });
       });
 
-      // ==========================================
-      // 🌐 វចនានុក្រម (TRANSLATION)
-      // ==========================================
-      const translations = {
-        en: {
-          btn_transfer: "Transfer",
-          btn_scan: "Scan QR",
-          btn_payment: "Payment",
-          btn_card: "Cards",
-          btn_analytics: "Analytics",
-          btn_savings: "Savings",
-          btn_split: "Split Bill",
-          btn_deposit: "Deposit",
-          nav_home: "Home",
-          nav_scan: "Scan",
-          nav_history: "History",
-          nav_settings: "Settings",
-          btn_promo: "Promo",
-          btn_merchant: "Merchant",
-          "Promotions & Offers": "Promotions & Offers",
-        },
-        kh: {
-          btn_transfer: "វេរប្រាក់",
-          btn_scan: "ស្កេនកូដ",
-          btn_payment: "បង់វិក្កយបត្រ",
-          btn_card: "កាតខ្ញុំ",
-          btn_analytics: "វិភាគ",
-          btn_savings: "សន្សំប្រាក់",
-          btn_split: "ចែកលុយគ្នា",
-          btn_deposit: "ប្រាក់បញ្ញើ",
-          nav_home: "ទំព័រដើម",
-          nav_scan: "ស្កេន",
-          nav_history: "ប្រវត្តិ",
-          nav_settings: "ការកំណត់",
-          btn_promo: "ប្រូម៉ូសិន",
-          btn_merchant: "អាជីវករ",
-          "Promotions & Offers": "ប្រូម៉ូសិន & ការសេវាកម្ម",
-        },
-      };
-
-      function applyLang() {
-        let currentLang = localStorage.getItem("lang") || "en";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key])
-            el.innerText = translations[currentLang][key];
-        });
-        const hour = new Date().getHours();
-        const greetEl = document.getElementById("greetText");
-        if (greetEl) {
-          greetEl.innerText =
-            hour < 12
-              ? currentLang === "kh"
-                ? "អរុណសួស្តី,"
-                : "Good Morning,"
-              : hour < 18
-                ? currentLang === "kh"
-                  ? "ទិវាសួស្តី,"
-                  : "Good Afternoon,"
-                : currentLang === "kh"
-                  ? "សាយណ្ហសួស្តី,"
-                  : "Good Evening,";
-        }
-      }
       function applyTheme() {
         // ឆែកមើលទាំង key 'darkMode' (ពី scan.html) និង 'theme' ដើម្បីធានាថាវាដើរ ១០០% ជាមួយ Setting ដើម
         if (
@@ -1408,7 +1340,7 @@
       }
 
       function updateUI(currentUser) {
-        applyLang();
+        updateGreeting();
         const usernameEl = document.getElementById("username");
         if (usernameEl)
           usernameEl.innerText = currentUser.fullName || currentUser.username;
