@@ -1761,18 +1761,20 @@
   <a class="sidebar-item kh-text" onclick="openQRModal(null); toggleSidebar();">
     <i class="fa-solid fa-qrcode"></i> <span data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
   </a>
-  <!-- ការណែនាំ (បងអាចប្តូរ url ទៅទំព័រណែនាំរបស់បង) -->
-  <a class="sidebar-item kh-text" onclick="window.location.href='#'; toggleSidebar();">
-    <i class="fa-solid fa-book"></i> <span data-lang="merch_guide">ការណែនាំ</span>
-  </a>
-  <!-- ជំនួយ & មតិ -->
-  <a class="sidebar-item kh-text" onclick="window.location.href='#'; toggleSidebar();">
-    <i class="fa-solid fa-circle-question"></i> <span data-lang="merch_help">ជំនួយ & មតិ</span>
-  </a>
-  <!-- ការកំណត់ -->
-  <a class="sidebar-item kh-text" onclick="switchState('state-settings'); toggleSidebar();">
-    <i class="fa-solid fa-gear"></i> <span data-lang="merch_settings">ការកំណត់</span>
-  </a>
+<!-- ការណែនាំ -->
+<a class="sidebar-item kh-text" onclick="showComingSoon(); toggleSidebar();">
+  <i class="fa-solid fa-book"></i> <span data-lang="merch_guide">ការណែនាំ</span>
+</a>
+
+<!-- ជំនួយ & មតិ -->
+<a class="sidebar-item kh-text" onclick="showComingSoon(); toggleSidebar();">
+  <i class="fa-solid fa-circle-question"></i> <span data-lang="merch_help">ជំនួយ & មតិ</span>
+</a>
+
+<!-- ការកំណត់ -->
+<a class="sidebar-item kh-text" onclick="showComingSoon(); toggleSidebar();">
+  <i class="fa-solid fa-gear"></i> <span data-lang="merch_settings">ការកំណត់</span>
+</a>
   
   <!-- ចាកចេញ -->
   <a class="sidebar-item kh-text" onclick="window.location.href = 'dashboard.html'" 
@@ -3047,6 +3049,23 @@
           window.location.href = "dashboard.html";
         }, 300);
       }
+
+      // មុខងារបង្ហាញសារ Coming Soon បែបស្អាត
+function showComingSoon() {
+  let lang = localStorage.getItem("lang") || "en";
+  Swal.fire({
+    title: lang === "kh" ? "សូមរង់ចាំ!" : "Coming Soon!",
+    text: lang === "kh" 
+          ? "មុខងារនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍នៅឡើយ។" 
+          : "This feature is currently under development.",
+    icon: "info",
+    confirmButtonText: lang === "kh" ? "យល់ព្រម" : "OK",
+    confirmButtonColor: "var(--primary)",
+    customClass: {
+      popup: 'kh-text' // ធានាថាវាប្រើ Font ខ្មែរ
+    }
+  });
+}
     </script>
   </body>
 </html>
