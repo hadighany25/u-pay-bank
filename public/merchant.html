@@ -18,7 +18,6 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="js/lang.js"></script>
 
     <style>
       /* ==========================================
@@ -973,7 +972,7 @@
           >
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 class="header-title kh-text" data-i18n="merch_title">
+          <h2 class="header-title kh-text" data-lang="merch_title">
             គ្រប់គ្រងអាជីវកម្ម
           </h2>
           <div style="width: 24px"></div>
@@ -982,10 +981,10 @@
         <div class="intro-header">
           <div class="intro-text">
             <h2 class="kh-text">
-              <span data-i18n="merch_greet">សួស្តី</span>
+              <span data-lang="merch_greet">សួស្តី</span>
               <span id="introName">...</span>!
             </h2>
-            <p class="kh-text" data-i18n="merch_welcome">
+            <p class="kh-text" data-lang="merch_welcome">
               ស្វាគមន៍មកកាន់ មុខងារអាជីវករ U-Pay!
             </p>
           </div>
@@ -995,21 +994,21 @@
         <div class="tab-header kh-text">
           <div
             class="tab-item active"
-            data-i18n="merch_tab_branch"
+            data-lang="merch_tab_branch"
             onclick="switchMerchantTab(this, 'branches')"
           >
             សាខា
           </div>
           <div
             class="tab-item"
-            data-i18n="merch_tab_cashier"
+            data-lang="merch_tab_cashier"
             onclick="switchMerchantTab(this, 'cashiers')"
           >
             អ្នកគិតលុយ
           </div>
           <div
             class="tab-item"
-            data-i18n="merch_tab_report"
+            data-lang="merch_tab_report"
             onclick="switchMerchantTab(this, 'reports')"
           >
             របាយការណ៍
@@ -1029,13 +1028,13 @@
           <button class="back-btn" onclick="switchState('state-list')">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
-          <h2 class="header-title kh-text" data-i18n="merch_add">បន្ថែមសាខា</h2>
+          <h2 class="header-title kh-text" data-lang="merch_add">បន្ថែមសាខា</h2>
           <div style="width: 24px"></div>
         </div>
 
         <div class="card-box">
           <div class="input-group">
-            <label class="kh-text" data-i18n="merch_store_name"
+            <label class="kh-text" data-lang="merch_store_name"
               >ឈ្មោះហាង ឬ សាខា</label
             >
             <input
@@ -1043,35 +1042,35 @@
               id="storeName"
               placeholder="ឧ. Smart Shop by A.T"
               class="kh-text"
-              data-i18n="merch_store_ph"
+              data-lang="merch_store_ph"
             />
           </div>
           <div class="input-group">
-            <label class="kh-text" data-i18n="merch_city"
+            <label class="kh-text" data-lang="merch_city"
               >ទីក្រុង / ខេត្ត</label
             >
             <select id="storeCity" class="kh-text">
-              <option value="Phnom Penh" data-i18n="city_pp">
+              <option value="Phnom Penh" data-lang="city_pp">
                 រាជធានីភ្នំពេញ
               </option>
-              <option value="Siem Reap" data-i18n="city_sr">សៀមរាប</option>
-              <option value="Battambang" data-i18n="city_bb">បាត់ដំបង</option>
-              <option value="Kampong Thom" data-i18n="city_kt">
+              <option value="Siem Reap" data-lang="city_sr">សៀមរាប</option>
+              <option value="Battambang" data-lang="city_bb">បាត់ដំបង</option>
+              <option value="Kampong Thom" data-lang="city_kt">
                 ត្បងឃ្មុំ
               </option>
-              <option value="Kampong Chhnang" data-i18n="city_kc">
+              <option value="Kampong Chhnang" data-lang="city_kc">
                 កំពង់ឆ្នាំង
               </option>
-              <option value="Kampong Speu" data-i18n="city_ks">
+              <option value="Kampong Speu" data-lang="city_ks">
                 កំពង់ស្ពឺ
               </option>
-              <option value="Kandal" data-i18n="city_kd">កណ្តាល</option>
-              <option value="Siem Reap" data-i18n="city_sr">សៀមរាប</option>
-              <option value="Prey Veng" data-i18n="city_pv">ព្រៃវែង</option>
+              <option value="Kandal" data-lang="city_kd">កណ្តាល</option>
+              <option value="Siem Reap" data-lang="city_sr">សៀមរាប</option>
+              <option value="Prey Veng" data-lang="city_pv">ព្រៃវែង</option>
             </select>
           </div>
           <div class="input-group">
-            <label class="kh-text" data-i18n="merch_link_acc"
+            <label class="kh-text" data-lang="merch_link_acc"
               >ភ្ជាប់ទៅកាន់គណនី</label
             >
             <select id="storeLinkedAcc" class="kh-text">
@@ -1082,7 +1081,7 @@
           <button
             class="btn-primary kh-text"
             onclick="showPinModal()"
-            data-i18n="merch_save"
+            data-lang="merch_save"
           >
             រក្សាទុក
           </button>
@@ -1117,14 +1116,14 @@
               class="acc-option kh-text"
               id="btnPersonal"
               onclick="switchToPersonal()"
-              data-i18n="merch_personal"
+              data-lang="merch_personal"
             >
               បុគ្គល
             </div>
             <div
               class="acc-option active kh-text"
               id="btnMerchant"
-              data-i18n="merch_business"
+              data-lang="merch_business"
             >
               My Merchant
             </div>
@@ -1143,7 +1142,7 @@
             <p
               class="kh-text"
               style="margin: 0; font-weight: 600"
-              data-i18n="merch_total_rev"
+              data-lang="merch_total_rev"
             >
               ចំណូលសរុប
             </p>
@@ -1237,7 +1236,7 @@
             "
           >
             <i class="fa-solid fa-hashtag"></i>
-            <span data-i18n="merch_acc_shop" class="merch_acc_shop"
+            <span data-lang="merch_acc_shop" class="merch_acc_shop"
               >Merchant ID៖</span
             >
             <span
@@ -1259,7 +1258,7 @@
               class="fa-solid fa-hand-holding-dollar"
               style="color: var(--secondary)"
             ></i>
-            <span class="kh-text" data-i18n="merch_receive"
+            <span class="kh-text" data-lang="merch_receive"
               >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
             >
           </div>
@@ -1273,21 +1272,21 @@
             "
           >
             <i class="fa-solid fa-file-invoice" style="color: #3b82f6"></i>
-            <span class="kh-text" data-i18n="merch_trx"
+            <span class="kh-text" data-lang="merch_trx"
               >ប្រវត្តិប្រតិបត្តិការ</span
             >
           </div>
 
           <div class="dash-btn" onclick="openQRModal(null)">
             <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
-            <span class="kh-text" data-i18n="merch_stand_qr">ស្កេនកូដ QR</span>
+            <span class="kh-text" data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
 
           <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick បង្ហាញសារជូនដំណឹងសម្រាប់ Sales Report -->
           <!-- កែប៊ូតុង Sales Report -->
           <div class="dash-btn" onclick="openSalesReport()">
             <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
-            <span class="kh-text" data-i18n="merch_report">របាយការណ៍លក់</span>
+            <span class="kh-text" data-lang="merch_report">របាយការណ៍លក់</span>
           </div>
         </div>
       </div>
@@ -1548,7 +1547,7 @@
         </div>
 
         <div class="calc-display">
-          <h4 class="kh-text" data-i18n="merch_enter_amt">
+          <h4 class="kh-text" data-lang="merch_enter_amt">
             បញ្ចូលចំនួនទឹកប្រាក់
           </h4>
           <div class="calc-amount">
@@ -1605,7 +1604,7 @@
             onclick="generateQRFromCalc()"
           >
             <i class="fa-solid fa-qrcode"></i>
-            <span data-i18n="merch_show_qr">បង្ហាញ QR</span>
+            <span data-lang="merch_show_qr">បង្ហាញ QR</span>
           </button>
         </div>
       </div>
@@ -1685,7 +1684,7 @@
             ></p>
 
             <div class="amount-input-area">
-              <div class="amount-label kh-text" data-i18n="set_amount">
+              <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
               </div>
               <div class="amount-row">
@@ -1706,7 +1705,7 @@
           id="btnSaveQR"
         >
           <i class="fa-solid fa-download" style="margin-right: 8px"></i>
-          <span data-i18n="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+          <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
         </button>
       </div>
 
@@ -1756,7 +1755,7 @@
             "
           >
             <i class="fa-solid fa-file-invoice"></i>
-            <span data-i18n="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
+            <span data-lang="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
           </a>
           <!-- ទិន្នន័យវិភាគ -->
           <a
@@ -1767,7 +1766,7 @@
             "
           >
             <i class="fa-solid fa-chart-pie"></i>
-            <span data-i18n="merch_report">ទិន្នន័យវិភាគ</span>
+            <span data-lang="merch_report">ទិន្នន័យវិភាគ</span>
           </a>
           <!-- គ្រប់គ្រងអាជីវកម្ម -->
           <a
@@ -1778,7 +1777,7 @@
             "
           >
             <i class="fa-solid fa-briefcase"></i>
-            <span data-i18n="merch_title">គ្រប់គ្រងអាជីវកម្ម</span>
+            <span data-lang="merch_title">គ្រប់គ្រងអាជីវកម្ម</span>
           </a>
           <!-- ស្កេនកូដ QR -->
           <a
@@ -1789,7 +1788,7 @@
             "
           >
             <i class="fa-solid fa-qrcode"></i>
-            <span data-i18n="merch_stand_qr">ស្កេនកូដ QR</span>
+            <span data-lang="merch_stand_qr">ស្កេនកូដ QR</span>
           </a>
           <!-- ការណែនាំ -->
           <a
@@ -1800,7 +1799,7 @@
             "
           >
             <i class="fa-solid fa-book"></i>
-            <span data-i18n="merch_guide">ការណែនាំ</span>
+            <span data-lang="merch_guide">ការណែនាំ</span>
           </a>
 
           <!-- ជំនួយ & មតិ -->
@@ -1812,7 +1811,7 @@
             "
           >
             <i class="fa-solid fa-circle-question"></i>
-            <span data-i18n="merch_help">ជំនួយ & មតិ</span>
+            <span data-lang="merch_help">ជំនួយ & មតិ</span>
           </a>
 
           <!-- ការកំណត់ -->
@@ -1824,7 +1823,7 @@
             "
           >
             <i class="fa-solid fa-gear"></i>
-            <span data-i18n="merch_settings">ការកំណត់</span>
+            <span data-lang="merch_settings">ការកំណត់</span>
           </a>
 
           <!-- ចាកចេញ -->
@@ -1838,7 +1837,7 @@
             "
           >
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span data-i18n="merch_exit">ចាកចេញ</span>
+            <span data-lang="merch_exit">ចាកចេញ</span>
           </a>
         </div>
 
@@ -1869,14 +1868,14 @@
             <h3
               style="margin-top: 0"
               class="kh-text"
-              data-i18n="merch_pin_title"
+              data-lang="merch_pin_title"
             >
               បញ្ជាក់លេខកូដ
             </h3>
             <p
               style="font-size: 0.85rem; color: var(--text-muted)"
               class="kh-text"
-              data-i18n="merch_pin_desc"
+              data-lang="merch_pin_desc"
             >
               សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។
             </p>
@@ -1942,7 +1941,7 @@
               class="btn-primary kh-text"
               style="background: var(--bg-main); color: var(--text-main)"
               onclick="document.getElementById('hiddenPin').focus()"
-              data-i18n="merch_btn_pin"
+              data-lang="merch_btn_pin"
             >
               ចុចបញ្ចូលលេខកូដ
             </button>
@@ -1951,6 +1950,141 @@
       </div>
 
       <script>
+        // ==========================================
+        // 🌐 វចនានុក្រម (TRANSLATION) & THEME
+        // ==========================================
+        const translations = {
+          en: {
+            merch_title: "Manage Business",
+            merch_add: "Add Branch",
+            merch_setup: "Setup Merchant",
+            merch_select_acc: "Select Receive Account",
+            merch_add_new: "Add New Branch",
+            merch_store_name: "Shop Name",
+            merch_store_ph: "e.g. Smart Shop",
+            merch_city: "City / Province",
+            merch_link_acc: "Link Account",
+            merch_your_biz: "Manage Business",
+            merch_biz_desc: "Select a shop to manage",
+            merch_total_rev: "Total Revenue ",
+            merch_receive: "Receive Money",
+            merch_trx: "Transactions",
+            merch_stand_qr: "Stand QR Code",
+            merch_report: "Sales Report",
+            merch_enter_amt: "Enter Amount",
+            set_amount: "Specify Amount",
+            save_qr: "Save to Gallery",
+            merch_greet: "Hi",
+            merch_welcome: "Welcome to U-Pay Merchant!",
+            merch_tab_branch: "Branches",
+            merch_tab_cashier: "Cashiers",
+            merch_tab_report: "Reports",
+            merch_personal: "Personal",
+            merch_business: "My Merchant",
+            merch_acc_shop: "Merchant ID:",
+            merch_show_qr: "Show QR",
+            merch_pin_title: "Confirm PIN",
+            merch_pin_desc: "Enter your PIN to create the shop.",
+            merch_btn_pin: "Enter PIN",
+            merch_no_shop: "No cashiers or shops yet",
+            merch_settings: "Settings",
+            merch_help: "Help & Feedback",
+            merch_guide: "Guide",
+            merch_exit: "Exit to U-Pay",
+            merch_save: "Save",
+            city_pp: "Phnom Penh",
+            city_sr: "Siem Reap",
+            city_bb: "Battambang",
+            city_kd: "Kandal",
+            city_kt: "Kampong Thom",
+            city_kc: "Kampong Chhnang",
+            city_ks: "Kampong Speu",
+            city_sm: "Sihanoukville",
+            city_pv: "Prey Veng",
+            city_ps: "Pursat",
+            filter_today: "Today",
+            filter_week: "This Week",
+            filter_month: "This Month",
+            filter_total: "Total",
+          },
+          kh: {
+            merch_title: "គ្រប់គ្រងអាជីវកម្ម",
+            merch_add: "បន្ថែមសាខា",
+            merch_setup: "រៀបចំគណនី Merchant",
+            merch_select_acc: "ជ្រើសរើសគណនីទទួលប្រាក់",
+            merch_add_new: "បន្ថែមសាខា/ហាងថ្មី",
+            merch_store_name: "ឈ្មោះហាង ឬ សាខា",
+            merch_store_ph: "ឧ. Smart Shop by A.T",
+            merch_city: "ទីក្រុង / ខេត្ត",
+            merch_link_acc: "ភ្ជាប់ទៅកាន់គណនី",
+            merch_your_biz: "គ្រប់គ្រងអាជីវកម្ម",
+            merch_biz_desc: "ជ្រើសរើសហាងណាមួយដើម្បីគ្រប់គ្រង",
+            merch_total_rev: "ចំណូលសរុប",
+            merch_receive: "ទូទាត់ប្រាក់ពីភ្ញៀវ",
+            merch_trx: "ប្រវត្តិប្រតិបត្តិការ",
+            merch_stand_qr: "ស្កេនកូដ QR",
+            merch_report: "របាយការណ៍លក់",
+            merch_enter_amt: "បញ្ចូលចំនួនទឹកប្រាក់",
+            set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
+            save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+            merch_greet: "សួស្តី",
+            merch_welcome: "ស្វាគមន៍មកកាន់ មុខងារអាជីវករ U-Pay!",
+            merch_tab_branch: "សាខា",
+            merch_tab_cashier: "អ្នកគិតលុយ",
+            merch_tab_report: "របាយការណ៍",
+            merch_personal: "បុគ្គល",
+            merch_business: "My Merchant",
+            merch_acc_shop: "Merchant ID៖",
+            merch_show_qr: "បង្ហាញ QR",
+            merch_pin_title: "បញ្ជាក់លេខកូដ",
+            merch_pin_desc: "សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។",
+            merch_btn_pin: "ចុចបញ្ចូលលេខកូដ",
+            merch_no_shop: "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ",
+            merch_settings: "ការកំណត់",
+            merch_help: "ជំនួយ & មតិ",
+            merch_guide: "ការណែនាំ",
+            merch_exit: "ចាកចេញទៅ U-Pay",
+            merch_save: "រក្សាទុក",
+            city_pp: "រាជធានីភ្នំពេញ",
+            city_sr: "សៀមរាប",
+            city_bb: "បាត់ដំបង",
+            city_kd: "កណ្តាល",
+            city_kt: "ត្បងឃ្មុំ",
+            city_kc: "កំពង់ឆ្នាំង",
+            city_ks: "កំពង់ស្ពឺ",
+            city_sm: "ព្រះសីហនុ",
+            city_pv: "ព្រៃវែង",
+            filter_today: "ថ្ងៃនេះ",
+            filter_week: "សប្តាហ៍នេះ",
+            filter_month: "ខែនេះ",
+            filter_total: "សរុបទាំងអស់",
+          },
+        };
+
+        function applyLang() {
+          let lang = localStorage.getItem("lang") || "en";
+          document.querySelectorAll("[data-lang]").forEach((el) => {
+            const key = el.getAttribute("data-lang");
+            if (translations[lang] && translations[lang][key]) {
+              if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+                el.placeholder = translations[lang][key];
+              } else if (el.tagName === "OPTION") {
+                // 🔥 បន្ថែមបន្ទាត់នេះសម្រាប់ Option
+                el.innerText = translations[lang][key];
+              } else {
+                el.innerText = translations[lang][key];
+              }
+            }
+          });
+
+          if (lang === "kh") {
+            document.body.style.fontFamily =
+              '"Kantumruy Pro", "Inter", sans-serif';
+          } else {
+            document.body.style.fontFamily = '"Inter", sans-serif';
+          }
+        }
+
         function applyTheme() {
           if (
             localStorage.getItem("theme") === "dark" ||
@@ -2056,7 +2190,7 @@
             container.innerHTML = `
             <div style="text-align:center; margin-top:50px; opacity:0.7;">
               <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
-              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-i18n="merch_no_shop">${noShopTxt}</p>
+              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-lang="merch_no_shop">${noShopTxt}</p>
               <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) ដើម្បីបន្ថែមសាខាថ្មី</p>
             </div>
           `;
