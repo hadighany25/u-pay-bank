@@ -27,6 +27,9 @@ const translations = {
     btn_deposit: "Deposit",
     btn_merchant: "Merchant",
     btn_promo: "Promo",
+    card_khr_balance: "Available Balance (KHR)",
+    card_usd_balance: "Available Balance (USD)",
+    promo_title: "Promotions & Offers",
 
     // =====================================
     // --- TRANSFER & PAYMENT ---
@@ -161,6 +164,9 @@ const translations = {
     btn_deposit: "ប្រាក់បញ្ញើ",
     btn_merchant: "អាជីវករ",
     btn_promo: "ប្រូម៉ូសិន",
+    card_khr_balance: "សមតុល្យដែលអាចប្រើបាន (KHR)",
+    card_usd_balance: "សមតុល្យដែលអាចប្រើបាន (USD)",
+    promo_title: "ប្រូម៉ូសិន & ការផ្តល់ជូន",
 
     // ===============================
     // --- TRANSFER & PAYMENT ---
