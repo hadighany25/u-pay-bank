@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>U-Pay Merchant</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
@@ -1611,6 +1612,7 @@
               alt="U-Pay"
               onerror="this.style.display = 'none'"
             />
+
             <h3
               id="qrUserName"
               class="qr-user-name"
@@ -1618,24 +1620,42 @@
             >
               ...
             </h3>
-            <!-- ដាក់នៅក្រោម <h3 id="qrUserName"... -->
+
+            <!-- លេខ Merchant ID -->
             <p
               id="qrMerchantID"
-              style="color: #64748b; font-size: 0.9rem; margin-bottom: 10px"
+              style="color: #64748b; font-size: 0.9rem; margin: 5px 0"
             ></p>
+
+            <!-- 🔥 នេះគឺជា ID qrUserAcc ដែលបងបាត់ ខ្ញុំបានដាក់ចូលវិញហើយ វានឹងបង្ហាញលេខកុងខាងលើ QR យ៉ាងស្អាត -->
+            <p
+              id="qrUserAcc"
+              class="qr-user-acc"
+              style="
+                color: #00b894;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 1.1rem;
+                font-weight: 700;
+                letter-spacing: 1px;
+                margin: 5px 0 20px 0;
+              "
+            ></p>
+
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
-            <!-- ដាក់នៅក្រោម <img id="myQrImg"... -->
+
+            <!-- លេខគណនីខាងក្រោម QR -->
             <p
               id="qrAccountNum"
               style="
                 margin-top: 10px;
                 font-family: &quot;JetBrains Mono&quot;;
                 font-weight: bold;
-                color: #024333;
+                color: #004d40;
               "
             ></p>
+
             <div class="amount-input-area">
               <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
@@ -1657,8 +1677,8 @@
           class="btn-save-qr kh-text"
           id="btnSaveQR"
         >
-          <i class="fa-solid fa-download" style="margin-right: 8px"></i
-          ><span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+          <i class="fa-solid fa-download" style="margin-right: 8px"></i>
+          <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
         </button>
       </div>
 
