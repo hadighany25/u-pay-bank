@@ -9,8 +9,6 @@
     <title>U-Pay Merchant</title>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
@@ -156,8 +154,8 @@
        🏬 STATE 1: WELCOME / MERCHANT LIST
        ========================================== */
       .intro-header {
-        background: url("https://www.ababank.com/fileadmin/user_upload/Merchant/ABA_Merchant_App.jpg")
-          center/cover;
+        background: url("https://images.unsplash.com/photo-1612832021060-1f1e5c3b6f4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8bWVyY2hhbnR8fHx8fHwxNjg1NzQ0NzE4&ixlib=rb-4.0.3&q=80&w=1080")
+          center/cover no-repeat;
         height: 180px;
         position: relative;
       }
@@ -624,7 +622,22 @@
       .close-qr-btn:active {
         transform: scale(0.9);
       }
+      /* ធ្វើឱ្យលេខគណនីនៅក្រោម QR ស្អាត */
+      #qrAccountNum {
+        margin-top: 15px !important; /* បន្ថែមគម្លាតពី QR */
+        order: 2; /* ឱ្យវានៅទីតាំងទី២ ក្រោម QR */
+        font-family: "JetBrains Mono", monospace;
+        font-weight: bold;
+        color: #004d40;
+        display: block; /* ធានាថាវានៅដាច់ដោយឡែកមួយបន្ទាត់ */
+      }
 
+      /* ធានាថា QR នៅទីតាំងទីមួយ */
+      .qr-img-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
       /* ==========================================
        ☰ SIDEBAR MENU (FIXED TO CONTAINER)
        ========================================== */
@@ -777,21 +790,101 @@
         background: var(--primary);
         border-color: var(--primary);
       }
-      /* ធ្វើឱ្យលេខគណនីនៅក្រោម QR ស្អាត */
-      #qrAccountNum {
-        margin-top: 15px !important; /* បន្ថែមគម្លាតពី QR */
-        order: 2; /* ឱ្យវានៅទីតាំងទី២ ក្រោម QR */
-        font-family: "JetBrains Mono", monospace;
-        font-weight: bold;
-        color: #004d40;
-        display: block; /* ធានាថាវានៅដាច់ដោយឡែកមួយបន្ទាត់ */
+
+      /* ==========================================
+       🖨️ PRINT & PDF STYLES (Professional A4)
+       ========================================== */
+      #pdf-template {
+        display: none; /* លាក់ទុកសិន ពេលធម្មតា */
       }
 
-      /* ធានាថា QR នៅទីតាំងទីមួយ */
-      .qr-img-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+      @media print {
+        body {
+          background: white !important;
+          margin: 0;
+          padding: 0;
+        }
+        /* លាក់ App ទាំងមូលពេល Print */
+        .app-container,
+        .sweet-alert,
+        .swal2-container {
+          display: none !important;
+        }
+
+        /* បង្ហាញតែក្រដាស Report ប៉ុណ្ណោះ */
+        #pdf-template {
+          display: block !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 20mm !important;
+          box-sizing: border-box;
+          color: #1e293b;
+          font-family: "Kantumruy Pro", "Inter", sans-serif;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .pdf-header {
+          text-align: center;
+          border-bottom: 3px solid var(--primary);
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .pdf-header img {
+          height: 50px;
+        }
+        .pdf-title {
+          color: var(--primary);
+          margin: 15px 0 5px;
+          font-size: 1.8rem;
+          font-weight: 700;
+        }
+        .pdf-meta {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 30px;
+          font-size: 1rem;
+          color: #475569;
+        }
+
+        .pdf-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 40px;
+        }
+        .pdf-table th {
+          background-color: var(--primary-light);
+          color: var(--primary);
+          text-align: left;
+          padding: 12px;
+          font-size: 1.1rem;
+          border: 1px solid var(--border-color);
+        }
+        .pdf-table td {
+          padding: 15px 12px;
+          border: 1px solid var(--border-color);
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+        .pdf-table td.val {
+          text-align: right;
+          font-family: "JetBrains Mono", monospace;
+        }
+
+        .pdf-sign-area {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 60px;
+          text-align: center;
+        }
+        .pdf-sign-box {
+          width: 40%;
+        }
+        .pdf-line {
+          border-bottom: 1px dashed #64748b;
+          margin-top: 60px;
+          margin-bottom: 10px;
+        }
       }
       /* ==========================================
        🌙 DARK MODE OVERRIDES (Like scan.html)
@@ -1300,50 +1393,102 @@
           </div>
         </div>
       </div>
-      <!-- PDF Template -->
-      <div
-        id="pdf-template"
-        style="
-          display: none;
-          width: 595px;
-          padding: 40px;
-          background: white;
-          font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-        "
-      >
-        <div
-          style="
-            text-align: center;
-            border-bottom: 2px solid #004d40;
-            padding-bottom: 20px;
-          "
-        >
-          <img src="images/logo.png" style="width: 100px" />
-          <!-- ប្តូរទៅ Logo បង -->
-          <h2 style="color: #004d40">របាយការណ៍លក់ប្រចាំហាង</h2>
-          <p id="pdf-merchant-name" style="font-weight: bold"></p>
-          <p id="pdf-date-range"></p>
+
+      <!-- 📄 PDF Report Template (Professional A4) -->
+      <div id="pdf-template">
+        <div class="pdf-header">
+          <img
+            src="images/logo-nobg.png"
+            alt="U-Pay Logo"
+            onerror="this.src = 'https://upay.com/logo.png'"
+          />
+          <h1 class="pdf-title kh-text">របាយការណ៍លក់ប្រចាំហាង</h1>
+          <p style="margin: 0; font-size: 1.1rem; color: #64748b">
+            សេចក្តីសង្ខេបប្រតិបត្តិការអាជីវកម្ម
+          </p>
         </div>
 
-        <div style="margin: 30px 0">
-          <h3 style="color: #64748b">សេចក្តីសង្ខេប៖</h3>
-          <div id="pdf-stats" style="font-size: 1.1rem; line-height: 2"></div>
-        </div>
-
-        <div
-          style="
-            margin-top: 100px;
-            display: flex;
-            justify-content: space-between;
-          "
-        >
+        <div class="pdf-meta kh-text">
           <div>
-            <p>ម្ចាស់ហាង:</p>
-            <br /><br />____________________
+            <p style="margin: 5px 0">
+              <strong>ឈ្មោះហាង៖</strong>
+              <span
+                id="pdf-merch-name"
+                style="color: var(--primary); font-weight: bold"
+                >...</span
+              >
+            </p>
+            <p style="margin: 5px 0">
+              <strong>Merchant ID៖</strong>
+              <span
+                id="pdf-merch-id"
+                style="font-family: &quot;JetBrains Mono&quot;, monospace"
+                >...</span
+              >
+            </p>
           </div>
-          <div>
-            <p>ថ្ងៃចេញរបាយការណ៍:</p>
-            <br /><span id="pdf-gen-date"></span>
+          <div style="text-align: right">
+            <p style="margin: 5px 0">
+              <strong>កាលបរិច្ឆេទចេញ៖</strong>
+              <span id="pdf-gen-date">...</span>
+            </p>
+            <p style="margin: 5px 0">
+              <strong>រយៈពេល៖</strong> <span id="pdf-date-range">...</span>
+            </p>
+          </div>
+        </div>
+
+        <table class="pdf-table kh-text">
+          <thead>
+            <tr>
+              <th>បរិយាយ (Description)</th>
+              <th style="text-align: right">ទិន្នន័យ (Data)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ចំណូលសរុបប្រាក់ដុល្លារ (USD)</td>
+              <td class="val" id="pdf-total-usd" style="color: var(--primary)">
+                $0.00
+              </td>
+            </tr>
+            <tr>
+              <td>ចំណូលសរុបប្រាក់រៀល (KHR)</td>
+              <td class="val" id="pdf-total-khr" style="color: var(--primary)">
+                ៛0
+              </td>
+            </tr>
+            <tr style="background: #f8fafc">
+              <td>ប្រតិបត្តិការប្រាក់ដុល្លារសរុប (USD Count)</td>
+              <td class="val" id="pdf-count-usd">0</td>
+            </tr>
+            <tr style="background: #f8fafc">
+              <td>ប្រតិបត្តិការប្រាក់រៀលសរុប (KHR Count)</td>
+              <td class="val" id="pdf-count-khr">0</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700">
+                ចំនួនប្រតិបត្តិការសរុបរួម (Total Trx)
+              </td>
+              <td class="val" id="pdf-count-total" style="font-weight: 700">
+                0
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pdf-sign-area kh-text">
+          <div class="pdf-sign-box">
+            <p style="font-weight: 600; color: #475569">រៀបចំដោយ</p>
+            <div class="pdf-line"></div>
+            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
+          </div>
+          <div class="pdf-sign-box">
+            <p style="font-weight: 600; color: #475569">
+              អនុម័តដោយ (ម្ចាស់ហាង)
+            </p>
+            <div class="pdf-line"></div>
+            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
           </div>
         </div>
       </div>
@@ -2758,40 +2903,48 @@
           document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
         }
       }
-
-      async function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF("p", "pt", "a4");
-
-        // ១. បំពេញទិន្នន័យចូល Template
-        document.getElementById("pdf-merchant-name").innerText =
+      // ==========================================
+      // មុខងារ Export PDF បែប Professional A4
+      // ==========================================
+      function exportToPDF() {
+        // ១. យកឈ្មោះ និង ID ហាង
+        document.getElementById("pdf-merch-name").innerText =
           currentMerchant.name;
-        document.getElementById("pdf-date-range").innerText =
-          "រយៈពេល: " +
-          document.getElementById("salesFilter").options[
-            document.getElementById("salesFilter").selectedIndex
-          ].text;
+        document.getElementById("pdf-merch-id").innerText =
+          currentMerchant.merchantId;
+
+        // ២. យកថ្ងៃខែ និងជម្រើស Filter
         document.getElementById("pdf-gen-date").innerText =
-          new Date().toLocaleDateString();
+          new Date().toLocaleDateString("en-GB");
+        const filterSelect = document.getElementById("salesFilter");
+        document.getElementById("pdf-date-range").innerText =
+          filterSelect.options[filterSelect.selectedIndex].text;
 
-        // យកស្ថិតិពីអេក្រង់មកដាក់ក្នុង PDF
-        document.getElementById("pdf-stats").innerHTML =
-          document.getElementById("salesStats").innerHTML;
+        // ៣. ទាញយកលេខពី UI មកដាក់ចូលតារាង PDF
+        const fullAmountText =
+          document.getElementById("totalSalesAmount").innerText;
+        // ឧទាហរណ៍វាចេញ "$6.00 / ៛5,000" យើងកាត់យក $6.00 និង ៛5,000 ដាច់ពីគ្នា
+        const amounts = fullAmountText.split("/");
+        document.getElementById("pdf-total-usd").innerText = amounts[0]
+          ? amounts[0].trim()
+          : "$0.00";
+        document.getElementById("pdf-total-khr").innerText = amounts[1]
+          ? amounts[1].trim()
+          : "៛0";
 
-        // ២. បំប្លែង Template ទៅជា PDF
-        const element = document.getElementById("pdf-template");
-        element.style.display = "block"; // បង្ហាញវាបណ្តោះអាសន្ន
+        // ៤. ទាញយកចំនួនប្រតិបត្តិការ
+        const statsStrong = document.querySelectorAll("#salesStats strong");
+        if (statsStrong.length >= 3) {
+          document.getElementById("pdf-count-usd").innerText =
+            statsStrong[1].innerText;
+          document.getElementById("pdf-count-khr").innerText =
+            statsStrong[2].innerText;
+          document.getElementById("pdf-count-total").innerText =
+            statsStrong[0].innerText;
+        }
 
-        doc.html(element, {
-          callback: function (doc) {
-            doc.save(`Sales_Report_${currentMerchant.name}.pdf`);
-            element.style.display = "none"; // លាក់វិញ
-          },
-          x: 40,
-          y: 40,
-          width: 520, // កំណត់ទទឹង A4
-          windowWidth: 600,
-        });
+        // ៥. បើកមុខងារ Print របស់ Browser (ដែលអនុញ្ញាតឱ្យ Save ជា PDF)
+        window.print();
       }
 
       // ==========================================
