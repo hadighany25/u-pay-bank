@@ -1621,24 +1621,26 @@
               ...
             </h3>
 
+            <!-- លេខ Merchant ID -->
             <p
               id="qrMerchantID"
-              style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px"
+              style="color: #64748b; font-size: 0.9rem; margin: 5px 0 20px 0"
             ></p>
 
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
 
-            <!-- លេខគណនីខាងក្រោម QR ដែលមានពណ៌ស្អាតដូចខាងលើ -->
+            <!-- លេខគណនីខាងក្រោម QR (បានដូរពណ៌ឱ្យស្អាតដូចខាងលើ) -->
             <p
               id="qrAccountNum"
               style="
-                margin-top: 10px;
+                margin-top: 15px;
                 font-family: &quot;JetBrains Mono&quot;, monospace;
                 font-size: 1.1rem;
                 font-weight: 700;
                 color: #00b894;
+                letter-spacing: 1px;
               "
             ></p>
 
@@ -1658,6 +1660,7 @@
             </div>
           </div>
         </div>
+
         <button
           onclick="downloadMyQR()"
           class="btn-save-qr kh-text"
