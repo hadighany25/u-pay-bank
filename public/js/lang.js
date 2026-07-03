@@ -335,5 +335,5 @@ function updateGreeting() {
   }
 }
 
-// ហៅ function នេះភ្លាមពេលបើក Web
+// ហៅ function នេះភ្លាមពេលបើក Web page
 document.addEventListener("DOMContentLoaded", applyLanguage);
