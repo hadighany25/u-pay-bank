@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>U-Pay Merchant</title>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
@@ -16,6 +16,8 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
       /* ==========================================
@@ -794,7 +796,7 @@
        🖨️ PRINT & PDF STYLES (Professional A4)
        ========================================== */
       #pdf-template {
-        display: none; /* លាក់ទុកសិន ពេលធម្មតា */
+        display: none;
       }
 
       @media print {
@@ -803,19 +805,33 @@
           margin: 0;
           padding: 0;
         }
-        /* លាក់ App ទាំងមូលពេល Print */
-        .app-container,
-        .sweet-alert,
-        .swal2-container {
+
+        /* 1. លាក់ផ្ទាំង App ធម្មតាទាំងអស់កុំឱ្យជាប់ក្នុង PDF */
+        .view-state,
+        .qr-modal,
+        .sidebar-overlay,
+        .sidebar,
+        .pin-modal,
+        .fab-add {
           display: none !important;
         }
 
-        /* បង្ហាញតែក្រដាស Report ប៉ុណ្ណោះ */
+        /* 2. បើក App Container ឱ្យបង្ហាញ ដើម្បីកុំឱ្យវាបិទ Template ខាងក្នុង */
+        .app-container {
+          display: block !important;
+          width: 100% !important;
+          max-width: none !important;
+          background: white !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+        }
+
+        /* 3. បង្ហាញតែក្រដាស Report មួយគត់ */
         #pdf-template {
           display: block !important;
           width: 100% !important;
           max-width: 100% !important;
-          padding: 20mm !important;
+          padding: 10mm !important;
           box-sizing: border-box;
           color: #1e293b;
           font-family: "Kantumruy Pro", "Inter", sans-serif;
@@ -823,6 +839,7 @@
           print-color-adjust: exact !important;
         }
 
+        /* ការរចនាភាពស្អាតរបស់ PDF */
         .pdf-header {
           text-align: center;
           border-bottom: 3px solid var(--primary);
@@ -884,18 +901,12 @@
           margin-top: 60px;
           margin-bottom: 10px;
         }
-        @media print {
-          body > *:not(#pdf-template) {
-            display: none !important;
-          }
-          #pdf-template {
-            display: block !important;
-            width: 100% !important;
-            padding: 20mm !important;
-          }
+
+        @page {
+          size: A4;
+          margin: 15mm;
         }
       }
-
       /* ==========================================
        🌙 DARK MODE OVERRIDES (Like scan.html)
        ========================================== */
@@ -1624,23 +1635,35 @@
             <!-- លេខ Merchant ID -->
             <p
               id="qrMerchantID"
-              style="color: #64748b; font-size: 0.9rem; margin: 5px 0 20px 0"
+              style="color: #64748b; font-size: 0.9rem; margin: 5px 0"
+            ></p>
+
+            <!-- 🔥 នេះគឺជា ID qrUserAcc ដែលបងបាត់ ខ្ញុំបានដាក់ចូលវិញហើយ វានឹងបង្ហាញលេខកុងខាងលើ QR យ៉ាងស្អាត -->
+            <p
+              id="qrUserAcc"
+              class="qr-user-acc"
+              style="
+                color: #00b894;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 1.1rem;
+                font-weight: 700;
+                letter-spacing: 1px;
+                margin: 5px 0 20px 0;
+              "
             ></p>
 
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
 
-            <!-- លេខគណនីខាងក្រោម QR (បានដូរពណ៌ឱ្យស្អាតដូចខាងលើ) -->
+            <!-- លេខគណនីខាងក្រោម QR -->
             <p
               id="qrAccountNum"
               style="
-                margin-top: 15px;
-                font-family: &quot;JetBrains Mono&quot;, monospace;
-                font-size: 1.1rem;
-                font-weight: 700;
-                color: #00b894;
-                letter-spacing: 1px;
+                margin-top: 10px;
+                font-family: &quot;JetBrains Mono&quot;;
+                font-weight: bold;
+                color: #004d40;
               "
             ></p>
 
@@ -1660,7 +1683,6 @@
             </div>
           </div>
         </div>
-
         <button
           onclick="downloadMyQR()"
           class="btn-save-qr kh-text"
