@@ -20,6 +20,9 @@
       body {
         margin: 0;
         visibility: hidden;
+        opacity: 0; /* ចាប់ផ្តើមដោយលាក់ */
+        transition: opacity 0.3s ease; /* បង្ហាញដោយរលូនក្នុងរយៈពេល 0.3 វិនាទី */
+        /* ... កូដផ្សេងៗទៀត ... */
       }
       /* 🔥 PREMIUM FONT & VARIABLES SETUP */
       :root {
@@ -873,20 +876,22 @@
 
       // ហៅពេលចាប់ផ្តើម Page
       document.addEventListener("DOMContentLoaded", () => {
+        // ១. ឆែកនិងដាក់ Theme មុនគេបង្អស់
         applyTheme();
 
-        // បន្ថែមការហៅ applyLanguage() នៅទីនេះ ដើម្បីឱ្យអក្សរបកប្រែភ្លាមៗពេលបើកទំព័រ
+        // ២. បន្ថែមការហៅ applyLanguage() នៅទីនេះ ដើម្បីឱ្យអក្សរបកប្រែភ្លាមៗពេលបើកទំព័រ
         if (typeof applyLanguage === "function") {
           applyLanguage();
         }
 
-        // កំណត់អក្សរ EN/KH លើកដំបូងឱ្យត្រូវនឹងអ្វីដែលបាន Save
+        // ៣. កំណត់អក្សរ EN/KH លើកដំបូងឱ្យត្រូវនឹងអ្វីដែលបាន Save
         let currentLang = localStorage.getItem("lang") || "en";
         const langLabel = document.getElementById("currentLang");
         if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
 
-        // បង្ហាញ Body វិញបន្ទាប់ពីផ្ទុកចប់
+        // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In) បន្ទាប់ពីអ្វីៗរៀបចំចប់
         document.body.style.visibility = "visible";
+        document.body.style.opacity = "1";
       });
 
       function toggleDarkMode() {
