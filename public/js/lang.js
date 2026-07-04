@@ -46,6 +46,41 @@ const translations = {
     checking_name: "Checking...",
     unknown_user: "Unknown User",
 
+    // ====================================
+    //--- Card ----
+    // ====================================
+    title_card: "Virtual Cards",
+    no_card_title: "You don't have a card yet",
+    no_card_desc: "Create a Virtual Visa Card now to shop online securely!",
+    btn_create_card: "Create Virtual Card Now",
+    card_settings: "Card Settings",
+    freeze_card: "Freeze card",
+    freeze_desc: "Temporarily disable your card.",
+    show_cvv: "Flip Card (Show CVV)",
+    cvv_desc: "View security code on the back.",
+    online_pay: "Online Payments",
+    online_pay_desc: "Enable or disable your card for online payments.",
+    reset_pin: "Reset Card PIN",
+    reset_pin_desc: "Change or reset your 4-digit card PIN.",
+    change_acc: "Change linked account",
+    change_acc_desc: "Change source account that is linked to this card.",
+    rename_card: "Rename Card",
+    rename_desc: "Provide the card with your preferred name.",
+    close_card: "Close card",
+    close_desc: "Close this card permanently.",
+    btn_continue: "Continue",
+    btn_cancel: "Cancel",
+    btn_create: "Create Card",
+    tc_title: "Terms and Conditions",
+    tc_agree: "I have read and agree to the terms.",
+    type_title: "Select Card Type",
+    delete_desc: "Please tell us why you are closing this card.",
+    btn_confirm_del: "Confirm Close Card",
+    nav_home: "Home",
+    nav_scan: "Scan",
+    nav_history: "History",
+    nav_settings: "Settings",
+
     // =====================================
     // --- SCAN QR (NEW) ---
     // =====================================
@@ -197,6 +232,42 @@ const translations = {
     btn_confirm_trx: "បញ្ជាក់ប្រតិបត្តិការ",
     checking_name: "កំពុងឆែកឈ្មោះ...",
     unknown_user: "គណនីមិនត្រឹមត្រូវ",
+
+    // ====================================
+    //--- Card ----
+    // ====================================
+    title_card: "កាតនិម្មិត (Virtual Card)",
+    no_card_title: "អ្នកមិនទាន់មានកាតនៅឡើយទេ",
+    no_card_desc:
+      "បង្កើតកាត Visa និម្មិតឥឡូវនេះ ដើម្បីទិញទំនិញអនឡាញដោយសុវត្ថិភាព!",
+    btn_create_card: "បង្កើតកាតឥឡូវនេះ",
+    card_settings: "ការកំណត់កាត",
+    freeze_card: "បង្កកកាត",
+    freeze_desc: "បិទដំណើរការកាតរបស់អ្នកជាបណ្ដោះអាសន្ន។",
+    show_cvv: "បង្វិលកាត (បង្ហាញលេខ CVV)",
+    cvv_desc: "មើលលេខកូដសុវត្ថិភាពនៅខាងក្រោយកាត។",
+    online_pay: "ការទូទាត់អនឡាញ",
+    online_pay_desc: "បើក ឬបិទការទូទាត់តាមអនឡាញសម្រាប់កាតរបស់អ្នក។",
+    reset_pin: "កំណត់លេខកូដ PIN ថ្មី",
+    reset_pin_desc: "ផ្លាស់ប្តូរ ឬកំណត់លេខកូដសម្ងាត់កាត ៤ខ្ទង់របស់អ្នក។",
+    change_acc: "ផ្លាស់ប្តូរគណនីភ្ជាប់",
+    change_acc_desc: "ផ្លាស់ប្តូរគណនីប្រភពដែលភ្ជាប់ជាមួយកាតនេះ។",
+    rename_card: "ដាក់ឈ្មោះកាតថ្មី",
+    rename_desc: "ដាក់ឈ្មោះកាតដែលអ្នកពេញចិត្ត។",
+    close_card: "បិទកាត",
+    close_desc: "បិទកាតនេះជាអចិន្ត្រៃយ៍។",
+    btn_continue: "បន្ត",
+    btn_cancel: "បោះបង់",
+    btn_create: "បង្កើតកាត",
+    tc_title: "លក្ខខណ្ឌប្រើប្រាស់",
+    tc_agree: "ខ្ញុំបានអាន និងយល់ព្រមតាមលក្ខខណ្ឌ។",
+    type_title: "ជ្រើសរើសប្រភេទកាត",
+    delete_desc: "សូមប្រាប់យើងពីមូលហេតុដែលអ្នកបិទកាតនេះ។",
+    btn_confirm_del: "យល់ព្រមបិទកាត",
+    nav_home: "ទំព័រដើម",
+    nav_scan: "ស្កេន",
+    nav_history: "ប្រវត្តិ",
+    nav_settings: "ការកំណត់",
 
     //=================================
     // --- SCAN QR (NEW) ---
