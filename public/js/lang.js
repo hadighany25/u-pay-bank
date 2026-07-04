@@ -81,6 +81,21 @@ const translations = {
     btn_set_pin: "Set PIN",
     btn_yes_logout: "Yes, Logout",
     btn_cancel: "Cancel",
+    title: "Settings",
+    sec_general: "General",
+    dark_mode: "Dark Mode",
+    language: "Language",
+    sec_security: "Security",
+    change_pass: "Change Password",
+    change_pin: "Change PIN",
+    link_telegram: "Telegram Alert",
+    biometric: "Biometric Login",
+    sec_limits: "Limits",
+    trx_limit: "Transaction Limit",
+    sec_support: "Support & Verification",
+    kyc_verify: "Identity Verification (KYC)",
+    support_ticket: "Support Tickets",
+    logout: "Log Out",
 
     // =====================================
     // --- MERCHANT FEATURES (បន្ថែមថ្មី) ---
@@ -218,6 +233,21 @@ const translations = {
     btn_set_pin: "កំណត់ PIN",
     btn_yes_logout: "ចាកចេញ",
     btn_cancel: "បោះបង់",
+    title: "ការកំណត់",
+    sec_general: "ទូទៅ",
+    dark_mode: "ម៉ូដងងឹត",
+    language: "ភាសា",
+    sec_security: "សុវត្ថិភាព",
+    change_pass: "ប្ដូរពាក្យសម្ងាត់",
+    change_pin: "ប្ដូរលេខ PIN",
+    link_telegram: "ភ្ជាប់ Telegram",
+    biometric: "ស្កេនម្រាមដៃ",
+    sec_limits: "ដែនកំណត់",
+    trx_limit: "ដែនកំណត់ការវេរ",
+    sec_support: "ជំនួយ និងផ្ទៀងផ្ទាត់",
+    kyc_verify: "ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC)",
+    support_ticket: "សេវាកម្មអតិថិជន",
+    logout: "ចាកចេញ",
 
     // =====================================
     // --- MERCHANT FEATURES (បន្ថែមថ្មី) ---

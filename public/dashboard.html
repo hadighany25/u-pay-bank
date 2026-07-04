@@ -1234,11 +1234,15 @@
       let lastBalance = user.balance;
 
       // ==========================================
-      // 🖐️ DRAG & DROP MENU (ABA STYLE)
+      // 🖐️ DRAG & DROP MENU (ABA STYLE) - PER ACCOUNT
       // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
         const grid = document.getElementById("sortableMenu");
-        const savedOrder = localStorage.getItem("menuOrder");
+
+        // បង្កើត Key សម្រាប់ចំណាំ Account នីមួយៗ (ឧ. menuOrder_012345678)
+        const userMenuKey = "menuOrder_" + user.username;
+        const savedOrder = localStorage.getItem(userMenuKey);
+
         if (savedOrder) {
           const orderArray = JSON.parse(savedOrder);
           orderArray.forEach((id) => {
@@ -1246,6 +1250,7 @@
             if (el) grid.appendChild(el);
           });
         }
+
         new Sortable(grid, {
           animation: 250,
           delay: 200,
@@ -1254,7 +1259,9 @@
           onEnd: function () {
             const items = grid.querySelectorAll(".menu-item");
             const newOrder = Array.from(items).map((item) => item.id);
-            localStorage.setItem("menuOrder", JSON.stringify(newOrder));
+
+            // ពេលអូសចប់ Save វាទុកក្នុង Key របស់ Account ហ្នឹងដាច់ដោយឡែក
+            localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
           },
         });
       });

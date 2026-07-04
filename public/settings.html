@@ -14,49 +14,51 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/lang.js"></script>
 
     <style>
-      /* 🔥 PREMIUM FONT SETUP */
+      /* 🔥 PREMIUM FONT & VARIABLES SETUP */
       :root {
         --font-main: "Inter", "Kantumruy Pro", sans-serif;
         --max-width: 450px;
         --primary-color: #004d40;
+        --bg-light: #eef2f6;
+        --app-bg-light: #f3f4f6;
+        --text-dark: #1e293b;
+        --text-muted: #64748b;
       }
+
       body {
         margin: 0;
         font-family: var(--font-main);
-        background: #eef2f6;
+        background: var(--bg-light);
         display: flex;
         justify-content: center;
         min-height: 100vh;
         -webkit-font-smoothing: antialiased;
+        transition: background 0.3s ease;
       }
+
       .app-container {
         width: 100%;
         max-width: var(--max-width);
-        background: #f3f4f6;
+        background: var(--app-bg-light);
         min-height: 100vh;
         position: relative;
         box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
         padding-bottom: 90px;
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
       }
+
       input,
       button,
       select,
       textarea {
         font-family: var(--font-main) !important;
-      }
-
-      /* DARK MODE */
-      body.dark-mode {
-        background: #000;
-      }
-      body.dark-mode .app-container {
-        background: #121212;
-        color: #e0e0e0;
-        box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
       }
 
       /* HEADER */
@@ -86,11 +88,9 @@
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
         text-align: center;
         position: relative;
-        transition: 0.3s;
-      }
-      body.dark-mode .profile-card {
-        background: #1e1e1e;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition:
+          background 0.3s ease,
+          box-shadow 0.3s ease;
       }
 
       .profile-img-container {
@@ -107,21 +107,21 @@
         object-fit: cover;
         border: 4px solid white;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-        transition: 0.2s;
+        transition:
+          transform 0.2s,
+          opacity 0.2s,
+          border-color 0.3s ease;
       }
       .profile-img-container:active .profile-img {
         transform: scale(0.95);
         opacity: 0.8;
-      }
-      body.dark-mode .profile-img {
-        border-color: #2d2d2d;
       }
 
       .edit-icon {
         position: absolute;
         bottom: 0;
         right: 0;
-        background: #004d40;
+        background: var(--primary-color);
         color: white;
         width: 32px;
         height: 32px;
@@ -132,11 +132,11 @@
         font-size: 0.9rem;
         border: 3px solid white;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
       }
-      body.dark-mode .edit-icon {
-        border-color: #1e1e1e;
-        background: #10b981;
-      }
+
       #fileUploadInput,
       #kycUploadInput {
         display: none;
@@ -150,17 +150,15 @@
         margin-top: 10px;
         padding: 10px;
         border-radius: 16px;
-        transition: 0.2s;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
         cursor: pointer;
         border: 1px solid transparent;
       }
       .profile-info-box:active {
         background: #f8fafc;
         border-color: #e2e8f0;
-      }
-      body.dark-mode .profile-info-box:active {
-        background: #2a2a2a;
-        border-color: #333;
       }
       .profile-info-box .fa-pen {
         position: absolute;
@@ -173,15 +171,13 @@
       .user-name {
         font-size: 1.3rem;
         font-weight: 700;
-        color: #1e293b;
+        color: var(--text-dark);
         margin: 0;
         letter-spacing: -0.5px;
-      }
-      body.dark-mode .user-name {
-        color: white;
+        transition: color 0.3s ease;
       }
       .user-phone {
-        color: #64748b;
+        color: var(--text-muted);
         font-size: 0.9rem;
         margin-top: 5px;
         font-weight: 500;
@@ -193,24 +189,23 @@
       }
       .group-title {
         font-size: 0.85rem;
-        color: #64748b;
+        color: var(--text-muted);
         font-weight: 700;
         margin-bottom: 12px;
         margin-left: 10px;
         text-transform: uppercase;
         letter-spacing: 1px;
-      }
-      body.dark-mode .group-title {
-        color: #94a3b8;
+        transition: color 0.3s ease;
       }
       .setting-wrapper {
         background: white;
         border-radius: 20px;
         overflow: hidden;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-      }
-      body.dark-mode .setting-wrapper {
-        background: #1e1e1e;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease;
+        border: 1px solid transparent;
       }
       .setting-item {
         padding: 18px 20px;
@@ -219,10 +214,9 @@
         justify-content: space-between;
         border-bottom: 1px solid #f1f5f9;
         cursor: pointer;
-        transition: 0.2s;
-      }
-      body.dark-mode .setting-item {
-        border-color: #333;
+        transition:
+          background 0.2s,
+          border-color 0.3s ease;
       }
       .setting-item:last-child {
         border-bottom: none;
@@ -231,9 +225,6 @@
         background: #f8fafc;
         transform: scale(0.98);
       }
-      body.dark-mode .setting-item:active {
-        background: #2a2a2a;
-      }
       .setting-left {
         display: flex;
         align-items: center;
@@ -241,27 +232,24 @@
         font-weight: 600;
         font-size: 1rem;
         color: #334155;
-      }
-      body.dark-mode .setting-left {
-        color: #e2e8f0;
+        transition: color 0.3s ease;
       }
       .setting-icon {
         width: 38px;
         height: 38px;
         border-radius: 12px;
         background: #e0f2f1;
-        color: #004d40;
+        color: var(--primary-color);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.1rem;
-      }
-      body.dark-mode .setting-icon {
-        background: #2d2d2d;
-        color: #10b981;
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
       }
 
-      /* LOGOUT */
+      /* LOGOUT BUTTON */
       .logout-btn {
         margin: 10px 20px 30px;
         background: white;
@@ -271,7 +259,11 @@
         border-radius: 18px;
         font-weight: 700;
         cursor: pointer;
-        transition: 0.2s;
+        transition:
+          transform 0.2s,
+          background 0.3s,
+          color 0.3s,
+          border-color 0.3s;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -281,12 +273,6 @@
       }
       .logout-btn:active {
         transform: scale(0.97);
-      }
-      body.dark-mode .logout-btn {
-        background: #2a1515;
-        color: #ff6b6b;
-        border-color: #451a1a;
-        box-shadow: none;
       }
 
       /* BOTTOM NAV */
@@ -304,10 +290,11 @@
         box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
         z-index: 1000;
         border-radius: 25px 25px 0 0;
-      }
-      body.dark-mode .bottom-nav {
-        background: #1e1e1e;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        transition:
+          background 0.3s ease,
+          box-shadow 0.3s ease,
+          border-top 0.3s ease;
+        border-top: 1px solid transparent;
       }
       .nav-item {
         text-align: center;
@@ -315,7 +302,9 @@
         font-size: 0.75rem;
         text-decoration: none;
         cursor: pointer;
-        transition: 0.2s;
+        transition:
+          color 0.2s,
+          transform 0.2s;
       }
       .nav-item i {
         font-size: 1.4rem;
@@ -323,15 +312,12 @@
         margin-bottom: 6px;
       }
       .nav-item.active {
-        color: #004d40;
+        color: var(--primary-color);
         font-weight: 700;
         transform: translateY(-5px);
       }
-      body.dark-mode .nav-item.active {
-        color: #10b981;
-      }
 
-      /* SWITCH */
+      /* SWITCH TOGGLE */
       .switch {
         position: relative;
         display: inline-block;
@@ -367,10 +353,7 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
       input:checked + .slider {
-        background-color: #004d40;
-      }
-      body.dark-mode input:checked + .slider {
-        background-color: #10b981;
+        background-color: var(--primary-color);
       }
       input:checked + .slider:before {
         transform: translateX(20px);
@@ -380,12 +363,14 @@
       .premium-swal {
         border-radius: 24px !important;
         padding: 20px !important;
+        transition: background 0.3s ease;
       }
       .premium-swal-title {
         font-size: 1.4rem !important;
         font-weight: 700 !important;
         color: #1e293b !important;
         margin-bottom: 20px !important;
+        transition: color 0.3s ease;
       }
       .swal-form-group {
         text-align: left;
@@ -399,6 +384,7 @@
         margin-bottom: 8px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        transition: color 0.3s ease;
       }
       .swal-custom-input,
       .swal-custom-select,
@@ -412,13 +398,16 @@
         color: #1e293b;
         outline: none;
         box-sizing: border-box;
-        transition: 0.2s;
+        transition:
+          border-color 0.2s,
+          background 0.3s ease,
+          color 0.3s ease;
         background: #f8fafc;
       }
       .swal-custom-input:focus,
       .swal-custom-select:focus,
       .swal-custom-textarea:focus {
-        border-color: #004d40;
+        border-color: var(--primary-color);
         background: #ffffff;
         box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
       }
@@ -427,7 +416,7 @@
         min-height: 100px;
       }
       .premium-btn-confirm {
-        background: #004d40 !important;
+        background: var(--primary-color) !important;
         color: white !important;
         border: none !important;
         border-radius: 12px !important;
@@ -446,35 +435,132 @@
         font-weight: 600 !important;
         font-family: var(--font-main) !important;
         margin: 5px !important;
+        transition:
+          background 0.3s ease,
+          border-color 0.3s ease,
+          color 0.3s ease;
       }
 
+      /* ==========================================
+         🌙 FULL DARK MODE OVERRIDES
+         ========================================== */
+
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        color: #e0e0e0 !important;
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
+      }
+
+      /* Profile Section Dark Mode */
+      body.dark-mode .profile-card {
+        background: #1e1e1e !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+      }
+      body.dark-mode .profile-img {
+        border-color: #2d2d2d !important;
+      }
+      body.dark-mode .edit-icon {
+        border-color: #1e1e1e !important;
+        background: #10b981 !important;
+      }
+      body.dark-mode .user-name {
+        color: #ffffff !important;
+      }
+      body.dark-mode .profile-info-box:active {
+        background: #2a2a2a !important;
+        border-color: #333 !important;
+      }
+
+      /* Settings List Dark Mode */
+      body.dark-mode .group-title {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .setting-wrapper {
+        background: #1e1e1e !important;
+        border: 1px solid #2d2d2d !important;
+        box-shadow: none !important;
+      }
+      body.dark-mode .setting-item {
+        border-bottom: 1px solid #2d2d2d !important;
+      }
+      body.dark-mode .setting-item:active {
+        background: #2a2a2a !important;
+      }
+      body.dark-mode .setting-left {
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .setting-icon {
+        background: #2d2d2d !important;
+        color: #10b981 !important;
+      }
+
+      /* Toggle Switch Dark Mode */
+      body.dark-mode input:checked + .slider {
+        background-color: #10b981 !important;
+      }
+
+      /* Logout Button Dark Mode */
+      body.dark-mode .logout-btn {
+        background: #2a1515 !important;
+        color: #ff6b6b !important;
+        border-color: #451a1a !important;
+        box-shadow: none !important;
+      }
+      body.dark-mode .logout-btn:active {
+        background: #3f1d1d !important;
+      }
+
+      /* Bottom Nav Dark Mode */
+      body.dark-mode .bottom-nav {
+        background: #1e1e1e !important;
+        border-top: 1px solid #2d2d2d !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4) !important;
+      }
+      body.dark-mode .nav-item.active {
+        color: #10b981 !important;
+      }
+
+      /* SweetAlert Modal Dark Mode */
       body.dark-mode .premium-swal {
         background: #1e1e1e !important;
       }
       body.dark-mode .premium-swal-title {
-        color: white !important;
+        color: #ffffff !important;
       }
       body.dark-mode .swal-custom-input,
       body.dark-mode .swal-custom-select,
       body.dark-mode .swal-custom-textarea {
-        background: #121212;
-        border-color: #333;
-        color: white;
+        background: #121212 !important;
+        border-color: #333 !important;
+        color: #ffffff !important;
+      }
+      body.dark-mode .swal-custom-input:focus,
+      body.dark-mode .swal-custom-select:focus,
+      body.dark-mode .swal-custom-textarea:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
       }
       body.dark-mode .swal-form-label {
-        color: #94a3b8;
+        color: #94a3b8 !important;
       }
       body.dark-mode .premium-btn-cancel {
         background: #2a2a2a !important;
         border-color: #444 !important;
         color: #cbd5e1 !important;
       }
+      body.dark-mode .premium-btn-confirm {
+        background: #10b981 !important;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2) !important;
+      }
     </style>
   </head>
   <body>
     <div class="app-container">
       <div class="header">
-        <h2 data-lang="title">Settings</h2>
+        <h2 data-i18n="title">Settings</h2>
       </div>
 
       <div class="profile-section">
@@ -501,7 +587,7 @@
       </div>
 
       <div class="settings-group">
-        <div class="group-title" data-lang="sec_general">General</div>
+        <div class="group-title" data-i18n="sec_general">General</div>
         <div class="setting-wrapper">
           <div class="setting-item">
             <div class="setting-left">
@@ -511,7 +597,7 @@
               >
                 <i class="fa-solid fa-moon"></i>
               </div>
-              <span data-lang="dark_mode">Dark Mode</span>
+              <span data-i18n="dark_mode">Dark Mode</span>
             </div>
             <label class="switch">
               <input
@@ -530,7 +616,7 @@
               >
                 <i class="fa-solid fa-language"></i>
               </div>
-              <span data-lang="language">Language</span>
+              <span data-i18n="language">Language</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px">
               <span
@@ -549,19 +635,19 @@
       </div>
 
       <div class="settings-group">
-        <div class="group-title" data-lang="sec_security">Security</div>
+        <div class="group-title" data-i18n="sec_security">Security</div>
         <div class="setting-wrapper">
           <div class="setting-item" onclick="changePassword()">
             <div class="setting-left">
               <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
-              <span data-lang="change_pass">Change Password</span>
+              <span data-i18n="change_pass">Change Password</span>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
           <div class="setting-item" onclick="changePin()">
             <div class="setting-left">
               <div class="setting-icon"><i class="fa-solid fa-key"></i></div>
-              <span data-lang="change_pin">Change PIN</span>
+              <span data-i18n="change_pin">Change PIN</span>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
@@ -578,7 +664,7 @@
                 <i class="fa-brands fa-telegram"></i>
               </div>
               <div style="display: flex; flex-direction: column">
-                <span data-lang="link_telegram" style="margin-bottom: 3px"
+                <span data-i18n="link_telegram" style="margin-bottom: 3px"
                   >Telegram Alert</span
                 >
                 <span
@@ -598,7 +684,7 @@
               >
                 <i class="fa-solid fa-fingerprint"></i>
               </div>
-              <span data-lang="biometric">Biometric Login</span>
+              <span data-i18n="biometric">Biometric Login</span>
             </div>
             <label class="switch">
               <input type="checkbox" id="bioToggle" onchange="toggleBio()" />
@@ -609,7 +695,7 @@
       </div>
 
       <div class="settings-group">
-        <div class="group-title" data-lang="sec_limits">Limits</div>
+        <div class="group-title" data-i18n="sec_limits">Limits</div>
         <div class="setting-wrapper">
           <div class="setting-item" onclick="changeLimit()">
             <div class="setting-left">
@@ -619,7 +705,7 @@
               >
                 <i class="fa-solid fa-chart-pie"></i>
               </div>
-              <span data-lang="trx_limit">Transaction Limit</span>
+              <span data-i18n="trx_limit">Transaction Limit</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px">
               <span
@@ -633,7 +719,7 @@
       </div>
 
       <div class="settings-group">
-        <div class="group-title" data-lang="sec_support">
+        <div class="group-title" data-i18n="sec_support">
           Support & Verification
         </div>
         <div class="setting-wrapper">
@@ -646,7 +732,7 @@
                 <i class="fa-solid fa-id-card"></i>
               </div>
               <div style="display: flex; flex-direction: column">
-                <span data-lang="kyc_verify" style="margin-bottom: 3px"
+                <span data-i18n="kyc_verify" style="margin-bottom: 3px"
                   >Identity Verification</span
                 >
                 <span
@@ -676,7 +762,7 @@
               >
                 <i class="fa-solid fa-headset"></i>
               </div>
-              <span data-lang="support_ticket">Support Tickets</span>
+              <span data-i18n="support_ticket">Support Tickets</span>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
@@ -685,7 +771,7 @@
 
       <div class="logout-btn" onclick="logout()">
         <i class="fa-solid fa-right-from-bracket"></i>
-        <span data-lang="logout">Log Out</span>
+        <span data-i18n="logout">Log Out</span>
       </div>
 
       <div class="bottom-nav">
@@ -738,80 +824,65 @@
       }
       updateKycUI();
 
-      // --- LANGUAGE SETUP ---
-      const translations = {
-        en: {
-          title: "Settings",
-          sec_general: "General",
-          dark_mode: "Dark Mode",
-          language: "Language",
-          sec_security: "Security",
-          change_pass: "Change Password",
-          change_pin: "Change PIN",
-          link_telegram: "Telegram Alert",
-          biometric: "Biometric Login",
-          sec_limits: "Limits",
-          trx_limit: "Transaction Limit",
-          sec_support: "Support & Verification",
-          kyc_verify: "Identity Verification (KYC)",
-          support_ticket: "Support Tickets",
-          logout: "Log Out",
-        },
-        kh: {
-          title: "ការកំណត់",
-          sec_general: "ទូទៅ",
-          dark_mode: "ម៉ូដងងឹត",
-          language: "ភាសា",
-          sec_security: "សុវត្ថិភាព",
-          change_pass: "ប្ដូរពាក្យសម្ងាត់",
-          change_pin: "ប្ដូរលេខ PIN",
-          link_telegram: "ភ្ជាប់ Telegram",
-          biometric: "ស្កេនម្រាមដៃ",
-          sec_limits: "ដែនកំណត់",
-          trx_limit: "ដែនកំណត់ការវេរ",
-          sec_support: "ជំនួយ និងផ្ទៀងផ្ទាត់",
-          kyc_verify: "ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC)",
-          support_ticket: "សេវាកម្មអតិថិជន",
-          logout: "ចាកចេញ",
-        },
-      };
-      let currentLang = localStorage.getItem("lang") || "en";
-      function applyLang(lang) {
-        document.getElementById("currentLang").innerText =
-          lang === "en" ? "English" : "ភាសាខ្មែរ";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[lang][key]) el.innerText = translations[lang][key];
-        });
-        document.body.style.fontFamily =
-          lang === "kh"
-            ? "'Kantumruy Pro', sans-serif"
-            : "'Inter', 'Kantumruy Pro', sans-serif";
-      }
-      applyLang(currentLang);
+      // ==========================================
+      // 🌐 LANGUAGE SETUP
+      // ==========================================
       function toggleLang() {
-        currentLang = currentLang === "en" ? "kh" : "en";
-        localStorage.setItem("lang", currentLang);
-        applyLang(currentLang);
-        updateKycUI();
+        let currentLang = localStorage.getItem("lang") || "en";
+        let newLang = currentLang === "en" ? "kh" : "en";
+        localStorage.setItem("lang", newLang);
+
+        // ១. ប្តូរអក្សរ EN / KH នៅលើ UI Settings
+        document.getElementById("currentLang").innerText =
+          newLang === "en" ? "EN" : "KH";
+
+        // ២. ហៅមុខងារបកប្រែពី lang.js
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        }
       }
 
-      // --- THEME & BIO ---
-      if (localStorage.getItem("darkMode") === "true")
-        (document.body.classList.add("dark-mode"),
-          (document.getElementById("darkModeToggle").checked = true));
-      function toggleDarkMode() {
-        document.body.classList.toggle("dark-mode");
-        localStorage.setItem(
-          "darkMode",
-          document.body.classList.contains("dark-mode"),
-        );
+      // ==========================================
+      // 🌙 THEME & BIO (Per-Account Settings)
+      // ==========================================
+      const userThemeKey = "darkMode_" + user.username;
+      const userBioKey = "useBiometric_" + user.username;
+
+      function applyTheme() {
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+          const toggle = document.getElementById("darkModeToggle");
+          if (toggle) toggle.checked = true;
+        }
+
+        if (localStorage.getItem(userBioKey) === "true") {
+          const bioToggle = document.getElementById("bioToggle");
+          if (bioToggle) bioToggle.checked = true;
+        }
       }
-      if (localStorage.getItem("useBiometric") === "true")
-        document.getElementById("bioToggle").checked = true;
+
+      // ហៅពេលចាប់ផ្តើម Page
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+
+        // កំណត់អក្សរ EN/KH លើកដំបូងឱ្យត្រូវនឹងអ្វីដែលបាន Save
+        let currentLang = localStorage.getItem("lang") || "en";
+        const langLabel = document.getElementById("currentLang");
+        if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
+      });
+
+      function toggleDarkMode() {
+        const isDarkModeActive = document.body.classList.toggle("dark-mode");
+        localStorage.setItem(userThemeKey, isDarkModeActive);
+      }
+
       function toggleBio() {
         localStorage.setItem(
-          "useBiometric",
+          userBioKey,
           document.getElementById("bioToggle").checked,
         );
       }
@@ -828,11 +899,13 @@
         showCancelButton: true,
       };
 
-      // --- CORE FUNCTIONS ---
       async function editProfile() {
+        // បន្ថែមបន្ទាត់នេះ ដើម្បីចាប់យកភាសាបច្ចុប្បន្ន
+        const lang = localStorage.getItem("lang") || "en";
+
         const { value: v } = await Swal.fire({
           ...swalConfig,
-          title: currentLang === "en" ? "Edit Profile" : "កែប្រែព័ត៌មាន",
+          title: lang === "en" ? "Edit Profile" : "កែប្រែព័ត៌មាន", // ប្រើ lang ជំនួស currentLang
           html: `<div class="swal-form-group"><label class="swal-form-label">Full Name</label><input id="sw-n" class="swal-custom-input" value="${user.fullName || ""}"></div>
                  <div class="swal-form-group"><label class="swal-form-label">Phone</label><input id="sw-p" class="swal-custom-input" value="${user.phone || ""}"></div>`,
           preConfirm: () => [
