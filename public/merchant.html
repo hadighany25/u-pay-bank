@@ -44,6 +44,19 @@
         font-family: "Kantumruy Pro", "Inter", sans-serif;
         color: var(--text-main);
         -webkit-font-smoothing: antialiased;
+
+        /* ➕ បន្ថែម ៣ បន្ទាត់នេះ */
+        visibility: hidden;
+        opacity: 0;
+        transition:
+          background-color 0.3s ease,
+          opacity 0.4s ease;
+      }
+
+      /* ➕ បន្ថែម Class នេះនៅពីក្រោម body */
+      body.loaded {
+        visibility: visible;
+        opacity: 1;
       }
 
       .kh-text {
@@ -1951,15 +1964,37 @@
 
       <script>
         function applyTheme() {
-          if (
+          // ➕ ចាប់យក Key តាម Account
+          const userThemeKey = "darkMode_" + user.username;
+          const isDark =
             localStorage.getItem("theme") === "dark" ||
-            localStorage.getItem("darkMode") === "true"
-          ) {
+            localStorage.getItem(userThemeKey) === "true";
+
+          if (isDark) {
             document.body.classList.add("dark-mode");
           } else {
             document.body.classList.remove("dark-mode");
           }
         }
+
+        // ធ្វើការបង្រួបបង្រួម DOMContentLoaded ឱ្យសល់តែមួយ
+        document.addEventListener("DOMContentLoaded", () => {
+          // ១. ដាក់ Theme មុនគេបង្អស់
+          applyTheme();
+
+          // ២. បកប្រែភាសា
+          if (typeof applyLanguage === "function") {
+            applyLanguage();
+          }
+
+          // ៣. បង្ហាញទិន្នន័យហាង
+          document.getElementById("introName").innerText =
+            user.fullName || user.username;
+          initApp();
+
+          // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In)
+          document.body.classList.add("loaded");
+        });
 
         // ==========================================
         // ⚙️ INITIALIZATION & DATA
