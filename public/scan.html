@@ -11,8 +11,7 @@
       type="text/javascript"
     ></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="js/lang.js"></script>
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
@@ -23,19 +22,12 @@
     />
 
     <style>
-      /* --- GLOBAL STYLES --- */
+      /* --- GENERAL --- */
       body {
         background-color: #f2f4f6;
         margin: 0;
         font-family: "Kantumruy Pro", "Inter", sans-serif;
         overflow: hidden;
-        visibility: hidden; /* លាក់សិនដើម្បីការពារ Flash */
-        opacity: 0;
-        transition: opacity 0.4s ease;
-      }
-      body.loaded {
-        visibility: visible;
-        opacity: 1;
       }
       .kh-text {
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
@@ -46,14 +38,12 @@
         margin: 0 auto;
         height: 100vh;
         position: relative;
-        background: #f8fafc; /* ប្តូរពីខ្មៅមកពណ៌ស្រាល */
+        background: #000;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
-        transition: background-color 0.3s;
+        overflow: hidden; /* 🔥 ការពារកុំឱ្យ Modal ហូរចេញក្រៅស៊ុម */
       }
 
-      /* --- SCANNER CAMERA --- */
       #reader {
         width: 100%;
         height: 100%;
@@ -64,7 +54,6 @@
         z-index: 1;
       }
 
-      /* --- SCANNER HEADER --- */
       .scan-header {
         position: absolute;
         top: 0;
@@ -76,15 +65,20 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
       }
       .back-link {
         color: white;
         font-size: 1.4rem;
         text-decoration: none;
+        opacity: 0.9;
+        transition: 0.2s;
+      }
+      .back-link:active {
+        opacity: 0.5;
+        transform: scale(0.9);
       }
 
-      /* --- SCANNER UI --- */
       .scan-overlay-ui {
         position: absolute;
         top: 0;
@@ -103,8 +97,8 @@
         height: 270px;
         position: relative;
         border-radius: 30px;
-        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
       .corner {
         position: absolute;
@@ -142,6 +136,7 @@
         border-top: 0;
         border-bottom-right-radius: 25px;
       }
+
       .scan-laser {
         width: 100%;
         height: 3px;
@@ -153,27 +148,30 @@
         animation: scanMove 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
       }
       @keyframes scanMove {
-        0%,
-        100% {
+        0% {
           top: 10px;
           opacity: 0;
         }
-        20%,
+        20% {
+          opacity: 1;
+        }
         80% {
           opacity: 1;
         }
-        50% {
+        100% {
           top: 250px;
+          opacity: 0;
         }
       }
+
       .scan-text {
         color: white;
         margin-top: 30px;
         font-size: 0.95rem;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        letter-spacing: 0.5px;
+        opacity: 0.8;
       }
 
-      /* --- CONTROLS --- */
       .scan-controls {
         position: absolute;
         bottom: 60px;
@@ -186,22 +184,27 @@
       .control-btn {
         width: 60px;
         height: 60px;
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.15);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.4rem;
         color: white;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         cursor: pointer;
-        transition: 0.3s;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .control-btn:active {
+        transform: scale(0.85);
+        background: rgba(255, 255, 255, 0.3);
       }
 
-      /* --- QR MODAL --- */
+      /* 🔥 MODAL "MY QR" */
       .qr-modal {
         display: none;
-        position: absolute;
+        position: absolute; /* 🔥 ដូរពី Fixed មក Absolute ដើម្បីអោយវានៅក្នុងស៊ុម 450px */
         top: 0;
         left: 0;
         width: 100%;
@@ -210,53 +213,184 @@
         z-index: 100;
         flex-direction: column;
         align-items: center;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .qr-card-container {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
       }
       .qr-white-box {
-        background: #fff;
-        width: 90%;
+        background: #ffffff;
+        width: 100%;
         max-width: 350px;
-        padding: 25px;
+        padding: 30px 25px;
         border-radius: 30px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1);
         text-align: center;
+        position: relative;
+        box-sizing: border-box;
       }
+
+      .currency-toggle {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 14px;
+        padding: 5px;
+        margin-bottom: 25px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .toggle-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #64748b;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .toggle-btn.active {
+        background: white;
+        color: #004d40;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .qr-logo-top {
+        height: 40px;
+        margin-bottom: 15px;
+      }
+      .qr-user-name {
+        margin: 0;
+        font-size: 1.3rem;
+        color: #1e293b;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .qr-user-acc {
+        margin: 5px 0 20px;
+        color: #00b894;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      .qr-img-wrapper {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
+      }
+      #myQrImg {
+        width: 220px;
+        height: 220px;
+        display: block;
+        border-radius: 12px;
+      }
+
+      .amount-input-area {
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 20px;
+        width: 100%;
+      }
+      .amount-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .amount-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .currency-symbol {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-top: -2px;
+      }
+
       #qrSetAmount {
         border: none;
         background: transparent;
-        width: 100%;
+        width: 160px;
         text-align: center;
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 700;
         color: #004d40;
+        outline: none;
+        font-family: "JetBrains Mono", sans-serif;
+      }
+      #qrSetAmount::placeholder {
+        color: #cbd5e1;
       }
 
-      /* បន្ថែមចំណុចនេះទៅក្នុង Style របស់បង */
-      body.dark-mode {
-        background-color: #000 !important;
+      .btn-save-qr {
+        width: calc(100% - 40px);
+        max-width: 350px;
+        padding: 18px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 30px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
       }
-      body.dark-mode .app-container {
-        background-color: #121212 !important;
+      .btn-save-qr:active {
+        transform: scale(0.96);
       }
-      body.dark-mode .qr-modal {
-        background-color: #121212 !important;
+
+      .close-qr-btn {
+        position: absolute;
+        top: 25px;
+        left: 20px;
+        font-size: 1.2rem;
+        color: #1e293b;
+        cursor: pointer;
+        background: #fff;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        transition: 0.2s;
       }
-      body.dark-mode .qr-white-box {
-        background-color: #1e1e1e !important;
-        border: 1px solid #333 !important;
-      }
-      body.dark-mode .qr-user-name,
-      body.dark-mode .amount-label,
-      body.dark-mode .currency-symbol {
-        color: #ffffff !important;
-      }
-      body.dark-mode .close-qr-btn {
-        background-color: #333 !important;
-        color: #fff !important;
-        border: none !important;
+      .close-qr-btn:active {
+        transform: scale(0.9);
       }
     </style>
   </head>
   <body>
+    <!-- 🔥 រុញ Modal ចូលមកក្នុង App Container វិញ -->
     <div class="app-container">
       <div id="reader"></div>
 
@@ -271,7 +405,7 @@
             letter-spacing: 1px;
             font-size: 1.1rem;
           "
-          data-i18n="title_scan"
+          data-lang="title_scan"
           >SCAN QR</span
         >
         <div style="width: 24px"></div>
@@ -285,7 +419,7 @@
           <div class="corner br"></div>
           <div class="scan-laser"></div>
         </div>
-        <div class="scan-text kh-text" data-i18n="scan_desc">
+        <div class="scan-text kh-text" data-lang="scan_desc">
           ដាក់កូដ QR ក្នុងប្រអប់ដើម្បីស្កេន
         </div>
       </div>
@@ -330,10 +464,12 @@
         onchange="scanFromGallery(event)"
       />
 
+      <!-- 🔥 MODAL រុញចូលមកក្នុងនេះ ដើម្បីអោយវាប៉ុនទូរសព្ទ -->
       <div id="qrModal" class="qr-modal">
         <div class="close-qr-btn" onclick="closeMyQR()">
           <i class="fa-solid fa-xmark"></i>
         </div>
+
         <div class="qr-card-container">
           <div class="qr-white-box" id="myQRContent">
             <div class="currency-toggle" id="qrToggleBar">
@@ -352,19 +488,17 @@
                 KHR (៛)
               </div>
             </div>
-            <img
-              src="images/logo-nobg.png"
-              class="qr-logo-top"
-              alt="U-Pay"
-              onerror="this.style.display = 'none'"
-            />
+
+            <img src="images/logo.png" class="qr-logo-top" alt="U-Pay" />
             <h3 id="qrUserName" class="qr-user-name">...</h3>
             <p id="qrUserAcc" class="qr-user-acc">...</p>
+
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
+
             <div class="amount-input-area">
-              <div class="amount-label kh-text" data-i18n="set_amount">
+              <div class="amount-label kh-text" data-lang="set_amount">
                 កំណត់ទឹកប្រាក់ចង់បាន
               </div>
               <div class="amount-row">
@@ -379,13 +513,14 @@
             </div>
           </div>
         </div>
+
         <button
           onclick="downloadMyQR()"
           class="btn-save-qr kh-text"
           id="btnSaveQR"
         >
           <i class="fa-solid fa-download" style="margin-right: 8px"></i>
-          <span data-i18n="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+          <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
         </button>
       </div>
     </div>
@@ -393,63 +528,6 @@
     <script>
       const user = JSON.parse(sessionStorage.getItem("user"));
       if (!user) window.location.href = "index.html";
-
-      // ==========================================
-      // 🔥 2. ការតភ្ជាប់ Socket.io សម្រាប់ចាប់យកសញ្ញាលុយចូល
-      // ==========================================
-      const socket = io("https://u-pay-bank.fly.dev"); // ដាក់ URL Backend របស់អ្នក
-
-      // ប្រាប់ Server ថាអតិថិជនម្នាក់នេះចូលក្នុងបន្ទប់របស់គាត់
-      socket.emit("joinRoom", user.username);
-
-      socket.on("paymentReceived", (data) => {
-        // លេងសំឡេងលុយចូល
-        const ringtone = new Audio(
-          "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-        );
-        ringtone
-          .play()
-          .catch((e) => console.log("Audio blocked by browser", e));
-
-        const amountInput = document.getElementById("qrSetAmount").value;
-        const isAmountSet = amountInput && parseFloat(amountInput) > 0;
-        const symbol = data.currency === "USD" ? "$" : "៛";
-        const formattedAmount = Number(data.amount).toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-        });
-
-        if (isAmountSet) {
-          // ករណីទី១៖ កំណត់លុយ -> លោតផ្ទាំងធំ រួចទៅ Dashboard វិញ
-          Swal.fire({
-            icon: "success",
-            title: '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>',
-            html: `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
-            confirmButtonText: "យល់ព្រម",
-            confirmButtonColor: "#00b894",
-            allowOutsideClick: false,
-          }).then(() => {
-            window.location.href = "dashboard.html";
-          });
-        } else {
-          // ករណីទី២៖ មិនកំណត់លុយ -> លោតសារតូច (Toast) រួចនៅទីតាំងដដែលអោយគេស្កេនបន្ត
-          const Toast = Swal.mixin({
-            toast: true,
-            position: "top-end",
-            showConfirmButton: false,
-            timer: 4000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-              toast.addEventListener("mouseenter", Swal.stopTimer);
-              toast.addEventListener("mouseleave", Swal.resumeTimer);
-            },
-          });
-          Toast.fire({
-            icon: "success",
-            title: `<span style="font-family: Kantumruy Pro">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
-          });
-        }
-      });
-      // ==========================================
 
       const translations = {
         en: {
@@ -469,8 +547,8 @@
       };
       let currentLang = localStorage.getItem("lang") || "en";
       function applyLang() {
-        document.querySelectorAll("[data-i18n]").forEach((el) => {
-          const key = el.getAttribute("data-i18n");
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
           if (translations[currentLang][key])
             el.innerText = translations[currentLang][key];
         });
@@ -612,12 +690,13 @@
         document.getElementById("qrModal").style.display = "flex";
       }
 
+      // 🔥 LOGIC ថ្មី: ឆែកមើលប្រវត្តិ បើមកពី Dashboard ត្រលប់ទៅ Dashboard វិញ!
       function closeMyQR() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get("showQR") === "true") {
-          window.location.href = "dashboard.html";
+          window.location.href = "dashboard.html"; // លោតទៅ Dashboard
         } else {
-          document.getElementById("qrModal").style.display = "none";
+          document.getElementById("qrModal").style.display = "none"; // គ្រាន់តែបិទ
         }
       }
 
@@ -649,20 +728,31 @@
         );
       }
 
+      // 🔥 LOGIC: ត្រួតពិនិត្យថាចូលមកពីណា?
       const urlParams = new URLSearchParams(window.location.search);
       const isFromDashboard = urlParams.get("showQR") === "true";
 
       if (isFromDashboard) {
+        // ករណីទី ១៖ ចូលមកពី Dashboard (មើលតែ QR)
+        // ១. លាក់ផ្ទៃកាមេរ៉ា និងប៊ូតុងបញ្ជាចេញ
         document.querySelector(".scan-overlay-ui").style.display = "none";
         document.querySelector(".scan-controls").style.display = "none";
+
+        // ២. លុប Animation ពីក្រោមឡើងលើចោល ដើម្បីអោយលោតមកឃើញភ្លាមៗ
         const modal = document.getElementById("qrModal");
         modal.style.animation = "none";
         modal.style.display = "flex";
+
+        // ៣. ដូរពណ៌ Background អោយភ្លឺកុំអោយខ្មៅ
         document.body.style.backgroundColor = "#f1f5f9";
+
+        // ចំណាំ៖ យើងមិនហៅ startScanner() ទេ! ដើម្បីកុំអោយព្រិចកាមេរ៉ា។
       } else {
+        // ករណីទី ២៖ ចូលមកដើម្បីស្កេនធម្មតា
         startScanner();
       }
-      // កត់ចំណាំ៖ ខ្ញុំបានលុប startScanner(); ដែលត្រួតគ្នាពីរដងនៅខាងចុងចោលមួយហើយ
+
+      startScanner();
     </script>
   </body>
 </html>
