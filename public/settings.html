@@ -17,6 +17,9 @@
     <script src="js/lang.js"></script>
 
     <style>
+      body {
+        visibility: hidden;
+      }
       /* 🔥 PREMIUM FONT & VARIABLES SETUP */
       :root {
         --font-main: "Inter", "Kantumruy Pro", sans-serif;
@@ -473,7 +476,9 @@
         background: #2a2a2a !important;
         border-color: #333 !important;
       }
-
+      body.loaded {
+        visibility: visible; /* បង្ហាញវិញពេលផ្ទុកចប់ */
+      }
       /* Settings List Dark Mode */
       body.dark-mode .group-title {
         color: #94a3b8 !important;
