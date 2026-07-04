@@ -893,9 +893,8 @@
         const langLabel = document.getElementById("currentLang");
         if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
 
-        // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In) បន្ទាប់ពីអ្វីៗរៀបចំចប់
-        document.body.style.visibility = "visible";
-        document.body.style.opacity = "1";
+        // ៤. បង្ហាញ Body វិញដោយរលូនតាមរយៈ Class
+        document.body.classList.add("loaded");
       });
 
       function toggleDarkMode() {
