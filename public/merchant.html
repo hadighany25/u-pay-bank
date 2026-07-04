@@ -937,41 +937,49 @@
         }
       }
       /* ==========================================
-       🌙 DARK MODE OVERRIDES (Like scan.html)
-       ========================================== */
-      body.dark-mode .qr-modal {
-        background: #121212 !important;
+         🌙 FULL DARK MODE FOR MERCHANT DASHBOARD
+         ========================================== */
+      body.dark-mode {
+        background-color: #121212 !important;
+        color: #ffffff !important;
       }
-      body.dark-mode .qr-white-box {
-        background: #1e1e1e !important;
-        border: 1px solid #333;
+      body.dark-mode .app-container,
+      body.dark-mode .view-state {
+        background-color: #121212 !important;
       }
-      body.dark-mode .close-qr-btn {
-        background: #333 !important;
-        color: white !important;
-        border: none !important;
+      body.dark-mode .card-box,
+      body.dark-mode .dash-btn,
+      body.dark-mode .revenue-card,
+      body.dark-mode .merchant-item {
+        background-color: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #ffffff !important;
       }
-      body.dark-mode .currency-toggle {
+      body.dark-mode .header-bar {
+        background: #1a1a1a !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode h1,
+      body.dark-mode h2,
+      body.dark-mode h3,
+      body.dark-mode h4,
+      body.dark-mode span,
+      body.dark-mode p {
+        color: #ffffff !important;
+      }
+      body.dark-mode .input-group input,
+      body.dark-mode .input-group select,
+      body.dark-mode .input-group textarea {
         background: #2a2a2a !important;
+        border-color: #444 !important;
+        color: #fff !important;
       }
-      body.dark-mode .toggle-btn {
+      body.dark-mode .tab-item {
         color: #888 !important;
       }
-      body.dark-mode .toggle-btn.active {
-        background: #444 !important;
-        color: #fff !important;
-      }
-      body.dark-mode .qr-user-name {
-        color: #fff !important;
-      }
-      body.dark-mode .qr-img-wrapper {
-        background: #fff !important;
-      }
-      body.dark-mode .amount-input-area {
-        border-top-color: #444 !important;
-      }
-      body.dark-mode #qrSetAmount {
+      body.dark-mode .tab-item.active {
         color: #00b894 !important;
+        border-bottom-color: #00b894 !important;
       }
     </style>
   </head>
@@ -1963,41 +1971,8 @@
       </div>
 
       <script>
-        function applyTheme() {
-          // ➕ ចាប់យក Key តាម Account
-          const userThemeKey = "darkMode_" + user.username;
-          const isDark =
-            localStorage.getItem("theme") === "dark" ||
-            localStorage.getItem(userThemeKey) === "true";
-
-          if (isDark) {
-            document.body.classList.add("dark-mode");
-          } else {
-            document.body.classList.remove("dark-mode");
-          }
-        }
-
-        // ធ្វើការបង្រួបបង្រួម DOMContentLoaded ឱ្យសល់តែមួយ
-        document.addEventListener("DOMContentLoaded", () => {
-          // ១. ដាក់ Theme មុនគេបង្អស់
-          applyTheme();
-
-          // ២. បកប្រែភាសា
-          if (typeof applyLanguage === "function") {
-            applyLanguage();
-          }
-
-          // ៣. បង្ហាញទិន្នន័យហាង
-          document.getElementById("introName").innerText =
-            user.fullName || user.username;
-          initApp();
-
-          // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In)
-          document.body.classList.add("loaded");
-        });
-
         // ==========================================
-        // ⚙️ INITIALIZATION & DATA
+        // ⚙️ INITIALIZATION & DATA (ត្រូវដាក់នៅខាងលើគេបង្អស់ដាច់ខាត)
         // ==========================================
         let user = JSON.parse(sessionStorage.getItem("user"));
         if (!user) {
@@ -2013,13 +1988,39 @@
         let calcCurrency = "USD";
         let qrCurrency = "USD";
 
-        // ធ្វើការបង្រួបបង្រួម DOMContentLoaded ឱ្យសល់តែមួយ
+        // មុខងារឆែក Dark Mode តាម Account
+        function applyTheme() {
+          const userThemeKey = "darkMode_" + user.username;
+          const isDark =
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem(userThemeKey) === "true";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+
+        // 🔴 រត់តែមួយដងគត់ពេល Page ផ្ទុកចប់ (លុបអាជាន់គ្នាចោលអស់ហើយ)
         document.addEventListener("DOMContentLoaded", () => {
+          // ១. ដាក់ Theme មុនគេបង្អស់
           applyTheme();
-          // លុប applyLang() ចេញ ព្រោះ lang.js ដើរដោយស្វ័យប្រវត្តិហើយ
-          document.getElementById("introName").innerText =
-            user.fullName || user.username;
+
+          // ២. បកប្រែភាសា
+          if (typeof applyLanguage === "function") {
+            applyLanguage();
+          }
+
+          // ៣. បង្ហាញទិន្នន័យហាង និងចាប់ផ្តើមដំណើរការទិន្នន័យ App
+          const introNameEl = document.getElementById("introName");
+          if (introNameEl) {
+            introNameEl.innerText = user.fullName || user.username;
+          }
           initApp();
+
+          // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In)
+          document.body.classList.add("loaded");
         });
 
         function switchState(stateId) {
