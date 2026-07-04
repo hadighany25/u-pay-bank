@@ -19,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="js/lang.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
       /* ==========================================
        🎨 U-PAY MERCHANT GLOBAL STYLES & VARIABLES
@@ -2029,6 +2030,33 @@
             .forEach((el) => el.classList.remove("active"));
           document.getElementById(stateId).classList.add("active");
         }
+
+        // 🚀 SOCKET.IO: ស្តាប់សញ្ញាលុយចូលសម្រាប់ Merchant
+        const socket = io("https://u-pay-bank.fly.dev"); // ប្តូរ URL តាម Server បង
+
+        // ប្រាប់ Server ថាបងជា Merchant នេះ
+        socket.emit("joinRoom", user.username);
+
+        socket.on("paymentReceived", (data) => {
+          // លេងសំឡេង (Optional)
+          new Audio(
+            "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+          )
+            .play()
+            .catch((e) => console.log(e));
+
+          // បង្ហាញផ្ទាំងជោគជ័យ
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ!",
+            text: `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
+            confirmButtonColor: "#004d40",
+            allowOutsideClick: false,
+          }).then(() => {
+            // 🔥 នេះហើយមុខងារលោតទៅទំព័រដើម (Dashboard)
+            window.location.href = "dashboard.html";
+          });
+        });
 
         // ==========================================
         // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង (កែតម្រូវត្រឹមត្រូវ)
