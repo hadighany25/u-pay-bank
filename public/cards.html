@@ -13,18 +13,34 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/lang.js"></script>
 
     <style>
-      /* --- GLOBAL STYLES --- */
+      /* ==========================================
+         🚀 FOUC PREVENTION (ការពារការលោតពណ៌ស)
+         ========================================== */
       body {
         background-color: #f2f4f6;
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
+        visibility: hidden; /* លាក់សិនពេលកំពុងគិត */
+        opacity: 0;
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        transition: background-color 0.3s;
+        transition:
+          opacity 0.4s ease,
+          background-color 0.3s ease;
+        -webkit-font-smoothing: antialiased;
       }
+      body.loaded {
+        visibility: visible;
+        opacity: 1; /* លេចចេញមកដោយរលូន */
+      }
+
+      /* ==========================================
+         📱 BASE APP CONTAINER & LAYOUT
+         ========================================== */
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -45,6 +61,7 @@
         align-items: center;
         gap: 15px;
         font-size: 1.1rem;
+        transition: background-color 0.3s;
       }
       .nav-header a {
         color: white;
@@ -56,6 +73,7 @@
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
+        transition: background-color 0.3s;
       }
 
       /* --- NO CARD STATE --- */
@@ -573,32 +591,6 @@
         transform: translateY(-5px);
       }
 
-      /* DARK MODE */
-      body.dark-mode {
-        background: #000;
-      }
-      body.dark-mode .app-container {
-        background: #121212;
-      }
-      body.dark-mode #noCardState i,
-      body.dark-mode #noCardState h3,
-      body.dark-mode #noCardState p {
-        color: #e0e0e0;
-      }
-      body.dark-mode .settings-header {
-        color: white;
-      }
-      body.dark-mode .setting-item {
-        border-color: #333;
-      }
-      body.dark-mode .setting-info h4 {
-        color: white;
-      }
-      body.dark-mode .bottom-nav {
-        background: #1e1e1e;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
-      }
-
       /* CUSTOM MODALS */
       .custom-modal {
         display: none;
@@ -727,24 +719,6 @@
         margin-top: 10px;
       }
 
-      body.dark-mode .modal-content {
-        background: #1e1e1e;
-      }
-      body.dark-mode .tc-scroll-box {
-        background: #2d3748;
-        border-color: #4a5568;
-        color: #e2e8f0;
-      }
-      body.dark-mode .card-option {
-        border-color: #333;
-      }
-      body.dark-mode .card-option.selected {
-        background: #2d3748;
-      }
-      body.dark-mode .radio-label {
-        color: #eee;
-      }
-
       /* History List */
       .history-list {
         max-height: 0;
@@ -776,26 +750,149 @@
         border-radius: 12px !important;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
       }
+
+      /* ==========================================
+         🌙 FULL DARK MODE OVERRIDES
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #00251f !important;
+        color: #ffffff !important;
+      }
+      body.dark-mode .nav-header a {
+        color: #ffffff !important;
+      }
+
+      /* Content & Settings */
+      body.dark-mode .content-body {
+        background-color: #121212 !important;
+      }
+      body.dark-mode .settings-header {
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .setting-item {
+        border-bottom: 1px solid #2d2d2d !important;
+      }
+      body.dark-mode .setting-info h4 {
+        color: #ffffff !important;
+      }
+      body.dark-mode .setting-info p {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .setting-icon {
+        color: #10b981 !important;
+      }
+      body.dark-mode .setting-item:active {
+        opacity: 0.6;
+      }
+
+      /* No Card State */
+      body.dark-mode #noCardState h3 {
+        color: #ffffff !important;
+      }
+      body.dark-mode #noCardState p {
+        color: #94a3b8 !important;
+      }
+
+      /* Toggle */
+      body.dark-mode input:checked + .slider {
+        background-color: #10b981 !important;
+      }
+      body.dark-mode .slider {
+        background-color: #333 !important;
+      }
+
+      /* Bottom Nav */
+      body.dark-mode .bottom-nav {
+        background-color: #1e1e1e !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4) !important;
+        border-top: 1px solid #2d2d2d !important;
+      }
+      body.dark-mode .nav-item {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .nav-item.active {
+        color: #10b981 !important;
+      }
+
+      /* Modals */
+      body.dark-mode .modal-content {
+        background-color: #1e1e1e !important;
+      }
+      body.dark-mode .tc-scroll-box {
+        background-color: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .modal-content h3 {
+        color: #ffffff !important;
+      }
+      body.dark-mode .card-option {
+        border-color: #333 !important;
+      }
+      body.dark-mode .card-option:hover {
+        background-color: #2a2a2a !important;
+      }
+      body.dark-mode .card-option.selected {
+        background-color: #1e293b !important;
+        border-color: #10b981 !important;
+      }
+      body.dark-mode .card-option h4 {
+        color: #ffffff !important;
+      }
+      body.dark-mode .radio-label {
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .btn-cancel {
+        background-color: #2a2a2a !important;
+        color: #cbd5e1 !important;
+      }
+      body.dark-mode .shield-icon {
+        background-color: #00251f !important;
+        color: #10b981 !important;
+      }
+
+      /* History */
+      body.dark-mode .history-list {
+        background-color: #1e1e1e !important;
+      }
+      body.dark-mode .history-container {
+        background-color: #2d2d2d !important;
+        border-color: #444 !important;
+      }
+      body.dark-mode .history-list > div {
+        border-bottom: 1px solid #2d2d2d !important;
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .history-list b {
+        color: #ffffff !important;
+      }
     </style>
   </head>
   <body>
     <div class="app-container">
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_card">Virtual Cards</span>
+        <span data-i18n="title_card">Virtual Cards</span>
       </div>
 
       <div class="content-body">
         <div id="noCardState">
           <i class="fa-regular fa-credit-card"></i>
-          <h3 data-lang="no_card_title">You don't have a card yet</h3>
-          <p data-lang="no_card_desc" style="color: #888; margin-bottom: 30px">
+          <h3 data-i18n="no_card_title">You don't have a card yet</h3>
+          <p data-i18n="no_card_desc" style="color: #888; margin-bottom: 30px">
             Create a Virtual Visa Card now to shop online securely!
           </p>
           <button
             class="btn-create"
             onclick="openTermsModal()"
-            data-lang="btn_create_card"
+            data-i18n="btn_create_card"
           >
             Create Virtual Card Now
           </button>
@@ -811,7 +908,7 @@
           <div class="slider-dots" id="sliderDots"></div>
 
           <div class="settings-section">
-            <div class="settings-header" data-lang="card_settings">
+            <div class="settings-header" data-i18n="card_settings">
               Card Settings
             </div>
             <div
@@ -842,8 +939,8 @@
                   <i class="fa-regular fa-snowflake"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-lang="freeze_card">Freeze card</h4>
-                  <p data-lang="freeze_desc">Temporarily disable your card.</p>
+                  <h4 data-i18n="freeze_card">Freeze card</h4>
+                  <p data-i18n="freeze_desc">Temporarily disable your card.</p>
                 </div>
               </div>
               <label class="switch">
@@ -862,8 +959,8 @@
                   <i class="fa-solid fa-arrows-rotate"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-lang="show_cvv">Flip Card (Show CVV)</h4>
-                  <p data-lang="cvv_desc">View security code on the back.</p>
+                  <h4 data-i18n="show_cvv">Flip Card (Show CVV)</h4>
+                  <p data-i18n="cvv_desc">View security code on the back.</p>
                 </div>
               </div>
               <i
@@ -891,8 +988,8 @@
                   <i class="fa-solid fa-globe"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-lang="online_pay">Online Payments</h4>
-                  <p data-lang="online_pay_desc">
+                  <h4 data-i18n="online_pay">Online Payments</h4>
+                  <p data-i18n="online_pay_desc">
                     Enable or disable your card for online payments.
                   </p>
                 </div>
@@ -911,8 +1008,8 @@
               <div class="setting-left">
                 <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
                 <div class="setting-info">
-                  <h4 data-lang="reset_pin">Reset Card PIN</h4>
-                  <p data-lang="reset_pin_desc">
+                  <h4 data-i18n="reset_pin">Reset Card PIN</h4>
+                  <p data-i18n="reset_pin_desc">
                     Change or reset your 4-digit card PIN.
                   </p>
                 </div>
@@ -929,8 +1026,8 @@
                   <i class="fa-solid fa-wallet"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-lang="change_acc">Change linked account</h4>
-                  <p data-lang="change_acc_desc">
+                  <h4 data-i18n="change_acc">Change linked account</h4>
+                  <p data-i18n="change_acc_desc">
                     Change source account that is linked to this card.
                   </p>
                 </div>
@@ -945,8 +1042,8 @@
               <div class="setting-left">
                 <div class="setting-icon"><i class="fa-solid fa-pen"></i></div>
                 <div class="setting-info">
-                  <h4 data-lang="rename_card">Rename Card</h4>
-                  <p data-lang="rename_desc">
+                  <h4 data-i18n="rename_card">Rename Card</h4>
+                  <p data-i18n="rename_desc">
                     Provide the card with your preferred name.
                   </p>
                 </div>
@@ -963,10 +1060,10 @@
                   <i class="fa-solid fa-ban" style="color: #ef4444"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-lang="close_card" style="color: #ef4444">
+                  <h4 data-i18n="close_card" style="color: #ef4444">
                     Close card
                   </h4>
-                  <p data-lang="close_desc">Close this card permanently.</p>
+                  <p data-i18n="close_desc">Close this card permanently.</p>
                 </div>
               </div>
               <i
@@ -987,19 +1084,19 @@
       <div class="bottom-nav">
         <a href="dashboard.html" class="nav-item"
           ><i class="fa-solid fa-house"></i
-          ><span data-lang="nav_home">Home</span></a
+          ><span data-i18n="nav_home">Home</span></a
         >
         <a href="scan.html" class="nav-item"
           ><i class="fa-solid fa-qrcode"></i
-          ><span data-lang="nav_scan">Scan</span></a
+          ><span data-i18n="nav_scan">Scan</span></a
         >
         <a href="history.html" class="nav-item"
           ><i class="fa-solid fa-clock-rotate-left"></i
-          ><span data-lang="nav_history">History</span></a
+          ><span data-i18n="nav_history">History</span></a
         >
         <a href="settings.html" class="nav-item"
           ><i class="fa-solid fa-gear"></i
-          ><span data-lang="nav_settings">Settings</span></a
+          ><span data-i18n="nav_settings">Settings</span></a
         >
       </div>
 
@@ -1009,7 +1106,7 @@
             <div class="shield-icon">
               <i class="fa-solid fa-shield-halved"></i>
             </div>
-            <h3 style="margin: 0; color: #333" data-lang="tc_title">
+            <h3 style="margin: 0; color: #333" data-i18n="tc_title">
               Terms and Conditions
             </h3>
           </div>
@@ -1042,7 +1139,7 @@
                 document.getElementById('btnNextType').disabled = !this.checked
               "
             />
-            <span data-lang="tc_agree"
+            <span data-i18n="tc_agree"
               >I have read and agree to the terms.</span
             >
           </label>
@@ -1051,14 +1148,14 @@
             id="btnNextType"
             disabled
             onclick="showTypeModal()"
-            data-lang="btn_continue"
+            data-i18n="btn_continue"
           >
             Continue
           </button>
           <button
             class="btn-full btn-cancel"
             onclick="closeModals()"
-            data-lang="btn_cancel"
+            data-i18n="btn_cancel"
           >
             Cancel
           </button>
@@ -1069,7 +1166,7 @@
         <div class="modal-content">
           <h3
             style="margin: 0 0 20px; color: #333; text-align: center"
-            data-lang="type_title"
+            data-i18n="type_title"
           >
             Select Card Type
           </h3>
@@ -1102,14 +1199,14 @@
           <button
             class="btn-full"
             onclick="confirmGenerateCard()"
-            data-lang="btn_create"
+            data-i18n="btn_create"
           >
             Create Card
           </button>
           <button
             class="btn-full btn-cancel"
             onclick="closeModals()"
-            data-lang="btn_cancel"
+            data-i18n="btn_cancel"
           >
             Cancel
           </button>
@@ -1120,7 +1217,7 @@
         <div class="modal-content">
           <h3
             style="margin: 0 0 10px; color: #ef4444; text-align: center"
-            data-lang="close_card"
+            data-i18n="close_card"
           >
             Close Card
           </h3>
@@ -1131,7 +1228,7 @@
               margin-bottom: 20px;
               text-align: center;
             "
-            data-lang="delete_desc"
+            data-i18n="delete_desc"
           >
             Please tell us why you are closing this card.
           </p>
@@ -1156,14 +1253,14 @@
             class="btn-full btn-danger"
             style="margin-top: 10px"
             onclick="confirmDeleteCard()"
-            data-lang="btn_confirm_del"
+            data-i18n="btn_confirm_del"
           >
             Confirm Close Card
           </button>
           <button
             class="btn-full btn-cancel"
             onclick="closeModals()"
-            data-lang="btn_cancel"
+            data-i18n="btn_cancel"
           >
             Cancel
           </button>
@@ -1172,22 +1269,50 @@
     </div>
 
     <script>
-      // 🔥 JWT SECURITY SETUP
+      // 🔥 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
       const authHeaders = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: token ? `Bearer ${token}` : "",
       };
 
+      // 📌 កំណត់អថេរ Global មុនគេ ដើម្បីកុំឱ្យមានបញ្ហាពេលហៅ renderCards()
       let cards = user.virtualCards || [];
       let isRevealedList = {};
       let currentCardIndex = 0;
 
-      if (localStorage.getItem("darkMode") === "true")
-        document.body.classList.add("dark-mode");
+      // 🌙 THEME (Per-Account Settings)
+      const userThemeKey = "darkMode_" + user.username;
+
+      function applyTheme() {
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
+
+      // ហៅម្តងពេល Page ផ្ទុកចប់
+      document.addEventListener("DOMContentLoaded", () => {
+        // ១. ដាក់ Theme មុនគេបង្អស់
+        applyTheme();
+
+        // ២. បកប្រែភាសា
+        if (typeof applyLanguage === "function") applyLanguage();
+
+        // ៣. Render កាត (ពេលនេះវាស្គាល់អថេរ cards ហើយ)
+        renderCards();
+
+        // ៤. បង្ហាញ Body វិញដោយរលូន
+        document.body.classList.add("loaded");
+      });
 
       function renderCards() {
         const slider = document.getElementById("cardsSlider");
@@ -1332,7 +1457,6 @@
         }
       }
 
-      // 🔥 មុខងារបិទ/បើកកាត (មានបំពាក់ប្រព័ន្ធចាប់ Error ពី Admin)
       // 🔥 មុខងារបិទ/បើកកាត (មានបំពាក់ប្រព័ន្ធចាប់ Error ពី Admin និងកែបញ្ហាបាត់កាត)
       async function toggleLockCard() {
         // ចាប់យកស្ថានភាពប៊ូតុង (Toggle Switch) ដែលអតិថិជនទើបចុច
