@@ -88,12 +88,11 @@ const translations = {
     // =====================================
     // --- SCAN QR (NEW) ---
     // =====================================
-    scan_title: "Scan QR Code",
-    scan_instruction: "Place QR code inside the frame",
-    btn_gallery: "Gallery",
-    btn_my_qr: "My QR",
-    my_qr_title: "My Receive QR",
-    save_qr: "Save QR",
+    title_scan: "SCAN QR",
+    scan_desc: "Place QR Code inside the frame",
+    set_amount: "Specify Amount",
+    save_qr: "Save to Gallery",
+    error_qr: "No QR code found!",
 
     // =====================================
     // --- SETTINGS ---
@@ -281,12 +280,11 @@ const translations = {
     //=================================
     // --- SCAN QR (NEW) ---
     //=================================
-    scan_title: "ស្កេន QR កូដ",
-    scan_instruction: "ដាក់ QR កូដក្នុងប្រអប់ដើម្បីស្កេន",
-    btn_gallery: "រូបភាព",
-    btn_my_qr: "QR ខ្ញុំ",
-    my_qr_title: "QR ទទួលប្រាក់របស់ខ្ញុំ",
-    save_qr: "រក្សាទុក",
+    title_scan: "ស្កេនកូដ QR",
+    scan_desc: "ដាក់កូដ QR ក្នុងប្រអប់ដើម្បីស្កេន",
+    set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
+    save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+    error_qr: "រកមិនឃើញកូដ QR ទេ!",
 
     // =====================================
     // --- SETTINGS ---
