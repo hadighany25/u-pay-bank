@@ -18,6 +18,7 @@
 
     <style>
       body {
+        margin: 0;
         visibility: hidden;
       }
       /* 🔥 PREMIUM FONT & VARIABLES SETUP */
@@ -874,10 +875,18 @@
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
 
+        // បន្ថែមការហៅ applyLanguage() នៅទីនេះ ដើម្បីឱ្យអក្សរបកប្រែភ្លាមៗពេលបើកទំព័រ
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        }
+
         // កំណត់អក្សរ EN/KH លើកដំបូងឱ្យត្រូវនឹងអ្វីដែលបាន Save
         let currentLang = localStorage.getItem("lang") || "en";
         const langLabel = document.getElementById("currentLang");
         if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
+
+        // បង្ហាញ Body វិញបន្ទាប់ពីផ្ទុកចប់
+        document.body.style.visibility = "visible";
       });
 
       function toggleDarkMode() {
