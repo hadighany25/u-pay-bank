@@ -413,6 +413,30 @@
         color: #4f46e5;
       }
 
+      /* Dark Mode */
+      body.dark-mode {
+        background-color: #121212 !important;
+      }
+
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+      }
+
+      body.dark-mode .card-box,
+      body.dark-mode .menu-item,
+      body.dark-mode .bottom-nav,
+      body.dark-mode .header {
+        background-color: #1e1e1e !important;
+      }
+
+      body.dark-mode h2,
+      body.dark-mode h3,
+      body.dark-mode h4,
+      body.dark-mode span,
+      body.dark-mode p {
+        color: #ffffff !important;
+      }
+
       /* --- PROMO SECTION (ពាណិជ្ជកម្មជំនួសប្រវត្តិ) --- */
       .promo-section {
         flex: 1;
@@ -1290,14 +1314,16 @@
       });
 
       function applyTheme() {
-        // ឆែកមើលទាំង key 'darkMode' (ពី scan.html) និង 'theme' ដើម្បីធានាថាវាដើរ ១០០% ជាមួយ Setting ដើម
-        if (
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem("darkMode") === "true"
-        ) {
+        const theme = localStorage.getItem("theme");
+        const darkMode = localStorage.getItem("darkMode");
+        console.log("Checking Theme:", { theme, darkMode }); // វានឹងបង្ហាញក្នុង Console ថាវាចាប់បានអ្វី
+
+        if (theme === "dark" || darkMode === "true") {
           document.body.classList.add("dark-mode");
+          console.log("Dark mode applied");
         } else {
           document.body.classList.remove("dark-mode");
+          console.log("Light mode applied");
         }
       }
 
@@ -1305,6 +1331,7 @@
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
       });
+
       // ==========================================
       // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       // ==========================================
