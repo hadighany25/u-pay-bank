@@ -80,6 +80,10 @@ const translations = {
     nav_scan: "Scan",
     nav_history: "History",
     nav_settings: "Settings",
+    card_trx: "Card Transactions",
+    card_trx_desc: "Tap to see usage history",
+    no_trx: "No history",
+    daily_limit: "Daily Limit",
 
     // =====================================
     // --- SCAN QR (NEW) ---
@@ -268,6 +272,11 @@ const translations = {
     nav_scan: "ស្កេន",
     nav_history: "ប្រវត្តិ",
     nav_settings: "ការកំណត់",
+    card_trx: "ប្រតិបត្តិការកាត",
+    card_trx_desc: "ចុចដើម្បីមើលប្រវត្តិការប្រើប្រាស់",
+    no_trx: "មិនទាន់មានប្រតិបត្តិការ",
+    daily_limit: "ដែនកំណត់ប្រចាំថ្ងៃ",
+    rename_card: "ប្តូរឈ្មោះកាត",
 
     //=================================
     // --- SCAN QR (NEW) ---

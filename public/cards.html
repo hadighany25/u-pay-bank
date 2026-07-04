@@ -921,8 +921,8 @@
                   <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 style="font-weight: 700">Card Transactions</h4>
-                  <p>Tap to see usage history</p>
+                  <h4 data-i18n="card_trx">Card Transactions</h4>
+                  <p data-i18n="card_trx_desc">Tap to see usage history</p>
                 </div>
               </div>
               <i
@@ -1557,8 +1557,8 @@
         const currentCard = cards[currentCardIndex];
         const { value: newLimit } = await Swal.fire({
           title:
-            '<i class="fa-solid fa-gauge-high" style="color:#004d40; font-size:2rem; margin-bottom:10px;"></i><br>Daily Limit',
-          html: '<p style="color:#64748b; font-size:0.9rem;">កំណត់ទឹកប្រាក់អតិបរមាដែលអាចចាយបានក្នុង ១ ថ្ងៃ</p>',
+            '<i class="fa-solid fa-gauge-high" style="color:#004d40; font-size:2rem; margin-bottom:10px;" ></i><br data-i18n="daily_limit">Daily Limit',
+          html: '<p style="color:#64748b; font-size:0.9rem;" data-i18n="card_trx_desc">កំណត់ទឹកប្រាក់អតិបរមាដែលអាចចាយបានក្នុង ១ ថ្ងៃ</p>',
           input: "number",
           inputValue: currentCard.dailyLimit || 500,
           inputAttributes: {
@@ -1693,7 +1693,7 @@
         const currentCard = cards[currentCardIndex];
         const { value: newName } = await Swal.fire({
           title:
-            '<i class="fa-solid fa-pen" style="color:#004d40; font-size:2rem; margin-bottom:10px;"></i><br>Rename Card',
+            '<i class="fa-solid fa-pen" style="color:#004d40; font-size:2rem; margin-bottom:10px;"></i><br data-i18n="rename_card">Rename Card',
           input: "text",
           inputPlaceholder: "e.g. Shopping Card",
           inputValue: currentCard.name || "",
@@ -1846,7 +1846,7 @@
           (t) => t.cardId === cards[currentCardIndex].id,
         );
         if (trxs.length === 0) {
-          container.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.8rem; padding:10px;">No history</p>`;
+          container.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.8rem; padding:10px;" data-i18n="no_trx">No history</p>`;
           return;
         }
         trxs.forEach((t) => {
