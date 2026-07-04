@@ -25,6 +25,7 @@
     <style>
       /* --- GLOBAL STYLES --- */
       body {
+        visibility: hidden;
         background-color: #f2f4f6;
         margin: 0;
         padding: 0;
@@ -53,7 +54,9 @@
         font-family: "Inter", sans-serif;
         font-weight: 700;
       }
-
+      body.loaded {
+        visibility: visible; /* បង្ហាញវិញពេលផ្ទុកចប់ */
+      }
       .app-container {
         width: 100%;
         max-width: 480px;
@@ -1237,9 +1240,19 @@
       // 🖐️ DRAG & DROP MENU (ABA STYLE) - PER ACCOUNT
       // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
-        const grid = document.getElementById("sortableMenu");
+        // 1. ឆែក Dark Mode តាម Account និងដាក់ Class ភ្លាមៗ (កុំឱ្យភ្លឺភ្លែតៗ)
+        const userThemeKey = "darkMode_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "true";
 
-        // បង្កើត Key សម្រាប់ចំណាំ Account នីមួយៗ (ឧ. menuOrder_012345678)
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        }
+
+        // 2. បង្ហាញ Body វិញ ព្រោះយើងបានលាក់វាពីលើ
+        document.body.classList.add("loaded");
+
+        // 3. រៀបចំ Menu Sortable
+        const grid = document.getElementById("sortableMenu");
         const userMenuKey = "menuOrder_" + user.username;
         const savedOrder = localStorage.getItem(userMenuKey);
 
@@ -1259,11 +1272,13 @@
           onEnd: function () {
             const items = grid.querySelectorAll(".menu-item");
             const newOrder = Array.from(items).map((item) => item.id);
-
-            // ពេលអូសចប់ Save វាទុកក្នុង Key របស់ Account ហ្នឹងដាច់ដោយឡែក
             localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
           },
         });
+
+        // 4. ហៅមុខងារផ្សេងទៀត
+        updateUI(user);
+        loadDashboardData(false);
       });
 
       function applyTheme() {
