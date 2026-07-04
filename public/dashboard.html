@@ -1267,16 +1267,27 @@
       });
 
       function applyTheme() {
-        const theme = localStorage.getItem("theme");
-        const darkMode = localStorage.getItem("darkMode");
-        console.log("Checking Theme:", { theme, darkMode }); // វានឹងបង្ហាញក្នុង Console ថាវាចាប់បានអ្វី
+        // បង្កើត Key ដូចដែលយើងបានធ្វើក្នុង settings.html (ចាប់តាម Account)
+        const userThemeKey = "darkMode_" + user.username;
+        const userThemeValue = localStorage.getItem(userThemeKey);
 
-        if (theme === "dark" || darkMode === "true") {
+        let isDark = false;
+
+        // បើមានការកំណត់ថ្មីតាម Account គឺយកតាម Account ហ្នឹង
+        if (userThemeValue !== null) {
+          isDark = userThemeValue === "true";
+        } else {
+          // បើអត់ទាន់មាន (ទើប Login ថ្មី) ឱ្យវាឆែកអាការកំណត់ចាស់
+          isDark =
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem("darkMode") === "true";
+        }
+
+        // ដាក់ពណ៌ទៅតាមលទ្ធផល
+        if (isDark) {
           document.body.classList.add("dark-mode");
-          console.log("Dark mode applied");
         } else {
           document.body.classList.remove("dark-mode");
-          console.log("Light mode applied");
         }
       }
 
