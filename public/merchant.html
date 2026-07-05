@@ -797,10 +797,10 @@
        ========================================== */
       .pin-modal {
         display: none;
-        position: absolute;
+        position: fixed; /* ដូរពី absolute មក fixed */
         inset: 0;
         background: rgba(0, 0, 0, 0.8);
-        z-index: 4000;
+        z-index: 99999; /* ដាក់ឱ្យខ្ពស់បំផុត */
         align-items: center;
         justify-content: center;
       }
@@ -2222,19 +2222,25 @@
         function showPinModal() {
           const name = document.getElementById("storeName").value;
           if (!name) {
-            Swal.fire(
-              window.currentLang === "kh" ? "បញ្ជាក់" : "Notice",
-              window.currentLang === "kh"
-                ? "សូមបញ្ចូលឈ្មោះហាង"
-                : "Please enter shop name",
-              "warning",
-            );
+            Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
             return;
           }
-          document.getElementById("pinModal").style.display = "flex";
-          document.getElementById("hiddenPin").value = "";
+
+          // ដាក់ Modal ឱ្យលោតចេញ
+          const modal = document.getElementById("pinModal");
+          modal.style.display = "flex";
+
+          // Reset input
+          const hiddenInput = document.getElementById("hiddenPin");
+          hiddenInput.value = "";
           updatePinDots(0);
-          setTimeout(() => document.getElementById("hiddenPin").focus(), 100);
+
+          // 🔥 បញ្ហាធំបំផុត៖ ត្រូវ focus ឱ្យត្រូវ Input
+          setTimeout(() => {
+            hiddenInput.focus();
+            // បើនៅលើទូរស័ព្ទ បន្ថែមនេះដើម្បីបើក Keypad
+            hiddenInput.click();
+          }, 200);
         }
 
         function handlePinInput(val) {
