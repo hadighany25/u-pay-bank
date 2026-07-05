@@ -516,6 +516,24 @@
         z-index: 5;
       }
 
+      .key-btn {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .pin-dot.filled {
+        background: #004d40;
+        border-color: #004d40;
+      }
+
       /* ==========================================
          🌙 DARK MODE
          ========================================== */
@@ -672,7 +690,7 @@
         <button
           onclick="validateAndOpenPin()"
           class="confirm-btn"
-          data-i18n="btn_transfer"
+          data-i18n="btn_transfer_now"
         >
           Transfer Now
         </button>
@@ -680,53 +698,114 @@
     </div>
 
     <!-- Modals -->
-    <div id="pinModal" class="modal-overlay">
-      <h3 style="color: white; margin-bottom: 10px" data-i18n="enter_pin">
-        Enter PIN
-      </h3>
-      <div class="pin-box">
-        <input
-          type="password"
-          class="pin-digit"
-          maxlength="1"
-          id="p1"
-          oninput="moveFocus(this, 'p2')"
-        />
-        <input
-          type="password"
-          class="pin-digit"
-          maxlength="1"
-          id="p2"
-          oninput="moveFocus(this, 'p3')"
-        />
-        <input
-          type="password"
-          class="pin-digit"
-          maxlength="1"
-          id="p3"
-          oninput="moveFocus(this, 'p4')"
-        />
-        <input
-          type="password"
-          class="pin-digit"
-          maxlength="1"
-          id="p4"
-          oninput="submitPin()"
-        />
-      </div>
-      <button
-        onclick="closeModal('pinModal')"
+    <!-- ជំនួស PIN Modal ចាស់ដោយកូដនេះ -->
+    <div
+      id="pinModal"
+      class="modal-overlay"
+      style="display: none; z-index: 9999"
+    >
+      <div
         style="
-          margin-top: 30px;
-          background: none;
-          border: none;
-          color: white;
-          cursor: pointer;
+          background: white;
+          padding: 30px;
+          border-radius: 20px;
+          text-align: center;
+          width: 300px;
         "
-        data-i18n="btn_cancel"
       >
-        Cancel
-      </button>
+        <i
+          class="fa-solid fa-lock"
+          style="font-size: 2.5rem; color: var(--gold); margin-bottom: 10px"
+        ></i>
+        <h3
+          style="color: var(--primary); margin-bottom: 10px"
+          data-i18n="enter_pin"
+        >
+          Enter PIN
+        </h3>
+
+        <!-- PIN Dots -->
+        <div
+          style="
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0 30px 0;
+          "
+        >
+          <div
+            class="pin-dot"
+            id="dot1"
+            style="
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 2px solid #ccc;
+            "
+          ></div>
+          <div
+            class="pin-dot"
+            id="dot2"
+            style="
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 2px solid #ccc;
+            "
+          ></div>
+          <div
+            class="pin-dot"
+            id="dot3"
+            style="
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 2px solid #ccc;
+            "
+          ></div>
+          <div
+            class="pin-dot"
+            id="dot4"
+            style="
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 2px solid #ccc;
+            "
+          ></div>
+        </div>
+
+        <!-- Virtual Keypad -->
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+          "
+        >
+          <button class="key-btn" onclick="pressPin('1')">1</button>
+          <button class="key-btn" onclick="pressPin('2')">2</button>
+          <button class="key-btn" onclick="pressPin('3')">3</button>
+          <button class="key-btn" onclick="pressPin('4')">4</button>
+          <button class="key-btn" onclick="pressPin('5')">5</button>
+          <button class="key-btn" onclick="pressPin('6')">6</button>
+          <button class="key-btn" onclick="pressPin('7')">7</button>
+          <button class="key-btn" onclick="pressPin('8')">8</button>
+          <button class="key-btn" onclick="pressPin('9')">9</button>
+          <button class="key-btn empty"></button>
+          <button class="key-btn" onclick="pressPin('0')">0</button>
+          <button class="key-btn" onclick="pressPin('del')">
+            <i class="fa-solid fa-delete-left"></i>
+          </button>
+        </div>
+        <button
+          onclick="closeModal('pinModal')"
+          style="margin-top: 20px; background: none; border: none; color: gray"
+          data-i18n="btn_cancel"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <div
@@ -1159,8 +1238,31 @@
       function closeModal(id) {
         document.getElementById(id).style.display = "none";
       }
-      function moveFocus(c, n) {
-        if (c.value.length >= 1) document.getElementById(n).focus();
+
+      let enteredPin = "";
+
+      function validateAndOpenPin() {
+        // ... (កូដត្រួតពិនិត្យ Amount ដដែល)
+        document.getElementById("pinModal").style.display = "flex";
+        enteredPin = "";
+        updatePinDots();
+      }
+
+      function pressPin(val) {
+        if (val === "del") enteredPin = enteredPin.slice(0, -1);
+        else if (enteredPin.length < 4) enteredPin += val;
+        updatePinDots();
+        if (enteredPin.length === 4) {
+          submitPin(); // ហៅមុខងារ submitPin ដែលមានស្រាប់
+        }
+      }
+
+      function updatePinDots() {
+        for (let i = 1; i <= 4; i++) {
+          const dot = document.getElementById("dot" + i);
+          if (i <= enteredPin.length) dot.classList.add("filled");
+          else dot.classList.remove("filled");
+        }
       }
 
       function drawWheel() {
@@ -1313,8 +1415,8 @@
 
       // --- MAIN TRANSFER SUBMIT ---
       async function submitPin() {
-        const pin =
-          document.getElementById("p1").value +
+        const pin = enteredPin;
+        document.getElementById("p1").value +
           document.getElementById("p2").value +
           document.getElementById("p3").value +
           document.getElementById("p4").value;
