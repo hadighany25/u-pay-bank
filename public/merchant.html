@@ -1982,28 +1982,33 @@
         let qrCurrency = "USD";
         let currentTransactions = [];
 
-        // រង់ចាំរហូតដល់ Core System (u-pay-core.js) រៀបចំរួចរាល់
+        // ២. បញ្ចូលកូដជួសជុលនេះជំនួសកន្លែងដែលខុស៖
         document.addEventListener("DOMContentLoaded", () => {
-          // ធានាថា Profile ហាងមានទិន្នន័យជានិច្ច
-          if (!window.currentUser.merchantProfile) {
-            window.currentUser.merchantProfile = { merchants: [] };
-          }
+          // ឆែកមើលថាតើ window.currentUser មានទិន្នន័យឬអត់ មុននឹងប្រើ
+          if (window.currentUser) {
+            if (!window.currentUser.merchantProfile) {
+              window.currentUser.merchantProfile = { merchants: [] };
+            }
 
-          // បង្ហាញឈ្មោះ
-          const introNameEl = document.getElementById("introName");
-          if (introNameEl) {
-            introNameEl.innerText =
-              window.currentUser.fullName || window.currentUser.username;
+            // កែពាក្យ gettlement ទៅជា getElement វិញ
+            const introNameEl = document.getElementById("introName");
+            if (introNameEl) {
+              introNameEl.innerText =
+                window.currentUser.fullName || window.currentUser.username;
+            }
+            initApp();
           }
-
-          initApp();
         });
 
         function switchState(stateId) {
+          // កែពាក្យ gettlement ទៅជា getElement វិញ
           document
             .querySelectorAll(".view-state")
             .forEach((el) => el.classList.remove("active"));
-          document.getElementById(stateId).classList.add("active");
+          const targetEl = document.getElementById(stateId);
+          if (targetEl) {
+            targetEl.classList.add("active");
+          }
         }
 
         // ==========================================
