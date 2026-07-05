@@ -51,6 +51,13 @@
           background-color 0.3s ease,
           color 0.3s ease;
       }
+      @import url("https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap");
+
+      body,
+      html,
+      * {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
 
       .app-container,
       .flow-container {
@@ -121,7 +128,7 @@
 
       .header {
         background: linear-gradient(135deg, var(--gold), #d4af37);
-        padding: 20px 20px 40px 20px;
+        padding: 20px 20px 1px 20px;
         color: white;
       }
       .top-bar {
@@ -959,9 +966,14 @@
         width: 800px;
         padding: 50px;
         background: white;
-        font-family: "Kantumruy Pro", sans-serif;
+        /* បងត្រូវប្រាកដថា កន្លែងនេះមាន font-family ដូចនេះ */
+        font-family: "Kantumruy Pro", sans-serif !important;
         color: #333;
         box-sizing: border-box;
+      }
+      @import url("https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&display=swap");
+      #pdfContent {
+        font-family: "Kantumruy Pro", sans-serif !important;
       }
       .pdf-header {
         display: flex;
@@ -2183,6 +2195,7 @@
           filename: `FD_Certificate_${viewedDeposit.id}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true },
+          letterRendering: true,
           jsPDF: { unit: "px", format: [800, 1100], orientation: "portrait" },
         };
 
