@@ -2,12 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fixed Deposit - U-Pay</title>
-
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -16,18 +12,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-
-    <!-- Scripts សំខាន់ៗ -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <!-- ១. ដាក់ភាសាមុនគេ -->
-    <script src="js/lang.js"></script>
-    <!-- ២. ដាក់ Notification ទីពីរ -->
     <script src="js/toast.js"></script>
-    <!-- ៣. ដាក់ខួរក្បាលកណ្តាលទីបី -->
-    <script src="js/u-pay-core.js"></script>
-
     <style>
       :root {
         --primary: #004d40;
@@ -40,8 +25,6 @@
         --text-light: #64748b;
         --border-color: #e2e8f0;
       }
-
-      /* GLOBAL & ANTI-FLASH */
       body {
         margin: 0;
         padding: 0;
@@ -50,18 +33,7 @@
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        visibility: hidden;
-        opacity: 0;
-        transition:
-          opacity 0.3s ease,
-          background-color 0.3s ease;
-        -webkit-font-smoothing: antialiased;
       }
-      body.loaded {
-        visibility: visible;
-        opacity: 1;
-      }
-
       .app-container,
       .flow-container {
         width: 100%;
@@ -79,8 +51,6 @@
       #receiptView {
         display: none;
       }
-
-      /* HEADER */
       .header {
         background: linear-gradient(135deg, var(--gold), #d4af37);
         padding: 20px 20px 40px 20px;
@@ -106,8 +76,6 @@
         text-align: center;
         padding-right: 25px;
       }
-
-      /* SUMMARY */
       .summary-section {
         background: white;
         margin: -30px 20px 20px 20px;
@@ -150,13 +118,13 @@
         font-weight: 700;
         margin-bottom: 15px;
       }
-
-      /* ACTIVE LIST */
       .active-list {
         padding: 0 20px 100px 20px;
         flex-grow: 1;
         overflow-y: auto;
       }
+
+      /* កែប្រែ Hover លើកាតបញ្ញើ */
       .deposit-item {
         background: white;
         border: 1px solid var(--border-color);
@@ -168,9 +136,11 @@
         cursor: pointer;
         transition: 0.2s;
       }
-      .deposit-item:active {
-        transform: scale(0.98);
+      .deposit-item:hover {
+        box-shadow: 0 4px 15px rgba(0, 128, 128, 0.1);
+        transform: translateY(-2px);
       }
+
       .dep-header {
         display: flex;
         justify-content: space-between;
@@ -183,14 +153,11 @@
       .dep-id {
         font-size: 0.8rem;
         color: var(--text-light);
-        font-family: "Inter", monospace;
       }
       .dep-dates {
         font-size: 0.8rem;
         color: var(--text-light);
         margin-top: 10px;
-        display: flex;
-        justify-content: space-between;
       }
       .dep-footer {
         display: flex;
@@ -226,7 +193,6 @@
         z-index: 2;
       }
 
-      /* CREATE OPTIONS */
       .fab-container {
         position: fixed;
         bottom: 20px;
@@ -243,63 +209,53 @@
         background: var(--secondary);
         color: white;
         border: none;
-        padding: 14px 30px;
+        padding: 12px 25px;
         border-radius: 30px;
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: 600;
         display: flex;
         align-items: center;
         gap: 10px;
-        box-shadow: 0 10px 20px rgba(0, 128, 128, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 128, 128, 0.3);
         cursor: pointer;
         pointer-events: auto;
-        transition: 0.2s;
       }
-      .btn-add-new:active {
-        transform: scale(0.95);
-      }
-
       .option-card {
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         padding: 18px 15px;
         margin-bottom: 15px;
         display: flex;
         align-items: center;
         border: 1px solid var(--border-color);
         cursor: pointer;
-        transition: 0.2s;
-      }
-      .option-card:active {
-        transform: scale(0.98);
-        border-color: var(--primary);
       }
       .icon-box {
-        width: 50px;
-        height: 50px;
+        width: 45px;
+        height: 45px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         margin-right: 15px;
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         flex-shrink: 0;
       }
       .icon-1 {
-        background: #fffbeb;
+        border: 1.5px solid #f59e0b;
         color: #f59e0b;
       }
       .icon-2 {
-        background: #ecfeff;
+        border: 1.5px solid #06b6d4;
         color: #06b6d4;
       }
       .icon-3 {
-        background: #ecfdf5;
+        border: 1.5px solid #10b981;
         color: #10b981;
       }
       .opt-info h3 {
         margin: 0 0 5px 0;
-        font-size: 1rem;
+        font-size: 0.95rem;
       }
       .opt-info p {
         margin: 0;
@@ -308,7 +264,7 @@
       }
 
       /* ==================================
-         FLOW VIEWS & FORMS
+         FLOW VIEWS
          ================================== */
       .flow-header {
         display: flex;
@@ -337,20 +293,7 @@
         width: 100%;
         flex-grow: 1;
         box-sizing: border-box;
-        animation: fadeIn 0.3s ease;
       }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* Step 1 */
       .step1-bg {
         background: var(--teal-light);
         padding: 30px 20px;
@@ -361,10 +304,9 @@
         margin-bottom: 30px;
       }
       .s1-title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 700;
         margin-bottom: 30px;
-        text-align: center;
       }
       .timeline {
         position: relative;
@@ -390,8 +332,7 @@
         top: -3px;
         width: 26px;
         height: 26px;
-        background: rgba(255, 255, 255, 0.9);
-        color: var(--teal-dark);
+        background: rgba(255, 255, 255, 0.3);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -409,8 +350,6 @@
         opacity: 0.9;
         line-height: 1.4;
       }
-
-      /* Step 2 */
       .step2-bg {
         padding: 20px 20px 100px 20px;
         background: white;
@@ -446,8 +385,6 @@
         border: 1px solid var(--border-color);
         overflow-y: auto;
       }
-
-      /* Step 3: Form */
       .step3-bg {
         padding: 0 0 100px 0;
         background: var(--bg-color);
@@ -482,6 +419,7 @@
       .form-body {
         padding: 20px;
         background: white;
+        margin-top: 10px;
         flex-grow: 1;
       }
       .form-group {
@@ -492,29 +430,21 @@
         font-size: 0.85rem;
         color: var(--text-light);
         margin-bottom: 8px;
-        font-weight: 600;
       }
       .form-control {
         width: 100%;
-        padding: 14px 15px;
+        padding: 12px 15px;
         border: 1px solid var(--border-color);
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 1rem;
-        font-family: "Inter", sans-serif;
+        font-family: "Inter";
         box-sizing: border-box;
         outline: none;
-        transition: 0.2s;
-      }
-      .form-control:focus {
-        border-color: var(--teal-light);
-        box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
       }
       .summary-box {
         margin-top: 25px;
-        padding: 20px;
-        background: #f8fafc;
-        border-radius: 12px;
-        border: 1px dashed var(--border-color);
+        padding-top: 15px;
+        border-top: 1px dashed var(--border-color);
       }
       .s-row {
         display: flex;
@@ -526,13 +456,10 @@
       .s-row.bold {
         font-weight: 700;
         margin-top: 15px;
-        padding-top: 15px;
+        padding-top: 10px;
         border-top: 1px solid var(--border-color);
         color: var(--primary);
-        font-size: 0.95rem;
       }
-
-      /* Step 4: Confirm */
       .step4-confirm-bg {
         background: linear-gradient(
           180deg,
@@ -560,7 +487,7 @@
         justify-content: center;
         align-items: center;
         text-align: center;
-        margin-top: 80px;
+        margin-top: 60px;
       }
       .c-icon {
         width: 80px;
@@ -575,7 +502,7 @@
         margin-bottom: 25px;
       }
       .confirm-center h2 {
-        font-size: 2.5rem;
+        font-size: 2.4rem;
         margin: 10px 0;
         font-family: "Inter";
         font-weight: 700;
@@ -587,100 +514,48 @@
         font-size: 1.5rem;
         letter-spacing: 5px;
       }
-
-      /* ==================================
-         🔥 PREMIUM VIRTUAL PIN PAD (STEP 5)
-         ================================== */
       .step5-bg {
-        padding: 30px 20px;
-        background: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        min-height: 100vh;
-      }
-      .pin-header {
+        padding: 40px 20px;
         text-align: center;
-        margin-bottom: 20px;
+        background: white;
+        align-items: center;
       }
       .pin-title {
         font-size: 1.2rem;
         font-weight: 700;
-        color: var(--text-dark);
-        margin-bottom: 5px;
+        color: var(--primary);
+        margin-bottom: 10px;
       }
       .pin-desc {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
         color: var(--text-light);
+        margin-bottom: 40px;
       }
-
-      /* PIN Dots */
-      .pin-dots-container {
+      .pin-inputs {
         display: flex;
-        gap: 15px;
-        margin: 20px 0 40px 0;
         justify-content: center;
+        gap: 15px;
+        margin-bottom: 40px;
       }
-      .pin-dot {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
+      .pin-box {
+        width: 55px;
+        height: 65px;
         border: 2px solid var(--border-color);
-        background: transparent;
-        transition: all 0.2s;
-      }
-      .pin-dot.filled {
-        background: var(--primary);
-        border-color: var(--primary);
-        transform: scale(1.1);
-      }
-
-      /* Virtual Keypad Grid */
-      .keypad-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        width: 100%;
-        max-width: 320px;
-        margin: 0 auto;
-      }
-      .key-btn {
-        background: #f8fafc;
-        border: none;
-        border-radius: 50%;
-        width: 75px;
-        height: 75px;
-        margin: 0 auto;
-        font-size: 1.8rem;
-        font-weight: 700;
-        font-family: "Inter", sans-serif;
+        border-radius: 12px;
+        text-align: center;
+        font-size: 2rem;
+        font-family: "Inter";
+        font-weight: bold;
         color: var(--text-dark);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: 0.1s;
-        -webkit-tap-highlight-color: transparent;
+        background: #f8fafc;
+        outline: none;
+        transition: 0.2s;
       }
-      .key-btn:active {
-        background: #e2e8f0;
-        transform: scale(0.9);
+      .pin-box:focus {
+        border-color: var(--primary);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
       }
-      .key-btn.empty {
-        background: transparent;
-        pointer-events: none;
-      }
-      .key-btn.backspace {
-        color: #ef4444;
-        font-size: 1.4rem;
-        background: #fef2f2;
-      }
-      .key-btn.backspace:active {
-        background: #fee2e2;
-      }
-
-      /* Buttons & Bottom Bar */
       .bottom-bar {
         position: fixed;
         bottom: 0;
@@ -690,7 +565,7 @@
         max-width: 480px;
         background: white;
         padding: 15px 20px;
-        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -706,119 +581,24 @@
       }
       .btn-primary {
         width: 100%;
-        padding: 16px;
+        padding: 14px;
         background: var(--gold);
         color: white;
         border: none;
-        border-radius: 12px;
-        font-size: 1.05rem;
+        border-radius: 8px;
+        font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
+        font-family: "Kantumruy Pro";
         transition: 0.2s;
-      }
-      .btn-primary:active {
-        transform: scale(0.98);
       }
       .btn-primary:disabled {
         background: #cbd5e1;
         cursor: not-allowed;
-        transform: none;
       }
-
-      /* ==================================
-         🌙 100% DARK MODE OVERRIDES
-         ================================== */
-      body.dark-mode {
-        background-color: #121212 !important;
-        color: white !important;
-      }
-      body.dark-mode .app-container,
-      body.dark-mode .flow-container {
-        background-color: #121212 !important;
-        box-shadow: none;
-      }
-      body.dark-mode .header {
-        background: linear-gradient(135deg, #1e293b, #0f172a) !important;
-        border-bottom: 1px solid #333;
-      }
-      body.dark-mode .summary-section,
-      body.dark-mode .deposit-item,
-      body.dark-mode .option-card {
-        background: #1e1e1e !important;
-        border-color: #333 !important;
-      }
-      body.dark-mode .summary-row,
-      body.dark-mode .dep-type,
-      body.dark-mode .opt-info h3,
-      body.dark-mode .section-title {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .chart-circle {
-        border-color: #f59e0b;
-        color: #f8fafc;
-      }
-      body.dark-mode .btn-add-new {
-        background: var(--primary);
-      }
-      body.dark-mode .flow-header,
-      body.dark-mode .step2-bg,
-      body.dark-mode .step3-bg,
-      body.dark-mode .form-body,
-      body.dark-mode .step5-bg,
-      body.dark-mode .bottom-bar {
-        background: #121212 !important;
-        border-color: #333 !important;
-      }
-      body.dark-mode .flow-header h2,
-      body.dark-mode .flow-header i {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .tc-content,
-      body.dark-mode .summary-box {
-        background: #1e1e1e !important;
-        border-color: #333 !important;
-        color: #cbd5e1 !important;
-      }
-      body.dark-mode .form-control {
-        background: #1e1e1e !important;
-        border-color: #444 !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .form-control:focus {
-        border-color: var(--teal-light) !important;
-      }
-      body.dark-mode .s-row {
-        color: #cbd5e1 !important;
-      }
-      body.dark-mode .s-row.bold {
-        border-color: #333 !important;
-        color: #34d399 !important;
-      }
-
-      /* Dark Mode Custom Keypad */
-      body.dark-mode .pin-title {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .pin-desc {
-        color: #94a3b8 !important;
-      }
-      body.dark-mode .pin-dot {
-        border-color: #444 !important;
-      }
-      body.dark-mode .pin-dot.filled {
-        background: #34d399 !important;
-        border-color: #34d399 !important;
-      }
-      body.dark-mode .key-btn {
-        background: #1e1e1e !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .key-btn:active {
-        background: #333 !important;
-      }
-      body.dark-mode .key-btn.backspace {
-        background: rgba(239, 68, 68, 0.1) !important;
-        color: #f87171 !important;
+      .swal2-popup {
+        border-radius: 16px !important;
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
 
       /* ==================================
@@ -898,15 +678,9 @@
         background: rgba(255, 255, 255, 0.1);
       }
 
-      /* Dark Mode Receipt Fix */
-      body.dark-mode .receipt-card {
-        background: #fff !important;
-      }
-      body.dark-mode .rc-val {
-        color: var(--text-dark) !important;
-      }
-
-      /* PDF Template */
+      /* ==================================
+         PDF TEMPLATE (Hidden)
+         ================================== */
       #pdfWrapper {
         display: none;
       }
@@ -932,6 +706,17 @@
         color: #000;
         margin: 0 0 5px 0;
       }
+      .pdf-subtitle {
+        font-size: 14px;
+        color: #666;
+        margin: 0;
+      }
+      .pdf-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 15px 0;
+        color: #000;
+      }
       .pdf-table {
         width: 100%;
         border-collapse: collapse;
@@ -942,30 +727,44 @@
         padding: 8px 0;
         border-bottom: 1px dashed #eee;
       }
+      .pdf-table td:first-child {
+        color: #666;
+        width: 40%;
+      }
       .pdf-table td:last-child {
         font-weight: 600;
         text-align: right;
         font-family: "Inter", sans-serif;
         color: #000;
       }
+      .pdf-disclaimer {
+        font-size: 11px;
+        color: #999;
+        line-height: 1.6;
+        margin-top: 40px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+      }
     </style>
   </head>
   <body>
-    <!-- MAIN DASHBOARD -->
+    <!-- ==============================================
+         MAIN DASHBOARD
+         ============================================== -->
     <div class="app-container" id="mainDashboard">
       <div class="header">
         <div class="top-bar">
           <a href="dashboard.html" class="back-btn"
             ><i class="fa-solid fa-arrow-left"></i
           ></a>
-          <h1 class="header-title" data-i18n="fd_title">
+          <h1 class="header-title" data-lang="fd_title">
             ប្រាក់បញ្ញើមានកាលកំណត់
           </h1>
         </div>
       </div>
       <div id="summaryView" style="display: none">
         <div class="summary-section">
-          <div class="chart-circle" data-i18n="fd_total_text">សង្ខេប</div>
+          <div class="chart-circle" data-lang="fd_total_text">សង្ខេប</div>
           <div class="summary-details">
             <div class="summary-row">
               <i
@@ -975,20 +774,20 @@
                   font-size: 0.5rem;
                   margin-right: 8px;
                 "
-              ></i>
-              <span data-i18n="fd_total_usd">សរុបទឹកប្រាក់ USD :</span
+              ></i
+              ><span data-lang="fd_total_usd">សរុបទឹកប្រាក់ USD :</span
               ><span class="val" id="totalUsd">0.00</span>
             </div>
           </div>
         </div>
         <div class="section-title">
-          <span data-i18n="fd_active_title">ប្រាក់បញ្ញើមានកាលកំណត់សកម្ម</span>
+          <span data-lang="fd_active_title">ប្រាក់បញ្ញើមានកាលកំណត់សកម្ម</span>
         </div>
         <div class="active-list" id="depositList"></div>
         <div class="fab-container">
           <button class="btn-add-new" onclick="showCreateOptions()">
-            <span data-i18n="fd_btn_create">ស្នើប្រាក់បញ្ញើ</span>
-            <i class="fa-solid fa-plus"></i>
+            <span data-lang="fd_btn_create">ស្នើប្រាក់បញ្ញើមានកាលកំណត់</span
+            ><i class="fa-solid fa-plus"></i>
           </button>
         </div>
       </div>
@@ -996,8 +795,8 @@
         <div class="option-card" onclick="startFlow('wealth', 7.5)">
           <div class="icon-box icon-1"><i class="fa-solid fa-coins"></i></div>
           <div class="opt-info">
-            <h3 data-i18n="fd_type_1_title">គណនីបញ្ញើកើនទ្រព្យ</h3>
-            <p data-i18n="fd_type_1_desc">ទទួលបានការប្រាក់នៅចុងគ្រា (7.5%)</p>
+            <h3 data-lang="fd_type_1_title">គណនីបញ្ញើកើនទ្រព្យ</h3>
+            <p data-lang="fd_type_1_desc">ទទួលបានការប្រាក់នៅចុងគ្រា (7.5%)</p>
           </div>
         </div>
         <div class="option-card" onclick="startFlow('income', 6.5)">
@@ -1005,8 +804,8 @@
             <i class="fa-solid fa-chart-line"></i>
           </div>
           <div class="opt-info">
-            <h3 data-i18n="fd_type_2_title">គណនីបញ្ញើកើនចំណូល</h3>
-            <p data-i18n="fd_type_2_desc">ទទួលបានការប្រាក់ជារៀងរាល់ខែ (6.5%)</p>
+            <h3 data-lang="fd_type_2_title">គណនីបញ្ញើកើនចំណូល</h3>
+            <p data-lang="fd_type_2_desc">ទទួលបានការប្រាក់ជារៀងរាល់ខែ (6.5%)</p>
           </div>
         </div>
         <div class="option-card" onclick="startFlow('quarterly', 7.0)">
@@ -1014,8 +813,8 @@
             <i class="fa-regular fa-calendar-days"></i>
           </div>
           <div class="opt-info">
-            <h3 data-i18n="fd_type_3_title">គណនីប្រាក់បញ្ញើប្រចាំត្រីមាស</h3>
-            <p data-i18n="fd_type_3_desc">
+            <h3 data-lang="fd_type_3_title">គណនីប្រាក់បញ្ញើប្រចាំត្រីមាស</h3>
+            <p data-lang="fd_type_3_desc">
               ទទួលបានការប្រាក់រៀងរាល់ ៣ខែ ម្តង (7.0%)
             </p>
           </div>
@@ -1023,7 +822,9 @@
       </div>
     </div>
 
-    <!-- RECEIPT VIEW -->
+    <!-- ==============================================
+         RECEIPT VIEW (Teal Background)
+         ============================================== -->
     <div class="app-container" id="receiptView">
       <div style="padding: 20px">
         <i
@@ -1036,6 +837,7 @@
           "
           onclick="closeReceipt()"
         ></i>
+
         <div class="receipt-card" id="receiptCardToShare">
           <div class="rc-header">
             <div style="display: flex; align-items: center">
@@ -1048,7 +850,7 @@
                   style="font-size: 0.8rem; color: var(--text-light)"
                   id="rAcc"
                 >
-                  ... | USD
+                  168 001 163 595 | USD
                 </div>
               </div>
             </div>
@@ -1062,13 +864,19 @@
             "
           />
           <div class="rc-row">
-            <span data-i18n="r_trans_no">លេខប្រតិបត្តិការ</span
-            ><span class="rc-val" id="rTransId">...</span>
+            <span data-lang="r_trans_no">លេខប្រតិបត្តិការ</span>
+            <span class="rc-val" id="rTransId">...</span>
           </div>
           <div class="rc-row">
-            <span data-i18n="r_date">កាលបរិច្ឆេទ</span
-            ><span class="rc-val" id="rDate">...</span>
+            <span data-lang="r_ref_no">លេខយោង</span>
+            <span class="rc-val" id="rRefId">...</span>
           </div>
+          <div class="rc-row">
+            <span data-lang="r_date">កាលបរិច្ឆេទ</span>
+            <span class="rc-val" id="rDate">...</span>
+          </div>
+
+          <!-- ផ្នែកបន្ថែមថ្មី (លម្អិតការប្រាក់ និងពន្ធ) -->
           <hr
             style="
               border: none;
@@ -1077,20 +885,20 @@
             "
           />
           <div class="rc-row">
-            <span data-i18n="sum_duration">រយៈពេល:</span
-            ><span class="rc-val" id="rDuration">--</span>
+            <span data-lang="sum_duration">រយៈពេល:</span>
+            <span class="rc-val" id="rDuration">--</span>
           </div>
           <div class="rc-row">
-            <span data-i18n="sum_rate">អត្រាការប្រាក់:</span
-            ><span class="rc-val" id="rRate">--</span>
+            <span data-lang="sum_rate">អត្រាការប្រាក់:</span>
+            <span class="rc-val" id="rRate">--</span>
           </div>
           <div class="rc-row">
-            <span data-i18n="sum_int">ការប្រាក់សរុប:</span
-            ><span class="rc-val" id="rInt" style="color: #10b981">--</span>
+            <span data-lang="sum_int">ការប្រាក់សរុប:</span>
+            <span class="rc-val" id="rInt" style="color: #10b981">--</span>
           </div>
           <div class="rc-row">
-            <span data-i18n="sum_tax">ពន្ធកាត់ទុក (6%):</span
-            ><span class="rc-val" id="rTax" style="color: #ef4444">--</span>
+            <span data-lang="sum_tax">ពន្ធកាត់ទុក (6%):</span>
+            <span class="rc-val" id="rTax" style="color: #ef4444">--</span>
           </div>
           <hr
             style="
@@ -1100,21 +908,23 @@
             "
           />
           <div class="rc-row" style="font-size: 1rem; color: var(--primary)">
-            <span data-i18n="sum_total" style="font-weight: bold"
+            <span data-lang="sum_total" style="font-weight: bold"
               >ចំនួនសរុបដែលត្រូវទទួលបាន:</span
-            ><span class="rc-val" id="rTotal">--</span>
+            >
+            <span class="rc-val" id="rTotal">--</span>
           </div>
         </div>
+
         <div class="action-btns">
           <div class="act-btn" onclick="shareReceipt()">
             <div class="act-circle"><i class="fa-solid fa-share"></i></div>
-            <div style="font-size: 0.85rem" data-i18n="r_share">
+            <div style="font-size: 0.85rem" data-lang="r_share">
               ចែករំលែក<br />ជារូបភាព
             </div>
           </div>
           <div class="act-btn" onclick="downloadPDF()">
             <div class="act-circle"><i class="fa-solid fa-download"></i></div>
-            <div style="font-size: 0.85rem" data-i18n="r_download">
+            <div style="font-size: 0.85rem" data-lang="r_download">
               ទាញយក<br />វិញ្ញាបនបត្រ
             </div>
           </div>
@@ -1122,14 +932,16 @@
       </div>
     </div>
 
-    <!-- FLOW CONTAINER (Steps 1-5) -->
+    <!-- ==============================================
+         FLOW CONTAINER (Step 1 to 5)
+         ============================================== -->
     <div class="flow-container" id="depositFlow">
       <div class="flow-header" id="flowHeaderContainer">
         <i class="fa-solid fa-arrow-left" onclick="goBackFlow()"></i>
         <h2 id="flowTitle">...</h2>
       </div>
 
-      <!-- Step 1: Info -->
+      <!-- STEP 1 -->
       <div id="step1" class="step-view step1-bg">
         <div class="s1-icon">
           <div
@@ -1148,25 +960,29 @@
             <i class="fa-solid fa-hand-holding-dollar"></i>
           </div>
         </div>
-        <div class="s1-title" data-i18n="flow1_title">
-          ជំហានងាយៗដើម្បីបើកប្រាក់បញ្ញើ
+        <div class="s1-title" data-lang="flow1_title">
+          ជំហានងាយៗដើម្បីបើកប្រាក់បញ្ញើមានកាលកំណត់
         </div>
         <div class="timeline">
           <div class="tl-item">
             <div class="tl-circle">1</div>
-            <h4 data-i18n="flow1_s1_t">តម្រូវឱ្យមានគណនីសន្សំ</h4>
-            <p data-i18n="flow1_s1_d">
+            <h4 data-lang="flow1_s1_t">តម្រូវឱ្យមានគណនីសន្សំ</h4>
+            <p data-lang="flow1_s1_d">
               ប្រើសម្រាប់ដាក់ប្រាក់តម្កល់ និងទទួលប្រាក់វិញ។
             </p>
           </div>
           <div class="tl-item">
             <div class="tl-circle">2</div>
-            <h4 data-i18n="flow1_s2_t">ចំនួនទឹកប្រាក់</h4>
-            <p data-i18n="flow1_s2_d">តម្រូវឱ្យមានយ៉ាងតិច 100 ដុល្លារ។</p>
+            <h4 data-lang="flow1_s2_t">ចំនួនទឹកប្រាក់</h4>
+            <p data-lang="flow1_s2_d">តម្រូវឱ្យមានយ៉ាងតិច 100 ដុល្លារ។</p>
           </div>
           <div class="tl-item">
             <div class="tl-circle">3</div>
-            <h4 data-i18n="flow1_s3_t">បញ្ជាក់លេខកូដ PIN</h4>
+            <h4 data-lang="flow1_s3_t">បញ្ជាក់លេខកូដ PIN</h4>
+          </div>
+          <div class="tl-item">
+            <div class="tl-circle">4</div>
+            <h4 data-lang="flow1_s4_t">ទទួលបានវិក្កយបត្រ</h4>
           </div>
         </div>
         <div
@@ -1180,22 +996,19 @@
           <button
             class="btn-primary"
             onclick="nextStep(2)"
-            data-i18n="btn_continue"
+            data-lang="btn_continue"
           >
-            បន្ត
+            រួចរាល់
           </button>
         </div>
       </div>
-
-      <!-- Step 2: T&C -->
+      <!-- STEP 2 -->
       <div id="step2" class="step-view step2-bg">
         <div class="tc-icon">
           <i class="fa-regular fa-file-lines"></i>
-          <p data-i18n="tc_warning">សូមអានលក្ខខណ្ឌប្រើប្រាស់ដោយប្រុងប្រយ័ត្ន</p>
+          <p data-lang="tc_warning">សូមអានលក្ខខណ្ឌប្រើប្រាស់ដោយប្រុងប្រយ័ត្ន</p>
         </div>
-        <div class="tc-content" data-i18n="tc_full_text">
-          លក្ខខណ្ឌប្រើប្រាស់...
-        </div>
+        <div class="tc-content" data-lang="tc_full_text"></div>
         <div class="bottom-bar">
           <label class="checkbox-row"
             ><input
@@ -1203,8 +1016,8 @@
               id="tcCheck"
               onchange="toggleTcBtn()"
               style="width: 20px; height: 20px; accent-color: var(--secondary)"
-            /><span data-i18n="tc_agree"
-              >ខ្ញុំយល់ព្រមតាម លក្ខខណ្ឌប្រើប្រាស់</span
+            /><span data-lang="tc_agree"
+              >ខ្ញុំបានអាន និងយល់ព្រមតាម លក្ខខណ្ឌប្រើប្រាស់</span
             ></label
           >
           <button
@@ -1212,25 +1025,26 @@
             id="btnAgree"
             disabled
             onclick="nextStep(3)"
-            data-i18n="btn_agree"
+            data-lang="btn_agree"
           >
             យល់ព្រម
           </button>
         </div>
       </div>
-
-      <!-- Step 3: Form -->
+      <!-- STEP 3 -->
       <div id="step3" class="step-view step3-bg">
         <div class="form-banner">
           <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
           <div>
-            <p id="bannerRateInfo">- អត្រាការប្រាក់ខ្ពស់</p>
-            <p data-i18n="banner_desc">- ទទួលបានការប្រាក់នៅចុងគ្រា</p>
+            <p id="bannerRateInfo">
+              - ទទួលបានអត្រាការប្រាក់ខ្ពស់រហូតដល់ 6%-7.5%
+            </p>
+            <p data-lang="banner_desc">- ទទួលបានការប្រាក់នៅចុងគ្រា</p>
           </div>
         </div>
         <div class="form-body">
           <div class="form-group">
-            <label data-i18n="form_acc">ពីគណនី</label
+            <label data-lang="form_acc">ពីគណនី</label
             ><input
               type="text"
               id="inpAccount"
@@ -1244,8 +1058,8 @@
             />
           </div>
           <div class="form-group">
-            <label data-i18n="form_duration">រយៈពេល (ខែ)</label>
-            <select
+            <label data-lang="form_duration">រយៈពេល (ខែ)</label
+            ><select
               id="inpDuration"
               class="form-control"
               onchange="calcSummary()"
@@ -1256,7 +1070,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label data-i18n="form_amount">ចំនួនទឹកប្រាក់ (USD)</label
+            <label data-lang="form_amount">ចំនួនទឹកប្រាក់ (USD)</label
             ><input
               type="number"
               id="inpAmount"
@@ -1265,38 +1079,35 @@
               oninput="calcSummary()"
             />
           </div>
-
           <div class="summary-box">
-            <h4 style="margin: 0 0 15px 0" data-i18n="sum_title">
-              សង្ខេបប្រាក់បញ្ញើ (ប៉ាន់ស្មាន):
-            </h4>
+            <h4 data-lang="sum_title">សង្ខេបប្រាក់បញ្ញើ (ប៉ាន់ស្មាន):</h4>
             <div class="s-row">
-              <span data-i18n="sum_duration">រយៈពេល:</span
-              ><span id="sDuration">--</span>
+              <span data-lang="sum_duration">រយៈពេល:</span>
+              <span id="sDuration">--</span>
             </div>
             <div class="s-row">
-              <span data-i18n="sum_maturity">កាលបរិច្ឆេទផុតកំណត់:</span
-              ><span id="sMaturity">--</span>
+              <span data-lang="sum_maturity">កាលបរិច្ឆេទផុតកំណត់:</span>
+              <span id="sMaturity">--</span>
             </div>
             <div class="s-row">
-              <span data-i18n="sum_rate">អត្រាការប្រាក់:</span
-              ><span id="sRate">--</span>
+              <span data-lang="sum_rate">អត្រាការប្រាក់:</span>
+              <span id="sRate">--</span>
             </div>
             <div class="s-row">
-              <span data-i18n="sum_amount">ចំនួនទឹកប្រាក់:</span
-              ><span id="sAmount">--</span>
+              <span data-lang="sum_amount">ចំនួនទឹកប្រាក់:</span>
+              <span id="sAmount">--</span>
             </div>
             <div class="s-row">
-              <span data-i18n="sum_tax">ពន្ធកាត់ទុក (6%):</span
-              ><span id="sTax" style="color: #ef4444">--</span>
+              <span data-lang="sum_tax">ពន្ធកាត់ទុក (6%):</span>
+              <span id="sTax" style="color: #ef4444">--</span>
             </div>
             <div class="s-row">
-              <span data-i18n="sum_int">ការប្រាក់សរុប:</span
-              ><span id="sInt" style="color: #10b981">--</span>
+              <span data-lang="sum_int">ការប្រាក់សរុប:</span>
+              <span id="sInt" style="color: #10b981">--</span>
             </div>
             <div class="s-row bold">
-              <span data-i18n="sum_total">ចំនួនសរុបដែលត្រូវទទួលបាន:</span
-              ><span id="sTotal">--</span>
+              <span data-lang="sum_total">ចំនួនសរុបដែលត្រូវទទួលបាន:</span>
+              <span id="sTotal">--</span>
             </div>
           </div>
         </div>
@@ -1306,29 +1117,28 @@
             id="btnDepositNow"
             onclick="prepareConfirmation()"
             disabled
-            data-i18n="btn_deposit_now"
+            data-lang="btn_deposit_now"
           >
             ដាក់ប្រាក់ឥឡូវនេះ
           </button>
         </div>
       </div>
-
-      <!-- Step 4: Confirm Display -->
+      <!-- STEP 4 -->
       <div id="step4" class="step-view step4-confirm-bg">
-        <div class="exit-btn" onclick="renderMainUI()" data-i18n="btn_exit">
+        <div class="exit-btn" onclick="renderMainUI()" data-lang="btn_exit">
           ចាកចេញ
         </div>
         <div class="confirm-center">
           <div class="c-icon">
             <i class="fa-solid fa-hand-holding-dollar"></i>
           </div>
-          <p data-i18n="confirm_msg" style="opacity: 0.9">
+          <p data-lang="confirm_msg" style="opacity: 0.9">
             លោកអ្នកនឹងដាក់ទឹកប្រាក់ចំនួន
           </p>
           <h2 id="cAmountDisplay">0.00 USD</h2>
           <div class="c-arrows">↓ ↓</div>
           <p>
-            <span data-i18n="confirm_for">សម្រាប់ បើក</span>
+            <span data-lang="confirm_for">សម្រាប់ បើក</span>
             <strong id="cTypeDisplay">...</strong>
           </p>
         </div>
@@ -1339,90 +1149,290 @@
           <button
             class="btn-primary"
             onclick="nextStep(5)"
-            data-i18n="btn_confirm_action"
+            data-lang="btn_confirm_action"
           >
             បញ្ជាក់
           </button>
         </div>
       </div>
-
-      <!-- Step 5: VIRTUAL PIN PAD -->
+      <!-- STEP 5 -->
       <div id="step5" class="step-view step5-bg">
-        <div class="pin-header">
-          <i
-            class="fa-solid fa-lock"
-            style="font-size: 2.5rem; color: var(--gold); margin-bottom: 10px"
-          ></i>
-          <div class="pin-title" data-i18n="pin_title">
-            បញ្ចូលលេខកូដសម្ងាត់ PIN
-          </div>
-          <div class="pin-desc" data-i18n="pin_desc">
-            សូមបញ្ចូលលេខកូដ ៤ខ្ទង់ របស់អ្នក។
-          </div>
+        <i
+          class="fa-solid fa-lock"
+          style="font-size: 3rem; color: var(--gold); margin-bottom: 15px"
+        ></i>
+        <div class="pin-title" data-lang="pin_title">
+          បញ្ចូលលេខកូដសម្ងាត់ PIN
         </div>
-
-        <div class="pin-dots-container" id="pinDots">
-          <div class="pin-dot"></div>
-          <div class="pin-dot"></div>
-          <div class="pin-dot"></div>
-          <div class="pin-dot"></div>
+        <div class="pin-desc" data-lang="pin_desc">
+          សូមបញ្ចូលលេខកូដ PIN ៤ខ្ទង់ របស់អ្នកដើម្បីបញ្ជាក់។
         </div>
-
-        <div class="keypad-grid">
-          <button class="key-btn" onclick="pressPin('1')">1</button>
-          <button class="key-btn" onclick="pressPin('2')">2</button>
-          <button class="key-btn" onclick="pressPin('3')">3</button>
-          <button class="key-btn" onclick="pressPin('4')">4</button>
-          <button class="key-btn" onclick="pressPin('5')">5</button>
-          <button class="key-btn" onclick="pressPin('6')">6</button>
-          <button class="key-btn" onclick="pressPin('7')">7</button>
-          <button class="key-btn" onclick="pressPin('8')">8</button>
-          <button class="key-btn" onclick="pressPin('9')">9</button>
-          <button class="key-btn empty"></button>
-          <button class="key-btn" onclick="pressPin('0')">0</button>
-          <button class="key-btn backspace" onclick="pressPin('del')">
-            <i class="fa-solid fa-delete-left"></i>
-          </button>
+        <div class="pin-inputs">
+          <input
+            type="password"
+            class="pin-box"
+            id="p1"
+            maxlength="1"
+            onkeyup="movePin(1, event)"
+            inputmode="numeric"
+          />
+          <input
+            type="password"
+            class="pin-box"
+            id="p2"
+            maxlength="1"
+            onkeyup="movePin(2, event)"
+            inputmode="numeric"
+            disabled
+          />
+          <input
+            type="password"
+            class="pin-box"
+            id="p3"
+            maxlength="1"
+            onkeyup="movePin(3, event)"
+            inputmode="numeric"
+            disabled
+          />
+          <input
+            type="password"
+            class="pin-box"
+            id="p4"
+            maxlength="1"
+            onkeyup="movePin(4, event)"
+            inputmode="numeric"
+            disabled
+          />
         </div>
       </div>
     </div>
 
-    <!-- PDF Template Hideen (រក្សាកូដ PDF ចាស់របស់បង) -->
+    <!-- ==============================================
+         PDF TEMPLATE (Hidden)
+         ============================================== -->
     <div id="pdfWrapper">
       <div id="pdfContent">
         <div class="pdf-header">
           <div>
-            <h2 class="pdf-title">Certificate of Fixed Deposit</h2>
+            <h2 class="pdf-title">
+              វិញ្ញាបនបត្រប្រាក់បញ្ញើមានកាលកំណត់អេឡិចត្រូនិក
+            </h2>
             <p class="pdf-subtitle">
-              Maturity Date: <span id="pdfMatDate">--</span>
+              កាលបរិច្ឆេទផុតកំណត់: <span id="pdfMatDate">--</span>
             </p>
           </div>
-          <img src="/images/logo.png" style="height: 50px" />
+          <img
+            src="/images/logo.png"
+            style="
+              height: 50px;
+              /* background: #004d40; */
+              padding: 0px;
+              border-radius: 8px;
+            "
+            alt="U-Pay"
+          />
         </div>
+
+        <h4 class="pdf-section-title">ព័ត៌មានអតិថិជន</h4>
         <table class="pdf-table">
           <tr>
-            <td>Account Name:</td>
-            <td id="pdfCustName">--</td>
+            <td>សាខា</td>
+            <td>Operational Office</td>
           </tr>
           <tr>
-            <td>Deposit Amount:</td>
+            <td>ឈ្មោះអតិថិជន</td>
+            <td id="pdfCustName">: --</td>
+          </tr>
+          <tr>
+            <td>លេខគណនី:</td>
+            <td id="pdfCustAcc">: --</td>
+          </tr>
+          <tr>
+            <td>ប្រភេទគណនីប្រាក់បញ្ញើ:</td>
+            <td id="pdfCustType">: --</td>
+          </tr>
+          <tr>
+            <td>អាសយដ្ឋាន:</td>
+            <td>Phnom Penh, Cambodia</td>
+          </tr>
+        </table>
+
+        <h4 class="pdf-section-title">ព័ត៌មាននៃលម្អិតប្រាក់បញ្ញើមានកាលកំណត់</h4>
+        <table class="pdf-table">
+          <tr>
+            <td>ចំនួនទឹកប្រាក់</td>
             <td id="pdfAmount">--</td>
           </tr>
           <tr>
-            <td>Rate:</td>
+            <td>ពីគណនី</td>
+            <td id="pdfFromAcc">--</td>
+          </tr>
+          <tr>
+            <td>ឈ្មោះគណនី</td>
+            <td id="pdfAccName">--</td>
+          </tr>
+          <tr>
+            <td>ប្រភេទគណនី</td>
+            <td id="pdfAccType">--</td>
+          </tr>
+          <tr>
+            <td>រូបិយប័ណ្ណគណនី</td>
+            <td>USD</td>
+          </tr>
+          <tr>
+            <td>រយៈពេលនៃការដាក់ប្រាក់</td>
+            <td id="pdfDuration">--</td>
+          </tr>
+          <tr>
+            <td>កាលបរិច្ឆេទបើកគណនី</td>
+            <td id="pdfOpenDate">--</td>
+          </tr>
+          <tr>
+            <td>កាលបរិច្ឆេទផុតកំណត់</td>
+            <td id="pdfCloseDate">--</td>
+          </tr>
+          <tr>
+            <td>ប្រភេទវិលជុំ</td>
+            <td>CLOSE ON MATURITY</td>
+          </tr>
+          <tr>
+            <td>អត្រាការប្រាក់</td>
             <td id="pdfRate">--</td>
           </tr>
+          <tr>
+            <td>ពន្ធកាត់ទុក (6%)</td>
+            <td id="pdfTax">--</td>
+          </tr>
+          <tr>
+            <td>ការប្រាក់សុទ្ធ</td>
+            <td id="pdfNet">--</td>
+          </tr>
         </table>
+
+        <div class="pdf-disclaimer">
+          DISCLAIMER: This is a digital generated certificate from U-Pay Mobile
+          Banking and does not require any signature. If you need an original
+          hardcopy, please visit the nearest branch.<br /><br />
+          Call Center: 1800 212 222 | 070 266 999<br />
+          អាសយដ្ឋាន: រាជធានីភ្នំពេញ ព្រះរាជាណាចក្រកម្ពុជា
+        </div>
       </div>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
-      window.addEventListener("DOMContentLoaded", async () => {
-        // មុខងារទាំងអស់ត្រូវបានគ្រប់គ្រងដោយ u-pay-core.js
-        renderMainUI();
-      });
+      const translations = {
+        en: {
+          fd_title: "Fixed Deposit",
+          fd_total_text: "Summary",
+          fd_total_usd: "Total Amount USD :",
+          fd_active_title: "Active Term Deposits",
+          fd_btn_create: "Open Fixed Deposit",
+          fd_type_1_title: "Wealth Growth",
+          fd_type_1_desc: "Interest at maturity (7.5%)",
+          fd_type_2_title: "Income Growth",
+          fd_type_2_desc: "Monthly interest (6.5%)",
+          fd_type_3_title: "Quarterly Deposit",
+          fd_type_3_desc: "Interest every 3 months (7.0%)",
+          fd_status_active: "Active",
+          fd_btn_withdraw: "Withdraw",
+          flow1_title: "Easy Steps to Open",
+          flow1_s1_t: "Savings Account Required",
+          flow1_s1_d: "Used to deposit and receive funds.",
+          flow1_s2_t: "Deposit Amount",
+          flow1_s2_d: "Minimum requirement is $100.",
+          flow1_s3_t: "Confirm PIN",
+          flow1_s4_t: "Receive Receipt",
+          btn_continue: "Continue",
+          tc_warning: "Please read the terms carefully.",
+          tc_agree: "I agree to the Terms of Use",
+          btn_agree: "Agree",
+          tc_full_text: `<h4 style="color:var(--secondary); margin-top:0;">Terms & Conditions</h4><p>By proceeding, you acknowledge that you have read, understood, and voluntarily agreed to these terms regarding the fixed deposit.</p>`,
+          banner_desc: "- Receive interest at maturity",
+          form_acc: "From Account",
+          form_duration: "Duration (Months)",
+          form_amount: "Amount (USD)",
+          sum_title: "Deposit Summary (Estimated):",
+          sum_duration: "Duration:",
+          sum_maturity: "Maturity Date:",
+          sum_rate: "Interest Rate:",
+          sum_amount: "Amount:",
+          sum_tax: "Withholding Tax (6%):",
+          sum_int: "Total Interest:",
+          sum_total: "Total to Receive:",
+          btn_deposit_now: "Deposit Now",
+          btn_exit: "Exit",
+          confirm_msg: "You will deposit an amount of",
+          confirm_for: "for opening",
+          btn_confirm_action: "Confirm",
+          pin_title: "Enter PIN",
+          pin_desc: "Please enter your 4-digit PIN.",
+          r_trans_no: "Transaction No",
+          r_ref_no: "Reference No",
+          r_date: "Date",
+          r_share: "Share<br>Image",
+          r_download: "Download<br>Certificate",
+        },
+        kh: {
+          fd_title: "ប្រាក់បញ្ញើមានកាលកំណត់",
+          fd_total_text: "សង្ខេប",
+          fd_total_usd: "សរុបទឹកប្រាក់ USD :",
+          fd_active_title: "ប្រាក់បញ្ញើមានកាលកំណត់សកម្ម",
+          fd_btn_create: "ស្នើប្រាក់បញ្ញើមានកាលកំណត់",
+          fd_type_1_title: "គណនីបញ្ញើកើនទ្រព្យ",
+          fd_type_1_desc: "ទទួលបានការប្រាក់នៅចុងគ្រា (7.5%)",
+          fd_type_2_title: "គណនីបញ្ញើកើនចំណូល",
+          fd_type_2_desc: "ទទួលបានការប្រាក់ជារៀងរាល់ខែ (6.5%)",
+          fd_type_3_title: "គណនីប្រាក់បញ្ញើប្រចាំត្រីមាស",
+          fd_type_3_desc: "ទទួលបានការប្រាក់រៀងរាល់ ៣ខែ ម្តង (7.0%)",
+          fd_status_active: "សកម្ម",
+          fd_btn_withdraw: "បិទគណនី",
+          flow1_title: "ជំហានងាយៗដើម្បីបើកប្រាក់បញ្ញើ",
+          flow1_s1_t: "តម្រូវឱ្យមានគណនីសន្សំ",
+          flow1_s1_d: "ប្រើសម្រាប់ដាក់ប្រាក់តម្កល់ និងទទួលប្រាក់វិញ។",
+          flow1_s2_t: "ចំនួនទឹកប្រាក់",
+          flow1_s2_d: "តម្រូវឱ្យមានយ៉ាងតិច 100 ដុល្លារ។",
+          flow1_s3_t: "បញ្ជាក់លេខកូដ PIN",
+          flow1_s4_t: "ទទួលបានវិក្កយបត្រ",
+          btn_continue: "រួចរាល់",
+          tc_warning: "សូមអានលក្ខខណ្ឌប្រើប្រាស់ដោយប្រុងប្រយ័ត្ន",
+          tc_agree: "ខ្ញុំយល់ព្រមតាម លក្ខខណ្ឌប្រើប្រាស់",
+          btn_agree: "យល់ព្រម",
+          tc_full_text: `<h4 style="color:var(--secondary); margin-top:0;">សេចក្តីណែនាំ</h4><p>ការចុចយល់ព្រម មានន័យថា លោកអ្នកបានអាន និងគោរពតាមលក្ខខណ្ឌប្រាក់បញ្ញើមានកាលកំណត់ដោយស្ម័គ្រចិត្ត។</p>`,
+          banner_desc: "- ទទួលបានការប្រាក់នៅចុងគ្រា",
+          form_acc: "ពីគណនី",
+          form_duration: "រយៈពេល (ខែ)",
+          form_amount: "ចំនួនទឹកប្រាក់ (USD)",
+          sum_title: "សង្ខេបប្រាក់បញ្ញើ (ប៉ាន់ស្មាន):",
+          sum_duration: "រយៈពេល:",
+          sum_maturity: "កាលបរិច្ឆេទផុតកំណត់:",
+          sum_rate: "អត្រាការប្រាក់:",
+          sum_amount: "ចំនួនទឹកប្រាក់:",
+          sum_tax: "ពន្ធកាត់ទុក (6%):",
+          sum_int: "ការប្រាក់សរុប:",
+          sum_total: "ចំនួនសរុបដែលត្រូវទទួលបាន:",
+          btn_deposit_now: "ដាក់ប្រាក់ឥឡូវនេះ",
+          btn_exit: "ចាកចេញ",
+          confirm_msg: "លោកអ្នកនឹងដាក់ទឹកប្រាក់ចំនួន",
+          confirm_for: "សម្រាប់ បើក",
+          btn_confirm_action: "បញ្ជាក់",
+          pin_title: "បញ្ចូលលេខកូដសម្ងាត់ PIN",
+          pin_desc: "សូមបញ្ចូលលេខកូដ PIN ៤ខ្ទង់ របស់អ្នកដើម្បីបញ្ជាក់។",
+          r_trans_no: "លេខប្រតិបត្តិការ",
+          r_ref_no: "លេខយោង",
+          r_date: "កាលបរិច្ឆេទ",
+          r_share: "ចែករំលែក<br>ជារូបភាព",
+          r_download: "ទាញយក<br>វិញ្ញាបនបត្រ",
+        },
+      };
 
-      // 2. State & UI
+      let currentLang = localStorage.getItem("lang") || "en";
+      let currentUser = JSON.parse(sessionStorage.getItem("user"));
+      if (!currentUser) window.location.href = "index.html";
+
       let flowState = {
         type: "",
         rate: 0,
@@ -1430,16 +1440,42 @@
         duration: 12,
         currentStep: 0,
       };
-      let enteredPin = "";
+      let viewedDeposit = null; // ទុកទិន្នន័យពេលចុចមើល Receipt
+
+      function getTypeName(typeKey) {
+        if (currentLang === "en") {
+          if (typeKey === "wealth") return "Wealth Growth";
+          if (typeKey === "income") return "Income Growth";
+          if (typeKey === "quarterly") return "Quarterly Deposit";
+        } else {
+          if (typeKey === "wealth") return "គណនីបញ្ញើកើនទ្រព្យ";
+          if (typeKey === "income") return "គណនីបញ្ញើកើនចំណូល";
+          if (typeKey === "quarterly") return "ប្រាក់បញ្ញើប្រចាំត្រីមាស";
+        }
+        return typeKey;
+      }
+
+      function applyLang() {
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerHTML = translations[currentLang][key];
+          }
+        });
+        document.body.style.fontFamily =
+          currentLang === "kh"
+            ? "'Kantumruy Pro', sans-serif"
+            : "'Inter', 'Kantumruy Pro', sans-serif";
+      }
 
       function renderMainUI() {
-        // ប្រើ window.currentLang និង window.applyLang ពី core.js
+        applyLang();
         document.getElementById("mainDashboard").style.display = "flex";
         document.getElementById("depositFlow").style.display = "none";
         document.getElementById("receiptView").style.display = "none";
 
-        let activeDeposits = window.currentUser.deposits
-          ? window.currentUser.deposits.filter((d) => d.status === "active")
+        let activeDeposits = currentUser.deposits
+          ? currentUser.deposits.filter((d) => d.status === "active")
           : [];
         if (activeDeposits.length > 0) {
           document.getElementById("summaryView").style.display = "block";
@@ -1447,66 +1483,264 @@
           document.getElementById("totalUsd").innerText = activeDeposits
             .reduce((sum, dep) => sum + dep.amount, 0)
             .toFixed(2);
-          // ... (កូដ render ដូចដើម)
+
+          let listHTML = "";
+          activeDeposits.forEach((dep) => {
+            let typeName = getTypeName(dep.type);
+            let dOpen = new Date(dep.startDate).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            });
+            let dClose = new Date(dep.maturityDate).toLocaleDateString(
+              "en-GB",
+              { day: "numeric", month: "short", year: "numeric" },
+            );
+
+            // ដាក់ onclick លើកាត ដើម្បីបើកផ្ទាំង Receipt
+            listHTML += `
+              <div class="deposit-item" onclick="openReceipt('${dep.id}')">
+                <div class="dep-header">
+                  <div><div class="dep-type">${typeName}</div><div class="dep-id">${dep.id} | ${currentUser.accountNumber}</div></div>
+                  <button class="btn-withdraw" onclick="event.stopPropagation(); withdrawDeposit('${dep.id}', ${dep.amount})">${translations[currentLang].fd_btn_withdraw}</button>
+                </div>
+                <div class="dep-dates">
+                  <div><i class="fa-regular fa-calendar"></i> ${dOpen}</div>
+                  <div><i class="fa-regular fa-calendar"></i> ${dClose}</div>
+                </div>
+                <div class="dep-footer">
+                  <span class="status-badge">${translations[currentLang].fd_status_active}</span>
+                  <span class="dep-amount">${dep.amount.toFixed(2)} USD</span>
+                </div>
+              </div>`;
+          });
+          document.getElementById("depositList").innerHTML = listHTML;
         } else {
           document.getElementById("summaryView").style.display = "none";
           document.getElementById("createOptionsView").style.display = "block";
         }
       }
 
-      // 3. Pin Pad Logic (Virtual)
-      function pressPin(val) {
-        if (val === "del") enteredPin = enteredPin.slice(0, -1);
-        else if (enteredPin.length < 4) enteredPin += val;
-
-        const dots = document.querySelectorAll(".pin-dot");
-        dots.forEach((dot, i) =>
-          i < enteredPin.length
-            ? dot.classList.add("filled")
-            : dot.classList.remove("filled"),
-        );
-
-        if (enteredPin.length === 4) setTimeout(submitFinalDeposit, 300);
+      function showCreateOptions() {
+        document.getElementById("summaryView").style.display = "none";
+        document.getElementById("createOptionsView").style.display = "block";
       }
 
-      // 4. API Request
+      function startFlow(type, rate) {
+        flowState = { type, rate, amount: 0, duration: 12, currentStep: 1 };
+        document.getElementById("mainDashboard").style.display = "none";
+        document.getElementById("depositFlow").style.display = "flex";
+        document.getElementById("flowTitle").innerText = getTypeName(type);
+        document.getElementById("inpAccount").value = currentUser.accountNumber;
+        document.getElementById("tcCheck").checked = false;
+        document.getElementById("btnAgree").disabled = true;
+        document.getElementById("inpAmount").value = "";
+        calcSummary();
+        clearPin();
+        nextStep(1);
+      }
+
+      function nextStep(stepNum) {
+        flowState.currentStep = stepNum;
+        document.getElementById("flowHeaderContainer").style.display =
+          stepNum >= 4 ? "none" : "flex";
+        for (let i = 1; i <= 5; i++) {
+          document.getElementById("step" + i).style.display = "none";
+        }
+        document.getElementById("step" + stepNum).style.display = "flex";
+        window.scrollTo(0, 0);
+      }
+
+      function goBackFlow() {
+        flowState.currentStep > 1
+          ? nextStep(flowState.currentStep - 1)
+          : renderMainUI();
+      }
+      function toggleTcBtn() {
+        document.getElementById("btnAgree").disabled =
+          !document.getElementById("tcCheck").checked;
+      }
+
+      function calcSummary() {
+        let amount =
+          parseFloat(document.getElementById("inpAmount").value) || 0;
+        let duration =
+          parseInt(document.getElementById("inpDuration").value) || 12;
+        flowState.amount = amount;
+        flowState.duration = duration;
+
+        if (amount >= 100 && amount <= currentUser.balance) {
+          let interest = amount * (flowState.rate / 100) * (duration / 12);
+          let tax = interest * 0.06;
+          let netInterest = interest - tax;
+          let total = amount + netInterest;
+          let d = new Date();
+          d.setMonth(d.getMonth() + duration);
+
+          document.getElementById("sDuration").innerText = `${duration} Months`;
+          document.getElementById("sMaturity").innerText = d.toLocaleDateString(
+            "en-GB",
+            { day: "2-digit", month: "short", year: "numeric" },
+          );
+          document.getElementById("sRate").innerText = `${flowState.rate}% p.a`;
+          document.getElementById("sAmount").innerText =
+            `$${amount.toFixed(2)}`;
+          document.getElementById("sTax").innerText = `-$${tax.toFixed(2)}`;
+          document.getElementById("sInt").innerText =
+            `+$${netInterest.toFixed(2)}`;
+          document.getElementById("sTotal").innerText = `$${total.toFixed(2)}`;
+          document.getElementById("btnDepositNow").disabled = false;
+        } else {
+          document.getElementById("btnDepositNow").disabled = true;
+        }
+      }
+
+      function prepareConfirmation() {
+        document.getElementById("cAmountDisplay").innerText =
+          flowState.amount.toFixed(2) + " USD";
+        document.getElementById("cTypeDisplay").innerText = getTypeName(
+          flowState.type,
+        );
+        nextStep(4);
+      }
+
+      function movePin(index, event) {
+        let current = document.getElementById(`p${index}`);
+        let key = event.key;
+        if (key >= "0" && key <= "9") {
+          current.value = key;
+          if (index < 4) {
+            document.getElementById(`p${index + 1}`).disabled = false;
+            document.getElementById(`p${index + 1}`).focus();
+          } else {
+            checkPinComplete();
+          }
+        } else if (key === "Backspace") {
+          current.value = "";
+          if (index > 1) {
+            document.getElementById(`p${index - 1}`).focus();
+          }
+        } else {
+          current.value = "";
+        }
+      }
+
+      function checkPinComplete() {
+        let fullPin =
+          document.getElementById("p1").value +
+          document.getElementById("p2").value +
+          document.getElementById("p3").value +
+          document.getElementById("p4").value;
+        if (fullPin.length === 4) submitFinalDeposit();
+      }
+
+      function clearPin() {
+        for (let i = 1; i <= 4; i++) {
+          document.getElementById(`p${i}`).value = "";
+          if (i > 1) document.getElementById(`p${i}`).disabled = true;
+        }
+      }
+
       async function submitFinalDeposit() {
         Swal.fire({
           title: "Processing...",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
         });
+        let fullPin =
+          document.getElementById("p1").value +
+          document.getElementById("p2").value +
+          document.getElementById("p3").value +
+          document.getElementById("p4").value;
         try {
           const response = await fetch("/api/fixed-deposit", {
             method: "POST",
-            headers: window.authHeaders, // 👈 ប្រើ Header ពី Core
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              accountNumber: window.currentUser.accountNumber,
+              accountNumber: currentUser.accountNumber,
               amount: flowState.amount,
-              pin: enteredPin,
+              pin: fullPin,
               duration: flowState.duration,
               rate: flowState.rate,
               type: flowState.type,
             }),
           });
           const result = await response.json();
-          Swal.close();
           if (result.success) {
-            // ហៅ Notification ដ៏ស្រស់ស្អាត
-            window.showAppNotification(
-              "Deposit Success",
-              "Your deposit has been activated!",
-              "receive",
+            const resUser = await fetch("/api/users");
+            const users = await resUser.json();
+            currentUser = users.find(
+              (u) => u.username === currentUser.username,
             );
-            renderMainUI();
+            sessionStorage.setItem("user", JSON.stringify(currentUser));
+            Swal.fire({
+              icon: "success",
+              title: "Success!",
+              showConfirmButton: false,
+              timer: 1500,
+            }).then(() => renderMainUI());
           } else {
             Swal.fire("Failed", result.message, "error");
-            enteredPin = "";
-            // Reset dots...
+            clearPin();
+            document.getElementById("p1").focus();
           }
-        } catch (e) {
-          Swal.fire("Error", "Server error", "error");
+        } catch (error) {
+          Swal.fire("Error", "Server Failed", "error");
+          clearPin();
         }
+      }
+
+      function withdrawDeposit(depId, amount) {
+        Swal.fire({
+          title: currentLang === "kh" ? "បិទគណនី?" : "Withdraw Deposit?",
+          text:
+            currentLang === "kh"
+              ? `ទឹកប្រាក់ $${amount.toFixed(2)} នឹងត្រូវបង្វិលចូលកាបូបលុយវិញ។`
+              : `$${amount.toFixed(2)} will be refunded.`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#94a3b8",
+          confirmButtonText: currentLang === "kh" ? "យល់ព្រមបិទ" : "Confirm",
+          cancelButtonText: currentLang === "kh" ? "បោះបង់" : "Cancel",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "Processing...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+            });
+            try {
+              const response = await fetch("/api/fixed-deposit/withdraw", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  accountNumber: currentUser.accountNumber,
+                  depositId: depId,
+                }),
+              });
+              const data = await response.json();
+              if (data.success) {
+                const resUser = await fetch("/api/users");
+                const users = await resUser.json();
+                currentUser = users.find(
+                  (u) => u.username === currentUser.username,
+                );
+                sessionStorage.setItem("user", JSON.stringify(currentUser));
+                Swal.fire({
+                  icon: "success",
+                  title: "Success!",
+                  showConfirmButton: false,
+                  timer: 1500,
+                }).then(() => renderMainUI());
+              } else {
+                Swal.fire("Failed", data.message, "error");
+              }
+            } catch (error) {
+              Swal.fire("Error", "Server Failed", "error");
+            }
+          }
+        });
       }
 
       // ==========================================
