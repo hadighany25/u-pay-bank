@@ -21,7 +21,6 @@
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="js/lang.js"></script>
-    <script src="js/toast.js"></script>
 
     <style>
       /* ==========================================
@@ -1153,10 +1152,7 @@
           id="m1"
           onclick="window.location.href = 'transfer.html'"
         >
-          <div
-            class="icon-box icon-transfer"
-            style="background: #fce4ec; color: #16d9ef"
-          >
+          <div class="icon-box" style="background: #79dce5; color: #04da28">
             <i class="fa-solid fa-paper-plane"></i>
           </div>
           <span class="menu-text" data-i18n="btn_transfer">Transfer</span>
@@ -1459,35 +1455,34 @@
       // ==========================================
       async function loadDashboardData(isAuto = true) {
         try {
+          // បាញ់សំណួរទៅ Server តែម្តងគត់ ដើម្បីសន្សំសំចៃ Network
           const res = await fetch("/api/users", { headers: authHeaders });
           const users = await res.json();
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser) {
-            // ១. ឆែកលុយចូល (Update Balance) ជំនួសដោយ Global Toast
+            // ១. ឆែកលុយចូល (Update Balance)
             if (isAuto && serverUser.balance > lastBalance) {
-              const receivedAmt = (serverUser.balance - lastBalance).toFixed(2);
-
-              // 🔥 ហៅមុខងារលោត Notification ចំកណ្តាលអូសចុះអូសឡើងបាន
-              if (typeof showAppNotification === "function") {
-                showAppNotification(
-                  "ទទួលបានប្រាក់!",
-                  `គណនីរបស់អ្នកទទួលបានលុយ +$${receivedAmt}`,
-                  "receive",
-                );
-              }
+              Swal.fire({
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 4000,
+                icon: "success",
+                title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
+                customClass: { popup: "premium-swal" },
+              });
             }
-
             lastBalance = serverUser.balance;
             user = serverUser;
             sessionStorage.setItem("user", JSON.stringify(serverUser));
 
-            // ២. ធ្វើអោយ UI ថ្មី
+            // ២. ធ្វើអោយ UI ថ្មី (លុយខាងក្រៅ, កាត, ប្រវត្តិ)
             updateUI(serverUser);
             if (currentViewingCurrency)
               renderTransactionsInModal(serverUser, currentViewingCurrency);
 
-            // ៣. បាញ់សារចូល UI (Update Notifications)
+            // ៣. បាញ់សារចូល UI (Update Notifications) ភ្លាមៗដោយមិនបាច់រង់ចាំ
             updateNotificationsUI(serverUser);
           }
         } catch (err) {
@@ -1732,6 +1727,7 @@
               t.receiverName ||
               (t.type === "Card Payment" ? "Card Payment" : "Transfer");
           }
+
           const displayAmt =
             currency === "KHR"
               ? Math.abs(t.amount).toLocaleString("en-US") + " ៛"
