@@ -990,6 +990,7 @@
           const fxData = await fxRes.json();
           if (fxData.success) {
             currentFXRates = fxData.rates; // កំណត់តម្លៃ Rate ពី DB
+            window.allSettings = fxData;
             console.log("Loaded rates from DB:", currentFXRates);
           }
         } catch (e) {
