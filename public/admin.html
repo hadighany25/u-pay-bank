@@ -3660,15 +3660,18 @@
       let feeTiersList = [];
 
       async function loadFeeSettings() {
-        const res = await fetch("/api/admin/fees", {
-          headers: getAuthHeaders(),
-        });
-        const data = await res.json();
-        if (data.success) {
-          document.getElementById("dailyTrxLimit").value = data.transferLimit;
-          // ប្តូរពី data.feeTiers ទៅតាមអ្វីដែល Backend ផ្ញើមក (ឧ. data.feeters)
-          feeTiersList = data.feeters || [];
-          renderFeeTiers();
+        try {
+          const res = await fetch("/api/admin/fees", {
+            headers: getAuthHeaders(),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById("dailyTrxLimit").value = data.transferLimit;
+            feeTiersList = data.feeTiers || [];
+            renderFeeTiers();
+          }
+        } catch (e) {
+          console.error("Error loading fees");
         }
       }
 
@@ -3694,17 +3697,14 @@
         const exchangeRate = getCurrentFXRate();
         let value = parseFloat(element.value) || 0;
 
-        // ១. កែតម្លៃចូលក្នុង Array feeTiersList ភ្លាមៗ (នេះហើយដែលខ្វះ!)
-        feeTiersList[index][field] = value;
-
-        // ២. គណនាប្តូររូបិយប័ណ្ណអូតូ
         if (type === "USD") {
           let khrValue = Math.round(value * exchangeRate);
           document.getElementById(`${field}Khr_${index}`).value = khrValue;
+          feeTiersList[index][field] = value; // រក្សាទុកក្នុងអថេរ
         } else if (type === "KHR") {
           let usdValue = (value / exchangeRate).toFixed(2);
           document.getElementById(`${field}Usd_${index}`).value = usdValue;
-          feeTiersList[index][field] = parseFloat(usdValue); // Update វិញពេលវាយ KHR
+          feeTiersList[index][field] = parseFloat(usdValue); // រក្សាទុកក្នុងអថេរ
         }
       }
 
