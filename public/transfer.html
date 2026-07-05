@@ -1182,34 +1182,32 @@
 
       // 🔥 Muxngar គណនា FX & Fee បញ្ចូលគ្នា
       function calculateExchangePreview() {
-        const amount = parseFloat(document.getElementById("amount").value);
+        const amount = parseFloat(document.getElementById("amount").value) || 0;
         const fromType = document.getElementById("fromAccount").value;
         const previewBox = document.getElementById("exchangePreview");
         const feePreview = document.getElementById("feePreview");
 
-        // គណនាថ្លៃសេវា (Fee) - ឧទាហរណ៍ ០.៥%
-        if (amount && amount > 0) {
-          const fee = amount * 0.005;
-          if (feePreview) {
-            const feeDisplay = document.getElementById("feeAmountDisplay");
-            if (feeDisplay) feeDisplay.innerText = `$${fee.toFixed(2)}`;
-            feePreview.style.display = "block";
-          }
+        // 1. ទាញយក Fee Rate ពី Database (តាមរយៈ currentFXRates ឬ Config)
+        // ឧទាហរណ៍៖ បងមាន key "feeRate" ក្នុង fxData ដែលយើងបាន fetch ពី /api/fx/rates
+        const feeRate = currentFXRates.feeRate || 0.005; // 0.5% បើអត់មានគឺយក 0.5%
+        const fee = amount * feeRate;
+
+        if (amount > 0) {
+          const feeDisplay = document.getElementById("feeAmountDisplay");
+          if (feeDisplay) feeDisplay.innerText = `$${fee.toFixed(2)}`;
+          if (feePreview) feePreview.style.display = "block";
         } else {
           if (feePreview) feePreview.style.display = "none";
         }
 
-        if (
-          !amount ||
-          amount <= 0 ||
-          targetUserIsKHR === null ||
-          !currentFXRates
-        ) {
+        // 2. គណនា FX Rate ពី Database
+        if (amount <= 0 || targetUserIsKHR === null || !currentFXRates) {
           if (previewBox) previewBox.style.display = "none";
           return;
         }
 
         const isSenderKHR = fromType === "KHR";
+        // ប្រើ currentFXRates.usdToKhrBuy និង currentFXRates.usdToKhrSell ដែលបានមកពី API
         if (!isSenderKHR && targetUserIsKHR) {
           let totalKHR = amount * currentFXRates.usdToKhrBuy;
           document.getElementById("fxRateDisplay").innerText =
