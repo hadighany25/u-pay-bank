@@ -1974,55 +1974,29 @@
 
       <script>
         // ==========================================
-        // ⚙️ INITIALIZATION & DATA (ត្រូវដាក់នៅខាងលើគេបង្អស់ដាច់ខាត)
+        // ⚙️ GLOBAL VARIABLES & INITIALIZATION
         // ==========================================
-        let user = JSON.parse(sessionStorage.getItem("user"));
-        if (!user) {
-          // បង្ការការរត់ Error ប្រសិនបើអត់ទាន់ Login រួចធ្វើការទាត់ទៅកាន់ទំព័រដើម
-          window.location.href = "index.html";
-          user = { username: "Guest", merchantProfile: { merchants: [] } };
-        }
-
-        if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
-
         let currentMerchant = null;
         let calcValue = "";
         let calcCurrency = "USD";
         let qrCurrency = "USD";
+        let currentTransactions = [];
 
-        // មុខងារឆែក Dark Mode តាម Account
-        function applyTheme() {
-          const userThemeKey = "darkMode_" + user.username;
-          const isDark =
-            localStorage.getItem("theme") === "dark" ||
-            localStorage.getItem(userThemeKey) === "true";
-
-          if (isDark) {
-            document.body.classList.add("dark-mode");
-          } else {
-            document.body.classList.remove("dark-mode");
-          }
-        }
-
-        // 🔴 រត់តែមួយដងគត់ពេល Page ផ្ទុកចប់ (លុបអាជាន់គ្នាចោលអស់ហើយ)
+        // រង់ចាំរហូតដល់ Core System (u-pay-core.js) រៀបចំរួចរាល់
         document.addEventListener("DOMContentLoaded", () => {
-          // ១. ដាក់ Theme មុនគេបង្អស់
-          applyTheme();
-
-          // ២. បកប្រែភាសា
-          if (typeof applyLanguage === "function") {
-            applyLanguage();
+          // ធានាថា Profile ហាងមានទិន្នន័យជានិច្ច
+          if (!window.currentUser.merchantProfile) {
+            window.currentUser.merchantProfile = { merchants: [] };
           }
 
-          // ៣. បង្ហាញទិន្នន័យហាង និងចាប់ផ្តើមដំណើរការទិន្នន័យ App
+          // បង្ហាញឈ្មោះ
           const introNameEl = document.getElementById("introName");
           if (introNameEl) {
-            introNameEl.innerText = user.fullName || user.username;
+            introNameEl.innerText =
+              window.currentUser.fullName || window.currentUser.username;
           }
-          initApp();
 
-          // ៤. បង្ហាញ Body វិញដោយរលូន (Smooth Fade-In)
-          document.body.classList.add("loaded");
+          initApp();
         });
 
         function switchState(stateId) {
@@ -2032,101 +2006,99 @@
           document.getElementById(stateId).classList.add("active");
         }
 
-        // 🚀 SOCKET.IO: ស្តាប់សញ្ញាលុយចូលសម្រាប់ Merchant
-        const socket = io("https://u-pay-bank.fly.dev"); // ប្តូរ URL តាម Server បង
-
-        // ប្រាប់ Server ថាបងជា Merchant នេះ
-        socket.emit("joinRoom", user.username);
+        // ==========================================
+        // 🚀 SOCKET.IO: ទទួលប្រាក់ (MERCHANT)
+        // ==========================================
+        const socket = io("https://u-pay-bank.fly.dev");
+        socket.emit("joinRoom", window.currentUser.username);
 
         socket.on("paymentReceived", (data) => {
-          // លេងសំឡេង (Optional)
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
           )
             .play()
-            .catch((e) => console.log(e));
+            .catch(() => {});
 
-          // បង្ហាញផ្ទាំងជោគជ័យ
-          Swal.fire({
-            icon: "success",
-            title: "ជោគជ័យ!",
-            text: `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
-            confirmButtonColor: "#004d40",
-            allowOutsideClick: false,
-          }).then(() => {
-            // 🔥 នេះហើយមុខងារលោតទៅទំព័រដើម (Dashboard)
-            window.location.href = "dashboard.html";
-          });
+          if (typeof window.showAppNotification === "function") {
+            window.showAppNotification(
+              window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
+              `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
+              "receive",
+            );
+          } else {
+            Swal.fire({
+              icon: "success",
+              title: window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
+              text: `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
+              confirmButtonColor: "#004d40",
+            });
+          }
         });
+
         // ==========================================
-        // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង (កែតម្រូវត្រឹមត្រូវ)
+        // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង
         // ==========================================
         async function initApp() {
           switchState("state-list");
 
           try {
-            const token = sessionStorage.getItem("userToken");
-
-            // ប្រើ GET ដើម្បីទាញយកបញ្ជីហាង មិនមែន POST ទេ
             const response = await fetch("/api/merchants/my-merchants", {
               method: "GET",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
+              headers: window.authHeaders, // 👈 ប្រើពី u-pay-core.js
             });
 
             const data = await response.json();
 
             if (response.ok && data.success) {
-              if (!user.merchantProfile)
-                user.merchantProfile = { merchants: [] };
-
-              // កែសម្រួលការ Map ទិន្នន័យឱ្យត្រឹមត្រូវជាមួយ m.city
-              user.merchantProfile.merchants = data.merchants.map((m) => ({
-                id: m._id,
-                merchantId: m.merchantId,
-                accountNumbers: m.accountNumbers,
-                name: m.name,
-                city: m.city, // ត្រូវប្រាកដថាប្រើ m.city
-                linkedAccount: m.linkedAccount,
-                balance: m.balance || 0,
-                apiKey: m.apiKey,
-              }));
-
-              sessionStorage.setItem("user", JSON.stringify(user));
+              window.currentUser.merchantProfile.merchants = data.merchants.map(
+                (m) => ({
+                  id: m._id || m.id,
+                  merchantId: m.merchantId,
+                  accountNumbers: m.accountNumbers,
+                  name: m.name,
+                  city: m.city,
+                  linkedAccount: m.linkedAccount,
+                  balance: m.balance || 0,
+                  apiKey: m.apiKey,
+                }),
+              );
+              sessionStorage.setItem(
+                "user",
+                JSON.stringify(window.currentUser),
+              );
             }
           } catch (error) {
             console.error("Error fetching merchants:", error);
           }
 
-          // ហៅមុខងារបង្ហាញហាង
           renderMerchantList();
         }
 
         // ==========================================
-        // 🏬 MERCHANT LIST & CREATION
+        // 🏬 MERCHANT LIST
         // ==========================================
         function renderMerchantList() {
           const container = document.getElementById("merchantListContainer");
           container.innerHTML = "";
 
-          if (user.merchantProfile.merchants.length === 0) {
-            let lang = localStorage.getItem("lang") || "en";
+          if (window.currentUser.merchantProfile.merchants.length === 0) {
+            const langText =
+              typeof translations !== "undefined" &&
+              translations[window.currentLang]
+                ? translations[window.currentLang]
+                : {};
             let noShopTxt =
-              translations[lang].merch_no_shop ||
-              "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ";
+              langText.merch_no_shop || "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ";
             container.innerHTML = `
             <div style="text-align:center; margin-top:50px; opacity:0.7;">
               <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
               <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-i18n="merch_no_shop">${noShopTxt}</p>
               <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) ដើម្បីបន្ថែមសាខាថ្មី</p>
-            </div>
-          `;
+            </div>`;
             return;
           }
 
-          user.merchantProfile.merchants.forEach((m) => {
+          window.currentUser.merchantProfile.merchants.forEach((m) => {
             const div = document.createElement("div");
             div.className = "merchant-item";
             div.onclick = () => openMerchant(m.id);
@@ -2142,56 +2114,57 @@
           });
         }
 
-        // --- មុខងារសម្រាប់កែប្រែ និង លុបហាង ---
+        // ==========================================
+        // មុខងារកែប្រែ និង លុបហាង
+        // ==========================================
         function showMerchantOptions(id) {
-          const m = user.merchantProfile.merchants.find((x) => x.id === id);
-          let lang = localStorage.getItem("lang") || "en";
+          const m = window.currentUser.merchantProfile.merchants.find(
+            (x) => x.id === id,
+          );
+          let isKh = window.currentLang === "kh";
 
           Swal.fire({
-            title: lang === "kh" ? "ជម្រើសហាង" : "Shop Options",
+            title: isKh ? "ជម្រើសហាង" : "Shop Options",
             html: `<b style="font-family: 'Inter', sans-serif;">${m.name}</b>`,
             showDenyButton: true,
             showCancelButton: true,
-            confirmButtonText: `<i class="fa-solid fa-pen"></i> ${lang === "kh" ? "កែប្រែឈ្មោះ" : "Edit Name"}`,
-            denyButtonText: `<i class="fa-solid fa-trash"></i> ${lang === "kh" ? "លុបហាងនេះ" : "Delete Shop"}`,
-            cancelButtonText: lang === "kh" ? "បិទ" : "Cancel",
+            confirmButtonText: `<i class="fa-solid fa-pen"></i> ${isKh ? "កែប្រែឈ្មោះ" : "Edit Name"}`,
+            denyButtonText: `<i class="fa-solid fa-trash"></i> ${isKh ? "លុបហាងនេះ" : "Delete Shop"}`,
+            cancelButtonText: isKh ? "បិទ" : "Cancel",
             confirmButtonColor: "#3b82f6",
             denyButtonColor: "#ef4444",
             customClass: { popup: "premium-swal" },
           }).then((result) => {
-            if (result.isConfirmed) {
-              editMerchant(id);
-            } else if (result.isDenied) {
-              deleteMerchant(id);
-            }
+            if (result.isConfirmed) editMerchant(id);
+            else if (result.isDenied) deleteMerchant(id);
           });
         }
 
         async function editMerchant(id) {
-          const m = user.merchantProfile.merchants.find((x) => x.id === id);
-          let lang = localStorage.getItem("lang") || "en";
+          const m = window.currentUser.merchantProfile.merchants.find(
+            (x) => x.id === id,
+          );
+          let isKh = window.currentLang === "kh";
 
           const { value: newName } = await Swal.fire({
-            title: lang === "kh" ? "កែប្រែឈ្មោះហាង" : "Edit Shop Name",
+            title: isKh ? "កែប្រែឈ្មោះហាង" : "Edit Shop Name",
             input: "text",
             inputValue: m.name,
             showCancelButton: true,
             confirmButtonColor: "var(--primary)",
             inputValidator: (value) => {
               if (!value)
-                return lang === "kh"
-                  ? "សូមបញ្ចូលឈ្មោះហាង!"
-                  : "Please enter a name!";
+                return isKh ? "សូមបញ្ចូលឈ្មោះហាង!" : "Please enter a name!";
             },
           });
 
           if (newName && newName !== m.name) {
             m.name = newName;
-            sessionStorage.setItem("user", JSON.stringify(user));
+            sessionStorage.setItem("user", JSON.stringify(window.currentUser));
             renderMerchantList();
             Swal.fire({
               icon: "success",
-              title: lang === "kh" ? "ជោគជ័យ" : "Success",
+              title: isKh ? "ជោគជ័យ" : "Success",
               timer: 1500,
               showConfirmButton: false,
             });
@@ -2199,29 +2172,32 @@
         }
 
         function deleteMerchant(id) {
-          let lang = localStorage.getItem("lang") || "en";
+          let isKh = window.currentLang === "kh";
           Swal.fire({
-            title: lang === "kh" ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
-            text:
-              lang === "kh"
-                ? "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោល!"
-                : "This shop will be deleted!",
+            title: isKh ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
+            text: isKh
+              ? "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោល!"
+              : "This shop will be deleted!",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
             cancelButtonColor: "#64748b",
-            confirmButtonText: lang === "kh" ? "បាទ/ចាស, លុប!" : "Yes, delete!",
-            cancelButtonText: lang === "kh" ? "បោះបង់" : "Cancel",
+            confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
+            cancelButtonText: isKh ? "បោះបង់" : "Cancel",
           }).then((result) => {
             if (result.isConfirmed) {
-              // លុបទិន្នន័យចេញពី Array
-              user.merchantProfile.merchants =
-                user.merchantProfile.merchants.filter((x) => x.id !== id);
-              sessionStorage.setItem("user", JSON.stringify(user));
-              renderMerchantList(); // Load បញ្ជីឡើងវិញ
+              window.currentUser.merchantProfile.merchants =
+                window.currentUser.merchantProfile.merchants.filter(
+                  (x) => x.id !== id,
+                );
+              sessionStorage.setItem(
+                "user",
+                JSON.stringify(window.currentUser),
+              );
+              renderMerchantList();
               Swal.fire({
                 icon: "success",
-                title: lang === "kh" ? "លុបរួចរាល់" : "Deleted",
+                title: isKh ? "លុបរួចរាល់" : "Deleted",
                 timer: 1500,
                 showConfirmButton: false,
               });
@@ -2229,13 +2205,21 @@
           });
         }
 
+        // ==========================================
+        // មុខងារបង្កើតហាងថ្មី (CREATE MERCHANT)
+        // ==========================================
         function showPinModal() {
           const name = document.getElementById("storeName").value;
           if (!name) {
-            Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
+            Swal.fire(
+              window.currentLang === "kh" ? "បញ្ជាក់" : "Notice",
+              window.currentLang === "kh"
+                ? "សូមបញ្ចូលឈ្មោះហាង"
+                : "Please enter shop name",
+              "warning",
+            );
             return;
           }
-
           document.getElementById("pinModal").style.display = "flex";
           document.getElementById("hiddenPin").value = "";
           updatePinDots(0);
@@ -2248,13 +2232,10 @@
             val = val.substring(0, 4);
           }
           updatePinDots(val.length);
-          // កែពី handlePinInput(val) មកជាបែបនេះវិញ
           if (val.length === 4) {
             setTimeout(() => {
               document.getElementById("pinModal").style.display = "none";
               document.getElementById("hiddenPin").blur();
-
-              // បញ្ជូន val ដែលជាលេខកូដ PIN ទៅឱ្យ saveNewMerchant
               saveNewMerchant(val);
             }, 300);
           }
@@ -2273,81 +2254,35 @@
           }
         }
 
-        // ==========================================
-        // មុខងារបង្កើតហាងថ្មី និងបញ្ជូនទៅកាន់ Backend
-        // ==========================================
-
-        // បន្ថែម enteredPin ជា Parameter ដើម្បីទទួលលេខកូដដែលបញ្ជូនមក
         async function saveNewMerchant(enteredPin) {
           const name = document.getElementById("storeName").value;
           const city = document.getElementById("storeCity").value;
           const linkedAcc = document.getElementById("storeLinkedAcc").value;
+          let isKh = window.currentLang === "kh";
 
-          let lang = localStorage.getItem("lang") || "en";
-
-          if (!name) {
-            Swal.fire(
-              lang === "kh" ? "បញ្ជាក់" : "Notice",
-              lang === "kh" ? "សូមបញ្ចូលឈ្មោះហាង" : "Please enter shop name",
-              "warning",
-            );
-            return;
-          }
-
-          // +++++++++++++++++++++++++++++++++++++++
-          // 🔒 មុខងារផ្ទៀងផ្ទាត់ PIN (Security Check)
-          // +++++++++++++++++++++++++++++++++++++++
-          // ទាញយក PIN របស់គណនី (user.pin) មកផ្ទៀងផ្ទាត់ជាមួយលេខដែលទើបនឹងវាយ
-          if (user.pin && enteredPin !== user.pin.toString()) {
-            Swal.fire({
-              icon: "error",
-              title: lang === "kh" ? "បរាជ័យ" : "Error",
-              text:
-                lang === "kh"
-                  ? "លេខកូដ PIN មិនត្រឹមត្រូវទេ!"
-                  : "Incorrect PIN code!",
-              confirmButtonColor: "var(--primary)",
-            });
-            return; // បញ្ឈប់ការបង្កើតហាងភ្លាមៗ ប្រសិនបើ PIN ខុស
-          }
-          // +++++++++++++++++++++++++++++++++++++++
-
-          // ១. បង្ហាញផ្ទាំង Loading ពេល PIN ត្រឹមត្រូវ និងកំពុងរង់ចាំ Server ធ្វើការ
           Swal.fire({
-            title: lang === "kh" ? "កំពុងបង្កើតហាង..." : "Creating Shop...",
+            title: isKh ? "កំពុងបង្កើតហាង..." : "Creating Shop...",
             allowOutsideClick: false,
-            didOpen: () => {
-              Swal.showLoading();
-            },
+            didOpen: () => Swal.showLoading(),
           });
 
           try {
-            // ទាញយក Token សម្រាប់បញ្ជាក់អត្តសញ្ញាណសុវត្ថិភាព
-            const token = sessionStorage.getItem("userToken");
-
-            // ២. បញ្ជូនទិន្នន័យទៅកាន់ API Backend
-
             const response = await fetch("/api/merchants/create", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
+              headers: window.authHeaders, // 👈 ប្រើ Header ពី Core
               body: JSON.stringify({
                 name: name,
                 city: city,
                 linkedAccount: linkedAcc,
-                userId: user.username, // <--- កែត្រង់នេះ
-                ownerAccount: user.username, // <--- កែត្រង់នេះ
+                pin: enteredPin, // បញ្ជូន PIN ឱ្យ Server ផ្ទៀងផ្ទាត់
               }),
             });
 
             const data = await response.json();
 
-            // ៣. បើ Server បង្កើតជោគជ័យ
-            if (response.ok && data.success && data.merchant) {
+            if (response.ok && data.success) {
               const newMerchant = {
-                id: data.merchant.id || data.merchant._id, // ការពារកុំឱ្យ Error ពេលអត់មាន ID
+                id: data.merchant._id || data.merchant.id,
                 merchantId: data.merchant.merchantId,
                 accountNumbers: data.merchant.accountNumbers || [],
                 name: data.merchant.name,
@@ -2358,103 +2293,82 @@
                 apiSecret: data.merchant.apiSecret,
               };
 
-              // រក្សាទុកក្នុង Session ដើម្បងាយស្រួលបង្ហាញ
-              if (!user.merchantProfile)
-                user.merchantProfile = { merchants: [] };
-              user.merchantProfile.merchants.push(newMerchant);
-              sessionStorage.setItem("user", JSON.stringify(user));
+              window.currentUser.merchantProfile.merchants.push(newMerchant);
+              sessionStorage.setItem(
+                "user",
+                JSON.stringify(window.currentUser),
+              );
+              document.getElementById("storeName").value = "";
 
-              document.getElementById("storeName").value = ""; // សម្អាតប្រអប់វាយអក្សរ
-
-              // លោតសារជោគជ័យ រួចបើកផ្ទាំង Dashboard ហាងថ្មី
               Swal.fire({
                 icon: "success",
-                title: lang === "kh" ? "ជោគជ័យ" : "Success",
-                text:
-                  lang === "kh"
-                    ? "ហាងត្រូវបានបង្កើត!"
-                    : "Shop created successfully!",
+                title: isKh ? "ជោគជ័យ" : "Success",
+                text: isKh
+                  ? "ហាងត្រូវបានបង្កើត!"
+                  : "Shop created successfully!",
                 timer: 1500,
                 showConfirmButton: false,
               }).then(() => {
+                document
+                  .getElementById("state-create")
+                  .classList.remove("active");
                 openMerchant(newMerchant.id);
               });
             } else {
-              // បើ Server បដិសេធ (ឧ. មានបញ្ហាអ្វីមួយ)
               Swal.fire(
-                "បរាជ័យ / Error",
+                isKh ? "បរាជ័យ" : "Error",
                 data.message || "Failed to create merchant",
                 "error",
               );
             }
           } catch (error) {
-            console.error("Error creating merchant:", error);
             Swal.fire(
-              "បរាជ័យ / Error",
-              "មានបញ្ហាភ្ជាប់ទៅកាន់ប្រព័ន្ធ (Server Error)",
+              window.currentLang === "kh" ? "បរាជ័យ" : "Error",
+              "Server Error",
               "error",
             );
           }
         }
 
         // ==========================================
-        // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (Dashboard) - បែបលឿន
+        // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (DASHBOARD)
         // ==========================================
         async function openMerchant(id) {
-          // ១. រកមើលទិន្នន័យហាងតាមរយៈ ID
-          currentMerchant = user.merchantProfile.merchants.find(
+          currentMerchant = window.currentUser.merchantProfile.merchants.find(
             (m) => m.id === id,
           );
-          console.log("Current Merchant Data:", currentMerchant);
+          if (!currentMerchant) return;
 
-          if (!currentMerchant) {
-            console.error("Merchant not found in session!");
-            return;
-          }
-
-          // ២. ដាក់ឈ្មោះហាងនៅក្បាលលើ Dashboard
           document.getElementById("dashStoreName").innerText =
             currentMerchant.name;
           document.getElementById("recvStoreName").innerText =
             currentMerchant.name;
-
-          // ៣. ដាក់លេខ ID ហាង (Merchant ID)
           document.getElementById("dashAccInfo").innerText =
             currentMerchant.merchantId;
-
-          // ៤. ដាក់ព័ត៌មានចូលក្នុង Sidebar Menu
           document.getElementById("sbName").innerText = currentMerchant.name;
           document.getElementById("sbId").innerText =
             currentMerchant.merchantId;
 
           const avatarEl = document.getElementById("sbAvatar");
-          if (avatarEl) {
+          if (avatarEl)
             avatarEl.innerText = currentMerchant.name
               .substring(0, 1)
               .toUpperCase();
-          }
 
-          // ៥. 🔥 កន្លែងធ្វើឱ្យលឿន៖ ដាក់លេខ 0 ភ្លាមៗ (មិនបាច់ដាក់ ... នាំឱ្យមានអារម្មណ៍ថាយឺតទេ)
           document.getElementById("dashBalUSD").innerText = "$0.00";
           document.getElementById("dashBalKHR").innerText = "៛0";
 
-          // ទាញទិន្នន័យចំណូល
           fetchMerchantRevenue();
-
-          // ៦. ប្តូរទំព័រទៅកាន់ Dashboard របស់ហាងភ្លាមៗដោយគ្មានការរង់ចាំ
           switchState("state-dashboard");
         }
 
-        // ==========================================
-        // 🖱️ SIDEBAR TOGGLE LOGIC
-        // ==========================================
         function toggleSidebar() {
           document.getElementById("sidebar").classList.toggle("active");
           document.getElementById("sidebarOverlay").classList.toggle("active");
         }
 
         // ==========================================
-        // មុខងារទាញយកចំណូល (Revenue Fetching)
+        // មុខងារទាញយកចំណូល (REVENUE)
         // ==========================================
         async function fetchMerchantRevenue() {
           if (!currentMerchant) return;
@@ -2462,11 +2376,7 @@
           const customDateVal =
             document.getElementById("revenueCustomDate").value;
 
-          // ១. ជំនួសឱ្យការ Fetch ទៅ Backend ថ្មី យើងប្រើទិន្នន័យដែលមានស្រាប់ក្នុង currentTransactions
-          // បើ currentTransactions ទទេ ទើបយើង Fetch
-          if (currentTransactions.length === 0) {
-            await loadTransactions();
-          }
+          if (currentTransactions.length === 0) await loadTransactions();
 
           let totalUSD = 0,
             totalKHR = 0;
@@ -2486,10 +2396,10 @@
               isMatch =
                 tDate.getMonth() === now.getMonth() &&
                 tDate.getFullYear() === now.getFullYear();
-            else if (filter === "custom" && customDateVal) {
+            else if (filter === "custom" && customDateVal)
               isMatch =
                 tDate.toDateString() === new Date(customDateVal).toDateString();
-            } else isMatch = true;
+            else isMatch = true;
 
             if (isMatch && (t.type === "Received" || t.amount > 0)) {
               if (t.currency === "USD") totalUSD += t.amount;
@@ -2504,10 +2414,9 @@
         }
 
         // ==========================================
-        // 🔄 TAB SWITCHING LOGIC (Branches, Cashiers, Reports)
+        // 🔄 TAB SWITCHING
         // ==========================================
         function switchMerchantTab(element, tabName) {
-          // ដកពណ៌ចេញពី Tab ទាំងអស់ រួចដាក់ពណ៌ឱ្យ Tab ដែលទើបនឹងចុច
           document
             .querySelectorAll(".tab-item")
             .forEach((tab) => tab.classList.remove("active"));
@@ -2515,45 +2424,36 @@
 
           const container = document.getElementById("merchantListContainer");
           const fabBtn = document.querySelector(".fab-add");
-          let lang = localStorage.getItem("lang") || "en";
+          let isKh = window.currentLang === "kh";
 
           if (tabName === "branches") {
-            // បើចុចលើសាខា ឱ្យទាញបញ្ជីហាងមកបង្ហាញវិញ និងបង្ហាញប៊ូតុងបូក (+)
             renderMerchantList();
             fabBtn.style.display = "flex";
           } else if (tabName === "cashiers") {
-            // បើចុចលើ អ្នកគិតលុយ
-            let title =
-              lang === "kh" ? "មុខងារអ្នកគិតលុយ" : "Cashier Management";
-            let desc =
-              lang === "kh" ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
+            let title = isKh ? "មុខងារអ្នកគិតលុយ" : "Cashier Management";
+            let desc = isKh ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
             container.innerHTML = `
             <div style="text-align:center; margin-top:60px; opacity:0.6; animation: fadeIn 0.3s ease;">
               <i class="fa-solid fa-users-gear" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
               <h4 style="margin:0; font-size:1.1rem; color:var(--text-main); font-family:'Kantumruy Pro', 'Inter', sans-serif;">${title}</h4>
               <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;" class="kh-text">${desc}</p>
-            </div>
-          `;
-            fabBtn.style.display = "none"; // លាក់ប៊ូតុងបូកសិន
+            </div>`;
+            fabBtn.style.display = "none";
           } else if (tabName === "reports") {
-            // បើចុចលើ របាយការណ៍
-            let title =
-              lang === "kh" ? "របាយការណ៍អាជីវកម្ម" : "Business Reports";
-            let desc =
-              lang === "kh" ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
+            let title = isKh ? "របាយការណ៍អាជីវកម្ម" : "Business Reports";
+            let desc = isKh ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
             container.innerHTML = `
             <div style="text-align:center; margin-top:60px; opacity:0.6; animation: fadeIn 0.3s ease;">
               <i class="fa-solid fa-chart-line" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
               <h4 style="margin:0; font-size:1.1rem; color:var(--text-main); font-family:'Kantumruy Pro', 'Inter', sans-serif;">${title}</h4>
               <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;" class="kh-text">${desc}</p>
-            </div>
-          `;
-            fabBtn.style.display = "none"; // លាក់ប៊ូតុងបូកសិន
+            </div>`;
+            fabBtn.style.display = "none";
           }
         }
 
         // ==========================================
-        // 🧮 CALCULATOR LOGIC
+        // 🧮 CALCULATOR
         // ==========================================
         function setCalcCur(cur) {
           calcCurrency = cur;
@@ -2569,9 +2469,8 @@
         }
 
         function pressKey(key) {
-          if (key === "C") {
-            calcValue = calcValue.slice(0, -1);
-          } else if (!["+", "-", "*", "/", "%"].includes(key)) {
+          if (key === "C") calcValue = calcValue.slice(0, -1);
+          else if (!["+", "-", "*", "/", "%"].includes(key)) {
             if (calcValue === "0" && key !== "00") calcValue = key;
             else if (calcValue.length < 10) calcValue += key;
           }
@@ -2586,12 +2485,15 @@
 
         function generateQRFromCalc() {
           if (!calcValue || parseInt(calcValue) <= 0) {
-            let lang = localStorage.getItem("lang") || "en";
             let warnMsg =
-              lang === "kh"
+              window.currentLang === "kh"
                 ? "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល"
                 : "Please enter amount to receive";
-            Swal.fire(lang === "kh" ? "បញ្ជាក់" : "Notice", warnMsg, "warning");
+            Swal.fire(
+              window.currentLang === "kh" ? "បញ្ជាក់" : "Notice",
+              warnMsg,
+              "warning",
+            );
             return;
           }
           openQRModal(calcValue, calcCurrency);
@@ -2600,27 +2502,20 @@
         }
 
         // ==========================================
-        // 📱 QR MODAL (កែសម្រួលថ្មី)
+        // 📱 QR MODAL
         // ==========================================
         function openQRModal(amount, currency = null) {
           const modal = document.getElementById("qrModal");
-
-          // បង្ហាញឈ្មោះហាង និង Merchant ID
           document.getElementById("qrUserName").textContent =
             currentMerchant.name;
-
-          // បង្ហាញ Merchant ID ក្រោមឈ្មោះហាង
           document.getElementById("qrMerchantID").textContent =
             "MID: " + currentMerchant.merchantId;
 
           let targetCur = currency ? currency : currentMerchant.linkedAccount;
           switchQRCurrency(targetCur);
 
-          if (amount) {
-            document.getElementById("qrSetAmount").value = amount;
-          } else {
-            document.getElementById("qrSetAmount").value = "";
-          }
+          if (amount) document.getElementById("qrSetAmount").value = amount;
+          else document.getElementById("qrSetAmount").value = "";
 
           updateMyQR();
           modal.style.display = "flex";
@@ -2639,8 +2534,6 @@
 
         function switchQRCurrency(currency) {
           qrCurrency = currency;
-
-          // ១. ធ្វើឱ្យប៊ូតុងរំកិលពណ៌ (Animation)
           const btnUSD = document.getElementById("btnQRUSD");
           const btnKHR = document.getElementById("btnQRKHR");
 
@@ -2654,11 +2547,8 @@
             document.getElementById("qrCurrencySymbol").innerText = "៛";
           }
 
-          // ២. ប្តូរលេខគណនី
           const targetAcc = currentMerchant.accountNumbers[currency];
           document.getElementById("qrUserAcc").textContent = targetAcc;
-
-          // ៣. ប្តូរលេខគណនីបង្ហាញនៅខាងក្រោម QR
           document.getElementById("qrAccountNum").textContent = targetAcc;
 
           updateMyQR();
@@ -2668,7 +2558,6 @@
           const amount = document.getElementById("qrSetAmount").value;
           const targetAcc = currentMerchant.accountNumbers[qrCurrency];
 
-          // កំណត់សញ្ញាលុយក្នុង Input ឱ្យត្រូវ
           document.getElementById("qrCurrencySymbol").innerText =
             qrCurrency === "USD" ? "$" : "៛";
 
@@ -2676,7 +2565,6 @@
           if (amount && parseFloat(amount) > 0)
             qrData = `${targetAcc}:${amount}`;
 
-          // ប្តូរពណ៌ QR តាមប្រភេទលុយ
           const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
           document.getElementById("myQrImg").src =
             `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&color=${qrColor}`;
@@ -2692,11 +2580,9 @@
           toggleBar.style.display = "none";
 
           html2canvas(document.getElementById("myQRContent"), {
-            backgroundColor:
-              localStorage.getItem("theme") === "dark" ||
-              localStorage.getItem("darkMode") === "true"
-                ? "#1e1e1e"
-                : "#ffffff",
+            backgroundColor: document.body.classList.contains("dark-mode")
+              ? "#1e1e1e"
+              : "#ffffff",
             scale: 3,
           }).then((canvas) => {
             const link = document.createElement("a");
@@ -2710,11 +2596,9 @@
           });
         }
 
-        // អថេរសម្រាប់ផ្ទុកទិន្នន័យប្រតិបត្តិការបណ្តោះអាសន្ន ដើម្បីយកទៅ Export
-        let currentTransactions = [];
         // ==========================================
-        // មុខងារទាញទិន្នន័យប្រតិបត្តិការ�
-        // =========================================
+        // 📊 TRANSACTIONS & REPORT LOGIC
+        // ==========================================
         async function loadTransactions() {
           const filter = document.getElementById("reportFilter").value;
           const customDate = document.getElementById("reportCustomDate").value;
@@ -2726,17 +2610,13 @@
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
               {
-                headers: {
-                  Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
-                },
+                headers: window.authHeaders,
               },
             );
             const data = await response.json();
 
             if (data.success && data.transactions.length > 0) {
               const now = new Date();
-
-              // ចម្រាញ់ទិន្នន័យ (Filtering)
               const filteredData = data.transactions.filter((t) => {
                 const tDate = new Date(t.date);
                 if (filter === "today")
@@ -2758,7 +2638,7 @@
                 return true;
               });
 
-              currentTransactions = filteredData; // សំខាន់៖ យកទិន្នន័យដែល Filter រួចមកដាក់នៅទីនេះដើម្បី Export
+              currentTransactions = filteredData;
 
               if (filteredData.length > 0) {
                 list.innerHTML = filteredData
@@ -2792,54 +2672,36 @@
           }
         }
 
-        // ==========================================
-        // មុខងារ Export ទិន្នន័យទៅជាឯកសារ Excel (CSV)
-        // ==========================================
         function exportToExcel() {
           if (currentTransactions.length === 0) {
             Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យសម្រាប់ Export ទេ!", "warning");
             return;
           }
 
-          // ១. បង្កើត Header សម្រាប់ File (ប្រើ \uFEFF ដើម្បីឱ្យ Excel ស្គាល់អក្សរខ្មែរ)
           let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
           csvContent +=
             "កាលបរិច្ឆេទ,លេខប្រតិបត្តិការ (Ref ID),អ្នកវេរ,ប្រភេទ,ចំនួនប្រាក់,រូបិយប័ណ្ណ,ស្ថានភាព,ចំណាំ\n";
 
-          // ២. បញ្ចូលទិន្នន័យនីមួយៗចូលទៅក្នុង Column
           currentTransactions.forEach((t) => {
-            // ការពារបញ្ហាដកឃ្លា ឬសញ្ញាក្បៀស ត្រូវដាក់វាក្នុងរង្វង់ក្រចក " "
-            const date = `"${t.date}"`;
-            const refId = `"${t.refId}"`;
-            const sender = `"${t.senderName}"`;
-            const type = `"${t.type}"`;
-            const amount = `"${t.amount}"`;
-            const currency = `"${t.currency}"`;
-            const status = `"${t.status}"`;
-            const remark = `"${t.remark || "គ្មាន"}"`;
-
             const row = [
-              date,
-              refId,
-              sender,
-              type,
-              amount,
-              currency,
-              status,
-              remark,
+              `"${t.date}"`,
+              `"${t.refId}"`,
+              `"${t.senderName}"`,
+              `"${t.type}"`,
+              `"${t.amount}"`,
+              `"${t.currency}"`,
+              `"${t.status}"`,
+              `"${t.remark || "គ្មាន"}"`,
             ].join(",");
             csvContent += row + "\n";
           });
 
-          // ៣. បង្កើត Link និងទាញយកដោយស្វ័យប្រវត្តិ
           const encodedUri = encodeURI(csvContent);
           const link = document.createElement("a");
-          const todayStr = new Date().toISOString().split("T")[0]; // ចាប់យកថ្ងៃខែឆ្នាំ
-
           link.setAttribute("href", encodedUri);
           link.setAttribute(
             "download",
-            `Report_${currentMerchant.name.replace(/\s+/g, "_")}_${todayStr}.csv`,
+            `Report_${currentMerchant.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`,
           );
 
           document.body.appendChild(link);
@@ -2847,13 +2709,8 @@
           document.body.removeChild(link);
         }
 
-        // ==========================================
-        // មុខងារបង្ហាញរបាយការណ៍លក់ (Sales Report) ថ្មី
-        // ==========================================
         async function openSalesReport() {
           switchState("state-sales-report");
-
-          // បង្ហាញ Loading តិចៗ
           document.getElementById("totalSalesAmount").innerHTML =
             `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
 
@@ -2861,9 +2718,7 @@
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
               {
-                headers: {
-                  Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
-                },
+                headers: window.authHeaders,
               },
             );
             const data = await response.json();
@@ -2887,30 +2742,18 @@
               });
             }
 
-            document.getElementById("totalSalesAmount").innerHTML = `
-        <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
-        <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
-    `;
-
+            document.getElementById("totalSalesAmount").innerHTML =
+              `<span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span><span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>`;
             document.getElementById("salesStats").innerHTML = `
-        <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;">
-            <span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:15px 0;">
-            <span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:15px 0;">
-            <span>ប្រតិបត្តិការសរុប:</span> <strong>${countUSD + countKHR}</strong>
-        </div>
-    `;
+              <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom: 1px solid #eee;"><span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong></div>
+              <div style="display:flex; justify-content:space-between; padding:15px 0;"><span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong></div>
+              <div style="display:flex; justify-content:space-between; padding:15px 0;"><span>ប្រតិបត្តិការសរុប:</span> <strong>${countUSD + countKHR}</strong></div>
+            `;
           } catch (e) {
             document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
           }
         }
 
-        // ==========================================
-        // មុខងារទាញទិន្នន័យរបាយការណ៍លក់ (Sales Report) ជាមួយ Filter
-        // ==========================================
         async function loadSalesReport() {
           const filter = document.getElementById("salesFilter").value;
           const customDateVal =
@@ -2922,11 +2765,7 @@
           try {
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
-                },
-              },
+              { headers: window.authHeaders },
             );
             const data = await response.json();
 
@@ -2971,40 +2810,33 @@
               });
             }
 
-            document.getElementById("totalSalesAmount").innerHTML = `
-      <span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span>
-      <span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>
-    `;
-
+            document.getElementById("totalSalesAmount").innerHTML =
+              `<span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span><span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>`;
             document.getElementById("salesStats").innerHTML = `
-      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${totalTx}</strong></div>
-      <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong></div>
-      <div style="display:flex; justify-content:space-between; padding:10px 0;"><span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong></div>
-    `;
+              <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ចំនួនប្រតិបត្តិការសរុប:</span> <strong>${totalTx}</strong></div>
+              <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom: 1px solid #eee;"><span>ប្រតិបត្តិការ USD:</span> <strong>${countUSD}</strong></div>
+              <div style="display:flex; justify-content:space-between; padding:10px 0;"><span>ប្រតិបត្តិការ KHR:</span> <strong>${countKHR}</strong></div>
+            `;
           } catch (e) {
             document.getElementById("totalSalesAmount").innerHTML = `$0.00`;
           }
         }
-        // ==========================================
-        // មុខងារ Export PDF បែប Professional A4
-        // ==========================================
+
         async function exportToPDF() {
-          // ១. បំពេញទិន្នន័យចូល Template
           document.getElementById("pdf-merch-name").innerText =
             currentMerchant.name;
           document.getElementById("pdf-merch-id").innerText =
             currentMerchant.merchantId;
-
           document.getElementById("pdf-gen-date").innerText =
             new Date().toLocaleDateString("km-KH");
+
           const filterSelect = document.getElementById("salesFilter");
           document.getElementById("pdf-date-range").innerText =
             filterSelect.options[filterSelect.selectedIndex].text;
 
-          // ២. ទាញយកស្ថិតិ
-          const fullAmountText =
-            document.getElementById("totalSalesAmount").innerText;
-          const amounts = fullAmountText.split("/");
+          const amounts = document
+            .getElementById("totalSalesAmount")
+            .innerText.split("/");
           document.getElementById("pdf-total-usd").innerText = amounts[0]
             ? amounts[0].trim()
             : "$0.00";
@@ -3022,61 +2854,41 @@
               statsStrong[2].innerText;
           }
 
-          // ៣. បង្ហាញ Template បណ្តោះអាសន្នដើម្បី Print
           const element = document.getElementById("pdf-template");
           element.style.display = "block";
-
-          // ៤. ហៅផ្ទាំង Print
           window.print();
-
-          // ៥. លាក់វិញ
           element.style.display = "none";
         }
-        // ==========================================
-        // មុខងារបង្ហាញ/លាក់ ប្រអប់ជ្រើសរើសថ្ងៃ (Custom Date)
-        // ==========================================
+
         function toggleCustomDate(prefix) {
           const filterVal = document.getElementById(prefix + "Filter").value;
           const dateInput = document.getElementById(prefix + "CustomDate");
-          if (filterVal === "custom") {
-            dateInput.style.display = "block";
-          } else {
-            dateInput.style.display = "none";
-          }
+          dateInput.style.display = filterVal === "custom" ? "block" : "none";
         }
 
         // ==========================================
-        // មុខងារប្តូរទៅគណនីផ្ទាល់ខ្លួន (Personal Account)
+        // មុខងារដទៃទៀត
         // ==========================================
         function switchToPersonal() {
-          // ១. ធ្វើឱ្យផ្ទៃពណ៌សរំកិលទៅឆ្វេង
           document.getElementById("accSlider").classList.add("move-left");
-
-          // ២. ដូរពណ៌អក្សរឱ្យត្រូវ
           document.getElementById("btnPersonal").classList.add("active");
           document.getElementById("btnMerchant").classList.remove("active");
-
-          // ៣. រង់ចាំ 0.3 វិនាទី (ឱ្យដើរ Animation ចប់) សឹមលោតទៅទំព័រ dashboard.html
           setTimeout(() => {
             window.location.href = "dashboard.html";
           }, 300);
         }
 
-        // មុខងារបង្ហាញសារ Coming Soon បែបស្អាត
         function showComingSoon() {
-          let lang = localStorage.getItem("lang") || "en";
+          let isKh = window.currentLang === "kh";
           Swal.fire({
-            title: lang === "kh" ? "សូមរង់ចាំ!" : "Coming Soon!",
-            text:
-              lang === "kh"
-                ? "មុខងារនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍នៅឡើយ។"
-                : "This feature is currently under development.",
+            title: isKh ? "សូមរង់ចាំ!" : "Coming Soon!",
+            text: isKh
+              ? "មុខងារនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍នៅឡើយ។"
+              : "This feature is currently under development.",
             icon: "info",
-            confirmButtonText: lang === "kh" ? "យល់ព្រម" : "OK",
+            confirmButtonText: isKh ? "យល់ព្រម" : "OK",
             confirmButtonColor: "var(--primary)",
-            customClass: {
-              popup: "kh-text",
-            },
+            customClass: { popup: "kh-text" },
           });
         }
       </script>
