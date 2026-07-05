@@ -668,7 +668,32 @@
           />
           <span id="nameCheck" class="check-status"></span>
         </div>
-
+        <!-- Fee Preview -->
+        <div
+          id="feePreview"
+          style="
+            background: #fff7ed;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #fed7aa;
+            display: none;
+          "
+        >
+          <p
+            style="
+              margin: 0;
+              font-size: 0.85rem;
+              color: #9a3412;
+              display: flex;
+              justify-content: space-between;
+            "
+          >
+            <span data-i18n="fee_label">Transaction Fee:</span>
+            <span id="feeAmountDisplay">$0.00</span>
+          </p>
+        </div>
+        <!-- Exchange Rate Preview -->
         <div class="input-group">
           <label data-i18n="amount_label">Amount</label>
           <input
@@ -680,6 +705,7 @@
           />
         </div>
 
+        <!-- Exchange Rate Preview -->
         <div id="exchangePreview" class="fx-preview-box">
           <p>
             <span data-i18n="exchange_rate">Exchange Rate:</span
