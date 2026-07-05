@@ -260,6 +260,7 @@ const translations = {
     expense_breakdown: "Expense Breakdown",
     cat_bills: "Bills & Utilities",
     cat_transfers: "Transfers",
+    cat_merchant: "Merchant Payment",
   },
   // ភាសាខ្មែរ (Khmer) Translation
   kh: {
@@ -524,6 +525,7 @@ const translations = {
   expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
   cat_bills: "បង់វិក្កយបត្រផ្សេងៗ",
   cat_transfers: "វេរប្រាក់ចេញ",
+  cat_merchant: "ទូទាត់ទៅអាជីវករ",
 };
 
 function applyLanguage() {

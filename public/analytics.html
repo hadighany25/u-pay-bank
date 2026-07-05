@@ -6,7 +6,6 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Analytics - U-Pay</title>
 
-    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -16,7 +15,6 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
-    <!-- External Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
@@ -33,7 +31,7 @@
         --border-color: #f1f5f9;
         --danger: #ef4444;
         --warning: #f59e0b;
-        --info: #3b82f6; /* Blue for Merchants */
+        --info: #3b82f6;
       }
 
       body {
@@ -234,7 +232,6 @@
         background: rgba(245, 158, 11, 0.1);
         color: var(--warning);
       }
-      /* Thêm Icon សម្រាប់ Merchant */
       .expense-icon.merchant {
         background: rgba(59, 130, 246, 0.1);
         color: var(--info);
@@ -314,7 +311,6 @@
         background-color: #1e293b !important;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       }
-
       body.dark-mode .chart-card,
       body.dark-mode .expense-item,
       body.dark-mode .bottom-nav {
@@ -322,25 +318,21 @@
         border-color: #334155 !important;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
       }
-
       body.dark-mode .chart-title,
       body.dark-mode .expense-info h4,
       body.dark-mode .expense-amount,
       body.dark-mode .list-header {
         color: #f8fafc !important;
       }
-
       body.dark-mode .total-expense-display,
       body.dark-mode .bottom-nav {
         border-color: #334155 !important;
       }
-
       body.dark-mode .expense-info p,
       body.dark-mode .total-expense-display p,
       body.dark-mode .nav-item {
         color: #94a3b8 !important;
       }
-
       body.dark-mode .month-badge {
         background-color: rgba(16, 185, 129, 0.15) !important;
       }
@@ -353,13 +345,13 @@
     <div class="app-container">
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-i18n="title_analytics">Analytics</span>
+        <span data-lang="title_analytics">Analytics</span>
       </div>
 
       <div class="content-body">
         <div class="chart-card animate-zoom-in">
           <div class="chart-header">
-            <h3 class="chart-title" data-i18n="monthly_expenses">
+            <h3 class="chart-title" data-lang="monthly_expenses">
               Monthly Expenses
             </h3>
             <div class="month-badge" id="monthBadge">This Month</div>
@@ -370,7 +362,7 @@
           </div>
 
           <div class="total-expense-display">
-            <p data-i18n="total_spent">Total Spent</p>
+            <p data-lang="total_spent">Total Spent</p>
             <h2>$<span id="totalSpent">0.00</span></h2>
           </div>
         </div>
@@ -378,7 +370,7 @@
         <h3
           class="list-header animate-fade-up"
           style="animation-delay: 0.1s"
-          data-i18n="expense_breakdown"
+          data-lang="expense_breakdown"
         >
           Expense Breakdown
         </h3>
@@ -393,7 +385,7 @@
                 <i class="fa-solid fa-file-invoice-dollar"></i>
               </div>
               <div class="expense-info">
-                <h4 id="lblBills" data-i18n="cat_bills">Bills & Utilities</h4>
+                <h4 id="lblBills" data-lang="cat_bills">Bills & Utilities</h4>
                 <p id="billsCount">0 transactions</p>
               </div>
             </div>
@@ -409,14 +401,13 @@
                 <i class="fa-solid fa-paper-plane"></i>
               </div>
               <div class="expense-info">
-                <h4 id="lblTransfers" data-i18n="cat_transfers">Transfers</h4>
+                <h4 id="lblTransfers" data-lang="cat_transfers">Transfers</h4>
                 <p id="transfersCount">0 transactions</p>
               </div>
             </div>
             <div class="expense-amount" id="transfersTotalAmt">$0.00</div>
           </div>
 
-          <!-- បន្ថែម Merchant Payment -->
           <div
             class="expense-item animate-fade-up"
             style="animation-delay: 0.4s"
@@ -426,7 +417,7 @@
                 <i class="fa-solid fa-store"></i>
               </div>
               <div class="expense-info">
-                <h4 id="lblMerchant" data-i18n="cat_merchant">
+                <h4 id="lblMerchant" data-lang="cat_merchant">
                   Merchant Payment
                 </h4>
                 <p id="merchantCount">0 transactions</p>
@@ -440,19 +431,19 @@
       <div class="bottom-nav">
         <a href="dashboard.html" class="nav-item">
           <i class="fa-solid fa-house"></i>
-          <span data-i18n="nav_home">Home</span>
+          <span data-lang="nav_home">Home</span>
         </a>
         <a href="scan.html" class="nav-item">
           <i class="fa-solid fa-qrcode"></i>
-          <span data-i18n="nav_scan">Scan</span>
+          <span data-lang="nav_scan">Scan</span>
         </a>
         <a href="history.html" class="nav-item">
           <i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-i18n="nav_history">History</span>
+          <span data-lang="nav_history">History</span>
         </a>
         <a href="settings.html" class="nav-item">
           <i class="fa-solid fa-gear"></i>
-          <span data-i18n="nav_settings">Settings</span>
+          <span data-lang="nav_settings">Settings</span>
         </a>
       </div>
     </div>
@@ -470,7 +461,7 @@
 
       let expenseChart = null;
 
-      // Theme Support Function
+      // Theme Support
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
         const isDark =
@@ -482,9 +473,18 @@
 
       window.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage();
+
+        // ហៅមុខងារបកប្រែភាសា
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        } else if (typeof applyLang === "function") {
+          applyLang();
+        }
+
         setupMonthBadge();
-        fetchAndLoadAnalytics();
+
+        // ពន្យារពេលបន្តិចមុនពេល Render Chart ដើម្បីធានាថាភាសាត្រូវបានប្តូររួចរាល់
+        setTimeout(fetchAndLoadAnalytics, 150);
       });
 
       function setupMonthBadge() {
@@ -527,8 +527,9 @@
       function parseDateString(dateStr) {
         if (!dateStr) return new Date();
         let parsedDate = new Date(dateStr);
-        if (isNaN(parsedDate.getTime()) && dateStr.includes(","))
+        if (isNaN(parsedDate.getTime()) && dateStr.includes(",")) {
           parsedDate = new Date(dateStr.split(",")[0].trim());
+        }
         return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
       }
 
@@ -541,13 +542,13 @@
             if (serverUser) {
               user.transactions = serverUser.transactions || [];
               sessionStorage.setItem("user", JSON.stringify(user));
-              renderAnalytics(user.transactions);
             }
           }
         } catch (err) {
           console.error("Sync Error:", err);
-          renderAnalytics(user.transactions || []);
         }
+        // ហៅ Render តែម្តង ទោះជា Fetch error ក៏ដោយ (យក data ចាស់ក្នុង session មកបង្ហាញ)
+        renderAnalytics(user.transactions || []);
       }
 
       function animateValue(obj, start, end, duration) {
@@ -574,22 +575,36 @@
         let merchantCount = 0;
 
         transactions.forEach((t) => {
-          // ចាប់យកទិន្នន័យដែលជាការចំណាយ (amount < 0) និងជារូបិយប័ណ្ណដុល្លារ
-          if (t.amount < 0 && (t.currency === "USD" || !t.currency)) {
-            const tDate = parseDateString(t.date);
+          let amt = parseFloat(t.amount) || 0;
+
+          // 🔥 Logic ថ្មី ទូលាយជាងមុន: ចាប់យកចំនួនទឹកប្រាក់ < 0 (ចំណាយ)
+          if (amt < 0) {
+            const tDate = parseDateString(t.date || t.createdAt);
             if (
               tDate.getMonth() === currentMonth &&
               tDate.getFullYear() === currentYear
             ) {
-              // នាពេលអនាគត អាចប្រើ t.type ផ្ទាល់ដើម្បីចែកប្រភេទ
-              if (t.type === "Bill Payment") {
-                billsTotal += Math.abs(t.amount);
+              // កំណត់ប្រភេទ Transaction ឱ្យកាន់តែឆ្លាតវៃ
+              let typeStr = (t.type || t.trxMethod || "").toLowerCase();
+
+              if (
+                typeStr.includes("bill") ||
+                typeStr.includes("utility") ||
+                typeStr.includes("invoice")
+              ) {
+                billsTotal += Math.abs(amt);
                 billsCount++;
-              } else if (t.type === "Merchant Payment") {
-                merchantTotal += Math.abs(t.amount);
+              } else if (
+                typeStr.includes("merchant") ||
+                typeStr.includes("scan") ||
+                typeStr.includes("store") ||
+                typeStr.includes("qr")
+              ) {
+                merchantTotal += Math.abs(amt);
                 merchantCount++;
               } else {
-                transfersTotal += Math.abs(t.amount);
+                // ប្រសិនបើវាមិនមែន Bill មិនមែន Merchant វានឹងចាត់ទុកជា Transfer ទាំងអស់
+                transfersTotal += Math.abs(amt);
                 transfersCount++;
               }
             }
@@ -602,6 +617,7 @@
 
         const currentLang = localStorage.getItem("lang") || "en";
         let trxWord = currentLang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
+        let noDataMsg = currentLang === "kh" ? "មិនមានទិន្នន័យ" : "No Data";
 
         document.getElementById("billsCount").innerText =
           `${billsCount} ${trxWord}`;
@@ -626,27 +642,20 @@
 
         if (expenseChart) expenseChart.destroy();
 
-        // ប្រើ Labels ចេញពី lang.js
-        let lblBillsText =
-          document.getElementById("lblBills").innerText || "Bills & Utilities";
+        let lblBillsText = document.getElementById("lblBills").innerText;
         let lblTransfersText =
-          document.getElementById("lblTransfers").innerText || "Transfers";
-        let lblMerchantText =
-          document.getElementById("lblMerchant").innerText ||
-          "Merchant Payment";
-
-        let noDataMsg =
-          document.getElementById("noDataMsg").innerText || "No Data";
+          document.getElementById("lblTransfers").innerText;
+        let lblMerchantText = document.getElementById("lblMerchant").innerText;
 
         let chartData, chartBgColors, chartBorderColors, chartBorderWidth;
 
-        // ប្រសិនបើមិនមានទិន្នន័យចំណាយសោះ (Empty State) បង្ហាញ Doughnut ពណ៌ប្រផេះ
+        // 🔥 បង្ហាញ Placeholder ពណ៌ប្រផេះ បើគ្មានទិន្នន័យ (ជំនួសឱ្យការបាត់ Chart)
         if (totalExpense === 0) {
           chartData = [1];
           chartBgColors = [isDark ? "#334155" : "#e2e8f0"];
           chartBorderColors = [isDark ? "#1e293b" : "#ffffff"];
           chartBorderWidth = 0;
-          // ដាក់ Message នៅកណ្តាល Chart
+
           Chart.register({
             id: "noDataPlugin",
             beforeDraw: function (chart) {
@@ -710,7 +719,7 @@
             },
             plugins: {
               legend: {
-                display: totalExpense !== 0, // លាក់ Legend បើអត់មានទិន្នន័យ
+                display: totalExpense !== 0,
                 position: "right",
                 labels: {
                   usePointStyle: true,
@@ -720,7 +729,7 @@
                 },
               },
               tooltip: {
-                enabled: totalExpense !== 0, // បិទ Tooltip បើអត់មានទិន្នន័យ
+                enabled: totalExpense !== 0,
                 backgroundColor: isDark ? "#0f172a" : "#1e293b",
                 padding: 12,
                 cornerRadius: 8,
