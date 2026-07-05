@@ -1599,7 +1599,10 @@
 
       window.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage();
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        }
+        renderMainUI(); // <--- បន្ថែមបន្ទាត់នេះចូល!
       });
 
       let flowState = {
