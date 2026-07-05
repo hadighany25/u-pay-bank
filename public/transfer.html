@@ -15,7 +15,6 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="js/lang.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <style>
@@ -48,6 +47,7 @@
         outline: none;
         background: #fff;
         box-sizing: border-box;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
         transition: 0.3s;
       }
       .section-label,
@@ -153,7 +153,6 @@
       body.dark-mode .contact-name {
         color: #cbd5e1;
       }
-
       .receiver-box {
         text-align: center;
         margin-bottom: 25px;
@@ -176,7 +175,6 @@
         font-size: 1.5rem;
         transition: 0.3s;
       }
-
       .input-group {
         margin-bottom: 20px;
         position: relative;
@@ -210,7 +208,6 @@
       .status-err {
         color: #e74c3c;
       }
-
       .confirm-btn {
         width: 100%;
         padding: 16px;
@@ -224,12 +221,13 @@
         margin-top: 10px;
         box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
         transition: 0.3s;
+        letter-spacing: 0;
       }
       .confirm-btn:active {
         transform: scale(0.98);
       }
 
-      /* FX PREVIEW & FEE PREVIEW */
+      /* 🔥 Style ប្រអប់ Exchange Rate Preview */
       .fx-preview-box {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -259,27 +257,6 @@
         color: #15803d;
         font-size: 1rem;
       }
-
-      /* 🔥 Style សម្រាប់លោតប្រាប់សេវាវេរលុយ */
-      .fee-preview-box {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        padding: 12px 15px;
-        border-radius: 12px;
-        margin-top: -10px;
-        margin-bottom: 20px;
-        display: none;
-        animation: fadeIn 0.3s ease;
-      }
-      .fee-preview-box p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: #b91c1c;
-        display: flex;
-        justify-content: space-between;
-        font-weight: 600;
-      }
-
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -297,15 +274,8 @@
       body.dark-mode .fx-preview-box p {
         color: #a7f3d0;
       }
-      body.dark-mode .fee-preview-box {
-        background: rgba(185, 28, 28, 0.2);
-        border-color: #7f1d1d;
-      }
-      body.dark-mode .fee-preview-box p {
-        color: #fca5a5;
-      }
 
-      /* MODALS */
+      /* Modals */
       .modal-overlay {
         display: none;
         position: fixed;
@@ -335,8 +305,6 @@
         color: white;
         outline: none;
       }
-
-      /* SLIP */
       .slip-container {
         width: 340px;
         margin: 0 auto;
@@ -510,8 +478,6 @@
         background: #f0fdf4;
         border-color: #004d40;
       }
-
-      /* WHEEL */
       .wheel-box {
         position: relative;
         width: 280px;
@@ -530,7 +496,6 @@
         border-top: 25px solid #fff;
         z-index: 10;
         filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
-        pointer-events: none;
       }
       .wheel-canvas {
         width: 100%;
@@ -558,7 +523,18 @@
         transition: 0.2s;
       }
       .btn-spin-center:active {
-        background: #00382e;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      input,
+      select,
+      textarea,
+      button,
+      .main-input {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+      input::placeholder {
+        font-family: "Kantumruy Pro", sans-serif !important;
+        opacity: 0.8;
       }
     </style>
   </head>
@@ -640,24 +616,15 @@
           />
         </div>
 
+        <!-- 🔥 ប្រអប់បង្ហាញការគណនា Exchange Rate អូតូ -->
         <div id="exchangePreview" class="fx-preview-box">
           <p>
-            <span data-lang="exchange_rate">Exchange Rate:</span
-            ><span class="fx-rate" id="fxRateDisplay">...</span>
+            <span data-lang="exchange_rate">Exchange Rate:</span>
+            <span class="fx-rate" id="fxRateDisplay">...</span>
           </p>
           <p>
-            <span data-lang="receiver_gets">Receiver Gets:</span
-            ><span class="fx-result" id="fxResultDisplay">...</span>
-          </p>
-        </div>
-
-        <div id="feePreviewBox" class="fee-preview-box">
-          <p>
-            <span
-              ><i class="fa-solid fa-circle-exclamation"></i> Transaction
-              Fee:</span
-            >
-            <span id="feeResultDisplay">$0.00</span>
+            <span data-lang="receiver_gets">Receiver Gets:</span>
+            <span class="fx-result" id="fxResultDisplay">...</span>
           </p>
         </div>
 
@@ -681,6 +648,7 @@
       </div>
     </div>
 
+    <!-- Modals -->
     <div id="pinModal" class="modal-overlay">
       <h3 style="color: white; margin-bottom: 10px" data-lang="enter_pin">
         Enter PIN
@@ -751,8 +719,8 @@
           class="wheel-canvas"
           width="280"
           height="280"
-        ></canvas>
-        <button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
+        ></canvas
+        ><button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
           SPIN
         </button>
       </div>
@@ -773,8 +741,86 @@
       </button>
     </div>
 
-    <script src="/js/auth.js"></script>
-    <script src="/js/slip.js"></script>
+    <div id="slipModal" class="modal-overlay">
+      <div id="captureArea" class="slip-container">
+        <div class="slip-header">
+          <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="slip-title" data-lang="transfer_success">
+            Transfer Successful
+          </div>
+          <div class="slip-amount" id="slipAmount">$0.00</div>
+        </div>
+        <div class="slip-body">
+          <div class="detail-row">
+            <span class="d-label">Trx ID</span
+            ><span class="d-value d-mono" id="slipRef">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Hash</span
+            ><span
+              class="d-value d-mono"
+              id="slipHash"
+              style="font-size: 0.8rem"
+              >...</span
+            >
+          </div>
+          <div class="dashed-line"></div>
+          <div class="detail-row">
+            <span class="d-label">From</span
+            ><span class="d-value" id="slipSender">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">To</span
+            ><span class="d-value" id="slipReceiver">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Payment Via</span
+            ><span class="d-value" id="slipMethod">Account Input</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Date</span
+            ><span class="d-value" id="slipDate">...</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Fee</span><span class="d-value">$0.00</span>
+          </div>
+          <div class="detail-row">
+            <span class="d-label">Remark</span
+            ><span class="d-value" id="slipRemark">...</span>
+          </div>
+          <div class="slip-footer-info">
+            <div class="qr-box">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
+                class="qr-img"
+              />
+              <div class="qr-text"><span>SCAN TO</span><span>CHECK</span></div>
+            </div>
+            <img src="images/logo.png" class="footer-logo" />
+          </div>
+        </div>
+        <div class="slip-actions">
+          <div class="action-item" onclick="saveSlipImage()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <span class="action-text">Share</span>
+          </div>
+          <div class="action-item" onclick="location.reload()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-rotate-right"></i>
+            </div>
+            <span class="action-text">New Trx</span>
+          </div>
+          <div class="action-item" onclick="returnToShopOrDashboard()">
+            <div class="action-circle done">
+              <i class="fa-solid fa-xmark"></i>
+            </div>
+            <span class="action-text">Done</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script>
       const urlParams = new URLSearchParams(window.location.search);
@@ -782,24 +828,12 @@
       const callbackUrl = urlParams.get("callback");
       const items = urlParams.get("items");
       const shopBuyerName = urlParams.get("user");
-      const remarkParam = urlParams.get("remark");
 
-      if (remarkParam) {
-        let remarkBox = document.getElementById("remark");
-        if (remarkBox) remarkBox.value = remarkParam;
-      }
-
-      // 🔥 JWT SECURITY
       const uPayUserString = sessionStorage.getItem("user");
-      const userToken = sessionStorage.getItem("userToken");
-      if (!uPayUserString)
+      if (!uPayUserString) {
         window.location.href = "index.html" + window.location.search;
+      }
       const user = JSON.parse(uPayUserString);
-
-      const authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: userToken ? `Bearer ${userToken}` : "",
-      };
 
       const translations = {
         en: {
@@ -818,6 +852,7 @@
           btn_cancel: "Cancel",
           spin_title: "Lucky Spin",
           spin_desc: "You transferred over $10! Spin to win Cashback!",
+          btn_skip: "Skip & View Slip",
           transfer_success: "Transfer Successful",
           exchange_rate: "Exchange Rate:",
           receiver_gets: "Receiver Gets:",
@@ -838,6 +873,7 @@
           btn_cancel: "បោះបង់",
           spin_title: "កងវិលផ្សងសំណាង",
           spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
+          btn_skip: "រំលង & មើលវិក្កយបត្រ",
           transfer_success: "វេរប្រាក់ជោគជ័យ",
           exchange_rate: "អត្រាប្តូរប្រាក់:",
           receiver_gets: "អ្នកទទួលទទួលបាន:",
@@ -856,14 +892,12 @@
           : "'Inter', 'Kantumruy Pro', sans-serif";
 
       let targetUserIsKHR = null;
-      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
-
-      // 🔥 អថេរសម្រាប់ផ្ទុកតារាងសេវាកម្ម (Fee Tiers) ដែលទាញចេញពី Database
-      let globalFeeTiers = [];
+      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 }; // Default ទាល់តែ Fetch បាន
 
       window.addEventListener("DOMContentLoaded", async () => {
+        // 🔥 ទាញយក FX Rate ភ្លាមៗពេលបើកទំព័រ ដើម្បីឱ្យវា Update Real-time
         try {
-          const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
+          const fxRes = await fetch("/api/fx/rates");
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
         } catch (e) {}
@@ -909,12 +943,16 @@
         const bal = type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
         const sign = type === "USD" ? "$" : "៛";
         const textKey = translations[currentLang]["avail_balance"];
+
         let displayBal =
           type === "USD" ? bal.toFixed(2) : bal.toLocaleString("en-US");
-        document.getElementById("availableBalance").innerText =
-          type === "USD"
-            ? `${textKey}${sign}${displayBal}`
-            : `${textKey}${displayBal} ${sign}`;
+        if (type === "USD")
+          document.getElementById("availableBalance").innerText =
+            `${textKey}${sign}${displayBal}`;
+        else
+          document.getElementById("availableBalance").innerText =
+            `${textKey}${displayBal} ${sign}`;
+
         calculateExchangePreview();
       }
 
@@ -940,7 +978,6 @@
           container.style.display = "none";
           return;
         }
-
         container.style.display = "block";
         list.innerHTML = "";
         const colors = [
@@ -994,7 +1031,7 @@
         try {
           const res = await fetch("/api/check-account", {
             method: "POST",
-            headers: authHeaders,
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ accountNumber: acc }),
           });
           const data = await res.json();
@@ -1006,12 +1043,9 @@
             boxUI.style.background = "#ecfdf5";
             iconUI.style.background = "#10b981";
             iconUI.style.color = "white";
+
             targetUserIsKHR = data.isReceiverKHR;
-            if (data.fxRates) currentFXRates = data.fxRates;
-
-            // 🔥 រក្សាទុកតារាង Fee ក្នុង Memory ពេល Check គណនីត្រូវ
-            globalFeeTiers = data.feeTiers || [];
-
+            if (data.fxRates) currentFXRates = data.fxRates; // Update ជាមួយ Data ថ្មី
             calculateExchangePreview();
             return true;
           } else {
@@ -1044,47 +1078,12 @@
         calculateExchangePreview();
       }
 
+      // 🔥 LOGIC គណនា EXCHANGE RATE PREVIEW
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value);
         const fromType = document.getElementById("fromAccount").value;
         const previewBox = document.getElementById("exchangePreview");
-        const feeBox = document.getElementById("feePreviewBox");
-        const feeText = document.getElementById("feeResultDisplay");
 
-        // រៀបចំគណនា Fee (ទោះជាប្តូរលុយឬមិនប្តូរក៏ដោយ)
-        if (amount > 0 && globalFeeTiers.length > 0) {
-          let calcAmount = amount;
-          if (fromType === "KHR") {
-            calcAmount = amount / currentFXRates.usdToKhrSell;
-          }
-
-          let feeUsd = 0;
-          for (let i = 0; i < globalFeeTiers.length; i++) {
-            if (
-              calcAmount >= globalFeeTiers[i].min &&
-              calcAmount <= globalFeeTiers[i].max
-            ) {
-              feeUsd = globalFeeTiers[i].fee;
-              break;
-            }
-          }
-
-          if (feeUsd > 0) {
-            feeBox.style.display = "block";
-            if (fromType === "KHR") {
-              feeText.innerText =
-                (feeUsd * currentFXRates.usdToKhrSell).toLocaleString() + " ៛";
-            } else {
-              feeText.innerText = "$" + feeUsd.toFixed(2);
-            }
-          } else {
-            feeBox.style.display = "none";
-          }
-        } else {
-          feeBox.style.display = "none";
-        }
-
-        // ការបង្ហាញអត្រាប្តូរប្រាក់ (FX Preview)
         if (
           !amount ||
           amount <= 0 ||
@@ -1096,7 +1095,9 @@
         }
 
         const isSenderKHR = fromType === "KHR";
+
         if (!isSenderKHR && targetUserIsKHR) {
+          // ផ្ញើ USD ទៅកុង KHR => Buy Rate
           let totalKHR = amount * currentFXRates.usdToKhrBuy;
           document.getElementById("fxRateDisplay").innerText =
             `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
@@ -1104,6 +1105,7 @@
             `${totalKHR.toLocaleString("en-US")} ៛`;
           previewBox.style.display = "block";
         } else if (isSenderKHR && !targetUserIsKHR) {
+          // ផ្ញើ KHR ទៅកុង USD => Sell Rate
           let totalUSD = amount / currentFXRates.usdToKhrSell;
           document.getElementById("fxRateDisplay").innerText =
             `$1 = ${currentFXRates.usdToKhrSell} ៛`;
@@ -1128,6 +1130,14 @@
               ? "សូមបញ្ចូលចំនួនប្រាក់ត្រឹមត្រូវ"
               : "Please enter valid amount",
             "warning",
+          );
+        if (amount > currentBal)
+          return Swal.fire(
+            "Error",
+            currentLang === "kh"
+              ? "សមតុល្យមិនគ្រប់គ្រាន់"
+              : "Insufficient Balance",
+            "error",
           );
 
         const isValidReceiver = await checkName();
@@ -1213,10 +1223,9 @@
         setTimeout(() => {
           const wonAmount = prizeValues[targetIndex];
           if (wonAmount > 0) {
-            // 🔥 បន្ថែម Header
             fetch("/api/reward/cashback", {
               method: "POST",
-              headers: authHeaders,
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 username: user.username,
                 amount: wonAmount,
@@ -1267,16 +1276,37 @@
       function skipSpin() {
         finishSpin();
       }
-
       function finishSpin() {
         document.getElementById("spinModal").style.display = "none";
-        openGlobalSlip(currentSlipData, user.username); // ✅
+        showSlipData(currentSlipData);
       }
 
-      // បង្ហាញវិក្កយបត្រ
-      function showSlip(index) {
-        const t = currentTransactions[index];
-        openGlobalSlip(t, user.username); // ហៅមកប្រើខ្លីៗបែបនេះ
+      function showSlipData(data) {
+        const method =
+          urlParams.get("source") === "qr" ? "QR Scan" : "Account Input";
+        const isKHR = data.currency === "KHR";
+        const sign = isKHR ? "៛" : "$";
+        const formattedAmt = Math.abs(data.amount).toLocaleString("en-US", {
+          minimumFractionDigits: isKHR ? 0 : 2,
+        });
+
+        if (isKHR)
+          document.getElementById("slipAmount").innerText =
+            `${formattedAmt} ${sign}`;
+        else
+          document.getElementById("slipAmount").innerText =
+            `${sign}${formattedAmt}`;
+
+        document.getElementById("slipRef").innerText = data.refId;
+        document.getElementById("slipHash").innerText = data.hash || "N/A";
+        document.getElementById("slipSender").innerText = user.username;
+        document.getElementById("slipReceiver").innerText =
+          data.partner || data.receiverName;
+        document.getElementById("slipMethod").innerText =
+          data.trxMethod || method;
+        document.getElementById("slipDate").innerText = data.date;
+        document.getElementById("slipRemark").innerText = data.remark || "-";
+        document.getElementById("slipModal").style.display = "flex";
       }
 
       // --- MAIN SUBMIT ---
@@ -1298,10 +1328,9 @@
             didOpen: () => Swal.showLoading(),
           });
 
-          // 🔥 បន្ថែម Header សម្រាប់ API វេរលុយ Goy
           const res = await fetch("/api/transfer", {
             method: "POST",
-            headers: authHeaders,
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               senderUsername: user.username,
               receiverAccount: document.getElementById("receiverAcc").value,
@@ -1318,8 +1347,6 @@
           if (data.success) {
             if (fromAccountType === "USD") user.balance = data.newBalance;
             else user.balanceKHR = data.newBalance;
-
-            if (!user.transactions) user.transactions = [];
             user.transactions.unshift(data.slipData);
             sessionStorage.setItem("user", JSON.stringify(user));
             new Audio(
@@ -1348,7 +1375,7 @@
                 "rotate(0deg)";
               spinIsActive = false;
             } else {
-              openGlobalSlip(data.slipData, user.username); // ✅
+              showSlipData(data.slipData);
             }
           } else {
             Swal.fire("Failed", data.message, "error");
@@ -1376,6 +1403,7 @@
         }
       }
 
+      // Dark Mode
       if (localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
         document.write(
