@@ -276,7 +276,7 @@
         }
       }
 
-      /* Modals & PIN */
+      /* Modals */
       .modal-overlay {
         display: none;
         position: fixed;
@@ -289,22 +289,6 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-      }
-      .pin-box {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-      }
-      .pin-digit {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
-        text-align: center;
-        border-radius: 10px;
-        border: 2px solid white;
-        background: transparent;
-        color: white;
-        outline: none;
       }
 
       /* Slip Container */
@@ -516,6 +500,7 @@
         z-index: 5;
       }
 
+      /* Virtual PIN Pad Styles */
       .key-btn {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -528,6 +513,23 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        color: #1e293b;
+        transition: background-color 0.2s;
+      }
+      .key-btn:active {
+        background: #e2e8f0;
+      }
+      .key-btn.empty {
+        background: transparent;
+        border: none;
+        pointer-events: none;
+      }
+      .pin-dot {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid #ccc;
+        transition: all 0.2s;
       }
       .pin-dot.filled {
         background: #004d40;
@@ -585,6 +587,18 @@
       }
       body.dark-mode .d-label {
         color: #888 !important;
+      }
+      body.dark-mode .key-btn {
+        background: #1e1e1e !important;
+        color: #f8fafc !important;
+        border-color: #333;
+      }
+      body.dark-mode .key-btn:active {
+        background: #333 !important;
+      }
+      body.dark-mode .pin-dot.filled {
+        background: #00b894 !important;
+        border-color: #00b894 !important;
       }
     </style>
   </head>
@@ -698,7 +712,7 @@
     </div>
 
     <!-- Modals -->
-    <!-- ជំនួស PIN Modal ចាស់ដោយកូដនេះ -->
+    <!-- Virtual PIN Pad Modal -->
     <div
       id="pinModal"
       class="modal-overlay"
@@ -715,12 +729,9 @@
       >
         <i
           class="fa-solid fa-lock"
-          style="font-size: 2.5rem; color: var(--gold); margin-bottom: 10px"
+          style="font-size: 2.5rem; color: #004d40; margin-bottom: 10px"
         ></i>
-        <h3
-          style="color: var(--primary); margin-bottom: 10px"
-          data-i18n="enter_pin"
-        >
+        <h3 style="color: #004d40; margin-bottom: 10px" data-i18n="enter_pin">
           Enter PIN
         </h3>
 
@@ -733,46 +744,10 @@
             margin: 20px 0 30px 0;
           "
         >
-          <div
-            class="pin-dot"
-            id="dot1"
-            style="
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              border: 2px solid #ccc;
-            "
-          ></div>
-          <div
-            class="pin-dot"
-            id="dot2"
-            style="
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              border: 2px solid #ccc;
-            "
-          ></div>
-          <div
-            class="pin-dot"
-            id="dot3"
-            style="
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              border: 2px solid #ccc;
-            "
-          ></div>
-          <div
-            class="pin-dot"
-            id="dot4"
-            style="
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              border: 2px solid #ccc;
-            "
-          ></div>
+          <div class="pin-dot" id="dot1"></div>
+          <div class="pin-dot" id="dot2"></div>
+          <div class="pin-dot" id="dot3"></div>
+          <div class="pin-dot" id="dot4"></div>
         </div>
 
         <!-- Virtual Keypad -->
@@ -794,13 +769,23 @@
           <button class="key-btn" onclick="pressPin('9')">9</button>
           <button class="key-btn empty"></button>
           <button class="key-btn" onclick="pressPin('0')">0</button>
-          <button class="key-btn" onclick="pressPin('del')">
+          <button
+            class="key-btn"
+            onclick="pressPin('del')"
+            style="color: #ef4444"
+          >
             <i class="fa-solid fa-delete-left"></i>
           </button>
         </div>
         <button
           onclick="closeModal('pinModal')"
-          style="margin-top: 20px; background: none; border: none; color: gray"
+          style="
+            margin-top: 20px;
+            background: none;
+            border: none;
+            color: gray;
+            cursor: pointer;
+          "
           data-i18n="btn_cancel"
         >
           Cancel
@@ -808,6 +793,7 @@
       </div>
     </div>
 
+    <!-- Lucky Spin Modal -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -851,6 +837,7 @@
       </button>
     </div>
 
+    <!-- Slip Modal -->
     <div id="slipModal" class="modal-overlay">
       <div id="captureArea" class="slip-container">
         <div class="slip-header">
@@ -945,7 +932,7 @@
       }
       const user = JSON.parse(userString);
 
-      // 2. Global Headers for API Calls 🔥 (នេះជាអ្វីដែលធ្វើឲ្យវាឆែកឈ្មោះបានវិញ!)
+      // 2. Global Headers for API Calls
       const authHeaders = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -961,6 +948,7 @@
       let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
       let currentSlipData = null;
       let spinIsActive = false;
+      let enteredPin = ""; // 🔥 PIN State Variable
 
       // 4. Initialization
       window.addEventListener("DOMContentLoaded", async () => {
@@ -968,14 +956,12 @@
         if (typeof applyLanguage === "function") applyLanguage();
         document.body.classList.add("loaded");
 
-        // Fetch FX Rates ជាមួយ Token
         try {
           const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
         } catch (e) {}
 
-        // Setup Parameters from URL (QR Scan)
         const acc = urlParams.get("acc");
         const amount = urlParams.get("amount");
         const lockAmount = urlParams.get("lockAmount");
@@ -1094,7 +1080,6 @@
         }
       }
 
-      // 🔥 មុខងារឆែកឈ្មោះ ដែលត្រូវបន្ថែម Token ចូល
       async function checkName() {
         const acc = document.getElementById("receiverAcc").value;
         const nameDisplay = document.getElementById("displayReceiverName");
@@ -1117,7 +1102,7 @@
         try {
           const res = await fetch("/api/check-account", {
             method: "POST",
-            headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
+            headers: authHeaders,
             body: JSON.stringify({ accountNumber: acc }),
           });
           const data = await res.json();
@@ -1199,6 +1184,7 @@
         }
       }
 
+      // 🔥 Muxngar Pin Pad Thmey
       async function validateAndOpenPin() {
         const amount = parseFloat(document.getElementById("amount").value);
         const type = document.getElementById("fromAccount").value;
@@ -1214,6 +1200,7 @@
               : "Please enter valid amount",
             "warning",
           );
+
         if (amount > currentBal)
           return Swal.fire(
             "Error",
@@ -1229,21 +1216,6 @@
         }
 
         document.getElementById("pinModal").style.display = "flex";
-        ["p1", "p2", "p3", "p4"].forEach(
-          (id) => (document.getElementById(id).value = ""),
-        );
-        document.getElementById("p1").focus();
-      }
-
-      function closeModal(id) {
-        document.getElementById(id).style.display = "none";
-      }
-
-      let enteredPin = "";
-
-      function validateAndOpenPin() {
-        // ... (កូដត្រួតពិនិត្យ Amount ដដែល)
-        document.getElementById("pinModal").style.display = "flex";
         enteredPin = "";
         updatePinDots();
       }
@@ -1251,9 +1223,11 @@
       function pressPin(val) {
         if (val === "del") enteredPin = enteredPin.slice(0, -1);
         else if (enteredPin.length < 4) enteredPin += val;
+
         updatePinDots();
+
         if (enteredPin.length === 4) {
-          submitPin(); // ហៅមុខងារ submitPin ដែលមានស្រាប់
+          setTimeout(submitPin, 300);
         }
       }
 
@@ -1262,6 +1236,98 @@
           const dot = document.getElementById("dot" + i);
           if (i <= enteredPin.length) dot.classList.add("filled");
           else dot.classList.remove("filled");
+        }
+      }
+
+      function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+      }
+
+      // --- MAIN TRANSFER SUBMIT ---
+      async function submitPin() {
+        const pin = enteredPin;
+        const method =
+          urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
+        const amount = document.getElementById("amount").value;
+        const fromAccountType = document.getElementById("fromAccount").value;
+
+        closeModal("pinModal");
+        Swal.fire({
+          title: "Processing...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const res = await fetch("/api/transfer", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({
+              senderUsername: user.username,
+              receiverAccount: document.getElementById("receiverAcc").value,
+              amount: amount,
+              remark: document.getElementById("remark").value,
+              pin: pin,
+              trxMethod: method,
+              currency: fromAccountType,
+            }),
+          });
+          const data = await res.json();
+          Swal.close();
+
+          if (data.success) {
+            if (fromAccountType === "USD") user.balance = data.newBalance;
+            else user.balanceKHR = data.newBalance;
+
+            user.transactions.unshift(data.slipData);
+            sessionStorage.setItem("user", JSON.stringify(user));
+
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            )
+              .play()
+              .catch((e) => console.log(e));
+
+            if (typeof showAppNotification === "function") {
+              let lang = localStorage.getItem("lang") || "en";
+              let tTitle =
+                lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
+              let sym = fromAccountType === "USD" ? "$" : "៛";
+              let tMsg =
+                lang === "kh"
+                  ? `អ្នកបានវេរ ${sym}${amount} ទៅកាន់ ${document.getElementById("displayReceiverName").innerText}`
+                  : `You transferred ${sym}${amount} to ${document.getElementById("displayReceiverName").innerText}`;
+              showAppNotification(tTitle, tMsg, "send");
+            }
+
+            if (orderId && callbackUrl) {
+              fetch(callbackUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: orderId,
+                  amount: urlParams.get("amount"),
+                  user: shopBuyerName,
+                  items: items,
+                }),
+              }).catch((err) => console.log("Webhook Error:", err));
+            }
+
+            const threshold = fromAccountType === "USD" ? 10 : 40000;
+            if (parseFloat(amount) >= threshold) {
+              currentSlipData = data.slipData;
+              document.getElementById("spinModal").style.display = "flex";
+              document.getElementById("wheelCanvas").style.transition = "none";
+              document.getElementById("wheelCanvas").style.transform =
+                "rotate(0deg)";
+              spinIsActive = false;
+            } else {
+              showSlipData(data.slipData);
+            }
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
+        } catch (error) {
+          Swal.fire("Error", "Server error", "error");
         }
       }
 
@@ -1328,7 +1394,7 @@
           if (wonAmount > 0) {
             fetch("/api/reward/cashback", {
               method: "POST",
-              headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
+              headers: authHeaders,
               body: JSON.stringify({
                 username: user.username,
                 amount: wonAmount,
@@ -1384,6 +1450,7 @@
       function skipSpin() {
         finishSpin();
       }
+
       function finishSpin() {
         document.getElementById("spinModal").style.display = "none";
         showSlipData(currentSlipData);
@@ -1411,93 +1478,6 @@
         document.getElementById("slipDate").innerText = data.date;
         document.getElementById("slipRemark").innerText = data.remark || "-";
         document.getElementById("slipModal").style.display = "flex";
-      }
-
-      // --- MAIN TRANSFER SUBMIT ---
-      async function submitPin() {
-        const pin = enteredPin;
-        document.getElementById("p1").value +
-          document.getElementById("p2").value +
-          document.getElementById("p3").value +
-          document.getElementById("p4").value;
-        const method =
-          urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
-        const amount = document.getElementById("amount").value;
-        const fromAccountType = document.getElementById("fromAccount").value;
-
-        if (pin.length === 4) {
-          closeModal("pinModal");
-          Swal.fire({
-            title: "Processing...",
-            didOpen: () => Swal.showLoading(),
-          });
-
-          const res = await fetch("/api/transfer", {
-            method: "POST",
-            headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
-            body: JSON.stringify({
-              senderUsername: user.username,
-              receiverAccount: document.getElementById("receiverAcc").value,
-              amount: amount,
-              remark: document.getElementById("remark").value,
-              pin: pin,
-              trxMethod: method,
-              currency: fromAccountType,
-            }),
-          });
-          const data = await res.json();
-          Swal.close();
-
-          if (data.success) {
-            if (fromAccountType === "USD") user.balance = data.newBalance;
-            else user.balanceKHR = data.newBalance;
-            user.transactions.unshift(data.slipData);
-            sessionStorage.setItem("user", JSON.stringify(user));
-            new Audio(
-              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-            ).play();
-
-            // 🔥 ហៅមុខងារ Toast ដើម្បីលោតប្រាប់នៅពេលវេរប្រាក់ជោគជ័យ
-            if (typeof showAppNotification === "function") {
-              let lang = localStorage.getItem("lang") || "en";
-              let tTitle =
-                lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
-              let sym = fromAccountType === "USD" ? "$" : "៛";
-              let tMsg =
-                lang === "kh"
-                  ? `អ្នកបានវេរ ${sym}${amount} ទៅកាន់ ${document.getElementById("displayReceiverName").innerText}`
-                  : `You transferred ${sym}${amount} to ${document.getElementById("displayReceiverName").innerText}`;
-              showAppNotification(tTitle, tMsg, "send");
-            }
-
-            if (orderId && callbackUrl) {
-              fetch(callbackUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  orderId: orderId,
-                  amount: urlParams.get("amount"),
-                  user: shopBuyerName,
-                  items: items,
-                }),
-              }).catch((err) => console.log("Webhook Error:", err));
-            }
-
-            const threshold = fromAccountType === "USD" ? 10 : 40000;
-            if (parseFloat(amount) >= threshold) {
-              currentSlipData = data.slipData;
-              document.getElementById("spinModal").style.display = "flex";
-              document.getElementById("wheelCanvas").style.transition = "none";
-              document.getElementById("wheelCanvas").style.transform =
-                "rotate(0deg)";
-              spinIsActive = false;
-            } else {
-              showSlipData(data.slipData);
-            }
-          } else {
-            Swal.fire("Failed", data.message, "error");
-          }
-        }
       }
 
       function saveSlipImage() {
