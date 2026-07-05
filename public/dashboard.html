@@ -1576,12 +1576,18 @@
             : isPending
               ? "text-orange"
               : "text-red";
-          let title =
-            t.type === "Transfer" || t.type === "Card Payment"
-              ? isIncome
-                ? t.senderName || "Received"
-                : t.receiverName || "Payment"
-              : t.type;
+          // 🔥 កូដកែសម្រួលថ្មី ដើម្បីបង្ហាញឈ្មោះអ្នកផ្ញើ
+          let title = t.type;
+
+          if (isIncome) {
+            // បើលុយចូល: យកឈ្មោះអ្នកផ្ញើ បើគ្មានឈ្មោះ ដាក់ថា Received
+            title = t.senderName || "Received";
+          } else {
+            // បើលុយចេញ: យកឈ្មោះអ្នកទទួល បើគ្មានឈ្មោះ ដាក់ថា Transfer
+            title =
+              t.receiverName ||
+              (t.type === "Card Payment" ? "Card Payment" : "Transfer");
+          }
           const displayAmt =
             currency === "KHR"
               ? Math.abs(t.amount).toLocaleString("en-US") + " ៛"
