@@ -249,6 +249,17 @@ const translations = {
     r_date: "Date",
     r_share: "Share<br>Image",
     r_download: "Download<br>Certificate",
+
+    // =====================================
+    // --- Analytics ---
+    // =====================================
+    title_analytics: "Analytics",
+    monthly_expenses: "Monthly Expenses",
+    no_expenses: "No expenses recorded this month.",
+    total_spent: "Total Spent",
+    expense_breakdown: "Expense Breakdown",
+    cat_bills: "Bills & Utilities",
+    cat_transfers: "Transfers",
   },
   // ភាសាខ្មែរ (Khmer) Translation
   kh: {
@@ -502,6 +513,17 @@ const translations = {
   r_date: "កាលបរិច្ឆេទ",
   r_share: "ចែករំលែក<br>ជារូបភាព",
   r_download: "ទាញយក<br>វិញ្ញាបនបត្រ",
+
+  // =====================================
+  // --- Analytics ---
+  // =====================================
+  title_analytics: "វិភាគ",
+  monthly_expenses: "ចំណាយប្រចាំខែ",
+  no_expenses: "មិនមានប្រតិបត្តិការចំណាយទេខែនេះ។",
+  total_spent: "ចំណាយសរុប",
+  expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
+  cat_bills: "បង់វិក្កយបត្រផ្សេងៗ",
+  cat_transfers: "វេរប្រាក់ចេញ",
 };
 
 function applyLanguage() {
