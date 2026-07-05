@@ -1160,30 +1160,20 @@
       // 🔥 Muxngar គណនា FX & Fee បញ្ចូលគ្នា
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value) || 0;
-        const fromType = document.getElementById("fromAccount").value;
-        const previewBox = document.getElementById("exchangePreview");
-        const feePreview = document.getElementById("feePreview");
 
-        // 🔥 Logic ថ្មី៖ ទាញយក feeters មកធៀបនឹង amount
-        // សន្មតថា window.allSettings.feeters ជា Array ដែលមានតម្លៃពី DB
-        const feeters = window.allSettings ? window.allSettings.feeters : [];
-        let feeRate = 0;
+        // 🔥 កន្លែងធៀបលុយ (Logic ធៀបតាម Database ដែលបងចង់បាន)
+        let fee = 0;
+        if (amount >= 0.01 && amount <= 99.99) {
+          fee = 0.5; // តាម Database របស់បង
+        } else if (amount >= 100) {
+          fee = 1; // តាម Database របស់បង
+        }
 
-        // ត្រួតពិនិត្យថា amount នៅចន្លោះ min និង max ណា?
-        const foundTier = feeters.find(
-          (tier) => amount >= tier.min && amount <= tier.max,
-        );
-
-        // បើរកឃើញតម្លៃ Fee ក្នុងជួរនោះ យកវាមកប្រើ បើអត់ទេ យក 0 (ឬតម្លៃ Default)
-        feeRate = foundTier ? foundTier.fee : 0;
-
-        // ប្រសិនបើក្នុ DB គេដាក់ Fee ជាតម្លៃដុល្លារ (មិនមែនជាភាគរយ %) នោះ fee = foundTier.fee
-        const fee = foundTier ? foundTier.fee : 0;
-
-        if (amount > 0) {
-          const feeDisplay = document.getElementById("feeAmountDisplay");
-          if (feeDisplay) feeDisplay.innerText = `$${fee.toFixed(2)}`;
-          if (feePreview) feePreview.style.display = "block";
+        // បង្ហាញ Fee ក្នុង UI
+        const feeDisplay = document.getElementById("feeAmountDisplay");
+        if (feeDisplay) {
+          feeDisplay.innerText = `$${fee.toFixed(2)}`;
+          document.getElementById("feePreview").style.display = "block";
         } else {
           if (feePreview) feePreview.style.display = "none";
         }
