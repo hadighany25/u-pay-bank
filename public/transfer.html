@@ -13,10 +13,12 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
-    <!-- ➕ បញ្ចូល Toast និង Lang -->
+    <!-- ➕ បញ្ចូល lang.js និង toast.js -->
+    <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <link rel="stylesheet" href="style.css" />
 
@@ -40,6 +42,7 @@
         visibility: visible;
         opacity: 1;
       }
+
       *:not(i):not([class*="fa-"]) {
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
@@ -50,6 +53,7 @@
         font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
         font-weight: 900 !important;
       }
+
       .main-input {
         width: 100%;
         padding: 15px;
@@ -59,7 +63,6 @@
         outline: none;
         background: #fff;
         box-sizing: border-box;
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
         transition: 0.3s;
       }
       .section-label,
@@ -67,9 +70,9 @@
       .confirm-btn,
       .slip-title,
       .action-text {
-        font-family: "Kantumruy Pro", sans-serif;
         font-weight: 600;
       }
+
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -98,6 +101,7 @@
         padding: 20px 25px;
         flex: 1;
       }
+
       .recent-contacts-container {
         margin-bottom: 25px;
         display: none;
@@ -105,7 +109,6 @@
       .section-label {
         font-size: 0.85rem;
         color: #64748b;
-        font-weight: 700;
         text-transform: uppercase;
         margin-bottom: 15px;
         letter-spacing: 0.5px;
@@ -157,6 +160,7 @@
         text-overflow: ellipsis;
         width: 100%;
       }
+
       .receiver-box {
         text-align: center;
         margin-bottom: 25px;
@@ -199,6 +203,7 @@
         color: #6c757d;
         cursor: not-allowed;
       }
+
       .check-status {
         position: absolute;
         right: 15px;
@@ -221,7 +226,6 @@
         border: none;
         border-radius: 16px;
         font-size: 1.1rem;
-        font-weight: bold;
         cursor: pointer;
         margin-top: 10px;
         box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
@@ -272,7 +276,7 @@
         }
       }
 
-      /* Modals */
+      /* Modals & PIN */
       .modal-overlay {
         display: none;
         position: fixed;
@@ -343,7 +347,6 @@
         margin: 0 auto 10px;
       }
       .slip-title {
-        font-weight: 600;
         font-size: 1.1rem;
         margin-top: 5px;
       }
@@ -401,7 +404,6 @@
         font-family: "Courier New", monospace;
         letter-spacing: 0.5px;
         color: #004d40;
-        font-weight: bold;
       }
 
       .slip-footer-info {
@@ -465,7 +467,6 @@
         font-size: 1.3rem;
         background: #fff;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        color: #004d40;
       }
       .action-circle.done {
         background: #f0fdf4;
@@ -514,9 +515,6 @@
         cursor: pointer;
         z-index: 5;
       }
-      .btn-spin-center:active {
-        transform: translate(-50%, -50%) scale(0.9);
-      }
 
       /* ==========================================
          🌙 DARK MODE
@@ -560,11 +558,7 @@
       body.dark-mode .fx-preview-box p {
         color: #a7f3d0;
       }
-
-      /* រក្សា Slip អោយសជានិច្ច ដើម្បីការពារការបាត់អក្សរ */
-      body.dark-mode .slip-container {
-        background: #fff !important;
-      }
+      body.dark-mode .slip-container,
       body.dark-mode .slip-body {
         background: #fff !important;
       }
@@ -580,12 +574,12 @@
     <div class="app-container">
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_transfer">Transfer Money</span>
+        <span data-i18n="title_transfer">Transfer Money</span>
       </div>
 
       <div class="transfer-form">
         <div class="recent-contacts-container" id="recentContactsBlock">
-          <p class="section-label" data-lang="recent_contacts">
+          <p class="section-label" data-i18n="recent_contacts">
             Recent Contacts
           </p>
           <div class="contacts-scroll" id="contactsList"></div>
@@ -603,21 +597,21 @@
           </h3>
           <p
             style="margin: 5px 0 0; color: #888; font-size: 0.9rem"
-            data-lang="receiver_label"
+            data-i18n="receiver_label"
           >
             Receiver
           </p>
         </div>
 
         <div class="input-group">
-          <label data-lang="source_account">Source Account</label>
+          <label data-i18n="source_account">Source Account</label>
           <select
             id="fromAccount"
             class="main-input"
             onchange="updateBalanceDisplay()"
           >
-            <option value="USD" data-lang="acc_usd">USD Account ($)</option>
-            <option value="KHR" data-lang="acc_khr">KHR Account (៛)</option>
+            <option value="USD" data-i18n="acc_usd">USD Account ($)</option>
+            <option value="KHR" data-i18n="acc_khr">KHR Account (៛)</option>
           </select>
           <p
             id="availableBalance"
@@ -631,7 +625,7 @@
         </div>
 
         <div class="input-group">
-          <label data-lang="receiver_acc">Receiver Account</label>
+          <label data-i18n="receiver_acc">Receiver Account</label>
           <input
             type="number"
             id="receiverAcc"
@@ -644,7 +638,7 @@
         </div>
 
         <div class="input-group">
-          <label data-lang="amount_label">Amount</label>
+          <label data-i18n="amount_label">Amount</label>
           <input
             type="number"
             id="amount"
@@ -656,17 +650,17 @@
 
         <div id="exchangePreview" class="fx-preview-box">
           <p>
-            <span data-lang="exchange_rate">Exchange Rate:</span
+            <span data-i18n="exchange_rate">Exchange Rate:</span
             ><span class="fx-rate" id="fxRateDisplay">...</span>
           </p>
           <p>
-            <span data-lang="receiver_gets">Receiver Gets:</span
+            <span data-i18n="receiver_gets">Receiver Gets:</span
             ><span class="fx-result" id="fxResultDisplay">...</span>
           </p>
         </div>
 
         <div class="input-group">
-          <label data-lang="remark">Remark</label>
+          <label data-i18n="remark">Remark</label>
           <input
             type="text"
             id="remark"
@@ -678,7 +672,7 @@
         <button
           onclick="validateAndOpenPin()"
           class="confirm-btn"
-          data-lang="btn_transfer"
+          data-i18n="btn_transfer"
         >
           Transfer Now
         </button>
@@ -687,7 +681,7 @@
 
     <!-- Modals -->
     <div id="pinModal" class="modal-overlay">
-      <h3 style="color: white; margin-bottom: 10px" data-lang="enter_pin">
+      <h3 style="color: white; margin-bottom: 10px" data-i18n="enter_pin">
         Enter PIN
       </h3>
       <div class="pin-box">
@@ -729,7 +723,7 @@
           color: white;
           cursor: pointer;
         "
-        data-lang="btn_cancel"
+        data-i18n="btn_cancel"
       >
         Cancel
       </button>
@@ -741,11 +735,11 @@
       style="background: rgba(15, 23, 42, 0.95)"
     >
       <h2 style="color: white; margin: 0 0 10px; font-size: 1.8rem">
-        🎉 <span data-lang="spin_title">Lucky Spin</span> 🎉
+        🎉 <span data-i18n="spin_title">Lucky Spin</span> 🎉
       </h2>
       <p
         style="color: #a7f3d0; margin-bottom: 20px; font-size: 0.9rem"
-        data-lang="spin_desc"
+        data-i18n="spin_desc"
       >
         You transferred over $10! Spin to win Cashback!
       </p>
@@ -772,7 +766,7 @@
           font-weight: 600;
           padding: 10px 20px;
         "
-        data-lang="btn_skip"
+        data-i18n="btn_skip"
       >
         Skip & View Slip
       </button>
@@ -782,7 +776,7 @@
       <div id="captureArea" class="slip-container">
         <div class="slip-header">
           <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
-          <div class="slip-title" data-lang="transfer_success">
+          <div class="slip-title" data-i18n="transfer_success">
             Transfer Successful
           </div>
           <div class="slip-amount" id="slipAmount">$0.00</div>
@@ -851,7 +845,7 @@
             <div class="action-circle done">
               <i class="fa-solid fa-rotate-right"></i>
             </div>
-            <span class="action-text">New Trx</span>
+            <span class="action-text">New</span>
           </div>
           <div class="action-item" onclick="returnToShopOrDashboard()">
             <div class="action-circle done">
@@ -864,79 +858,45 @@
     </div>
 
     <script>
-      // Authentication Check
-      const uPayUserString = sessionStorage.getItem("user");
-      if (!uPayUserString) {
-        window.location.href = "index.html" + window.location.search;
+      // 1. JWT & Session Validation
+      const userString = sessionStorage.getItem("user");
+      const token = sessionStorage.getItem("userToken");
+      if (!userString || !token) {
+        window.location.href = "index.html";
       }
-      const user = JSON.parse(uPayUserString);
+      const user = JSON.parse(userString);
 
-      // DOM Content Loaded - Theme & FOUC Prevention
+      // 2. Global Headers for API Calls 🔥 (នេះជាអ្វីដែលធ្វើឲ្យវាឆែកឈ្មោះបានវិញ!)
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      // 3. Variables
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("orderId");
+      const callbackUrl = urlParams.get("callback");
+      const items = urlParams.get("items");
+      const shopBuyerName = urlParams.get("user");
+      let targetUserIsKHR = null;
+      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
+      let currentSlipData = null;
+      let spinIsActive = false;
+
+      // 4. Initialization
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
         document.body.classList.add("loaded");
 
-        // Translations Logic
-        const translations = {
-          en: {
-            title_transfer: "Transfer Money",
-            recent_contacts: "Recent Contacts",
-            source_account: "Source Account",
-            acc_usd: "USD Account ($)",
-            acc_khr: "KHR Account (៛)",
-            avail_balance: "Available Balance: ",
-            receiver_label: "Receiver",
-            receiver_acc: "Receiver Account",
-            amount_label: "Amount",
-            remark: "Remark",
-            btn_transfer: "Transfer Now",
-            enter_pin: "Enter PIN",
-            btn_cancel: "Cancel",
-            spin_title: "Lucky Spin",
-            spin_desc: "You transferred over $10! Spin to win Cashback!",
-            btn_skip: "Skip & View Slip",
-            transfer_success: "Transfer Successful",
-            exchange_rate: "Exchange Rate:",
-            receiver_gets: "Receiver Gets:",
-          },
-          kh: {
-            title_transfer: "វេរប្រាក់",
-            recent_contacts: "អ្នកដែលធ្លាប់វេរប្រាក់ឱ្យ",
-            source_account: "គណនីប្រភព",
-            acc_usd: "គណនី USD ($)",
-            acc_khr: "គណនី KHR (៛)",
-            avail_balance: "សមតុល្យអាចចាយបាន: ",
-            receiver_label: "អ្នកទទួល",
-            receiver_acc: "លេខគណនីអ្នកទទួល",
-            amount_label: "ចំនួនប្រាក់",
-            remark: "ចំណាំ (បើមាន)",
-            btn_transfer: "វេរប្រាក់ឥឡូវនេះ",
-            enter_pin: "បញ្ចូលលេខ PIN",
-            btn_cancel: "បោះបង់",
-            spin_title: "កងវិលផ្សងសំណាង",
-            spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
-            btn_skip: "រំលង & មើលវិក្កយបត្រ",
-            transfer_success: "វេរប្រាក់ជោគជ័យ",
-            exchange_rate: "អត្រាប្តូរប្រាក់:",
-            receiver_gets: "អ្នកទទួលទទួលបាន:",
-          },
-        };
-
-        let currentLang = localStorage.getItem("lang") || "en";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key])
-            el.innerText = translations[currentLang][key];
-        });
-
-        // Setup Initials
+        // Fetch FX Rates ជាមួយ Token
         try {
-          const fxRes = await fetch("/api/fx/rates");
+          const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
         } catch (e) {}
 
-        const urlParams = new URLSearchParams(window.location.search);
+        // Setup Parameters from URL (QR Scan)
         const acc = urlParams.get("acc");
         const amount = urlParams.get("amount");
         const lockAmount = urlParams.get("lockAmount");
@@ -960,10 +920,10 @@
             }
           }
         }
-        if (urlParams.get("orderId")) {
+        if (orderId) {
           const remarkInput = document.getElementById("remark");
           if (remarkInput) {
-            remarkInput.value = "Pay for Order: " + urlParams.get("orderId");
+            remarkInput.value = "Pay for Order: " + orderId;
             remarkInput.readOnly = true;
             remarkInput.style.backgroundColor = "#e9ecef";
           }
@@ -974,7 +934,7 @@
         updateBalanceDisplay();
       });
 
-      // Dark Mode Logic
+      // Dark Mode System
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
         const isDark =
@@ -983,17 +943,6 @@
         if (isDark) document.body.classList.add("dark-mode");
         else document.body.classList.remove("dark-mode");
       }
-
-      // Variables
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get("orderId");
-      const callbackUrl = urlParams.get("callback");
-      const items = urlParams.get("items");
-      const shopBuyerName = urlParams.get("user");
-      let targetUserIsKHR = null;
-      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
-      let currentSlipData = null;
-      let spinIsActive = false;
 
       function updateBalanceDisplay() {
         const type = document.getElementById("fromAccount").value;
@@ -1005,13 +954,10 @@
 
         let displayBal =
           type === "USD" ? bal.toFixed(2) : bal.toLocaleString("en-US");
-        if (type === "USD")
-          document.getElementById("availableBalance").innerText =
-            `${textKey}${sign}${displayBal}`;
-        else
-          document.getElementById("availableBalance").innerText =
-            `${textKey}${displayBal} ${sign}`;
-
+        document.getElementById("availableBalance").innerText =
+          type === "USD"
+            ? `${textKey}${sign}${displayBal}`
+            : `${textKey}${displayBal} ${sign}`;
         calculateExchangePreview();
       }
 
@@ -1037,6 +983,7 @@
           container.style.display = "none";
           return;
         }
+
         container.style.display = "block";
         list.innerHTML = "";
         const colors = [
@@ -1068,6 +1015,7 @@
         }
       }
 
+      // 🔥 មុខងារឆែកឈ្មោះ ដែលត្រូវបន្ថែម Token ចូល
       async function checkName() {
         const acc = document.getElementById("receiverAcc").value;
         const nameDisplay = document.getElementById("displayReceiverName");
@@ -1090,7 +1038,7 @@
         try {
           const res = await fetch("/api/check-account", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
             body: JSON.stringify({ accountNumber: acc }),
           });
           const data = await res.json();
@@ -1153,7 +1101,6 @@
         }
 
         const isSenderKHR = fromType === "KHR";
-
         if (!isSenderKHR && targetUserIsKHR) {
           let totalKHR = amount * currentFXRates.usdToKhrBuy;
           document.getElementById("fxRateDisplay").innerText =
@@ -1188,7 +1135,6 @@
               : "Please enter valid amount",
             "warning",
           );
-
         if (amount > currentBal)
           return Swal.fire(
             "Error",
@@ -1213,7 +1159,6 @@
       function closeModal(id) {
         document.getElementById(id).style.display = "none";
       }
-
       function moveFocus(c, n) {
         if (c.value.length >= 1) document.getElementById(n).focus();
       }
@@ -1281,7 +1226,7 @@
           if (wonAmount > 0) {
             fetch("/api/reward/cashback", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
               body: JSON.stringify({
                 username: user.username,
                 amount: wonAmount,
@@ -1299,7 +1244,6 @@
                     .play()
                     .catch((e) => {});
 
-                  // 🔥 បើកសារ Global Toast បើឈ្នះ Cashback
                   if (typeof showAppNotification === "function") {
                     showAppNotification(
                       lang === "kh" ? "អបអរសាទរ!" : "Congratulations!",
@@ -1309,30 +1253,26 @@
                       "receive",
                     );
                   }
-
-                  let tTitle =
-                    lang === "kh"
-                      ? `ឈ្នះបាន $${wonAmount.toFixed(2)}!`
-                      : `You won $${wonAmount.toFixed(2)}!`;
-                  let tDesc =
-                    lang === "kh"
-                      ? "ទឹកប្រាក់ត្រូវបានបញ្ជូលទៅគណនីរបស់អ្នក។"
-                      : "Cashback added to your balance.";
                   Swal.fire({
                     icon: "success",
-                    title: tTitle,
-                    text: tDesc,
+                    title:
+                      lang === "kh"
+                        ? `ឈ្នះបាន $${wonAmount.toFixed(2)}!`
+                        : `You won $${wonAmount.toFixed(2)}!`,
+                    text:
+                      lang === "kh"
+                        ? "ទឹកប្រាក់ត្រូវបានបញ្ជូលទៅគណនីរបស់អ្នក។"
+                        : "Cashback added to your balance.",
                     confirmButtonColor: "#004d40",
                   }).then(() => finishSpin());
                 }
               });
           } else {
-            let tOops =
-              lang === "kh" ? "សូមព្យាយាមម្តងទៀត!" : "Better luck next time.";
             Swal.fire({
               icon: "info",
               title: "Oops!",
-              text: tOops,
+              text:
+                lang === "kh" ? "សូមព្យាយាមម្តងទៀត!" : "Better luck next time.",
               confirmButtonColor: "#004d40",
             }).then(() => finishSpin());
           }
@@ -1342,7 +1282,6 @@
       function skipSpin() {
         finishSpin();
       }
-
       function finishSpin() {
         document.getElementById("spinModal").style.display = "none";
         showSlipData(currentSlipData);
@@ -1357,13 +1296,9 @@
           minimumFractionDigits: isKHR ? 0 : 2,
         });
 
-        if (isKHR)
-          document.getElementById("slipAmount").innerText =
-            `${formattedAmt} ${sign}`;
-        else
-          document.getElementById("slipAmount").innerText =
-            `${sign}${formattedAmt}`;
-
+        document.getElementById("slipAmount").innerText = isKHR
+          ? `${formattedAmt} ${sign}`
+          : `${sign}${formattedAmt}`;
         document.getElementById("slipRef").innerText = data.refId;
         document.getElementById("slipHash").innerText = data.hash || "N/A";
         document.getElementById("slipSender").innerText = user.username;
@@ -1376,7 +1311,7 @@
         document.getElementById("slipModal").style.display = "flex";
       }
 
-      // --- MAIN SUBMIT ---
+      // --- MAIN TRANSFER SUBMIT ---
       async function submitPin() {
         const pin =
           document.getElementById("p1").value +
@@ -1397,7 +1332,7 @@
 
           const res = await fetch("/api/transfer", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders, // 👈 បញ្ចូល Token ទីនេះ
             body: JSON.stringify({
               senderUsername: user.username,
               receiverAccount: document.getElementById("receiverAcc").value,
@@ -1425,10 +1360,11 @@
               let lang = localStorage.getItem("lang") || "en";
               let tTitle =
                 lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
+              let sym = fromAccountType === "USD" ? "$" : "៛";
               let tMsg =
                 lang === "kh"
-                  ? `អ្នកបានវេរ ${amount} ទៅកាន់គណនី ${document.getElementById("receiverAcc").value}`
-                  : `You have transferred ${amount} to account ${document.getElementById("receiverAcc").value}`;
+                  ? `អ្នកបានវេរ ${sym}${amount} ទៅកាន់ ${document.getElementById("displayReceiverName").innerText}`
+                  : `You transferred ${sym}${amount} to ${document.getElementById("displayReceiverName").innerText}`;
               showAppNotification(tTitle, tMsg, "send");
             }
 
