@@ -983,49 +983,25 @@
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
         if (typeof applyLanguage === "function") applyLanguage();
-        document.body.classList.add("loaded");
 
+        // បង្ហាញ Body បន្ទាប់ពីទិន្នន័យត្រូវបានទាញមកដល់
         try {
           const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
-          if (fxData.success) currentFXRates = fxData.rates;
-        } catch (e) {}
-
-        const acc = urlParams.get("acc");
-        const amount = urlParams.get("amount");
-        const lockAmount = urlParams.get("lockAmount");
-
-        if (acc) {
-          const accInput = document.getElementById("receiverAcc");
-          if (accInput) {
-            accInput.value = acc;
-            accInput.readOnly = true;
-            accInput.style.backgroundColor = "#e9ecef";
-            checkName();
+          if (fxData.success) {
+            currentFXRates = fxData.rates; // កំណត់តម្លៃ Rate ពី DB
+            console.log("Loaded rates from DB:", currentFXRates);
           }
-        }
-        if (amount) {
-          const amtInput = document.getElementById("amount");
-          if (amtInput) {
-            amtInput.value = amount;
-            if (lockAmount === "true") {
-              amtInput.readOnly = true;
-              amtInput.style.backgroundColor = "#e9ecef";
-            }
-          }
-        }
-        if (orderId) {
-          const remarkInput = document.getElementById("remark");
-          if (remarkInput) {
-            remarkInput.value = "Pay for Order: " + orderId;
-            remarkInput.readOnly = true;
-            remarkInput.style.backgroundColor = "#e9ecef";
-          }
+        } catch (e) {
+          console.error("Failed to load rates:", e);
         }
 
+        document.body.classList.add("loaded"); // ទើបបង្ហាញ UI ក្រោយពេលផ្ទុកចប់
+
+        // ... (Code ផ្សេងទៀតដូចជា loadRecentContacts)
         loadRecentContacts();
         drawWheel();
-        updateBalanceDisplay();
+        updateBalanceDisplay(); // ហៅមុខងារនេះក្រោយពេលមាន Rate ហើយ
       });
 
       // ==========================================
@@ -1182,14 +1158,17 @@
 
       // 🔥 Muxngar គណនា FX & Fee បញ្ចូលគ្នា
       function calculateExchangePreview() {
-        const amount = parseFloat(document.getElementById("amount").value) || 0;
+        const amountInput = document.getElementById("amount");
+        const amount = parseFloat(amountInput.value) || 0;
         const fromType = document.getElementById("fromAccount").value;
         const previewBox = document.getElementById("exchangePreview");
         const feePreview = document.getElementById("feePreview");
 
-        // 1. ទាញយក Fee Rate ពី Database (តាមរយៈ currentFXRates ឬ Config)
-        // ឧទាហរណ៍៖ បងមាន key "feeRate" ក្នុង fxData ដែលយើងបាន fetch ពី /api/fx/rates
-        const feeRate = currentFXRates.feeRate || 0.005; // 0.5% បើអត់មានគឺយក 0.5%
+        // ឆែកមើលតម្លៃក្នុង Console ថាតើវាមានអ្វីខ្លះ
+        console.log("Current Rates:", currentFXRates);
+
+        // ប្រើតម្លៃពី Database (ធានាថាឈ្មោះ Key ត្រូវនឹង API ផ្ញើមក)
+        const feeRate = currentFXRates.feeRate || 0.005;
         const fee = amount * feeRate;
 
         if (amount > 0) {
@@ -1200,25 +1179,24 @@
           if (feePreview) feePreview.style.display = "none";
         }
 
-        // 2. គណនា FX Rate ពី Database
-        if (amount <= 0 || targetUserIsKHR === null || !currentFXRates) {
+        if (amount <= 0 || targetUserIsKHR === null) {
           if (previewBox) previewBox.style.display = "none";
           return;
         }
 
         const isSenderKHR = fromType === "KHR";
-        // ប្រើ currentFXRates.usdToKhrBuy និង currentFXRates.usdToKhrSell ដែលបានមកពី API
+        // ប្រើ currentFXRates ផ្ទាល់
         if (!isSenderKHR && targetUserIsKHR) {
-          let totalKHR = amount * currentFXRates.usdToKhrBuy;
+          let totalKHR = amount * (currentFXRates.usdToKhrBuy || 4050);
           document.getElementById("fxRateDisplay").innerText =
-            `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
+            `$1 = ${currentFXRates.usdToKhrBuy || 4050} ៛`;
           document.getElementById("fxResultDisplay").innerText =
             `${totalKHR.toLocaleString("en-US")} ៛`;
           previewBox.style.display = "block";
         } else if (isSenderKHR && !targetUserIsKHR) {
-          let totalUSD = amount / currentFXRates.usdToKhrSell;
+          let totalUSD = amount / (currentFXRates.usdToKhrSell || 4100);
           document.getElementById("fxRateDisplay").innerText =
-            `$1 = ${currentFXRates.usdToKhrSell} ៛`;
+            `$1 = ${currentFXRates.usdToKhrSell || 4100} ៛`;
           document.getElementById("fxResultDisplay").innerText =
             `$${totalUSD.toFixed(2)}`;
           previewBox.style.display = "block";
