@@ -15,11 +15,16 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- ➕ បញ្ចូល Toast និង Lang -->
+    <script src="js/toast.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <style>
-      /* BASE STYLES */
+      /* BASE STYLES & FOUC PREVENTION */
       body {
+        visibility: hidden;
+        opacity: 0;
         background-color: #f2f4f6;
         margin: 0;
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
@@ -27,6 +32,13 @@
         justify-content: center;
         min-height: 100vh;
         -webkit-font-smoothing: antialiased;
+        transition:
+          opacity 0.4s ease,
+          background-color 0.3s ease;
+      }
+      body.loaded {
+        visibility: visible;
+        opacity: 1;
       }
       *:not(i):not([class*="fa-"]) {
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
@@ -67,6 +79,7 @@
         flex-direction: column;
         position: relative;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.3s ease;
       }
       .nav-header {
         padding: 20px;
@@ -96,9 +109,6 @@
         text-transform: uppercase;
         margin-bottom: 15px;
         letter-spacing: 0.5px;
-      }
-      body.dark-mode .section-label {
-        color: #94a3b8;
       }
       .contacts-scroll {
         display: flex;
@@ -137,9 +147,6 @@
         margin-bottom: 8px;
         border: 2px solid white;
       }
-      body.dark-mode .contact-avatar {
-        border-color: #1e1e1e;
-      }
       .contact-name {
         font-size: 0.7rem;
         color: #334155;
@@ -149,9 +156,6 @@
         overflow: hidden;
         text-overflow: ellipsis;
         width: 100%;
-      }
-      body.dark-mode .contact-name {
-        color: #cbd5e1;
       }
       .receiver-box {
         text-align: center;
@@ -208,6 +212,7 @@
       .status-err {
         color: #e74c3c;
       }
+
       .confirm-btn {
         width: 100%;
         padding: 16px;
@@ -221,13 +226,12 @@
         margin-top: 10px;
         box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
         transition: 0.3s;
-        letter-spacing: 0;
       }
       .confirm-btn:active {
         transform: scale(0.98);
       }
 
-      /* 🔥 Style ប្រអប់ Exchange Rate Preview */
+      /* Exchange Rate Preview */
       .fx-preview-box {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -267,13 +271,6 @@
           transform: translateY(0);
         }
       }
-      body.dark-mode .fx-preview-box {
-        background: rgba(22, 101, 52, 0.2);
-        border-color: #14532d;
-      }
-      body.dark-mode .fx-preview-box p {
-        color: #a7f3d0;
-      }
 
       /* Modals */
       .modal-overlay {
@@ -305,6 +302,8 @@
         color: white;
         outline: none;
       }
+
+      /* Slip Container */
       .slip-container {
         width: 340px;
         margin: 0 auto;
@@ -330,7 +329,6 @@
         padding: 25px 20px 30px;
         text-align: center;
         color: white;
-        position: relative;
       }
       .slip-status-icon {
         width: 60px;
@@ -343,7 +341,6 @@
         justify-content: center;
         font-size: 1.8rem;
         margin: 0 auto 10px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
       }
       .slip-title {
         font-weight: 600;
@@ -406,6 +403,7 @@
         color: #004d40;
         font-weight: bold;
       }
+
       .slip-footer-info {
         display: flex;
         justify-content: space-between;
@@ -450,7 +448,6 @@
         align-items: center;
         gap: 8px;
         cursor: pointer;
-        transition: 0.2s;
         color: #004d40;
       }
       .action-item:hover {
@@ -470,14 +467,12 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         color: #004d40;
       }
-      .action-text {
-        font-size: 0.85rem;
-        font-weight: 600;
-      }
       .action-circle.done {
         background: #f0fdf4;
         border-color: #004d40;
       }
+
+      /* Wheel */
       .wheel-box {
         position: relative;
         width: 280px;
@@ -495,7 +490,6 @@
         border-right: 15px solid transparent;
         border-top: 25px solid #fff;
         z-index: 10;
-        filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
       }
       .wheel-canvas {
         width: 100%;
@@ -519,22 +513,66 @@
         font-size: 1.1rem;
         cursor: pointer;
         z-index: 5;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-        transition: 0.2s;
       }
       .btn-spin-center:active {
         transform: translate(-50%, -50%) scale(0.9);
       }
-      input,
-      select,
-      textarea,
-      button,
-      .main-input {
-        font-family: "Kantumruy Pro", sans-serif !important;
+
+      /* ==========================================
+         🌙 DARK MODE
+         ========================================== */
+      body.dark-mode {
+        background-color: #121212 !important;
+        color: white !important;
       }
-      input::placeholder {
-        font-family: "Kantumruy Pro", sans-serif !important;
-        opacity: 0.8;
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #1e1e1e !important;
+        border-bottom: 1px solid #333;
+      }
+      body.dark-mode .receiver-box {
+        background-color: #1e1e1e !important;
+        border-color: #333;
+      }
+      body.dark-mode .main-input {
+        background: #1e1e1e !important;
+        color: white !important;
+        border-color: #444;
+      }
+      body.dark-mode .input-group label {
+        color: #cbd5e1;
+      }
+      body.dark-mode .section-label {
+        color: #94a3b8;
+      }
+      body.dark-mode .contact-name {
+        color: #cbd5e1;
+      }
+      body.dark-mode .contact-avatar {
+        border-color: #121212;
+      }
+      body.dark-mode .fx-preview-box {
+        background: rgba(22, 101, 52, 0.2);
+        border-color: #14532d;
+      }
+      body.dark-mode .fx-preview-box p {
+        color: #a7f3d0;
+      }
+
+      /* រក្សា Slip អោយសជានិច្ច ដើម្បីការពារការបាត់អក្សរ */
+      body.dark-mode .slip-container {
+        background: #fff !important;
+      }
+      body.dark-mode .slip-body {
+        background: #fff !important;
+      }
+      body.dark-mode .d-value {
+        color: #1f2937 !important;
+      }
+      body.dark-mode .d-label {
+        color: #888 !important;
       }
     </style>
   </head>
@@ -585,7 +623,7 @@
             id="availableBalance"
             style="
               font-size: 0.85rem;
-              color: #004d40;
+              color: #00b894;
               margin-top: 8px;
               font-weight: 600;
             "
@@ -616,15 +654,14 @@
           />
         </div>
 
-        <!-- 🔥 ប្រអប់បង្ហាញការគណនា Exchange Rate អូតូ -->
         <div id="exchangePreview" class="fx-preview-box">
           <p>
-            <span data-lang="exchange_rate">Exchange Rate:</span>
-            <span class="fx-rate" id="fxRateDisplay">...</span>
+            <span data-lang="exchange_rate">Exchange Rate:</span
+            ><span class="fx-rate" id="fxRateDisplay">...</span>
           </p>
           <p>
-            <span data-lang="receiver_gets">Receiver Gets:</span>
-            <span class="fx-result" id="fxResultDisplay">...</span>
+            <span data-lang="receiver_gets">Receiver Gets:</span
+            ><span class="fx-result" id="fxResultDisplay">...</span>
           </p>
         </div>
 
@@ -719,8 +756,8 @@
           class="wheel-canvas"
           width="280"
           height="280"
-        ></canvas
-        ><button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
+        ></canvas>
+        <button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
           SPIN
         </button>
       </div>
@@ -796,7 +833,11 @@
               />
               <div class="qr-text"><span>SCAN TO</span><span>CHECK</span></div>
             </div>
-            <img src="images/logo.png" class="footer-logo" />
+            <img
+              src="images/logo.png"
+              class="footer-logo"
+              onerror="this.style.display = 'none'"
+            />
           </div>
         </div>
         <div class="slip-actions">
@@ -823,88 +864,83 @@
     </div>
 
     <script>
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get("orderId");
-      const callbackUrl = urlParams.get("callback");
-      const items = urlParams.get("items");
-      const shopBuyerName = urlParams.get("user");
-
+      // Authentication Check
       const uPayUserString = sessionStorage.getItem("user");
       if (!uPayUserString) {
         window.location.href = "index.html" + window.location.search;
       }
       const user = JSON.parse(uPayUserString);
 
-      const translations = {
-        en: {
-          title_transfer: "Transfer Money",
-          recent_contacts: "Recent Contacts",
-          source_account: "Source Account",
-          acc_usd: "USD Account ($)",
-          acc_khr: "KHR Account (៛)",
-          avail_balance: "Available Balance: ",
-          receiver_label: "Receiver",
-          receiver_acc: "Receiver Account",
-          amount_label: "Amount",
-          remark: "Remark",
-          btn_transfer: "Transfer Now",
-          enter_pin: "Enter PIN",
-          btn_cancel: "Cancel",
-          spin_title: "Lucky Spin",
-          spin_desc: "You transferred over $10! Spin to win Cashback!",
-          btn_skip: "Skip & View Slip",
-          transfer_success: "Transfer Successful",
-          exchange_rate: "Exchange Rate:",
-          receiver_gets: "Receiver Gets:",
-        },
-        kh: {
-          title_transfer: "វេរប្រាក់",
-          recent_contacts: "អ្នកដែលធ្លាប់វេរប្រាក់ឱ្យ",
-          source_account: "គណនីប្រភព",
-          acc_usd: "គណនី USD ($)",
-          acc_khr: "គណនី KHR (៛)",
-          avail_balance: "សមតុល្យអាចចាយបាន: ",
-          receiver_label: "អ្នកទទួល",
-          receiver_acc: "លេខគណនីអ្នកទទួល",
-          amount_label: "ចំនួនប្រាក់",
-          remark: "ចំណាំ (បើមាន)",
-          btn_transfer: "វេរប្រាក់ឥឡូវនេះ",
-          enter_pin: "បញ្ចូលលេខ PIN",
-          btn_cancel: "បោះបង់",
-          spin_title: "កងវិលផ្សងសំណាង",
-          spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
-          btn_skip: "រំលង & មើលវិក្កយបត្រ",
-          transfer_success: "វេរប្រាក់ជោគជ័យ",
-          exchange_rate: "អត្រាប្តូរប្រាក់:",
-          receiver_gets: "អ្នកទទួលទទួលបាន:",
-        },
-      };
-
-      let currentLang = localStorage.getItem("lang") || "en";
-      document.querySelectorAll("[data-lang]").forEach((el) => {
-        const key = el.getAttribute("data-lang");
-        if (translations[currentLang] && translations[currentLang][key])
-          el.innerText = translations[currentLang][key];
-      });
-      document.body.style.fontFamily =
-        currentLang === "kh"
-          ? "'Kantumruy Pro', sans-serif"
-          : "'Inter', 'Kantumruy Pro', sans-serif";
-
-      let targetUserIsKHR = null;
-      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 }; // Default ទាល់តែ Fetch បាន
-
+      // DOM Content Loaded - Theme & FOUC Prevention
       window.addEventListener("DOMContentLoaded", async () => {
-        // 🔥 ទាញយក FX Rate ភ្លាមៗពេលបើកទំព័រ ដើម្បីឱ្យវា Update Real-time
+        applyTheme();
+        document.body.classList.add("loaded");
+
+        // Translations Logic
+        const translations = {
+          en: {
+            title_transfer: "Transfer Money",
+            recent_contacts: "Recent Contacts",
+            source_account: "Source Account",
+            acc_usd: "USD Account ($)",
+            acc_khr: "KHR Account (៛)",
+            avail_balance: "Available Balance: ",
+            receiver_label: "Receiver",
+            receiver_acc: "Receiver Account",
+            amount_label: "Amount",
+            remark: "Remark",
+            btn_transfer: "Transfer Now",
+            enter_pin: "Enter PIN",
+            btn_cancel: "Cancel",
+            spin_title: "Lucky Spin",
+            spin_desc: "You transferred over $10! Spin to win Cashback!",
+            btn_skip: "Skip & View Slip",
+            transfer_success: "Transfer Successful",
+            exchange_rate: "Exchange Rate:",
+            receiver_gets: "Receiver Gets:",
+          },
+          kh: {
+            title_transfer: "វេរប្រាក់",
+            recent_contacts: "អ្នកដែលធ្លាប់វេរប្រាក់ឱ្យ",
+            source_account: "គណនីប្រភព",
+            acc_usd: "គណនី USD ($)",
+            acc_khr: "គណនី KHR (៛)",
+            avail_balance: "សមតុល្យអាចចាយបាន: ",
+            receiver_label: "អ្នកទទួល",
+            receiver_acc: "លេខគណនីអ្នកទទួល",
+            amount_label: "ចំនួនប្រាក់",
+            remark: "ចំណាំ (បើមាន)",
+            btn_transfer: "វេរប្រាក់ឥឡូវនេះ",
+            enter_pin: "បញ្ចូលលេខ PIN",
+            btn_cancel: "បោះបង់",
+            spin_title: "កងវិលផ្សងសំណាង",
+            spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
+            btn_skip: "រំលង & មើលវិក្កយបត្រ",
+            transfer_success: "វេរប្រាក់ជោគជ័យ",
+            exchange_rate: "អត្រាប្តូរប្រាក់:",
+            receiver_gets: "អ្នកទទួលទទួលបាន:",
+          },
+        };
+
+        let currentLang = localStorage.getItem("lang") || "en";
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key])
+            el.innerText = translations[currentLang][key];
+        });
+
+        // Setup Initials
         try {
           const fxRes = await fetch("/api/fx/rates");
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
         } catch (e) {}
 
+        const urlParams = new URLSearchParams(window.location.search);
         const acc = urlParams.get("acc");
         const amount = urlParams.get("amount");
         const lockAmount = urlParams.get("lockAmount");
+
         if (acc) {
           const accInput = document.getElementById("receiverAcc");
           if (accInput) {
@@ -924,10 +960,10 @@
             }
           }
         }
-        if (orderId) {
+        if (urlParams.get("orderId")) {
           const remarkInput = document.getElementById("remark");
           if (remarkInput) {
-            remarkInput.value = "Pay for Order: " + orderId;
+            remarkInput.value = "Pay for Order: " + urlParams.get("orderId");
             remarkInput.readOnly = true;
             remarkInput.style.backgroundColor = "#e9ecef";
           }
@@ -938,11 +974,34 @@
         updateBalanceDisplay();
       });
 
+      // Dark Mode Logic
+      function applyTheme() {
+        const userThemeKey = "darkMode_" + user.username;
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
+      }
+
+      // Variables
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get("orderId");
+      const callbackUrl = urlParams.get("callback");
+      const items = urlParams.get("items");
+      const shopBuyerName = urlParams.get("user");
+      let targetUserIsKHR = null;
+      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
+      let currentSlipData = null;
+      let spinIsActive = false;
+
       function updateBalanceDisplay() {
         const type = document.getElementById("fromAccount").value;
         const bal = type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
         const sign = type === "USD" ? "$" : "៛";
-        const textKey = translations[currentLang]["avail_balance"];
+        let lang = localStorage.getItem("lang") || "en";
+        const textKey =
+          lang === "kh" ? "សមតុល្យអាចចាយបាន: " : "Available Balance: ";
 
         let displayBal =
           type === "USD" ? bal.toFixed(2) : bal.toLocaleString("en-US");
@@ -1045,7 +1104,7 @@
             iconUI.style.color = "white";
 
             targetUserIsKHR = data.isReceiverKHR;
-            if (data.fxRates) currentFXRates = data.fxRates; // Update ជាមួយ Data ថ្មី
+            if (data.fxRates) currentFXRates = data.fxRates;
             calculateExchangePreview();
             return true;
           } else {
@@ -1078,7 +1137,6 @@
         calculateExchangePreview();
       }
 
-      // 🔥 LOGIC គណនា EXCHANGE RATE PREVIEW
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value);
         const fromType = document.getElementById("fromAccount").value;
@@ -1097,7 +1155,6 @@
         const isSenderKHR = fromType === "KHR";
 
         if (!isSenderKHR && targetUserIsKHR) {
-          // ផ្ញើ USD ទៅកុង KHR => Buy Rate
           let totalKHR = amount * currentFXRates.usdToKhrBuy;
           document.getElementById("fxRateDisplay").innerText =
             `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
@@ -1105,7 +1162,6 @@
             `${totalKHR.toLocaleString("en-US")} ៛`;
           previewBox.style.display = "block";
         } else if (isSenderKHR && !targetUserIsKHR) {
-          // ផ្ញើ KHR ទៅកុង USD => Sell Rate
           let totalUSD = amount / currentFXRates.usdToKhrSell;
           document.getElementById("fxRateDisplay").innerText =
             `$1 = ${currentFXRates.usdToKhrSell} ៛`;
@@ -1122,21 +1178,21 @@
         const type = document.getElementById("fromAccount").value;
         const currentBal =
           type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
+        let lang = localStorage.getItem("lang") || "en";
 
         if (!amount || amount <= 0)
           return Swal.fire(
             "Warning",
-            currentLang === "kh"
+            lang === "kh"
               ? "សូមបញ្ចូលចំនួនប្រាក់ត្រឹមត្រូវ"
               : "Please enter valid amount",
             "warning",
           );
+
         if (amount > currentBal)
           return Swal.fire(
             "Error",
-            currentLang === "kh"
-              ? "សមតុល្យមិនគ្រប់គ្រាន់"
-              : "Insufficient Balance",
+            lang === "kh" ? "សមតុល្យមិនគ្រប់គ្រាន់" : "Insufficient Balance",
             "error",
           );
 
@@ -1157,12 +1213,10 @@
       function closeModal(id) {
         document.getElementById(id).style.display = "none";
       }
+
       function moveFocus(c, n) {
         if (c.value.length >= 1) document.getElementById(n).focus();
       }
-
-      let currentSlipData = null;
-      let spinIsActive = false;
 
       function drawWheel() {
         const canvas = document.getElementById("wheelCanvas");
@@ -1220,6 +1274,8 @@
         canvas.style.transition = "transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)";
         canvas.style.transform = `rotate(${totalRotation}deg)`;
 
+        let lang = localStorage.getItem("lang") || "en";
+
         setTimeout(() => {
           const wonAmount = prizeValues[targetIndex];
           if (wonAmount > 0) {
@@ -1242,12 +1298,24 @@
                   )
                     .play()
                     .catch((e) => {});
+
+                  // 🔥 បើកសារ Global Toast បើឈ្នះ Cashback
+                  if (typeof showAppNotification === "function") {
+                    showAppNotification(
+                      lang === "kh" ? "អបអរសាទរ!" : "Congratulations!",
+                      lang === "kh"
+                        ? `អ្នកឈ្នះបាន $${wonAmount.toFixed(2)}`
+                        : `You won $${wonAmount.toFixed(2)}`,
+                      "receive",
+                    );
+                  }
+
                   let tTitle =
-                    currentLang === "kh"
+                    lang === "kh"
                       ? `ឈ្នះបាន $${wonAmount.toFixed(2)}!`
                       : `You won $${wonAmount.toFixed(2)}!`;
                   let tDesc =
-                    currentLang === "kh"
+                    lang === "kh"
                       ? "ទឹកប្រាក់ត្រូវបានបញ្ជូលទៅគណនីរបស់អ្នក។"
                       : "Cashback added to your balance.";
                   Swal.fire({
@@ -1260,9 +1328,7 @@
               });
           } else {
             let tOops =
-              currentLang === "kh"
-                ? "សូមព្យាយាមម្តងទៀត!"
-                : "Better luck next time.";
+              lang === "kh" ? "សូមព្យាយាមម្តងទៀត!" : "Better luck next time.";
             Swal.fire({
               icon: "info",
               title: "Oops!",
@@ -1276,6 +1342,7 @@
       function skipSpin() {
         finishSpin();
       }
+
       function finishSpin() {
         document.getElementById("spinModal").style.display = "none";
         showSlipData(currentSlipData);
@@ -1353,6 +1420,18 @@
               "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
             ).play();
 
+            // 🔥 ហៅមុខងារ Toast ដើម្បីលោតប្រាប់នៅពេលវេរប្រាក់ជោគជ័យ
+            if (typeof showAppNotification === "function") {
+              let lang = localStorage.getItem("lang") || "en";
+              let tTitle =
+                lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
+              let tMsg =
+                lang === "kh"
+                  ? `អ្នកបានវេរ ${amount} ទៅកាន់គណនី ${document.getElementById("receiverAcc").value}`
+                  : `You have transferred ${amount} to account ${document.getElementById("receiverAcc").value}`;
+              showAppNotification(tTitle, tMsg, "send");
+            }
+
             if (orderId && callbackUrl) {
               fetch(callbackUrl, {
                 method: "POST",
@@ -1401,14 +1480,6 @@
         } else {
           window.location.href = "dashboard.html";
         }
-      }
-
-      // Dark Mode
-      if (localStorage.getItem("darkMode") === "true") {
-        document.body.classList.add("dark-mode");
-        document.write(
-          "<style>body { background-color: #121212 !important; color: white !important; } .app-container { background-color: #121212 !important; } .receiver-box { background-color: #1e1e1e !important; border-color: #333; } .main-input { background: #333 !important; color: white !important; border-color:#444; } .slip-container { background: #fff !important; } </style>",
-        );
       }
     </script>
   </body>
