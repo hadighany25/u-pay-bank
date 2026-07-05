@@ -4,50 +4,111 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Analytics - U-Pay</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+
+    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- External Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
     <script src="js/toast.js"></script>
+
     <style>
+      :root {
+        --primary: #004d40;
+        --secondary: #10b981;
+        --bg-color: #f2f4f6;
+        --card-bg: #ffffff;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border-color: #f1f5f9;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+      }
+
       body {
-        background-color: #f2f4f6;
+        background-color: var(--bg-color);
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        transition: background-color 0.3s;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
       }
+
       .app-container {
         width: 100%;
         max-width: 450px;
-        background: #f8fafc;
+        background: var(--bg-color);
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        transition: background-color 0.3s;
+        transition: background-color 0.3s ease;
         padding-bottom: 90px;
       }
+
+      /* Animations */
+      .animate-fade-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+      }
+      .animate-zoom-in {
+        animation: zoomIn 0.4s ease-out forwards;
+        opacity: 0;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes zoomIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
       .nav-header {
         padding: 20px;
-        background: #004d40;
+        background: var(--primary);
         color: white;
         display: flex;
         align-items: center;
         gap: 15px;
-        font-size: 1.1rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 77, 64, 0.1);
+        z-index: 10;
       }
       .nav-header a {
         color: white;
         text-decoration: none;
+        transition: transform 0.2s;
       }
+      .nav-header a:active {
+        transform: scale(0.9);
+      }
+
       .content-body {
         padding: 20px;
         flex: 1;
@@ -57,23 +118,15 @@
 
       /* CHART CARD */
       .chart-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 20px;
         padding: 25px 20px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
-        margin-bottom: 20px;
-        border: 1px solid #f1f5f9;
-        animation: slideUp 0.5s ease-out;
-      }
-      @keyframes slideUp {
-        from {
-          transform: translateY(20px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
+        margin-bottom: 25px;
+        border: 1px solid var(--border-color);
+        transition:
+          background-color 0.3s ease,
+          border-color 0.3s ease;
       }
       .chart-header {
         display: flex;
@@ -84,21 +137,21 @@
       .chart-title {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #1e293b;
+        color: var(--text-dark);
         margin: 0;
       }
       .month-badge {
-        background: #e0f2f1;
-        color: #004d40;
-        padding: 5px 12px;
-        border-radius: 12px;
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--secondary);
+        padding: 6px 14px;
+        border-radius: 20px;
         font-size: 0.8rem;
-        font-weight: 600;
+        font-weight: 700;
       }
 
       .chart-container {
         position: relative;
-        height: 200px;
+        height: 220px;
         width: 100%;
         display: flex;
         justify-content: center;
@@ -106,87 +159,103 @@
       }
       #noDataMsg {
         text-align: center;
-        color: #94a3b8;
-        font-size: 0.9rem;
+        color: var(--text-light);
+        font-size: 0.95rem;
+        font-weight: 500;
       }
 
       .total-expense-display {
         text-align: center;
-        margin-top: 15px;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px dashed var(--border-color);
       }
       .total-expense-display p {
         margin: 0 0 5px;
         font-size: 0.85rem;
-        color: #64748b;
+        color: var(--text-light);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .total-expense-display h2 {
         margin: 0;
-        color: #ef4444;
-        font-size: 1.8rem;
+        color: var(--danger);
+        font-size: 2rem;
         font-weight: 800;
+        font-family: "Inter", sans-serif;
       }
 
       /* LIST SECTION */
       .list-header {
-        font-size: 1rem;
+        font-size: 1.05rem;
         font-weight: 700;
-        color: #333;
+        color: var(--text-dark);
         margin: 10px 0 15px;
-        animation: fadeIn 0.8s ease-out;
       }
       .expense-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
       }
       .expense-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: white;
-        padding: 15px;
+        background: var(--card-bg);
+        padding: 16px;
         border-radius: 16px;
-        border: 1px solid #f1f5f9;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01);
-        animation: slideUp 0.6s ease-out;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        transition:
+          transform 0.2s,
+          background-color 0.3s;
+        cursor: pointer;
       }
+      .expense-item:hover {
+        transform: translateY(-2px);
+      }
+
       .expense-left {
         display: flex;
         align-items: center;
         gap: 15px;
       }
       .expense-icon {
-        width: 42px;
-        height: 42px;
+        width: 45px;
+        height: 45px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
       }
       .expense-icon.bills {
-        background: #fee2e2;
-        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
       }
       .expense-icon.transfers {
-        background: #fef3c7;
-        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
       }
+
       .expense-info h4 {
-        margin: 0 0 3px;
+        margin: 0 0 4px;
         font-size: 0.95rem;
-        color: #1e293b;
-        font-weight: 600;
+        color: var(--text-dark);
+        font-weight: 700;
       }
       .expense-info p {
         margin: 0;
-        font-size: 0.75rem;
-        color: #94a3b8;
+        font-size: 0.8rem;
+        color: var(--text-light);
+        font-weight: 500;
       }
       .expense-amount {
-        font-weight: 700;
-        color: #1e293b;
-        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        font-size: 1.05rem;
+        font-family: "Inter", sans-serif;
       }
 
       /* BOTTOM NAV */
@@ -198,58 +267,85 @@
         width: 100%;
         max-width: 450px;
         display: flex;
-        background: white;
+        background: var(--card-bg);
         padding: 12px 0 15px 0;
         justify-content: space-around;
         box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
         z-index: 9999;
         border-radius: 20px 20px 0 0;
+        border-top: 1px solid var(--border-color);
+        transition: background-color 0.3s ease;
       }
       .nav-item {
         text-align: center;
-        color: #94a3b8;
+        color: var(--text-light);
         font-size: 0.75rem;
         text-decoration: none;
         cursor: pointer;
         transition: 0.2s;
         flex: 1;
+        font-weight: 600;
       }
       .nav-item i {
         font-size: 1.4rem;
         display: block;
         margin-bottom: 5px;
       }
+      .nav-item:active {
+        transform: scale(0.9);
+      }
       .nav-item.active {
-        color: #004d40;
-        font-weight: 700;
-        transform: translateY(-5px);
+        color: var(--primary);
+        transform: translateY(-3px);
       }
 
-      /* DARK MODE */
+      /* ==================================
+         DARK MODE PROFESSIONAL
+         ================================== */
       body.dark-mode {
-        background: #000;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
       }
       body.dark-mode .app-container {
-        background: #121212;
+        background-color: #0f172a !important;
       }
+      body.dark-mode .nav-header {
+        background-color: #1e293b !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
       body.dark-mode .chart-card,
-      body.dark-mode .expense-item {
-        background: #1e1e1e;
-        border-color: #333;
+      body.dark-mode .expense-item,
+      body.dark-mode .bottom-nav {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
       }
+
       body.dark-mode .chart-title,
       body.dark-mode .expense-info h4,
       body.dark-mode .expense-amount,
       body.dark-mode .list-header {
-        color: white;
+        color: #f8fafc !important;
       }
-      body.dark-mode .month-badge {
-        background: #004d40;
-        color: #e0f2f1;
-      }
+
+      body.dark-mode .total-expense-display,
       body.dark-mode .bottom-nav {
-        background: #1e1e1e;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+        border-color: #334155 !important;
+      }
+
+      body.dark-mode .expense-info p,
+      body.dark-mode #noDataMsg,
+      body.dark-mode .total-expense-display p,
+      body.dark-mode .nav-item {
+        color: #94a3b8 !important;
+      }
+
+      body.dark-mode .month-badge {
+        background-color: rgba(16, 185, 129, 0.15) !important;
+      }
+      body.dark-mode .nav-item.active {
+        color: var(--secondary) !important;
       }
     </style>
   </head>
@@ -257,13 +353,13 @@
     <div class="app-container">
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_analytics">Analytics</span>
+        <span data-i18n="title_analytics">Analytics</span>
       </div>
 
       <div class="content-body">
-        <div class="chart-card">
+        <div class="chart-card animate-zoom-in">
           <div class="chart-header">
-            <h3 class="chart-title" data-lang="monthly_expenses">
+            <h3 class="chart-title" data-i18n="monthly_expenses">
               Monthly Expenses
             </h3>
             <div class="month-badge" id="monthBadge">This Month</div>
@@ -271,42 +367,52 @@
 
           <div class="chart-container">
             <canvas id="expenseChart"></canvas>
-            <div id="noDataMsg" style="display: none" data-lang="no_expenses">
+            <div id="noDataMsg" style="display: none" data-i18n="no_expenses">
               No expenses recorded this month.
             </div>
           </div>
 
           <div class="total-expense-display">
-            <p data-lang="total_spent">Total Spent</p>
+            <p data-i18n="total_spent">Total Spent</p>
             <h2>$<span id="totalSpent">0.00</span></h2>
           </div>
         </div>
 
-        <h3 class="list-header" data-lang="expense_breakdown">
+        <h3
+          class="list-header animate-fade-up"
+          style="animation-delay: 0.1s"
+          data-i18n="expense_breakdown"
+        >
           Expense Breakdown
         </h3>
 
         <div class="expense-list">
-          <div class="expense-item">
+          <div
+            class="expense-item animate-fade-up"
+            style="animation-delay: 0.2s"
+          >
             <div class="expense-left">
               <div class="expense-icon bills">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
               </div>
               <div class="expense-info">
-                <h4 data-lang="cat_bills">Bills & Utilities</h4>
+                <h4 id="lblBills" data-i18n="cat_bills">Bills & Utilities</h4>
                 <p id="billsCount">0 transactions</p>
               </div>
             </div>
             <div class="expense-amount" id="billsTotalAmt">$0.00</div>
           </div>
 
-          <div class="expense-item">
+          <div
+            class="expense-item animate-fade-up"
+            style="animation-delay: 0.3s"
+          >
             <div class="expense-left">
               <div class="expense-icon transfers">
                 <i class="fa-solid fa-paper-plane"></i>
               </div>
               <div class="expense-info">
-                <h4 data-lang="cat_transfers">Transfers</h4>
+                <h4 id="lblTransfers" data-i18n="cat_transfers">Transfers</h4>
                 <p id="transfersCount">0 transactions</p>
               </div>
             </div>
@@ -316,120 +422,91 @@
       </div>
 
       <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item"
-          ><i class="fa-solid fa-house"></i>
-          <span data-lang="nav_home">Home</span></a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i>
-          <span data-lang="nav_scan">Scan</span></a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-lang="nav_history">History</span></a
-        >
-        <a href="settings.html" class="nav-item"
-          ><i class="fa-solid fa-gear"></i>
-          <span data-lang="nav_settings">Settings</span></a
-        >
+        <a href="dashboard.html" class="nav-item">
+          <i class="fa-solid fa-house"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="scan.html" class="nav-item">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="nav_scan">Scan</span>
+        </a>
+        <a href="history.html" class="nav-item">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-i18n="nav_history">History</span>
+        </a>
+        <a href="settings.html" class="nav-item">
+          <i class="fa-solid fa-gear"></i>
+          <span data-i18n="nav_settings">Settings</span>
+        </a>
       </div>
     </div>
 
     <script>
-      // 🔥 JWT Security
+      // Session Validation
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
-      const authHeaders = {
+      const authHeaders = window.authHeaders || {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
       let expenseChart = null;
 
-      const translations = {
-        en: {
-          title_analytics: "Analytics",
-          monthly_expenses: "Monthly Expenses",
-          no_expenses: "No expenses recorded this month.",
-          total_spent: "Total Spent",
-          expense_breakdown: "Expense Breakdown",
-          cat_bills: "Bills & Utilities",
-          cat_transfers: "Transfers",
-          trx_text: "transactions",
-          nav_home: "Home",
-          nav_scan: "Scan",
-          nav_history: "History",
-          nav_settings: "Settings",
-        },
-        kh: {
-          title_analytics: "វិភាគ",
-          monthly_expenses: "ចំណាយប្រចាំខែ",
-          no_expenses: "មិនមានប្រតិបត្តិការចំណាយទេខែនេះ។",
-          total_spent: "ចំណាយសរុប",
-          expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
-          cat_bills: "បង់វិក្កយបត្រផ្សេងៗ",
-          cat_transfers: "វេរប្រាក់ចេញ",
-          trx_text: "ប្រតិបត្តិការ",
-          nav_home: "ទំព័រដើម",
-          nav_scan: "ស្កេន",
-          nav_history: "ប្រវត្តិ",
-          nav_settings: "ការកំណត់",
-        },
-      };
-
-      function applyLang() {
-        let currentLang = localStorage.getItem("lang") || "en";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key])
-            el.innerText = translations[currentLang][key];
-        });
-        document.body.style.fontFamily =
-          currentLang === "kh"
-            ? "'Kantumruy Pro', sans-serif"
-            : "'Inter', 'Kantumruy Pro', sans-serif";
-        return currentLang;
+      // Theme Support Function
+      function applyTheme() {
+        const userThemeKey = "darkMode_" + user.username;
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
       }
 
-      if (localStorage.getItem("darkMode") === "true")
-        document.body.classList.add("dark-mode");
+      window.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
+        setupMonthBadge();
+        fetchAndLoadAnalytics();
+      });
 
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      const monthNamesKh = [
-        "មករា",
-        "កុម្ភៈ",
-        "មីនា",
-        "មេសា",
-        "ឧសភា",
-        "មិថុនា",
-        "កក្កដា",
-        "សីហា",
-        "កញ្ញា",
-        "តុលា",
-        "វិច្ឆិកា",
-        "ធ្នូ",
-      ];
-      const d = new Date();
-      let currLang = applyLang();
-      document.getElementById("monthBadge").innerText =
-        currLang === "kh"
-          ? monthNamesKh[d.getMonth()]
-          : monthNames[d.getMonth()];
+      function setupMonthBadge() {
+        const d = new Date();
+        const currentLang = localStorage.getItem("lang") || "en";
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const monthNamesKh = [
+          "មករា",
+          "កុម្ភៈ",
+          "មីនា",
+          "មេសា",
+          "ឧសភា",
+          "មិថុនា",
+          "កក្កដា",
+          "សីហា",
+          "កញ្ញា",
+          "តុលា",
+          "វិច្ឆិកា",
+          "ធ្នូ",
+        ];
+        document.getElementById("monthBadge").innerText =
+          currentLang === "kh"
+            ? monthNamesKh[d.getMonth()]
+            : monthNames[d.getMonth()];
+      }
 
       function parseDateString(dateStr) {
         if (!dateStr) return new Date();
@@ -441,7 +518,6 @@
 
       async function fetchAndLoadAnalytics() {
         try {
-          // 🔥 ទាញទិន្នន័យថ្មីដោយប្រើ Token
           const res = await fetch("/api/users", { headers: authHeaders });
           if (res.ok) {
             const users = await res.json();
@@ -454,10 +530,10 @@
           }
         } catch (err) {
           console.error("Sync Error:", err);
+          renderAnalytics(user.transactions || []);
         }
       }
 
-      // 🔥 Animate លេខអោយរត់ពី 0 ទៅចំនួនពិតប្រាកដ
       function animateValue(obj, start, end, duration) {
         let startTimestamp = null;
         const step = (timestamp) => {
@@ -481,7 +557,6 @@
 
         transactions.forEach((t) => {
           if (t.amount < 0 && (t.currency === "USD" || !t.currency)) {
-            // គិតតែ USD សិនសម្រាប់ Chart
             const tDate = parseDateString(t.date);
             if (
               tDate.getMonth() === currentMonth &&
@@ -500,12 +575,11 @@
 
         const totalExpense = billsTotal + transfersTotal;
         const totalSpan = document.getElementById("totalSpent");
-        animateValue(totalSpan, 0, totalExpense, 1000); // ធ្វើអោយលេខរត់រលូន
+        animateValue(totalSpan, 0, totalExpense, 1000);
 
-        let trxWord =
-          currLang === "kh"
-            ? translations.kh.trx_text
-            : translations.en.trx_text;
+        const currentLang = localStorage.getItem("lang") || "en";
+        let trxWord = currentLang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
+
         document.getElementById("billsCount").innerText =
           `${billsCount} ${trxWord}`;
         document.getElementById("billsTotalAmt").innerText =
@@ -531,27 +605,23 @@
 
         if (expenseChart) expenseChart.destroy();
 
-        let lblBills =
-          currLang === "kh"
-            ? translations.kh.cat_bills
-            : translations.en.cat_bills;
-        let lblTransfers =
-          currLang === "kh"
-            ? translations.kh.cat_transfers
-            : translations.en.cat_transfers;
+        // Dynamically get translated labels rendered by lang.js
+        let lblBillsText =
+          document.getElementById("lblBills").innerText || "Bills & Utilities";
+        let lblTransfersText =
+          document.getElementById("lblTransfers").innerText || "Transfers";
 
-        // 🔥 Doughnut Chart ថ្មីដែលមាន Animation លោតស្អាត
         expenseChart = new Chart(ctx, {
           type: "doughnut",
           data: {
-            labels: [lblBills, lblTransfers],
+            labels: [lblBillsText, lblTransfersText],
             datasets: [
               {
                 data: [billsTotal, transfersTotal],
                 backgroundColor: ["#ef4444", "#f59e0b"],
-                borderWidth: isDark ? 2 : 3,
-                borderColor: isDark ? "#1e1e1e" : "#ffffff",
-                hoverOffset: 10,
+                borderWidth: isDark ? 4 : 4,
+                borderColor: isDark ? "#1e293b" : "#ffffff",
+                hoverOffset: 8,
                 borderRadius: 5,
               },
             ],
@@ -569,9 +639,17 @@
             plugins: {
               legend: {
                 position: "right",
-                labels: { usePointStyle: true, boxWidth: 8, padding: 15 },
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 10,
+                  padding: 20,
+                  font: { weight: "600" },
+                },
               },
               tooltip: {
+                backgroundColor: isDark ? "#0f172a" : "#1e293b",
+                padding: 12,
+                cornerRadius: 8,
                 callbacks: {
                   label: function (context) {
                     return " $" + context.parsed.toFixed(2);
@@ -582,8 +660,6 @@
           },
         });
       }
-
-      fetchAndLoadAnalytics();
     </script>
   </body>
 </html>
