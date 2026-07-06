@@ -10,7 +10,11 @@ const { verifyUser } = require("../middleware/authMiddleware");
 // ៣. កំណត់ Routes
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
-router.delete("/:merchantId", verifyUser, merchantController.deleteMerchant);
+router.delete(
+  "/api/merchants/delete/:merchantId",
+  verifyUser,
+  merchantController.deleteMerchant,
+);
 
 // 🔥 បន្ថែម ២ ជួរនេះសម្រាប់ Dashboard និង Report
 router.get(

@@ -2201,7 +2201,7 @@
           }
         }
 
-        function deleteMerchant(id) {
+        async function deleteMerchant(id) {
           let isKh = window.currentLang === "kh";
           Swal.fire({
             title: isKh ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
@@ -2213,40 +2213,48 @@
             confirmButtonColor: "#ef4444",
             confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
           }).then(async (result) => {
-            // 🔥 ត្រូវមាន async
             if (result.isConfirmed) {
-              // លុបក្នុង Array
-              window.currentUser.merchantProfile.merchants =
-                window.currentUser.merchantProfile.merchants.filter(
-                  (x) => x.id !== id,
-                );
-
-              // 🔥 បន្ថែមការ Update ទៅ Server
               try {
-                await fetch("/api/update-user", {
-                  method: "POST",
+                // 🔥 កែទីនេះ៖ ប្រើ Endpoint ដែលបងមានស្រាប់ក្នុង Controller
+                const response = await fetch(`/api/merchants/delete/${id}`, {
+                  method: "DELETE", // ត្រូវប្រាកដថា Controller បងប្រើ method DELETE
                   headers: window.authHeaders,
-                  body: JSON.stringify(window.currentUser),
                 });
 
-                sessionStorage.setItem(
-                  "user",
-                  JSON.stringify(window.currentUser),
-                );
-                renderMerchantList();
-                Swal.fire({
-                  icon: "success",
-                  title: isKh ? "លុបរួចរាល់" : "Deleted",
-                  timer: 1500,
-                  showConfirmButton: false,
-                });
+                const data = await response.json();
+
+                if (data.success) {
+                  // លុបចេញពី Array បន្ទាប់ពីលុបជោគជ័យលើ Server
+                  window.currentUser.merchantProfile.merchants =
+                    window.currentUser.merchantProfile.merchants.filter(
+                      (x) => x.id !== id,
+                    );
+
+                  sessionStorage.setItem(
+                    "user",
+                    JSON.stringify(window.currentUser),
+                  );
+                  renderMerchantList();
+
+                  Swal.fire({
+                    icon: "success",
+                    title: isKh ? "លុបរួចរាល់" : "Deleted",
+                    timer: 1500,
+                    showConfirmButton: false,
+                  });
+                } else {
+                  throw new Error(data.message || "Failed to delete");
+                }
               } catch (err) {
-                Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+                Swal.fire(
+                  "Error",
+                  isKh ? "មិនអាចលុបបានទេ" : "Could not delete shop",
+                  "error",
+                );
               }
             }
           });
         }
-
         // ==========================================
         // មុខងារបង្កើតហាងថ្មី (CREATE MERCHANT)
         // ==========================================

@@ -90,15 +90,15 @@ exports.getMyMerchants = async (req, res) => {
 };
 
 // ៣. មុខងារលុបហាង (Delete Merchant)
+// ក្នុងឯកសារ Controller របស់បង
 exports.deleteMerchant = async (req, res) => {
   try {
-    const { merchantId } = req.params;
-    // 🔥 កែទី៤៖ ពេលលុប ក៏ត្រូវផ្ទៀងផ្ទាត់តាម username ដូចគ្នា
-    const userId = req.user.username || req.user.id || req.user._id;
+    const { merchantId } = req.params; // ទទួលយក ID ពី URL
+    const userId = req.user.username; // យក username ពី Auth Middleware
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
-      userId: userId,
+      userId: userId, // ផ្ទៀងផ្ទាត់ថាម្ចាស់ហាងពិតមែន
     });
 
     if (!merchant) {
@@ -111,8 +111,7 @@ exports.deleteMerchant = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Merchant deleted successfully" });
   } catch (error) {
-    console.error("DEBUG ERROR (DELETE):", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
