@@ -77,6 +77,7 @@ function showSection(id, btn) {
   const sections = [
     "dashboard",
     "users",
+    "merchants",
     "check-trx",
     "broadcast-history",
     "fx",

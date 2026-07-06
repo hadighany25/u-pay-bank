@@ -95,7 +95,18 @@
       >
         <i class="fa-solid fa-users"></i> User Management
       </div>
-
+      <div
+        class="menu-item"
+        id="menu-merchants"
+        onclick="
+          showSection('merchants', this);
+          toggleSidebar(false);
+          loadMerchantsData();
+        "
+        data-i18n="menu-merchants"
+      >
+        <i class="fa-solid fa-store"></i> Merchant Mgmt
+      </div>
       <div class="menu-label" id="label-ops" data-i18n="menu-ops">
         Operations
       </div>
@@ -600,6 +611,59 @@
         </div>
       </div>
 
+      <!-- Merchant Management -->
+      <div
+        id="sec-merchants"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title" data-i18n="merchant-title">
+              Merchant Management
+            </h2>
+            <p class="dash-desc" data-i18n="merchant-desc">
+              Manage business accounts, approve shops, and monitor activities.
+            </p>
+          </div>
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="text"
+              id="searchMerchantBox"
+              placeholder="Search by shop name..."
+              onkeyup="filterMerchants()"
+            />
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="merchantTable">
+            <thead>
+              <tr>
+                <th data-i18n="shop-info">Shop / Merchant Info</th>
+                <th data-i18n="owner-info">Owner / Account</th>
+                <th data-i18n="merchant-balance">Balance</th>
+                <th data-i18n="status-freeze">Status / Freeze</th>
+                <th style="text-align: right" data-i18n="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="merchantTableBody">
+              <tr>
+                <td
+                  colspan="5"
+                  style="
+                    text-align: center;
+                    padding: 20px;
+                    color: var(--text-muted);
+                  "
+                >
+                  Loading merchants data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- FX -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2
@@ -967,8 +1031,8 @@
                 background: white;
               "
             >
-              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main)">
-                <i class="fa-solid fa-headset" style="color: var(--accent)"></i>
+              <h3 style="margin: 0; font-size: 1.1rem">
+                <i class="fa-solid fa-headset"></i>
                 <span data-i18n="support-messages">Support Messages</span>
               </h3>
             </div>
@@ -1639,5 +1703,6 @@
     <script src="js/admin-users.js"></script>
     <script src="js/admin-finance.js"></script>
     <script src="js/admin-ops.js"></script>
+    <script src="js/admin-merchants.js"></script>
   </body>
 </html>

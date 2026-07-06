@@ -46,7 +46,13 @@ const translations = {
     cancel: "Cancel",
     "create-promo-code": "Create Promo Code",
     save: "Save",
-
+    "menu-merchants": "Merchant Mgmt",
+    "merchant-title": "Merchant Management",
+    "merchant-desc":
+      "Manage business accounts, approve shops, and monitor activities.",
+    "shop-info": "Shop / Merchant Info",
+    "owner-info": "Owner / Account",
+    "merchant-balance": "Balance",
     // បន្ថែមពាក្យផ្សេងៗទៀតតាមក្រោយបាន...
     "dash-title": "Platform Overview",
   },
@@ -66,7 +72,7 @@ const translations = {
     "menu-kyc": "ឯកសារបញ្ជាក់អត្តសញ្ញាណ",
     "menu-tickets": "សំបុត្រជំនួយ (Tickets)",
     "menu-chat": "ឆាតគាំទ្រអតិថិជន",
-    "menu-super": "សម្រាប់តែមេធំប៉ុណ្ណោះ",
+    "menu-super": "សម្រាប់អ្នកគ្រប់គ្រងកំពូល",
     "menu-admins": "គ្រប់គ្រងបុគ្គលិក",
     "menu-logs": "ប្រវត្តិសកម្មភាព (Logs)",
     "menu-system": "គ្រប់គ្រងប្រព័ន្ធ (System)",
@@ -97,6 +103,12 @@ const translations = {
     cancel: "បោះបង់",
     "create-promo-code": "បង្កើតកូដប្រូម៉ូសិន",
     save: "រក្សាទុក",
+    "menu-merchants": "គ្រប់គ្រងអាជីវកម្ម",
+    "merchant-title": "ការគ្រប់គ្រងអាជីវកម្ម (Merchant)",
+    "merchant-desc": "គ្រប់គ្រងគណនីហាង អនុម័តអាជីវកម្ម និងតាមដានសកម្មភាព។",
+    "shop-info": "ព័ត៌មានហាង",
+    "owner-info": "ម្ចាស់ហាង / គណនី",
+    "merchant-balance": "សមតុល្យហាង",
   },
 };
 
