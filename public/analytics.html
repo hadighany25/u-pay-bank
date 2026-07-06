@@ -258,6 +258,32 @@
         color: var(--primary);
         transform: translateY(-3px);
       }
+      /* បង្កើត Loading Spinner */
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* បង្ហាញអក្សរពេលកំពុងផ្ទុក */
+      .loading-text {
+        text-align: center;
+        color: var(--text-light);
+        font-size: 0.9rem;
+        margin-top: 10px;
+      }
 
       /* DARK MODE */
       body.dark-mode {
@@ -425,86 +451,125 @@
         return isNaN(d.getTime()) ? null : d;
       }
 
-      // 🔥 Function សម្រាប់កំណត់ពណ៍ និង Icon តាមប្រភេទនីមួយៗយ៉ាងឆ្លាតវៃ
       function getCategoryStyle(catName) {
         const nameLower = catName.toLowerCase();
 
-        if (nameLower.includes("food") || nameLower.includes("ម្ហូប"))
-          return {
+        // មុខងារនេះជួយបង្កើតពណ៌ដោយស្វ័យប្រវត្តិ បើមិនជួបក្នុងបញ្ជី
+        const vibrantColors = [
+          { color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" }, // ស្វាយ
+          { color: "#06b6d4", bg: "rgba(6, 182, 212, 0.1)" }, // ខៀវស្រាល
+          { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" }, // លឿងទុំ
+          { color: "#d946ef", bg: "rgba(217, 70, 239, 0.1)" }, // ផ្កាឈូកក្រម៉ៅ
+          { color: "#0ea5e9", bg: "rgba(14, 165, 233, 0.1)" }, // មេឃ
+        ];
+
+        // ជ្រើសរើសពណ៌តាមលេខសម្គាល់នៃឈ្មោះ (ដើម្បីឱ្យឈ្មោះដដែល ជាប់ពណ៌ដដែល)
+        const hash = nameLower
+          .split("")
+          .reduce((a, b) => a + b.charCodeAt(0), 0);
+        const dynamicColor = vibrantColors[hash % vibrantColors.length];
+
+        // កំណត់កូដពណ៌សម្រាប់ប្រភេទនីមួយៗ
+        const map = {
+          food: {
             icon: "fa-utensils",
             color: "#f97316",
             bg: "rgba(249, 115, 22, 0.1)",
-          };
-        if (nameLower.includes("fashion") || nameLower.includes("សំលៀកបំពាក់"))
-          return {
+          },
+          ម្ហូប: {
+            icon: "fa-utensils",
+            color: "#f97316",
+            bg: "rgba(249, 115, 22, 0.1)",
+          },
+          fashion: {
             icon: "fa-shirt",
             color: "#ec4899",
             bg: "rgba(236, 72, 153, 0.1)",
-          };
-        if (
-          nameLower.includes("transportation") ||
-          nameLower.includes("ដឹកជញ្ជូន")
-        )
-          return {
+          },
+          សំលៀកបំពាក់: {
+            icon: "fa-shirt",
+            color: "#ec4899",
+            bg: "rgba(236, 72, 153, 0.1)",
+          },
+          transportation: {
             icon: "fa-car",
             color: "#14b8a6",
             bg: "rgba(20, 184, 166, 0.1)",
-          };
-        if (nameLower.includes("health") || nameLower.includes("សុខភាព"))
-          return {
+          },
+          ដឹកជញ្ជូន: {
+            icon: "fa-car",
+            color: "#14b8a6",
+            bg: "rgba(20, 184, 166, 0.1)",
+          },
+          health: {
             icon: "fa-heart-pulse",
             color: "#f43f5e",
             bg: "rgba(244, 63, 94, 0.1)",
-          };
-        if (nameLower.includes("education") || nameLower.includes("អប់រំ"))
-          return {
+          },
+          សុខភាព: {
+            icon: "fa-heart-pulse",
+            color: "#f43f5e",
+            bg: "rgba(244, 63, 94, 0.1)",
+          },
+          education: {
             icon: "fa-book-open",
             color: "#6366f1",
             bg: "rgba(99, 102, 241, 0.1)",
-          };
-        if (
-          nameLower.includes("electronics") ||
-          nameLower.includes("អេឡិចត្រូនិក")
-        )
-          return {
-            icon: "fa-mobile-screen",
-            color: "#8b5cf6",
-            bg: "rgba(139, 92, 246, 0.1)",
-          };
-
-        if (nameLower.includes("bill") || nameLower.includes("utility"))
-          return {
+          },
+          អប់រំ: {
+            icon: "fa-book-open",
+            color: "#6366f1",
+            bg: "rgba(99, 102, 241, 0.1)",
+          },
+          bill: {
             icon: "fa-file-invoice-dollar",
             color: "#ef4444",
             bg: "rgba(239, 68, 68, 0.1)",
-          };
-        if (nameLower.includes("merchant") || nameLower.includes("scan"))
-          return {
+          },
+          merchant: {
             icon: "fa-store",
             color: "#3b82f6",
             bg: "rgba(59, 130, 246, 0.1)",
-          };
-        if (nameLower.includes("transfer") || nameLower.includes("u-pay"))
-          return {
+          },
+          scan: {
+            icon: "fa-qrcode",
+            color: "#3b82f6",
+            bg: "rgba(59, 130, 246, 0.1)",
+          },
+          transfer: {
             icon: "fa-paper-plane",
             color: "#f59e0b",
             bg: "rgba(245, 158, 11, 0.1)",
-          };
+          },
+        };
 
-        // Default ផ្សេងៗ
+        for (let key in map) {
+          if (nameLower.includes(key)) return map[key];
+        }
+
+        // បើមិនជួបក្នុង map ខាងលើ វានឹងប្រើពណ៌ស្រស់ស្អាត (Dynamic Color) ជំនួសឱ្យពណ៌ប្រផេះ
         return {
           icon: "fa-layer-group",
-          color: "#64748b",
-          bg: "rgba(100, 116, 139, 0.1)",
+          color: dynamicColor.color,
+          bg: dynamicColor.bg,
         };
       }
 
-      function loadAnalyticsData() {
+      async function loadAnalyticsData() {
+        const listContainer = document.getElementById("dynamicExpenseList");
+        const chartCtx = document.getElementById("expenseChart");
+        const noDataMsg = document.getElementById("noDataMsg");
+
+        // 🔥 ១. បង្ហាញ Loading State
+        listContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> បងកំពុងផ្ទុកទិន្នន័យ...</div>`;
+
+        // ប្រើ setTimeout ដើម្បីឱ្យ Browser មានពេល Render អក្សរ Loading
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         const filter = document.getElementById("timeFilter").value;
         const now = new Date();
         const txns = activeUser.transactions || [];
 
-        // 🔥 Object ដើម្បីផ្ទុកទិន្នន័យចំណាយតាមប្រភេទរៀងៗខ្លួន
         let aggregatedData = {};
         let totalExpense = 0;
 
@@ -528,23 +593,21 @@
               let typeStr = (t.type || "").toLowerCase();
               let finalCategory = "Other";
 
-              // វិភាគ Category យ៉ាងឆ្លាតវៃ
               if (
                 typeStr.includes("merchant") ||
                 typeStr.includes("scan") ||
                 typeStr.includes("qr")
               ) {
-                finalCategory = t.category || "Merchant Payment"; // ចាប់យក Category ពីហាង បើមាន
+                finalCategory = t.category || "Merchant Payment";
               } else if (
                 typeStr.includes("bill") ||
                 typeStr.includes("utility")
               ) {
                 finalCategory = "Bills & Utilities";
               } else {
-                finalCategory = t.trxMethod || t.type || "Transfer"; // ចាប់យក Payment Via ឬ Transfer ធម្មតា
+                finalCategory = t.trxMethod || t.type || "Transfer";
               }
 
-              // បញ្ចូលទិន្នន័យទៅក្នុង Object
               if (!aggregatedData[finalCategory]) {
                 aggregatedData[finalCategory] = { total: 0, count: 0 };
               }
@@ -557,22 +620,15 @@
 
         document.getElementById("totalSpent").innerText =
           totalExpense.toFixed(2);
+        listContainer.innerHTML = ""; // លាង Loading ចេញ
 
-        // បម្លែង Object ទៅជា Array ដើម្បីងាយស្រួលរៀបតាមទំហំទឹកប្រាក់
-        let categoriesArray = Object.keys(aggregatedData).map((key) => {
-          return {
+        let categoriesArray = Object.keys(aggregatedData)
+          .map((key) => ({
             name: key,
             total: aggregatedData[key].total,
             count: aggregatedData[key].count,
-          };
-        });
-
-        // រៀបតាមទឹកប្រាក់ពីច្រើនទៅតិច
-        categoriesArray.sort((a, b) => b.total - a.total);
-
-        // 🔥 បង្កើត UI និង Chart Data
-        const listContainer = document.getElementById("dynamicExpenseList");
-        listContainer.innerHTML = ""; // លុបចោលទិន្នន័យចាស់
+          }))
+          .sort((a, b) => b.total - a.total);
 
         let chartLabels = [];
         let chartData = [];
@@ -581,15 +637,16 @@
         const currentLang = localStorage.getItem("lang") || "en";
         let trxWord = currentLang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
 
+        if (categoriesArray.length === 0) {
+          listContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-light);">${currentLang === "kh" ? "មិនមានប្រតិបត្តិការទេ" : "No transactions found"}</div>`;
+        }
+
         categoriesArray.forEach((cat) => {
           let style = getCategoryStyle(cat.name);
-
-          // បញ្ចូលចូលក្នុង Chart Arrays
           chartLabels.push(cat.name);
           chartData.push(cat.total);
           chartColors.push(style.color);
 
-          // បង្កើត HTML សម្រាប់ List
           listContainer.innerHTML += `
               <div class="expense-item">
                 <div class="expense-left">
@@ -606,34 +663,22 @@
             `;
         });
 
-        // គូររង្វង់ Chart
-        const ctx = document.getElementById("expenseChart").getContext("2d");
+        // គូរ Chart
+        const ctx = chartCtx.getContext("2d");
         const isDark = document.body.classList.contains("dark-mode");
-
-        Chart.defaults.color = isDark ? "#94a3b8" : "#64748b";
-        Chart.defaults.font.family = "'Inter', 'Kantumruy Pro', sans-serif";
-
-        if (totalExpense === 0) {
-          document.getElementById("expenseChart").style.display = "none";
-          document.getElementById("noDataMsg").style.display = "block";
-          if (expenseChart) expenseChart.destroy();
-          return;
-        } else {
-          document.getElementById("expenseChart").style.display = "block";
-          document.getElementById("noDataMsg").style.display = "none";
-        }
 
         if (expenseChart) expenseChart.destroy();
 
-        expenseChart = new Chart(ctx, {
+        // 🔥 បង្ហាញ Gray Placeholder ពេលគ្មានទិន្នន័យជំនួសឱ្យការលាក់ Chart
+        const chartConfig = {
           type: "doughnut",
           data: {
-            labels: chartLabels,
+            labels: totalExpense === 0 ? ["No Data"] : chartLabels,
             datasets: [
               {
-                data: chartData,
-                backgroundColor: chartColors,
-                borderWidth: isDark ? 3 : 2,
+                data: totalExpense === 0 ? [1] : chartData,
+                backgroundColor: totalExpense === 0 ? ["#e2e8f0"] : chartColors,
+                borderWidth: totalExpense === 0 ? 0 : isDark ? 3 : 2,
                 borderColor: isDark ? "#1e293b" : "#ffffff",
                 hoverOffset: 8,
               },
@@ -643,31 +688,22 @@
             responsive: true,
             maintainAspectRatio: false,
             cutout: "75%",
-            animation: { animateScale: true, animateRotate: true },
             plugins: {
               legend: {
                 position: "right",
-                labels: {
-                  usePointStyle: true,
-                  boxWidth: 8,
-                  padding: 15,
-                  font: { weight: "600" },
-                },
+                labels: { usePointStyle: true, boxWidth: 8 },
               },
               tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    let percentage = (
-                      (context.parsed / totalExpense) *
-                      100
-                    ).toFixed(1);
-                    return ` $${context.parsed.toFixed(2)} (${percentage}%)`;
-                  },
-                },
+                enabled: totalExpense > 0,
+                callbacks: { label: (ctx) => ` $${ctx.parsed.toFixed(2)}` },
               },
             },
           },
-        });
+        };
+
+        chartCtx.style.display = "block";
+        noDataMsg.style.display = totalExpense === 0 ? "block" : "none";
+        expenseChart = new Chart(ctx, chartConfig);
       }
     </script>
   </body>
