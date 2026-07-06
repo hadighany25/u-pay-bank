@@ -383,7 +383,7 @@
       <div class="nav-header">
         <div style="display: flex; align-items: center; gap: 15px">
           <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-          <span data-i18n="nav_history">History</span>
+          <span data-i18n="nav_history_title">Transaction History</span>
         </div>
       </div>
 
@@ -588,61 +588,95 @@
           filtered = filtered.filter((t) => t.amount > 0);
         if (currentFilterType === "out")
           filtered = filtered.filter((t) => t.amount < 0);
-        currentTransactions = filtered;
 
-        if (filtered.length === 0) {
+        // 🔥 រៀបចំទិន្នន័យតាមថ្ងៃ (ពីថ្មីមកចាស់)
+        currentTransactions = filtered.sort(
+          (a, b) => new Date(b.date) - new Date(a.date),
+        );
+
+        if (currentTransactions.length === 0) {
           list.innerHTML =
             '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>មិនមានប្រតិបត្តិការទេ / No Transactions</p></div>';
           return;
         }
 
-        list.innerHTML = filtered
-          .map((t, index) => {
-            const isIncome = t.amount > 0;
-            const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-            const color = isIncome ? "text-green" : "text-red";
-            const bg = isIncome ? "bg-green" : "bg-red";
-            const isKHR = t.currency === "KHR";
-            const currSym = isKHR ? "៛" : "$";
+        list.innerHTML = ""; // លាងទិន្នន័យចាស់ចេញ
+        let lastDateLabel = ""; // អថេរចាំទុកថ្ងៃ
 
-            // 🔥 ការកំណត់ឈ្មោះឆ្លាតវៃថ្មី (ចាប់យក អ្នកផ្ញើ, អ្នកទទួល ឬ ហាង)
-            let name = "";
-            if (isIncome) {
-              // លុយចូល: អទិភាពលើឈ្មោះអ្នកផ្ញើ ឬឈ្មោះហាង
-              name =
-                t.senderName ||
-                t.merchantName ||
-                t.name ||
-                t.type ||
-                "Received";
-            } else {
-              // លុយចេញ: អទិភាពលើឈ្មោះអ្នកទទួល ឬឈ្មោះហាង
-              name =
-                t.receiverName ||
-                t.merchantName ||
-                t.name ||
-                t.type ||
-                "Transfer";
-            }
+        currentTransactions.forEach((t, index) => {
+          const isIncome = t.amount > 0;
+          const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+          const color = isIncome ? "text-green" : "text-red";
+          const bg = isIncome ? "bg-green" : "bg-red";
+          const isKHR = t.currency === "KHR";
+          const currSym = isKHR ? "៛" : "$";
 
-            // ប្រសិនបើឈ្មោះលោត U-Pay Central Bank ឱ្យវាទាញយកប្រភេទជាក់ស្តែងមកជំនួស
-            if (name === "U-Pay Central Bank" || name === "U-Pay Bank") {
-              name = t.trxMethod || t.type || "System Transaction";
-            }
+          // 🔥 ព្យាយាមទាញយកថ្ងៃខែឱ្យបានត្រឹមត្រូវ
+          let dateObj = new Date(t.date);
+          if (isNaN(dateObj.getTime()) && t.date && t.date.includes(",")) {
+            dateObj = new Date(t.date.split(",")[0].trim());
+          }
+          if (isNaN(dateObj.getTime())) dateObj = new Date(); // បើគ្មានថ្ងៃ ដាក់ថ្ងៃនេះ
 
-            return `
-            <div class="trx-item" onclick="showSlip(${index})">
-              <div class="trx-left">
-                <div class="trx-icon ${bg}"><i class="fa-solid ${icon} ${color}"></i></div>
-                <div class="trx-info">
-                  <h4 style="text-transform: capitalize;">${name}</h4>
-                  <p>${t.date} • ${t.trxMethod || "U-Pay"}</p>
-                </div>
+          // 🔥 បម្លែងថ្ងៃខែទៅជាទម្រង់ស្អាត ឧទាហរណ៍: "JUL 04, 2026"
+          let dateStr = dateObj
+            .toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+            })
+            .toUpperCase();
+
+          // បើថ្ងៃប្តូរ ត្រូវបង្កើត Header ថ្មី
+          if (dateStr !== lastDateLabel) {
+            const dateHeader = document.createElement("div");
+            dateHeader.style.cssText =
+              "font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;";
+            dateHeader.innerText = dateStr;
+            list.appendChild(dateHeader);
+            lastDateLabel = dateStr;
+          }
+
+          // 🔥 Smart Naming System
+          let name = "";
+          if (isIncome) {
+            name =
+              t.senderName || t.merchantName || t.name || t.type || "Received";
+          } else {
+            name =
+              t.receiverName ||
+              t.merchantName ||
+              t.name ||
+              t.type ||
+              "Transfer";
+          }
+
+          if (name === "U-Pay Central Bank" || name === "U-Pay Bank") {
+            name = t.trxMethod || t.type || "System Transaction";
+          }
+
+          // ទាញម៉ោង
+          let timeStr = dateObj.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          // បង្កើត Element ថ្មីសម្រាប់ប្រតិបត្តិការ
+          const item = document.createElement("div");
+          item.className = "trx-item";
+          item.onclick = () => showSlip(index);
+          item.innerHTML = `
+            <div class="trx-left">
+              <div class="trx-icon ${bg}"><i class="fa-solid ${icon} ${color}"></i></div>
+              <div class="trx-info">
+                <h4 style="text-transform: capitalize;">${name}</h4>
+                <p>${timeStr} • ${t.trxMethod || "U-Pay"}</p>
               </div>
-              <div class="trx-amount ${color}">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
-            </div>`;
-          })
-          .join("");
+            </div>
+            <div class="trx-amount ${color}">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
+          `;
+          list.appendChild(item);
+        });
       }
 
       function renderMessages(messages) {
@@ -931,7 +965,6 @@
             const isIn = amount > 0;
             const [ds, ts] = formatDateToPDF(t.date);
 
-            // 🔥 ក្នុង PDF ក៏ឆ្លាតវៃក្នុងការចាប់ឈ្មោះអ្នកផ្ញើ/ហាងដូចគ្នា
             let sender = sanitizeForPDF(
               (
                 t.senderName ||
@@ -959,7 +992,6 @@
                   : `TRANSFER TO ${receiver}`;
             }
 
-            // Override ក្នុង PDF ករណីឈ្មោះ Central Bank
             if (
               detailsText.includes("U-PAY CENTRAL BANK") ||
               detailsText.includes("U-PAY BANK")
