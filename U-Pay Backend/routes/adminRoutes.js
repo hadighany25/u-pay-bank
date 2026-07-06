@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { checkRole } = require("../middleware/authMiddleware");
-const Merchant = require("../models/Merchant");
 
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
@@ -152,18 +151,4 @@ router.post(
   checkRole(["super_admin", "finance_admin"]),
   adminController.togglePromoCode,
 );
-
-router.get("/all-merchants", verifyUser, async (req, res) => {
-  try {
-    // ឆែកមើលថាតើជា Super Admin ឬអត់
-    if (req.user.role !== ROLE_SUPER) {
-      return res.status(403).json({ success: false, message: "Access Denied" });
-    }
-
-    const merchants = await Merchant.find({}); // ពេលនេះវានឹងដើរ ព្រោះបាន Import Merchant រួចហើយ
-    res.json({ success: true, merchants });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 module.exports = router;

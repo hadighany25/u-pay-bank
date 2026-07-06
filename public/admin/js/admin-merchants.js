@@ -80,18 +80,4 @@ function renderMerchantsTable(merchants) {
     `;
     tbody.appendChild(tr);
   });
-  // បន្ថែមមុខងារនេះចូលក្នុង admin-merchants.js
-  function viewMerchantTrx(mid) {
-    // ដាក់លេខកូដចូលប្រអប់ស្វែងរក
-    const searchInput = document.getElementById("searchTrxId");
-    if (searchInput) {
-      searchInput.value = mid;
-      // ប្តូរ Tab ទៅ Transaction Check
-      showSection("check-trx");
-      // ហៅមុខងារស្វែងរក
-      if (typeof searchTrx === "function") {
-        searchTrx();
-      }
-    }
-  }
 }
