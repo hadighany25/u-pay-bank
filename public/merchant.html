@@ -2172,14 +2172,28 @@
 
           if (newName && newName !== m.name) {
             m.name = newName;
-            sessionStorage.setItem("user", JSON.stringify(window.currentUser));
-            renderMerchantList();
-            Swal.fire({
-              icon: "success",
-              title: isKh ? "ជោគជ័យ" : "Success",
-              timer: 1500,
-              showConfirmButton: false,
-            });
+
+            // 🔥 បន្ថែមការ Update ទៅ Server
+            try {
+              await fetch("/api/update-user", {
+                method: "POST",
+                headers: window.authHeaders, // ត្រូវប្រាកដថាបងមានអថេរនេះ
+                body: JSON.stringify(window.currentUser),
+              });
+              sessionStorage.setItem(
+                "user",
+                JSON.stringify(window.currentUser),
+              );
+              renderMerchantList();
+              Swal.fire({
+                icon: "success",
+                title: isKh ? "ជោគជ័យ" : "Success",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+            } catch (err) {
+              Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+            }
           }
         }
 
@@ -2196,23 +2210,35 @@
             cancelButtonColor: "#64748b",
             confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
             cancelButtonText: isKh ? "បោះបង់" : "Cancel",
-          }).then((result) => {
+          }).then(async (result) => {
+            // បន្ថែម async
             if (result.isConfirmed) {
               window.currentUser.merchantProfile.merchants =
                 window.currentUser.merchantProfile.merchants.filter(
                   (x) => x.id !== id,
                 );
-              sessionStorage.setItem(
-                "user",
-                JSON.stringify(window.currentUser),
-              );
-              renderMerchantList();
-              Swal.fire({
-                icon: "success",
-                title: isKh ? "លុបរួចរាល់" : "Deleted",
-                timer: 1500,
-                showConfirmButton: false,
-              });
+
+              // 🔥 បន្ថែមការ Update ទៅ Server
+              try {
+                await fetch("/api/update-user", {
+                  method: "POST",
+                  headers: window.authHeaders,
+                  body: JSON.stringify(window.currentUser),
+                });
+                sessionStorage.setItem(
+                  "user",
+                  JSON.stringify(window.currentUser),
+                );
+                renderMerchantList();
+                Swal.fire({
+                  icon: "success",
+                  title: isKh ? "លុបរួចរាល់" : "Deleted",
+                  timer: 1500,
+                  showConfirmButton: false,
+                });
+              } catch (err) {
+                Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+              }
             }
           });
         }
