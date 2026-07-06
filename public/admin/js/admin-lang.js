@@ -144,14 +144,16 @@ function applyLanguage() {
   elements.forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (translations[currentLang] && translations[currentLang][key]) {
+      // ត្រួតពិនិត្យរកមើល Icon មុនពេលជំនួសអត្ថបទ
+      const icon = el.querySelector("i");
+      const iconHtml = icon ? icon.outerHTML : "";
+
       // បើជាប្រអប់ Input លោតចូល Placeholder
       if (el.tagName === "INPUT" && el.hasAttribute("placeholder")) {
         el.placeholder = translations[currentLang][key];
       } else {
-        // បើជា Text ធម្មតា (យើងរក្សា Icon ទុកដដែល)
-        const icon = el.querySelector("i");
-        el.innerHTML =
-          (icon ? icon.outerHTML + " " : "") + translations[currentLang][key];
+        // បញ្ចូល Icon មកវិញ រួចតាមដោយអត្ថបទបកប្រែ
+        el.innerHTML = iconHtml + " " + translations[currentLang][key];
       }
     }
   });

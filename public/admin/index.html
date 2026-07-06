@@ -664,40 +664,28 @@
               "
               class="c360-tabs"
             >
-              <div
-                class="c360-tab active"
-                onclick="switchC360Tab('finance')"
-                data-i18n="tab-finance"
-              >
-                <i class="fa-solid fa-wallet"></i> Wallets & Cards
-              </div>
-              <div
-                class="c360-tab"
-                onclick="switchC360Tab('kyc')"
-                data-i18n="tab-kyc"
-              >
-                <i class="fa-solid fa-id-card"></i> KYC
-              </div>
-              <div
-                class="c360-tab"
-                onclick="switchC360Tab('trx')"
-                data-i18n="tab-trx"
-              >
-                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
-              </div>
-              <div
-                class="c360-tab"
-                onclick="switchC360Tab('security')"
-                data-i18n="tab-security"
-              >
-                <i class="fa-solid fa-shield-halved"></i> Security
-              </div>
-              <div
-                class="c360-tab"
-                onclick="switchC360Tab('logs')"
-                data-i18n="tab-logs"
-              >
-                <i class="fa-solid fa-clock-rotate-left"></i> Admin Logs
+              <!-- កែសម្រួល Tab របស់អ្នកក្នុង index.html ឱ្យទៅជាទម្រង់នេះ -->
+              <div class="c360-tabs">
+                <div class="c360-tab active" onclick="switchC360Tab('finance')">
+                  <i class="fa-solid fa-wallet"></i>
+                  <span data-i18n="tab-finance">Wallets & Cards</span>
+                </div>
+                <div class="c360-tab" onclick="switchC360Tab('kyc')">
+                  <i class="fa-solid fa-id-card"></i>
+                  <span data-i18n="tab-kyc">KYC</span>
+                </div>
+                <div class="c360-tab" onclick="switchC360Tab('trx')">
+                  <i class="fa-solid fa-money-bill-transfer"></i>
+                  <span data-i18n="tab-trx">Transactions</span>
+                </div>
+                <div class="c360-tab" onclick="switchC360Tab('security')">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  <span data-i18n="tab-security">Security</span>
+                </div>
+                <div class="c360-tab" onclick="switchC360Tab('logs')">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                  <span data-i18n="tab-logs">Admin Logs</span>
+                </div>
               </div>
             </div>
 
