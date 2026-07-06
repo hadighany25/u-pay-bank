@@ -264,7 +264,28 @@ const translations = {
     filter_today: "Today",
     filter_month: "This Month",
     filter_year: "This Year",
+
+    // =====================================
+    // --- History ---
+    // =====================================
+    title_analytics: "Analytics",
+    monthly_expenses: "Monthly Expenses",
+    no_expenses: "No expenses recorded this month.",
+    total_spent: "Total Spent",
+    expense_breakdown: "Expense Breakdown",
+    cat_bills: "Bills & Utilities",
+    cat_transfers: "Transfers",
+    cat_merchant: "Merchant Payment",
+    nav_home: "Home",
+    nav_scan: "Scan",
+    nav_history: "History",
+    nav_settings: "Settings",
+    filter_today: "Today",
+    filter_month: "This Month",
+    filter_year: "This Year",
+    nav_history_title: "Transaction History",
   },
+
   // ភាសាខ្មែរ (Khmer) Translation
   kh: {
     // ===============================
@@ -532,6 +553,26 @@ const translations = {
   filter_today: "ថ្ងៃនេះ",
   filter_month: "ខែនេះ",
   filter_year: "ឆ្នាំនេះ",
+
+  // =====================================
+  // --- History ---
+  // =====================================
+  title_analytics: "វិភាគទិន្នន័យ",
+  monthly_expenses: "ចំណាយប្រចាំខែ",
+  no_expenses: "មិនមានប្រតិបត្តិការចំណាយទេខែនេះ។",
+  total_spent: "ចំណាយសរុប",
+  expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
+  cat_bills: "បង់វិក្កយបត្រ",
+  cat_transfers: "វេរប្រាក់ចេញ",
+  cat_merchant: "បង់ប្រាក់អាជីវករ",
+  nav_home: "ទំព័រដើម",
+  nav_scan: "ស្កេន",
+  nav_history: "ប្រវត្តិ",
+  nav_settings: "ការកំណត់",
+  filter_today: "ថ្ងៃនេះ",
+  filter_month: "ខែនេះ",
+  filter_year: "ឆ្នាំនេះ",
+  nav_history_title: "ប្រវត្តិប្រតិបត្តិការ",
 };
 
 function applyLanguage() {

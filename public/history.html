@@ -5,21 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Transaction History - U-Pay</title>
+
+    <!-- Fonts & Icons -->
     <link
-      rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/slip.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- External Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- U-Pay Core Scripts -->
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="/js/slip.js"></script>
+
     <style>
       body {
         background-color: #f2f4f6;
@@ -312,137 +320,6 @@
         font-weight: 700;
       }
 
-      /* =========================================
-         SLIP MODAL UI 
-         ========================================= */
-      .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-      .slip-container {
-        width: 330px;
-        background: transparent;
-        animation: slideUp 0.3s ease-out;
-        display: flex;
-        flex-direction: column;
-      }
-      @keyframes slideUp {
-        from {
-          transform: translateY(50px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
-      }
-      .slip-top {
-        background: #004d40;
-        color: white;
-        padding: 30px 20px 20px;
-        text-align: center;
-        border-radius: 16px 16px 0 0;
-      }
-      .slip-middle {
-        background: white;
-        padding: 20px;
-        position: relative;
-      }
-      .slip-middle::before,
-      .slip-middle::after {
-        content: "";
-        position: absolute;
-        bottom: -10px;
-        width: 20px;
-        height: 20px;
-        background: rgba(0, 0, 0, 0.85);
-        border-radius: 50%;
-        z-index: 2;
-      }
-      .slip-middle::before {
-        left: -10px;
-      }
-      .slip-middle::after {
-        right: -10px;
-      }
-
-      .slip-bottom {
-        background: white;
-        padding: 0 20px 20px;
-        border-radius: 0 0 16px 16px;
-      }
-      .slip-divider {
-        border-top: 2px dashed #e2e8f0;
-        margin-bottom: 15px;
-      }
-      .slip-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.85rem;
-        margin-bottom: 12px;
-      }
-      .slip-label {
-        color: #94a3b8;
-        font-weight: 500;
-      }
-      .slip-value {
-        color: #1e293b;
-        font-weight: 700;
-        text-align: right;
-        max-width: 65%;
-        word-wrap: break-word;
-      }
-      .slip-value.mono {
-        color: #0284c7;
-        font-family: monospace;
-        font-size: 0.95rem;
-      }
-
-      .slip-actions-row {
-        display: flex;
-        justify-content: center;
-        gap: 25px;
-        margin-top: 25px;
-        animation: slideUp 0.4s ease-out;
-      }
-      .slip-btn-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-      }
-      .slip-btn-circle {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        color: #004d40;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        transition: 0.2s;
-      }
-      .slip-btn-circle:active {
-        transform: scale(0.95);
-      }
-      .slip-btn-label {
-        font-size: 0.85rem;
-        color: white;
-        font-weight: 600;
-      }
-
       /* Dark Mode Adjustments */
       body.dark-mode {
         background: #000;
@@ -499,16 +376,6 @@
         background: #450a0a;
         color: #f87171;
       }
-      body.dark-mode .slip-middle,
-      body.dark-mode .slip-bottom {
-        background: #1e1e1e;
-      }
-      body.dark-mode .slip-value {
-        color: white;
-      }
-      body.dark-mode .slip-divider {
-        border-color: #333;
-      }
     </style>
   </head>
   <body>
@@ -516,7 +383,7 @@
       <div class="nav-header">
         <div style="display: flex; align-items: center; gap: 15px">
           <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-          <span>History</span>
+          <span data-i18n="nav_history">History</span>
         </div>
       </div>
 
@@ -611,42 +478,61 @@
 
       <div class="bottom-nav">
         <a href="dashboard.html" class="nav-item">
-          <i class="fa-solid fa-house"></i> Home
+          <i class="fa-solid fa-house"></i>
+          <span data-i18n="nav_home">Home</span>
         </a>
         <a href="scan.html" class="nav-item">
-          <i class="fa-solid fa-qrcode"></i> Scan
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="nav_scan">Scan</span>
         </a>
         <a href="#" class="nav-item active">
-          <i class="fa-solid fa-clock-rotate-left"></i> History
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-i18n="nav_history">History</span>
         </a>
         <a href="settings.html" class="nav-item">
-          <i class="fa-solid fa-gear"></i> Settings
+          <i class="fa-solid fa-gear"></i>
+          <span data-i18n="nav_settings">Settings</span>
         </a>
       </div>
     </div>
 
     <script>
-      // 🔥 JWT SECURITY & SESSION MANAGEMENT
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken");
+      // 🔥 ការពារមិនឱ្យជាន់អថេរ (Syntax Error) ជាដាច់ខាត ដោយប្តូរឈ្មោះ Variable
+      const sessionUser = JSON.parse(sessionStorage.getItem("user"));
+      const sessionToken = sessionStorage.getItem("userToken");
 
       // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
-      if (!user || !token) window.location.href = "index.html";
+      if (!sessionUser || !sessionToken) window.location.href = "index.html";
 
-      // បង្កើត Headers ដេរភ្ជាប់ជាមួយ Token រាល់ពេលហៅ API
-      const authHeaders = {
+      const authHeadersFetch = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${sessionToken}`,
       };
 
-      let fullUserTransactions = user.transactions || [];
+      let fullUserTransactions = sessionUser.transactions || [];
       let currentTransactions = [];
       let currentFilterType = "all";
       let deletedMessages =
-        JSON.parse(localStorage.getItem(`deletedMsgs_${user.username}`)) || [];
+        JSON.parse(
+          localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
+        ) || [];
 
-      if (localStorage.getItem("darkMode") === "true")
-        document.body.classList.add("dark-mode");
+      // Theme Application
+      function applyThemeHistory() {
+        const userThemeKey = "darkMode_" + sessionUser.username;
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+          document.getElementById("btn-trx").style.background = "#0f172a";
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        applyThemeHistory();
+        if (typeof applyLanguage === "function") applyLanguage();
+      });
 
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -667,20 +553,20 @@
 
       async function syncAllData() {
         try {
-          // 🔥 បន្ថែម Headers ដើម្បីសុំសិទ្ធិទាញទិន្នន័យពី API ដែលចាក់សោរ
-          const res = await fetch("/api/users", { headers: authHeaders });
-
+          const res = await fetch("/api/users", { headers: authHeadersFetch });
           if (res.ok) {
             const users = await res.json();
-            const serverUser = users.find((u) => u.username === user.username);
+            const serverUser = users.find(
+              (u) => u.username === sessionUser.username,
+            );
 
             if (serverUser) {
-              user.notifications = serverUser.notifications || [];
+              sessionUser.notifications = serverUser.notifications || [];
               fullUserTransactions = serverUser.transactions || [];
-              user.accountNumber = serverUser.accountNumber;
-              user.accountNumberKHR = serverUser.accountNumberKHR;
-              sessionStorage.setItem("user", JSON.stringify(user));
-              renderMessages(user.notifications);
+              sessionUser.accountNumber = serverUser.accountNumber;
+              sessionUser.accountNumberKHR = serverUser.accountNumberKHR;
+              sessionStorage.setItem("user", JSON.stringify(sessionUser));
+              renderMessages(sessionUser.notifications);
               renderTransactions();
             }
           }
@@ -688,6 +574,9 @@
           console.error("Sync Error:", err);
         }
       }
+
+      // ទាញទិន្នន័យលើកដំបូង និងដាក់ Interval
+      syncAllData();
       setInterval(syncAllData, 3000);
 
       function renderTransactions() {
@@ -695,13 +584,11 @@
         const selectedCurrency =
           document.getElementById("exportCurrency").value;
 
-        // ចម្រាញ់យកតែប្រតិបត្តិការតាមរូបិយប័ណ្ណដែលបានជ្រើសរើស (USD ឬ KHR)
         let filtered = fullUserTransactions.filter((t) => {
           if (selectedCurrency === "KHR") return t.currency === "KHR";
-          return !t.currency || t.currency === "USD"; // ប្រវត្តិអាស់ៗដែលគ្មាន currency ចាត់ទុកជា USD
+          return !t.currency || t.currency === "USD";
         });
 
-        // តម្រងចំណូល ចំណាយ
         if (currentFilterType === "in")
           filtered = filtered.filter((t) => t.amount > 0);
         if (currentFilterType === "out")
@@ -710,7 +597,7 @@
 
         if (filtered.length === 0) {
           list.innerHTML =
-            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>មិនមានប្រតិបត្តិការទេ</p></div>';
+            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>មិនមានប្រតិបត្តិការទេ / No Transactions</p></div>';
           return;
         }
 
@@ -722,12 +609,20 @@
             const bg = isIncome ? "bg-green" : "bg-red";
             const isKHR = t.currency === "KHR";
             const currSym = isKHR ? "៛" : "$";
-            const name =
+
+            // 🔥 ការកំណត់ឈ្មោះឆ្លាតវៃ (Smart Naming)
+            let name =
               t.type === "Transfer"
                 ? isIncome
                   ? t.senderName
                   : t.receiverName
                 : t.type;
+
+            // ប្រសិនបើឈ្មោះលោត U-Pay Central Bank ឱ្យវាទាញយកប្រភេទជាក់ស្តែងមកជំនួស (Lucky Spin, Fixed Deposit...)
+            if (name === "U-Pay Central Bank" || name === "U-Pay Bank") {
+              name = t.trxMethod || t.type || "System Transaction";
+            }
+            if (!name) name = "Transaction";
 
             return `
             <div class="trx-item" onclick="showSlip(${index})">
@@ -751,7 +646,7 @@
         );
 
         if (activeMsgs.length === 0) {
-          containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ</p></div>`;
+          containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ / No New Messages</p></div>`;
           return;
         }
 
@@ -776,23 +671,23 @@
 
       function deleteMessage(title, date) {
         Swal.fire({
-          title: "លុបសារ?",
-          text: "តើអ្នកពិតជាចង់លុបសារនេះមែនទេ?",
+          title: "លុបសារ? / Delete Message?",
+          text: "តើអ្នកពិតជាចង់លុបសារនេះមែនទេ? / Are you sure?",
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: "#dc2626",
           cancelButtonColor: "#94a3b8",
-          confirmButtonText: "យល់ព្រម",
-          cancelButtonText: "បោះបង់",
+          confirmButtonText: "យល់ព្រម / Yes",
+          cancelButtonText: "បោះបង់ / Cancel",
         }).then((result) => {
           if (result.isConfirmed) {
             const msgKey = date + title;
             deletedMessages.push(msgKey);
             localStorage.setItem(
-              `deletedMsgs_${user.username}`,
+              `deletedMsgs_${sessionUser.username}`,
               JSON.stringify(deletedMessages),
             );
-            renderMessages(user.notifications);
+            renderMessages(sessionUser.notifications);
           }
         });
       }
@@ -812,9 +707,10 @@
         const containerTrx = document.getElementById("historyList");
         const containerMsg = document.getElementById("messagesContainer");
         const filterBar = document.getElementById("trxFilterBar");
+        const isDark = document.body.classList.contains("dark-mode");
 
         if (tab === "trx") {
-          btnTrx.style.background = "#e0f2fe";
+          btnTrx.style.background = isDark ? "#0f172a" : "#e0f2fe";
           btnTrx.style.color = "#0284c7";
           btnMsg.style.background = "transparent";
           btnMsg.style.color = "#64748b";
@@ -822,7 +718,7 @@
           filterBar.style.display = "flex";
           containerMsg.style.display = "none";
         } else {
-          btnMsg.style.background = "#e0f2fe";
+          btnMsg.style.background = isDark ? "#0f172a" : "#e0f2fe";
           btnMsg.style.color = "#0284c7";
           btnTrx.style.background = "transparent";
           btnTrx.style.color = "#64748b";
@@ -831,10 +727,12 @@
           containerMsg.style.display = "block";
         }
       }
-      // ឧទាហរណ៍នៅក្នុង history.html
+
       function showSlip(index) {
         const t = currentTransactions[index];
-        openGlobalSlip(t, user.username); // ហៅមកប្រើខ្លីៗបែបនេះ
+        if (typeof openGlobalSlip === "function") {
+          openGlobalSlip(t, sessionUser.username);
+        }
       }
 
       // 🔥 EXPORT STATEMENT PERFECTED
@@ -881,13 +779,11 @@
               .trim();
           };
 
-          // ១. ចម្រាញ់យកតែប្រតិបត្តិការតាមរូបិយប័ណ្ណដែលរើស
           const currTrx = (fullUserTransactions || []).filter((t) => {
             if (selectedCurrency === "KHR") return t.currency === "KHR";
             return !t.currency || t.currency === "USD";
           });
 
-          // ២. រៀបតាមកាលបរិច្ឆេទពីចាស់ទៅថ្មី ដើម្បីបូកសមតុល្យ Balance
           const allTrxAsc = [...currTrx].sort(
             (a, b) => new Date(a.date) - new Date(b.date),
           );
@@ -898,7 +794,6 @@
             t.computedBalance = runningBal;
           });
 
-          // ៣. ចាប់យកទិន្នន័យជាក់ស្តែងតាមចន្លោះថ្ងៃដែលបានរើស
           const stTrx = allTrxAsc.filter((t) => {
             const d = new Date(t.date);
             if (isNaN(d)) return false;
@@ -906,7 +801,6 @@
             return iso >= start && iso <= end;
           });
 
-          // រកសមតុល្យដើមគ្រា (ពីមុនថ្ងៃ Start)
           const beforeStTrx = allTrxAsc.filter((t) => {
             const d = new Date(t.date);
             if (isNaN(d)) return false;
@@ -926,7 +820,6 @@
             .filter((t) => num(t.amount) < 0)
             .reduce((s, t) => s + Math.abs(num(t.amount)), 0);
 
-          // Header
           doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 70, 25);
           doc.setFont("helvetica", "bold");
           doc.setFontSize(20);
@@ -952,19 +845,17 @@
           doc.setLineWidth(1.5);
           doc.line(40, 85, pageWidth - 40, 85);
 
-          // User info
           let y = 110;
           doc.setFontSize(12);
           doc.setTextColor(0);
           const userNameStr = sanitizeForPDF(
-            (user.fullName || user.username).toUpperCase(),
+            (sessionUser.fullName || sessionUser.username).toUpperCase(),
           );
           doc.text(userNameStr, 40, y);
           doc.setFontSize(10);
           doc.setTextColor(100);
           doc.text("Phnom Penh, Cambodia", 40, y + 15);
 
-          // Account Details
           let detailY = 110;
           const rightColX = 350;
           const valueColX = pageWidth - 40;
@@ -978,8 +869,8 @@
 
           const accNo =
             selectedCurrency === "KHR"
-              ? user.accountNumberKHR || "N/A"
-              : user.accountNumber || "N/A";
+              ? sessionUser.accountNumberKHR || "N/A"
+              : sessionUser.accountNumber || "N/A";
 
           const details = [
             ["Account Name", userNameStr],
@@ -996,7 +887,6 @@
             doc.text(item[1], valueColX, detailY, { align: "right" });
           });
 
-          // Account Summary
           let summaryY = detailY + 30;
           doc.setFont("helvetica", "bold");
           doc.text("ACCOUNT SUMMARY", rightColX, summaryY);
@@ -1053,6 +943,17 @@
             } else {
               detailsText = `${typeName} TO ${!isIn ? receiver : sender}`;
             }
+
+            // Override U-Pay Central Bank in PDF
+            if (
+              detailsText.includes("U-PAY CENTRAL BANK") ||
+              detailsText.includes("U-PAY BANK")
+            ) {
+              detailsText = sanitizeForPDF(
+                (t.trxMethod || t.type || "SYSTEM TRANSACTION").toUpperCase(),
+              );
+            }
+
             detailsText += `\nREF# ${t.refId || "N/A"}`;
             if (t.remark)
               detailsText += `\nREMARK: ${sanitizeForPDF(t.remark)}`;
@@ -1163,16 +1064,13 @@
           });
 
           doc.save(
-            `Statement_${user.username}_${selectedCurrency}_${start}.pdf`,
+            `Statement_${sessionUser.username}_${selectedCurrency}_${start}.pdf`,
           );
         } catch (e) {
           console.error(e);
           Swal.fire("Error", "បញ្ហាក្នុងការទាញយក PDF: " + e.message, "error");
         }
       }
-
-      syncAllData();
-      renderTransactions();
     </script>
   </body>
 </html>
