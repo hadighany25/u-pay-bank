@@ -27,16 +27,6 @@
     <div class="overlay" onclick="toggleSidebar()"></div>
 
     <div class="sidebar" id="sidebar">
-      <div class="brand">
-        <img
-          src="../images/logo-nobg.png"
-          alt="U-PAY"
-          style="height: 75px; display: block"
-          onerror="
-            this.src = 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
-          "
-        />
-      </div>
       <div
         style="
           padding: 0 20px 20px;
@@ -330,7 +320,7 @@
         <div class="dash-header">
           <div>
             <h2 class="dash-title" data-i18n="dash-title">Platform Overview</h2>
-            <p class="dash-desc">
+            <p class="dash-desc" data-i18n="Real-time">
               Real-time statistics and insights for U-Pay.
             </p>
           </div>
@@ -359,7 +349,7 @@
               <i class="fa-solid fa-users"></i>
             </div>
             <div class="stat-text">
-              <p>Total Users</p>
+              <p data-i18n="total-users">Total Users</p>
               <h3 id="d-users">0</h3>
             </div>
           </div>
@@ -368,7 +358,7 @@
             <div class="stat-icon" style="background: #f0f9ff; color: #0ea5e9">
               <i class="fa-solid fa-user-check"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="active-today">
               <p>Active Today</p>
               <h3 id="d-active">0</h3>
             </div>
@@ -378,7 +368,7 @@
             <div class="stat-icon" style="background: #fff1f2; color: #f43f5e">
               <i class="fa-solid fa-user-plus"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="new-registrations">
               <p>New Registrations</p>
               <h3 id="d-new-users">0</h3>
             </div>
@@ -388,7 +378,7 @@
             <div class="stat-icon" style="background: #ecfdf5; color: #10b981">
               <i class="fa-solid fa-vault"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="system-funds">
               <p>System Funds</p>
               <h3 id="d-balance">$0.00</h3>
             </div>
@@ -398,7 +388,7 @@
             <div class="stat-icon" style="background: #f0fdfa; color: #14b8a6">
               <i class="fa-solid fa-piggy-bank"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="fixed-deposits">
               <p>Fixed Deposits</p>
               <h3 id="d-fixed-dep">$0.00</h3>
             </div>
@@ -408,7 +398,7 @@
             <div class="stat-icon" style="background: #f5f3ff; color: #8b5cf6">
               <i class="fa-solid fa-hand-holding-dollar"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="system-revenue">
               <p>System Revenue</p>
               <h3 id="d-revenue">$0.00</h3>
             </div>
@@ -418,7 +408,7 @@
             <div class="stat-icon" style="background: #fffbeb; color: #f59e0b">
               <i class="fa-solid fa-money-bill-transfer"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="total-transactions">
               <p>Total Transactions</p>
               <h3 id="d-trx">0</h3>
             </div>
@@ -428,7 +418,7 @@
             <div class="stat-icon" style="background: #fff7ed; color: #f97316">
               <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="pending-approvals">
               <p>Pending Approvals</p>
               <h3 id="d-pending">0</h3>
             </div>
@@ -438,7 +428,7 @@
             <div class="stat-icon" style="background: #fef2f2; color: #ef4444">
               <i class="fa-solid fa-arrow-up-right-dots"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="total-withdrawals">
               <p>Total Withdrawals</p>
               <h3 id="d-withdrawals">$0.00</h3>
             </div>
@@ -448,7 +438,7 @@
             <div class="stat-icon" style="background: #eef2ff; color: #6366f1">
               <i class="fa-solid fa-tower-broadcast"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="broadcasts-sent">
               <p>Broadcasts Sent</p>
               <h3 id="d-broadcasts">0</h3>
             </div>
@@ -458,7 +448,7 @@
             <div class="stat-icon" style="background: #f0fdfa; color: #06b6d4">
               <i class="fa-solid fa-money-bill-trend-up"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="total-transfers">
               <p>Total Transfers</p>
               <h3 id="d-transfers">0</h3>
             </div>
@@ -468,7 +458,7 @@
             <div class="stat-icon" style="background: #f1f5f9; color: #64748b">
               <i class="fa-solid fa-user-lock"></i>
             </div>
-            <div class="stat-text">
+            <div class="stat-text" data-i18n="frozen-accounts">
               <p>Frozen Accounts</p>
               <h3 id="d-frozen">0</h3>
             </div>
@@ -477,16 +467,21 @@
         <div class="dash-grid">
           <div class="dash-card">
             <div class="card-header">
-              <h3 class="card-title">Transaction Volume (Last 7 Days)</h3>
+              <h3 class="card-title" data-i18n="trx-volume">
+                Transaction Volume (Last 7 Days)
+              </h3>
             </div>
             <div class="chart-container"><canvas id="trxChart"></canvas></div>
           </div>
           <div class="dash-card">
             <div class="card-header">
-              <h3 class="card-title">Recent Activity</h3>
+              <h3 class="card-title" data-i18n="recent-activity">
+                Recent Activity
+              </h3>
             </div>
             <div id="activity-feed" class="activity-feed">
               <div
+                data-i18n="loading-activities"
                 style="
                   text-align: center;
                   padding: 20px 0;
@@ -506,7 +501,9 @@
         style="display: none; max-width: 1400px; margin: 0 auto"
       >
         <div class="table-header-controls">
-          <h2 class="dash-title">User Management</h2>
+          <h2 class="dash-title" data-i18n="user-management">
+            User Management
+          </h2>
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i
             ><input
@@ -521,11 +518,11 @@
           <table id="userTable">
             <thead>
               <tr>
-                <th>Profile Info</th>
-                <th>Account No.</th>
-                <th>Current Balance</th>
-                <th>Status / Freeze</th>
-                <th style="text-align: right">Actions</th>
+                <th data-i18n="profile-info">Profile Info</th>
+                <th data-i18n="account-no">Account No.</th>
+                <th data-i18n="current-balance">Current Balance</th>
+                <th data-i18n="status-freeze">Status / Freeze</th>
+                <th style="text-align: right" data-i18n="actions">Actions</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -535,7 +532,11 @@
 
       <!-- Trx Check -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
-        <h2 class="dash-title" style="text-align: center; margin-bottom: 20px">
+        <h2
+          class="dash-title"
+          style="text-align: center; margin-bottom: 20px"
+          data-i18n="trx-verification"
+        >
           Transaction Verification
         </h2>
         <div class="trx-search-lg">
@@ -545,7 +546,7 @@
             placeholder="Enter Reference ID or Hash Code to trace..."
           />
           <button onclick="searchTrx()">
-            <i class="fa-solid fa-magnifying-glass"></i> Trace
+            <i class="fa-solid fa-magnifying-glass" data-i18n="trace"></i> Trace
           </button>
         </div>
         <div id="trxResult" class="trx-result-card"></div>
@@ -558,11 +559,16 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Broadcast History</h2>
-            <p class="dash-desc">Manage system-wide notifications.</p>
+            <h2 class="dash-title" data-i18n="broadcast-history">
+              Broadcast History
+            </h2>
+            <p class="dash-desc" data-i18n="manage-broadcasts">
+              Manage system-wide notifications.
+            </p>
           </div>
           <button class="btn-primary" onclick="sendBroadcast()">
-            <i class="fa-solid fa-paper-plane"></i> Send New Broadcast
+            <i class="fa-solid fa-paper-plane"></i>
+            <span data-i18n="send-broadcast">Send New Broadcast</span>
           </button>
         </div>
         <div class="table-container">
@@ -572,12 +578,15 @@
                 <th style="width: 15%">Date & Time</th>
                 <th style="width: 20%">Title</th>
                 <th style="width: 50%">Message Content</th>
-                <th style="width: 15%; text-align: right">Action</th>
+                <th style="width: 15%; text-align: right" data-i18n="action">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody id="broadcastList">
               <tr>
                 <td
+                  data-i18n="loading-history"
                   colspan="4"
                   style="
                     text-align: center;
@@ -595,15 +604,22 @@
 
       <!-- FX -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
-        <h2 class="dash-title" style="text-align: center; margin-bottom: 30px">
+        <h2
+          class="dash-title"
+          style="text-align: center; margin-bottom: 30px"
+          data-i18n="fx-settings"
+        >
           Exchange Rate Settings
         </h2>
         <div class="fx-card">
           <div class="fx-row">
             <div>
-              <h4 style="margin: 0 0 5px 0">USD to KHR (Buy)</h4>
+              <h4 style="margin: 0 0 5px 0" data-i18n="usd-to-khr-buy">
+                USD to KHR (Buy)
+              </h4>
               <p
                 style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
+                data-i18n="bank-buys-usd"
               >
                 Bank buys USD from customer
               </p>
@@ -616,9 +632,12 @@
           </div>
           <div class="fx-row">
             <div>
-              <h4 style="margin: 0 0 5px 0">USD to KHR (Sell)</h4>
+              <h4 style="margin: 0 0 5px 0" data-i18n="usd-to-khr-sell">
+                USD to KHR (Sell)
+              </h4>
               <p
                 style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
+                data-i18n="bank-sells-usd"
               >
                 Bank sells USD to customer
               </p>
@@ -634,7 +653,8 @@
           </div>
           <div style="text-align: center; margin-top: 25px">
             <button class="btn-primary" onclick="updateFX()">
-              <i class="fa-solid fa-floppy-disk"></i> Save Rates
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span data-i18n="save-rates">Save Rates</span>
             </button>
           </div>
         </div>
@@ -645,10 +665,18 @@
         id="sec-fees"
         style="display: none; max-width: 1000px; margin: 0 auto"
       >
-        <h2 class="dash-title" style="text-align: center; margin-bottom: 10px">
+        <h2
+          class="dash-title"
+          style="text-align: center; margin-bottom: 10px"
+          data-i18n="fee-transfer-limits"
+        >
           Fee & Transfer Limits
         </h2>
-        <p class="dash-desc" style="text-align: center; margin-bottom: 30px">
+        <p
+          class="dash-desc"
+          style="text-align: center; margin-bottom: 30px"
+          data-i18n="manage-fee-limits"
+        >
           កំណត់តម្លៃសេវាវេរប្រាក់ និងកម្រិតទឹកប្រាក់អតិបរមាក្នុងមួយថ្ងៃ។
         </p>
         <div class="fx-card" style="margin-bottom: 20px">
@@ -658,9 +686,12 @@
           </h3>
           <div class="fx-row">
             <div>
-              <h4 style="margin: 0 0 5px 0">កម្រិតលុយវេរចេញ (មួយថ្ងៃ)</h4>
+              <h4 style="margin: 0 0 5px 0" data-i18n="daily-transfer-limit">
+                កម្រិតលុយវេរចេញ (មួយថ្ងៃ)
+              </h4>
               <p
                 style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
+                data-i18n="max-daily-transfer"
               >
                 លុយច្រើនបំផុតដែលអតិថិជនអាចវេរបាន
               </p>
@@ -689,7 +720,8 @@
                 class="fa-solid fa-hand-holding-dollar"
                 style="color: var(--secondary)"
               ></i>
-              Transaction Fees (កម្រៃសេវា)
+              <span data-i18n="transaction-fees">Transaction Fees</span>
+              (កម្រៃសេវា)
             </h3>
             <button
               class="btn-action"
@@ -705,11 +737,16 @@
           >
             <thead>
               <tr style="background: #f1f5f9; text-align: left">
-                <th style="padding: 10px; border-radius: 10px 0 0 10px">
+                <th
+                  style="padding: 10px; border-radius: 10px 0 0 10px"
+                  data-i18n="from-amount"
+                >
                   ចាប់ពីចំនួន ($)
                 </th>
-                <th style="padding: 10px">ដល់ចំនួន ($)</th>
-                <th style="padding: 10px">កាត់សេវា ($)</th>
+                <th style="padding: 10px" data-i18n="to-amount">
+                  ដល់ចំនួន ($)
+                </th>
+                <th style="padding: 10px" data-i18n="fee">កាត់សេវា ($)</th>
                 <th
                   style="
                     padding: 10px;
@@ -741,7 +778,7 @@
               "
             >
               <i class="fa-solid fa-floppy-disk" style="margin-right: 8px"></i>
-              រក្សាទុកការកំណត់
+              <span data-i18n="save-settings">រក្សាទុកការកំណត់</span>
             </button>
           </div>
         </div>
@@ -754,25 +791,30 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Promo Codes Management</h2>
-            <p class="dash-desc">
+            <h2 class="dash-title" data-i18n="promo-codes">
+              Promo Codes Management
+            </h2>
+            <p class="dash-desc" data-i18n="manage-promo-codes">
               បង្កើតកូដប្រូម៉ូសិន (Voucher) ដើម្បីទាក់ទាញអតិថិជនថ្មី
               ឬចែករង្វាន់។
             </p>
           </div>
           <button class="btn-primary" onclick="openPromoModal()">
-            <i class="fa-solid fa-plus"></i> បង្កើតកូដថ្មី
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="create-new-code">បង្កើតកូដថ្មី</span>
           </button>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>ឈ្មោះកូដ (Code)</th>
-                <th>រង្វាន់ (Reward)</th>
-                <th>អ្នកប្រើប្រាស់ (Usage)</th>
-                <th>ស្ថានភាព (Status)</th>
-                <th style="text-align: right">បិទ / បើកកូដ</th>
+                <th data-i18n="promo-code">ឈ្មោះកូដ (Code)</th>
+                <th data-i18n="reward">រង្វាន់ (Reward)</th>
+                <th data-i18n="usage">អ្នកប្រើប្រាស់ (Usage)</th>
+                <th data-i18n="status">ស្ថានភាព (Status)</th>
+                <th style="text-align: right" data-i18n="action">
+                  បិទ / បើកកូដ
+                </th>
               </tr>
             </thead>
             <tbody id="promoTableBody">
@@ -796,8 +838,10 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Card Management</h2>
-            <p class="dash-desc">
+            <h2 class="dash-title" data-i18n="card-management">
+              Card Management
+            </h2>
+            <p class="dash-desc" data-i18n="manage-issued-cards">
               Monitor and manage issued Virtual/Physical cards.
             </p>
           </div>
@@ -806,11 +850,11 @@
           <table>
             <thead>
               <tr>
-                <th>Card Holder</th>
-                <th>Card Number</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th style="text-align: right">Action</th>
+                <th data-i18n="card-holder">Card Holder</th>
+                <th data-i18n="card-number">Card Number</th>
+                <th data-i18n="type">Type</th>
+                <th data-i18n="status">Status</th>
+                <th style="text-align: right" data-i18n="action">Action</th>
               </tr>
             </thead>
             <tbody id="cardTableBody">
@@ -831,19 +875,23 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">KYC & Identity Approvals</h2>
-            <p class="dash-desc">Review pending user documents.</p>
+            <h2 class="dash-title" data-i18n="kyc-approvals">
+              KYC & Identity Approvals
+            </h2>
+            <p class="dash-desc" data-i18n="review-pending-documents">
+              Review pending user documents.
+            </p>
           </div>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>User Info</th>
-                <th>Document Type</th>
-                <th>Submitted Date</th>
-                <th>Status</th>
-                <th style="text-align: right">Action</th>
+                <th data-i18n="user-info">User Info</th>
+                <th data-i18n="document-type">Document Type</th>
+                <th data-i18n="submitted-date">Submitted Date</th>
+                <th data-i18n="status">Status</th>
+                <th style="text-align: right" data-i18n="action">Action</th>
               </tr>
             </thead>
             <tbody id="kycTableBody">
@@ -864,21 +912,25 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Support Tickets</h2>
-            <p class="dash-desc">Respond to user disputes and issues.</p>
+            <h2 class="dash-title" data-i18n="support-tickets">
+              Support Tickets
+            </h2>
+            <p class="dash-desc" data-i18n="respond-to-user-disputes">
+              Respond to user disputes and issues.
+            </p>
           </div>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>Ticket ID</th>
-                <th>Customer</th>
-                <th>Subject</th>
-                <th style="text-align: center">Message</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th style="text-align: right">Action</th>
+                <th data-i18n="ticket-id">Ticket ID</th>
+                <th data-i18n="customer">Customer</th>
+                <th data-i18n="subject">Subject</th>
+                <th style="text-align: center" data-i18n="message">Message</th>
+                <th data-i18n="priority">Priority</th>
+                <th data-i18n="status">Status</th>
+                <th style="text-align: right" data-i18n="action">Action</th>
               </tr>
             </thead>
             <tbody id="ticketTableBody"></tbody>
@@ -918,7 +970,11 @@
               "
             >
               <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main)">
-                <i class="fa-solid fa-headset" style="color: var(--accent)"></i>
+                <i
+                  class="fa-solid fa-headset"
+                  style="color: var(--accent)"
+                  data-i18n="support-messages"
+                ></i>
                 Support Messages
               </h3>
             </div>
@@ -927,6 +983,7 @@
               style="flex: 1; overflow-y: auto; padding: 10px"
             >
               <div
+                data-i18n="loading-contacts"
                 style="
                   text-align: center;
                   padding: 20px;
@@ -956,10 +1013,14 @@
                 align-items: center;
               "
             >
-              <h3 style="margin: 0; color: var(--text-main)">
+              <h3
+                style="margin: 0; color: var(--text-main)"
+                data-i18n="select-customer"
+              >
                 ជ្រើសរើសអតិថិជនដើម្បីឆាត
               </h3>
               <button
+                data-i18n="end-chat"
                 onclick="endAdminChat()"
                 style="
                   background: #ef4444;
@@ -995,11 +1056,15 @@
                   margin-top: 50px;
                 "
               >
+                <!-- ដាក់ data-i18n នៅលើ div តែម្តង ឬ tag ដែលត្រឹមត្រូវ -->
                 <i
                   class="fa-regular fa-comments"
                   style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5"
-                ></i
-                ><br />សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង
+                ></i>
+                <br />
+                <span data-i18n="select-message"
+                  >សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង</span
+                >
               </div>
             </div>
             <div
@@ -1054,29 +1119,35 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Admin Management</h2>
-            <p class="dash-desc">
+            <h2 class="dash-title" data-i18n="admin-management">
+              Admin Management
+            </h2>
+            <p class="dash-desc" data-i18n="manage-admin-accounts">
               គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
             </p>
           </div>
           <button class="btn-primary" onclick="openAdminModal()">
-            <i class="fa-solid fa-plus"></i> បង្កើតគណនីបុគ្គលិកថ្មី
+            <i class="fa-solid fa-plus" data-i18n="create-new-admin"></i>
+            បង្កើតគណនីបុគ្គលិកថ្មី
           </button>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>Username</th>
-                <th>តួនាទី (Role)</th>
-                <th>ម៉ោងធ្វើការ</th>
-                <th>ថ្ងៃបង្កើត</th>
-                <th style="text-align: right">សកម្មភាព (Action)</th>
+                <th data-i18n="username">Username</th>
+                <th data-i18n="role">តួនាទី (Role)</th>
+                <th data-i18n="working-hours">ម៉ោងធ្វើការ</th>
+                <th data-i18n="created-date">ថ្ងៃបង្កើត</th>
+                <th style="text-align: right" data-i18n="action">
+                  សកម្មភាព (Action)
+                </th>
               </tr>
             </thead>
             <tbody id="adminTableBody">
               <tr>
                 <td
+                  data-i18n="loading-admins"
                   colspan="5"
                   style="
                     text-align: center;
@@ -1099,29 +1170,36 @@
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title">Admin Audit Logs</h2>
-            <p class="dash-desc">
+            <h2 class="dash-title" data-i18n="admin-audit-logs">
+              Admin Audit Logs
+            </h2>
+            <p class="dash-desc" data-i18n="track-admin-activities">
               តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
           <button class="btn-cancel" onclick="loadAdminLogs()">
-            <i class="fa-solid fa-rotate-right"></i> ទាញយកទិន្នន័យថ្មី
+            <i class="fa-solid fa-rotate-right" data-i18n="reload-data"></i>
+            ទាញយកទិន្នន័យថ្មី
           </button>
         </div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>កាលបរិច្ឆេទ (Date)</th>
-                <th>គណនី Admin</th>
-                <th>សកម្មភាព (Action)</th>
-                <th>គោលដៅ (Target)</th>
-                <th>ព័ត៌មានលម្អិត (Details)</th>
+                <th data-i18n="date">កាលបរិច្ឆេទ (Date)</th>
+                <th data-i18n="admin-account">គណនី Admin</th>
+                <th data-i18n="action">សកម្មភាព (Action)</th>
+                <th data-i18n="target">គោលដៅ (Target)</th>
+                <th data-i18n="details">ព័ត៌មានលម្អិត (Details)</th>
               </tr>
             </thead>
             <tbody id="logsTableBody">
               <tr>
-                <td colspan="5" style="text-align: center; padding: 20px">
+                <td
+                  colspan="5"
+                  style="text-align: center; padding: 20px"
+                  data-i18n="loading-logs"
+                >
                   កំពុងទាញយកទិន្នន័យ...
                 </td>
               </tr>
@@ -1138,7 +1216,7 @@
       <div class="modal-card">
         <div class="modal-header">
           <i class="fa-solid fa-user-pen" style="font-size: 1.2rem"></i>
-          <h3>Edit Client Profile</h3>
+          <h3 data-i18n="edit-client-profile">Edit Client Profile</h3>
         </div>
         <div class="modal-body">
           <input type="hidden" id="editUserId" />
@@ -1159,7 +1237,7 @@
             />
           </div>
           <div class="form-group">
-            <label>Profile Image URL</label
+            <label data-i18n="profile-image-url">Profile Image URL</label
             ><input
               id="editProfileImg"
               class="form-input"
@@ -1171,15 +1249,15 @@
             />
           </div>
           <div class="form-group">
-            <label>Full Name / Username</label
+            <label data-i18n="full-name-username">Full Name / Username</label
             ><input id="editUsername" class="form-input" />
           </div>
           <div class="form-group">
-            <label>Account Number (USD)</label
+            <label data-i18n="account-number-usd">Account Number (USD)</label
             ><input id="editAccNum" class="form-input" type="number" />
           </div>
           <div class="form-group">
-            <label>Account Number (KHR)</label
+            <label data-i18n="account-number-khr">Account Number (KHR)</label
             ><input
               type="number"
               id="editAccNumKHR"
@@ -1188,7 +1266,7 @@
             />
           </div>
           <div class="form-group">
-            <label>Reset PIN</label
+            <label data-i18n="reset-pin">Reset PIN</label
             ><input
               id="editPin"
               type="text"
@@ -1198,7 +1276,7 @@
             />
           </div>
           <div class="form-group">
-            <label>Change Password</label
+            <label data-i18n="change-password">Change Password</label
             ><input
               id="editPassword"
               type="text"
@@ -1208,9 +1286,18 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" onclick="closeModal('editUserModal')">
-            Cancel</button
-          ><button class="btn-save btn-primary" onclick="saveUserEdit()">
+          <button
+            class="btn-cancel"
+            onclick="closeModal('editUserModal')"
+            data-i18n="cancel"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-save btn-primary"
+            onclick="saveUserEdit()"
+            data-i18n="save"
+          >
             Save Changes
           </button>
         </div>
@@ -1222,12 +1309,14 @@
       <div class="modal-card">
         <div class="modal-header">
           <i class="fa-solid fa-user-shield" style="font-size: 1.2rem"></i>
-          <h3 id="adminModalTitle">បន្ថែមបុគ្គលិកថ្មី</h3>
+          <h3 id="adminModalTitle" data-i18n="add-new-admin">
+            បន្ថែមបុគ្គលិកថ្មី
+          </h3>
         </div>
         <div class="modal-body">
           <input type="hidden" id="manageAdminId" />
           <div class="form-group">
-            <label>Username (ឈ្មោះចូលប្រើ)</label
+            <label data-i18n="username">Username (ឈ្មោះចូលប្រើ)</label
             ><input
               id="manageAdminUser"
               class="form-input"
@@ -1235,7 +1324,7 @@
             />
           </div>
           <div class="form-group">
-            <label>Password (លេខសម្ងាត់)</label
+            <label data-i18n="password">Password (លេខសម្ងាត់)</label
             ><input
               id="manageAdminPass"
               type="password"
@@ -1244,7 +1333,7 @@
             />
           </div>
           <div class="form-group">
-            <label>Role (តួនាទី និងសិទ្ធិ)</label
+            <label data-i18n="role">Role (តួនាទី និងសិទ្ធិ)</label
             ><select
               id="manageAdminRole"
               class="form-input"
@@ -1259,7 +1348,9 @@
               <option value="support_agent">
                 Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
               </option>
-              <option value="custom">Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)</option>
+              <option value="custom" data-i18n="custom-role">
+                Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)
+              </option>
             </select>
           </div>
           <div
@@ -1274,7 +1365,7 @@
               margin-top: -5px;
             "
           >
-            <label style="color: #047857"
+            <label style="color: #047857" data-i18n="custom-role-title"
               >ឈ្មោះតួនាទីនេះ (Custom Role Title)</label
             ><input
               id="customRoleName"
@@ -1300,6 +1391,7 @@
                 margin-bottom: 10px;
                 display: block;
               "
+              data-i18n="working-hours"
               >ម៉ោងធ្វើការ (Working Hours)</label
             >
             <div style="display: flex; gap: 10px; margin-bottom: 20px">
@@ -1331,11 +1423,12 @@
                 margin-bottom: 10px;
                 display: block;
               "
+              data-i18n="menu-access"
               >សិទ្ធិចូលមើល (Menu Access)</label
             >
             <div class="perm-grid" style="margin-bottom: 20px">
               <div class="perm-item">
-                <span>User Mgmt</span
+                <span data-i18n="user-mgmt">User Mgmt</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_users" checked /><span
                     class="slider"
@@ -1343,7 +1436,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Trx Check</span
+                <span data-i18n="trx-check">Trx Check</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_checktrx" checked /><span
                     class="slider"
@@ -1351,7 +1444,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Broadcast</span
+                <span data-i18n="broadcast">Broadcast</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_broadcast" /><span
                     class="slider"
@@ -1359,7 +1452,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Exchange Rates</span
+                <span data-i18n="exchange-rates">Exchange Rates</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_fx" /><span
                     class="slider"
@@ -1367,7 +1460,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Cards Mgmt</span
+                <span data-i18n="cards-mgmt">Cards Mgmt</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_cards" /><span
                     class="slider"
@@ -1375,7 +1468,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>KYC</span
+                <span data-i18n="kyc">KYC</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_kyc" checked /><span
                     class="slider"
@@ -1383,7 +1476,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Tickets</span
+                <span data-i18n="tickets">Tickets</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_tickets" checked /><span
                     class="slider"
@@ -1391,7 +1484,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Live Chat</span
+                <span data-i18n="live-chat">Live Chat</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_chat" checked /><span
                     class="slider"
@@ -1407,11 +1500,12 @@
                 margin-bottom: 10px;
                 display: block;
               "
+              data-i18n="action-permissions"
               >សិទ្ធិអនុវត្ត (Action Permissions)</label
             >
             <div class="perm-grid">
               <div class="perm-item">
-                <span>កែប្រែ Profile</span
+                <span data-i18n="edit-profile">កែប្រែ Profile</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_edit_user" /><span
                     class="slider"
@@ -1419,7 +1513,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>លុបគណនី</span
+                <span data-i18n="delete-account">លុបគណនី</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_delete_user" /><span
                     class="slider"
@@ -1427,7 +1521,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>ផ្អាកគណនី</span
+                <span data-i18n="freeze-account">ផ្អាកគណនី</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_freeze_user" /><span
                     class="slider"
@@ -1435,7 +1529,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>បន្ថែម/ដកលុយ</span
+                <span data-i18n="adjust-balance">បន្ថែម/ដកលុយ</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_adjust_bal" /><span
                     class="slider"
@@ -1443,7 +1537,7 @@
                 ></label>
               </div>
               <div class="perm-item">
-                <span>Refund លុយ</span
+                <span data-i18n="refund">Refund លុយ</span
                 ><label class="switch"
                   ><input type="checkbox" id="p_refund" /><span
                     class="slider"
@@ -1454,9 +1548,17 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" onclick="closeModal('adminAccModal')">
+          <button
+            class="btn-cancel"
+            onclick="closeModal('adminAccModal')"
+            data-i18n="cancel"
+          >
             បោះបង់</button
-          ><button class="btn-save btn-primary" onclick="saveAdminAccount()">
+          ><button
+            class="btn-save btn-primary"
+            onclick="saveAdminAccount()"
+            data-i18n="save"
+          >
             រក្សាទុក
           </button>
         </div>
@@ -1468,11 +1570,11 @@
       <div class="modal-card">
         <div class="modal-header">
           <i class="fa-solid fa-ticket" style="font-size: 1.2rem"></i>
-          <h3>បង្កើតកូដប្រូម៉ូសិនថ្មី</h3>
+          <h3 data-i18n="create-new-promo">បង្កើតកូដប្រូម៉ូសិនថ្មី</h3>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>ឈ្មោះកូដ (Promo Code)</label
+            <label data-i18n="promo-code">ឈ្មោះកូដ (Promo Code)</label
             ><input
               id="prmCode"
               class="form-input"
@@ -1485,7 +1587,8 @@
             />
           </div>
           <div class="form-group">
-            <label>ទឹកប្រាក់រង្វាន់ (Reward Value in $)</label
+            <label data-i18n="promo-reward"
+              >ទឹកប្រាក់រង្វាន់ (Reward Value in $)</label
             ><input
               id="prmReward"
               type="number"
@@ -1494,7 +1597,8 @@
             />
           </div>
           <div class="form-group">
-            <label>ចំនួនអ្នកអាចប្រើបានអតិបរមា (Max Usage)</label
+            <label data-i18n="promo-max-usage"
+              >ចំនួនអ្នកអាចប្រើបានអតិបរមា (Max Usage)</label
             ><input
               id="prmMax"
               type="number"
@@ -1504,14 +1608,23 @@
             />
           </div>
           <div class="form-group">
-            <label>ថ្ងៃផុតកំណត់ (Expiry Date) - មិនដាក់ក៏បាន</label
+            <label data-i18n="promo-expiry"
+              >ថ្ងៃផុតកំណត់ (Expiry Date) - មិនដាក់ក៏បាន</label
             ><input id="prmExpiry" type="date" class="form-input" />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" onclick="closeModal('promoModal')">
+          <button
+            class="btn-cancel"
+            onclick="closeModal('promoModal')"
+            data-i18n="cancel"
+          >
             បោះបង់</button
-          ><button class="btn-save btn-primary" onclick="savePromoCode()">
+          ><button
+            class="btn-save btn-primary"
+            onclick="savePromoCode()"
+            data-i18n="create-promo-code"
+          >
             បង្កើតកូដ
           </button>
         </div>
