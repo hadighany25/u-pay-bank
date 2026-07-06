@@ -1020,3 +1020,54 @@ body.dark-mode #adminChatInputBox {
 .swal2-container {
   z-index: 99999 !important;
 }
+
+/* =========================================================
+   CUSTOMER 360° STYLES
+========================================================= */
+.c360-tabs {
+  display: flex;
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+}
+.c360-tab {
+  padding: 15px 25px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+.c360-tab:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.02);
+}
+.c360-tab.active {
+  color: var(--secondary);
+  border-bottom-color: var(--secondary);
+}
+body.dark-mode .c360-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Timeline សម្រាប់ Logs */
+.c360-timeline {
+  border-left: 2px solid var(--border);
+  padding-left: 20px;
+  margin-left: 10px;
+}
+.c360-timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+.c360-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -27px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--secondary);
+  border: 3px solid var(--bg-card);
+}

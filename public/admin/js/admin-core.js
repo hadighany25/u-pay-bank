@@ -78,6 +78,7 @@ function showSection(id, btn) {
     "dashboard",
     "users",
     "merchants",
+    "customer-360",
     "check-trx",
     "broadcast-history",
     "fx",

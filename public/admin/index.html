@@ -112,6 +112,17 @@
       </div>
       <div
         class="menu-item"
+        id="menu-customer-360"
+        onclick="
+          showSection('customer-360', this);
+          toggleSidebar(false);
+        "
+        data-i18n="menu-customer-360"
+      >
+        <i class="fa-solid fa-user-magnifying-glass"></i> Customer 360°
+      </div>
+      <div
+        class="menu-item"
         id="menu-checktrx"
         onclick="
           showSection('check-trx', this);
@@ -559,6 +570,167 @@
           </button>
         </div>
         <div id="trxResult" class="trx-result-card"></div>
+      </div>
+
+      <!-- Customer 360 View -->
+      <div
+        id="sec-customer-360"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title" data-i18n="c360-title">
+              Customer 360° View
+            </h2>
+            <p class="dash-desc" data-i18n="c360-desc">
+              Search and view complete details of a customer.
+            </p>
+          </div>
+          <div class="search-box" style="max-width: 400px">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="text"
+              id="searchC360"
+              data-i18n="search-c360-ph"
+              placeholder="Search by name, username, phone..."
+              onkeyup="if (event.key === 'Enter') searchCustomer360();"
+            />
+          </div>
+        </div>
+
+        <!-- កន្លែងបង្ហាញលទ្ធផល -->
+        <div id="c360-result-container" style="display: none">
+          <!-- ផ្នែក Profile ខាងលើ -->
+          <div
+            class="dash-card"
+            style="
+              margin-bottom: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 20px;
+            "
+          >
+            <div style="display: flex; gap: 20px; align-items: center">
+              <img
+                id="c360-avatar"
+                src="../images/default-avatar.png"
+                style="
+                  width: 80px;
+                  height: 80px;
+                  border-radius: 50%;
+                  border: 3px solid var(--border);
+                "
+              />
+              <div>
+                <h2
+                  id="c360-name"
+                  style="margin: 0 0 5px 0; color: var(--text-main)"
+                >
+                  ...
+                </h2>
+                <div
+                  style="
+                    display: flex;
+                    gap: 15px;
+                    font-size: 0.9rem;
+                    color: var(--text-muted);
+                  "
+                >
+                  <span id="c360-username"
+                    ><i class="fa-solid fa-at"></i> ...</span
+                  >
+                  <span id="c360-phone"
+                    ><i class="fa-solid fa-phone"></i> ...</span
+                  >
+                  <span id="c360-status-badge"></span>
+                </div>
+              </div>
+            </div>
+            <!-- Quick Actions -->
+            <div style="display: flex; gap: 10px" id="c360-quick-actions">
+              <!-- JS នឹងគូរប៊ូតុងនៅទីនេះ -->
+            </div>
+          </div>
+
+          <!-- ផ្នែក Tabs -->
+          <div class="dash-card" style="padding: 0">
+            <div
+              style="
+                display: flex;
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+              "
+              class="c360-tabs"
+            >
+              <div
+                class="c360-tab active"
+                onclick="switchC360Tab('finance')"
+                data-i18n="tab-finance"
+              >
+                <i class="fa-solid fa-wallet"></i> Wallets & Cards
+              </div>
+              <div
+                class="c360-tab"
+                onclick="switchC360Tab('kyc')"
+                data-i18n="tab-kyc"
+              >
+                <i class="fa-solid fa-id-card"></i> KYC
+              </div>
+              <div
+                class="c360-tab"
+                onclick="switchC360Tab('trx')"
+                data-i18n="tab-trx"
+              >
+                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
+              </div>
+              <div
+                class="c360-tab"
+                onclick="switchC360Tab('security')"
+                data-i18n="tab-security"
+              >
+                <i class="fa-solid fa-shield-halved"></i> Security
+              </div>
+              <div
+                class="c360-tab"
+                onclick="switchC360Tab('logs')"
+                data-i18n="tab-logs"
+              >
+                <i class="fa-solid fa-clock-rotate-left"></i> Admin Logs
+              </div>
+            </div>
+
+            <!-- តួនៃ Tab នីមួយៗ -->
+            <div style="padding: 25px">
+              <div
+                id="c360-tab-finance"
+                class="c360-tab-content"
+                style="display: block"
+              ></div>
+              <div
+                id="c360-tab-kyc"
+                class="c360-tab-content"
+                style="display: none"
+              ></div>
+              <div
+                id="c360-tab-trx"
+                class="c360-tab-content"
+                style="display: none"
+              ></div>
+              <div
+                id="c360-tab-security"
+                class="c360-tab-content"
+                style="display: none"
+              ></div>
+              <div
+                id="c360-tab-logs"
+                class="c360-tab-content"
+                style="display: none"
+              ></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Broadcast -->
@@ -1704,5 +1876,6 @@
     <script src="js/admin-finance.js"></script>
     <script src="js/admin-ops.js"></script>
     <script src="js/admin-merchants.js"></script>
+    <script src="js/admin-customer360.js"></script>
   </body>
 </html>
