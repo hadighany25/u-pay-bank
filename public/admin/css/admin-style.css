@@ -1,3 +1,6 @@
+/* =========================================================
+   ១. អញ្ញាតពណ៌គោល (ROOT VARIABLES)
+========================================================= */
 :root {
   --primary: #0f172a;
   --secondary: #10b981;
@@ -7,19 +10,32 @@
   --text-main: #1e293b;
   --text-muted: #64748b;
   --border: #e2e8f0;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --card-shadow-hover: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
   font-family: "Inter", "Kantumruy Pro", sans-serif;
   display: flex;
   height: 100vh;
   background: var(--bg-body);
-  overflow: hidden;
   color: var(--text-main);
+  overflow: hidden;
+  /* ធ្វើឱ្យការប្តូរ Theme មានចលនា Smooth */
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
 }
+
+/* =========================================================
+   ២. រចនាបថ SCROLLBAR (SCROLLBAR STYLES)
+========================================================= */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -35,7 +51,44 @@ body {
   background: #94a3b8;
 }
 
-/* SIDEBAR */
+/* =========================================================
+   ៣. ចលនាអានីមេសិន (KEYFRAME ANIMATIONS)
+========================================================= */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes zoomIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* =========================================================
+   ៤. របារចំហៀង (SIDEBAR)
+========================================================= */
 .sidebar {
   width: 280px;
   background: var(--primary);
@@ -43,10 +96,10 @@ body {
   display: flex;
   flex-direction: column;
   padding: 24px 20px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
   height: 100vh;
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
 }
 .brand {
@@ -76,7 +129,7 @@ body {
   align-items: center;
   gap: 14px;
   color: #94a3b8;
-  transition: all 0.2s ease;
+  transition: var(--transition-smooth);
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -84,11 +137,15 @@ body {
   font-size: 1.1rem;
   width: 20px;
   text-align: center;
+  transition: transform 0.3s ease;
 }
 .menu-item:hover {
   background: rgba(255, 255, 255, 0.05);
   color: white;
-  transform: translateX(5px);
+  transform: translateX(8px);
+}
+.menu-item:hover i {
+  transform: scale(1.1);
 }
 .menu-item.active {
   background: linear-gradient(
@@ -98,17 +155,20 @@ body {
   );
   color: var(--secondary);
   border-left: 4px solid var(--secondary);
+  box-shadow: inset 4px 0 0 0 var(--secondary); /* ធ្វើអោយបន្ទាត់ឆ្វេងស្អាត */
 }
 .logout-btn {
   margin-top: 20px;
   color: #ef4444 !important;
 }
 .logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
   color: #f87171 !important;
 }
 
-/* MAIN CONTENT */
+/* =========================================================
+   ៥. ផ្ទៃបង្ហាញកណ្តាល (MAIN CONTENT & NAV)
+========================================================= */
 .main-content {
   flex: 1;
   padding: 30px 40px;
@@ -116,49 +176,42 @@ body {
   position: relative;
   width: 100%;
 }
-.mobile-header {
-  display: none;
+.top-nav-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-bottom: 25px;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
 }
-.menu-toggle {
-  font-size: 1.5rem;
-  color: var(--primary);
+.icon-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  background: white;
-  padding: 8px 12px;
-  border-radius: 8px;
+  transition: var(--transition-smooth);
+  font-size: 1.1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
-.overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 900;
+.icon-btn:hover {
+  background: var(--border);
+  transform: translateY(-3px) rotate(5deg);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* DASHBOARD PREMIUM */
+/* =========================================================
+   ៦. កាត និងផ្ទាំង Dashboard (DASHBOARD CARDS)
+========================================================= */
 .dash-wrapper {
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
-  animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .dash-header {
   margin-bottom: 30px;
@@ -189,14 +242,14 @@ body {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s ease;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition-smooth);
   position: relative;
   overflow: hidden;
 }
 .dash-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow-hover);
 }
 .stat-item {
   display: flex;
@@ -228,6 +281,10 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+.dash-card:hover .stat-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 .bg-shape {
   position: absolute;
@@ -238,7 +295,12 @@ body {
   border-radius: 50%;
   opacity: 0.1;
   z-index: 1;
+  transition: transform 0.5s ease;
 }
+.dash-card:hover .bg-shape {
+  transform: scale(1.5);
+}
+
 .dash-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -273,6 +335,10 @@ body {
   gap: 15px;
   padding: 15px 0;
   position: relative;
+  transition: var(--transition-smooth);
+}
+.activity-item:hover {
+  transform: translateX(5px);
 }
 .activity-item::before {
   content: "";
@@ -308,7 +374,9 @@ body {
   font-weight: 500;
 }
 
-/* USERS & TABLES */
+/* =========================================================
+   ៧. តារាង និង ប្រអប់វាយអក្សរ (TABLES & INPUTS)
+========================================================= */
 .table-header-controls {
   display: flex;
   justify-content: space-between;
@@ -336,17 +404,19 @@ body {
   border: 1px solid var(--border);
   font-family: inherit;
   font-size: 0.9rem;
+  background: var(--bg-card);
+  color: var(--text-main);
   outline: none;
-  transition: 0.2s;
+  transition: var(--transition-smooth);
 }
 .search-box input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 .table-container {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--card-shadow);
   border: 1px solid var(--border);
   overflow-x: auto;
 }
@@ -372,10 +442,15 @@ td {
   color: var(--text-main);
   font-size: 0.95rem;
   vertical-align: middle;
+  transition: background 0.2s ease;
 }
 tr:hover td {
-  background: #f8fafc;
+  background: rgba(0, 0, 0, 0.02);
 }
+
+/* =========================================================
+   ៨. ប៊ូតុង និង កុងតាក់ (BUTTONS & SWITCHES)
+========================================================= */
 .btn-action {
   width: 36px;
   height: 36px;
@@ -386,7 +461,7 @@ tr:hover td {
   align-items: center;
   justify-content: center;
   color: white;
-  transition: 0.2s;
+  transition: var(--transition-smooth);
   margin-left: 5px;
   font-size: 0.9rem;
 }
@@ -395,15 +470,18 @@ tr:hover td {
 }
 .btn-edit:hover {
   background: #d97706;
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
 }
 .btn-delete {
   background: #ef4444;
 }
 .btn-delete:hover {
   background: #dc2626;
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
 }
+
 .btn-primary {
   background: var(--secondary);
   color: white;
@@ -415,26 +493,26 @@ tr:hover td {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: 0.2s;
+  transition: var(--transition-smooth);
 }
 .btn-primary:hover {
   background: #059669;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(16, 185, 129, 0.25);
 }
 .btn-cancel {
-  background: white;
-  border: 1px solid #cbd5e1;
+  background: transparent;
+  border: 1px solid var(--border);
   padding: 10px 24px;
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-  color: #475569;
-  transition: 0.2s;
+  color: var(--text-muted);
+  transition: var(--transition-smooth);
 }
 .btn-cancel:hover {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--border);
+  color: var(--text-main);
 }
 
 .switch {
@@ -467,18 +545,20 @@ tr:hover td {
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: 0.4s;
+  transition: 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 input:checked + .slider {
-  background-color: #10b981;
+  background-color: var(--secondary);
 }
 input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-/* MODAL FIXED */
+/* =========================================================
+   ៩. កាត POPUP (MODALS)
+========================================================= */
 .modal-overlay {
   display: none !important;
   position: fixed !important;
@@ -490,25 +570,17 @@ input:checked + .slider:before {
   z-index: 9999;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 .modal-card {
-  background: white;
+  background: var(--bg-card);
   width: 100%;
   max-width: 500px;
   border-radius: 24px;
+  border: 1px solid var(--border);
   overflow: hidden;
-  animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes zoomIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 .modal-header {
   background: var(--primary);
@@ -544,16 +616,26 @@ input:checked + .slider:before {
   border-radius: 10px;
   outline: none;
   font-family: inherit;
+  background: var(--bg-body);
+  color: var(--text-main);
+  transition: 0.3s;
+}
+.form-input:focus {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 .modal-footer {
   padding: 15px 25px;
-  background: #f8fafc;
+  background: var(--bg-body);
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid var(--border);
 }
 
+/* =========================================================
+   ១០. សមាសធាតុផ្សេងៗ (SPECIAL COMPONENTS)
+========================================================= */
 .acc-stack {
   display: flex;
   flex-direction: column;
@@ -584,7 +666,7 @@ input:checked + .slider:before {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
-  background: #f8fafc;
+  background: var(--bg-body);
   padding: 15px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -598,20 +680,21 @@ input:checked + .slider:before {
   color: var(--text-main);
 }
 
-/* TRX CHECK & OTHERS */
+/* TRX Check & FX Styles */
 .trx-check-wrapper {
   max-width: 900px;
   margin: 0 auto;
-  animation: fadeIn 0.3s ease;
+  animation: fadeInUp 0.4s ease;
 }
 .trx-search-lg {
   display: flex;
   gap: 15px;
   margin-bottom: 30px;
-  background: white;
+  background: var(--bg-card);
   padding: 10px;
   border-radius: 16px;
   border: 1px solid var(--border);
+  box-shadow: var(--card-shadow);
 }
 .trx-search-lg input {
   flex: 1;
@@ -620,7 +703,8 @@ input:checked + .slider:before {
   border-radius: 10px;
   font-size: 1rem;
   outline: none;
-  background: #f8fafc;
+  background: var(--bg-body);
+  color: var(--text-main);
 }
 .trx-search-lg button {
   padding: 0 35px;
@@ -633,15 +717,19 @@ input:checked + .slider:before {
   cursor: pointer;
   transition: 0.2s;
 }
+.trx-search-lg button:hover {
+  background: var(--accent);
+}
 .trx-result-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 24px;
   overflow: hidden;
   border: 1px solid var(--border);
   display: none;
+  box-shadow: var(--card-shadow-hover);
 }
 .trx-r-header {
-  background: #ffffff;
+  background: var(--bg-card);
   color: var(--text-main);
   padding: 30px;
   text-align: center;
@@ -663,26 +751,23 @@ input:checked + .slider:before {
   font-weight: 700;
   text-transform: uppercase;
 }
-.trx-badge.success {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-}
-.trx-badge.pending {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-}
 .trx-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   padding: 30px;
-  background: #f8fafc;
+  background: var(--bg-body);
 }
 .trx-box {
-  background: white;
+  background: var(--bg-card);
   padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--border);
+  transition: var(--transition-smooth);
+}
+.trx-box:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow);
 }
 .trx-box.full {
   grid-column: 1 / -1;
@@ -715,19 +800,20 @@ input:checked + .slider:before {
 }
 .trx-r-footer {
   padding: 20px 30px;
-  background: white;
+  background: var(--bg-card);
   display: flex;
   justify-content: center;
   gap: 15px;
   border-top: 1px solid var(--border);
 }
 .fx-card {
-  background: white;
+  background: var(--bg-card);
   padding: 30px;
   border-radius: 20px;
   border: 1px solid var(--border);
   max-width: 600px;
   margin: 0 auto;
+  box-shadow: var(--card-shadow);
 }
 .fx-row {
   display: flex;
@@ -739,13 +825,113 @@ input:checked + .slider:before {
 .fx-input {
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border);
   width: 120px;
   text-align: right;
   font-weight: bold;
   font-size: 1.1rem;
   color: var(--primary);
   outline: none;
+  background: var(--bg-body);
+}
+
+/* =========================================================
+   ១១. មុខងារងងឹត (PREMIUM DARK MODE)
+========================================================= */
+body.dark-mode {
+  /* ប្តូរពណ៌ទៅជា Dark Mode បែប Premium (Slate Color Palette) */
+  --primary: #0f172a;
+  --secondary: #10b981;
+  --accent: #3b82f6;
+  --bg-body: #020617; /* ខ្មៅងងឹតកប់ */
+  --bg-card: #0f172a; /* ពណ៌កាតបែប Slate */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #1e293b;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover:
+    0 15px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(16, 185, 129, 0.15); /* បញ្ចេញពន្លឺ Neon ពេល Hover */
+}
+
+/* ជួសជុលពណ៌ Scrollbar ពេល Dark Mode */
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ជួសជុលពណ៌តារាង និង Input ពេល Dark Mode */
+body.dark-mode table th {
+  background: #020617;
+  color: #cbd5e1;
+}
+body.dark-mode table td {
+  border-bottom-color: var(--border);
+}
+body.dark-mode tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+body.dark-mode .fx-input {
+  color: #f8fafc;
+}
+body.dark-mode .activity-item::before {
+  background: var(--bg-body);
+}
+
+/* បន្ថែមពន្លឺ (Neon Glow) ដល់កាតពេល Hover ក្នុង Dark Mode */
+body.dark-mode .dash-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ជួសជុលពណ៌ Live Chat ពេល Dark Mode */
+body.dark-mode #sec-live-chat > div > div {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+body.dark-mode #adminChatHeader,
+body.dark-mode #adminChatBody,
+body.dark-mode #adminChatInputBox {
+  background: var(--bg-body) !important;
+  border-color: var(--border) !important;
+}
+
+/* =========================================================
+   ១២. សម្របតាមទូរស័ព្ទដៃ (MOBILE RESPONSIVE 100%)
+========================================================= */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 900;
+}
+.mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.mobile-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.menu-toggle {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  cursor: pointer;
+  background: var(--bg-card);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 @media (max-width: 1400px) {
@@ -765,6 +951,13 @@ input:checked + .slider:before {
   }
 }
 @media (max-width: 768px) {
+  /* ការពារ iPhone មិនឱ្យ Auto-zoom ពេលចុចលើប្រអប់វាយអក្សរ */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   .dash-stats {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -779,11 +972,15 @@ input:checked + .slider:before {
     display: block;
   }
   .main-content {
-    padding: 20px 15px;
+    padding: 15px;
   }
   .mobile-header {
     display: flex;
   }
+  .top-nav-actions {
+    display: none;
+  } /* លាក់ប៊ូតុងខាងលើ ព្រោះមានក្នុង Mobile Header ហើយ */
+
   .trx-search-lg {
     flex-direction: column;
   }
@@ -796,106 +993,6 @@ input:checked + .slider:before {
   }
   .perm-grid {
     grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 480px) {
-  .dash-stats {
-    grid-template-columns: 1fr;
-  }
-}
-.swal2-container {
-  z-index: 99999 !important;
-}
-
-/* =========================================
-   DARK MODE & RESPONSIVE FIXES (NEW)
-========================================= */
-
-/* Dark Mode Variables */
-body.dark-mode {
-  --primary: #0f172a; /* រក្សាពណ៌ Sidebar ឱ្យនៅដដែល */
-  --secondary: #10b981;
-  --bg-body: #0f172a;
-  --bg-card: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: #334155;
-}
-
-/* ផ្លាស់ប្តូរពណ៌ Background កាត និងតារាងពេល Dark Mode */
-body.dark-mode .dash-card,
-body.dark-mode .table-container,
-body.dark-mode .modal-card,
-body.dark-mode .fx-card,
-body.dark-mode .trx-box,
-body.dark-mode .trx-result-card,
-body.dark-mode .trx-r-header,
-body.dark-mode .trx-r-footer,
-body.dark-mode #sec-live-chat > div > div {
-  background: var(--bg-card) !important;
-  border-color: var(--border) !important;
-  color: var(--text-main);
-}
-body.dark-mode table th {
-  background: #0f172a;
-  border-bottom-color: var(--border);
-  color: #cbd5e1;
-}
-body.dark-mode table td {
-  border-bottom-color: var(--border);
-}
-body.dark-mode tr:hover td {
-  background: #334155;
-}
-body.dark-mode .form-input,
-body.dark-mode .search-box input {
-  background: #0f172a;
-  color: white;
-  border-color: var(--border);
-}
-body.dark-mode .search-box input:focus {
-  border-color: var(--secondary);
-}
-
-/* ប៊ូតុង ប្តូរ Theme និង ភាសា */
-.top-nav-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-bottom: 25px;
-  align-items: center;
-}
-.icon-btn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-main);
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1.1rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-.icon-btn:hover {
-  background: var(--border);
-  transform: translateY(-2px);
-}
-
-/* ជួសជុល Mobile Responsive (មិនបាច់ Zoom) */
-@media (max-width: 768px) {
-  /* ការពារ iPhone មិនឱ្យ Auto-zoom ពេលចុចលើប្រអប់វាយអក្សរ */
-  input,
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-
-  .main-content {
-    padding: 15px;
   }
 
   /* ធ្វើឱ្យកាត Modal ពេញ 100% លើ Mobile */
@@ -912,24 +1009,14 @@ body.dark-mode .search-box input:focus {
   .table-container {
     width: 100%;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* ឱ្យ Smooth លើ iPhone */
+    -webkit-overflow-scrolling: touch;
   }
-
-  /* រៀបចំប៊ូតុងនៅ Header Mobile */
-  .mobile-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 20px;
+}
+@media (max-width: 480px) {
+  .dash-stats {
+    grid-template-columns: 1fr;
   }
-  .mobile-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .top-nav-actions {
-    display: none; /* លាក់ខាងលើសម្រាប់ Mobile ព្រោះយើងដាក់វាក្នុង Header វិញ */
-  }
+}
+.swal2-container {
+  z-index: 99999 !important;
 }
