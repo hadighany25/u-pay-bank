@@ -667,7 +667,7 @@
 
         if (expenseChart) expenseChart.destroy();
 
-        // 🔥 កំណត់ Configuration ឱ្យរង្វង់បង្ហាញពណ៌ប្រផេះជានិច្ចបើ totalExpense === 0
+        // 🔥 បង្ហាញ Gray Placeholder ពេលគ្មានទិន្នន័យជំនួសឱ្យការលាក់ Chart
         const chartConfig = {
           type: "doughnut",
           data: {
@@ -675,13 +675,10 @@
             datasets: [
               {
                 data: totalExpense === 0 ? [1] : chartData,
-                // បើគ្មានទិន្នន័យ ដាក់ពណ៌ប្រផេះស្រាល (isDark ដាក់ពណ៌ប្រផេះចាស់បន្តិច)
-                backgroundColor:
-                  totalExpense === 0
-                    ? [isDark ? "#334155" : "#e2e8f0"]
-                    : chartColors,
-                borderWidth: 0, // លុប Border ចេញឱ្យរលោង
-                hoverOffset: totalExpense === 0 ? 0 : 8,
+                backgroundColor: totalExpense === 0 ? ["#e2e8f0"] : chartColors,
+                borderWidth: totalExpense === 0 ? 0 : isDark ? 3 : 2,
+                borderColor: isDark ? "#1e293b" : "#ffffff",
+                hoverOffset: 8,
               },
             ],
           },
@@ -690,8 +687,14 @@
             maintainAspectRatio: false,
             cutout: "75%",
             plugins: {
-              legend: { display: totalExpense > 0 }, // លាក់ Legend បើគ្មានទិន្នន័យ
-              tooltip: { enabled: totalExpense > 0 },
+              legend: {
+                position: "right",
+                labels: { usePointStyle: true, boxWidth: 8 },
+              },
+              tooltip: {
+                enabled: totalExpense > 0,
+                callbacks: { label: (ctx) => ` $${ctx.parsed.toFixed(2)}` },
+              },
             },
           },
         };
