@@ -1666,7 +1666,9 @@
         if (modal) modal.classList.remove("active");
         if (overlay) overlay.classList.remove("active");
       }
-
+      // =========================================
+      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Moda
+      // =========================================
       function renderTransactionsInModal(currentUser, currency) {
         const list = document.getElementById("sheetTrxList");
         if (!list) return;
@@ -1716,6 +1718,7 @@
             : isPending
               ? "text-orange"
               : "text-red";
+
           // 🔥 កូដកែសម្រួលថ្មី ដើម្បីបង្ហាញឈ្មោះអ្នកផ្ញើ
           let title = t.type;
 
@@ -1727,6 +1730,12 @@
             title =
               t.receiverName ||
               (t.type === "Card Payment" ? "Card Payment" : "Transfer");
+          }
+
+          // 🔥 លក្ខខណ្ឌថ្មី: ប្តូរឈ្មោះពី U-Pay Central Bank ទៅជាប្រភេទ (Type)
+          if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
+            // វានឹងទាញយក t.type (ឧ. Fixed Deposit, Lucky Spin) មកបង្ហាញជំនួស
+            title = t.type || t.trxMethod || title;
           }
 
           const displayAmt =
