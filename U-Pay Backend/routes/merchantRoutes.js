@@ -10,9 +10,17 @@ const { verifyUser } = require("../middleware/authMiddleware");
 // ៣. កំណត់ Routes
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
+// បន្ថែម Route ទាំងនេះដើម្បីទទួលការហៅពី Frontend
+router.put(
+  "/api/merchants/update/:merchantId",
+  verifyUser,
+  authMiddleware,
+  merchantController.updateMerchant,
+);
 router.delete(
   "/api/merchants/delete/:merchantId",
   verifyUser,
+  authMiddleware,
   merchantController.deleteMerchant,
 );
 

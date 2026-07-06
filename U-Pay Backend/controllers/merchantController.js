@@ -115,6 +115,20 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
+exports.updateMerchant = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const merchant = await Merchant.findOneAndUpdate(
+      { _id: req.params.merchantId, userId: req.user.username },
+      { name },
+      { new: true },
+    );
+    res.json({ success: true, merchant });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ៤. មុខងារទាញយកចំណូលហាង (Revenue)
 exports.getMerchantTransactions = async (req, res) => {
   try {

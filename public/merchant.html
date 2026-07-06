@@ -2153,7 +2153,7 @@
         }
 
         // ==========================================
-        // មុខងារកែប្រែ និង លុបហាង (កែសម្រួលរួចរាល់)
+        // មុខងារកែប្រែឈ្មោះហាង (EDIT)
         // ==========================================
         async function editMerchant(id) {
           const m = window.currentUser.merchantProfile.merchants.find(
@@ -2174,34 +2174,45 @@
           });
 
           if (newName && newName !== m.name) {
-            m.name = newName; // កែឈ្មោះក្នុង Object
-
-            // 🔥 បន្ថែមការ Update ទៅ Server
             try {
-              await fetch("/api/update-user", {
-                method: "POST",
-                headers: window.authHeaders, // ត្រូវប្រាកដថាមាន Auth Header
-                body: JSON.stringify(window.currentUser),
+              // 🔥 ហៅ API ដើម្បី Update នៅលើ Server
+              const response = await fetch(`/api/merchants/update/${id}`, {
+                method: "PUT",
+                headers: window.authHeaders,
+                body: JSON.stringify({ name: newName }),
               });
 
-              sessionStorage.setItem(
-                "user",
-                JSON.stringify(window.currentUser),
-              );
-              renderMerchantList();
-              Swal.fire({
-                icon: "success",
-                title: isKh ? "ជោគជ័យ" : "Success",
-                timer: 1500,
-                showConfirmButton: false,
-              });
+              const data = await response.json();
+              if (data.success) {
+                m.name = newName; // កែក្នុង Object ក្នុង Browser
+                sessionStorage.setItem(
+                  "user",
+                  JSON.stringify(window.currentUser),
+                );
+                renderMerchantList();
+                Swal.fire({
+                  icon: "success",
+                  title: isKh ? "ជោគជ័យ" : "Success",
+                  timer: 1500,
+                  showConfirmButton: false,
+                });
+              } else {
+                throw new Error(data.message);
+              }
             } catch (err) {
-              Swal.fire("Error", "មិនអាចរក្សាទុកទៅ Server បានទេ", "error");
+              Swal.fire(
+                "Error",
+                isKh ? "មិនអាចកែប្រែបានទេ" : "Failed to update",
+                "error",
+              );
             }
           }
         }
 
-        async function deleteMerchant(id) {
+        // ==========================================
+        // មុខងារលុបហាង (DELETE)
+        // ==========================================
+        function deleteMerchant(id) {
           let isKh = window.currentLang === "kh";
           Swal.fire({
             title: isKh ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
@@ -2215,27 +2226,24 @@
           }).then(async (result) => {
             if (result.isConfirmed) {
               try {
-                // 🔥 កែទីនេះ៖ ប្រើ Endpoint ដែលបងមានស្រាប់ក្នុង Controller
+                // 🔥 ហៅ API ដើម្បីលុបនៅលើ Server
                 const response = await fetch(`/api/merchants/delete/${id}`, {
-                  method: "DELETE", // ត្រូវប្រាកដថា Controller បងប្រើ method DELETE
+                  method: "DELETE",
                   headers: window.authHeaders,
                 });
 
                 const data = await response.json();
-
                 if (data.success) {
-                  // លុបចេញពី Array បន្ទាប់ពីលុបជោគជ័យលើ Server
+                  // លុបក្នុង Array
                   window.currentUser.merchantProfile.merchants =
                     window.currentUser.merchantProfile.merchants.filter(
                       (x) => x.id !== id,
                     );
-
                   sessionStorage.setItem(
                     "user",
                     JSON.stringify(window.currentUser),
                   );
                   renderMerchantList();
-
                   Swal.fire({
                     icon: "success",
                     title: isKh ? "លុបរួចរាល់" : "Deleted",
@@ -2243,7 +2251,7 @@
                     showConfirmButton: false,
                   });
                 } else {
-                  throw new Error(data.message || "Failed to delete");
+                  throw new Error(data.message);
                 }
               } catch (err) {
                 Swal.fire(
@@ -2255,6 +2263,7 @@
             }
           });
         }
+
         // ==========================================
         // មុខងារបង្កើតហាងថ្មី (CREATE MERCHANT)
         // ==========================================
