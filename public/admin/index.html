@@ -2,8 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- កែ Path រូបភាព -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <link rel="icon" type="image/png" href="../images/favicon.png" />
     <title>Admin Dashboard - U-Pay Premium</title>
 
@@ -18,7 +20,7 @@
       rel="stylesheet"
     />
 
-    <!-- ទាញយក CSS ពី Folder css -->
+    <!-- CSS គោលរបស់អ្នក (ដែលបានថែម Dark Mode & Mobile Responsive រួច) -->
     <link rel="stylesheet" href="css/admin-style.css" />
   </head>
   <body>
@@ -26,7 +28,6 @@
 
     <div class="sidebar" id="sidebar">
       <div class="brand">
-        <!-- កែ Path រូបភាព -->
         <img
           src="../images/logo-nobg.png"
           alt="U-PAY"
@@ -79,7 +80,10 @@
         ></div>
       </div>
 
-      <div class="menu-label" id="label-main">Main Menu</div>
+      <!-- ម៉ឺនុយដែលបានភ្ជាប់ data-i18n សម្រាប់ប្តូរភាសា -->
+      <div class="menu-label" id="label-main" data-i18n="menu-main">
+        Main Menu
+      </div>
       <div
         class="menu-item active"
         id="menu-dashboard"
@@ -87,6 +91,7 @@
           showSection('dashboard', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-dash"
       >
         <i class="fa-solid fa-chart-pie"></i> Dashboard
       </div>
@@ -97,11 +102,14 @@
           showSection('users', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-users"
       >
         <i class="fa-solid fa-users"></i> User Management
       </div>
 
-      <div class="menu-label" id="label-ops">Operations</div>
+      <div class="menu-label" id="label-ops" data-i18n="menu-ops">
+        Operations
+      </div>
       <div
         class="menu-item"
         id="menu-checktrx"
@@ -109,6 +117,7 @@
           showSection('check-trx', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-checktrx"
       >
         <i class="fa-solid fa-shield-halved"></i> Transaction Check
       </div>
@@ -119,11 +128,14 @@
           showSection('broadcast-history', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-broadcast"
       >
         <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
-      <div class="menu-label" id="label-finance">Finance & Cards</div>
+      <div class="menu-label" id="label-finance" data-i18n="menu-finance">
+        Finance & Cards
+      </div>
       <div
         class="menu-item"
         id="menu-fx"
@@ -131,6 +143,7 @@
           showSection('fx', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-fx"
       >
         <i class="fa-solid fa-money-bill-transfer"></i> Exchange Rates
       </div>
@@ -141,6 +154,7 @@
           showSection('fees', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-fees"
       >
         <i class="fa-solid fa-percent"></i> Fee & Limits
       </div>
@@ -151,6 +165,7 @@
           showSection('promo', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-promo"
       >
         <i class="fa-solid fa-ticket"></i> Promo Codes
       </div>
@@ -161,11 +176,14 @@
           showSection('cards', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-cards"
       >
         <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
 
-      <div class="menu-label" id="label-security">Security & Support</div>
+      <div class="menu-label" id="label-security" data-i18n="menu-security">
+        Security & Support
+      </div>
       <div
         class="menu-item"
         id="menu-kyc"
@@ -173,6 +191,7 @@
           showSection('kyc', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-kyc"
       >
         <i class="fa-solid fa-id-card"></i> KYC Approvals
       </div>
@@ -183,6 +202,7 @@
           showSection('tickets', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-tickets"
       >
         <i class="fa-solid fa-headset"></i> Support Tickets
       </div>
@@ -193,11 +213,14 @@
           showSection('live-chat', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-chat"
       >
         <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
-      <div class="menu-label" id="menu-super-only">Super Admin Only</div>
+      <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
+        Super Admin Only
+      </div>
       <div
         class="menu-item"
         id="menu-admins"
@@ -205,6 +228,7 @@
           showSection('admins', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-admins"
       >
         <i class="fa-solid fa-user-tie"></i> Admin Management
       </div>
@@ -215,10 +239,16 @@
           showSection('logs', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-logs"
       >
         <i class="fa-solid fa-list-check"></i> Audit Logs
       </div>
-      <div class="menu-item" id="menu-system" onclick="toggleSystemFreeze()">
+      <div
+        class="menu-item"
+        id="menu-system"
+        onclick="toggleSystemFreeze()"
+        data-i18n="menu-system"
+      >
         <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
         Control
       </div>
@@ -227,12 +257,36 @@
         class="menu-item logout-btn"
         onclick="logout()"
         style="margin-top: 30px"
+        data-i18n="menu-logout"
       >
         <i class="fa-solid fa-right-from-bracket"></i> Secure Logout
       </div>
     </div>
 
     <div class="main-content">
+      <!-- របារបញ្ជាផ្នែកខាងលើសម្រាប់ Desktop (ថែមថ្មី) -->
+      <div class="top-nav-actions">
+        <button
+          class="icon-btn"
+          onclick="toggleTheme()"
+          title="Dark/Light Mode"
+        >
+          <i class="fa-solid fa-moon theme-icon"></i>
+        </button>
+        <button
+          class="icon-btn"
+          onclick="toggleLanguage()"
+          title="Change Language"
+        >
+          <span
+            class="lang-text"
+            style="font-weight: 800; font-family: &quot;JetBrains Mono&quot;"
+            >KH</span
+          >
+        </button>
+      </div>
+
+      <!-- របារបញ្ជាផ្នែកខាងលើសម្រាប់ Mobile (កែសម្រួល) -->
       <div class="mobile-header">
         <div
           class="brand"
@@ -254,8 +308,20 @@
             "
           />
         </div>
-        <div class="menu-toggle" onclick="toggleSidebar()">
-          <i class="fa-solid fa-bars-staggered"></i>
+        <div class="mobile-actions">
+          <button class="icon-btn" onclick="toggleTheme()" title="Theme">
+            <i class="fa-solid fa-moon theme-icon"></i>
+          </button>
+          <button class="icon-btn" onclick="toggleLanguage()" title="Language">
+            <span
+              class="lang-text"
+              style="font-weight: 800; font-family: &quot;JetBrains Mono&quot;"
+              >KH</span
+            >
+          </button>
+          <div class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </div>
         </div>
       </div>
 
@@ -263,7 +329,7 @@
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
-            <h2 class="dash-title">Platform Overview</h2>
+            <h2 class="dash-title" data-i18n="dash-title">Platform Overview</h2>
             <p class="dash-desc">
               Real-time statistics and insights for U-Pay.
             </p>
@@ -477,7 +543,8 @@
             type="text"
             id="searchTrxId"
             placeholder="Enter Reference ID or Hash Code to trace..."
-          /><button onclick="searchTrx()">
+          />
+          <button onclick="searchTrx()">
             <i class="fa-solid fa-magnifying-glass"></i> Trace
           </button>
         </div>
@@ -1451,7 +1518,8 @@
       </div>
     </div>
 
-    <!-- ភ្ជាប់ JS ទាំង ៤ មកវិញ -->
+    <!-- ភ្ជាប់ JS ទាំង ៥ (បន្ថែម admin-lang.js ខាងលើគេ) -->
+    <script src="js/admin-lang.js"></script>
     <script src="js/admin-core.js"></script>
     <script src="js/admin-users.js"></script>
     <script src="js/admin-finance.js"></script>

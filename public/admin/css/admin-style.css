@@ -806,3 +806,130 @@ input:checked + .slider:before {
 .swal2-container {
   z-index: 99999 !important;
 }
+
+/* =========================================
+   DARK MODE & RESPONSIVE FIXES (NEW)
+========================================= */
+
+/* Dark Mode Variables */
+body.dark-mode {
+  --primary: #0f172a; /* រក្សាពណ៌ Sidebar ឱ្យនៅដដែល */
+  --secondary: #10b981;
+  --bg-body: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #334155;
+}
+
+/* ផ្លាស់ប្តូរពណ៌ Background កាត និងតារាងពេល Dark Mode */
+body.dark-mode .dash-card,
+body.dark-mode .table-container,
+body.dark-mode .modal-card,
+body.dark-mode .fx-card,
+body.dark-mode .trx-box,
+body.dark-mode .trx-result-card,
+body.dark-mode .trx-r-header,
+body.dark-mode .trx-r-footer,
+body.dark-mode #sec-live-chat > div > div {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  color: var(--text-main);
+}
+body.dark-mode table th {
+  background: #0f172a;
+  border-bottom-color: var(--border);
+  color: #cbd5e1;
+}
+body.dark-mode table td {
+  border-bottom-color: var(--border);
+}
+body.dark-mode tr:hover td {
+  background: #334155;
+}
+body.dark-mode .form-input,
+body.dark-mode .search-box input {
+  background: #0f172a;
+  color: white;
+  border-color: var(--border);
+}
+body.dark-mode .search-box input:focus {
+  border-color: var(--secondary);
+}
+
+/* ប៊ូតុង ប្តូរ Theme និង ភាសា */
+.top-nav-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
+}
+.icon-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.icon-btn:hover {
+  background: var(--border);
+  transform: translateY(-2px);
+}
+
+/* ជួសជុល Mobile Responsive (មិនបាច់ Zoom) */
+@media (max-width: 768px) {
+  /* ការពារ iPhone មិនឱ្យ Auto-zoom ពេលចុចលើប្រអប់វាយអក្សរ */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .main-content {
+    padding: 15px;
+  }
+
+  /* ធ្វើឱ្យកាត Modal ពេញ 100% លើ Mobile */
+  .modal-card {
+    width: 95% !important;
+    margin: 10px;
+    max-height: 90vh;
+  }
+  .modal-body {
+    padding: 15px;
+  }
+
+  /* ធ្វើឱ្យតារាងអាចអូសឆ្វេងស្តាំបាន (Scrollable) មិនឱ្យបែក Screen */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* ឱ្យ Smooth លើ iPhone */
+  }
+
+  /* រៀបចំប៊ូតុងនៅ Header Mobile */
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .mobile-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .top-nav-actions {
+    display: none; /* លាក់ខាងលើសម្រាប់ Mobile ព្រោះយើងដាក់វាក្នុង Header វិញ */
+  }
+}

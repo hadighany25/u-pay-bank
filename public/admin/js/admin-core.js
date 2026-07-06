@@ -24,6 +24,41 @@ document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
   " ",
 );
 
+// ==========================================
+// DARK MODE / LIGHT MODE TOGGLE
+// ==========================================
+let isDarkMode = localStorage.getItem("adminDarkMode") === "true";
+
+function toggleTheme() {
+  isDarkMode = !isDarkMode;
+  localStorage.setItem("adminDarkMode", isDarkMode);
+  applyTheme();
+}
+
+function applyTheme() {
+  const body = document.body;
+  if (isDarkMode) {
+    body.classList.add("dark-mode");
+    // ដូរ Icon គ្រប់ប៊ូតុង Theme ទាំងអស់ទៅជាព្រះអាទិត្យ (ពេលកំពុងងងឹត)
+    document.querySelectorAll(".theme-icon").forEach((icon) => {
+      icon.className = "fa-solid fa-sun theme-icon";
+      icon.style.color = "#f59e0b"; // ពណ៍លឿង
+    });
+  } else {
+    body.classList.remove("dark-mode");
+    // ដូរ Icon ទៅជាព្រះចន្ទ (ពេលកំពុងភ្លឺ)
+    document.querySelectorAll(".theme-icon").forEach((icon) => {
+      icon.className = "fa-solid fa-moon theme-icon";
+      icon.style.color = "#64748b"; // ពណ៍ប្រផេះ
+    });
+  }
+}
+
+// ដំណើរការវាពេលទំព័រដើរភ្លាម
+document.addEventListener("DOMContentLoaded", () => {
+  applyTheme();
+});
+
 function toggleSidebar(force) {
   const sb = document.getElementById("sidebar");
   const ov = document.querySelector(".overlay");
@@ -75,9 +110,28 @@ function showSection(id, btn) {
 }
 
 function logout() {
-  sessionStorage.removeItem("adminToken");
-  sessionStorage.removeItem("adminRole");
-  window.location.href = "admin-login.html";
+  Swal.fire({
+    title: "ចាកចេញពីប្រព័ន្ធ?",
+    text: "តើអ្នកពិតជាចង់ចាកចេញពីគណនីនេះមែនទេ?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#94a3b8",
+    confirmButtonText:
+      '<i class="fa-solid fa-right-from-bracket"></i> បាទ, ចាកចេញ',
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal" },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // 1. លុបទិន្នន័យ (Token) ចេញពី Browser
+      sessionStorage.removeItem("adminToken");
+      sessionStorage.removeItem("adminRole");
+
+      // 2. លោតទៅកាន់ទំព័រ Login វិញ
+      // (ការប្រើសញ្ញា / ពីមុខ គឺបញ្ជាឱ្យវាលោតទៅកាន់ Root នៃ Domain តែម្តង ដែលស្មើនឹង https://u-pay-bank.fly.dev/admin-login.html)
+      window.location.href = "/admin-login.html";
+    }
+  });
 }
 
 async function loadData() {
