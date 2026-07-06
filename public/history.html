@@ -497,11 +497,9 @@
     </div>
 
     <script>
-      // 🔥 ការពារមិនឱ្យជាន់អថេរ (Syntax Error) ជាដាច់ខាត ដោយប្តូរឈ្មោះ Variable
       const sessionUser = JSON.parse(sessionStorage.getItem("user"));
       const sessionToken = sessionStorage.getItem("userToken");
 
-      // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
       if (!sessionUser || !sessionToken) window.location.href = "index.html";
 
       const authHeadersFetch = {
@@ -517,7 +515,6 @@
           localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
         ) || [];
 
-      // Theme Application
       function applyThemeHistory() {
         const userThemeKey = "darkMode_" + sessionUser.username;
         const isDark =
@@ -543,7 +540,6 @@
         .toISOString()
         .split("T")[0];
 
-      // Format Money ឥឡូវស្គាល់ទាំង KHR និង USD
       function formatMoney(amount, isKHR = false) {
         return Math.abs(amount).toLocaleString("en-US", {
           minimumFractionDigits: isKHR ? 0 : 2,
@@ -575,7 +571,6 @@
         }
       }
 
-      // ទាញទិន្នន័យលើកដំបូង និងដាក់ Interval
       syncAllData();
       setInterval(syncAllData, 3000);
 
@@ -610,19 +605,30 @@
             const isKHR = t.currency === "KHR";
             const currSym = isKHR ? "៛" : "$";
 
-            // 🔥 ការកំណត់ឈ្មោះឆ្លាតវៃ (Smart Naming)
-            let name =
-              t.type === "Transfer"
-                ? isIncome
-                  ? t.senderName
-                  : t.receiverName
-                : t.type;
+            // 🔥 ការកំណត់ឈ្មោះឆ្លាតវៃថ្មី (ចាប់យក អ្នកផ្ញើ, អ្នកទទួល ឬ ហាង)
+            let name = "";
+            if (isIncome) {
+              // លុយចូល: អទិភាពលើឈ្មោះអ្នកផ្ញើ ឬឈ្មោះហាង
+              name =
+                t.senderName ||
+                t.merchantName ||
+                t.name ||
+                t.type ||
+                "Received";
+            } else {
+              // លុយចេញ: អទិភាពលើឈ្មោះអ្នកទទួល ឬឈ្មោះហាង
+              name =
+                t.receiverName ||
+                t.merchantName ||
+                t.name ||
+                t.type ||
+                "Transfer";
+            }
 
-            // ប្រសិនបើឈ្មោះលោត U-Pay Central Bank ឱ្យវាទាញយកប្រភេទជាក់ស្តែងមកជំនួស (Lucky Spin, Fixed Deposit...)
+            // ប្រសិនបើឈ្មោះលោត U-Pay Central Bank ឱ្យវាទាញយកប្រភេទជាក់ស្តែងមកជំនួស
             if (name === "U-Pay Central Bank" || name === "U-Pay Bank") {
               name = t.trxMethod || t.type || "System Transaction";
             }
-            if (!name) name = "Transaction";
 
             return `
             <div class="trx-item" onclick="showSlip(${index})">
@@ -925,26 +931,35 @@
             const isIn = amount > 0;
             const [ds, ts] = formatDateToPDF(t.date);
 
-            let typeName = sanitizeForPDF(
-              (t.type || "Transaction").toUpperCase(),
-            );
+            // 🔥 ក្នុង PDF ក៏ឆ្លាតវៃក្នុងការចាប់ឈ្មោះអ្នកផ្ញើ/ហាងដូចគ្នា
             let sender = sanitizeForPDF(
-              (t.senderName || "System").toUpperCase(),
+              (
+                t.senderName ||
+                t.merchantName ||
+                t.name ||
+                "SYSTEM"
+              ).toUpperCase(),
             );
             let receiver = sanitizeForPDF(
-              (t.receiverName || "System").toUpperCase(),
+              (
+                t.receiverName ||
+                t.merchantName ||
+                t.name ||
+                "SYSTEM"
+              ).toUpperCase(),
             );
 
             let detailsText = "";
-            if (t.type === "Transfer" || t.type === "Received") {
-              detailsText = isIn
-                ? `RECEIVED FROM ${sender}`
-                : `TRANSFER TO ${receiver}`;
+            if (isIn) {
+              detailsText = `RECEIVED FROM ${sender}`;
             } else {
-              detailsText = `${typeName} TO ${!isIn ? receiver : sender}`;
+              detailsText =
+                t.type === "Merchant Payment" || t.type === "Scan"
+                  ? `PAYMENT TO ${receiver}`
+                  : `TRANSFER TO ${receiver}`;
             }
 
-            // Override U-Pay Central Bank in PDF
+            // Override ក្នុង PDF ករណីឈ្មោះ Central Bank
             if (
               detailsText.includes("U-PAY CENTRAL BANK") ||
               detailsText.includes("U-PAY BANK")
