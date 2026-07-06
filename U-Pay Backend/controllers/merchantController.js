@@ -14,28 +14,32 @@ const generateRandomNumber = (length) => {
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
 exports.createMerchant = async (req, res) => {
   try {
-    // 🔥 កែទី១៖ ទទួលយក userId ពី Frontend ដែលយើងបានបញ្ជូនមក
-    const { name, city, linkedAccount, userId: bodyUserId } = req.body;
+    // 🔥 កែទី១៖ ទទួលយក category ពី Frontend ដែលយើងបានបញ្ជូនមក
+    const {
+      name,
+      city,
+      category,
+      linkedAccount,
+      userId: bodyUserId,
+    } = req.body;
 
-    // 🔥 កែទី២៖ ប្រើ username របស់ម្ចាស់ហាងជាអាទិភាព (ដើម្បីងាយស្រួលផ្ទេរលុយ Auto-Sweep)
     const userId =
       req.user.username || bodyUserId || req.user.id || req.user._id;
 
     const merchantId = "500" + generateRandomNumber(12);
     const accountNumberUSD = "888" + generateRandomNumber(9);
-    const accountNumberKHR = "999" + generateRandomNumber(9); // ឧទាហរណ៍ ផ្តើមដោយ 999 សម្រាប់រៀល
+    const accountNumberKHR = "999" + generateRandomNumber(9);
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
-    // ត្រូវតែប្រាកដថាដាក់ឈ្មោះនេះ (មាន s នៅខាងក្រោយ)
     const newMerchant = new Merchant({
-      userId, // ឥឡូវនេះវានឹង Save ជា 'dara123' មិនមែនលេខ Timestamp ទេ!
+      userId,
       name,
       city,
+      category, // 🔥 បន្ថែម: Save category ចូល Database
       linkedAccount,
       merchantId,
       accountNumbers: {
-        // ត្រូវប្រាកដថាប្រើឈ្មោះនេះ
         USD: accountNumberUSD,
         KHR: accountNumberKHR,
       },
@@ -49,15 +53,14 @@ exports.createMerchant = async (req, res) => {
 
     const savedMerchant = await newMerchant.save();
 
-    // ត្រឡប់ទិន្នន័យឱ្យចំឈ្មោះដែល Frontend ត្រូវការ (ជាពិសេសគឺ id)
     res.status(201).json({
       success: true,
       merchant: {
-        id: savedMerchant._id.toString(), // បម្លែងទៅជា String ឱ្យប្រាកដ
+        id: savedMerchant._id.toString(),
         merchantId: savedMerchant.merchantId,
-        accountNumbers: savedMerchant.accountNumbers,
         name: savedMerchant.name,
-        balance: savedMerchant.balance,
+        category: savedMerchant.category, // 🔥 បន្ថែម: ត្រឡប់ទៅឱ្យ Frontend វិញ
+        accountNumbers: savedMerchant.accountNumbers,
         apiKey: savedMerchant.apiKey,
         apiSecret: savedMerchant.apiSecret,
       },

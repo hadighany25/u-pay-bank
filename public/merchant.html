@@ -1100,6 +1100,23 @@
             </select>
           </div>
           <div class="input-group">
+            <label class="kh-text">ប្រភេទអាជីវកម្ម (Category)</label>
+            <select id="storeCategory" class="kh-text">
+              <option value="Food & Beverage">ម្ហូបអាហារ និងភេសជ្ជៈ</option>
+              <option value="Health & Beauty">សម្រស់ និងសុខភាព</option>
+              <option value="Transportation">ដឹកជញ្ជូន និងអ្នកដំណើរ</option>
+              <option value="Fashion & Shopping">សំលៀកបំពាក់ និងទំនិញ</option>
+              <option value="Service & Cleaning">សេវាកម្ម និងសម្អាត</option>
+              <option value="Education">ការអប់រំ និងបណ្ណាល័យ</option>
+              <option value="Entertainment">កម្សាន្ត និងទេសចរណ៍</option>
+              <option value="Finance & Insurance">
+                ហិរញ្ញវត្ថុ និងធានារ៉ាប់រង
+              </option>
+              <option value="Utilities">ទឹកភ្លើង និងសេវាសាធារណៈ</option>
+              <option value="Others">ផ្សេងៗ</option>
+            </select>
+          </div>
+          <div class="input-group">
             <label class="kh-text" data-i18n="merch_link_acc"
               >ភ្ជាប់ទៅកាន់គណនី</label
             >
@@ -2323,6 +2340,7 @@
         async function saveNewMerchant(enteredPin) {
           const name = document.getElementById("storeName").value;
           const city = document.getElementById("storeCity").value;
+          const category = document.getElementById("storeCategory").value; // 🔥 បន្ថែមបន្ទាត់នេះ
           const linkedAcc = document.getElementById("storeLinkedAcc").value;
           let isKh = window.currentLang === "kh";
 
@@ -2335,12 +2353,13 @@
           try {
             const response = await fetch("/api/merchants/create", {
               method: "POST",
-              headers: window.authHeaders, // 👈 ប្រើ Header ពី Core
+              headers: window.authHeaders,
               body: JSON.stringify({
                 name: name,
                 city: city,
+                category: category, // 🔥 បញ្ជូនទៅ Backend
                 linkedAccount: linkedAcc,
-                pin: enteredPin, // បញ្ជូន PIN ឱ្យ Server ផ្ទៀងផ្ទាត់
+                pin: enteredPin,
               }),
             });
 
@@ -2353,6 +2372,7 @@
                 accountNumbers: data.merchant.accountNumbers || [],
                 name: data.merchant.name,
                 city: city,
+                category: category, // 🔥 រក្សាទុកក្នុង Session បន្ទាប់ពីបង្កើតជោគជ័យ
                 linkedAccount: linkedAcc,
                 balance: data.merchant.balance || 0,
                 apiKey: data.merchant.apiKey,
@@ -2364,6 +2384,8 @@
                 "user",
                 JSON.stringify(window.currentUser),
               );
+
+              // សម្អាតទម្រង់
               document.getElementById("storeName").value = "";
 
               Swal.fire({

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const merchantSchema = new mongoose.Schema(
   {
     userId: {
-      type: String, // ប្តូរពី ObjectId មកជា String ធម្មតា
+      type: String,
       required: true,
     },
     name: {
@@ -15,18 +15,22 @@ const merchantSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // 🔥 បន្ថែម Field នេះចូល៖
+    category: {
+      type: String,
+      required: true, // ដាក់ true ប្រសិនបើបងចង់ឱ្យគ្រប់ហាងត្រូវតែមាន Category
+      default: "Other", // ដាក់តម្លៃ Default ទុកជាមុន
+    },
     linkedAccount: {
       type: String,
       enum: ["USD", "KHR"],
       required: true,
     },
-    // លេខសម្គាល់ហាង ១៥ ខ្ទង់
     merchantId: {
       type: String,
       required: true,
       unique: true,
     },
-    // លេខគណនីហាង ១២ ខ្ទង់ (សម្រាប់ទទួលលុយ)
     accountNumbers: {
       USD: { type: String, required: true },
       KHR: { type: String, required: true },
@@ -35,7 +39,6 @@ const merchantSchema = new mongoose.Schema(
       USD: { type: Number, default: 0.0 },
       KHR: { type: Number, default: 0 },
     },
-    // Keys សម្រាប់ភ្ជាប់ API
     apiKey: {
       type: String,
       required: true,
