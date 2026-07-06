@@ -26,6 +26,11 @@ async function loadMerchantsData() {
   }
 }
 
+// កែ Path ពី /api/admin/all-merchants មកជា:
+const res = await fetch("/api/merchants/admin/all-merchants", {
+  headers: getAuthHeaders(),
+});
+
 // 🔥 កែឈ្មោះ function ឱ្យត្រូវនឹង HTML
 function filterMerchants() {
   const term = document.getElementById("searchMerchantBox").value.toLowerCase();

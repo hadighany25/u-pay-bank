@@ -1,17 +1,12 @@
 const express = require("express");
 const router = express.Router();
-
-// ១. Import Controllers
+const Merchant = require("../models/Merchant"); // <--- ត្រូវ Import មកទើបប្រើ Merchant.find បាន
 const merchantController = require("../controllers/merchantController");
-
-// ២. Import Middleware
 const { verifyUser } = require("../middleware/authMiddleware");
 
-// ៣. កំណត់ Routes (មិនបាច់មាន /api/merchants ពីមុខទៀតទេ)
+// Routes សម្រាប់ Merchant ធម្មតា
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
-
-// 🔥 នេះគឺជា Route សម្រាប់ Update និង Delete ដែលកែត្រូវហើយ
 router.put(
   "/update/:merchantId",
   verifyUser,
@@ -22,8 +17,6 @@ router.delete(
   verifyUser,
   merchantController.deleteMerchant,
 );
-
-// សម្រាប់ Dashboard និង Report
 router.get(
   "/revenue/:merchantId",
   verifyUser,
@@ -34,13 +27,19 @@ router.get(
   verifyUser,
   merchantController.getMerchantTransactions,
 );
-// បន្ថែម Route នេះ ដើម្បីឱ្យ Admin អាចទាញទិន្នន័យ Merchant ទាំងអស់បាន
-app.get("/api/admin/all-merchants", async (req, res) => {
+
+// 🔥 Route សម្រាប់ Admin (កែជា router.get ជំនួសអោយ app.get)
+router.get("/admin/all-merchants", verifyUser, async (req, res) => {
   try {
-    const merchants = await Merchant.find({}); // ទាញយក Merchant ទាំងអស់ពី Database
+    // បន្ថែមការឆែកសិទ្ធិ Admin បន្តិច បើមិនចង់ឱ្យ User ធម្មតាចូលមើលបាន
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ success: false, message: "Access Denied" });
+    }
+    const merchants = await Merchant.find({});
     res.json({ success: true, merchants });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 module.exports = router;
