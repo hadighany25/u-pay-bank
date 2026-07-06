@@ -254,7 +254,7 @@ const translations = {
     // --- Analytics ---
     // =====================================
     title_analytics: "Analytics",
-    monthly_expenses: "Monthly Expenses",
+    expenses: "Expenses",
     no_expenses: "No expenses recorded this month.",
     total_spent: "Total Spent",
     expense_breakdown: "Expense Breakdown",
@@ -543,7 +543,7 @@ const translations = {
   // --- Analytics ---
   // =====================================
   title_analytics: "វិភាគ",
-  monthly_expenses: "ចំណាយប្រចាំខែ",
+  expenses: "ការចំណាយ",
   no_expenses: "មិនមានប្រតិបត្តិការចំណាយទេខែនេះ។",
   total_spent: "ចំណាយសរុប",
   expense_breakdown: "ចំណាត់ថ្នាក់ចំណាយ",
