@@ -42,8 +42,8 @@
         justify-content: center;
         min-height: 100vh;
         transition:
-          background-color 0.3s ease,
-          color 0.3s ease;
+          background-color 0.3s,
+          color 0.3s;
       }
 
       .app-container {
@@ -54,8 +54,8 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        transition: background-color 0.3s ease;
         padding-bottom: 90px;
+        position: relative;
       }
 
       /* Animations */
@@ -98,15 +98,10 @@
         font-size: 1.15rem;
         font-weight: 600;
         box-shadow: 0 4px 15px rgba(0, 77, 64, 0.1);
-        z-index: 10;
       }
       .nav-header a {
         color: white;
         text-decoration: none;
-        transition: transform 0.2s;
-      }
-      .nav-header a:active {
-        transform: scale(0.9);
       }
 
       .content-body {
@@ -120,38 +115,41 @@
       .chart-card {
         background: var(--card-bg);
         border-radius: 20px;
-        padding: 25px 20px;
+        padding: 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
         margin-bottom: 25px;
         border: 1px solid var(--border-color);
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
       }
       .chart-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       .chart-title {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         font-weight: 700;
         color: var(--text-dark);
         margin: 0;
       }
-      .month-badge {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--secondary);
-        padding: 6px 14px;
-        border-radius: 20px;
+
+      /* FILTER SELECT STYLING */
+      .filter-select {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        padding: 6px 10px;
+        border-radius: 10px;
         font-size: 0.8rem;
-        font-weight: 700;
+        font-weight: 600;
+        color: var(--primary);
+        outline: none;
+        cursor: pointer;
+        font-family: inherit;
       }
 
       .chart-container {
         position: relative;
-        height: 220px;
+        height: 200px;
         width: 100%;
         display: flex;
         justify-content: center;
@@ -160,29 +158,27 @@
 
       .total-expense-display {
         text-align: center;
-        margin-top: 20px;
-        padding-top: 20px;
+        margin-top: 15px;
+        padding-top: 15px;
         border-top: 1px dashed var(--border-color);
       }
       .total-expense-display p {
         margin: 0 0 5px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: var(--text-light);
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
       }
       .total-expense-display h2 {
         margin: 0;
         color: var(--danger);
-        font-size: 2rem;
+        font-size: 1.8rem;
         font-weight: 800;
-        font-family: "Inter", sans-serif;
       }
 
       /* LIST SECTION */
       .list-header {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         color: var(--text-dark);
         margin: 10px 0 15px;
@@ -197,32 +193,24 @@
         justify-content: space-between;
         align-items: center;
         background: var(--card-bg);
-        padding: 16px;
+        padding: 15px;
         border-radius: 16px;
         border: 1px solid var(--border-color);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-        transition:
-          transform 0.2s,
-          background-color 0.3s;
-        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
       }
-      .expense-item:hover {
-        transform: translateY(-2px);
-      }
-
       .expense-left {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 12px;
       }
       .expense-icon {
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.3rem;
+        font-size: 1.1rem;
       }
       .expense-icon.bills {
         background: rgba(239, 68, 68, 0.1);
@@ -238,22 +226,20 @@
       }
 
       .expense-info h4 {
-        margin: 0 0 4px;
-        font-size: 0.95rem;
+        margin: 0 0 2px;
+        font-size: 0.9rem;
         color: var(--text-dark);
         font-weight: 700;
       }
       .expense-info p {
         margin: 0;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--text-light);
-        font-weight: 500;
       }
       .expense-amount {
         font-weight: 800;
         color: var(--text-dark);
-        font-size: 1.05rem;
-        font-family: "Inter", sans-serif;
+        font-size: 0.95rem;
       }
 
       /* BOTTOM NAV */
@@ -271,35 +257,25 @@
         box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
         z-index: 9999;
         border-radius: 20px 20px 0 0;
-        border-top: 1px solid var(--border-color);
-        transition: background-color 0.3s ease;
       }
       .nav-item {
         text-align: center;
         color: var(--text-light);
         font-size: 0.75rem;
         text-decoration: none;
-        cursor: pointer;
-        transition: 0.2s;
         flex: 1;
-        font-weight: 600;
       }
       .nav-item i {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         display: block;
-        margin-bottom: 5px;
-      }
-      .nav-item:active {
-        transform: scale(0.9);
+        margin-bottom: 4px;
       }
       .nav-item.active {
         color: var(--primary);
-        transform: translateY(-3px);
+        font-weight: 700;
       }
 
-      /* ==================================
-         DARK MODE PROFESSIONAL
-         ================================== */
+      /* DARK MODE */
       body.dark-mode {
         background-color: #0f172a !important;
         color: #f8fafc !important;
@@ -307,16 +283,11 @@
       body.dark-mode .app-container {
         background-color: #0f172a !important;
       }
-      body.dark-mode .nav-header {
-        background-color: #1e293b !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      }
       body.dark-mode .chart-card,
       body.dark-mode .expense-item,
       body.dark-mode .bottom-nav {
         background-color: #1e293b !important;
         border-color: #334155 !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
       }
       body.dark-mode .chart-title,
       body.dark-mode .expense-info h4,
@@ -324,20 +295,14 @@
       body.dark-mode .list-header {
         color: #f8fafc !important;
       }
+      body.dark-mode .filter-select {
+        background: #0f172a;
+        color: white;
+        border-color: #334155;
+      }
       body.dark-mode .total-expense-display,
       body.dark-mode .bottom-nav {
         border-color: #334155 !important;
-      }
-      body.dark-mode .expense-info p,
-      body.dark-mode .total-expense-display p,
-      body.dark-mode .nav-item {
-        color: #94a3b8 !important;
-      }
-      body.dark-mode .month-badge {
-        background-color: rgba(16, 185, 129, 0.15) !important;
-      }
-      body.dark-mode .nav-item.active {
-        color: var(--secondary) !important;
       }
     </style>
   </head>
@@ -354,7 +319,17 @@
             <h3 class="chart-title" data-lang="monthly_expenses">
               Monthly Expenses
             </h3>
-            <div class="month-badge" id="monthBadge">This Month</div>
+            <select
+              class="filter-select"
+              id="timeFilter"
+              onchange="fetchAndLoadAnalytics()"
+            >
+              <option value="today" data-lang="filter_today">Today</option>
+              <option value="month" selected data-lang="filter_month">
+                This Month
+              </option>
+              <option value="year" data-lang="filter_year">This Year</option>
+            </select>
           </div>
 
           <div class="chart-container">
@@ -429,39 +404,36 @@
       </div>
 
       <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item">
-          <i class="fa-solid fa-house"></i>
-          <span data-lang="nav_home">Home</span>
-        </a>
-        <a href="scan.html" class="nav-item">
-          <i class="fa-solid fa-qrcode"></i>
-          <span data-lang="nav_scan">Scan</span>
-        </a>
-        <a href="history.html" class="nav-item">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-lang="nav_history">History</span>
-        </a>
-        <a href="settings.html" class="nav-item">
-          <i class="fa-solid fa-gear"></i>
-          <span data-lang="nav_settings">Settings</span>
-        </a>
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i
+          ><span data-lang="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i
+          ><span data-lang="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i
+          ><span data-lang="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i
+          ><span data-lang="nav_settings">Settings</span></a
+        >
       </div>
     </div>
 
     <script>
-      // Session Validation
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
-      const authHeaders = window.authHeaders || {
+      const authHeaders = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
-
       let expenseChart = null;
 
-      // Theme Support
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
         const isDark =
@@ -473,64 +445,16 @@
 
       window.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-
-        // ហៅមុខងារបកប្រែភាសា
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
-        } else if (typeof applyLang === "function") {
-          applyLang();
-        }
-
-        setupMonthBadge();
-
-        // ពន្យារពេលបន្តិចមុនពេល Render Chart ដើម្បីធានាថាភាសាត្រូវបានប្តូររួចរាល់
-        setTimeout(fetchAndLoadAnalytics, 150);
+        if (typeof applyLanguage === "function") applyLanguage();
+        fetchAndLoadAnalytics();
       });
-
-      function setupMonthBadge() {
-        const d = new Date();
-        const currentLang = localStorage.getItem("lang") || "en";
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        const monthNamesKh = [
-          "មករា",
-          "កុម្ភៈ",
-          "មីនា",
-          "មេសា",
-          "ឧសភា",
-          "មិថុនា",
-          "កក្កដា",
-          "សីហា",
-          "កញ្ញា",
-          "តុលា",
-          "វិច្ឆិកា",
-          "ធ្នូ",
-        ];
-        document.getElementById("monthBadge").innerText =
-          currentLang === "kh"
-            ? monthNamesKh[d.getMonth()]
-            : monthNames[d.getMonth()];
-      }
 
       function parseDateString(dateStr) {
         if (!dateStr) return new Date();
-        let parsedDate = new Date(dateStr);
-        if (isNaN(parsedDate.getTime()) && dateStr.includes(",")) {
-          parsedDate = new Date(dateStr.split(",")[0].trim());
-        }
-        return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime()) && dateStr.includes(","))
+          d = new Date(dateStr.split(",")[0].trim());
+        return isNaN(d.getTime()) ? new Date() : d;
       }
 
       async function fetchAndLoadAnalytics() {
@@ -544,10 +468,9 @@
               sessionStorage.setItem("user", JSON.stringify(user));
             }
           }
-        } catch (err) {
-          console.error("Sync Error:", err);
+        } catch (e) {
+          console.error("Sync error:", e);
         }
-        // ហៅ Render តែម្តង ទោះជា Fetch error ក៏ដោយ (យក data ចាស់ក្នុង session មកបង្ហាញ)
         renderAnalytics(user.transactions || []);
       }
 
@@ -564,46 +487,44 @@
 
       function renderAnalytics(transactions) {
         const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const filter = document.getElementById("timeFilter").value;
 
-        let billsTotal = 0;
-        let billsCount = 0;
-        let transfersTotal = 0;
-        let transfersCount = 0;
-        let merchantTotal = 0;
-        let merchantCount = 0;
+        let billsTotal = 0,
+          billsCount = 0;
+        let transfersTotal = 0,
+          transfersCount = 0;
+        let merchantTotal = 0,
+          merchantCount = 0;
 
         transactions.forEach((t) => {
           let amt = parseFloat(t.amount) || 0;
-
-          // 🔥 Logic ថ្មី ទូលាយជាងមុន: ចាប់យកចំនួនទឹកប្រាក់ < 0 (ចំណាយ)
           if (amt < 0) {
             const tDate = parseDateString(t.date || t.createdAt);
-            if (
-              tDate.getMonth() === currentMonth &&
-              tDate.getFullYear() === currentYear
-            ) {
-              // កំណត់ប្រភេទ Transaction ឱ្យកាន់តែឆ្លាតវៃ
-              let typeStr = (t.type || t.trxMethod || "").toLowerCase();
+            let match = false;
 
-              if (
-                typeStr.includes("bill") ||
-                typeStr.includes("utility") ||
-                typeStr.includes("invoice")
-              ) {
+            if (filter === "today") {
+              match = tDate.toDateString() === now.toDateString();
+            } else if (filter === "month") {
+              match =
+                tDate.getMonth() === now.getMonth() &&
+                tDate.getFullYear() === now.getFullYear();
+            } else if (filter === "year") {
+              match = tDate.getFullYear() === now.getFullYear();
+            }
+
+            if (match) {
+              let typeStr = (t.type || t.trxMethod || "").toLowerCase();
+              if (typeStr.includes("bill") || typeStr.includes("utility")) {
                 billsTotal += Math.abs(amt);
                 billsCount++;
               } else if (
                 typeStr.includes("merchant") ||
                 typeStr.includes("scan") ||
-                typeStr.includes("store") ||
                 typeStr.includes("qr")
               ) {
                 merchantTotal += Math.abs(amt);
                 merchantCount++;
               } else {
-                // ប្រសិនបើវាមិនមែន Bill មិនមែន Merchant វានឹងចាត់ទុកជា Transfer ទាំងអស់
                 transfersTotal += Math.abs(amt);
                 transfersCount++;
               }
@@ -615,20 +536,17 @@
         const totalSpan = document.getElementById("totalSpent");
         animateValue(totalSpan, 0, totalExpense, 1000);
 
-        const currentLang = localStorage.getItem("lang") || "en";
-        let trxWord = currentLang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
-        let noDataMsg = currentLang === "kh" ? "មិនមានទិន្នន័យ" : "No Data";
+        const lang = localStorage.getItem("lang") || "en";
+        let trxWord = lang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
 
         document.getElementById("billsCount").innerText =
           `${billsCount} ${trxWord}`;
         document.getElementById("billsTotalAmt").innerText =
           `$${billsTotal.toFixed(2)}`;
-
         document.getElementById("transfersCount").innerText =
           `${transfersCount} ${trxWord}`;
         document.getElementById("transfersTotalAmt").innerText =
           `$${transfersTotal.toFixed(2)}`;
-
         document.getElementById("merchantCount").innerText =
           `${merchantCount} ${trxWord}`;
         document.getElementById("merchantTotalAmt").innerText =
@@ -642,68 +560,34 @@
 
         if (expenseChart) expenseChart.destroy();
 
-        let lblBillsText = document.getElementById("lblBills").innerText;
-        let lblTransfersText =
-          document.getElementById("lblTransfers").innerText;
-        let lblMerchantText = document.getElementById("lblMerchant").innerText;
+        let lblBills = document.getElementById("lblBills").innerText;
+        let lblTransfers = document.getElementById("lblTransfers").innerText;
+        let lblMerchant = document.getElementById("lblMerchant").innerText;
+        let noDataTxt = lang === "kh" ? "មិនមានទិន្នន័យ" : "No Data";
 
-        let chartData, chartBgColors, chartBorderColors, chartBorderWidth;
-
-        // 🔥 បង្ហាញ Placeholder ពណ៌ប្រផេះ បើគ្មានទិន្នន័យ (ជំនួសឱ្យការបាត់ Chart)
-        if (totalExpense === 0) {
-          chartData = [1];
-          chartBgColors = [isDark ? "#334155" : "#e2e8f0"];
-          chartBorderColors = [isDark ? "#1e293b" : "#ffffff"];
-          chartBorderWidth = 0;
-
-          Chart.register({
-            id: "noDataPlugin",
-            beforeDraw: function (chart) {
-              if (
-                chart.data.datasets[0].data[0] === 1 &&
-                chart.data.labels[0] === "No Data"
-              ) {
-                let width = chart.width,
-                  height = chart.height,
-                  ctx = chart.ctx;
-                ctx.restore();
-                let fontSize = (height / 15).toFixed(2);
-                ctx.font = "600 " + fontSize + "px 'Inter', sans-serif";
-                ctx.textBaseline = "middle";
-                ctx.fillStyle = isDark ? "#94a3b8" : "#64748b";
-                let text = noDataMsg,
-                  textX = Math.round((width - ctx.measureText(text).width) / 2),
-                  textY = height / 2;
-                ctx.fillText(text, textX, textY);
-                ctx.save();
-              }
-            },
-          });
-          lblBillsText = "No Data";
-          lblTransfersText = "";
-          lblMerchantText = "";
-        } else {
-          chartData = [billsTotal, transfersTotal, merchantTotal];
-          chartBgColors = ["#ef4444", "#f59e0b", "#3b82f6"];
-          chartBorderColors = isDark ? "#1e293b" : "#ffffff";
-          chartBorderWidth = 4;
-        }
+        const dataValues =
+          totalExpense === 0
+            ? [1]
+            : [billsTotal, transfersTotal, merchantTotal];
+        const bgColors =
+          totalExpense === 0
+            ? [isDark ? "#334155" : "#e2e8f0"]
+            : ["#ef4444", "#f59e0b", "#3b82f6"];
 
         expenseChart = new Chart(ctx, {
           type: "doughnut",
           data: {
             labels:
               totalExpense === 0
-                ? ["No Data"]
-                : [lblBillsText, lblTransfersText, lblMerchantText],
+                ? [noDataTxt]
+                : [lblBills, lblTransfers, lblMerchant],
             datasets: [
               {
-                data: chartData,
-                backgroundColor: chartBgColors,
-                borderWidth: chartBorderWidth,
-                borderColor: chartBorderColors,
+                data: dataValues,
+                backgroundColor: bgColors,
+                borderWidth: totalExpense === 0 ? 0 : 4,
+                borderColor: isDark ? "#1e293b" : "#ffffff",
                 hoverOffset: totalExpense === 0 ? 0 : 8,
-                borderRadius: totalExpense === 0 ? 0 : 5,
               },
             ],
           },
@@ -714,8 +598,7 @@
             animation: {
               animateScale: true,
               animateRotate: true,
-              duration: 1500,
-              easing: "easeOutQuart",
+              duration: 1000,
             },
             plugins: {
               legend: {
@@ -724,21 +607,11 @@
                 labels: {
                   usePointStyle: true,
                   boxWidth: 10,
-                  padding: 20,
+                  padding: 15,
                   font: { weight: "600" },
                 },
               },
-              tooltip: {
-                enabled: totalExpense !== 0,
-                backgroundColor: isDark ? "#0f172a" : "#1e293b",
-                padding: 12,
-                cornerRadius: 8,
-                callbacks: {
-                  label: function (context) {
-                    return " $" + context.parsed.toFixed(2);
-                  },
-                },
-              },
+              tooltip: { enabled: totalExpense !== 0 },
             },
           },
         });

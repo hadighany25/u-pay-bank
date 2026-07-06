@@ -261,6 +261,9 @@ const translations = {
     cat_bills: "Bills & Utilities",
     cat_transfers: "Transfers",
     cat_merchant: "Merchant Payment",
+    filter_today: "Today",
+    filter_month: "This Month",
+    filter_year: "This Year",
   },
   // ភាសាខ្មែរ (Khmer) Translation
   kh: {
@@ -526,6 +529,9 @@ const translations = {
   cat_bills: "បង់វិក្កយបត្រផ្សេងៗ",
   cat_transfers: "វេរប្រាក់ចេញ",
   cat_merchant: "ទូទាត់ទៅអាជីវករ",
+  filter_today: "ថ្ងៃនេះ",
+  filter_month: "ខែនេះ",
+  filter_year: "ឆ្នាំនេះ",
 };
 
 function applyLanguage() {
