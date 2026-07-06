@@ -2152,6 +2152,9 @@
           });
         }
 
+        // ==========================================
+        // មុខងារកែប្រែ និង លុបហាង (កែសម្រួលរួចរាល់)
+        // ==========================================
         async function editMerchant(id) {
           const m = window.currentUser.merchantProfile.merchants.find(
             (x) => x.id === id,
@@ -2171,15 +2174,16 @@
           });
 
           if (newName && newName !== m.name) {
-            m.name = newName;
+            m.name = newName; // កែឈ្មោះក្នុង Object
 
             // 🔥 បន្ថែមការ Update ទៅ Server
             try {
               await fetch("/api/update-user", {
                 method: "POST",
-                headers: window.authHeaders, // ត្រូវប្រាកដថាបងមានអថេរនេះ
+                headers: window.authHeaders, // ត្រូវប្រាកដថាមាន Auth Header
                 body: JSON.stringify(window.currentUser),
               });
+
               sessionStorage.setItem(
                 "user",
                 JSON.stringify(window.currentUser),
@@ -2192,7 +2196,7 @@
                 showConfirmButton: false,
               });
             } catch (err) {
-              Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+              Swal.fire("Error", "មិនអាចរក្សាទុកទៅ Server បានទេ", "error");
             }
           }
         }
@@ -2207,12 +2211,11 @@
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
-            cancelButtonColor: "#64748b",
             confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
-            cancelButtonText: isKh ? "បោះបង់" : "Cancel",
           }).then(async (result) => {
-            // បន្ថែម async
+            // 🔥 ត្រូវមាន async
             if (result.isConfirmed) {
+              // លុបក្នុង Array
               window.currentUser.merchantProfile.merchants =
                 window.currentUser.merchantProfile.merchants.filter(
                   (x) => x.id !== id,
@@ -2225,6 +2228,7 @@
                   headers: window.authHeaders,
                   body: JSON.stringify(window.currentUser),
                 });
+
                 sessionStorage.setItem(
                   "user",
                   JSON.stringify(window.currentUser),
