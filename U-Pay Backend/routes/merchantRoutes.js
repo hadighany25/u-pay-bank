@@ -34,5 +34,13 @@ router.get(
   verifyUser,
   merchantController.getMerchantTransactions,
 );
-
+// បន្ថែម Route នេះ ដើម្បីឱ្យ Admin អាចទាញទិន្នន័យ Merchant ទាំងអស់បាន
+app.get("/api/admin/all-merchants", async (req, res) => {
+  try {
+    const merchants = await Merchant.find({}); // ទាញយក Merchant ទាំងអស់ពី Database
+    res.json({ success: true, merchants });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;

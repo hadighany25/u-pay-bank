@@ -1,35 +1,39 @@
 // ==========================================
-// MERCHANT MANAGEMENT LOGIC (កែតម្រូវថ្មី)
+// MERCHANT MANAGEMENT LOGIC
 // ==========================================
 
-// ទាញទិន្នន័យហាងដោយផ្ទាល់ពី Collection "merchants"
 async function loadMerchantsData() {
   try {
     const tbody = document.getElementById("merchantTableBody");
     tbody.innerHTML =
-      '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</td></tr>';
+      '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយក...</td></tr>';
 
-    // ហៅទៅកាន់ API ដែលទាញទិន្នន័យពី Collection 'merchants' ផ្ទាល់
-    // (សូមប្រាកដថាអ្នកមាន Route /api/admin/merchants នៅខាង Backend)
-    const res = await fetch("/api/admin/merchants", {
+    // 🔥 កែ Path ឱ្យត្រូវនឹង Route ដែលយើងទើបបន្ថែមនៅខាងលើ
+    const res = await fetch("/api/admin/all-merchants", {
       headers: getAuthHeaders(),
     });
 
     const data = await res.json();
-
-    // ឆែកមើលថាមានទិន្នន័យដែរឬទេ
-    if (data.success && data.merchants && data.merchants.length > 0) {
+    if (data.success && data.merchants) {
       globalMerchantsData = data.merchants;
       renderMerchantsTable(globalMerchantsData);
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-store-slash" style="font-size: 2.5rem; opacity: 0.5; margin-bottom: 15px;"></i><br>មិនទាន់មានទិន្នន័យហាងក្នុងប្រព័ន្ធនៅឡើយទេ។</td></tr>';
+        '<tr><td colspan="5" style="text-align: center; padding: 40px;">គ្មានទិន្នន័យ។</td></tr>';
     }
   } catch (error) {
     console.error("Error loading merchants:", error);
-    document.getElementById("merchantTableBody").innerHTML =
-      '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ef4444;">មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Database។</td></tr>';
   }
+}
+
+// 🔥 កែឈ្មោះ function ឱ្យត្រូវនឹង HTML
+function filterMerchants() {
+  const term = document.getElementById("searchMerchantBox").value.toLowerCase();
+  const rows = document.querySelectorAll("#merchantTableBody tr");
+  rows.forEach((r) => {
+    // ត្រួតពិនិត្យអត្ថបទក្នុងជួរនីមួយៗ
+    r.style.display = r.innerText.toLowerCase().includes(term) ? "" : "none";
+  });
 }
 
 // មុខងារគូរតារាង (កែសម្រួលឈ្មោះ property ឱ្យត្រូវនឹង Database របស់អ្នក)
