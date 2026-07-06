@@ -90,15 +90,14 @@ exports.getMyMerchants = async (req, res) => {
 };
 
 // ៣. មុខងារលុបហាង (Delete Merchant)
-// ក្នុងឯកសារ Controller របស់បង
 exports.deleteMerchant = async (req, res) => {
   try {
-    const { merchantId } = req.params; // ទទួលយក ID ពី URL
-    const userId = req.user.username; // យក username ពី Auth Middleware
+    const { merchantId } = req.params;
+    const userId = req.user.username || req.user.id || req.user._id;
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
-      userId: userId, // ផ្ទៀងផ្ទាត់ថាម្ចាស់ហាងពិតមែន
+      userId: userId,
     });
 
     if (!merchant) {
@@ -115,14 +114,25 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
+// ៤. មុខងារកែប្រែឈ្មោះហាង (Update Merchant)
 exports.updateMerchant = async (req, res) => {
   try {
     const { name } = req.body;
+    const userId = req.user.username || req.user.id || req.user._id;
+
     const merchant = await Merchant.findOneAndUpdate(
-      { _id: req.params.merchantId, userId: req.user.username },
+      { _id: req.params.merchantId, userId: userId },
       { name },
-      { new: true },
+      { new: true }, // ត្រឡប់ទិន្នន័យថ្មីបន្ទាប់ពី Update រួច
     );
+
+    // 🔥 បន្ថែមការឆែកក្រែងរកមិនឃើញ
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Merchant not found" });
+    }
+
     res.json({ success: true, merchant });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

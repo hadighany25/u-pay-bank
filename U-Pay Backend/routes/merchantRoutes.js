@@ -7,24 +7,23 @@ const merchantController = require("../controllers/merchantController");
 // ២. Import Middleware
 const { verifyUser } = require("../middleware/authMiddleware");
 
-// ៣. កំណត់ Routes
+// ៣. កំណត់ Routes (មិនបាច់មាន /api/merchants ពីមុខទៀតទេ)
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
-// បន្ថែម Route ទាំងនេះដើម្បីទទួលការហៅពី Frontend
+
+// 🔥 នេះគឺជា Route សម្រាប់ Update និង Delete ដែលកែត្រូវហើយ
 router.put(
-  "/api/merchants/update/:merchantId",
+  "/update/:merchantId",
   verifyUser,
-  authMiddleware,
   merchantController.updateMerchant,
 );
 router.delete(
-  "/api/merchants/delete/:merchantId",
+  "/delete/:merchantId",
   verifyUser,
-  authMiddleware,
   merchantController.deleteMerchant,
 );
 
-// 🔥 បន្ថែម ២ ជួរនេះសម្រាប់ Dashboard និង Report
+// សម្រាប់ Dashboard និង Report
 router.get(
   "/revenue/:merchantId",
   verifyUser,

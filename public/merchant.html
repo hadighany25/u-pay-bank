@@ -2175,7 +2175,7 @@
 
           if (newName && newName !== m.name) {
             try {
-              // 🔥 ហៅ API ដើម្បី Update នៅលើ Server
+              // ហៅ API ដើម្បី Update នៅលើ Server
               const response = await fetch(`/api/merchants/update/${id}`, {
                 method: "PUT",
                 headers: window.authHeaders,
@@ -2184,7 +2184,7 @@
 
               const data = await response.json();
               if (data.success) {
-                m.name = newName; // កែក្នុង Object ក្នុង Browser
+                m.name = newName; // Update ក្នុង Browser
                 sessionStorage.setItem(
                   "user",
                   JSON.stringify(window.currentUser),
@@ -2222,11 +2222,13 @@
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#64748b",
             confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
+            cancelButtonText: isKh ? "បោះបង់" : "Cancel",
           }).then(async (result) => {
             if (result.isConfirmed) {
               try {
-                // 🔥 ហៅ API ដើម្បីលុបនៅលើ Server
+                // ហៅ API ដើម្បីលុបនៅលើ Server
                 const response = await fetch(`/api/merchants/delete/${id}`, {
                   method: "DELETE",
                   headers: window.authHeaders,
@@ -2234,7 +2236,6 @@
 
                 const data = await response.json();
                 if (data.success) {
-                  // លុបក្នុង Array
                   window.currentUser.merchantProfile.merchants =
                     window.currentUser.merchantProfile.merchants.filter(
                       (x) => x.id !== id,
