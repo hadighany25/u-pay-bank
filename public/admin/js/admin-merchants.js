@@ -26,11 +26,6 @@ async function loadMerchantsData() {
   }
 }
 
-// កែ Path ពី /api/admin/all-merchants មកជា:
-const res = await fetch("/api/merchants/admin/all-merchants", {
-  headers: getAuthHeaders(),
-});
-
 // 🔥 កែឈ្មោះ function ឱ្យត្រូវនឹង HTML
 function filterMerchants() {
   const term = document.getElementById("searchMerchantBox").value.toLowerCase();
@@ -85,4 +80,18 @@ function renderMerchantsTable(merchants) {
     `;
     tbody.appendChild(tr);
   });
+  // បន្ថែមមុខងារនេះចូលក្នុង admin-merchants.js
+  function viewMerchantTrx(mid) {
+    // ដាក់លេខកូដចូលប្រអប់ស្វែងរក
+    const searchInput = document.getElementById("searchTrxId");
+    if (searchInput) {
+      searchInput.value = mid;
+      // ប្តូរ Tab ទៅ Transaction Check
+      showSection("check-trx");
+      // ហៅមុខងារស្វែងរក
+      if (typeof searchTrx === "function") {
+        searchTrx();
+      }
+    }
+  }
 }

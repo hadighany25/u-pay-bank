@@ -151,4 +151,19 @@ router.post(
   checkRole(["super_admin", "finance_admin"]),
   adminController.togglePromoCode,
 );
+// ក្នុង routes/adminRoutes.js
+const Merchant = require("../models/Merchant"); // Import Model Merchant មកសិន
+
+router.get("/all-merchants", verifyUser, async (req, res) => {
+  try {
+    // ឆែកសិទ្ធិ
+    if (req.user.role !== "super_admin")
+      return res.status(403).json({ success: false });
+
+    const merchants = await Merchant.find({});
+    res.json({ success: true, merchants });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 module.exports = router;
