@@ -30,21 +30,28 @@ async function loadMerchantsData() {
   }
 }
 
-// មុខងារស្វែងរកហាង
+// មុខងារ Search ឆ្លាតវៃសម្រាប់ Merchant
 function filterMerchants() {
-  const term = document.getElementById("searchMerchantBox").value.toLowerCase();
+  const term = document
+    .getElementById("searchMerchantBox")
+    .value.toLowerCase()
+    .trim();
   const rows = document.querySelectorAll("#merchantTableBody tr");
 
   rows.forEach((r) => {
-    // យើងយកទិន្នន័យពីក្នុង row នីមួយៗ (ដែលយើងបាន render រួចហើយ)
-    // r.innerText នឹងមានទាំងឈ្មោះហាង, owner, mid, លេខគណនី...
-    const rowContent = r.innerText.toLowerCase();
+    // យើងទាញយកទិន្នន័យពី Row នីមួយៗ (ដែលយើងបាន render ទុក)
+    // ដើម្បីឱ្យ Search ដើរ អ្នកត្រូវប្រាកដថាអត្ថបទទាំងនោះមានក្នុង Row
+    const rowText = r.innerText.toLowerCase();
 
-    // បើរកឃើញអក្សរក្នុងទិន្នន័យណាមួយ វានឹងបង្ហាញ row នោះ
-    if (rowContent.includes(term)) {
-      r.style.display = "";
+    // បើមិនទាន់មានទិន្នន័យ មិនបាច់ Search ទេ
+    if (rowText.includes("loading")) return;
+
+    // ត្រួតពិនិត្យថា តើ Term ដែលវាយ មានក្នុងអត្ថបទនៃ Row ហ្នឹងឬអត់
+    // r.innerText រួមបញ្ចូលទាំងឈ្មោះហាង, Owner, MID, លេខគណនីដែលបង្ហាញក្នុងតារាង
+    if (rowText.includes(term)) {
+      r.style.display = ""; // បង្ហាញ
     } else {
-      r.style.display = "none";
+      r.style.display = "none"; // លាក់
     }
   });
 }
