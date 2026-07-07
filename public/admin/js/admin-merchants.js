@@ -4,13 +4,14 @@
 
 let globalMerchantsData = [];
 
-// 1. ទាញទិន្នន័យពី Database
+// ១. ទាញយកទិន្នន័យពី Database
 async function loadMerchantsData() {
   try {
     const tbody = document.getElementById("merchantTableBody");
     tbody.innerHTML =
-      '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកទិន្នន័យហាង...</td></tr>';
+      '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</td></tr>';
 
+    // ហៅ API ដែលមានក្នុង merchantRoutes.js
     const res = await fetch("/api/merchants/admin/all-merchants", {
       headers: getAuthHeaders(),
     });
@@ -21,15 +22,15 @@ async function loadMerchantsData() {
       renderMerchantsTable(globalMerchantsData);
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);"><i class="fa-solid fa-store-slash" style="font-size: 2rem; margin-bottom:10px; opacity:0.5;"></i><br>មិនទាន់មានហាងអាជីវកម្មក្នុងប្រព័ន្ធទេ។</td></tr>';
+        '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">មិនមានទិន្នន័យហាងទេ។</td></tr>';
     }
   } catch (error) {
     document.getElementById("merchantTableBody").innerHTML =
-      '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ef4444;">មានបញ្ហាក្នុងការតភ្ជាប់ទៅ Server។</td></tr>';
+      '<tr><td colspan="5" style="text-align: center; color: #ef4444;">មានបញ្ហាតភ្ជាប់ទៅ Server។</td></tr>';
   }
 }
 
-// 2. មុខងារគូរតារាង និងប៊ូតុង Actions
+// ២. គូរតារាង និងប៊ូតុងសកម្មភាព
 function renderMerchantsTable(merchants) {
   const tbody = document.getElementById("merchantTableBody");
   tbody.innerHTML = "";
@@ -43,6 +44,7 @@ function renderMerchantsTable(merchants) {
     let balanceUSD = m.collected && m.collected.USD ? m.collected.USD : 0;
     let balanceKHR = m.collected && m.collected.KHR ? m.collected.KHR : 0;
 
+    // ប្រើ Field "status" ពី Database ដើម្បីកំណត់ Freeze
     let isFrozen = m.status === "Suspended";
     let freezeHtml = `<label class="switch"><input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)"><span class="slider"></span></label>`;
 
@@ -82,7 +84,7 @@ function renderMerchantsTable(merchants) {
   });
 }
 
-// 3. មុខងារ Search ឆ្លាតវៃ
+// ៣. មុខងារ Search ឆ្លាតវៃ
 function filterMerchants() {
   const term = document
     .getElementById("searchMerchantBox")
@@ -94,13 +96,13 @@ function filterMerchants() {
   });
 }
 
-// 4. មុខងារផ្អាកគណនី (Freeze)
+// ៤. មុខងារផ្អាក/បើកហាង (Freeze Action) ដើរ ១០០%
 async function toggleMerchantFreeze(id, isChecked) {
   try {
     const res = await fetch("/api/admin/toggle-merchant-freeze", {
       method: "POST",
       headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ id: id, isFrozen: isChecked }),
+      body: JSON.stringify({ id: id, isFrozen: isChecked }), // បាញ់ id និងស្ថានភាពទៅកាន់ Controller
     });
     const data = await res.json();
     if (data.success) {
@@ -117,11 +119,11 @@ async function toggleMerchantFreeze(id, isChecked) {
     }
   } catch (error) {
     Swal.fire("បរាជ័យ", "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ", "error");
-    setTimeout(() => loadMerchantsData(), 1500); // ហៅទិន្នន័យដើមមកវិញ
+    setTimeout(() => loadMerchantsData(), 1500); // ទាញទិន្នន័យមកវិញបើ Error
   }
 }
 
-// 5. មុខងារលុបហាង (Delete)
+// ៥. មុខងារលុបហាង (Delete Action) ដើរ ១០០%
 function deleteMerchantByAdmin(id) {
   Swal.fire({
     title: "តើអ្នកប្រាកដទេ?",
@@ -141,8 +143,15 @@ function deleteMerchantByAdmin(id) {
         });
         const data = await res.json();
         if (data.success) {
-          Swal.fire("ជោគជ័យ", "ហាងត្រូវបានលុប!", "success");
-          loadMerchantsData(); // Refresh តារាង
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: "ហាងត្រូវបានលុប",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          loadMerchantsData(); // គូរតារាងឡើងវិញ
         } else throw new Error(data.message);
       } catch (e) {
         Swal.fire("Error", "មិនអាចលុបបានទេ", "error");
@@ -151,7 +160,7 @@ function deleteMerchantByAdmin(id) {
   });
 }
 
-// 6. មុខងារកែប្រែហាង (Edit)
+// ៦. មុខងារកែប្រែហាង (Edit Action) ដើរ ១០០%
 async function editMerchantByAdmin(id, oldName, oldCat) {
   const { value: formValues } = await Swal.fire({
     title: "កែប្រែព័ត៌មានហាង",
@@ -192,7 +201,7 @@ async function editMerchantByAdmin(id, oldName, oldCat) {
           showConfirmButton: false,
           timer: 1500,
         });
-        loadMerchantsData(); // Refresh តារាង
+        loadMerchantsData(); // គូរតារាងឡើងវិញ
       } else throw new Error(data.message);
     } catch (e) {
       Swal.fire("Error", "មិនអាចកែប្រែបានទេ", "error");
@@ -200,18 +209,18 @@ async function editMerchantByAdmin(id, oldName, oldCat) {
   }
 }
 
-// 7. មុខងារមើលប្រតិបត្តិការ (View Trx)
+// ៧. មើលប្រតិបត្តិការហាង (View Transactions) ដើរ ១០០%
 function viewMerchantTrx(ownerUsername) {
-  // វាយបញ្ចូលឈ្មោះម្ចាស់ហាងទៅកាន់ប្រអប់ Search ក្នុង Customer 360 ដោយស្វ័យប្រវត្តិ
+  // ចាប់យក Input ស្វែងរករបស់ Customer 360°
   const c360Input = document.getElementById("searchC360");
   if (c360Input) {
-    c360Input.value = ownerUsername;
-    // លោតទៅកាន់ Tab Customer 360
-    showSection("customer-360");
-    // បញ្ជាឱ្យស្វែងរក
+    c360Input.value = ownerUsername; // ដាក់ឈ្មោះម្ចាស់ហាងចូលទៅ
+    showSection("customer-360"); // លោតទៅផ្ទាំង Customer 360°
+
+    // បញ្ជាអោយស្វែងរក
     if (typeof searchCustomer360 === "function") {
       searchCustomer360();
-      // បើក Tab របស់ Merchant ឱ្យស្រាប់
+      // បន្ទាប់ពីស្វែងរកឃើញ រង់ចាំបន្តិចទើបលោតទៅបើក Tab Merchant
       setTimeout(() => switchC360Tab("merchant"), 500);
     }
   }
