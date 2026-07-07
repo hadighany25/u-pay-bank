@@ -573,9 +573,10 @@
     </div>
 
     <script>
+      // ប្រើអថេរ activeUser ដូច u-pay-core.js
       let activeUser = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken");
-      if (!activeUser || !token) window.location.href = "index.html";
+      let apiToken = sessionStorage.getItem("userToken");
+      if (!activeUser || !apiToken) window.location.href = "index.html";
 
       function applyTheme() {
         const userThemeKey = "darkMode_" + activeUser.username;
@@ -675,6 +676,7 @@
         document.getElementById("qrSetAmount").value = "";
         updateMyQR();
       }
+      // កំណត់ QR ជា USD នៅពេលបើកដំបូង
       switchQRCurrency("USD");
 
       function updateMyQR() {
