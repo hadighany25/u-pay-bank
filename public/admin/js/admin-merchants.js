@@ -84,29 +84,30 @@ function renderMerchantsTable(merchants) {
 
 // ២. មុខងារកែប្រែហាង (Edit Action) ដើរ ១០០%
 async function editMerchantByAdmin(id) {
-  // រកមើលទិន្នន័យហាងពីក្នុង Array របស់ Admin ផ្ទាល់
   const mData = globalMerchantsData.find((m) => m._id === id);
   if (!mData) return;
 
   const { value: formValues } = await Swal.fire({
-    title: "កែប្រែព័ត៌មានហាង",
-    html:
-      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ឈ្មោះហាង៖</div>` +
-      `<input id="swal-name" class="swal2-input" value="${mData.name || ""}" placeholder="ឈ្មោះហាង" style="margin-top: 5px;">` +
-      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">Merchant ID៖</div>` +
-      `<input id="swal-mid" class="swal2-input" value="${mData.merchantId || ""}" placeholder="Merchant ID" style="margin-top: 5px;">` +
-      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">ប្រភេទអាជីវកម្ម៖</div>` +
-      `<input id="swal-cat" class="swal2-input" value="${mData.category || ""}" placeholder="ប្រភេទអាជីវកម្ម" style="margin-top: 5px;">` +
-      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">គណនីទទួលប្រាក់៖</div>` +
-      `<select id="swal-acc" class="swal2-input" style="width: 73%; margin-top: 5px;">
-            <option value="USD" ${mData.linkedAccount === "USD" ? "selected" : ""}>គណនី USD ($)</option>
-            <option value="KHR" ${mData.linkedAccount === "KHR" ? "selected" : ""}>គណនី KHR (៛)</option>
-         </select>`,
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: "រក្សាទុក",
-    cancelButtonText: "បោះបង់",
-    confirmButtonColor: "#3b82f6",
+    title: '<h3 style="margin:0;">កែប្រែព័ត៌មានហាង</h3>',
+    html: `
+      <div style="text-align: left; margin-top: 15px;">
+        <label style="font-weight: 600; font-size: 0.9rem;">ឈ្មោះហាង</label>
+        <input id="swal-name" class="swal2-input" value="${mData.name}" style="margin: 5px 0 15px 0; width: 90%;">
+        
+        <label style="font-weight: 600; font-size: 0.9rem;">Merchant ID</label>
+        <input id="swal-mid" class="swal2-input" value="${mData.merchantId}" style="margin: 5px 0 15px 0; width: 90%;">
+        
+        <label style="font-weight: 600; font-size: 0.9rem;">ប្រភេទអាជីវកម្ម</label>
+        <input id="swal-cat" class="swal2-input" value="${mData.category}" style="margin: 5px 0 15px 0; width: 90%;">
+        
+        <label style="font-weight: 600; font-size: 0.9rem;">គណនីទទួលប្រាក់</label>
+        <select id="swal-acc" class="swal2-select" style="margin: 5px 0 0 0; width: 95%; padding: 10px;">
+            <option value="USD" ${mData.linkedAccount === "USD" ? "selected" : ""}>USD (គណនីចុះបញ្ចប់ដោយ ${mData.accountNumbers?.USD?.slice(-4) || "..."})</option>
+            <option value="KHR" ${mData.linkedAccount === "KHR" ? "selected" : ""}>KHR (គណនីចុះបញ្ចប់ដោយ ${mData.accountNumbers?.KHR?.slice(-4) || "..."})</option>
+        </select>
+      </div>`,
+    confirmButtonText: "រក្សាទុកការផ្លាស់ប្តូរ",
+    confirmButtonColor: "#004d40",
     preConfirm: () => [
       document.getElementById("swal-name").value,
       document.getElementById("swal-mid").value,
