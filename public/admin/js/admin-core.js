@@ -90,6 +90,7 @@ function showSection(id, btn) {
     "logs",
     "fees",
     "promo",
+    "merchant-history",
   ];
 
   sections.forEach((sec) => {

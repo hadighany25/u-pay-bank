@@ -248,9 +248,26 @@ exports.adminDeleteMerchant = async (req, res) => {
 // ២. មុខងារ Admin កែប្រែព័ត៌មានហាង
 exports.adminEditMerchant = async (req, res) => {
   try {
-    const { id, name, category } = req.body;
-    await Merchant.findByIdAndUpdate(id, { name: name, category: category });
-    res.json({ success: true, message: "Merchant updated successfully" });
+    const { id, name, merchantId, linkedAccount, category } = req.body;
+
+    // ឆែកមើលថា Merchant ID ថ្មីមានជាន់គេទេ (លើកលែងតែម្ចាស់ខ្លួនឯង)
+    const existing = await Merchant.findOne({
+      merchantId: merchantId,
+      _id: { $ne: id },
+    });
+    if (existing)
+      return res.json({
+        success: false,
+        message: "Merchant ID នេះមានអ្នកប្រើហើយ!",
+      });
+
+    await Merchant.findByIdAndUpdate(id, {
+      name,
+      merchantId,
+      linkedAccount,
+      category,
+    });
+    res.json({ success: true, message: "កែប្រែជោគជ័យ" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

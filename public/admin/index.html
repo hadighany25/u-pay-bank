@@ -839,6 +839,32 @@
           </table>
         </div>
       </div>
+      <!-- Merchant History -->
+      <div
+        id="sec-merchant-history"
+        style="display: none; max-width: 1400px; margin: 0 auto"
+      >
+        <div class="table-header-controls">
+          <button class="btn-cancel" onclick="showSection('merchants')">
+            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+          </button>
+          <h2 class="dash-title">ប្រវត្តិប្រតិបត្តិការហាង</h2>
+        </div>
+        <div class="table-container">
+          <table id="merchantTrxTable">
+            <thead>
+              <tr>
+                <th>កាលបរិច្ឆេទ</th>
+                <th>Ref ID</th>
+                <th>អតិថិជន</th>
+                <th>ទឹកប្រាក់</th>
+                <th>ស្ថានភាព</th>
+              </tr>
+            </thead>
+            <tbody id="merchantTrxBody"></tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- FX -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">

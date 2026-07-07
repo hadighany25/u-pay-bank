@@ -29,8 +29,7 @@ async function loadMerchantsData() {
       '<tr><td colspan="5" style="text-align: center; color: #ef4444;">មានបញ្ហាតភ្ជាប់ទៅ Server។</td></tr>';
   }
 }
-
-// ២. គូរតារាង និងប៊ូតុងសកម្មភាព
+// ១. ជំនួសមុខងារ renderMerchantsTable ត្រង់កន្លែងប៊ូតុង Edit និង View Trx (ដើម្បីអោយវាបោះ _id ទៅ)
 function renderMerchantsTable(merchants) {
   const tbody = document.getElementById("merchantTableBody");
   tbody.innerHTML = "";
@@ -44,7 +43,6 @@ function renderMerchantsTable(merchants) {
     let balanceUSD = m.collected && m.collected.USD ? m.collected.USD : 0;
     let balanceKHR = m.collected && m.collected.KHR ? m.collected.KHR : 0;
 
-    // ប្រើ Field "status" ពី Database ដើម្បីកំណត់ Freeze
     let isFrozen = m.status === "Suspended";
     let freezeHtml = `<label class="switch"><input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)"><span class="slider"></span></label>`;
 
@@ -74,8 +72,8 @@ function renderMerchantsTable(merchants) {
       <td>${freezeHtml}</td>
       <td>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
-          <button class="btn-action" style="background:#10b981;" title="មើលប្រតិបត្តិការ" onclick="viewMerchantTrx('${owner}')"><i class="fa-solid fa-file-invoice"></i></button>
-          <button class="btn-action" style="background:#f59e0b;" title="កែប្រែហាង" onclick="editMerchantByAdmin('${m._id}', '${shopName}', '${category}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn-action" style="background:#10b981;" title="មើលប្រតិបត្តិការ" onclick="viewMerchantTrx('${m._id}')"><i class="fa-solid fa-file-invoice"></i></button>
+          <button class="btn-action" style="background:#f59e0b;" title="កែប្រែហាង" onclick="editMerchantByAdmin('${m._id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="btn-action btn-delete" title="លុបហាង" onclick="deleteMerchantByAdmin('${m._id}')"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
@@ -84,112 +82,61 @@ function renderMerchantsTable(merchants) {
   });
 }
 
-// ៣. មុខងារ Search ឆ្លាតវៃ
-function filterMerchants() {
-  const term = document
-    .getElementById("searchMerchantBox")
-    .value.toLowerCase()
-    .trim();
-  const rows = document.querySelectorAll("#merchantTableBody tr");
-  rows.forEach((r) => {
-    r.style.display = r.innerText.toLowerCase().includes(term) ? "" : "none";
-  });
-}
+// ២. មុខងារកែប្រែហាង (Edit Action) ដើរ ១០០%
+async function editMerchantByAdmin(id) {
+  // រកមើលទិន្នន័យហាងពីក្នុង Array របស់ Admin ផ្ទាល់
+  const mData = globalMerchantsData.find((m) => m._id === id);
+  if (!mData) return;
 
-// ៤. មុខងារផ្អាក/បើកហាង (Freeze Action) ដើរ ១០០%
-async function toggleMerchantFreeze(id, isChecked) {
-  try {
-    const res = await fetch("/api/admin/toggle-merchant-freeze", {
-      method: "POST",
-      headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ id: id, isFrozen: isChecked }), // បាញ់ id និងស្ថានភាពទៅកាន់ Controller
-    });
-    const data = await res.json();
-    if (data.success) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: isChecked ? "ហាងត្រូវបានផ្អាក!" : "ហាងត្រូវបានបើកវិញ!",
-        showConfirmButton: false,
-        timer: 1500,
-      });
-    } else {
-      throw new Error(data.message);
-    }
-  } catch (error) {
-    Swal.fire("បរាជ័យ", "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ", "error");
-    setTimeout(() => loadMerchantsData(), 1500); // ទាញទិន្នន័យមកវិញបើ Error
-  }
-}
-
-// ៥. មុខងារលុបហាង (Delete Action) ដើរ ១០០%
-function deleteMerchantByAdmin(id) {
-  Swal.fire({
-    title: "តើអ្នកប្រាកដទេ?",
-    text: "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោលទាំងស្រុងពីប្រព័ន្ធ!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#ef4444",
-    cancelButtonColor: "#64748b",
-    confirmButtonText: "បាទ/ចាស, លុប!",
-    cancelButtonText: "បោះបង់",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        const res = await fetch(`/api/admin/delete-merchant/${id}`, {
-          method: "DELETE",
-          headers: getAuthHeaders(),
-        });
-        const data = await res.json();
-        if (data.success) {
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: "ហាងត្រូវបានលុប",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          loadMerchantsData(); // គូរតារាងឡើងវិញ
-        } else throw new Error(data.message);
-      } catch (e) {
-        Swal.fire("Error", "មិនអាចលុបបានទេ", "error");
-      }
-    }
-  });
-}
-
-// ៦. មុខងារកែប្រែហាង (Edit Action) ដើរ ១០០%
-async function editMerchantByAdmin(id, oldName, oldCat) {
   const { value: formValues } = await Swal.fire({
     title: "កែប្រែព័ត៌មានហាង",
-    html: `<div style="text-align: left; margin-bottom: 5px; font-weight: bold; color: var(--text-muted);">ឈ្មោះហាង៖</div>
-         <input id="swal-input1" class="swal2-input" value="${oldName}" style="margin-top: 0;">
-         <div style="text-align: left; margin-bottom: 5px; font-weight: bold; color: var(--text-muted); margin-top: 15px;">ប្រភេទអាជីវកម្ម៖</div>
-         <input id="swal-input2" class="swal2-input" value="${oldCat}" style="margin-top: 0;">`,
+    html:
+      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ឈ្មោះហាង៖</div>` +
+      `<input id="swal-name" class="swal2-input" value="${mData.name || ""}" placeholder="ឈ្មោះហាង" style="margin-top: 5px;">` +
+      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">Merchant ID៖</div>` +
+      `<input id="swal-mid" class="swal2-input" value="${mData.merchantId || ""}" placeholder="Merchant ID" style="margin-top: 5px;">` +
+      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">ប្រភេទអាជីវកម្ម៖</div>` +
+      `<input id="swal-cat" class="swal2-input" value="${mData.category || ""}" placeholder="ប្រភេទអាជីវកម្ម" style="margin-top: 5px;">` +
+      `<div style="text-align: left; font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-top: 10px;">គណនីទទួលប្រាក់៖</div>` +
+      `<select id="swal-acc" class="swal2-input" style="width: 73%; margin-top: 5px;">
+            <option value="USD" ${mData.linkedAccount === "USD" ? "selected" : ""}>គណនី USD ($)</option>
+            <option value="KHR" ${mData.linkedAccount === "KHR" ? "selected" : ""}>គណនី KHR (៛)</option>
+         </select>`,
     focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "រក្សាទុក",
     cancelButtonText: "បោះបង់",
     confirmButtonColor: "#3b82f6",
-    preConfirm: () => {
-      return [
-        document.getElementById("swal-input1").value,
-        document.getElementById("swal-input2").value,
-      ];
-    },
+    preConfirm: () => [
+      document.getElementById("swal-name").value,
+      document.getElementById("swal-mid").value,
+      document.getElementById("swal-cat").value,
+      document.getElementById("swal-acc").value,
+    ],
   });
 
   if (formValues) {
-    const [newName, newCat] = formValues;
-    if (!newName) return Swal.fire("បរាជ័យ", "សូមបញ្ចូលឈ្មោះហាង", "warning");
+    // ចាប់យកអោយគ្រប់ ៤ ផ្នែក
+    const [newName, newMid, newCat, newAcc] = formValues;
+    if (!newName || !newMid)
+      return Swal.fire(
+        "បរាជ័យ",
+        "សូមបញ្ចូលឈ្មោះហាង និង Merchant ID",
+        "warning",
+      );
 
     try {
       const res = await fetch(`/api/admin/edit-merchant`, {
         method: "PUT",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ id: id, name: newName, category: newCat }),
+        // បញ្ជូនទិន្នន័យទាំង ៤ ទៅអោយ Backend
+        body: JSON.stringify({
+          id: id,
+          name: newName,
+          merchantId: newMid,
+          category: newCat,
+          linkedAccount: newAcc,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -204,24 +151,49 @@ async function editMerchantByAdmin(id, oldName, oldCat) {
         loadMerchantsData(); // គូរតារាងឡើងវិញ
       } else throw new Error(data.message);
     } catch (e) {
-      Swal.fire("Error", "មិនអាចកែប្រែបានទេ", "error");
+      Swal.fire("Error", e.message || "មិនអាចកែប្រែបានទេ", "error");
     }
   }
 }
 
-// ៧. មើលប្រតិបត្តិការហាង (View Transactions) ដើរ ១០០%
-function viewMerchantTrx(ownerUsername) {
-  // ចាប់យក Input ស្វែងរករបស់ Customer 360°
-  const c360Input = document.getElementById("searchC360");
-  if (c360Input) {
-    c360Input.value = ownerUsername; // ដាក់ឈ្មោះម្ចាស់ហាងចូលទៅ
-    showSection("customer-360"); // លោតទៅផ្ទាំង Customer 360°
+// ៣. មើលប្រតិបត្តិការហាង (View Transactions) ដាច់ដោយឡែក ១០០%
+async function viewMerchantTrx(mid) {
+  // បើក Section ថ្មីដែលយើងទើបបង្កើត
+  showSection("merchant-history");
 
-    // បញ្ជាអោយស្វែងរក
-    if (typeof searchCustomer360 === "function") {
-      searchCustomer360();
-      // បន្ទាប់ពីស្វែងរកឃើញ រង់ចាំបន្តិចទើបលោតទៅបើក Tab Merchant
-      setTimeout(() => switchC360Tab("merchant"), 500);
+  const tbody = document.getElementById("merchantTrxBody");
+  tbody.innerHTML =
+    '<tr><td colspan="5" style="text-align:center; padding: 30px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកប្រវត្តិលុយ...</td></tr>';
+
+  try {
+    // ហៅ API ទាញយក Transactions របស់ហាងនោះ (API នេះអ្នកមានស្រាប់ហើយក្នុង merchantRoutes.js)
+    const res = await fetch(`/api/merchants/transactions/${mid}?filter=total`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+
+    if (data.success && data.transactions && data.transactions.length > 0) {
+      tbody.innerHTML = data.transactions
+        .map((t) => {
+          let color =
+            t.type === "Received" || t.amount > 0 ? "#10b981" : "#ef4444";
+          let sign = t.type === "Received" || t.amount > 0 ? "+" : "";
+          return `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding:15px; color:var(--text-muted); font-size: 0.9rem;">${t.date}</td>
+              <td style="padding:15px; font-family:'JetBrains Mono', monospace; font-size: 0.9rem;">${t.refId}</td>
+              <td style="padding:15px; font-weight:600;">${t.senderName || t.receiverName}</td>
+              <td style="padding:15px; font-weight:bold; color:${color}; font-family:'JetBrains Mono', monospace;">${sign}${t.amount} ${t.currency}</td>
+              <td style="padding:15px;"><span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">${t.status}</span></td>
+            </tr>`;
+        })
+        .join("");
+    } else {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);">ហាងនេះមិនទាន់មានប្រវត្តិប្រតិបត្តិការនៅឡើយទេ</td></tr>';
     }
+  } catch (e) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center; color:red; padding: 30px;">មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server API</td></tr>';
   }
 }
