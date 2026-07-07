@@ -98,6 +98,11 @@ function renderMerchantsTable(merchants) {
         <div style="font-weight: 600; color: var(--text-main);">@${owner}</div>
         <div style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-tags"></i> ${category}</div>
       </td>
+      <td>
+        <div style="font-weight: 600; color: var(--text-main);">@${owner}</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+           <i class="fa-solid fa-phone"></i> ${m.phoneNumber || "N/A"} </div>
+      </td>
       <td>${balanceHtml}</td>
       <td>${freezeHtml}</td>
       <td><div style="display: flex; gap: 8px; justify-content: flex-end;">
