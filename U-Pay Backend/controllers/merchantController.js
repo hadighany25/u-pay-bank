@@ -219,3 +219,15 @@ exports.getMerchantRevenue = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// នៅក្នុង controllers/merchantController.js
+exports.adminToggleMerchantFreeze = async (req, res) => {
+  try {
+    const { id, isFrozen } = req.body;
+    const status = isFrozen ? "Suspended" : "Active";
+    await Merchant.findByIdAndUpdate(id, { status: status });
+    res.json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
