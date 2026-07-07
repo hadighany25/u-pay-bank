@@ -30,29 +30,12 @@ async function loadMerchantsData() {
   }
 }
 
-// មុខងារ Search ឆ្លាតវៃសម្រាប់ Merchant
+// មុខងារស្វែងរកហាង
 function filterMerchants() {
-  const term = document
-    .getElementById("searchMerchantBox")
-    .value.toLowerCase()
-    .trim();
+  const term = document.getElementById("searchMerchantBox").value.toLowerCase();
   const rows = document.querySelectorAll("#merchantTableBody tr");
-
   rows.forEach((r) => {
-    // យើងទាញយកទិន្នន័យពី Row នីមួយៗ (ដែលយើងបាន render ទុក)
-    // ដើម្បីឱ្យ Search ដើរ អ្នកត្រូវប្រាកដថាអត្ថបទទាំងនោះមានក្នុង Row
-    const rowText = r.innerText.toLowerCase();
-
-    // បើមិនទាន់មានទិន្នន័យ មិនបាច់ Search ទេ
-    if (rowText.includes("loading")) return;
-
-    // ត្រួតពិនិត្យថា តើ Term ដែលវាយ មានក្នុងអត្ថបទនៃ Row ហ្នឹងឬអត់
-    // r.innerText រួមបញ្ចូលទាំងឈ្មោះហាង, Owner, MID, លេខគណនីដែលបង្ហាញក្នុងតារាង
-    if (rowText.includes(term)) {
-      r.style.display = ""; // បង្ហាញ
-    } else {
-      r.style.display = "none"; // លាក់
-    }
+    r.style.display = r.innerText.toLowerCase().includes(term) ? "" : "none";
   });
 }
 
@@ -74,10 +57,7 @@ function renderMerchantsTable(merchants) {
 
     // ស្ថានភាព (Status: "Active", "Inactive", "Suspended")
     let isFrozen = m.status === "Suspended";
-    let freezeHtml = `<label class="switch">
-    <input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)">
-    <span class="slider"></span>
-</label>`;
+    let freezeHtml = `<label class="switch"><input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)"><span class="slider"></span></label>`;
 
     let balanceHtml = `<div class="acc-stack">
         <div style="color: #0369a1; font-weight: bold;">$${parseFloat(balanceUSD).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
@@ -100,11 +80,6 @@ function renderMerchantsTable(merchants) {
       <td>
         <div style="font-weight: 600; color: var(--text-main);">@${owner}</div>
         <div style="font-size: 0.8rem; color: var(--text-muted);"><i class="fa-solid fa-tags"></i> ${category}</div>
-      </td>
-      <td>
-        <div style="font-weight: 600; color: var(--text-main);">@${owner}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">
-           <i class="fa-solid fa-phone"></i> ${m.phoneNumber || "N/A"} </div>
       </td>
       <td>${balanceHtml}</td>
       <td>${freezeHtml}</td>
@@ -136,34 +111,11 @@ function deleteMerchantByAdmin(id) {
   });
 }
 
-async function toggleMerchantFreeze(id, isChecked) {
-  try {
-    const res = await fetch("/api/admin/toggle-merchant-freeze", {
-      method: "POST",
-      headers: {
-        ...getAuthHeaders(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: id, isFrozen: isChecked }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: isChecked ? "ហាងត្រូវបានផ្អាក!" : "ហាងត្រូវបានបើកវិញ!",
-        showConfirmButton: false,
-        timer: 1500,
-      });
-    } else {
-      throw new Error(data.message);
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    Swal.fire("បរាជ័យ", "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ", "error");
-    // បើ Error ត្រូវ Reset កុងតាក់ឱ្យត្រឡប់មកដូចដើមវិញ
-    location.reload();
-  }
+async function toggleMerchantFreeze(id, isFrozen) {
+  Swal.fire({
+    title: "មុខងារកំពុងអភិវឌ្ឍ",
+    text: "ការផ្អាកហាងនឹងមកដល់ឆាប់ៗ។",
+    icon: "info",
+    customClass: { popup: "premium-swal" },
+  });
 }
