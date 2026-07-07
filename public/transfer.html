@@ -24,7 +24,6 @@
     <link rel="stylesheet" href="style.css" />
 
     <style>
-      /* BASE STYLES & FOUC PREVENTION */
       body {
         visibility: hidden;
         opacity: 0;
@@ -43,7 +42,6 @@
         visibility: visible;
         opacity: 1;
       }
-
       *:not(i):not([class*="fa-"]) {
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
@@ -54,7 +52,6 @@
         font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
         font-weight: 900 !important;
       }
-
       .main-input {
         width: 100%;
         padding: 15px;
@@ -73,7 +70,6 @@
       .action-text {
         font-weight: 600;
       }
-
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -102,7 +98,6 @@
         padding: 20px 25px;
         flex: 1;
       }
-
       .recent-contacts-container {
         margin-bottom: 25px;
         display: none;
@@ -161,7 +156,6 @@
         text-overflow: ellipsis;
         width: 100%;
       }
-
       .receiver-box {
         text-align: center;
         margin-bottom: 25px;
@@ -204,7 +198,6 @@
         color: #6c757d;
         cursor: not-allowed;
       }
-
       .check-status {
         position: absolute;
         right: 15px;
@@ -218,7 +211,6 @@
       .status-err {
         color: #e74c3c;
       }
-
       .confirm-btn {
         width: 100%;
         padding: 16px;
@@ -235,8 +227,6 @@
       .confirm-btn:active {
         transform: scale(0.98);
       }
-
-      /* Exchange Rate Preview */
       .fx-preview-box {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -276,8 +266,6 @@
           transform: translateY(0);
         }
       }
-
-      /* Modals */
       .modal-overlay {
         display: none;
         position: fixed;
@@ -291,8 +279,6 @@
         justify-content: center;
         flex-direction: column;
       }
-
-      /* Slip Container */
       .slip-container {
         width: 340px;
         margin: 0 auto;
@@ -390,7 +376,6 @@
         letter-spacing: 0.5px;
         color: #004d40;
       }
-
       .slip-footer-info {
         display: flex;
         justify-content: space-between;
@@ -457,8 +442,6 @@
         background: #f0fdf4;
         border-color: #004d40;
       }
-
-      /* Wheel */
       .wheel-box {
         position: relative;
         width: 280px;
@@ -500,8 +483,6 @@
         cursor: pointer;
         z-index: 5;
       }
-
-      /* Virtual PIN Pad Styles */
       .key-btn {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -537,9 +518,7 @@
         border-color: #004d40;
       }
 
-      /* ==========================================
-         🌙 DARK MODE
-         ========================================== */
+      /* DARK MODE */
       body.dark-mode {
         background-color: #121212 !important;
         color: white !important;
@@ -669,6 +648,7 @@
           />
           <span id="nameCheck" class="check-status"></span>
         </div>
+
         <div class="input-group">
           <label data-i18n="amount_label">Amount</label>
           <input
@@ -679,6 +659,7 @@
             oninput="calculateExchangePreview()"
           />
         </div>
+
         <div id="exchangePreview" class="fx-preview-box">
           <p>
             <span data-i18n="exchange_rate">Exchange Rate:</span
@@ -764,7 +745,6 @@
           <div class="pin-dot" id="dot3"></div>
           <div class="pin-dot" id="dot4"></div>
         </div>
-
         <input
           type="number"
           id="hiddenPin"
@@ -773,7 +753,6 @@
           pattern="[0-9]*"
           inputmode="numeric"
         />
-
         <button
           id="btnShowKeypad"
           class="confirm-btn"
@@ -781,7 +760,6 @@
         >
           ចុចបញ្ចូលលេខកូដ
         </button>
-
         <div
           id="virtualKeypad"
           style="
@@ -791,23 +769,24 @@
             margin-top: 20px;
           "
         >
-          <button class="key-btn" onclick="pressPin('1')">1</button>
-          <button class="key-btn" onclick="pressPin('2')">2</button>
-          <button class="key-btn" onclick="pressPin('3')">3</button>
-          <button class="key-btn" onclick="pressPin('4')">4</button>
-          <button class="key-btn" onclick="pressPin('5')">5</button>
-          <button class="key-btn" onclick="pressPin('6')">6</button>
-          <button class="key-btn" onclick="pressPin('7')">7</button>
-          <button class="key-btn" onclick="pressPin('8')">8</button>
-          <button class="key-btn" onclick="pressPin('9')">9</button>
-          <button class="key-btn empty"></button>
-          <button class="key-btn" onclick="pressPin('0')">0</button>
-          <button class="key-btn" onclick="pressPin('del')">
+          <button class="key-btn" onclick="pressPin('1')">1</button
+          ><button class="key-btn" onclick="pressPin('2')">2</button
+          ><button class="key-btn" onclick="pressPin('3')">3</button>
+          <button class="key-btn" onclick="pressPin('4')">4</button
+          ><button class="key-btn" onclick="pressPin('5')">5</button
+          ><button class="key-btn" onclick="pressPin('6')">6</button>
+          <button class="key-btn" onclick="pressPin('7')">7</button
+          ><button class="key-btn" onclick="pressPin('8')">8</button
+          ><button class="key-btn" onclick="pressPin('9')">9</button>
+          <button class="key-btn empty"></button
+          ><button class="key-btn" onclick="pressPin('0')">0</button
+          ><button class="key-btn" onclick="pressPin('del')">
             <i class="fa-solid fa-delete-left"></i>
           </button>
         </div>
       </div>
     </div>
+
     <div
       id="spinModal"
       class="modal-overlay"
@@ -938,7 +917,7 @@
 
     <script>
       // ==========================================
-      // 1. JWT, Session & Core Setup (ប្រើ Core ដូច Dashboard)
+      // 1. JWT & Core Variables
       // ==========================================
       const activeUser = JSON.parse(sessionStorage.getItem("user"));
       const apiToken = sessionStorage.getItem("userToken");
@@ -951,16 +930,13 @@
         Authorization: `Bearer ${apiToken}`,
       };
 
-      // ==========================================
-      // 2. Variables (បន្ថែមការទាញយក Parameter ពី Scan)
-      // ==========================================
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get("orderId");
       const callbackUrl = urlParams.get("callback");
       const items = urlParams.get("items");
       const shopBuyerName = urlParams.get("user");
 
-      // 🔥 ទាញយក Parameter ដែលបញ្ជូនពី scan.html
+      // 🔥 ទាញយកទិន្នន័យបញ្ជូនពី QR
       const scannedAcc = urlParams.get("acc");
       const scannedAmount = urlParams.get("amount");
       const lockAmount = urlParams.get("lockAmount");
@@ -975,14 +951,13 @@
       // 3. Initialization
       // ==========================================
       window.addEventListener("DOMContentLoaded", async () => {
-        // ប្រើមុខងារ applyTheme ពី u-pay-core.js បើមាន បើគ្មានទើបប្រើផ្ទាល់
+        // ប្រើមុខងារពី u-pay-core.js បើអាច
         if (typeof applyTheme === "function") {
           applyTheme();
         } else {
-          const userThemeKey = "darkMode_" + activeUser.username;
           const isDark =
             localStorage.getItem("theme") === "dark" ||
-            localStorage.getItem(userThemeKey) === "true";
+            localStorage.getItem("darkMode_" + activeUser.username) === "true";
           if (isDark) document.body.classList.add("dark-mode");
         }
 
@@ -995,27 +970,30 @@
             currentFXRates = fxData.rates;
             window.allSettings = fxData;
           }
-        } catch (e) {
-          console.error("Failed to load rates:", e);
-        }
+        } catch (e) {}
 
         document.body.classList.add("loaded");
-
         loadRecentContacts();
         drawWheel();
         updateBalanceDisplay();
 
-        // 🔥 ការចាប់យកលេខដែល Scan បានមកដាក់ក្នុង Input ដោយស្វ័យប្រវត្តិ
+        // 🔥 ការចាក់សោរលេខគណនី និងរូបិយប័ណ្ណនៅពេល Scan រួច
         if (scannedAcc) {
-          document.getElementById("receiverAcc").value = scannedAcc;
-          checkName(); // ហៅកូដនេះដើម្បីឱ្យវាឆែកឈ្មោះហាង ឬអ្នកទទួលភ្លាមៗ
+          const accInput = document.getElementById("receiverAcc");
+          accInput.value = scannedAcc;
+          // ចាក់សោរលេខគណនីមិនអោយដូរ
+          accInput.readOnly = true;
+          accInput.style.backgroundColor = "#e9ecef";
+
+          // រង់ចាំឆែកឈ្មោះដើម្បីចាក់សោរគណនីលុយ
+          await checkName();
         }
 
         if (scannedAmount) {
           const amtInput = document.getElementById("amount");
           amtInput.value = scannedAmount;
           if (lockAmount === "true") {
-            amtInput.readOnly = true; // កុំឱ្យគេកែចំនួនលុយបាន
+            amtInput.readOnly = true;
             amtInput.style.backgroundColor = "#e9ecef";
           }
           calculateExchangePreview();
@@ -1023,10 +1001,11 @@
       });
 
       // ==========================================
-      // 4. UI & Transfer Logic (បានប្តូរ user ទៅ activeUser)
+      // 4. UI & Transfer Logic
       // ==========================================
       function updateBalanceDisplay() {
-        const type = document.getElementById("fromAccount").value;
+        const fromAccountSelect = document.getElementById("fromAccount");
+        const type = fromAccountSelect.value;
         const bal =
           type === "USD" ? activeUser.balance || 0 : activeUser.balanceKHR || 0;
         const sign = type === "USD" ? "$" : "៛";
@@ -1099,7 +1078,7 @@
       }
 
       async function checkName() {
-        const acc = document.getElementById("receiverAcc").value;
+        const acc = document.getElementById("receiverAcc").value.trim();
         const nameDisplay = document.getElementById("displayReceiverName");
         const status = document.getElementById("nameCheck");
         const boxUI = document.getElementById("receiverBoxUI");
@@ -1124,6 +1103,7 @@
             body: JSON.stringify({ accountNumber: acc }),
           });
           const data = await res.json();
+
           if (data.success) {
             nameDisplay.innerText = data.username.toUpperCase();
             status.innerText = "✔";
@@ -1135,6 +1115,16 @@
 
             targetUserIsKHR = data.isReceiverKHR;
             if (data.fxRates) currentFXRates = data.fxRates;
+
+            // 🔥 ចាក់សោរប្រភេទប្រាក់ បើវេរតាមរយៈ Scan
+            if (scannedAcc) {
+              const fromAccSelect = document.getElementById("fromAccount");
+              fromAccSelect.value = targetUserIsKHR ? "KHR" : "USD";
+              fromAccSelect.style.pointerEvents = "none"; // ការពារកុំអោយចុចដូរ
+              fromAccSelect.style.backgroundColor = "#e9ecef";
+              updateBalanceDisplay();
+            }
+
             calculateExchangePreview();
             return true;
           } else {
@@ -1169,16 +1159,14 @@
 
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value) || 0;
-        const fromType = document.getElementById("fromAccount").value;
+        const fromAccountSelect = document.getElementById("fromAccount");
+        const fromType = fromAccountSelect.value;
         const feePreview = document.getElementById("feePreview");
         const previewBox = document.getElementById("exchangePreview");
 
         let fee = 0;
-        if (amount >= 0.01 && amount <= 99.99) {
-          fee = 0.5;
-        } else if (amount >= 100) {
-          fee = 1;
-        }
+        if (amount >= 0.01 && amount <= 99.99) fee = 0.5;
+        else if (amount >= 100) fee = 1;
 
         const feeDisplay = document.getElementById("feeAmountDisplay");
         if (feeDisplay) {
@@ -1219,7 +1207,8 @@
       // ==========================================
       async function validateAndOpenPin() {
         const amount = parseFloat(document.getElementById("amount").value);
-        const type = document.getElementById("fromAccount").value;
+        const fromAccountSelect = document.getElementById("fromAccount");
+        const type = fromAccountSelect.value;
         const currentBal =
           type === "USD" ? activeUser.balance || 0 : activeUser.balanceKHR || 0;
         let lang = localStorage.getItem("lang") || "en";
@@ -1233,7 +1222,6 @@
             "warning",
           );
 
-        // បូក Fee មុនឆែកលុយ
         let fee = 0;
         if (amount >= 0.01 && amount <= 99.99) fee = 0.5;
         else if (amount >= 100) fee = 1;
@@ -1301,7 +1289,6 @@
 
         if (input) input.value = enteredPin;
         updatePinDots();
-
         if (enteredPin.length === 4) setTimeout(submitPin, 300);
       }
 
@@ -1320,14 +1307,19 @@
       }
 
       // ==========================================
-      // 6. MAIN TRANSFER SUBMIT
+      // 6. MAIN TRANSFER SUBMIT (ជួសជុល Server Error)
       // ==========================================
       async function submitPin() {
         const pin = enteredPin;
         const method =
-          urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
-        const amount = document.getElementById("amount").value;
-        const fromAccountType = document.getElementById("fromAccount").value;
+          urlParams.get("source") === "qr" ? "QR Scan" : "Account Transfer";
+        const amount = document.getElementById("amount").value.trim();
+        const fromAccountSelect = document.getElementById("fromAccount");
+        const fromAccountType = fromAccountSelect.value;
+        const receiverAccount = document
+          .getElementById("receiverAcc")
+          .value.trim();
+        const remark = document.getElementById("remark").value.trim();
 
         closeModal("pinModal");
         Swal.fire({
@@ -1341,9 +1333,9 @@
             headers: authHeaders,
             body: JSON.stringify({
               senderUsername: activeUser.username,
-              receiverAccount: document.getElementById("receiverAcc").value,
+              receiverAccount: receiverAccount,
               amount: amount,
-              remark: document.getElementById("remark").value,
+              remark: remark,
               pin: pin,
               trxMethod: method,
               currency: fromAccountType,
@@ -1383,11 +1375,11 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   orderId: orderId,
-                  amount: urlParams.get("amount"),
+                  amount: amount,
                   user: shopBuyerName,
                   items: items,
                 }),
-              }).catch((err) => console.log("Webhook Error:", err));
+              }).catch((err) => {});
             }
 
             const threshold = fromAccountType === "USD" ? 10 : 40000;
@@ -1405,7 +1397,7 @@
             Swal.fire("Failed", data.message, "error");
           }
         } catch (error) {
-          Swal.fire("Error", "Server error", "error");
+          Swal.fire("Error", "Server error during transfer", "error");
         }
       }
 
@@ -1492,7 +1484,6 @@
                   )
                     .play()
                     .catch((e) => {});
-
                   if (typeof showAppNotification === "function") {
                     showAppNotification(
                       lang === "kh" ? "អបអរសាទរ!" : "Congratulations!",
@@ -1531,7 +1522,6 @@
       function skipSpin() {
         finishSpin();
       }
-
       function finishSpin() {
         document.getElementById("spinModal").style.display = "none";
         showSlipData(currentSlipData);
@@ -1539,7 +1529,7 @@
 
       function showSlipData(data) {
         const method =
-          urlParams.get("source") === "qr" ? "QR Scan" : "Account Input";
+          urlParams.get("source") === "qr" ? "QR Scan" : "Account Transfer";
         const isKHR = data.currency === "KHR";
         const sign = isKHR ? "៛" : "$";
         const formattedAmt = Math.abs(data.amount).toLocaleString("en-US", {
@@ -1574,8 +1564,7 @@
 
       function returnToShopOrDashboard() {
         if (callbackUrl) {
-          const urlObj = new URL(callbackUrl);
-          window.location.href = urlObj.origin;
+          window.location.href = new URL(callbackUrl).origin;
         } else {
           window.location.href = "dashboard.html";
         }
