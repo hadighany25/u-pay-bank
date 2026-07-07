@@ -151,4 +151,9 @@ router.post(
   checkRole(["super_admin", "finance_admin"]),
   adminController.togglePromoCode,
 );
+router.post(
+  "/toggle-merchant-freeze",
+  verifyUser,
+  adminController.toggleMerchantFreeze,
+);
 module.exports = router;

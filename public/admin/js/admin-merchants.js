@@ -74,7 +74,10 @@ function renderMerchantsTable(merchants) {
 
     // ស្ថានភាព (Status: "Active", "Inactive", "Suspended")
     let isFrozen = m.status === "Suspended";
-    let freezeHtml = `<label class="switch"><input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)"><span class="slider"></span></label>`;
+    let freezeHtml = `<label class="switch">
+    <input type="checkbox" ${isFrozen ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', this.checked)">
+    <span class="slider"></span>
+</label>`;
 
     let balanceHtml = `<div class="acc-stack">
         <div style="color: #0369a1; font-weight: bold;">$${parseFloat(balanceUSD).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
@@ -133,11 +136,34 @@ function deleteMerchantByAdmin(id) {
   });
 }
 
-async function toggleMerchantFreeze(id, isFrozen) {
-  Swal.fire({
-    title: "មុខងារកំពុងអភិវឌ្ឍ",
-    text: "ការផ្អាកហាងនឹងមកដល់ឆាប់ៗ។",
-    icon: "info",
-    customClass: { popup: "premium-swal" },
-  });
+async function toggleMerchantFreeze(id, isChecked) {
+  try {
+    const res = await fetch("/api/admin/toggle-merchant-freeze", {
+      method: "POST",
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: id, isFrozen: isChecked }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: isChecked ? "ហាងត្រូវបានផ្អាក!" : "ហាងត្រូវបានបើកវិញ!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    Swal.fire("បរាជ័យ", "មិនអាចផ្លាស់ប្តូរស្ថានភាពបានទេ", "error");
+    // បើ Error ត្រូវ Reset កុងតាក់ឱ្យត្រឡប់មកដូចដើមវិញ
+    location.reload();
+  }
 }
