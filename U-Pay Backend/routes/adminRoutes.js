@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { checkRole } = require("../middleware/authMiddleware");
-const merchantController = require("../controllers/merchantController");
 
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
@@ -151,10 +150,5 @@ router.post(
   "/promo/toggle",
   checkRole(["super_admin", "finance_admin"]),
   adminController.togglePromoCode,
-);
-router.post(
-  "/toggle-merchant-freeze",
-  checkRole([ROLE_SUPER, ROLE_FINANCE]), // បន្ថែមសិទ្ធិ Admin ត្រឹមត្រូវ
-  merchantController.adminToggleMerchantFreeze,
 );
 module.exports = router;

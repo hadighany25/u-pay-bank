@@ -1115,23 +1115,6 @@ const togglePromoCode = async (req, res) => {
   }
 };
 
-// ========================================================
-// admin Merchant/Business Management APIs
-// ========================================================
-exports.toggleMerchantFreeze = async (req, res) => {
-  try {
-    const { id, isFrozen } = req.body;
-    // បើ isFrozen ជា true ដាក់ status = "Suspended", បើ false ដាក់ "Active"
-    const status = isFrozen ? "Suspended" : "Active";
-
-    await Merchant.findByIdAndUpdate(id, { status: status });
-
-    res.json({ success: true, message: "Status updated successfully" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1162,5 +1145,4 @@ module.exports = {
   createPromoCode,
   getPromoCodes,
   togglePromoCode,
-  toggleMerchantFreeze,
 };
