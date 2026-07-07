@@ -7,7 +7,7 @@ const {
 
 const Admin = require("../models/Admin");
 const AdminLog = require("../models/AdminLog");
-const System = require("../models/System"); // 👈 ត្រូវបន្ថែមបន្ទាត់នេះដាច់ខាត!
+const System = require("../models/System");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Chat = require("../models/Chat");
@@ -558,11 +558,7 @@ const refundTransaction = async (req, res) => {
   }
 };
 
-// ========================================================
-// 🔥 មុខងារ Admin បិទ/បើកកាត (មានអំណាចលើសអតិថិជន)
-// ========================================================
 const toggleAdminCardLock = async (req, res) => {
-  // ឆែកសិទ្ធិ (ប្រើសិទ្ធិ freezeUser)
   const access = await checkAdminAccess(req.admin, "freezeUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
@@ -577,14 +573,12 @@ const toggleAdminCardLock = async (req, res) => {
     if (!card)
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
 
-    // អនុវត្តការបិទ/បើក និងដាក់សញ្ញាសម្គាល់ថា "Admin ជាអ្នកបិទ"
     card.isLocked = isLocked;
-    card.lockedByAdmin = isLocked; // 👈 នេះជាសោរសម្ងាត់! បើ Admin បិទ User មិនអាចបើកវិញបានទេ
+    card.lockedByAdmin = isLocked;
 
     user.markModified("virtualCards");
     await user.save();
 
-    // កត់ត្រាចូល Audit Log
     await logAdminAction(
       req.admin.username,
       "Toggle Card",
@@ -1114,25 +1108,6 @@ const togglePromoCode = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
-
-router.post(
-  "/toggle-merchant-freeze",
-  checkRole([ROLE_SUPER, ROLE_FINANCE]),
-  merchantController.adminToggleMerchantFreeze,
-);
-
-// បន្ថែម ២ បន្ទាត់នេះ៖
-router.delete(
-  "/delete-merchant/:id",
-  checkRole([ROLE_SUPER, ROLE_FINANCE]),
-  merchantController.adminDeleteMerchant,
-);
-
-router.put(
-  "/edit-merchant",
-  checkRole([ROLE_SUPER, ROLE_FINANCE]),
-  merchantController.adminEditMerchant,
-);
 
 module.exports = {
   toggleSystem,
