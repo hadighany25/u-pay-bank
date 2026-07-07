@@ -1115,6 +1115,25 @@ const togglePromoCode = async (req, res) => {
   }
 };
 
+router.post(
+  "/toggle-merchant-freeze",
+  checkRole([ROLE_SUPER, ROLE_FINANCE]),
+  merchantController.adminToggleMerchantFreeze,
+);
+
+// បន្ថែម ២ បន្ទាត់នេះ៖
+router.delete(
+  "/delete-merchant/:id",
+  checkRole([ROLE_SUPER, ROLE_FINANCE]),
+  merchantController.adminDeleteMerchant,
+);
+
+router.put(
+  "/edit-merchant",
+  checkRole([ROLE_SUPER, ROLE_FINANCE]),
+  merchantController.adminEditMerchant,
+);
+
 module.exports = {
   toggleSystem,
   updateFX,

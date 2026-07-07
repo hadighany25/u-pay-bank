@@ -220,13 +220,37 @@ exports.getMerchantRevenue = async (req, res) => {
   }
 };
 
-// នៅក្នុង controllers/merchantController.js
+// ========================================================
+// admin Merchant/Business Management APIs
+// ========================================================
 exports.adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
     const status = isFrozen ? "Suspended" : "Active";
     await Merchant.findByIdAndUpdate(id, { status: status });
     res.json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ១. មុខងារ Admin លុបហាងចោល
+exports.adminDeleteMerchant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Merchant.findByIdAndDelete(id);
+    res.json({ success: true, message: "Merchant deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ២. មុខងារ Admin កែប្រែព័ត៌មានហាង
+exports.adminEditMerchant = async (req, res) => {
+  try {
+    const { id, name, category } = req.body;
+    await Merchant.findByIdAndUpdate(id, { name: name, category: category });
+    res.json({ success: true, message: "Merchant updated successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
