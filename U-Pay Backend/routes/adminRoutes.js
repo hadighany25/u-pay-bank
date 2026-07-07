@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { checkRole } = require("../middleware/authMiddleware");
+const merchantController = require("../controllers/merchantController");
 
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
