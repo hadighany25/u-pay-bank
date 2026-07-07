@@ -20,6 +20,7 @@
       rel="stylesheet"
     />
 
+    <!-- CSS គោលរបស់អ្នក -->
     <link rel="stylesheet" href="css/admin-style.css" />
   </head>
   <body>
@@ -69,10 +70,9 @@
         ></div>
       </div>
 
-      <div class="menu-label" id="label-main">
-        <span data-i18n="menu-main">Main Menu</span>
+      <div class="menu-label" id="label-main" data-i18n="menu-main">
+        Main Menu
       </div>
-
       <div
         class="menu-item active"
         id="menu-dashboard"
@@ -80,11 +80,10 @@
           showSection('dashboard', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-dash"
       >
-        <i class="fa-solid fa-chart-pie"></i>
-        <span data-i18n="menu-dash">Dashboard</span>
+        <i class="fa-solid fa-chart-pie"></i> Dashboard
       </div>
-
       <div
         class="menu-item"
         id="menu-users"
@@ -92,11 +91,10 @@
           showSection('users', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-users"
       >
-        <i class="fa-solid fa-users"></i>
-        <span data-i18n="menu-users">User Management</span>
+        <i class="fa-solid fa-users"></i> User Management
       </div>
-
       <div
         class="menu-item"
         id="menu-merchants"
@@ -105,13 +103,12 @@
           toggleSidebar(false);
           loadMerchantsData();
         "
+        data-i18n="menu-merchants"
       >
-        <i class="fa-solid fa-store"></i>
-        <span data-i18n="menu-merchants">Merchant Mgmt</span>
+        <i class="fa-solid fa-store"></i> Merchant Mgmt
       </div>
-
-      <div class="menu-label" id="label-ops">
-        <span data-i18n="menu-ops">Operations</span>
+      <div class="menu-label" id="label-ops" data-i18n="menu-ops">
+        Operations
       </div>
 
       <div
@@ -121,9 +118,9 @@
           showSection('customer-360', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-customer-360"
       >
-        <i class="fa-solid fa-user-magnifying-glass"></i>
-        <span data-i18n="menu-customer-360">Customer 360°</span>
+        <i class="fa-solid fa-user-magnifying-glass"></i> Customer 360°
       </div>
 
       <div
@@ -133,9 +130,9 @@
           showSection('check-trx', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-checktrx"
       >
-        <i class="fa-solid fa-shield-halved"></i>
-        <span data-i18n="menu-checktrx">Transaction Check</span>
+        <i class="fa-solid fa-shield-halved"></i> Transaction Check
       </div>
 
       <div
@@ -145,15 +142,14 @@
           showSection('broadcast-history', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-broadcast"
       >
-        <i class="fa-solid fa-tower-broadcast"></i>
-        <span data-i18n="menu-broadcast">Broadcast History</span>
+        <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
-      <div class="menu-label" id="label-finance">
-        <span data-i18n="menu-finance">Finance & Cards</span>
+      <div class="menu-label" id="label-finance" data-i18n="menu-finance">
+        Finance & Cards
       </div>
-
       <div
         class="menu-item"
         id="menu-fx"
@@ -161,11 +157,10 @@
           showSection('fx', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-fx"
       >
-        <i class="fa-solid fa-money-bill-transfer"></i>
-        <span data-i18n="menu-fx">Exchange Rates</span>
+        <i class="fa-solid fa-money-bill-transfer"></i> Exchange Rates
       </div>
-
       <div
         class="menu-item"
         id="menu-fees"
@@ -173,11 +168,10 @@
           showSection('fees', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-fees"
       >
-        <i class="fa-solid fa-percent"></i>
-        <span data-i18n="menu-fees">Fee & Limits</span>
+        <i class="fa-solid fa-percent"></i> Fee & Limits
       </div>
-
       <div
         class="menu-item"
         id="menu-promo"
@@ -185,11 +179,10 @@
           showSection('promo', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-promo"
       >
-        <i class="fa-solid fa-ticket"></i>
-        <span data-i18n="menu-promo">Promo Codes</span>
+        <i class="fa-solid fa-ticket"></i> Promo Codes
       </div>
-
       <div
         class="menu-item"
         id="menu-cards"
@@ -197,15 +190,14 @@
           showSection('cards', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-cards"
       >
-        <i class="fa-solid fa-credit-card"></i>
-        <span data-i18n="menu-cards">Card Management</span>
+        <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
 
-      <div class="menu-label" id="label-security">
-        <span data-i18n="menu-security">Security & Support</span>
+      <div class="menu-label" id="label-security" data-i18n="menu-security">
+        Security & Support
       </div>
-
       <div
         class="menu-item"
         id="menu-kyc"
@@ -213,11 +205,10 @@
           showSection('kyc', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-kyc"
       >
-        <i class="fa-solid fa-id-card"></i>
-        <span data-i18n="menu-kyc">KYC Approvals</span>
+        <i class="fa-solid fa-id-card"></i> KYC Approvals
       </div>
-
       <div
         class="menu-item"
         id="menu-tickets"
@@ -225,11 +216,10 @@
           showSection('tickets', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-tickets"
       >
-        <i class="fa-solid fa-headset"></i>
-        <span data-i18n="menu-tickets">Support Tickets</span>
+        <i class="fa-solid fa-headset"></i> Support Tickets
       </div>
-
       <div
         class="menu-item"
         id="menu-chat"
@@ -237,15 +227,14 @@
           showSection('live-chat', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-chat"
       >
-        <i class="fa-solid fa-comments"></i>
-        <span data-i18n="menu-chat">Live Support Chat</span>
+        <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
-      <div class="menu-label" id="menu-super-only">
-        <span data-i18n="menu-super">Super Admin Only</span>
+      <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
+        Super Admin Only
       </div>
-
       <div
         class="menu-item"
         id="menu-admins"
@@ -253,11 +242,10 @@
           showSection('admins', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-admins"
       >
-        <i class="fa-solid fa-user-tie"></i>
-        <span data-i18n="menu-admins">Admin Management</span>
+        <i class="fa-solid fa-user-tie"></i> Admin Management
       </div>
-
       <div
         class="menu-item"
         id="menu-logs"
@@ -265,23 +253,27 @@
           showSection('logs', this);
           toggleSidebar(false);
         "
+        data-i18n="menu-logs"
       >
-        <i class="fa-solid fa-list-check"></i>
-        <span data-i18n="menu-logs">Audit Logs</span>
+        <i class="fa-solid fa-list-check"></i> Audit Logs
       </div>
-
-      <div class="menu-item" id="menu-system" onclick="toggleSystemFreeze()">
-        <i class="fa-solid fa-power-off" style="color: #ef4444"></i>
-        <span data-i18n="menu-system">System Control</span>
+      <div
+        class="menu-item"
+        id="menu-system"
+        onclick="toggleSystemFreeze()"
+        data-i18n="menu-system"
+      >
+        <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
+        Control
       </div>
 
       <div
         class="menu-item logout-btn"
         onclick="logout()"
         style="margin-top: 30px"
+        data-i18n="menu-logout"
       >
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span data-i18n="menu-logout">Secure Logout</span>
+        <i class="fa-solid fa-right-from-bracket"></i> Secure Logout
       </div>
     </div>
 
@@ -345,6 +337,7 @@
         </div>
       </div>
 
+      <!-- Dashboard Content -->
       <div id="sec-dashboard" class="dash-wrapper">
         <div class="dash-header">
           <div>
@@ -510,21 +503,21 @@
             </div>
             <div id="activity-feed" class="activity-feed">
               <div
+                data-i18n="loading-activities"
                 style="
                   text-align: center;
                   padding: 20px 0;
                   color: var(--text-muted);
                 "
               >
-                <span data-i18n="loading-activities"
-                  >Loading activities...</span
-                >
+                Loading activities...
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- User Management -->
       <div
         id="sec-users"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -559,6 +552,7 @@
         </div>
       </div>
 
+      <!-- Trx Check -->
       <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
         <h2
           class="dash-title"
@@ -581,6 +575,7 @@
         <div id="trxResult" class="trx-result-card"></div>
       </div>
 
+      <!-- Customer 360 View -->
       <div
         id="sec-customer-360"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -600,13 +595,14 @@
               type="text"
               id="searchC360"
               data-i18n="search-c360-ph"
-              placeholder="Search by name, username, phone..."
+              placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
               onkeyup="if (event.key === 'Enter') searchCustomer360();"
             />
           </div>
         </div>
 
         <div id="c360-result-container" style="display: none">
+          <!-- ផ្នែក Header Profile -->
           <div
             class="dash-card"
             style="
@@ -657,42 +653,59 @@
             <div style="display: flex; gap: 10px" id="c360-quick-actions"></div>
           </div>
 
+          <!-- ផ្នែក 8 Tabs -->
           <div class="dash-card" style="padding: 0">
             <div
               style="
                 display: flex;
                 border-bottom: 1px solid var(--border);
                 overflow-x: auto;
+                white-space: nowrap;
               "
               class="c360-tabs"
             >
-              <div class="c360-tab active" onclick="switchC360Tab('finance')">
-                <i class="fa-solid fa-wallet"></i>
-                <span data-i18n="tab-finance">Wallets & Cards</span>
+              <div class="c360-tab active" onclick="switchC360Tab('info')">
+                <i class="fa-solid fa-circle-info"></i> Information
+              </div>
+              <div class="c360-tab" onclick="switchC360Tab('finance')">
+                <i class="fa-solid fa-wallet"></i> Wallets
+              </div>
+              <div class="c360-tab" onclick="switchC360Tab('cards')">
+                <i class="fa-solid fa-credit-card"></i> Cards
               </div>
               <div class="c360-tab" onclick="switchC360Tab('kyc')">
-                <i class="fa-solid fa-id-card"></i>
-                <span data-i18n="tab-kyc">KYC & Identity</span>
+                <i class="fa-solid fa-id-card"></i> KYC & Identity
               </div>
               <div class="c360-tab" onclick="switchC360Tab('trx')">
-                <i class="fa-solid fa-money-bill-transfer"></i>
-                <span data-i18n="tab-trx">Transactions</span>
+                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
               </div>
               <div class="c360-tab" onclick="switchC360Tab('security')">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span data-i18n="tab-security">Security</span>
+                <i class="fa-solid fa-shield-halved"></i> Security
+              </div>
+              <div class="c360-tab" onclick="switchC360Tab('merchant')">
+                <i class="fa-solid fa-store"></i> Merchant
               </div>
               <div class="c360-tab" onclick="switchC360Tab('logs')">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <span data-i18n="tab-logs">Admin Logs</span>
+                <i class="fa-solid fa-clock-rotate-left"></i> Admin Logs
               </div>
             </div>
 
+            <!-- Content របស់ Tab នីមួយៗ -->
             <div style="padding: 25px">
+              <div
+                id="c360-tab-info"
+                class="c360-tab-content"
+                style="display: block"
+              ></div>
               <div
                 id="c360-tab-finance"
                 class="c360-tab-content"
-                style="display: block"
+                style="display: none"
+              ></div>
+              <div
+                id="c360-tab-cards"
+                class="c360-tab-content"
+                style="display: none"
               ></div>
               <div
                 id="c360-tab-kyc"
@@ -710,6 +723,11 @@
                 style="display: none"
               ></div>
               <div
+                id="c360-tab-merchant"
+                class="c360-tab-content"
+                style="display: none"
+              ></div>
+              <div
                 id="c360-tab-logs"
                 class="c360-tab-content"
                 style="display: none"
@@ -719,6 +737,7 @@
         </div>
       </div>
 
+      <!-- Broadcast -->
       <div
         id="sec-broadcast-history"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -752,6 +771,7 @@
             <tbody id="broadcastList">
               <tr>
                 <td
+                  data-i18n="loading-history"
                   colspan="4"
                   style="
                     text-align: center;
@@ -759,7 +779,7 @@
                     color: var(--text-muted);
                   "
                 >
-                  <span data-i18n="loading-history">Loading history...</span>
+                  Loading history...
                 </td>
               </tr>
             </tbody>
@@ -767,6 +787,7 @@
         </div>
       </div>
 
+      <!-- Merchant Management -->
       <div
         id="sec-merchants"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -819,6 +840,7 @@
         </div>
       </div>
 
+      <!-- FX -->
       <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
         <h2
           class="dash-title"
@@ -876,6 +898,7 @@
         </div>
       </div>
 
+      <!-- Fee -->
       <div
         id="sec-fees"
         style="display: none; max-width: 1000px; margin: 0 auto"
@@ -999,6 +1022,7 @@
         </div>
       </div>
 
+      <!-- Promo Codes -->
       <div
         id="sec-promo"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1045,6 +1069,7 @@
         </div>
       </div>
 
+      <!-- Cards -->
       <div
         id="sec-cards"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1081,6 +1106,7 @@
         </div>
       </div>
 
+      <!-- KYC -->
       <div
         id="sec-kyc"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1117,6 +1143,7 @@
         </div>
       </div>
 
+      <!-- Tickets -->
       <div
         id="sec-tickets"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1149,6 +1176,7 @@
         </div>
       </div>
 
+      <!-- Chat -->
       <div
         id="sec-live-chat"
         style="
@@ -1179,8 +1207,8 @@
                 background: white;
               "
             >
-              <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main)">
-                <i class="fa-solid fa-headset" style="color: var(--accent)"></i>
+              <h3 style="margin: 0; font-size: 1.1rem">
+                <i class="fa-solid fa-headset"></i>
                 <span data-i18n="support-messages">Support Messages</span>
               </h3>
             </div>
@@ -1189,13 +1217,14 @@
               style="flex: 1; overflow-y: auto; padding: 10px"
             >
               <div
+                data-i18n="loading-contacts"
                 style="
                   text-align: center;
                   padding: 20px;
                   color: var(--text-muted);
                 "
               >
-                <span data-i18n="loading-contacts">Loading contacts...</span>
+                Loading contacts...
               </div>
             </div>
           </div>
@@ -1225,6 +1254,7 @@
                 ជ្រើសរើសអតិថិជនដើម្បីឆាត
               </h3>
               <button
+                data-i18n="end-chat"
                 onclick="endAdminChat()"
                 style="
                   background: #ef4444;
@@ -1238,7 +1268,7 @@
                 "
                 id="btnEndChat"
               >
-                <span data-i18n="end-chat">បញ្ចប់ការសន្ទនា (End Chat)</span>
+                បញ្ចប់ការសន្ទនា (End Chat)
               </button>
             </div>
             <div
@@ -1316,6 +1346,7 @@
         </div>
       </div>
 
+      <!-- Admin Management -->
       <div
         id="sec-admins"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1350,6 +1381,7 @@
             <tbody id="adminTableBody">
               <tr>
                 <td
+                  data-i18n="loading-admins"
                   colspan="5"
                   style="
                     text-align: center;
@@ -1357,7 +1389,7 @@
                     color: var(--text-muted);
                   "
                 >
-                  <span data-i18n="loading-admins">កំពុងទាញយកទិន្នន័យ...</span>
+                  កំពុងទាញយកទិន្នន័យ...
                 </td>
               </tr>
             </tbody>
@@ -1365,6 +1397,7 @@
         </div>
       </div>
 
+      <!-- Audit Logs -->
       <div
         id="sec-logs"
         style="display: none; max-width: 1400px; margin: 0 auto"
@@ -1396,8 +1429,12 @@
             </thead>
             <tbody id="logsTableBody">
               <tr>
-                <td colspan="5" style="text-align: center; padding: 20px">
-                  <span data-i18n="loading-logs">កំពុងទាញយកទិន្នន័យ...</span>
+                <td
+                  colspan="5"
+                  style="text-align: center; padding: 20px"
+                  data-i18n="loading-logs"
+                >
+                  កំពុងទាញយកទិន្នន័យ...
                 </td>
               </tr>
             </tbody>
@@ -1405,6 +1442,10 @@
         </div>
       </div>
     </div>
+    <!-- END main-content -->
+
+    <!-- Modals -->
+    <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1497,6 +1538,7 @@
       </div>
     </div>
 
+    <!-- Admin Account Modal -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1761,6 +1803,7 @@
       </div>
     </div>
 
+    <!-- Promo Modal -->
     <div id="promoModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1830,6 +1873,7 @@
       </div>
     </div>
 
+    <!-- ភ្ជាប់ JS ទាំង ៥ (បន្ថែម admin-lang.js ខាងលើគេ) -->
     <script src="js/admin-lang.js"></script>
     <script src="js/admin-core.js"></script>
     <script src="js/admin-users.js"></script>
