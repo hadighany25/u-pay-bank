@@ -34,8 +34,18 @@ async function loadMerchantsData() {
 function filterMerchants() {
   const term = document.getElementById("searchMerchantBox").value.toLowerCase();
   const rows = document.querySelectorAll("#merchantTableBody tr");
+
   rows.forEach((r) => {
-    r.style.display = r.innerText.toLowerCase().includes(term) ? "" : "none";
+    // យើងយកទិន្នន័យពីក្នុង row នីមួយៗ (ដែលយើងបាន render រួចហើយ)
+    // r.innerText នឹងមានទាំងឈ្មោះហាង, owner, mid, លេខគណនី...
+    const rowContent = r.innerText.toLowerCase();
+
+    // បើរកឃើញអក្សរក្នុងទិន្នន័យណាមួយ វានឹងបង្ហាញ row នោះ
+    if (rowContent.includes(term)) {
+      r.style.display = "";
+    } else {
+      r.style.display = "none";
+    }
   });
 }
 
