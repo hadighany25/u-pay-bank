@@ -18,8 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
-    <!-- ➕ បញ្ចូល lang.js និង toast.js -->
     <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
     <script src="js/toast.js"></script>
     <link rel="stylesheet" href="style.css" />
 
@@ -669,7 +669,6 @@
           />
           <span id="nameCheck" class="check-status"></span>
         </div>
-        <!--​Amount-->
         <div class="input-group">
           <label data-i18n="amount_label">Amount</label>
           <input
@@ -680,7 +679,6 @@
             oninput="calculateExchangePreview()"
           />
         </div>
-        <!-- Exchange Rate Preview -->
         <div id="exchangePreview" class="fx-preview-box">
           <p>
             <span data-i18n="exchange_rate">Exchange Rate:</span
@@ -692,7 +690,6 @@
           </p>
         </div>
 
-        <!-- Fee Preview -->
         <div
           id="feePreview"
           style="
@@ -718,7 +715,6 @@
           </p>
         </div>
 
-        <!-- Remark -->
         <div class="input-group">
           <label data-i18n="remark">Remark</label>
           <input
@@ -739,8 +735,6 @@
       </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Virtual PIN Pad Modal -->
     <div
       id="pinModal"
       class="modal-overlay"
@@ -771,7 +765,6 @@
           <div class="pin-dot" id="dot4"></div>
         </div>
 
-        <!-- 🔥 Hidden Input សម្រាប់ Keyboard កុំព្យូទ័រ -->
         <input
           type="number"
           id="hiddenPin"
@@ -781,7 +774,6 @@
           inputmode="numeric"
         />
 
-        <!-- ប៊ូតុងសម្រាប់លោត Keypad លើទូរស័ព្ទ -->
         <button
           id="btnShowKeypad"
           class="confirm-btn"
@@ -790,7 +782,6 @@
           ចុចបញ្ចូលលេខកូដ
         </button>
 
-        <!-- Virtual Keypad (លាក់ទុកសិន) -->
         <div
           id="virtualKeypad"
           style="
@@ -817,7 +808,6 @@
         </div>
       </div>
     </div>
-    <!-- Lucky Spin Modal -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -861,7 +851,6 @@
       </button>
     </div>
 
-    <!-- Slip Modal -->
     <div id="slipModal" class="modal-overlay">
       <div id="captureArea" class="slip-container">
         <div class="slip-header">
@@ -949,22 +938,21 @@
 
     <script>
       // ==========================================
-      // 1. JWT & Session Setup
+      // 1. JWT, Session & Core Setup (ប្រើ Core ដូច Dashboard)
       // ==========================================
-      const userString = sessionStorage.getItem("user");
-      const token = sessionStorage.getItem("userToken");
-      if (!userString || !token) {
+      const activeUser = JSON.parse(sessionStorage.getItem("user"));
+      const apiToken = sessionStorage.getItem("userToken");
+      if (!activeUser || !apiToken) {
         window.location.href = "index.html";
       }
-      const user = JSON.parse(userString);
 
       const authHeaders = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${apiToken}`,
       };
 
       // ==========================================
-      // 2. Variables
+      // 2. Variables (បន្ថែមការទាញយក Parameter ពី Scan)
       // ==========================================
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get("orderId");
@@ -972,55 +960,75 @@
       const items = urlParams.get("items");
       const shopBuyerName = urlParams.get("user");
 
+      // 🔥 ទាញយក Parameter ដែលបញ្ជូនពី scan.html
+      const scannedAcc = urlParams.get("acc");
+      const scannedAmount = urlParams.get("amount");
+      const lockAmount = urlParams.get("lockAmount");
+
       let targetUserIsKHR = null;
       let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
       let currentSlipData = null;
       let spinIsActive = false;
-      let enteredPin = ""; // ទុកសម្រាប់ Virtual PIN Pad
+      let enteredPin = "";
 
       // ==========================================
       // 3. Initialization
       // ==========================================
       window.addEventListener("DOMContentLoaded", async () => {
-        applyTheme();
+        // ប្រើមុខងារ applyTheme ពី u-pay-core.js បើមាន បើគ្មានទើបប្រើផ្ទាល់
+        if (typeof applyTheme === "function") {
+          applyTheme();
+        } else {
+          const userThemeKey = "darkMode_" + activeUser.username;
+          const isDark =
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem(userThemeKey) === "true";
+          if (isDark) document.body.classList.add("dark-mode");
+        }
+
         if (typeof applyLanguage === "function") applyLanguage();
 
-        // បង្ហាញ Body បន្ទាប់ពីទិន្នន័យត្រូវបានទាញមកដល់
         try {
           const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
           if (fxData.success) {
-            currentFXRates = fxData.rates; // កំណត់តម្លៃ Rate ពី DB
+            currentFXRates = fxData.rates;
             window.allSettings = fxData;
-            console.log("Loaded rates from DB:", currentFXRates);
           }
         } catch (e) {
           console.error("Failed to load rates:", e);
         }
 
-        document.body.classList.add("loaded"); // ទើបបង្ហាញ UI ក្រោយពេលផ្ទុកចប់
+        document.body.classList.add("loaded");
 
-        // ... (Code ផ្សេងទៀតដូចជា loadRecentContacts)
         loadRecentContacts();
         drawWheel();
-        updateBalanceDisplay(); // ហៅមុខងារនេះក្រោយពេលមាន Rate ហើយ
+        updateBalanceDisplay();
+
+        // 🔥 ការចាប់យកលេខដែល Scan បានមកដាក់ក្នុង Input ដោយស្វ័យប្រវត្តិ
+        if (scannedAcc) {
+          document.getElementById("receiverAcc").value = scannedAcc;
+          checkName(); // ហៅកូដនេះដើម្បីឱ្យវាឆែកឈ្មោះហាង ឬអ្នកទទួលភ្លាមៗ
+        }
+
+        if (scannedAmount) {
+          const amtInput = document.getElementById("amount");
+          amtInput.value = scannedAmount;
+          if (lockAmount === "true") {
+            amtInput.readOnly = true; // កុំឱ្យគេកែចំនួនលុយបាន
+            amtInput.style.backgroundColor = "#e9ecef";
+          }
+          calculateExchangePreview();
+        }
       });
 
       // ==========================================
-      // 4. UI & Transfer Logic
+      // 4. UI & Transfer Logic (បានប្តូរ user ទៅ activeUser)
       // ==========================================
-      function applyTheme() {
-        const userThemeKey = "darkMode_" + user.username;
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
-        else document.body.classList.remove("dark-mode");
-      }
-
       function updateBalanceDisplay() {
         const type = document.getElementById("fromAccount").value;
-        const bal = type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
+        const bal =
+          type === "USD" ? activeUser.balance || 0 : activeUser.balanceKHR || 0;
         const sign = type === "USD" ? "$" : "៛";
         let lang = localStorage.getItem("lang") || "en";
         const textKey =
@@ -1036,10 +1044,11 @@
       }
 
       function loadRecentContacts() {
-        if (!user.transactions || user.transactions.length === 0) return;
+        if (!activeUser.transactions || activeUser.transactions.length === 0)
+          return;
         let contacts = [];
         let seenAccounts = new Set();
-        for (let t of user.transactions) {
+        for (let t of activeUser.transactions) {
           if (t.amount < 0 && t.receiverAcc) {
             let recName = t.receiverName || t.partner || "Unknown";
             if (
@@ -1158,23 +1167,23 @@
         calculateExchangePreview();
       }
 
-      // 🔥 Muxngar គណនា FX & Fee បញ្ចូលគ្នា
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value) || 0;
+        const fromType = document.getElementById("fromAccount").value;
+        const feePreview = document.getElementById("feePreview");
+        const previewBox = document.getElementById("exchangePreview");
 
-        // 🔥 កន្លែងធៀបលុយ (Logic ធៀបតាម Database ដែលបងចង់បាន)
         let fee = 0;
         if (amount >= 0.01 && amount <= 99.99) {
-          fee = 0.5; // តាម Database របស់បង
+          fee = 0.5;
         } else if (amount >= 100) {
-          fee = 1; // តាម Database របស់បង
+          fee = 1;
         }
 
-        // បង្ហាញ Fee ក្នុង UI
         const feeDisplay = document.getElementById("feeAmountDisplay");
         if (feeDisplay) {
           feeDisplay.innerText = `$${fee.toFixed(2)}`;
-          document.getElementById("feePreview").style.display = "block";
+          if (feePreview) feePreview.style.display = "block";
         } else {
           if (feePreview) feePreview.style.display = "none";
         }
@@ -1185,7 +1194,7 @@
         }
 
         const isSenderKHR = fromType === "KHR";
-        // ប្រើ currentFXRates ផ្ទាល់
+
         if (!isSenderKHR && targetUserIsKHR) {
           let totalKHR = amount * (currentFXRates.usdToKhrBuy || 4050);
           document.getElementById("fxRateDisplay").innerText =
@@ -1206,13 +1215,13 @@
       }
 
       // ==========================================
-      // 5. HYBRID PIN PAD LOGIC (សម្រាប់ Computer និង ទូរស័ព្ទ)
+      // 5. HYBRID PIN PAD LOGIC
       // ==========================================
       async function validateAndOpenPin() {
         const amount = parseFloat(document.getElementById("amount").value);
         const type = document.getElementById("fromAccount").value;
         const currentBal =
-          type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
+          type === "USD" ? activeUser.balance || 0 : activeUser.balanceKHR || 0;
         let lang = localStorage.getItem("lang") || "en";
 
         if (!amount || amount <= 0)
@@ -1223,10 +1232,23 @@
               : "Please enter valid amount",
             "warning",
           );
-        if (amount > currentBal)
+
+        // បូក Fee មុនឆែកលុយ
+        let fee = 0;
+        if (amount >= 0.01 && amount <= 99.99) fee = 0.5;
+        else if (amount >= 100) fee = 1;
+
+        const totalDeduction =
+          type === "USD"
+            ? amount + fee
+            : amount + fee * (currentFXRates.usdToKhrSell || 4100);
+
+        if (totalDeduction > currentBal)
           return Swal.fire(
             "Error",
-            lang === "kh" ? "សមតុល្យមិនគ្រប់គ្រាន់" : "Insufficient Balance",
+            lang === "kh"
+              ? "សមតុល្យមិនគ្រប់គ្រាន់ (បូករួមសេវា)"
+              : "Insufficient Balance (incl. fee)",
             "error",
           );
 
@@ -1237,10 +1259,8 @@
             return Swal.fire("Error", "Receiver Not Found", "error");
         }
 
-        // បើកផ្ទាំង PIN
         document.getElementById("pinModal").style.display = "flex";
 
-        // Setup សម្រាប់ Hybrid
         const vKeypad = document.getElementById("virtualKeypad");
         const btnShow = document.getElementById("btnShowKeypad");
         const hiddenPin = document.getElementById("hiddenPin");
@@ -1252,7 +1272,6 @@
         if (hiddenPin) hiddenPin.value = "";
         updatePinDots();
 
-        // Focus ទៅលើ hidden input ដើម្បីឲ្យកុំព្យូទ័រវាយបានភ្លាមៗ
         setTimeout(() => {
           if (hiddenPin) hiddenPin.focus();
         }, 100);
@@ -1268,7 +1287,6 @@
         if (hiddenPin) hiddenPin.focus();
       }
 
-      // ពេលវាយតាម Keyboard កុំព្យូទ័រ
       function handlePinInput(val) {
         if (val.length > 4) val = val.substring(0, 4);
         enteredPin = val;
@@ -1276,7 +1294,6 @@
         if (enteredPin.length === 4) setTimeout(submitPin, 300);
       }
 
-      // ពេលចុចលើ Virtual Keypad (ទូរស័ព្ទ)
       function pressPin(val) {
         let input = document.getElementById("hiddenPin");
         if (val === "del") enteredPin = enteredPin.slice(0, -1);
@@ -1306,7 +1323,7 @@
       // 6. MAIN TRANSFER SUBMIT
       // ==========================================
       async function submitPin() {
-        const pin = enteredPin; // ទាញយក PIN ពី Variable រួម
+        const pin = enteredPin;
         const method =
           urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
         const amount = document.getElementById("amount").value;
@@ -1323,7 +1340,7 @@
             method: "POST",
             headers: authHeaders,
             body: JSON.stringify({
-              senderUsername: user.username,
+              senderUsername: activeUser.username,
               receiverAccount: document.getElementById("receiverAcc").value,
               amount: amount,
               remark: document.getElementById("remark").value,
@@ -1336,11 +1353,11 @@
           Swal.close();
 
           if (data.success) {
-            if (fromAccountType === "USD") user.balance = data.newBalance;
-            else user.balanceKHR = data.newBalance;
+            if (fromAccountType === "USD") activeUser.balance = data.newBalance;
+            else activeUser.balanceKHR = data.newBalance;
 
-            user.transactions.unshift(data.slipData);
-            sessionStorage.setItem("user", JSON.stringify(user));
+            activeUser.transactions.unshift(data.slipData);
+            sessionStorage.setItem("user", JSON.stringify(activeUser));
 
             new Audio(
               "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
@@ -1460,7 +1477,7 @@
               method: "POST",
               headers: authHeaders,
               body: JSON.stringify({
-                username: user.username,
+                username: activeUser.username,
                 amount: wonAmount,
                 refId: currentSlipData.refId,
               }),
@@ -1468,8 +1485,8 @@
               .then((res) => res.json())
               .then((data) => {
                 if (data.success) {
-                  user.balance = data.balance;
-                  sessionStorage.setItem("user", JSON.stringify(user));
+                  activeUser.balance = data.balance;
+                  sessionStorage.setItem("user", JSON.stringify(activeUser));
                   new Audio(
                     "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                   )
@@ -1534,7 +1551,7 @@
           : `${sign}${formattedAmt}`;
         document.getElementById("slipRef").innerText = data.refId;
         document.getElementById("slipHash").innerText = data.hash || "N/A";
-        document.getElementById("slipSender").innerText = user.username;
+        document.getElementById("slipSender").innerText = activeUser.username;
         document.getElementById("slipReceiver").innerText =
           data.partner || data.receiverName;
         document.getElementById("slipMethod").innerText =
