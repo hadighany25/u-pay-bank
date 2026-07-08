@@ -1087,6 +1087,22 @@ body.dark-mode .c360-tab:hover {
     transform: translateX(0);
   }
 }
+/* រចនា Modal ឱ្យមានគែមមូលស្អាត និង Shadow */
+.modal-radius {
+  border-radius: 20px !important;
+  overflow: hidden;
+}
+.swal2-input {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  padding: 12px !important;
+}
+.swal2-confirm,
+.swal2-cancel {
+  padding: 12px 30px !important;
+  border-radius: 10px !important;
+}
+
 .kh-text {
   font-family: "Kantumruy Pro", sans-serif !important;
 }

@@ -287,37 +287,57 @@ function renderWalletsTab(user) {
     </div>
   `;
 }
+
 function c360AdjustBalance(type) {
   const isAdd = type === "add";
+  const titleText = isAdd ? "ដាក់ប្រាក់ចូលគណនី" : "ដកប្រាក់ចេញពីគណនី";
+  const themeColor = isAdd ? "#10b981" : "#ef4444";
+
   Swal.fire({
-    title: `<span class="kh-text" style="font-size:1.2rem;">${isAdd ? "ដាក់ប្រាក់ចូលគណនី" : "ដកប្រាក់ចេញពីគណនី"}</span>`,
+    title: `<span style="font-size: 1.5rem; font-weight: 700; color: #1e293b;" class="kh-text">${titleText}</span>`,
     html: `
       <div style="text-align: left; font-family: 'Kantumruy Pro'; padding: 10px;">
-        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">១. ប្រភេទគណនី</label>
-        <select id="adjCurrency" class="swal2-input" style="width: 100%; margin: 5px 0 15px;">
-            <option value="USD">គណនី USD ($)</option>
-            <option value="KHR">គណនី KHR (៛)</option>
-        </select>
+        <div style="margin-bottom: 15px;">
+            <label class="kh-text" style="font-size: 0.8rem; color: #64748b; font-weight: 600;">ឈ្មោះអតិថិជន</label>
+            <div style="font-size: 1.1rem; font-weight: 700; color: #0f172a; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                ${currentC360User.fullName || currentC360User.username}
+            </div>
+        </div>
 
-        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">២. លេខគណនី (បញ្ជាក់)</label>
-        <input id="adjAccNum" class="swal2-input" value="${currentC360User.accountNumber}" readonly style="background:#f1f5f9; cursor:not-allowed;">
+        <div style="margin-bottom: 15px;">
+            <label class="kh-text" style="font-size: 0.8rem; color: #64748b; font-weight: 600;">ជ្រើសរើសលេខគណនី</label>
+            <select id="adjAccNum" class="swal2-input" style="width: 100%; margin: 5px 0; font-size: 1rem;">
+                <option value="${currentC360User.accountNumber}">USD: ${currentC360User.accountNumber}</option>
+                ${currentC360User.accountNumberKHR ? `<option value="${currentC360User.accountNumberKHR}">KHR: ${currentC360User.accountNumberKHR}</option>` : ""}
+            </select>
+        </div>
 
-        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">៣. ចំនួនទឹកប្រាក់</label>
-        <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 100.00" style="width: 100%; margin: 5px 0 15px;">
+        <div style="margin-bottom: 15px;">
+            <label class="kh-text" style="font-size: 0.8rem; color: #64748b; font-weight: 600;">ចំនួនទឹកប្រាក់</label>
+            <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 100.00" style="width: 100%; margin: 5px 0; font-size: 1.1rem; border: 2px solid ${themeColor}40;">
+        </div>
         
-        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">៤. មូលហេតុ (Remark)</label>
-        <input id="adjRemark" class="swal2-input" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+        <div style="margin-bottom: 5px;">
+            <label class="kh-text" style="font-size: 0.8rem; color: #64748b; font-weight: 600;">មូលហេតុ (Remark)</label>
+            <input id="adjRemark" class="swal2-input" placeholder="សរសេរមូលហេតុនៅទីនេះ..." style="width: 100%; margin: 5px 0;">
+        </div>
       </div>`,
     showCancelButton: true,
-    confirmButtonColor: isAdd ? "#10b981" : "#ef4444",
-    confirmButtonText: '<span class="kh-text">បញ្ជាក់</span>',
-    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: themeColor,
+    cancelButtonColor: "#64748b",
+    confirmButtonText:
+      '<span class="kh-text" style="font-size: 1rem;">បញ្ជាក់ (Confirm)</span>',
+    cancelButtonText:
+      '<span class="kh-text" style="font-size: 1rem;">បោះបង់</span>',
+    customClass: {
+      popup: "modal-radius", // ដាក់ Border Radius ឱ្យស្អាត
+    },
     preConfirm: () => {
       const amount = document.getElementById("adjAmount").value;
       if (!amount || amount <= 0)
-        Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់!");
+        Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!");
       return {
-        currency: document.getElementById("adjCurrency").value,
+        accountNumber: document.getElementById("adjAccNum").value,
         amount,
         remark: document.getElementById("adjRemark").value,
       };
@@ -336,22 +356,22 @@ function c360AdjustBalance(type) {
           body: JSON.stringify({
             username: currentC360User.username,
             amount: result.value.amount,
-            currency: result.value.currency,
+            accountNumber: result.value.accountNumber, // ផ្ញើលេខគណនីដែលជ្រើសរើសទៅ Backend
             remark: result.value.remark,
             type: type,
           }),
         });
         const data = await res.json();
-        // ប្រើ timer ខ្លីដើម្បីឱ្យលឿន
-        if (data.success)
+        if (data.success) {
           Swal.fire({
             icon: "success",
             title: "ជោគជ័យ!",
-            timer: 1000,
+            text: "ទិន្នន័យត្រូវបានអាប់ដេត!",
+            timer: 1200,
             showConfirmButton: false,
           });
-        else Swal.fire("បរាជ័យ", data.message, "error");
-        if (typeof loadData === "function") loadData();
+          if (typeof loadData === "function") loadData();
+        } else Swal.fire("បរាជ័យ", data.message, "error");
       } catch (e) {
         Swal.fire("Error", "មានបញ្ហា Server", "error");
       }
