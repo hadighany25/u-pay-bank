@@ -277,14 +277,18 @@ function renderWalletsTab(user) {
       </div>
     </div>
     
-    <div style="display: flex; gap: 15px;">
-        <button class="btn-primary kh-text" style="background: #ef4444; flex:1; padding: 12px;" onclick="c360AdjustBalance('deduct')">
-            <i class="fa-solid fa-minus"></i> ដកប្រាក់
-        </button>
-        <button class="btn-primary kh-text" style="background: #10b981; flex:1; padding: 12px;" onclick="c360AdjustBalance('add')">
-            <i class="fa-solid fa-plus"></i> ដាក់ប្រាក់
-        </button>
-    </div>
+    <div style="display: flex; gap: 15px; margin-top: 20px;">
+    <button class="btn-primary kh-text" 
+        style="background: #ef4444; flex:1; padding: 18px; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px;" 
+        onclick="c360AdjustBalance('deduct')">
+        <i class="fa-solid fa-minus"></i> ដកប្រាក់
+    </button>
+    <button class="btn-primary kh-text" 
+        style="background: #10b981; flex:1; padding: 18px; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px;" 
+        onclick="c360AdjustBalance('add')">
+        <i class="fa-solid fa-plus"></i> ដាក់ប្រាក់
+    </button>
+</div>
   `;
 }
 
@@ -326,9 +330,9 @@ function c360AdjustBalance(type) {
     confirmButtonColor: themeColor,
     cancelButtonColor: "#64748b",
     confirmButtonText:
-      '<span class="kh-text" style="font-size: 1rem;">បញ្ជាក់ (Confirm)</span>',
+      '<span class="kh-text" style="font-size: 1rem; color: #10b981;">បញ្ជាក</span>',
     cancelButtonText:
-      '<span class="kh-text" style="font-size: 1rem;">បោះបង់</span>',
+      '<span class="kh-text" style="font-size: 1rem;color: #ef4444;">បោះបង់</span>',
     customClass: {
       popup: "modal-radius", // ដាក់ Border Radius ឱ្យស្អាត
     },
