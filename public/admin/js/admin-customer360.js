@@ -67,13 +67,12 @@ function backToC360Search() {
 function renderCustomerProfile(user) {
   currentC360User = user;
 
-  // បិទផ្ទាំង Search ហើយបើកផ្ទាំង Profile រួមជាមួយ Animation រុញពីស្តាំ
-  document.getElementById("c360-search-view").style.display = "none";
+  // លាក់ផ្ទាំង Empty State រួចបង្ហាញផ្ទាំង Profile នៅពីក្រោមប្រអប់ Search
+  const emptyState = document.getElementById("c360-empty-state");
+  if (emptyState) emptyState.style.display = "none";
+
   const profileView = document.getElementById("c360-profile-view");
   profileView.style.display = "block";
-  profileView.classList.remove("slide-in-right");
-  void profileView.offsetWidth; // បញ្ជាឱ្យ Browser លេង Animation សារថ្មី
-  profileView.classList.add("slide-in-right");
 
   // បំពេញទិន្នន័យ Header
   document.getElementById("c360-avatar").src =
@@ -97,10 +96,10 @@ function renderCustomerProfile(user) {
 
   // ប៊ូតុងសកម្មភាពរហ័ស (Quick Actions)
   document.getElementById("c360-quick-actions").innerHTML = `
-    <button onclick="c360ToggleFreeze()" style="background: ${user.isFrozen ? "#10b981" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold;">
+    <button onclick="c360ToggleFreeze()" style="background: ${user.isFrozen ? "#10b981" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
       <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "ដោះសោរ (Unfreeze)" : "ផ្អាក (Freeze)"}
     </button>
-    <button onclick="c360OpenChat()" style="background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold;">
+    <button onclick="c360OpenChat()" style="background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
       <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Chat)
     </button>
   `;

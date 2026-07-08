@@ -584,67 +584,46 @@
           position: relative;
         "
       >
-        <!-- ផ្ទាំងទី១: កន្លែង Search -->
-        <div id="c360-search-view">
-          <div class="table-header-controls">
-            <div>
-              <h2 class="dash-title" data-i18n="c360-title">
-                Customer 360° View
-              </h2>
-              <p class="dash-desc" data-i18n="c360-desc">
-                ស្វែងរក និងមើលព័ត៌មានអតិថិជនលម្អិត.
-              </p>
-            </div>
-            <div class="search-box" style="max-width: 400px">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input
-                type="text"
-                id="searchC360"
-                placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
-                onkeyup="if (event.key === 'Enter') searchCustomer360();"
-              />
-            </div>
+        <div class="table-header-controls">
+          <div>
+            <h2 class="dash-title" data-i18n="c360-title">
+              Customer 360° View
+            </h2>
+            <p class="dash-desc" data-i18n="c360-desc">
+              ស្វែងរក និងមើលព័ត៌មានអតិថិជនលម្អិត.
+            </p>
           </div>
-          <!-- អាចដាក់រូបតុក្កតា ឬអក្សរប្រាប់អោយ Search ទីនេះ -->
-          <div
-            style="
-              text-align: center;
-              padding: 100px 20px;
-              color: var(--text-muted);
-              opacity: 0.6;
-            "
-          >
-            <i
-              class="fa-solid fa-user-magnifying-glass"
-              style="font-size: 5rem; margin-bottom: 20px"
-            ></i>
-            <h3>វាយបញ្ចូលទិន្នន័យដើម្បីស្វែងរកអតិថិជន</h3>
+          <div class="search-box" style="max-width: 400px">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="text"
+              id="searchC360"
+              placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
+              onkeyup="if (event.key === 'Enter') searchCustomer360();"
+            />
           </div>
         </div>
 
-        <!-- ផ្ទាំងទី២: Profile Detail (រុញពីស្តាំមក) -->
+        <div
+          id="c360-empty-state"
+          style="
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--text-muted);
+            opacity: 0.6;
+          "
+        >
+          <i
+            class="fa-solid fa-users-viewfinder"
+            style="font-size: 5rem; margin-bottom: 20px"
+          ></i>
+          <h3>វាយបញ្ចូលទិន្នន័យនៅប្រអប់ខាងលើ ដើម្បីស្វែងរកអតិថិជន</h3>
+        </div>
+
         <div
           id="c360-profile-view"
-          style="display: none"
-          class="slide-in-right"
+          style="display: none; animation: fadeIn 0.4s ease"
         >
-          <!-- ប៊ូតុង Back -->
-          <button
-            class="btn-cancel"
-            onclick="backToC360Search()"
-            style="
-              margin-bottom: 15px;
-              border: none;
-              background: transparent;
-              color: var(--text-muted);
-              font-size: 1rem;
-              cursor: pointer;
-            "
-          >
-            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅការស្វែងរកវិញ
-          </button>
-
-          <!-- ផ្នែក Header Profile -->
           <div
             class="dash-card"
             style="
@@ -693,11 +672,9 @@
                 </div>
               </div>
             </div>
-            <!-- Quick Actions -->
             <div style="display: flex; gap: 10px" id="c360-quick-actions"></div>
           </div>
 
-          <!-- ផ្នែក 8 Tabs -->
           <div class="dash-card" style="padding: 0">
             <div
               style="
@@ -734,7 +711,6 @@
               </div>
             </div>
 
-            <!-- Content របស់ Tab នីមួយៗ -->
             <div style="padding: 25px">
               <div
                 id="c360-tab-info"
