@@ -1087,3 +1087,11 @@ body.dark-mode .c360-tab:hover {
     transform: translateX(0);
   }
 }
+.kh-text {
+  font-family: "Kantumruy Pro", sans-serif !important;
+}
+/* ធ្វើឱ្យ Input គ្រប់យ៉ាងប្រើ Font ខ្មែរ */
+.swal2-input,
+.swal2-select {
+  font-family: "Kantumruy Pro", sans-serif !important;
+}

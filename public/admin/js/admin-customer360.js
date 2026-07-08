@@ -266,23 +266,97 @@ function renderWalletsTab(user) {
   container.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
       <div class="dash-card" style="border-left: 5px solid #3b82f6;">
-        <h4 style="margin: 0 0 10px; color: var(--text-muted);">គណនី USD ($)</h4>
+        <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី USD ($)</h4>
         <h2 style="margin: 0 0 10px; color: var(--primary); font-size: 2rem;">$${(user.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
         <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${user.accountNumber || "N/A"}</p>
       </div>
       <div class="dash-card" style="border-left: 5px solid #10b981;">
-        <h4 style="margin: 0 0 10px; color: var(--text-muted);">គណនី KHR (៛)</h4>
+        <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី KHR (៛)</h4>
         <h2 style="margin: 0 0 10px; color: var(--primary); font-size: 2rem;">${(user.balanceKHR || 0).toLocaleString()} ៛</h2>
         <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${user.accountNumberKHR || "N/A"}</p>
       </div>
     </div>
-    <button class="btn-primary kh-text" style="background: var(--secondary);" onclick="c360AdjustBalance()"><i class="fa-solid fa-money-bill-transfer"></i> បន្ថែម ឬ ដកប្រាក់ (Adjust Balance)</button>
+    
+    <div style="display: flex; gap: 15px;">
+        <button class="btn-primary kh-text" style="background: #ef4444; flex:1; padding: 12px;" onclick="c360AdjustBalance('deduct')">
+            <i class="fa-solid fa-minus"></i> ដកប្រាក់
+        </button>
+        <button class="btn-primary kh-text" style="background: #10b981; flex:1; padding: 12px;" onclick="c360AdjustBalance('add')">
+            <i class="fa-solid fa-plus"></i> ដាក់ប្រាក់
+        </button>
+    </div>
   `;
 }
-function c360AdjustBalance() {
-  if (typeof openAdjustBalance === "function")
-    openAdjustBalance(currentC360User.username, "add");
-  else Swal.fire("បម្រាម", "មិនមានសិទ្ធិបញ្ចូលប្រាក់ទេ", "warning");
+function c360AdjustBalance(type) {
+  const isAdd = type === "add";
+  Swal.fire({
+    title: `<span class="kh-text" style="font-size:1.2rem;">${isAdd ? "ដាក់ប្រាក់ចូលគណនី" : "ដកប្រាក់ចេញពីគណនី"}</span>`,
+    html: `
+      <div style="text-align: left; font-family: 'Kantumruy Pro'; padding: 10px;">
+        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">១. ប្រភេទគណនី</label>
+        <select id="adjCurrency" class="swal2-input" style="width: 100%; margin: 5px 0 15px;">
+            <option value="USD">គណនី USD ($)</option>
+            <option value="KHR">គណនី KHR (៛)</option>
+        </select>
+
+        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">២. លេខគណនី (បញ្ជាក់)</label>
+        <input id="adjAccNum" class="swal2-input" value="${currentC360User.accountNumber}" readonly style="background:#f1f5f9; cursor:not-allowed;">
+
+        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">៣. ចំនួនទឹកប្រាក់</label>
+        <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 100.00" style="width: 100%; margin: 5px 0 15px;">
+        
+        <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">៤. មូលហេតុ (Remark)</label>
+        <input id="adjRemark" class="swal2-input" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+      </div>`,
+    showCancelButton: true,
+    confirmButtonColor: isAdd ? "#10b981" : "#ef4444",
+    confirmButtonText: '<span class="kh-text">បញ្ជាក់</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    preConfirm: () => {
+      const amount = document.getElementById("adjAmount").value;
+      if (!amount || amount <= 0)
+        Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់!");
+      return {
+        currency: document.getElementById("adjCurrency").value,
+        amount,
+        remark: document.getElementById("adjRemark").value,
+      };
+    },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const res = await fetch("/api/admin/adjust-balance", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            username: currentC360User.username,
+            amount: result.value.amount,
+            currency: result.value.currency,
+            remark: result.value.remark,
+            type: type,
+          }),
+        });
+        const data = await res.json();
+        // ប្រើ timer ខ្លីដើម្បីឱ្យលឿន
+        if (data.success)
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ!",
+            timer: 1000,
+            showConfirmButton: false,
+          });
+        else Swal.fire("បរាជ័យ", data.message, "error");
+        if (typeof loadData === "function") loadData();
+      } catch (e) {
+        Swal.fire("Error", "មានបញ្ហា Server", "error");
+      }
+    }
+  });
 }
 
 // ➡️ TAB 3: Cards (កាត) - មើលកាត និង បិទ/បើកកាត
@@ -631,30 +705,46 @@ function c360OpenFloatingChat() {
   }
 }
 
-// មុខងារបញ្ជូនសារចេញពី Floating Chat
-function c360SendFloatingMessage() {
+// កែសម្រួលមុខងារនេះនៅក្នុង admin-customer360.js
+async function c360OpenFloatingChat() {
+  // ១. បង្ខំឱ្យ User នោះចូល Support Mode
+  await fetch("/api/chat/force-start", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      receiverAcc: currentC360User.accountNumber,
+      adminName: "Admin",
+    }),
+  });
+
+  // ២. បើក Floating Chat ដូចដែលយើងបានសរសេរពីមុន
+  // មុខងារចាស់នេះនៅតែដំណើរការធម្មតា
+  showFloatingChatWidget();
+}
+
+// មុខងារផ្ញើសារដែលភ្ជាប់ទៅ Backend របស់អ្នក
+async function c360SendFloatingMessage() {
   const input = document.getElementById("f-chat-input");
   const msg = input.value.trim();
   if (!msg) return;
 
-  const msgContainer = document.getElementById("f-chat-messages");
+  // ហៅ API សាររបស់អ្នកដែលអ្នកមានស្រាប់ (sendChat)
+  const res = await fetch("/api/chat/send", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      senderAcc: "ADMIN",
+      receiverAcc: currentC360User.accountNumber,
+      message: msg,
+      adminName: "Super Admin",
+    }),
+  });
 
-  // បង្ហាញសាររបស់ Admin លើអេក្រង់ខាងស្តាំ
-  const adminMsgHTML = `
-      <div style="align-self: flex-end; background: #0ea5e9; color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; max-width: 80%; word-break: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" class="kh-text">
-        ${msg}
-      </div>`;
-  msgContainer.insertAdjacentHTML("beforeend", adminMsgHTML);
-
-  // Scroll ទៅក្រោមគេ
-  msgContainer.scrollTop = msgContainer.scrollHeight;
-  input.value = "";
-
-  // ប្រសិនបើអ្នកមាន Socket រួចហើយ អាចបញ្ជូនវាទៅ Server ទីនេះ
-  /* socket.emit("sendMessage", { 
-        senderUsername: 'admin', 
-        receiverUsername: currentC360User.username, 
-        message: msg 
-    }); 
-    */
+  // បង្ហាញសារក្នុង UI បន្ទាប់ពី Save ចូល DB ជោគជ័យ
+  const data = await res.json();
+  if (data.success) {
+    // បង្ហាញសារក្នុង Floating Chat (កូដដដែលដែលខ្ញុំឱ្យពីមុន)
+    appendMessageToFloatingChat(msg, true);
+    input.value = "";
+  }
 }
