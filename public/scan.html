@@ -573,13 +573,12 @@
     </div>
 
     <script>
-      // ប្រើអថេរ activeUser ដូច u-pay-core.js
-      let activeUser = JSON.parse(sessionStorage.getItem("user"));
-      let apiToken = sessionStorage.getItem("userToken");
-      if (!activeUser || !apiToken) window.location.href = "index.html";
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      let token = sessionStorage.getItem("userToken");
+      if (!user || !token) window.location.href = "index.html";
 
       function applyTheme() {
-        const userThemeKey = "darkMode_" + activeUser.username;
+        const userThemeKey = "darkMode_" + user.username;
         const isDark =
           localStorage.getItem("theme") === "dark" ||
           localStorage.getItem(userThemeKey) === "true";
@@ -610,47 +609,44 @@
         }
       }
 
+      // 🔥 ប្រព័ន្ធ Notification អ្នកទទួល (Receiver Alert)
       const socket = io("https://u-pay-bank.fly.dev");
-      socket.emit("joinRoom", activeUser.username);
+      socket.emit("joinRoom", user.username);
+
       socket.on("paymentReceived", (data) => {
         const ringtone = new Audio(
           "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
         );
         ringtone.play().catch((e) => {});
-        const amountInput = document.getElementById("qrSetAmount").value;
-        const isAmountSet = amountInput && parseFloat(amountInput) > 0;
+
         const symbol = data.currency === "USD" ? "$" : "៛";
         const formattedAmount = Number(data.amount).toLocaleString("en-US", {
           minimumFractionDigits: 2,
         });
+        let lang = localStorage.getItem("lang") || "en";
 
-        if (isAmountSet) {
-          Swal.fire({
-            icon: "success",
-            title: '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>',
-            html: `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
-            confirmButtonText: "យល់ព្រម",
-            confirmButtonColor: "#00b894",
-            allowOutsideClick: false,
-          }).then(() => (window.location.href = "dashboard.html"));
-        } else {
-          const Toast = Swal.mixin({
-            toast: true,
-            position: "top-end",
-            showConfirmButton: false,
-            timer: 4000,
-            timerProgressBar: true,
-          });
-          Toast.fire({
-            icon: "success",
-            title: `<span style="font-family: Kantumruy Pro">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
-          });
-        }
+        // 🔥 លោត Popup ធំ ហើយចុច OK ទៅ Dashboard ដូចដែលបងចង់បាន
+        Swal.fire({
+          icon: "success",
+          title:
+            lang === "kh"
+              ? '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>'
+              : "Payment Received!",
+          html:
+            lang === "kh"
+              ? `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`
+              : `You received <b>${symbol}${formattedAmount}</b> from ${data.senderName}`,
+          confirmButtonText: lang === "kh" ? "យល់ព្រម" : "OK",
+          confirmButtonColor: "#00b894",
+          allowOutsideClick: false,
+        }).then(() => {
+          window.location.href = "dashboard.html";
+        });
       });
 
       let qrCurrency = "USD";
       document.getElementById("qrUserName").textContent =
-        activeUser.fullName || activeUser.username;
+        user.fullName || user.username;
 
       function switchQRCurrency(currency) {
         qrCurrency = currency;
@@ -664,9 +660,7 @@
           currency === "USD" ? "$" : "៛";
 
         const targetAcc =
-          currency === "USD"
-            ? activeUser.accountNumber
-            : activeUser.accountNumberKHR;
+          currency === "USD" ? user.accountNumber : user.accountNumberKHR;
         document.getElementById("qrUserAcc").textContent = targetAcc.replace(
           /(\d{3})(\d{3})(\d{3})/,
           "$1 $2 $3",
@@ -676,15 +670,12 @@
         document.getElementById("qrSetAmount").value = "";
         updateMyQR();
       }
-      // កំណត់ QR ជា USD នៅពេលបើកដំបូង
       switchQRCurrency("USD");
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
         const targetAcc =
-          qrCurrency === "USD"
-            ? activeUser.accountNumber
-            : activeUser.accountNumberKHR;
+          qrCurrency === "USD" ? user.accountNumber : user.accountNumberKHR;
         let qrData = targetAcc;
         if (amount && amount > 0) qrData = `${targetAcc}:${amount}`;
         const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
@@ -715,7 +706,7 @@
           scale: 3,
         }).then((canvas) => {
           const link = document.createElement("a");
-          link.download = `U-Pay-QR-${activeUser.username}-${qrCurrency}.png`;
+          link.download = `U-Pay-QR-${user.username}-${qrCurrency}.png`;
           link.href = canvas.toDataURL();
           link.click();
           btnSave.style.display = "block";
