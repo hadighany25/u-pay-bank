@@ -1,11 +1,9 @@
 // ========================================================================
-// 👥 USER MANAGEMENT LOGIC (ULTRA-FAST & IMAGE COMPRESSION)
+// 👥 USER MANAGEMENT LOGIC (NO LIMITS & INSTANT RENDER)
 // ========================================================================
 
-const MAX_DISPLAY = 50; // កំណត់ត្រឹម ៥០ នាក់ដំបូង ដើម្បីកុំឱ្យគាំង Browser
-
 // =======================================================
-// ១. មុខងារគូរតារាង (Render) លឿនផ្លេកបន្ទោរ
+// ១. មុខងារគូរតារាង (បង្ហាញទាំងអស់ គ្មាន Limit)
 // =======================================================
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
@@ -16,7 +14,6 @@ function renderUsersTable(users) {
     return;
   }
 
-  // ឆែកសិទ្ធិ Admin ម្តងទុកប្រើគ្រប់ជួរ
   const canEdit =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.editUser);
@@ -30,11 +27,8 @@ function renderUsersTable(users) {
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
-  // កាត់យកតែ ៥០ នាក់ដំបូងមកគូរ
-  const displayUsers = users.slice(0, MAX_DISPLAY);
-
-  // បង្កើត HTML ជាដុំធំ (Batch DOM)
-  const rowsHtml = displayUsers
+  // បង្កើត HTML ជាដុំធំតែមួយ ដើម្បីឱ្យ Browser គូរបានលឿនបំផុត ទោះមានរាប់ពាន់ជួរក៏ដោយ
+  const rowsHtml = users
     .map((u) => {
       const uid = u._id || u.id;
       const isCentralBank = u.accountNumber === "888888888";
@@ -96,57 +90,40 @@ function renderUsersTable(users) {
     })
     .join("");
 
-  let finalHtml = rowsHtml;
+  tbody.innerHTML = rowsHtml;
+}
 
-  // បើទិន្នន័យមានច្រើនជាង ៥០ បង្ហាញសារប្រាប់
-  if (users.length > MAX_DISPLAY) {
-    finalHtml += `<tr><td colspan="5" style="text-align:center; padding: 15px; background: #f8fafc; color: var(--text-muted); font-size: 0.9rem;">
-        <i class="fa-solid fa-circle-info"></i> កំពុងបង្ហាញ ${MAX_DISPLAY} នាក់ដំបូង ក្នុងចំណោមសរុប ${users.length} នាក់។ សូមប្រើប្រអប់ Search ដើម្បីស្វែងរកបន្ថែម។
-      </td></tr>`;
+// =======================================================
+// ២. មុខងារស្វែងរក (Instant Search គ្មានការរង់ចាំ)
+// =======================================================
+function filterUsers() {
+  const term = document.getElementById("searchBox").value.toLowerCase().trim();
+
+  if (!term) {
+    renderUsersTable(globalUsersData);
+    return;
   }
 
-  tbody.innerHTML = finalHtml;
+  // រកភ្លាមៗនៅក្នុង RAM (Instant Filter)
+  const filteredData = globalUsersData.filter((u) => {
+    const uname = (u.username || "").toLowerCase();
+    const fname = (u.fullName || "").toLowerCase();
+    const accUSD = (u.accountNumber || "").toString();
+    const accKHR = (u.accountNumberKHR || "").toString();
+
+    return (
+      uname.includes(term) ||
+      fname.includes(term) ||
+      accUSD.includes(term) ||
+      accKHR.includes(term)
+    );
+  });
+
+  renderUsersTable(filteredData);
 }
 
 // =======================================================
-// ២. មុខងារស្វែងរកឆ្លាតវៃ (រកក្នុង RAM)
-// =======================================================
-let searchTimeout;
-
-function filterUsers() {
-  clearTimeout(searchTimeout);
-
-  searchTimeout = setTimeout(() => {
-    const term = document
-      .getElementById("searchBox")
-      .value.toLowerCase()
-      .trim();
-
-    if (!term) {
-      renderUsersTable(globalUsersData);
-      return;
-    }
-
-    const filteredData = globalUsersData.filter((u) => {
-      const uname = (u.username || "").toLowerCase();
-      const fname = (u.fullName || "").toLowerCase();
-      const accUSD = (u.accountNumber || "").toString();
-      const accKHR = (u.accountNumberKHR || "").toString();
-
-      return (
-        uname.includes(term) ||
-        fname.includes(term) ||
-        accUSD.includes(term) ||
-        accKHR.includes(term)
-      );
-    });
-
-    renderUsersTable(filteredData);
-  }, 300);
-}
-
-// =======================================================
-// ៣. មុខងារបង្រួមរូបភាព (IMAGE COMPRESSION) កុំអោយធ្ងន់ Database
+// ៣. មុខងារបង្រួមរូបភាព (Image Compression) ដើម្បីសង្គ្រោះ Database
 // =======================================================
 function compressImageAndPreview(file) {
   return new Promise((resolve) => {
@@ -156,7 +133,6 @@ function compressImageAndPreview(file) {
       const img = new Image();
       img.src = event.target.result;
       img.onload = function () {
-        // កំណត់ទំហំរូបត្រឹម 300x300 pixels (តូច ស្រាល លឿន)
         const MAX_WIDTH = 300;
         const MAX_HEIGHT = 300;
         let width = img.width;
@@ -180,7 +156,6 @@ function compressImageAndPreview(file) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // បំប្លែងទៅជា Base64 ជាមួយនឹងគុណភាព 70%
         const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
         resolve(compressedBase64);
       };
@@ -188,25 +163,19 @@ function compressImageAndPreview(file) {
   });
 }
 
-// មុខងារនេះត្រូវហៅនៅពេល Admin រើសរូបភាពក្នុង Modal (onchange)
 async function handleProfileImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   Swal.fire({
-    title: "កំពុងបង្រួមរូបភាព...",
+    title: "កំពុងរៀបចំរូបភាព...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   });
-
-  // ហៅមុខងារ Compress
   const smallBase64 = await compressImageAndPreview(file);
 
-  // បង្ហាញរូបតូចនេះលើអេក្រង់
   document.getElementById("e-preview").src = smallBase64;
-  // ញាត់ចូល Input លាក់ទុកដើម្បី Save
   document.getElementById("editProfileImg").value = smallBase64;
-
   Swal.close();
 }
 
@@ -227,7 +196,7 @@ function openEditModal(id) {
   document.getElementById("editPassword").value = "";
 
   if (u.profileImage && u.profileImage.startsWith("data:image")) {
-    document.getElementById("editProfileImg").value = "Base64 Image Data...";
+    document.getElementById("editProfileImg").value = u.profileImage;
   } else {
     document.getElementById("editProfileImg").value = u.profileImage || "";
   }
@@ -258,7 +227,7 @@ async function saveUserEdit() {
     password: document.getElementById("editPassword").value,
   };
 
-  if (imgInputVal !== "Base64 Image Data...") {
+  if (imgInputVal && imgInputVal.trim() !== "") {
     bodyData.profileImage = imgInputVal;
   }
 
