@@ -1,70 +1,162 @@
+// ========================================================================
+// 👥 USER MANAGEMENT LOGIC (MAXIMUM SPEED - SHOW ALL)
+// ========================================================================
+
+// =======================================================
+// ១. មុខងារគូរតារាងលឿនបំផុត (Fastest DOM Rendering)
+// =======================================================
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
-  tbody.innerHTML = "";
-  let canEdit =
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">មិនមានទិន្នន័យទេ</td></tr>';
+    return;
+  }
+
+  // ឆែកសិទ្ធិម្តង ទុកប្រើសម្រាប់គ្រប់ជួរទាំងអស់ (សន្សំកម្លាំងម៉ាស៊ីន)
+  const canEdit =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.editUser);
-  let canDelete =
+  const canDelete =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.deleteUser);
-  let canFreeze =
+  const canFreeze =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.freezeUser);
-  let canAdjust =
+  const canAdjust =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
-  users.forEach((u) => {
-    let accountsHtml = `<div class="acc-stack"><div class="acc-badge usd"><span>$</span> ${u.accountNumber}</div>${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}</div>`;
-    let balanceHtml = `<div class="acc-stack"><div style="color: #0369a1; font-weight: bold;">$${u.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div><div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div></div>`;
+  let rowsHtml = ""; // ប្រើ String ធម្មតាបូកបញ្ចូលគ្នា លឿនជាងវិធីផ្សេងៗទាំងអស់
+
+  for (let i = 0; i < users.length; i++) {
+    const u = users[i];
+    const uid = u._id || u.id;
     const isCentralBank = u.accountNumber === "888888888";
 
-    let actionButtonsHtml = "";
+    // បម្លែងលុយ
+    const balUSD = Number(u.balance || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+    });
+    const balKHR = Number(u.balanceKHR || 0).toLocaleString("en-US");
+
+    let actionBtns = "";
     if (isCentralBank) {
       if (canEdit)
-        actionButtonsHtml = `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>`;
+        actionBtns = `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${uid}')"><i class="fa-solid fa-pen"></i></button>`;
     } else {
-      if (canAdjust)
-        actionButtonsHtml += `<button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')"><i class="fa-solid fa-plus"></i></button><button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')"><i class="fa-solid fa-minus"></i></button>`;
+      if (canAdjust) {
+        actionBtns += `<button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')"><i class="fa-solid fa-plus"></i></button>`;
+        actionBtns += `<button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')"><i class="fa-solid fa-minus"></i></button>`;
+      }
       if (canEdit)
-        actionButtonsHtml += `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${u.id}')"><i class="fa-solid fa-pen"></i></button>`;
+        actionBtns += `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${uid}')"><i class="fa-solid fa-pen"></i></button>`;
       if (canDelete)
-        actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${u.id}')"><i class="fa-solid fa-trash"></i></button>`;
+        actionBtns += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
     }
 
     let freezeHtml = isCentralBank
       ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
       : canFreeze
-        ? `<label class="switch"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${u.id}', this.checked)"><span class="slider"></span></label>`
+        ? `<label class="switch"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
         : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
 
-    const tr = document.createElement("tr");
-    tr.style.backgroundColor = isCentralBank ? "#fef9c3" : "";
-    tr.innerHTML = `<td><div style="display: flex; align-items: center; gap: 10px"><img src="${u.profileImage || (isCentralBank ? "images/logo.png" : "images/default-avatar.png")}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" /><div><div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div><div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div></div></div></td><td>${accountsHtml}</td><td>${balanceHtml}</td><td>${freezeHtml}</td><td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>`;
-    tbody.appendChild(tr);
-  });
+    const imgSrc =
+      u.profileImage ||
+      (isCentralBank ? "images/logo.png" : "images/default-avatar.png");
+
+    rowsHtml += `
+      <tr ${isCentralBank ? 'style="background-color: #fef9c3;"' : ""}>
+        <td>
+            <div style="display: flex; align-items: center; gap: 10px">
+                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='images/default-avatar.png'" />
+                <div>
+                    <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
+                </div>
+            </div>
+        </td>
+        <td>
+            <div class="acc-stack">
+                <div class="acc-badge usd"><span>$</span> ${u.accountNumber || "N/A"}</div>
+                ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
+            </div>
+        </td>
+        <td>
+            <div class="acc-stack">
+                <div style="color: #0369a1; font-weight: bold;">$${balUSD}</div>
+                <div style="color: #047857; font-weight: bold;">${balKHR} ៛</div>
+            </div>
+        </td>
+        <td>${freezeHtml}</td>
+        <td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionBtns}</div></td>
+      </tr>`;
+  }
+
+  // បោះកូដចូលអេក្រង់តែម្តងគត់! (លឿនខ្លាំង)
+  tbody.innerHTML = rowsHtml;
 }
+
+// =======================================================
+// ២. មុខងារស្វែងរកឆ្លាតវៃ (រកក្នុង RAM ភ្លាមៗ)
+// =======================================================
+function filterUsers() {
+  const term = document.getElementById("searchBox").value.toLowerCase().trim();
+
+  if (!term) {
+    renderUsersTable(globalUsersData);
+    return;
+  }
+
+  // ស្វែងរកនៅក្នុង RAM លឿនជាងប្រើ Query Selector រាប់រយដង
+  const filteredData = globalUsersData.filter((u) => {
+    const uname = (u.username || "").toLowerCase();
+    const fname = (u.fullName || "").toLowerCase();
+    const accUSD = (u.accountNumber || "").toString();
+    const accKHR = (u.accountNumberKHR || "").toString();
+
+    return (
+      uname.includes(term) ||
+      fname.includes(term) ||
+      accUSD.includes(term) ||
+      accKHR.includes(term)
+    );
+  });
+
+  renderUsersTable(filteredData);
+}
+
+// =======================================================
+// ៣. មុខងារ Modal និង Actions ផ្សេងៗ
+// =======================================================
 
 function openEditModal(id) {
   const u = globalUsersData.find(
-    (user) => user.id === id || user.username === id,
+    (user) => (user._id || user.id) === id || user.username === id,
   );
   if (!u) return;
-  document.getElementById("editUserId").value = u.id;
-  document.getElementById("editUsername").value = u.username;
-  document.getElementById("editAccNum").value = u.accountNumber;
+
+  document.getElementById("editUserId").value = u._id || u.id;
+  document.getElementById("editUsername").value = u.username || "";
+  document.getElementById("editAccNum").value = u.accountNumber || "";
   document.getElementById("editAccNumKHR").value = u.accountNumberKHR || "";
   document.getElementById("editPin").value = u.pin || "";
   document.getElementById("editPassword").value = "";
-  if (u.profileImage && u.profileImage.startsWith("data:image"))
+
+  if (u.profileImage && u.profileImage.startsWith("data:image")) {
     document.getElementById("editProfileImg").value = "Base64 Image Data...";
-  else document.getElementById("editProfileImg").value = u.profileImage || "";
+  } else {
+    document.getElementById("editProfileImg").value = u.profileImage || "";
+  }
+
   document.getElementById("e-preview").src =
     u.profileImage || "images/logo.png";
   document
     .getElementById("editUserModal")
     .style.setProperty("display", "flex", "important");
 }
+
 function closeModal(modalId) {
   document
     .getElementById(modalId)
@@ -74,6 +166,7 @@ function closeModal(modalId) {
 async function saveUserEdit() {
   const id = document.getElementById("editUserId").value;
   const imgInputVal = document.getElementById("editProfileImg").value;
+
   const bodyData = {
     id: id,
     username: document.getElementById("editUsername").value,
@@ -82,26 +175,35 @@ async function saveUserEdit() {
     pin: document.getElementById("editPin").value,
     password: document.getElementById("editPassword").value,
   };
+
   if (imgInputVal !== "Base64 Image Data...")
     bodyData.profileImage = imgInputVal;
-  const res = await fetch("/api/admin/edit-user", {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(bodyData),
-  });
-  const data = await res.json();
-  if (data.success) {
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "User Updated",
-      showConfirmButton: false,
-      timer: 1500,
+
+  try {
+    const res = await fetch("/api/admin/edit-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(bodyData),
     });
-    closeModal("editUserModal");
-    loadData();
-  } else Swal.fire("បរាជ័យ!", data.message, "error");
+    const data = await res.json();
+
+    if (data.success) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "បានកែប្រែជោគជ័យ",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+      closeModal("editUserModal");
+      if (typeof loadData === "function") loadData();
+    } else {
+      Swal.fire("បរាជ័យ!", data.message, "error");
+    }
+  } catch (error) {
+    Swal.fire("Error", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
+  }
 }
 
 function openAdjustBalance(username, type) {
@@ -109,13 +211,23 @@ function openAdjustBalance(username, type) {
     type === "add" ? "ដាក់ប្រាក់ (Add Money)" : "ដកប្រាក់ (Deduct Money)";
   const confirmBtnColor = type === "add" ? "#10b981" : "#ef4444";
   const icon = type === "add" ? "plus-circle" : "minus-circle";
+
   Swal.fire({
     title: `<i class="fa-solid fa-${icon}"></i> ${title}`,
-    html: `<div style="text-align: left; font-family: 'Kantumruy Pro';"><p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p><label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label><select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;"><option value="USD">គណនី USD ($)</option><option value="KHR">គណនី KHR (៛)</option></select><label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label><input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;"></div>`,
+    html: `
+        <div style="text-align: left; font-family: 'Kantumruy Pro';">
+            <p style="margin-bottom: 10px; color: #64748b;">អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p>
+            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label>
+            <select id="adjCurrency" class="swal2-input" style="width: 100%; box-sizing: border-box; margin: 5px 0 15px;">
+                <option value="USD">គណនី USD ($)</option><option value="KHR">គណនី KHR (៛)</option>
+            </select>
+            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label>
+            <input id="adjAmount" class="swal2-input" type="number" placeholder="បញ្ចូលចំនួន" style="width: 100%; box-sizing: border-box; margin: 5px 0 0;">
+        </div>`,
     showCancelButton: true,
     confirmButtonColor: confirmBtnColor,
     cancelButtonColor: "#64748b",
-    confirmButtonText: "បញ្ជាក់ (Confirm)",
+    confirmButtonText: "បញ្ជាក់",
     preConfirm: () => {
       const currency = document.getElementById("adjCurrency").value;
       const amount = document.getElementById("adjAmount").value;
@@ -127,6 +239,7 @@ function openAdjustBalance(username, type) {
     if (result.isConfirmed) {
       Swal.fire({
         title: "កំពុងដំណើរការ...",
+        allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
       });
       try {
@@ -142,8 +255,12 @@ function openAdjustBalance(username, type) {
         });
         const data = await res.json();
         if (data.success) {
-          Swal.fire("ជោគជ័យ!", data.message, "success");
-          loadData();
+          Swal.fire(
+            "ជោគជ័យ!",
+            data.message || "ប្រតិបត្តិការជោគជ័យ",
+            "success",
+          );
+          if (typeof loadData === "function") loadData();
         } else Swal.fire("បរាជ័យ", data.message, "error");
       } catch (error) {
         Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
@@ -154,43 +271,67 @@ function openAdjustBalance(username, type) {
 
 function deleteUser(id) {
   Swal.fire({
-    title: "Delete User?",
-    text: "This action cannot be undone.",
+    title: "តើអ្នកប្រាកដទេ?",
+    text: "ទិន្នន័យគណនីនេះនឹងត្រូវលុបចោលទាំងស្រុង។",
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
-    confirmButtonText: "Delete",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "បាទ/ចាស, លុប!",
+    cancelButtonText: "បោះបង់",
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const res = await fetch("/api/admin/delete-user", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        Swal.fire("Deleted!", "", "success");
-        loadData();
+      try {
+        const res = await fetch("/api/admin/delete-user", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ id }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: "បានលុបជោគជ័យ",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          if (typeof loadData === "function") loadData();
+        } else
+          Swal.fire("Error", data.message || "មិនអាចលុបគណនីបានទេ", "error");
+      } catch (e) {
+        Swal.fire("Error", "បញ្ហាការតភ្ជាប់", "error");
       }
     }
   });
 }
 
 async function toggleFreeze(id, isFrozen) {
-  await fetch("/api/admin/toggle-freeze", {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ id, isFrozen }),
-  });
-}
-
-function filterUsers() {
-  const term = document.getElementById("searchBox").value.toLowerCase();
-  const rows = document.querySelectorAll("#userTable tbody tr");
-  rows.forEach(
-    (r) =>
-      (r.style.display = r.innerText.toLowerCase().includes(term)
-        ? ""
-        : "none"),
-  );
+  try {
+    const res = await fetch("/api/admin/toggle-freeze", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id, isFrozen }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: isFrozen ? "គណនីត្រូវបានផ្អាក" : "គណនីបានដោះសោរ",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+      const user = globalUsersData.find((u) => (u._id || u.id) === id);
+      if (user) user.isFrozen = isFrozen;
+    } else {
+      Swal.fire("បរាជ័យ", data.message || "មិនអាចប្តូរស្ថានភាពបានទេ", "error");
+      if (typeof loadData === "function") loadData();
+    }
+  } catch (e) {
+    Swal.fire("Error", "បញ្ហាតភ្ជាប់", "error");
+    if (typeof loadData === "function") loadData();
+  }
 }
