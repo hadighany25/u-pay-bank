@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Transfer Money - U-Pay</title>
 
     <link
@@ -16,6 +17,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
     <script src="js/toast.js"></script>
     <link rel="stylesheet" href="style.css" />
 
@@ -285,6 +288,7 @@
         justify-content: center;
         flex-direction: column;
       }
+
       /* Virtual PIN Pad Styles */
       .key-btn {
         background: #f8fafc;
@@ -319,19 +323,6 @@
       .pin-dot.filled {
         background: #004d40;
         border-color: #004d40;
-      }
-
-      body.dark-mode .key-btn {
-        background: #1e1e1e !important;
-        color: #f8fafc !important;
-        border-color: #333;
-      }
-      body.dark-mode .key-btn:active {
-        background: #333 !important;
-      }
-      body.dark-mode .pin-dot.filled {
-        background: #00b894 !important;
-        border-color: #00b894 !important;
       }
 
       /* Slip Container */
@@ -591,6 +582,18 @@
       body.dark-mode .fx-preview-box p {
         color: #a7f3d0;
       }
+      body.dark-mode .key-btn {
+        background: #1e1e1e !important;
+        color: #f8fafc !important;
+        border-color: #333;
+      }
+      body.dark-mode .key-btn:active {
+        background: #333 !important;
+      }
+      body.dark-mode .pin-dot.filled {
+        background: #00b894 !important;
+        border-color: #00b894 !important;
+      }
 
       /* រក្សា Slip អោយសជានិច្ច ដើម្បីការពារការបាត់អក្សរ */
       body.dark-mode .slip-container {
@@ -770,15 +773,15 @@
             margin-top: 20px;
           "
         >
-          <button class="key-btn" onclick="pressPin('1')">1</button
-          ><button class="key-btn" onclick="pressPin('2')">2</button
-          ><button class="key-btn" onclick="pressPin('3')">3</button>
-          <button class="key-btn" onclick="pressPin('4')">4</button
-          ><button class="key-btn" onclick="pressPin('5')">5</button
-          ><button class="key-btn" onclick="pressPin('6')">6</button>
-          <button class="key-btn" onclick="pressPin('7')">7</button
-          ><button class="key-btn" onclick="pressPin('8')">8</button
-          ><button class="key-btn" onclick="pressPin('9')">9</button>
+          <button class="key-btn" onclick="pressPin('1')">1</button>
+          <button class="key-btn" onclick="pressPin('2')">2</button>
+          <button class="key-btn" onclick="pressPin('3')">3</button>
+          <button class="key-btn" onclick="pressPin('4')">4</button>
+          <button class="key-btn" onclick="pressPin('5')">5</button>
+          <button class="key-btn" onclick="pressPin('6')">6</button>
+          <button class="key-btn" onclick="pressPin('7')">7</button>
+          <button class="key-btn" onclick="pressPin('8')">8</button>
+          <button class="key-btn" onclick="pressPin('9')">9</button>
           <button class="key-btn empty" onclick="closeModal('pinModal')">
             <i class="fa-solid fa-xmark" style="color: #ef4444"></i>
           </button>
@@ -1238,44 +1241,6 @@
         }
       }
 
-      function drawWheel() {
-        const canvas = document.getElementById("wheelCanvas");
-        if (!canvas.getContext) return;
-        const ctx = canvas.getContext("2d");
-        const prizes = ["$0.05", "$0.50", "0.00", "$0.10", "$1.00", "$0.20"];
-        const colors = [
-          "#f59e0b",
-          "#10b981",
-          "#64748b",
-          "#3b82f6",
-          "#ef4444",
-          "#8b5cf6",
-        ];
-        const arc = Math.PI / (prizes.length / 2);
-
-        ctx.clearRect(0, 0, 280, 280);
-        for (let i = 0; i < prizes.length; i++) {
-          const angle = i * arc;
-          ctx.beginPath();
-          ctx.fillStyle = colors[i];
-          ctx.moveTo(140, 140);
-          ctx.arc(140, 140, 140, angle, angle + arc, false);
-          ctx.lineTo(140, 140);
-          ctx.fill();
-          ctx.save();
-          ctx.fillStyle = "white";
-          ctx.translate(
-            140 + Math.cos(angle + arc / 2) * 90,
-            140 + Math.sin(angle + arc / 2) * 90,
-          );
-          ctx.rotate(angle + arc / 2 + Math.PI / 2);
-          ctx.font = "bold 20px 'Inter'";
-          let text = prizes[i] === "0.00" ? "Oops!" : prizes[i];
-          ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
-          ctx.restore();
-        }
-      }
-
       async function validateAndOpenPin() {
         const amount = parseFloat(document.getElementById("amount").value);
         const type = document.getElementById("fromAccount").value;
@@ -1359,6 +1324,44 @@
 
       function closeModal(id) {
         document.getElementById(id).style.display = "none";
+      }
+
+      function drawWheel() {
+        const canvas = document.getElementById("wheelCanvas");
+        if (!canvas.getContext) return;
+        const ctx = canvas.getContext("2d");
+        const prizes = ["$0.05", "$0.50", "0.00", "$0.10", "$1.00", "$0.20"];
+        const colors = [
+          "#f59e0b",
+          "#10b981",
+          "#64748b",
+          "#3b82f6",
+          "#ef4444",
+          "#8b5cf6",
+        ];
+        const arc = Math.PI / (prizes.length / 2);
+
+        ctx.clearRect(0, 0, 280, 280);
+        for (let i = 0; i < prizes.length; i++) {
+          const angle = i * arc;
+          ctx.beginPath();
+          ctx.fillStyle = colors[i];
+          ctx.moveTo(140, 140);
+          ctx.arc(140, 140, 140, angle, angle + arc, false);
+          ctx.lineTo(140, 140);
+          ctx.fill();
+          ctx.save();
+          ctx.fillStyle = "white";
+          ctx.translate(
+            140 + Math.cos(angle + arc / 2) * 90,
+            140 + Math.sin(angle + arc / 2) * 90,
+          );
+          ctx.rotate(angle + arc / 2 + Math.PI / 2);
+          ctx.font = "bold 20px 'Inter'";
+          let text = prizes[i] === "0.00" ? "Oops!" : prizes[i];
+          ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+          ctx.restore();
+        }
       }
 
       async function submitPin() {
