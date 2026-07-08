@@ -1,21 +1,22 @@
 // ========================================================================
-// 👥 USER MANAGEMENT LOGIC (OPTIMIZED FOR HIGH PERFORMANCE)
+// 👥 USER MANAGEMENT LOGIC (ULTRA-FAST PERFORMANCE)
 // ========================================================================
 
+const MAX_DISPLAY = 50; // 🔥 បង្ហាញត្រឹម ៥០ នាក់ដំបូង ដើម្បីកុំឱ្យគាំង Browser
+
 // =======================================================
-// ១. មុខងារគូរតារាងលឿនផ្លេកបន្ទោរ (Batch Rendering)
+// ១. មុខងារគូរតារាង (Render) លឿនផ្លេកបន្ទោរ
 // =======================================================
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
 
-  // ១.១ បើគ្មានទិន្នន័យ បង្ហាញសារប្រាប់
   if (!users || users.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">មិនមានទិន្នន័យទេ</td></tr>';
     return;
   }
 
-  // ១.២ ឆែកសិទ្ធិ (Permissions) ម្តងទុកប្រើសម្រាប់គ្រប់ជួរ (សន្សំកម្លាំងម៉ាស៊ីន)
+  // ឆែកសិទ្ធិ Admin
   const canEdit =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.editUser);
@@ -29,27 +30,27 @@ function renderUsersTable(users) {
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
-  // ១.៣ បង្កើត HTML ជាដុំធំតែមួយតាមរយៈ .map().join("")
-  const rowsHtml = users
+  // 🔥 កាត់យកតែ ៥០ នាក់ដំបូងមកគូរ (នេះជាគន្លឹះធ្វើឱ្យប្រព័ន្ធលឿន)
+  const displayUsers = users.slice(0, MAX_DISPLAY);
+
+  // បង្កើត HTML តែមួយដុំ
+  const rowsHtml = displayUsers
     .map((u) => {
-      const uid = u._id || u.id; // ការពារ Error ពេល MongoDB ប្រើ _id
+      const uid = u._id || u.id;
       const isCentralBank = u.accountNumber === "888888888";
 
-      // រៀបចំគណនី
       const accountsHtml = `
         <div class="acc-stack">
             <div class="acc-badge usd"><span>$</span> ${u.accountNumber || "N/A"}</div>
             ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
         </div>`;
 
-      // រៀបចំទឹកប្រាក់
       const balanceHtml = `
         <div class="acc-stack">
             <div style="color: #0369a1; font-weight: bold;">$${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             <div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
         </div>`;
 
-      // រៀបចំប៊ូតុងសកម្មភាព (Actions)
       let actionButtonsHtml = "";
       if (isCentralBank) {
         if (canEdit)
@@ -65,7 +66,6 @@ function renderUsersTable(users) {
           actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
       }
 
-      // រៀបចំកុងតាក់ផ្អាកគណនី (Freeze Switch)
       const freezeHtml = isCentralBank
         ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
         : canFreeze
@@ -94,34 +94,42 @@ function renderUsersTable(users) {
         <td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
       </tr>`;
     })
-    .join(""); // ភ្ជាប់ Array ទៅជា String
+    .join("");
 
-  // ១.៤ បោះ HTML ចូលអេក្រង់តែម្តង (Batch Update គឺលឿនជាង Append ធម្មតា ១០០ដង)
-  tbody.innerHTML = rowsHtml;
+  let finalHtml = rowsHtml;
+
+  // 🔥 បើមានទិន្នន័យលើសពី ៥០ ជួរ បង្ហាញសារប្រាប់ Admin ឱ្យប្រើ Search
+  if (users.length > MAX_DISPLAY) {
+    finalHtml += `<tr><td colspan="5" style="text-align:center; padding: 15px; background: #f8fafc; color: var(--text-muted); font-size: 0.9rem;">
+        <i class="fa-solid fa-circle-info"></i> កំពុងបង្ហាញ ${MAX_DISPLAY} នាក់ដំបូង ក្នុងចំណោមសរុប ${users.length} នាក់។ សូមប្រើប្រអប់ Search ខាងលើដើម្បីស្វែងរកអតិថិជនជាក់លាក់។
+      </td></tr>`;
+  }
+
+  tbody.innerHTML = finalHtml;
 }
 
 // =======================================================
-// ២. មុខងារស្វែងរកឆ្លាតវៃ (Debounced RAM Filter)
+// ២. មុខងារស្វែងរកឆ្លាតវៃ (រកក្នុង RAM លឿនបំផុត)
 // =======================================================
 let searchTimeout;
 
 function filterUsers() {
   clearTimeout(searchTimeout);
 
-  // បច្ចេកទេស Debounce: រង់ចាំ ៣០០មីលីវិនាទី បន្ទាប់ពីវាយអក្សរចប់ ទើបចាប់ផ្តើមស្វែងរក
+  // បច្ចេកទេស Debounce កាត់បន្ថយការគាំងពេលកំពុងវាយ
   searchTimeout = setTimeout(() => {
     const term = document
       .getElementById("searchBox")
       .value.toLowerCase()
       .trim();
 
-    // បើប្រអប់ទទេ បង្ហាញទិន្នន័យដើមចេញមកវិញទាំងអស់
+    // បើប្រអប់ទទេ គូរទិន្នន័យដើមចេញមកវិញ
     if (!term) {
       renderUsersTable(globalUsersData);
       return;
     }
 
-    // ស្វែងរកនៅក្នុង RAM (globalUsersData) លឿនជាងស្វែងរកតាម innerText លើអេក្រង់រាប់សិបដង
+    // ស្វែងរកនៅក្នុង RAM (Memory) មិនមែនលើអេក្រង់ទេ
     const filteredData = globalUsersData.filter((u) => {
       const uname = (u.username || "").toLowerCase();
       const fname = (u.fullName || "").toLowerCase();
@@ -136,13 +144,13 @@ function filterUsers() {
       );
     });
 
-    // បោះទិន្នន័យដែលទើបតែ Filter ឃើញ ទៅអោយតារាងគូរ
+    // គូរលទ្ធផលដែលរកឃើញចូលតារាង
     renderUsersTable(filteredData);
   }, 300);
 }
 
 // =======================================================
-// ៣. មុខងារលម្អិតផ្សេងៗ (កែប្រែ, ផ្អាក, លុប, បញ្ចូលប្រាក់)
+// ៣. មុខងារលម្អិត (កែប្រែ, បញ្ចូលប្រាក់, ផ្អាក, លុប)
 // =======================================================
 
 function openEditModal(id) {
@@ -156,7 +164,7 @@ function openEditModal(id) {
   document.getElementById("editAccNum").value = u.accountNumber || "";
   document.getElementById("editAccNumKHR").value = u.accountNumberKHR || "";
   document.getElementById("editPin").value = u.pin || "";
-  document.getElementById("editPassword").value = ""; // Clear password field for security
+  document.getElementById("editPassword").value = "";
 
   if (u.profileImage && u.profileImage.startsWith("data:image")) {
     document.getElementById("editProfileImg").value = "Base64 Image Data...";
@@ -212,7 +220,7 @@ async function saveUserEdit() {
         timer: 1500,
       });
       closeModal("editUserModal");
-      if (typeof loadData === "function") loadData(); // Reload ទិន្នន័យដើម្បី Update តារាង
+      if (typeof loadData === "function") loadData(); // Reload data
     } else {
       Swal.fire("បរាជ័យ!", data.message, "error");
     }
@@ -277,7 +285,7 @@ function openAdjustBalance(username, type) {
             data.message || "ប្រតិបត្តិការជោគជ័យ",
             "success",
           );
-          if (typeof loadData === "function") loadData(); // Reload តារាង
+          if (typeof loadData === "function") loadData();
         } else {
           Swal.fire("បរាជ័យ", data.message, "error");
         }
@@ -317,7 +325,7 @@ function deleteUser(id) {
             showConfirmButton: false,
             timer: 1500,
           });
-          if (typeof loadData === "function") loadData(); // Reload តារាង
+          if (typeof loadData === "function") loadData();
         } else {
           Swal.fire("Error", data.message || "មិនអាចលុបគណនីបានទេ", "error");
         }
@@ -346,15 +354,15 @@ async function toggleFreeze(id, isFrozen) {
         showConfirmButton: false,
         timer: 1500,
       });
-      // បើជោគជ័យ យើង Update ក្នុង RAM ផ្ទាល់តែម្តង ដើម្បីកុំអោយបាច់ហៅ API ទាញទិន្នន័យម្តងទៀត
+      // Update ទិន្នន័យក្នុង RAM
       const user = globalUsersData.find((u) => (u._id || u.id) === id);
       if (user) user.isFrozen = isFrozen;
     } else {
       Swal.fire("បរាជ័យ", data.message || "មិនអាចប្តូរស្ថានភាពបានទេ", "error");
-      if (typeof loadData === "function") loadData(); // Reset តារាងអោយត្រូវដើមវិញបើ Error
+      if (typeof loadData === "function") loadData(); // ហៅមកវិញបើ Error
     }
   } catch (e) {
     Swal.fire("Error", "បញ្ហាតភ្ជាប់", "error");
-    if (typeof loadData === "function") loadData(); // Reset វិញបើ Error
+    if (typeof loadData === "function") loadData();
   }
 }
