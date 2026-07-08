@@ -2,18 +2,15 @@
 // 🛡️ CUSTOMER 360° VIEW LOGIC (BANK-GRADE STANDARD)
 // ========================================================================
 
-// អថេរសម្រាប់ផ្ទុកទិន្នន័យអតិថិជនដែលកំពុងមើលបច្ចុប្បន្ន
 let currentC360User = null;
 
 // =======================================================
-// ១. មុខងារស្វែងរកអតិថិជន (Smart Search)
+// ១. មុខងារស្វែងរកអតិថិជន
 // =======================================================
 async function searchCustomer360() {
   const term = document.getElementById("searchC360").value.toLowerCase().trim();
   if (!term) return;
 
-  // បើទិន្នន័យ globalUsersData មិនទាន់មាន (ទទេ) យើងបង្ខំវាឱ្យទៅទាញពី Database មកសិន
-  // ចំណាំ៖ មុខងារ loadData() គឺទាញមកពី admin-users.js របស់អ្នក
   if (!globalUsersData || globalUsersData.length === 0) {
     Swal.fire({
       title: "កំពុងទាញយកទិន្នន័យ...",
@@ -24,14 +21,12 @@ async function searchCustomer360() {
     Swal.close();
   }
 
-  // ស្វែងរកអតិថិជនឆ្លាតវៃ (រកតាម Username, ឈ្មោះ, លេខទូរស័ព្ទ, លេខគណនី)
   const foundUser = globalUsersData.find((u) => {
     const uname = (u.username || "").toLowerCase();
     const fname = (u.fullName || "").toLowerCase();
     const phone = (u.phone || u.phoneNumber || "").toString().toLowerCase();
     const accUSD = (u.accountNumber || "").toString();
     const accKHR = (u.accountNumberKHR || "").toString();
-
     return (
       uname.includes(term) ||
       fname.includes(term) ||
@@ -41,24 +36,14 @@ async function searchCustomer360() {
     );
   });
 
-  // បើរកឃើញ បើកផ្ទាំង Profile បើរកមិនឃើញ លោតសារ Error
-  if (foundUser) {
-    renderCustomerProfile(foundUser);
-  } else {
+  if (foundUser) renderCustomerProfile(foundUser);
+  else
     Swal.fire({
       icon: "error",
       title: "រកមិនឃើញ",
-      text: "គ្មានអតិថិជននេះក្នុងប្រព័ន្ធទេ (សូមពិនិត្យទិន្នន័យឡើងវិញ)!",
-      customClass: { popup: "premium-swal" },
+      text: "គ្មានអតិថិជននេះក្នុងប្រព័ន្ធទេ!",
+      customClass: { popup: "premium-swal kh-text" },
     });
-  }
-}
-
-// ត្រឡប់ទៅផ្ទាំង Search វិញ (Back Button)
-function backToC360Search() {
-  document.getElementById("c360-profile-view").style.display = "none";
-  document.getElementById("c360-search-view").style.display = "block";
-  currentC360User = null;
 }
 
 // =======================================================
@@ -67,14 +52,12 @@ function backToC360Search() {
 function renderCustomerProfile(user) {
   currentC360User = user;
 
-  // លាក់ផ្ទាំង Empty State រួចបង្ហាញផ្ទាំង Profile នៅពីក្រោមប្រអប់ Search
   const emptyState = document.getElementById("c360-empty-state");
   if (emptyState) emptyState.style.display = "none";
 
   const profileView = document.getElementById("c360-profile-view");
   profileView.style.display = "block";
 
-  // បំពេញទិន្នន័យ Header
   document.getElementById("c360-avatar").src =
     user.profileImage || "../images/default-avatar.png";
   document.getElementById("c360-name").innerText =
@@ -84,27 +67,25 @@ function renderCustomerProfile(user) {
   document.getElementById("c360-phone").innerHTML =
     `<i class="fa-solid fa-phone"></i> ${user.phone || user.phoneNumber || "N/A"}`;
 
-  // ស្លាកសញ្ញាបញ្ជាក់ស្ថានភាពគណនី (Status Badges)
+  // Font ខ្មែរសម្រាប់ Status & ប៊ូតុង
   let statusHtml = user.isFrozen
-    ? `<span style="background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;">FROZEN (ផ្អាក)</span> `
-    : `<span style="background: #dcfce7; color: #10b981; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;">ACTIVE (ធម្មតា)</span> `;
+    ? `<span style="background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; font-family:'Kantumruy Pro';">FROZEN (ផ្អាក)</span> `
+    : `<span style="background: #dcfce7; color: #10b981; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; font-family:'Kantumruy Pro';">ACTIVE (ធម្មតា)</span> `;
 
-  // ស្លាក KYC
   if (user.kycStatus === "verified" || user.kycStatus === "approved")
     statusHtml += `<span style="background: #dbeafe; color: #3b82f6; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> KYC</span>`;
   document.getElementById("c360-status-badge").innerHTML = statusHtml;
 
-  // ប៊ូតុងសកម្មភាពរហ័ស (Quick Actions)
+  // ប៊ូតុងមាន Font ខ្មែរស្អាត
   document.getElementById("c360-quick-actions").innerHTML = `
-    <button onclick="c360ToggleFreeze()" style="background: ${user.isFrozen ? "#10b981" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+    <button onclick="c360ToggleFreeze()" class="kh-text" style="background: ${user.isFrozen ? "#10b981" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
       <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "ដោះសោរ (Unfreeze)" : "ផ្អាក (Freeze)"}
     </button>
-    <button onclick="c360OpenChat()" style="background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+    <button onclick="c360OpenFloatingChat()" class="kh-text" style="background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
       <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Chat)
     </button>
   `;
 
-  // ហៅមុខងារគូរទិន្នន័យចូល Tab ទាំង ៨
   renderInfoTab(user);
   renderWalletsTab(user);
   renderCardsTab(user);
@@ -115,7 +96,6 @@ function renderCustomerProfile(user) {
   renderLogsTab(user);
 }
 
-// មុខងារសម្រាប់ចុចប្តូរ Tab ទៅមក
 function switchC360Tab(tabName) {
   document
     .querySelectorAll(".c360-tab")
@@ -123,50 +103,125 @@ function switchC360Tab(tabName) {
   document
     .querySelectorAll(".c360-tab-content")
     .forEach((c) => (c.style.display = "none"));
-
   event.currentTarget.classList.add("active");
   document.getElementById(`c360-tab-${tabName}`).style.display = "block";
 }
 
 // =======================================================
-// ៣. អនុវត្ត TABS ទាំង ៨ ឱ្យដំណើរការ (TABS LOGIC)
+// ៣. អនុវត្ត TABS ទាំង ៨
 // =======================================================
 
-// ➡️ TAB 1: ព័ត៌មានទូទៅ (Information) - អាចកែប្រែ, Reset PIN, ដូរ Password
+// ➡️ TAB 1: ព័ត៌មានទូទៅ (Information) - ធ្វើឱ្យ Professional
 function renderInfoTab(user) {
   const container = document.getElementById("c360-tab-info");
   const dateCreated = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString()
+    ? new Date(user.createdAt).toLocaleDateString("km-KH")
     : "មិនស្គាល់";
 
+  // ជួរទី១ មាន ៣, ជួរទី២ មាន ២
   container.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-      <div class="form-group"><label>ឈ្មោះពេញ (Full Name)</label><input type="text" id="c360-edit-fullname" class="form-input" value="${user.fullName || ""}" /></div>
-      <div class="form-group"><label>លេខទូរស័ព្ទ (Phone)</label><input type="text" id="c360-edit-phone" class="form-input" value="${user.phone || user.phoneNumber || ""}" /></div>
-      <div class="form-group"><label>អ៊ីមែល (Email)</label><input type="email" id="c360-edit-email" class="form-input" value="${user.email || ""}" /></div>
-      <div class="form-group"><label>ថ្ងៃបង្កើតគណនី</label><input type="text" class="form-input" value="${dateCreated}" readonly style="background: #f1f5f9; cursor: not-allowed;" /></div>
-      
-      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px;">
-        <label style="color: var(--danger);"><i class="fa-solid fa-key"></i> ប្តូរ ឬ Reset PIN</label>
-        <input type="text" maxlength="4" id="c360-edit-pin" class="form-input" placeholder="វាយ PIN ៤ខ្ទង់ថ្មី ទីនេះ" value="${user.pin || ""}" />
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+      <div class="form-group">
+        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ឈ្មោះពេញ (Full Name)</label>
+        <input type="text" id="c360-edit-fullname" class="form-input kh-text" value="${user.fullName || ""}" />
       </div>
-      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px;">
-        <label style="color: var(--danger);"><i class="fa-solid fa-lock"></i> ប្តូរ Password ថ្មី</label>
-        <input type="text" id="c360-edit-pass" class="form-input" placeholder="ទុកទទេបើមិនចង់ប្តូរ" />
+      <div class="form-group">
+        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ឈ្មោះប្រើប្រាស់ (Username)</label>
+        <input type="text" class="form-input" value="${user.username}" readonly style="background: #f8fafc; cursor: not-allowed; color: #94a3b8; font-weight:bold;" title="មិនអាចកែប្រែបានទេ ការពារការបាត់បង់ទិន្នន័យ" />
+      </div>
+      <div class="form-group">
+        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">លេខទូរស័ព្ទ (Phone)</label>
+        <input type="text" id="c360-edit-phone" class="form-input" value="${user.phone || user.phoneNumber || ""}" />
       </div>
     </div>
-    <button class="btn-primary" style="margin-top: 15px; background: #0f172a;" onclick="saveC360Info()"><i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកែប្រែ</button>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+      <div class="form-group">
+        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">អ៊ីមែល (Email)</label>
+        <input type="email" id="c360-edit-email" class="form-input" value="${user.email || ""}" />
+      </div>
+      <div class="form-group">
+        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ថ្ងៃបង្កើតគណនី</label>
+        <input type="text" class="form-input kh-text" value="${dateCreated}" readonly style="background: #f8fafc; cursor: not-allowed;" />
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; background: white;">
+        <label class="kh-text" style="color: var(--danger); font-weight:600;"><i class="fa-solid fa-key"></i> ប្តូរ ឬ Reset PIN</label>
+        <div style="position: relative; margin-top: 10px;">
+          <input type="password" maxlength="4" id="c360-edit-pin" class="form-input" placeholder="វាយ PIN ៤ខ្ទង់ថ្មី ទីនេះ" value="${user.pin || ""}" style="padding-right: 40px; margin:0;" />
+          <i class="fa-solid fa-eye-slash" onclick="toggleSensitiveView('c360-edit-pin', this, 'PIN')" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; font-size: 1.1rem;"></i>
+        </div>
+      </div>
+      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; background: white;">
+        <label class="kh-text" style="color: var(--danger); font-weight:600;"><i class="fa-solid fa-lock"></i> ប្តូរ Password ថ្មី</label>
+        <div style="position: relative; margin-top: 10px;">
+          <input type="password" id="c360-edit-pass" class="form-input" placeholder="ទុកទទេបើមិនចង់ប្តូរ" value="*********" style="padding-right: 40px; margin:0;" />
+          <i class="fa-solid fa-eye-slash" onclick="toggleSensitiveView('c360-edit-pass', this, 'Password')" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; font-size: 1.1rem;"></i>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary kh-text" style="width: 100%; display: block; text-align: center; margin-top: 25px; padding: 18px; font-size: 1.1rem; background: #0f172a; box-shadow: 0 10px 20px rgba(0,0,0,0.1);" onclick="saveC360Info()">
+      <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i> រក្សាទុកការកែប្រែ (Save Changes)
+    </button>
   `;
 }
 
-// Save ការកែប្រែក្នុង Tab 1 (ប្រើប្រាស់ /api/admin/edit-user ដែលមានស្រាប់)
+// មុខងារបើក/បិទ ភ្នែក និងកត់ត្រា Logs
+async function toggleSensitiveView(inputId, iconEl, type) {
+  const input = document.getElementById(inputId);
+  const isPassword = input.type === "password";
+
+  if (isPassword) {
+    input.type = "text";
+    iconEl.classList.remove("fa-eye-slash");
+    iconEl.classList.add("fa-eye");
+    iconEl.style.color = "#3b82f6"; // ដូរពណ៌ពេលបើកមើល
+
+    if (type === "Password") {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "info",
+        title: "Password ត្រូវបាន Hashed ការពារសុវត្ថិភាព",
+      });
+    }
+
+    // បាញ់ API កត់ត្រាចូល Admin Logs ស្ងាត់ៗ
+    try {
+      await fetch("/api/admin/log-action", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: "Viewed Sensitive Data",
+          target: currentC360User.username,
+          details: `Admin បានចុចបើកមើល ${type}`,
+        }),
+      });
+    } catch (e) {}
+  } else {
+    input.type = "password";
+    iconEl.classList.remove("fa-eye");
+    iconEl.classList.add("fa-eye-slash");
+    iconEl.style.color = "#94a3b8";
+  }
+}
+
+// Save ការកែប្រែក្នុង Tab 1
 async function saveC360Info() {
+  const pinVal = document.getElementById("c360-edit-pin").value;
+  const passVal = document.getElementById("c360-edit-pass").value;
+
   const bodyData = {
     id: currentC360User._id || currentC360User.id,
     fullName: document.getElementById("c360-edit-fullname").value,
-    accountNumber: currentC360User.accountNumber, // ត្រូវការអោយ Backend ដើរស្រួល
-    pin: document.getElementById("c360-edit-pin").value,
-    password: document.getElementById("c360-edit-pass").value,
+    phoneNumber: document.getElementById("c360-edit-phone").value,
+    email: document.getElementById("c360-edit-email").value,
+    accountNumber: currentC360User.accountNumber,
+    pin: pinVal,
+    password: passVal === "*********" ? "" : passVal,
   };
 
   try {
@@ -182,15 +237,30 @@ async function saveC360Info() {
         title: "រក្សាទុកជោគជ័យ",
         showConfirmButton: false,
         timer: 1500,
+        customClass: { popup: "kh-text" },
       });
-      if (typeof loadData === "function") loadData(); // Update global data
+
+      // កត់ត្រា Logs ពេលកែប្រែ PIN/Password
+      if (passVal !== "*********" || pinVal !== (currentC360User.pin || "")) {
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: "Changed Credentials",
+            target: currentC360User.username,
+            details: `Admin បានកែប្រែ PIN/Password ថ្មី`,
+          }),
+        });
+      }
+
+      if (typeof loadData === "function") loadData();
     } else throw new Error(data.message);
   } catch (e) {
     Swal.fire("បរាជ័យ", "មិនអាចកែប្រែបានទេ", "error");
   }
 }
 
-// ➡️ TAB 2: Wallets (គណនីហិរញ្ញវត្ថុ) - មានប៊ូតុងបញ្ចូល/ដកប្រាក់
+// ➡️ TAB 2: Wallets (គណនីហិរញ្ញវត្ថុ)
 function renderWalletsTab(user) {
   const container = document.getElementById("c360-tab-finance");
   container.innerHTML = `
@@ -206,17 +276,13 @@ function renderWalletsTab(user) {
         <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${user.accountNumberKHR || "N/A"}</p>
       </div>
     </div>
-    <button class="btn-primary" style="background: var(--secondary);" onclick="c360AdjustBalance()"><i class="fa-solid fa-money-bill-transfer"></i> បន្ថែម ឬ ដកប្រាក់ (Adjust Balance)</button>
+    <button class="btn-primary kh-text" style="background: var(--secondary);" onclick="c360AdjustBalance()"><i class="fa-solid fa-money-bill-transfer"></i> បន្ថែម ឬ ដកប្រាក់ (Adjust Balance)</button>
   `;
 }
-
-// ហៅមុខងារ Adjust Balance ដែលមានស្រាប់
 function c360AdjustBalance() {
-  if (typeof openAdjustBalance === "function") {
-    openAdjustBalance(currentC360User.username, "add"); // បើក Modal Adjust Balance
-  } else {
-    Swal.fire("បម្រាម", "មិនមានសិទ្ធិបញ្ចូលប្រាក់ទេ", "warning");
-  }
+  if (typeof openAdjustBalance === "function")
+    openAdjustBalance(currentC360User.username, "add");
+  else Swal.fire("បម្រាម", "មិនមានសិទ្ធិបញ្ចូលប្រាក់ទេ", "warning");
 }
 
 // ➡️ TAB 3: Cards (កាត) - មើលកាត និង បិទ/បើកកាត
@@ -498,8 +564,6 @@ async function renderLogsTab(user) {
 // =======================================================
 // ៤. មុខងារ QUICK ACTIONS (Header Buttons)
 // =======================================================
-
-// មុខងារចុច Freeze (ផ្អាកគណនី)
 async function c360ToggleFreeze() {
   const isNowFrozen = !currentC360User.isFrozen;
   try {
@@ -511,7 +575,6 @@ async function c360ToggleFreeze() {
         isFrozen: isNowFrozen,
       }),
     });
-
     Swal.fire({
       toast: true,
       position: "top-end",
@@ -519,19 +582,79 @@ async function c360ToggleFreeze() {
       title: isNowFrozen ? "គណនីត្រូវបានផ្អាក" : "គណនីបានដោះសោរ",
       showConfirmButton: false,
       timer: 1500,
-    }).then(() => {
-      currentC360User.isFrozen = isNowFrozen; // Update in RAM
-      renderCustomerProfile(currentC360User); // Re-render UI
-      if (typeof loadData === "function") loadData(); // Update global memory
     });
+    currentC360User.isFrozen = isNowFrozen;
+    renderCustomerProfile(currentC360User);
+    if (typeof loadData === "function") loadData();
   } catch (e) {
     Swal.fire("Error", "បរាជ័យក្នុងការប្តូរស្ថានភាព", "error");
   }
 }
 
-// មុខងារចុចបើក Chat (Live Support)
-function c360OpenChat() {
-  showSection("live-chat"); // លោតទៅផ្ទាំង Chat
-  // ប្រសិនបើមានមុខងារផ្ទុក Chat ឱ្យហៅវាឱ្យដំណើរការ
-  if (typeof loadAdminChats === "function") loadAdminChats();
+// 💬 មុខងារ Chat អណ្តែតនៅខាងស្តាំ (Floating Chat)
+function c360OpenFloatingChat() {
+  let chatWidget = document.getElementById("c360-floating-chat");
+
+  // បង្កើត Widget ថ្មីបើមិនទាន់មាន
+  if (!chatWidget) {
+    chatWidget = document.createElement("div");
+    chatWidget.id = "c360-floating-chat";
+    chatWidget.innerHTML = `
+           <div style="position: fixed; bottom: 20px; right: 20px; width: 350px; height: 500px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; z-index: 9999; overflow: hidden; animation: slideUp 0.3s ease; border: 1px solid var(--border);">
+              <div style="background: #0ea5e9; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                 <div style="display: flex; align-items: center; gap: 10px;">
+                    <img id="f-chat-img" src="${currentC360User.profileImage || "../images/default-avatar.png"}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border: 2px solid white;">
+                    <div>
+                        <h4 id="f-chat-name" class="kh-text" style="margin:0; font-size: 1rem;">${currentC360User.fullName || currentC360User.username}</h4>
+                        <span style="font-size: 0.75rem; opacity: 0.8;">@${currentC360User.username}</span>
+                    </div>
+                 </div>
+                 <i class="fa-solid fa-xmark" style="cursor:pointer; font-size:1.2rem; padding: 5px;" onclick="document.getElementById('c360-floating-chat').style.display='none'"></i>
+              </div>
+              <div id="f-chat-messages" style="flex: 1; padding: 15px; background: #f8fafc; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                 <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; margin-top:10px; background: #e2e8f0; padding: 5px; border-radius: 10px; align-self: center;" class="kh-text">ការជជែកផ្ទាល់ជាមួយអតិថិជន</div>
+              </div>
+              <div style="padding: 10px; background: white; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
+                 <input type="text" id="f-chat-input" class="kh-text" placeholder="វាយសារ..." style="flex:1; padding:12px; border-radius:20px; border:1px solid var(--border); outline:none; background: #f1f5f9;" onkeypress="if(event.key === 'Enter') c360SendFloatingMessage()">
+                 <button onclick="c360SendFloatingMessage()" style="background:#0ea5e9; color:white; border:none; width:45px; height:45px; border-radius:50%; cursor:pointer; box-shadow: 0 4px 10px rgba(14,165,233,0.3);"><i class="fa-solid fa-paper-plane"></i></button>
+              </div>
+           </div>
+        `;
+    document.body.appendChild(chatWidget);
+  } else {
+    // បើមានស្រាប់ គ្រាន់តែ Update ឈ្មោះ រូប ហើយបើកវាឡើងវិញ
+    document.getElementById("f-chat-name").innerText =
+      currentC360User.fullName || currentC360User.username;
+    document.getElementById("f-chat-img").src =
+      currentC360User.profileImage || "../images/default-avatar.png";
+    chatWidget.style.display = "block";
+  }
+}
+
+// មុខងារបញ្ជូនសារចេញពី Floating Chat
+function c360SendFloatingMessage() {
+  const input = document.getElementById("f-chat-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const msgContainer = document.getElementById("f-chat-messages");
+
+  // បង្ហាញសាររបស់ Admin លើអេក្រង់ខាងស្តាំ
+  const adminMsgHTML = `
+      <div style="align-self: flex-end; background: #0ea5e9; color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; max-width: 80%; word-break: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" class="kh-text">
+        ${msg}
+      </div>`;
+  msgContainer.insertAdjacentHTML("beforeend", adminMsgHTML);
+
+  // Scroll ទៅក្រោមគេ
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+  input.value = "";
+
+  // ប្រសិនបើអ្នកមាន Socket រួចហើយ អាចបញ្ជូនវាទៅ Server ទីនេះ
+  /* socket.emit("sendMessage", { 
+        senderUsername: 'admin', 
+        receiverUsername: currentC360User.username, 
+        message: msg 
+    }); 
+    */
 }

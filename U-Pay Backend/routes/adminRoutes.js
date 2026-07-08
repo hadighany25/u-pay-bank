@@ -170,4 +170,9 @@ router.put(
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
   merchantController.adminEditMerchant,
 );
+router.post(
+  "/log-action",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.logCustomAction,
+);
 module.exports = router;

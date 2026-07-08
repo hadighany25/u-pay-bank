@@ -1109,6 +1109,16 @@ const togglePromoCode = async (req, res) => {
   }
 };
 
+const logCustomAction = async (req, res) => {
+  try {
+    const { action, target, details } = req.body;
+    await logAdminAction(req.admin.username, action, target, details);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1139,4 +1149,5 @@ module.exports = {
   createPromoCode,
   getPromoCodes,
   togglePromoCode,
+  logCustomAction,
 };
