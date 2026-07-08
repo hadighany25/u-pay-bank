@@ -316,6 +316,30 @@ const deleteConvo = async (req, res) => {
   }
 };
 
+const forceStartChat = async (req, res) => {
+  const { receiverAcc, adminName } = req.body;
+  try {
+    // ពិនិត្យមើលថា User មានមែនអត់
+    const user = await User.findOne({
+      $or: [{ accountNumber: receiverAcc }, { accountNumberKHR: receiverAcc }],
+    });
+    if (!user)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+
+    // ដាក់ឱ្យ User ចូលក្នុងស្ថានភាព Support ដើម្បីឱ្យ Admin ងាយស្រួលរកក្នុងបញ្ជី
+    user.needsSupport = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Chat បានត្រៀមរួចរាល់",
+      userAcc: user.accountNumber,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   createTicket,
   getNotifications,
@@ -328,4 +352,5 @@ module.exports = {
   checkChatUser,
   deleteMsg,
   deleteConvo,
+  forceStartChat,
 };

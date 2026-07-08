@@ -12,6 +12,7 @@ const {
   checkChatUser,
   deleteMsg,
   deleteConvo,
+  forceStartChat,
 } = require("../controllers/communicationController");
 
 router.post("/ticket/create", createTicket);
@@ -26,5 +27,6 @@ router.post("/chat/contacts", chatContacts);
 router.post("/chat/check-user", checkChatUser);
 router.post("/chat/delete-msg", deleteMsg);
 router.post("/chat/delete-convo", deleteConvo);
+router.post("/chat/force-start", forceStartChat);
 
 module.exports = router;
