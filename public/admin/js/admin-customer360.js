@@ -5,35 +5,22 @@
 let currentC360User = null;
 
 // ១. ស្វែងរកអតិថិជន (ទាញទិន្នន័យពី globalUsersData)
-async function searchCustomer360() {
+function searchCustomer360() {
   const term = document.getElementById("searchC360").value.toLowerCase().trim();
   if (!term) return;
 
-  // 1. បើ globalUsersData ទទេ សូមទៅទាញទិន្នន័យពី API ភ្លាមៗ (Safety Check)
-  if (!globalUsersData || globalUsersData.length === 0) {
-    Swal.fire({
-      title: "កំពុងផ្ទុកទិន្នន័យ...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    await loadAllUsers(); // ហៅមុខងារទាញ User មកវិញ
-    Swal.close();
-  }
-
-  // 2. ស្វែងរកអតិថិជន
   const foundUser = globalUsersData.find((u) => {
-    // រៀបចំទិន្នន័យអោយមានសុវត្ថិភាព
     const uname = (u.username || "").toLowerCase();
     const fname = (u.fullName || "").toLowerCase();
-    const phone = (u.phoneNumber || u.phone || "").toString().toLowerCase();
-    const acc = (u.accountNumber || "").toString();
-
-    // ត្រួតពិនិត្យគ្រប់លក្ខខណ្ឌ
+    const phone = (u.phone || u.phoneNumber || "").toString().toLowerCase();
+    const accUSD = (u.accountNumber || "").toString();
+    const accKHR = (u.accountNumberKHR || "").toString();
     return (
       uname.includes(term) ||
       fname.includes(term) ||
       phone.includes(term) ||
-      acc.includes(term)
+      accUSD.includes(term) ||
+      accKHR.includes(term)
     );
   });
 
@@ -43,7 +30,7 @@ async function searchCustomer360() {
     Swal.fire({
       icon: "error",
       title: "រកមិនឃើញ",
-      text: "គ្មានអតិថិជននេះក្នុងប្រព័ន្ធទេ (សូមពិនិត្យលេខទូរស័ព្ទ ឬលេខគណនី)!",
+      text: "គ្មានអតិថិជននេះក្នុងប្រព័ន្ធទេ!",
       customClass: { popup: "premium-swal" },
     });
   }
