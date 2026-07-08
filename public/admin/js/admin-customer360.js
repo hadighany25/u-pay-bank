@@ -7,29 +7,21 @@ let currentC360User = null;
 // ១. ស្វែងរកអតិថិជន (ទាញទិន្នន័យពី globalUsersData)
 function searchCustomer360() {
   const term = document.getElementById("searchC360").value.toLowerCase().trim();
-
-  // ថែម log នេះដើម្បីមើលក្នុង Console ថាមានទិន្នន័យប៉ុន្មានក្នុង globalUsersData
-  console.log(
-    "Searching in users:",
-    globalUsersData ? globalUsersData.length : "Empty",
-  );
-
-  if (!globalUsersData || globalUsersData.length === 0) {
-    Swal.fire(
-      "Error",
-      "ទិន្នន័យអតិថិជនមិនទាន់បានផ្ទុក។ សូមរង់ចាំបន្តិចឬ Refresh ទំព័រ",
-      "error",
-    );
-    return;
-  }
+  if (!term) return;
 
   const foundUser = globalUsersData.find((u) => {
-    // ត្រូវប្រាកដថា field ឈ្មោះក្នុង DB ត្រូវគ្នានឹង u.username, u.fullName, u.phoneNumber
     const uname = (u.username || "").toLowerCase();
     const fname = (u.fullName || "").toLowerCase();
     const phone = (u.phone || u.phoneNumber || "").toString().toLowerCase();
-
-    return uname.includes(term) || fname.includes(term) || phone.includes(term);
+    const accUSD = (u.accountNumber || "").toString();
+    const accKHR = (u.accountNumberKHR || "").toString();
+    return (
+      uname.includes(term) ||
+      fname.includes(term) ||
+      phone.includes(term) ||
+      accUSD.includes(term) ||
+      accKHR.includes(term)
+    );
   });
 
   if (foundUser) {
