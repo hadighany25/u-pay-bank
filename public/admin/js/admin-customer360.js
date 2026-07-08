@@ -330,9 +330,9 @@ function c360AdjustBalance(type) {
     confirmButtonColor: themeColor,
     cancelButtonColor: "#64748b",
     confirmButtonText:
-      '<span class="kh-text" style="font-size: 1rem; color: #10b981;">បញ្ជាក</span>',
+      '<span class="kh-text" style="font-size: 1rem;">បញ្ជាក</span>',
     cancelButtonText:
-      '<span class="kh-text" style="font-size: 1rem;color: #ef4444;">បោះបង់</span>',
+      '<span class="kh-text" style="font-size: 1rem;">បោះបង់</span>',
     customClass: {
       popup: "modal-radius", // ដាក់ Border Radius ឱ្យស្អាត
     },
@@ -383,58 +383,134 @@ function c360AdjustBalance(type) {
   });
 }
 
-// ➡️ TAB 3: Cards (កាត) - មើលកាត និង បិទ/បើកកាត
+// ➡️ TAB 3: Cards (កាត) - UI ដូច App User 100%
 function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
+
+  // ប៊ូតុងបង្កើតកាតថ្មី (Admin កាត់ Fee ដូច User)
+  let headerHtml = `
+    <button class="btn-primary kh-text" style="width:100%; margin-bottom:20px; padding:15px; background:#004d40; font-weight:bold;" onclick="c360CreateCardForUser()">
+        <i class="fa-solid fa-plus"></i> បង្កើតកាតថ្មីសម្រាប់អតិថិជន
+    </button>`;
+
   if (!user.virtualCards || user.virtualCards.length === 0) {
-    container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">អតិថិជននេះមិនមានកាត (Cards) នៅឡើយទេ។</div>`;
+    container.innerHTML =
+      headerHtml +
+      `<div style="text-align:center; padding: 40px; color: var(--text-muted);" class="kh-text">អតិថិជននេះមិនមានកាតទេ។</div>`;
     return;
   }
-  let html = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">`;
+
+  let html =
+    headerHtml +
+    `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">`;
   user.virtualCards.forEach((c) => {
-    let statColor = c.isLocked ? "#ef4444" : "#10b981";
-    let statText = c.isLocked ? "Locked (ជាប់សោរ)" : "Active (ធម្មតា)";
+    const theme = c.type === "standard" ? "preview-std" : "preview-plat";
+    const isLocked = c.isLocked;
+
     html += `
-      <div class="dash-card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border:none; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
-        <h4 style="margin:0; display:flex; justify-content:space-between; color: #94a3b8;"><span>Virtual Card</span> <i class="fa-brands fa-cc-visa" style="font-size:1.5rem; color:#fff;"></i></h4>
-        <h3 style="margin: 20px 0; font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; letter-spacing: 2px;">${c.number || "****-****-****-****"}</h3>
-        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-          <div>EXP: <b style="color:white;">${c.expiryDate || "MM/YY"}</b></div>
-          <div style="color:${statColor}; font-weight:bold;">${statText}</div>
+      <div class="dash-card ${theme}" style="color: white; border:none; padding:20px; position:relative; overflow:hidden;">
+        <h4 style="margin:0 0 15px; display:flex; justify-content:space-between;"><span>Visa</span> <i class="fa-brands fa-cc-visa"></i></h4>
+        <h3 style="margin: 10px 0; font-family: 'Courier New', monospace; letter-spacing: 2px;">**** **** **** ${c.number.slice(-4)}</h3>
+        <div style="font-size:0.8rem; opacity:0.8;">EXP: ${c.expiryDate}</div>
+        
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button onclick="c360RevealCard('${c.id}')" class="btn-action" style="background:rgba(255,255,255,0.2); color:white; flex:1;"><i class="fa-solid fa-eye"></i> មើល</button>
+            <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="btn-action" style="background: ${isLocked ? "#10b981" : "#ef4444"}; color:white; flex:1;">
+                <i class="fa-solid ${isLocked ? "fa-unlock" : "fa-lock"}"></i> ${isLocked ? "បើក" : "បិទ"}
+            </button>
         </div>
-        <button onclick="c360ToggleCard('${c.id}', ${!c.isLocked})" style="width:100%; margin-top:15px; padding:10px; border-radius:10px; border:none; cursor:pointer; font-weight:bold; background: ${c.isLocked ? "#10b981" : "#ef4444"}; color:white; transition: 0.2s;">
-          <i class="fa-solid ${c.isLocked ? "fa-unlock" : "fa-lock"}"></i> ${c.isLocked ? "បើកកាតនេះវិញ" : "បិទកាតនេះចោល"}
-        </button>
       </div>`;
   });
   container.innerHTML = html + `</div>`;
 }
 
-// Action បិទ/បើក កាត
+// Action បិទ/បើក កាតជាមួយមូលហេតុ (Log ទៅ Admin Logs)
 async function c360ToggleCard(cardId, isLocked) {
-  try {
-    const res = await fetch("/api/admin/toggle-card-lock", {
+  const { value: remark } = await Swal.fire({
+    title: "បញ្ជាក់មូលហេតុ",
+    input: "text",
+    inputPlaceholder: "ហេតុអ្វីបានជាអ្នកបិទ/បើកកាតនេះ?",
+    showCancelButton: true,
+  });
+
+  if (remark !== undefined) {
+    try {
+      const res = await fetch("/api/admin/toggle-card-lock", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId,
+          isLocked,
+          remark,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "ជោគជ័យ",
+          timer: 1500,
+        });
+        loadData(); // Reload ដើម្បី Update UI
+      }
+    } catch (e) {
+      Swal.fire("Error", "បរាជ័យ", "error");
+    }
+  }
+}
+
+// Action មើលលេខកាត (Reveal)
+async function c360RevealCard(cardId) {
+  const { value: remark } = await Swal.fire({
+    title: "ចង់មើលលេខកាត?",
+    input: "text",
+    inputPlaceholder: "មូលហេតុ",
+    showCancelButton: true,
+  });
+
+  if (remark) {
+    // បាញ់ API ទៅ Backend ដើម្បីឱ្យវាកត់ត្រាចូល Logs
+    await fetch("/api/admin/log-action", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        action: "Reveal Card Number",
+        target: currentC360User.username,
+        details: `មើលលេខកាត ${cardId} មូលហេតុ: ${remark}`,
+      }),
+    });
+
+    // បង្ហាញលេខកាត (កូដនេះទាមទារអោយអ្នកមាន Logic ត្រលប់លេខពេញមកវិញ)
+    Swal.fire("លេខកាត", "មុខងារនេះត្រូវការទាញពី DB...", "info");
+  }
+}
+
+// Action បង្កើតកាតថ្មី (ប្រើ API ដូច User)
+async function c360CreateCardForUser() {
+  const { value: cardType } = await Swal.fire({
+    title: "ជ្រើសរើសប្រភេទកាត",
+    input: "select",
+    inputOptions: { platinum: "Platinum (ខ្មៅ)", standard: "Standard (បៃតង)" },
+    showCancelButton: true,
+  });
+  if (cardType) {
+    const res = await fetch("/api/card/generate", {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
         username: currentC360User.username,
-        cardId,
-        isLocked,
+        cardType,
+        pin: "0000",
       }),
     });
     const data = await res.json();
     if (data.success) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "ផ្លាស់ប្តូរស្ថានភាពកាតជោគជ័យ",
-        showConfirmButton: false,
-        timer: 1500,
-      });
-    }
-  } catch (e) {
-    console.error(e);
+      Swal.fire("ជោគជ័យ", "កាតត្រូវបានបង្កើត!", "success");
+      loadData();
+    } else Swal.fire("បរាជ័យ", data.message, "error");
   }
 }
 
