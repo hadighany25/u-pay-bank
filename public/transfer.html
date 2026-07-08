@@ -16,7 +16,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
-    <!-- ➕ បញ្ចូល Toast និង Lang -->
     <script src="js/toast.js"></script>
     <link rel="stylesheet" href="style.css" />
 
@@ -685,7 +684,6 @@
       </div>
     </div>
 
-    <!-- Modals -->
     <div id="pinModal" class="modal-overlay">
       <h3 style="color: white; margin-bottom: 10px" data-lang="enter_pin">
         Enter PIN
@@ -864,12 +862,19 @@
     </div>
 
     <script>
-      // Authentication Check
+      // Authentication Check & Variables Setup
       const uPayUserString = sessionStorage.getItem("user");
-      if (!uPayUserString) {
+      const token = sessionStorage.getItem("userToken"); // 🔥 ថែមប្រព័ន្ធ Token ចូល
+      if (!uPayUserString || !token) {
         window.location.href = "index.html" + window.location.search;
       }
       const user = JSON.parse(uPayUserString);
+
+      // 🔥 បង្កើត Headers សម្រាប់ភ្ជាប់ជាមួយ API
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
       // DOM Content Loaded - Theme & FOUC Prevention
       window.addEventListener("DOMContentLoaded", async () => {
@@ -931,7 +936,8 @@
 
         // Setup Initials
         try {
-          const fxRes = await fetch("/api/fx/rates");
+          // 🔥 ភ្ជាប់ Token ពេលទាញ FX Rates
+          const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
         } catch (e) {}
@@ -1088,9 +1094,10 @@
         }
 
         try {
+          // 🔥 ភ្ជាប់ Token ទៅឲ្យ API ឆែកឈ្មោះ
           const res = await fetch("/api/check-account", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders,
             body: JSON.stringify({ accountNumber: acc }),
           });
           const data = await res.json();
@@ -1279,9 +1286,10 @@
         setTimeout(() => {
           const wonAmount = prizeValues[targetIndex];
           if (wonAmount > 0) {
+            // 🔥 ភ្ជាប់ Token ទៅអោយ API ចែករង្វាន់
             fetch("/api/reward/cashback", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders,
               body: JSON.stringify({
                 username: user.username,
                 amount: wonAmount,
@@ -1395,9 +1403,10 @@
             didOpen: () => Swal.showLoading(),
           });
 
+          // 🔥 ភ្ជាប់ Token ទៅអោយ API វេរលុយ
           const res = await fetch("/api/transfer", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders,
             body: JSON.stringify({
               senderUsername: user.username,
               receiverAccount: document.getElementById("receiverAcc").value,
