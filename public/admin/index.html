@@ -578,30 +578,73 @@
       <!-- Customer 360 View -->
       <div
         id="sec-customer-360"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          max-width: 1400px;
+          margin: 0 auto;
+          position: relative;
+        "
       >
-        <div class="table-header-controls">
-          <div>
-            <h2 class="dash-title" data-i18n="c360-title">
-              Customer 360° View
-            </h2>
-            <p class="dash-desc" data-i18n="c360-desc">
-              Search and view complete details of a customer.
-            </p>
+        <!-- ផ្ទាំងទី១: កន្លែង Search -->
+        <div id="c360-search-view">
+          <div class="table-header-controls">
+            <div>
+              <h2 class="dash-title" data-i18n="c360-title">
+                Customer 360° View
+              </h2>
+              <p class="dash-desc" data-i18n="c360-desc">
+                ស្វែងរក និងមើលព័ត៌មានអតិថិជនលម្អិត.
+              </p>
+            </div>
+            <div class="search-box" style="max-width: 400px">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchC360"
+                placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
+                onkeyup="if (event.key === 'Enter') searchCustomer360();"
+              />
+            </div>
           </div>
-          <div class="search-box" style="max-width: 400px">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input
-              type="text"
-              id="searchC360"
-              data-i18n="search-c360-ph"
-              placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
-              onkeyup="if (event.key === 'Enter') searchCustomer360();"
-            />
+          <!-- អាចដាក់រូបតុក្កតា ឬអក្សរប្រាប់អោយ Search ទីនេះ -->
+          <div
+            style="
+              text-align: center;
+              padding: 100px 20px;
+              color: var(--text-muted);
+              opacity: 0.6;
+            "
+          >
+            <i
+              class="fa-solid fa-user-magnifying-glass"
+              style="font-size: 5rem; margin-bottom: 20px"
+            ></i>
+            <h3>វាយបញ្ចូលទិន្នន័យដើម្បីស្វែងរកអតិថិជន</h3>
           </div>
         </div>
 
-        <div id="c360-result-container" style="display: none">
+        <!-- ផ្ទាំងទី២: Profile Detail (រុញពីស្តាំមក) -->
+        <div
+          id="c360-profile-view"
+          style="display: none"
+          class="slide-in-right"
+        >
+          <!-- ប៊ូតុង Back -->
+          <button
+            class="btn-cancel"
+            onclick="backToC360Search()"
+            style="
+              margin-bottom: 15px;
+              border: none;
+              background: transparent;
+              color: var(--text-muted);
+              font-size: 1rem;
+              cursor: pointer;
+            "
+          >
+            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅការស្វែងរកវិញ
+          </button>
+
           <!-- ផ្នែក Header Profile -->
           <div
             class="dash-card"
@@ -623,6 +666,7 @@
                   height: 80px;
                   border-radius: 50%;
                   border: 3px solid var(--border);
+                  object-fit: cover;
                 "
               />
               <div>
@@ -650,6 +694,7 @@
                 </div>
               </div>
             </div>
+            <!-- Quick Actions -->
             <div style="display: flex; gap: 10px" id="c360-quick-actions"></div>
           </div>
 
@@ -1470,7 +1515,6 @@
     </div>
     <!-- END main-content -->
 
-    <!-- Modals -->
     <!-- Edit User Modal -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
