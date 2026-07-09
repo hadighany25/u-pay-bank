@@ -1508,166 +1508,208 @@ async function c360ForceLogout() {
 }
 
 // =======================================================
-// 🏪 TAB 7: Merchant (ប្រើប្រាស់ Database ពិតៗ / Array Branches)
+// 🏪 TAB 7: Merchant (ទាញទិន្នន័យពិតៗពី /api/merchants/admin/all-merchants)
 // =======================================================
 
-// តួអថេររក្សាទុកសាខាដែល Admin កំពុងមើល
 let c360CurrentMerchantId = null;
 
-function renderMerchantTab(user) {
+async function renderMerchantTab(user) {
   const container = document.getElementById("c360-tab-merchant");
-  const merchants =
-    user.merchantProfile && user.merchantProfile.merchants
-      ? user.merchantProfile.merchants
-      : [];
+  container.innerHTML = `<div style="text-align: center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #cbd5e1;"></i></div>`;
 
-  // 🔥 ករណីទី ១៖ គ្មានហាងសោះ
-  if (merchants.length === 0) {
-    container.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px;">
-                <i class="fa-solid fa-store-slash" style="font-size: 5rem; color: #cbd5e1; margin-bottom: 20px;"></i>
-                <h3 class="kh-text" style="color: #475569; margin: 0 0 10px;">អតិថិជននេះមិនទាន់មានអាជីវកម្មទេ</h3>
-                <p class="kh-text" style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 25px;">អតិថិជននេះកំពុងប្រើប្រាស់គណនីជាទម្រង់បុគ្គលប៉ុណ្ណោះ។</p>
-                <button onclick="c360RegisterMerchant()" class="kh-text" style="background: #004d40; color: white; border: none; padding: 14px 30px; border-radius: 14px; font-weight: bold; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 77, 64, 0.3); transition: 0.2s;">
-                    <i class="fa-solid fa-plus-circle"></i> ចុះឈ្មោះជាអាជីវកម្ម (Add Shop)
-                </button>
-            </div>
-        `;
-    return;
-  }
+  try {
+    // 🚀 ទាញយកហាងទាំងអស់ពី Database (ដោយប្រើ API របស់អ្នកផ្ទាល់)
+    const res = await fetch("/api/merchants/admin/all-merchants", {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
 
-  // ជ្រើសរើសហាងដំបូងគេ បើមិនទាន់បានរើស
-  if (
-    !c360CurrentMerchantId ||
-    !merchants.find((m) => (m.id || m._id) === c360CurrentMerchantId)
-  ) {
-    c360CurrentMerchantId = merchants[0].id || merchants[0]._id;
-  }
+    let userMerchants = [];
+    if (data.success && data.merchants) {
+      // ចម្រោះយកតែហាងដែលជារបស់ User នេះ (ដោយផ្អែកលើ username / userId)
+      userMerchants = data.merchants.filter(
+        (m) => m.userId === user.username || m.merchantId === user.merchantId,
+      );
+    }
 
-  const m = merchants.find((m) => (m.id || m._id) === c360CurrentMerchantId);
-
-  // បើអតិថិជនមានសាខាច្រើន បង្កើត Dropdown អោយ Admin រើស
-  let branchSelector = "";
-  if (merchants.length > 1) {
-    let options = merchants
-      .map((branch) => {
-        const bId = branch.id || branch._id;
-        return `<option value="${bId}" ${bId === c360CurrentMerchantId ? "selected" : ""}>${branch.name} (MID: ${branch.merchantId})</option>`;
-      })
-      .join("");
-
-    branchSelector = `
-            <div style="margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-code-branch" style="color: #64748b;"></i>
-                <select class="kh-text" style="flex: 1; border: none; outline: none; font-weight: bold; color: #1e293b; background: transparent; font-size: 1rem;" 
-                        onchange="c360CurrentMerchantId = this.value; renderMerchantTab(currentC360User);">
-                    ${options}
-                </select>
-            </div>
-        `;
-  }
-
-  const isSuspended = m.status === "suspended";
-
-  let html = `
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            ${branchSelector}
-            
-            <div style="background: linear-gradient(135deg, #004d40 0%, #00251a 100%); border-radius: 20px; padding: 25px; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1px solid rgba(255,255,255,0.2);">
-                        <i class="fa-solid fa-store"></i>
-                    </div>
-                    <div>
-                        <h2 class="kh-text" style="margin: 0 0 5px; font-size: 1.4rem;">${m.name}</h2>
-                        <p class="kh-text" style="margin: 0; font-size: 0.85rem; color: #b2dfdb;">MID: <span style="font-family: monospace;">${m.merchantId}</span> • ${m.city} • ${m.linkedAccount}</p>
-                    </div>
+    // 🔥 ករណីទី ១៖ អត់មានហាងសោះ
+    if (userMerchants.length === 0) {
+      container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px;">
+                    <i class="fa-solid fa-store-slash" style="font-size: 5rem; color: #cbd5e1; margin-bottom: 20px;"></i>
+                    <h3 class="kh-text" style="color: #475569; margin: 0 0 10px;">អតិថិជននេះមិនទាន់មានអាជីវកម្មទេ</h3>
+                    <p class="kh-text" style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 25px;">អតិថិជននេះកំពុងប្រើប្រាស់គណនីជាទម្រង់បុគ្គលប៉ុណ្ណោះ។</p>
+                    <button onclick="c360RegisterMerchant()" class="kh-text" style="background: #004d40; color: white; border: none; padding: 14px 30px; border-radius: 14px; font-weight: bold; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 77, 64, 0.3); transition: 0.2s;">
+                        <i class="fa-solid fa-plus-circle"></i> ចុះឈ្មោះជាអាជីវកម្ម (Add Shop)
+                    </button>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.75rem; color: #b2dfdb; margin-bottom: 5px;">${isSuspended ? "បានផ្អាក" : "ដំណើរការ"}</div>
-                    <label class="switch" style="transform: scale(1.1);">
-                        <input type="checkbox" ${!isSuspended ? "checked" : ""} onchange="c360ToggleMerchantStatus('${m.id || m._id}', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
+            `;
+      return;
+    }
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div style="background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; position: relative;">
-                    <div class="kh-text" style="color: #64748b; font-size: 0.85rem; font-weight: bold;">ចំណូលថ្ងៃនេះ (Today's Revenue)</div>
-                    <div id="c360-m-revenue" style="font-size: 1.8rem; font-weight: 800; color: #10b981; margin: 5px 0; font-family: 'Inter', sans-serif;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1rem;"></i></div>
-                    <div class="kh-text" style="font-size: 0.8rem; color: #94a3b8;">ប្រតិបត្តិការថ្ងៃនេះ: <b id="c360-m-count">0</b></div>
-                </div>
+    // រើសហាងដំបូងគេដើម្បីបង្ហាញ បើមិនទាន់បានរើស
+    if (
+      !c360CurrentMerchantId ||
+      !userMerchants.find((m) => m._id === c360CurrentMerchantId)
+    ) {
+      c360CurrentMerchantId = userMerchants[0]._id;
+    }
+
+    const m = userMerchants.find((m) => m._id === c360CurrentMerchantId);
+    const isSuspended = m.status === "Suspended";
+
+    // Dropdown រើសសាខា បើមានច្រើន
+    let branchSelector = "";
+    if (userMerchants.length > 1) {
+      let options = userMerchants
+        .map((branch) => {
+          return `<option value="${branch._id}" ${branch._id === c360CurrentMerchantId ? "selected" : ""}>${branch.name || "Unnamed"} (MID: ${branch.merchantId})</option>`;
+        })
+        .join("");
+      branchSelector = `
+                <div style="margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-code-branch" style="color: #64748b;"></i>
+                    <select class="kh-text" style="flex: 1; border: none; outline: none; font-weight: bold; color: #1e293b; background: transparent; font-size: 1rem;" 
+                            onchange="c360CurrentMerchantId = this.value; renderMerchantTab(currentC360User);">
+                        ${options}
+                    </select>
+                </div>`;
+    }
+
+    // គណនាលុយសរុបដែលបានកត់ត្រាក្នុង Database (ពីទិន្នន័យ API `m.collected`)
+    let balUSD =
+      m.collected && m.collected.USD
+        ? parseFloat(m.collected.USD).toFixed(2)
+        : "0.00";
+    let balKHR =
+      m.collected && m.collected.KHR
+        ? parseFloat(m.collected.KHR).toLocaleString()
+        : "0";
+
+    let html = `
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                ${branchSelector}
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button onclick="c360ViewMerchantQR('${m.merchantId}', '${m.name}', '${m.linkedAccount}')" class="kh-text" style="background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
-                        <i class="fa-solid fa-qrcode" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> មើល QR
-                    </button>
-                    <button onclick="Swal.fire('Coming Soon', 'មុខងារកំណត់ Fee នឹងមកដល់ឆាប់ៗ', 'info')" class="kh-text" style="background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
-                        <i class="fa-solid fa-percent" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> កម្រៃសេវា
-                    </button>
-                    <button onclick="c360RegisterMerchant()" class="kh-text" style="background: #f8fafc; color: #475569; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; grid-column: span 2;">
-                        <i class="fa-solid fa-plus"></i> បង្កើតសាខាថ្មី
-                    </button>
+                <div style="background: linear-gradient(135deg, #004d40 0%, #00251a 100%); border-radius: 20px; padding: 25px; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1px solid rgba(255,255,255,0.2);">
+                            <i class="fa-solid fa-store"></i>
+                        </div>
+                        <div>
+                            <h2 class="kh-text" style="margin: 0 0 5px; font-size: 1.4rem;">${m.name}</h2>
+                            <p class="kh-text" style="margin: 0; font-size: 0.85rem; color: #b2dfdb;">MID: <span style="font-family: monospace;">${m.merchantId}</span> • ${m.category}</p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; color: #b2dfdb; margin-bottom: 5px;">${isSuspended ? "បានផ្អាក" : "ដំណើរការ"}</div>
+                        <label class="switch" style="transform: scale(1.1);">
+                            <input type="checkbox" ${!isSuspended ? "checked" : ""} onchange="toggleMerchantFreeze('${m._id}', !this.checked); setTimeout(()=>renderMerchantTab(currentC360User), 1000);">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0; position: relative;">
+                        <div class="kh-text" style="color: #64748b; font-size: 0.85rem; font-weight: bold;">ចំណូលសរុប (Total Received)</div>
+                        <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin: 5px 0 0; font-family: 'Inter', sans-serif;">$${balUSD}</div>
+                        <div style="font-size: 1.2rem; font-weight: 700; color: #047857; font-family: 'Inter', sans-serif;">៛${balKHR}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button onclick="editMerchantByAdmin('${m._id}')" class="kh-text" style="background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+                            <i class="fa-solid fa-pen" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> កែប្រែហាង
+                        </button>
+                        <button onclick="deleteMerchantByAdmin('${m._id}')" class="kh-text" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
+                            <i class="fa-solid fa-trash" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> លុបហាង
+                        </button>
+                        <button onclick="c360RegisterMerchant()" class="kh-text" style="background: #f8fafc; color: #475569; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; grid-column: span 2;">
+                            <i class="fa-solid fa-plus"></i> បង្កើតសាខាថ្មី
+                        </button>
+                    </div>
+                </div>
+
+                <div style="background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0;">
+                    <h4 class="kh-text" style="margin: 0 0 15px; color: #1e293b;"><i class="fa-solid fa-receipt" style="color: #004d40;"></i> ប្រវត្តិការលក់ (Transactions)</h4>
+                    <div id="c360-merchant-trx-list">
+                        <div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #cbd5e1;"></i></div>
+                    </div>
                 </div>
             </div>
+        `;
 
-            <div style="background: white; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0;">
-                <h4 class="kh-text" style="margin: 0 0 15px; color: #1e293b;"><i class="fa-solid fa-receipt" style="color: #004d40;"></i> ប្រវត្តិការលក់ (Transactions)</h4>
-                <div id="c360-merchant-trx-list">
-                    <div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #cbd5e1;"></i></div>
-                </div>
-            </div>
-        </div>
-    `;
+    container.innerHTML = html;
 
-  container.innerHTML = html;
-
-  // ហៅមុខងារ Fetch ចំណូល និងប្រតិបត្តិការពី API ពិតប្រាកដ
-  c360FetchMerchantTransactions(m.id || m._id);
+    // ហៅមុខងារទាញ Transaction
+    c360FetchMerchantTransactions(m._id);
+  } catch (e) {
+    container.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ Server</div>`;
+  }
 }
 
-// 🔥 មុខងារបង្កើតហាង (ប្រើទម្រង់ដូច merchant.html របស់អ្នក ១០០%)
+// 🔥 ទាញយកប្រតិបត្តិការហាង (Transactions) ប្រើ API របស់ហាង
+async function c360FetchMerchantTransactions(mid) {
+  const listDiv = document.getElementById("c360-merchant-trx-list");
+  try {
+    const res = await fetch(`/api/merchants/transactions/${mid}?filter=total`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+
+    if (data.success && data.transactions && data.transactions.length > 0) {
+      listDiv.innerHTML = data.transactions
+        .slice(0, 15)
+        .map((t) => {
+          let color =
+            t.type === "Received" || t.amount > 0 ? "#10b981" : "#ef4444";
+          let sign = t.type === "Received" || t.amount > 0 ? "+" : "";
+          return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0;">
+                    <div>
+                        <div class="kh-text" style="font-weight: 600; color: #1e293b;">${t.senderName || t.receiverName}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">${t.date}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: bold; color: ${color}; font-family: 'JetBrains Mono', monospace;">${sign}${t.amount} ${t.currency}</div>
+                        <div style="font-size: 0.7rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b; display: inline-block; margin-top: 4px;">${t.status}</div>
+                    </div>
+                </div>`;
+        })
+        .join("");
+    } else {
+      listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: #94a3b8; padding: 20px;">មិនទាន់មានប្រតិបត្តិការនៅឡើយទេ</div>`;
+    }
+  } catch (error) {
+    listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: #ef4444; padding: 20px;">បរាជ័យក្នុងការទាញយកប្រតិបត្តិការ</div>`;
+  }
+}
+
+// មុខងារបង្កើតហាងថ្មី (ហៅ API ដែលទើបបង្កើត)
 async function c360RegisterMerchant() {
-  let isKh = true;
   const { value: formValues } = await Swal.fire({
-    title: '<span class="kh-text" style="color:#004d40;">បង្កើតសាខាថ្មី</span>',
+    title: '<span class="kh-text" style="color:#004d40;">បង្កើតហាងថ្មី</span>',
     html: `
             <div style="text-align: left;">
                 <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:#64748b;">ឈ្មោះហាង</label>
                 <input id="m-name" class="swal2-input kh-text" placeholder="ឧ. Smart Shop" style="width:100%; margin: 5px 0 15px;">
-                
                 <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:#64748b;">ទីក្រុង / ខេត្ត</label>
-                <select id="m-city" class="swal2-select kh-text" style="width:100%; margin: 5px 0 15px;">
-                    <option value="Phnom Penh">រាជធានីភ្នំពេញ</option>
-                    <option value="Siem Reap">សៀមរាប</option>
-                    <option value="Battambang">បាត់ដំបង</option>
-                </select>
-
+                <input id="m-city" class="swal2-input kh-text" placeholder="ឧ. Phnom Penh" value="Phnom Penh" style="width:100%; margin: 5px 0 15px;">
                 <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:#64748b;">ប្រភេទអាជីវកម្ម</label>
-                <select id="m-category" class="swal2-select kh-text" style="width:100%; margin: 5px 0 15px;">
-                    <option value="Food & Beverage">ម្ហូបអាហារ និងភេសជ្ជៈ</option>
-                    <option value="Fashion & Shopping">សំលៀកបំពាក់ និងទំនិញ</option>
-                    <option value="Others">ផ្សេងៗ</option>
-                </select>
-
-                <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:#64748b;">ភ្ជាប់ទៅកាន់គណនី</label>
+                <input id="m-category" class="swal2-input kh-text" placeholder="ឧ. Food & Beverage" value="Food & Beverage" style="width:100%; margin: 5px 0 15px;">
+                <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:#64748b;">គណនីទទួលប្រាក់</label>
                 <select id="m-linked" class="swal2-select kh-text" style="width:100%; margin: 5px 0 0;">
                     <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
                     <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
                 </select>
             </div>
         `,
-    focusConfirm: false,
     showCancelButton: true,
     confirmButtonText: "រក្សាទុក (Save)",
     confirmButtonColor: "#004d40",
     customClass: { popup: "modal-radius" },
     preConfirm: () => {
-      const name = document.getElementById("m-name").value;
-      if (!name) Swal.showValidationMessage("សូមបញ្ចូលឈ្មោះហាង!");
       return {
-        name: name,
+        name: document.getElementById("m-name").value,
         city: document.getElementById("m-city").value,
         category: document.getElementById("m-category").value,
         linkedAccount: document.getElementById("m-linked").value,
@@ -1675,14 +1717,13 @@ async function c360RegisterMerchant() {
     },
   });
 
-  if (formValues) {
+  if (formValues && formValues.name) {
     Swal.fire({
       title: "កំពុងបង្កើត...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
     try {
-      // ហៅទៅ API Admin ដែលទើបបង្កើតនៅជំហានទី ១
       const response = await fetch("/api/admin/create-merchant", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -1692,31 +1733,14 @@ async function c360RegisterMerchant() {
         }),
       });
       const data = await response.json();
-
       if (data.success) {
-        // Update ក្នុង RAM និងគូរឡើងវិញ
-        if (!currentC360User.merchantProfile)
-          currentC360User.merchantProfile = { merchants: [] };
-        currentC360User.merchantProfile.merchants.push(data.merchant);
-        c360CurrentMerchantId = data.merchant.id || data.merchant._id; // ប្តូរទៅហាងថ្មីភ្លាមៗ
-
-        await fetch("/api/admin/log-action", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            action: "Created Merchant",
-            target: currentC360User.username,
-            details: `បង្កើតសាខា: ${formValues.name}`,
-          }),
-        });
-
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
           timer: 1500,
           showConfirmButton: false,
         });
-        renderMerchantTab(currentC360User);
+        renderMerchantTab(currentC360User); // Refresh tab ឡើងវិញ
       } else {
         Swal.fire("បរាជ័យ", data.message, "error");
       }
@@ -1724,102 +1748,6 @@ async function c360RegisterMerchant() {
       Swal.fire("Error", "បញ្ហា Server", "error");
     }
   }
-}
-
-// 🔥 មុខងារទាញយកប្រតិបត្តិការ និងគណនាចំណូល
-async function c360FetchMerchantTransactions(merchantId) {
-  const listDiv = document.getElementById("c360-merchant-trx-list");
-  const revenueEl = document.getElementById("c360-m-revenue");
-  const countEl = document.getElementById("c360-m-count");
-
-  try {
-    // ប្រើប្រាស់ API ដែលមានស្រាប់របស់អ្នក: `/api/merchants/transactions/:id`
-    const res = await fetch(`/api/merchants/transactions/${merchantId}`, {
-      headers: getAuthHeaders(),
-    });
-    const data = await res.json();
-
-    if (data.success && data.transactions) {
-      let todayRevenue = 0;
-      let todayCount = 0;
-      const now = new Date();
-
-      // ១. គណនាចំណូលថ្ងៃនេះ
-      data.transactions.forEach((t) => {
-        const tDate = new Date(t.date);
-        const isToday = tDate.toDateString() === now.toDateString();
-
-        if (isToday && (t.type === "Received" || t.amount > 0)) {
-          todayRevenue += t.amount;
-          todayCount++;
-        }
-      });
-
-      // Update លេខលើ Dashboard
-      const m = currentC360User.merchantProfile.merchants.find(
-        (x) => (x.id || x._id) === merchantId,
-      );
-      const curSym = m.linkedAccount === "KHR" ? "៛" : "$";
-      revenueEl.innerText =
-        curSym +
-        (m.linkedAccount === "KHR"
-          ? todayRevenue.toLocaleString()
-          : todayRevenue.toFixed(2));
-      countEl.innerText = todayCount;
-
-      // ២. គូរបញ្ជីប្រតិបត្តិការ
-      if (data.transactions.length === 0) {
-        listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: #94a3b8; padding: 20px;">មិនទាន់មានការលក់នៅឡើយទេ</div>`;
-      } else {
-        listDiv.innerHTML = data.transactions
-          .slice(0, 10)
-          .map((t) => {
-            const isIncome = t.amount > 0 || t.type === "Received";
-            const color = isIncome ? "#10b981" : "#ef4444";
-            const sign = isIncome ? "+" : "";
-            return `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0;">
-                        <div>
-                            <div class="kh-text" style="font-weight: 600; color: #1e293b;">${t.senderName || "ភ្ញៀវ"}</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">${t.date}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-weight: bold; color: ${color}; font-family: 'JetBrains Mono', monospace;">${sign}${t.amount} ${t.currency}</div>
-                            <div style="font-size: 0.7rem; color: #94a3b8;">${t.status}</div>
-                        </div>
-                    </div>`;
-          })
-          .join("");
-      }
-    } else {
-      throw new Error();
-    }
-  } catch (error) {
-    listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: #ef4444; padding: 20px;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</div>`;
-    revenueEl.innerText = "Error";
-  }
-}
-
-// 🔥 មុខងារមើល QR Code (យកទម្រង់ API Generate ចាស់)
-function c360ViewMerchantQR(mid, name, currency) {
-  const color = currency === "USD" ? "004d40" : "059669";
-  // ទាញយក Account Number ពិតប្រាកដដែលត្រូវនឹង Currency
-  const m = currentC360User.merchantProfile.merchants.find(
-    (x) => x.merchantId === mid,
-  );
-  const accNum = m.accountNumbers[currency];
-
-  Swal.fire({
-    title: `<span class="kh-text" style="color: #${color};">QR សម្រាប់ហាង ${name}</span>`,
-    html: `
-            <div style="margin-bottom: 10px; font-weight: bold; color: #64748b;">${currency} Account: <span style="color: #004d40;">${accNum}</span></div>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(accNum)}&color=${color}" style="border-radius: 10px; padding: 10px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.05); width: 200px;">
-            <p class="kh-text" style="margin-top: 15px; color: #94a3b8; font-size: 0.85rem;">MID: ${mid}</p>
-        `,
-    confirmButtonText: "បិទ",
-    confirmButtonColor: "#0f172a",
-    customClass: { popup: "modal-radius" },
-  });
 }
 
 // ➡️ TAB 8: Admin Logs (កំណត់ត្រាសកម្មភាព)
