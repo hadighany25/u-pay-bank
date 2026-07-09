@@ -810,7 +810,7 @@ async function c360DeleteCard(cardId) {
 }
 
 // =======================================================
-// 🪪 TAB 4: KYC & Identity (បែងចែក ៣ លក្ខខណ្ឌច្បាស់លាស់)
+// 🪪 TAB 4: KYC & Identity (ដើរ ១០០% / បែងចែក ៣ លក្ខខណ្ឌច្បាស់លាស់ / មិនគាំង)
 // =======================================================
 
 function renderKycTab(user) {
@@ -918,8 +918,7 @@ function c360ViewLargeImage(url) {
   });
 }
 
-// 🔥 មុខងារ ២៖ Admin បញ្ចូលរូបភាព KYC ជំនួសអតិថិជន (កែសម្រួលឱ្យលោតផ្ទាំងភ្លាមៗ)
-
+// 🔥 មុខងារ ២៖ Admin បញ្ចូលរូបភាព KYC ជំនួសអតិថិជន (ធានាមិនគាំងទោះ File ធំ)
 async function c360AdminUploadKyc(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -931,21 +930,30 @@ async function c360AdminUploadKyc(event) {
   });
 
   try {
-    // ប្រើបច្ចេកទេស Compress រូបភាពផ្ទាល់នៅទីនេះ ការពារ Server គាំងព្រោះរូបធំពេក
-    const base64Image = await new Promise((resolve) => {
+    // ប្រើបច្ចេកទេស Compress រូបភាពផ្ទាល់នៅទីនេះ កាត់ទំហំឱ្យតូចល្មម
+    const base64Image = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 800; // បង្រួមរូបត្រឹម 800px ឱ្យស្រាលលឿន
+          const MAX_WIDTH = 600; // 🎯 បង្រួមរូបត្រឹម 600px ឱ្យស្រាលបំផុត និងលឿន
           const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
+
+          // បើកាតតូចស្រាប់ យកទំហំដើម បើធំជាង 600px ត្រូវបង្រួម
+          if (img.width > MAX_WIDTH) {
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+          } else {
+            canvas.width = img.width;
+            canvas.height = img.height;
+          }
+
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.7)); // Quality 70%
+          resolve(canvas.toDataURL("image/jpeg", 0.6)); // 🎯 Quality 60% លឿនមែនទែន
         };
+        img.onerror = () => reject("Cannot load image");
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
@@ -962,7 +970,7 @@ async function c360AdminUploadKyc(event) {
     const data = await res.json();
 
     if (data.success) {
-      // 💡 គន្លឹះសំខាន់៖ Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ (លែងជាប់ផ្ទាំងចាស់ទៀតហើយ)
+      // Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ
       currentC360User.kycImage = base64Image;
       currentC360User.kycStatus = "pending";
       renderKycTab(currentC360User);
@@ -985,14 +993,11 @@ async function c360AdminUploadKyc(event) {
         timer: 1500,
         showConfirmButton: false,
       });
-
-      // Update ទិន្នន័យក្រៅតារាង
-      if (typeof c360RefreshData === "function") c360RefreshData();
     } else {
       Swal.fire("បរាជ័យ", data.message, "error");
     }
   } catch (e) {
-    Swal.fire("Error", "បញ្ហាក្នុងការ Upload (អាចមកពីរូបភាពធំពេក)", "error");
+    Swal.fire("Error", "បញ្ហាក្នុងការ Upload សូមសាកល្បងរូបភាពផ្សេង", "error");
   }
 }
 
@@ -1041,14 +1046,14 @@ async function c360KycAction(action) {
       const data = await res.json();
 
       if (data.success) {
-        // 💡 គន្លឹះសំខាន់៖ Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ
+        // Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ
         if (action === "approve") {
           currentC360User.kycStatus = "approved";
         } else if (action === "reject" || action === "revoke") {
           currentC360User.kycStatus = "unverified";
-          currentC360User.kycImage = ""; // លុបរូបចោលចេញពីអេក្រង់
+          currentC360User.kycImage = ""; // លុបរូបចោលចេញពីអេក្រង់ ត្រឡប់ទៅផ្ទាំង Upload
         }
-        renderKycTab(currentC360User); // ប្តូរផ្ទាំងភ្លាមៗដោយស្វ័យប្រវត្តិ
+        renderKycTab(currentC360User);
 
         // កត់ត្រា Logs
         await fetch("/api/admin/log-action", {
@@ -1067,8 +1072,6 @@ async function c360KycAction(action) {
           timer: 1500,
           showConfirmButton: false,
         });
-
-        if (typeof c360RefreshData === "function") c360RefreshData();
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
       Swal.fire("Error", "មានបញ្ហា Server", "error");
