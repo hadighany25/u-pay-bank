@@ -1299,6 +1299,47 @@
           </div>
         </div>
       </div>
+      <!-- អាំងប៉ាវអនឡាញ Modal -->
+      <div
+        id="egiftModal"
+        style="
+          display: none;
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: rgba(0, 0, 0, 0.8);
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        "
+      >
+        <div
+          id="envelope"
+          style="
+            width: 280px;
+            height: 350px;
+            background: var(--gift-red);
+            border-radius: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s;
+          "
+          onclick="openEgift()"
+        >
+          <i
+            class="fa-solid fa-envelope-open-text"
+            style="font-size: 5rem; color: #fff; margin-bottom: 20px"
+          ></i>
+          <h3 style="color: white; margin: 0" class="kh-text">
+            ចុចដើម្បីបើកអាំងប៉ាវ!
+          </h3>
+        </div>
+      </div>
     </div>
 
     <div class="bottom-nav">
@@ -1622,6 +1663,7 @@
               .join("");
           }
         }
+        checkEgiftNotification(serverUser);
       }
 
       function readNotifications() {
@@ -1869,6 +1911,52 @@
             Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
           }
         }
+      }
+
+      // ==========================================
+      // 🎁 មុខងារបើកអាំងប៉ាវអនឡាញ (E-Gift
+      // ==========================================
+      // ឆែកមើលអាំងប៉ាវពេលទើបបើក Dashboard
+      function checkEgiftNotification(currentUser) {
+        if (!currentUser.notifications) return;
+
+        // រកមើល notification ដែលមាន type ជា egift_receive
+        const gift = currentUser.notifications.find(
+          (n) => n.type === "egift_receive" && !n.isRead,
+        );
+
+        if (gift) {
+          document.getElementById("egiftModal").style.display = "flex";
+          // បញ្ជាក់ថាបានបើកហើយ ក្នុង DB
+          markNotificationAsRead(gift._id);
+        }
+      }
+
+      // មុខងារបើកអាំងប៉ាវ
+      function openEgift() {
+        const envelope = document.getElementById("envelope");
+        envelope.style.transform = "scale(0) rotate(720deg)"; // Animation បង្វិលក្បាច់
+
+        setTimeout(() => {
+          // បាញ់ព្រិលអបអរសាទរ
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+          // បង្ហាញលទ្ធផលលុយ
+          Swal.fire({
+            html: `
+                <div style="padding:20px;">
+                    <h2 class="kh-text">ទទួលបានអាំងប៉ាវ!</h2>
+                    <div style="font-size:3rem; font-weight:bold; color:var(--gift-red); margin:20px 0;">$50.00</div>
+                    <p class="kh-text">ពី: <b>ពូ ម៉ៅ</b></p>
+                    <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:10px;">"ជូនពរឱ្យមានសុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច!"</p>
+                </div>
+            `,
+            confirmButtonText: "យល់ព្រម",
+            confirmButtonColor: "#004d40",
+            customClass: { popup: "modal-radius" },
+          });
+          document.getElementById("egiftModal").style.display = "none";
+        }, 500);
       }
 
       // ==========================================
