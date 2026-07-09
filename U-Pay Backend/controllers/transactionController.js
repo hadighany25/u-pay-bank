@@ -608,6 +608,135 @@ const claimPromoCode = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+// ==========================================
+// 6. Egift / Scan Bank Bill API (សម្រាប់ App ផ្សេងៗហៅមកទាញលុយ)
+// ==========================================
+// មុខងារសម្រាប់ផ្ញើ E-Gift (អាំងប៉ាវ)
+const sendEgift = async (req, res) => {
+  // ទទួលទិន្នន័យពី Frontend
+  const {
+    senderUsername,
+    receiverInput,
+    amount,
+    currency,
+    theme,
+    message,
+    pin,
+  } = req.body;
+
+  try {
+    const User = require("../models/User"); // ហៅ User Model មកប្រើ
+
+    // ១. ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងលេខកូដ PIN
+    const sender = await User.findOne({ username: senderUsername });
+    if (!sender)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ" });
+    if (sender.pin !== pin)
+      return res.json({
+        success: false,
+        message: "លេខកូដ PIN មិនត្រឹមត្រូវទេ!",
+      });
+
+    // ២. ស្វែងរកអ្នកទទួល (តាមរយៈលេខទូរស័ព្ទ ឬ Username)
+    const receiver = await User.findOne({
+      $or: [{ username: receiverInput }, { phone: receiverInput }],
+    });
+
+    if (!receiver)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអ្នកទទួលទេ!" });
+    if (sender.username === receiver.username)
+      return res.json({
+        success: false,
+        message: "មិនអាចផ្ញើអាំងប៉ាវឱ្យខ្លួនឯងបានទេ!",
+      });
+
+    // ៣. ពិនិត្យសមតុល្យ និងកាត់លុយ/បូកលុយ
+    const giftAmount = parseFloat(amount);
+    if (currency === "USD") {
+      if (sender.balance < giftAmount)
+        return res.json({
+          success: false,
+          message: "សមតុល្យប្រាក់ដុល្លារមិនគ្រប់គ្រាន់ទេ",
+        });
+      sender.balance -= giftAmount;
+      receiver.balance += giftAmount;
+    } else if (currency === "KHR") {
+      if ((sender.balanceKHR || 0) < giftAmount)
+        return res.json({
+          success: false,
+          message: "សមតុល្យប្រាក់រៀលមិនគ្រប់គ្រាន់ទេ",
+        });
+      sender.balanceKHR = (sender.balanceKHR || 0) - giftAmount;
+      receiver.balanceKHR = (receiver.balanceKHR || 0) + giftAmount;
+    } else {
+      return res.json({ success: false, message: "រូបិយប័ណ្ណមិនត្រឹមត្រូវ" });
+    }
+
+    // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transactions)
+    const refId = "GIFT" + Date.now().toString().slice(-6);
+    const dateStr = new Date().toLocaleString("en-US", { hour12: true });
+
+    const senderTrx = {
+      refId,
+      type: "E-Gift Sent",
+      amount: -giftAmount,
+      currency,
+      receiverName: receiver.fullName || receiver.username,
+      date: dateStr,
+      remark: message || "E-Gift",
+      status: "Completed",
+    };
+    const receiverTrx = {
+      refId,
+      type: "E-Gift Received",
+      amount: giftAmount,
+      currency,
+      senderName: sender.fullName || sender.username,
+      date: dateStr,
+      remark: message || "E-Gift",
+      status: "Completed",
+    };
+
+    if (!sender.transactions) sender.transactions = [];
+    if (!receiver.transactions) receiver.transactions = [];
+    sender.transactions.push(senderTrx);
+    receiver.transactions.push(receiverTrx);
+
+    // ៥. 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (មានភ្ជាប់ Theme អាំងប៉ាវ)
+    const giftNotification = {
+      title: "មានកាដូថ្មី! 🎁",
+      message: `អ្នកទទួលបានអាំងប៉ាវចំនួន ${giftAmount} ${currency} ពី ${sender.fullName || sender.username}`,
+      type: "egift_receive",
+      date: dateStr,
+      isRead: false,
+      // រក្សាទុកទិន្នន័យអាំងប៉ាវ ដើម្បីឱ្យ Frontend ចាប់យកទៅគូរជា Animation បើកស្រោមសំបុត្រ
+      egiftData: {
+        amount: giftAmount,
+        currency: currency,
+        theme: theme,
+        message: message,
+        senderName: sender.fullName || sender.username,
+      },
+    };
+
+    if (!receiver.notifications) receiver.notifications = [];
+    receiver.notifications.push(giftNotification);
+
+    // Save ទិន្នន័យទាំងសងខាងចូល Database
+    await sender.save();
+    await receiver.save();
+
+    // (ជម្រើស) បើអ្នកមាន Socket.IO អាចបញ្ជូន Event ទៅអ្នកទទួលនៅទីនេះ ដើម្បីឱ្យទូរស័ព្ទគេលោតភ្លាមៗ
+    // req.app.get('io').to(receiver.username).emit('egiftReceived', giftNotification);
+
+    res.json({ success: true, message: "អាំងប៉ាវត្រូវបានផ្ញើដោយជោគជ័យ!" });
+  } catch (error) {
+    console.error("E-Gift Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server" });
+  }
+};
 
 module.exports = {
   checkAccount,
@@ -616,4 +745,5 @@ module.exports = {
   rewardCashback,
   claimPromoCode,
   scanBankBill,
+  sendEgift,
 };

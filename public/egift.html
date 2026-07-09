@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>E-Gift - U-Pay</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="js/lang.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/u-pay-core.js"></script>
+
+    <style>
+      :root {
+        --primary: #004d40;
+        --primary-light: #e0f2f1;
+        --secondary: #00b894;
+        --bg-main: #f8fafc;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --danger: #ef4444;
+        --gift-red: #dc2626;
+        --gift-gold: #f59e0b;
+      }
+
+      body {
+        background-color: var(--bg-main);
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        color: var(--text-main);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .kh-text {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        min-height: 100vh;
+        background: var(--bg-main);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        background: var(--gift-red);
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .back-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.3rem;
+        cursor: pointer;
+      }
+      .header-title {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
+        flex: 1;
+      }
+
+      .content-area {
+        padding: 20px;
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 100px;
+      }
+
+      .input-group {
+        background: var(--bg-card);
+        padding: 15px 20px;
+        border-radius: 16px;
+        margin-bottom: 15px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+      }
+      .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .input-group input,
+      .input-group textarea {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 1.1rem;
+        color: var(--text-main);
+        font-family: inherit;
+        outline: none;
+      }
+      .input-group textarea {
+        resize: none;
+        height: 60px;
+      }
+
+      .amount-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .amount-input-wrapper input {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-main);
+        font-family: "JetBrains Mono", monospace;
+        width: 100%;
+      }
+
+      .currency-toggle {
+        display: flex;
+        background: var(--bg-main);
+        border-radius: 10px;
+        padding: 4px;
+      }
+      .currency-toggle button {
+        flex: 1;
+        padding: 8px 15px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        font-weight: bold;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .currency-toggle button.active {
+        background: var(--bg-card);
+        color: var(--primary);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Themes Horizontal Scroll */
+      .theme-selector {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        padding-bottom: 15px;
+        margin: 10px 0;
+        scrollbar-width: none;
+      }
+      .theme-selector::-webkit-scrollbar {
+        display: none;
+      }
+      .theme-card {
+        min-width: 100px;
+        height: 130px;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.2s;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid transparent;
+      }
+      .theme-card.active {
+        border-color: var(--gift-gold);
+        transform: scale(1.05);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Theme Colors */
+      .theme-lunar {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        color: #fef08a;
+      }
+      .theme-bd {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+      }
+      .theme-wedding {
+        background: linear-gradient(135deg, #ec4899, #be185d);
+        color: white;
+      }
+      .theme-classic {
+        background: linear-gradient(135deg, #0f172a, #020617);
+        color: #fbbf24;
+      }
+
+      .theme-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+      .theme-name {
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .bottom-action {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        max-width: 480px;
+        padding: 20px;
+        background: var(--bg-card);
+        box-sizing: border-box;
+        border-top: 1px solid var(--border-color);
+        z-index: 100;
+      }
+      .btn-send {
+        width: 100%;
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--gift-red);
+        color: white;
+        border: none;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+        transition: 0.2s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+      .btn-send:active {
+        transform: scale(0.96);
+      }
+
+      /* Dark Mode Support */
+      body.dark-mode {
+        --bg-main: #121212;
+        --bg-card: #1e1e1e;
+        --text-main: #ffffff;
+        --border-color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="header-bar">
+        <button class="back-btn" onclick="window.history.back()">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h2 class="header-title kh-text" data-i18n="egift_title">
+          ផ្ញើកាដូ / អាំងប៉ាវ
+        </h2>
+        <div style="width: 24px"></div>
+      </div>
+
+      <div class="content-area">
+        <label
+          class="kh-text"
+          style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem"
+          >ជ្រើសរើសស្រោមអាំងប៉ាវ</label
+        >
+        <div class="theme-selector">
+          <div
+            class="theme-card theme-lunar active"
+            onclick="selectTheme(this, 'lunar')"
+          >
+            <i class="fa-solid fa-envelope-open-text theme-icon"></i>
+            <span class="theme-name kh-text">ហេង ហេង</span>
+          </div>
+          <div
+            class="theme-card theme-bd"
+            onclick="selectTheme(this, 'birthday')"
+          >
+            <i class="fa-solid fa-cake-candles theme-icon"></i>
+            <span class="theme-name kh-text">ថ្ងៃកំណើត</span>
+          </div>
+          <div
+            class="theme-card theme-wedding"
+            onclick="selectTheme(this, 'wedding')"
+          >
+            <i class="fa-solid fa-heart theme-icon"></i>
+            <span class="theme-name kh-text">មង្គលការ</span>
+          </div>
+          <div
+            class="theme-card theme-classic"
+            onclick="selectTheme(this, 'classic')"
+          >
+            <i class="fa-solid fa-gift theme-icon"></i>
+            <span class="theme-name kh-text">កាដូពិសេស</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="kh-text" data-i18n="egift_receiver"
+            >ផ្ញើទៅកាន់ (លេខទូរស័ព្ទ / ឈ្មោះ)</label
+          >
+          <div style="display: flex; align-items: center; gap: 10px">
+            <i
+              class="fa-solid fa-user-circle"
+              style="color: var(--text-muted); font-size: 1.5rem"
+            ></i>
+            <input
+              type="text"
+              id="receiverInput"
+              class="kh-text"
+              placeholder="វាយបញ្ចូលទីនេះ..."
+              autocomplete="off"
+            />
+            <i
+              class="fa-solid fa-address-book"
+              style="color: var(--primary); font-size: 1.2rem; cursor: pointer"
+            ></i>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <label class="kh-text" data-i18n="amount">ចំនួនទឹកប្រាក់</label>
+            <div class="currency-toggle">
+              <button
+                id="btnCurUSD"
+                class="active"
+                onclick="setCurrency('USD')"
+              >
+                USD
+              </button>
+              <button id="btnCurKHR" onclick="setCurrency('KHR')">KHR</button>
+            </div>
+          </div>
+          <div class="amount-input-wrapper">
+            <span
+              id="curSymbol"
+              style="
+                font-size: 2rem;
+                color: var(--text-muted);
+                font-weight: bold;
+              "
+              >$</span
+            >
+            <input type="number" id="amountInput" placeholder="0.00" />
+          </div>
+          <div
+            id="balanceAvail"
+            class="kh-text"
+            style="
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              margin-top: 10px;
+              text-align: right;
+            "
+          >
+            សមតុល្យ:
+            <span style="font-weight: bold; color: var(--primary)" id="showBal"
+              >$0.00</span
+            >
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="kh-text" data-i18n="egift_msg"
+            >សារជូនពរ (ជាជម្រើស)</label
+          >
+          <textarea
+            id="messageInput"
+            class="kh-text"
+            placeholder="ជូនពរឱ្យមានសុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច! 🎉"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="bottom-action">
+        <button class="btn-send kh-text" onclick="processEgift()">
+          <i class="fa-solid fa-paper-plane"></i> ផ្ញើអាំងប៉ាវឥឡូវនេះ
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let selectedCurrency = "USD";
+      let selectedTheme = "lunar";
+      let currentUser = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // ទាញយក User Session ពី u-pay-core.js (បើមាន)
+        const sessionUser = sessionStorage.getItem("user");
+        if (sessionUser) {
+          currentUser = JSON.parse(sessionUser);
+          updateBalanceDisplay();
+        } else {
+          // តេស្ត UI បើគ្មាន Session
+          currentUser = { balance: 500.5, balanceKHR: 1500000 };
+          updateBalanceDisplay();
+        }
+      });
+
+      // ដូរ Theme ពណ៌ស្រោមអាំងប៉ាវ
+      function selectTheme(element, theme) {
+        document
+          .querySelectorAll(".theme-card")
+          .forEach((el) => el.classList.remove("active"));
+        element.classList.add("active");
+        selectedTheme = theme;
+
+        // ដូរពណ៌ Header តាម Theme ឱ្យមើលទៅទំនង
+        const header = document.querySelector(".header-bar");
+        const btnSend = document.querySelector(".btn-send");
+        if (theme === "lunar") {
+          header.style.background = "var(--gift-red)";
+          btnSend.style.background = "var(--gift-red)";
+        } else if (theme === "birthday") {
+          header.style.background = "#2563eb";
+          btnSend.style.background = "#2563eb";
+        } else if (theme === "wedding") {
+          header.style.background = "#db2777";
+          btnSend.style.background = "#db2777";
+        } else {
+          header.style.background = "#0f172a";
+          btnSend.style.background = "#0f172a";
+        }
+      }
+
+      // ដូររូបិយប័ណ្ណ
+      function setCurrency(cur) {
+        selectedCurrency = cur;
+        document
+          .getElementById("btnCurUSD")
+          .classList.toggle("active", cur === "USD");
+        document
+          .getElementById("btnCurKHR")
+          .classList.toggle("active", cur === "KHR");
+        document.getElementById("curSymbol").innerText =
+          cur === "USD" ? "$" : "៛";
+        document.getElementById("amountInput").placeholder =
+          cur === "USD" ? "0.00" : "0";
+        updateBalanceDisplay();
+      }
+
+      function updateBalanceDisplay() {
+        if (!currentUser) return;
+        const bal =
+          selectedCurrency === "USD"
+            ? currentUser.balance
+            : currentUser.balanceKHR || 0;
+        document.getElementById("showBal").innerText =
+          selectedCurrency === "USD"
+            ? `$${bal.toFixed(2)}`
+            : `៛${bal.toLocaleString()}`;
+      }
+
+      // ដំណើរការផ្ញើ
+      async function processEgift() {
+        const receiver = document.getElementById("receiverInput").value.trim();
+        const amount = parseFloat(document.getElementById("amountInput").value);
+        const message =
+          document.getElementById("messageInput").value.trim() ||
+          "ជូនពរឱ្យមានសុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច! 🎉";
+
+        if (!receiver) return showToast("សូមបញ្ចូលអ្នកទទួល!", "error");
+        if (!amount || amount <= 0)
+          return showToast("សូមបញ្ចូលទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!", "error");
+
+        // ឆែកលុយក្នុងកុង
+        const availableBal =
+          selectedCurrency === "USD"
+            ? currentUser.balance
+            : currentUser.balanceKHR || 0;
+        if (amount > availableBal)
+          return showToast("សមតុល្យរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!", "error");
+
+        // សុំ PIN Code កាត់លុយ
+        const { value: pin } = await Swal.fire({
+          title: '<span class="kh-text">បញ្ចូលលេខសម្ងាត់ PIN</span>',
+          input: "password",
+          inputAttributes: {
+            maxlength: 4,
+            inputmode: "numeric",
+            style:
+              "text-align: center; letter-spacing: 10px; font-size: 1.5rem;",
+          },
+          showCancelButton: true,
+          confirmButtonText: "បញ្ជាក់",
+          confirmButtonColor: "#0f172a",
+          customClass: { popup: "modal-radius" },
+        });
+
+        if (pin) {
+          Swal.fire({
+            title: "កំពុងវេចខ្ចប់កាដូ...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            // ហៅ API ពិតប្រាកដ
+            const response = await fetch("/api/egift/send", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`, // ឬប្រើ window.authHeaders បើមានក្នុង u-pay-core.js
+              },
+              body: JSON.stringify({
+                senderUsername: currentUser.username,
+                receiverInput: receiver,
+                amount: amount,
+                currency: selectedCurrency,
+                theme: selectedTheme,
+                message: message,
+                pin: pin,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              // កាត់លុយក្នុង RAM បណ្តោះអាសន្ន ដើម្បីកុំឱ្យបាត់ Balance លឿនពេក
+              if (selectedCurrency === "USD") currentUser.balance -= amount;
+              else currentUser.balanceKHR -= amount;
+              sessionStorage.setItem("user", JSON.stringify(currentUser));
+
+              showSuccessAnimation(receiver, amount, message);
+            } else {
+              Swal.fire("បរាជ័យ", data.message, "error");
+            }
+          } catch (error) {
+            Swal.fire("Error", "មិនអាចតភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+          }
+        }
+      }
+
+      // Animation ជោគជ័យពេលផ្ញើចេញ
+      function showSuccessAnimation(receiver, amount, message) {
+        // បាញ់ព្រិលអបអរសាទរ (Confetti)
+        var duration = 3 * 1000;
+        var end = Date.now() + duration;
+        (function frame() {
+          confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ["#ff0000", "#ffd700"],
+          });
+          confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ["#ff0000", "#ffd700"],
+          });
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        })();
+
+        let curSym = selectedCurrency === "USD" ? "$" : "៛";
+        let displayAmt =
+          selectedCurrency === "USD"
+            ? amount.toFixed(2)
+            : amount.toLocaleString();
+
+        Swal.fire({
+          html: `
+                    <div style="margin-top: 20px;">
+                        <i class="fa-solid fa-envelope-circle-check" style="font-size: 5rem; color: #10b981; margin-bottom: 20px;"></i>
+                        <h2 class="kh-text" style="color: #1e293b; margin:0 0 10px;">អាំងប៉ាវត្រូវបានផ្ញើ!</h2>
+                        <div style="font-size: 2.5rem; font-family: 'JetBrains Mono', sans-serif; font-weight: bold; color: var(--gift-red);">${curSym}${displayAmt}</div>
+                        <p class="kh-text" style="color: #64748b; margin-top: 10px;">បានផ្ញើទៅកាន់: <b>${receiver}</b></p>
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-top: 20px; font-style: italic; color: #475569;" class="kh-text">"${message}"</div>
+                    </div>
+                `,
+          showConfirmButton: true,
+          confirmButtonText: '<span class="kh-text">ត្រឡប់ទៅដើមវិញ</span>',
+          confirmButtonColor: "#0f172a",
+          allowOutsideClick: false,
+          customClass: { popup: "modal-radius" },
+        }).then(() => {
+          window.location.href = "dashboard.html";
+        });
+      }
+    </script>
+  </body>
+</html>

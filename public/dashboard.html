@@ -1254,6 +1254,17 @@
           </div>
           <span class="menu-text" data-i18n="btn_promo">Promo</span>
         </button>
+        <!-- E-Gift / Angpao -->
+        <button
+          class="menu-item"
+          id="m11"
+          onclick="window.location.href = 'egift.html'"
+        >
+          <div class="icon-box" style="background: #fef2f2; color: #e11d48">
+            <i class="fa-solid fa-envelope-open-text"></i>
+          </div>
+          <span class="menu-text" data-i18n="btn_egift">E-Gift</span>
+        </button>
       </div>
 
       <div
@@ -1454,7 +1465,6 @@
       // ==========================================
       // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       // ==========================================
-      // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       async function loadDashboardData(isAuto = true) {
         try {
           const res = await fetch("/api/users", { headers: authHeaders });
