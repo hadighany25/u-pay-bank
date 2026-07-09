@@ -185,4 +185,9 @@ router.post(
   checkRole(["super_admin"]),
   adminController.adminCreateCard,
 );
+router.post(
+  "/get-user",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.getSingleUser,
+);
 module.exports = router;

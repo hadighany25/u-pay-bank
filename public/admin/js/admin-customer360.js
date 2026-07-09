@@ -77,7 +77,11 @@ function renderCustomerProfile(user) {
   document.getElementById("c360-status-badge").innerHTML = statusHtml;
 
   // ប៊ូតុងមាន Font ខ្មែរស្អាត
+  // ប៊ូតុងមាន Font ខ្មែរស្អាត និងថែមប៊ូតុង Refresh
   document.getElementById("c360-quick-actions").innerHTML = `
+    <button onclick="c360RefreshData()" class="kh-text" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Refresh ទិន្នន័យអតិថិជននេះ">
+      <i class="fa-solid fa-arrows-rotate" id="c360-refresh-icon"></i>
+    </button>
     <button onclick="c360ToggleFreeze()" class="kh-text" style="background: ${user.isFrozen ? "#10b981" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
       <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "ដោះសោរ (Unfreeze)" : "ផ្អាក (Freeze)"}
     </button>
@@ -105,6 +109,52 @@ function switchC360Tab(tabName) {
     .forEach((c) => (c.style.display = "none"));
   event.currentTarget.classList.add("active");
   document.getElementById(`c360-tab-${tabName}`).style.display = "block";
+}
+
+// =======================================================
+// មុខងារ Refresh ទិន្នន័យតែអតិថិជនកំពុងមើល (Fast Refresh)
+// =======================================================
+async function c360RefreshData() {
+  if (!currentC360User) return;
+
+  const icon = document.getElementById("c360-refresh-icon");
+  if (icon) icon.classList.add("fa-spin"); // ធ្វើឱ្យ Icon វិល
+
+  try {
+    // ហៅ API ទាញតែទិន្នន័យ User នេះម្នាក់ឯង (ដើរលឿនបំផុត)
+    const res = await fetch("/api/admin/get-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username: currentC360User.username }),
+    });
+    const data = await res.json();
+
+    if (data.success && data.user) {
+      // Update ទិន្នន័យក្នុង RAM និងគូរអេក្រង់ឡើងវិញ
+      renderCustomerProfile(data.user);
+
+      // ក៏ Update ទិន្នន័យនេះចូលក្នុង globalUsersData ដែរ ការពារពេលចាកចេញ
+      const index = globalUsersData.findIndex(
+        (u) => u.username === data.user.username,
+      );
+      if (index !== -1) globalUsersData[index] = data.user;
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "ទិន្នន័យបានធ្វើបច្ចុប្បន្នភាព",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } else {
+      Swal.fire("Error", "រកមិនឃើញទិន្នន័យថ្មីទេ", "error");
+    }
+  } catch (e) {
+    Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+  } finally {
+    if (icon) icon.classList.remove("fa-spin"); // បញ្ឈប់ការវិល
+  }
 }
 
 // =======================================================

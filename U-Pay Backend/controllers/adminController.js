@@ -1191,6 +1191,21 @@ const adminCreateCard = async (req, res) => {
   }
 };
 
+// មុខងារសម្រាប់ទាញទិន្នន័យអតិថិជនតែម្នាក់ឯង (ប្រើសម្រាប់ Refresh Customer 360)
+const getSingleUser = async (req, res) => {
+  try {
+    const User = require("../models/User"); // ហៅ Model
+    const user = await User.findOne({ username: req.body.username });
+    if (user) {
+      res.json({ success: true, user: user });
+    } else {
+      res.json({ success: false, message: "User not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1224,4 +1239,5 @@ module.exports = {
   logCustomAction,
   adminDeleteCard,
   adminCreateCard,
+  getSingleUser,
 };
