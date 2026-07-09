@@ -190,4 +190,9 @@ router.post(
   checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
   adminController.getSingleUser,
 );
+router.post(
+  "/upload-kyc",
+  checkRole(["super_admin", "support_agent"]),
+  adminController.adminUploadKyc,
+);
 module.exports = router;

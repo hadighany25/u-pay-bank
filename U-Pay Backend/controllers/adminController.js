@@ -1206,6 +1206,25 @@ const getSingleUser = async (req, res) => {
   }
 };
 
+// មុខងារ Upload KYC ជំនួសអតិថិជនដោយ Admin
+const adminUploadKyc = async (req, res) => {
+  const { username, kycImage } = req.body;
+  try {
+    const User = require("../models/User");
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+
+    // ដាក់រូបចូល និងកំណត់ស្ថានភាពទៅជា "រង់ចាំការអនុម័ត (pending)"
+    user.kycImage = kycImage;
+    user.kycStatus = "pending";
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1240,4 +1259,5 @@ module.exports = {
   adminDeleteCard,
   adminCreateCard,
   getSingleUser,
+  adminUploadKyc,
 };
