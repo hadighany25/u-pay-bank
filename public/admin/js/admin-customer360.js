@@ -810,19 +810,23 @@ async function c360DeleteCard(cardId) {
 }
 
 // =======================================================
-// 🪪 TAB 4: KYC & Identity (រចនាថ្មី អក្សរចំកណ្តាល មាន Upload)
+// 🪪 TAB 4: KYC & Identity (បែងចែក ៣ លក្ខខណ្ឌច្បាស់លាស់)
 // =======================================================
 
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   const status = user.kycStatus || "unverified";
-  // ឧបមាថា Field រូបភាពរបស់អ្នកឈ្មោះ kycImage ឬ idCardImage
   const imgUrl = user.kycImage || user.idCardImage || "";
 
   let content = "";
 
-  // ករណីទី ១៖ អតិថិជនមិនទាន់មាន KYC
-  if (status === "unverified" || !imgUrl) {
+  // 🔥 លក្ខខណ្ឌទី ១៖ គ្មាន KYC (Unverified, Rejected, Revoked ឬអត់មានរូបសោះ)
+  if (
+    !imgUrl ||
+    status === "unverified" ||
+    status === "rejected" ||
+    status === "revoked"
+  ) {
     content = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 500px; margin: 0 auto; gap: 20px; padding: 20px 0;">
                 <div style="text-align: center; color: var(--text-muted);" class="kh-text">
@@ -839,18 +843,21 @@ function renderKycTab(user) {
             </div>
         `;
   }
-  // ករណីទី ២៖ មាន KYC (រង់ចាំការអនុម័ត ឬ ជោគជ័យ)
+  // 🔥 លក្ខខណ្ឌទី ២ និង ៣៖ មានឯកសារ (Pending ឬ Approved)
   else {
     const isVerified = status === "verified" || status === "approved";
     let buttonsHtml = "";
 
+    // លក្ខខណ្ឌទី ៣៖ Approve រួចហើយ ឃើញប៊ូតុង "បដិសេធសិទ្ធិវិញ"
     if (isVerified) {
       buttonsHtml = `
                 <button onclick="c360KycAction('revoke')" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-ban"></i> បដិសេធសិទ្ធិវិញ (Revoke KYC)
                 </button>
             `;
-    } else {
+    }
+    // លក្ខខណ្ឌទី ២៖ កំពុង Pending ឃើញប៊ូតុង "អនុម័ត" និង "បដិសេធ"
+    else {
       buttonsHtml = `
                 <button onclick="c360KycAction('approve')" class="kh-text" style="flex: 1; padding: 15px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)
@@ -860,6 +867,11 @@ function renderKycTab(user) {
                 </button>
             `;
     }
+
+    // ស្លាកបង្ហាញនៅលើរូបភាព (Status Badge)
+    let statusBadge = isVerified
+      ? `<div style="position: absolute; top: 12px; left: 12px; background: rgba(16, 185, 129, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-check-circle"></i> បានអនុម័តរួច</div>`
+      : `<div style="position: absolute; top: 12px; left: 12px; background: rgba(245, 158, 11, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត</div>`;
 
     content = `
             <div style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; margin: 0 auto; gap: 20px;">
@@ -871,6 +883,8 @@ function renderKycTab(user) {
                     <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; opacity: 0.9;" 
                          onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='1'" 
                          onmouseout="this.style.transform='scale(1)'; this.style.opacity='0.9'">
+                    
+                    ${statusBadge}
                     
                     <div style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; backdrop-filter: blur(4px);" class="kh-text">
                         <i class="fa-solid fa-magnifying-glass-plus"></i> ចុចពង្រីក
