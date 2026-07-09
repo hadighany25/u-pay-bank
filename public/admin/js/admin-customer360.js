@@ -1256,16 +1256,21 @@ function c360ViewTrxDetails(refId) {
   const sign = isIncome ? "+" : "-";
   const color = isIncome ? "#10b981" : "#ef4444";
 
+  // កែសម្រួលផ្នែក statusBadge ក្នុងមុខងារ c360ViewTrxDetails
   let statusBadge = "";
-  if (t.status === "Completed")
-    statusBadge = `<span style="background: #ecfdf5; color: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
-  else if (t.status === "Pending")
-    statusBadge = `<span style="background: #fff7ed; color: #f97316; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-clock"></i> កំពុងរង់ចាំ</span>`;
-  else if (t.status === "Refunded")
-    statusBadge = `<span style="background: #f1f5f9; color: #64748b; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-rotate-left"></i> បានបង្វិលសង</span>`;
-  else
-    statusBadge = `<span style="background: #fef2f2; color: #ef4444; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-xmark-circle"></i> បរាជ័យ</span>`;
+  const s = (t.status || "").toLowerCase(); // ធ្វើជាអក្សរតូចទាំងអស់ដើម្បីងាយឆែក
 
+  if (s === "completed" || s === "success") {
+    statusBadge = `<span style="background: #ecfdf5; color: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
+  } else if (s === "pending") {
+    statusBadge = `<span style="background: #fff7ed; color: #f97316; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-clock"></i> កំពុងរង់ចាំ</span>`;
+  } else if (s === "refunded") {
+    statusBadge = `<span style="background: #f1f5f9; color: #64748b; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-rotate-left"></i> បានបង្វិលសង</span>`;
+  } else {
+    // នេះជាកន្លែងដែលវាធ្លាក់ចូល (Default) ប្រសិនបើ Status មិនមែនខាងលើ
+    // អ្នកអាចពិនិត្យមើលក្នុង Database ថា Status ពិតប្រាកដរបស់ប្រតិបត្តិការនេះគឺជាអ្វី
+    statusBadge = `<span style="background: #ecfdf5; color: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
+  }
   // ប៊ូតុង Refund នឹងបង្ហាញតែរាល់ការកាត់ប្រាក់ចេញដែលមិនទាន់ Refund
   let refundBtnHtml = "";
   if (t.amount < 0 && t.status !== "Refunded") {
