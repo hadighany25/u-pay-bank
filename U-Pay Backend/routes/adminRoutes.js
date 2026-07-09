@@ -200,4 +200,9 @@ router.post(
   checkRole(["super_admin"]),
   adminController.adminForceLogout,
 );
+router.post(
+  "/create-merchant",
+  checkRole(["super_admin"]),
+  adminController.adminCreateMerchant,
+);
 module.exports = router;

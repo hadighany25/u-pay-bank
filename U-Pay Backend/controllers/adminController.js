@@ -1262,6 +1262,44 @@ const adminForceLogout = async (req, res) => {
   }
 };
 
+// មុខងារ Admin បង្កើតហាងឱ្យអតិថិជន
+const adminCreateMerchant = async (req, res) => {
+  const { username, name, city, category, linkedAccount } = req.body;
+  try {
+    const User = require("../models/User"); // ហៅ User Model
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+
+    // បង្កើត Object Merchant ថ្មី
+    const newMerchant = {
+      id: "m_" + Date.now(), // ឬប្រើ mongoose.Types.ObjectId() បើ Model ជា Document Array
+      merchantId: Math.floor(100000 + Math.random() * 900000).toString(), // លេខ 6 ខ្ទង់
+      name: name,
+      city: city,
+      category: category,
+      linkedAccount: linkedAccount,
+      status: "active", // ស្ថានភាពហាង
+      accountNumbers: {
+        USD: user.accountNumber,
+        KHR: user.accountNumberKHR || "",
+      },
+      balance: 0,
+      createdAt: new Date(),
+    };
+
+    // ត្រួតពិនិត្យបើអត់ទាន់មាន Profile
+    if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
+    if (!user.merchantProfile.merchants) user.merchantProfile.merchants = [];
+
+    user.merchantProfile.merchants.push(newMerchant);
+    await user.save();
+
+    res.json({ success: true, merchant: newMerchant });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1298,4 +1336,5 @@ module.exports = {
   getSingleUser,
   adminUploadKyc,
   adminForceLogout,
+  adminCreateMerchant,
 };
