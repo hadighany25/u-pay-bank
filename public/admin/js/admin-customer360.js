@@ -383,58 +383,325 @@ function c360AdjustBalance(type) {
   });
 }
 
-// ➡️ TAB 3: Cards (កាត) - UI ដូច App User 100%
+// =======================================================
+// 💳 TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management)
+// =======================================================
+
 function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
 
-  // ប៊ូតុងបង្កើតកាតថ្មី (Admin កាត់ Fee ដូច User)
+  // ប៊ូតុងបង្កើតកាតថ្មីនៅខាងលើគេ (ធំ ចំកណ្តាល)
   let headerHtml = `
-    <button class="btn-primary kh-text" style="width:100%; margin-bottom:20px; padding:15px; background:#004d40; font-weight:bold;" onclick="c360CreateCardForUser()">
-        <i class="fa-solid fa-plus"></i> បង្កើតកាតថ្មីសម្រាប់អតិថិជន
-    </button>`;
+    <div style="margin-bottom: 25px;">
+        <button class="btn-primary kh-text" 
+            style="width: 100%; padding: 18px; font-size: 1.1rem; background: #0f172a; border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s;" 
+            onclick="c360CreateCardForUser()">
+            <i class="fa-solid fa-plus-circle" style="font-size: 1.3rem;"></i> បង្កើតកាតថ្មីឱ្យអតិថិជន
+        </button>
+    </div>`;
 
   if (!user.virtualCards || user.virtualCards.length === 0) {
     container.innerHTML =
       headerHtml +
-      `<div style="text-align:center; padding: 40px; color: var(--text-muted);" class="kh-text">អតិថិជននេះមិនមានកាតទេ។</div>`;
+      `<div style="text-align:center; padding: 40px; color: var(--text-muted); font-size: 1.1rem;" class="kh-text">អតិថិជននេះមិនទាន់មានកាត (Virtual Card) នៅឡើយទេ។</div>`;
     return;
   }
 
   let html =
     headerHtml +
-    `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">`;
+    `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">`;
+
   user.virtualCards.forEach((c) => {
-    const theme = c.type === "standard" ? "preview-std" : "preview-plat";
+    // កំណត់ពណ៌តាមប្រភេទកាត (Platinum ខ្មៅ / Standard បៃតង)
+    const bgGradient =
+      c.type === "standard"
+        ? "linear-gradient(135deg, #149a83 0%, #00695c 100%)"
+        : "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
+    const chipColor =
+      c.type === "standard"
+        ? "linear-gradient(135deg, #e2c35d, #c4a038)"
+        : "linear-gradient(135deg, #e5e7eb, #94a3b8)";
+
+    // ស្ថានភាពកាត (អត់បិទ = បៃតង, បិទ = ក្រហម)
     const isLocked = c.isLocked;
+    const statColor = isLocked ? "#ef4444" : "#10b981";
+    const statText = isLocked ? "Locked (ជាប់សោរ)" : "Active (ធម្មតា)";
+
+    // ប៊ូតុង Action (បើជាប់សោរ ប៊ូតុងពណ៌បៃតងឱ្យបើកវិញ, បើធម្មតា ប៊ូតុងពណ៌ក្រហមឱ្យបិទ)
+    const toggleBtnColor = isLocked ? "#10b981" : "#ef4444";
+    const toggleBtnIcon = isLocked ? "fa-unlock" : "fa-lock";
+    const toggleBtnText = isLocked ? "បើកកាត" : "បិទកាត";
 
     html += `
-      <div class="dash-card ${theme}" style="color: white; border:none; padding:20px; position:relative; overflow:hidden;">
-        <h4 style="margin:0 0 15px; display:flex; justify-content:space-between;"><span>Visa</span> <i class="fa-brands fa-cc-visa"></i></h4>
-        <h3 style="margin: 10px 0; font-family: 'Courier New', monospace; letter-spacing: 2px;">**** **** **** ${c.number.slice(-4)}</h3>
-        <div style="font-size:0.8rem; opacity:0.8;">EXP: ${c.expiryDate}</div>
-        
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <button onclick="c360RevealCard('${c.id}')" class="btn-action" style="background:rgba(255,255,255,0.2); color:white; flex:1;"><i class="fa-solid fa-eye"></i> មើល</button>
-            <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="btn-action" style="background: ${isLocked ? "#10b981" : "#ef4444"}; color:white; flex:1;">
-                <i class="fa-solid ${isLocked ? "fa-unlock" : "fa-lock"}"></i> ${isLocked ? "បើក" : "បិទ"}
-            </button>
-        </div>
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+          <div style="background: ${bgGradient}; border-radius: 18px; padding: 25px; color: white; box-shadow: 0 15px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden;">
+            
+            ${isLocked ? `<div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 10; display: flex; align-items: center; justify-content: center;"><span class="kh-text" style="color: white; border: 3px solid white; padding: 5px 15px; font-weight: 900; font-size: 1.5rem; transform: rotate(-15deg); border-radius: 8px; letter-spacing: 2px;">FROZEN</span></div>` : ""}
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 1; position: relative;">
+                <div style="width: 45px; height: 32px; background: ${chipColor}; border-radius: 6px; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);"></div>
+                <div style="font-weight: 800; font-size: 1.3rem; font-family: 'Inter', sans-serif;">U-PAY</div>
+            </div>
+            
+            <div style="margin-top: 25px; font-size: 1.4rem; letter-spacing: 4px; font-family: 'Courier New', monospace; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 1; position: relative;">
+                **** **** **** ${c.number.slice(-4)}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 25px; z-index: 1; position: relative;">
+                <div>
+                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px;">CARD HOLDER</div>
+                    <div style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase;">${user.fullName || user.username}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px;">EXPIRES</div>
+                    <div style="font-size: 0.95rem; font-weight: 600;">**/**</div>
+                </div>
+                <div style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 1.6rem; font-style: italic; opacity: 0.9;">
+                    VISA
+                </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="text-align: right; font-size: 0.85rem;" class="kh-text">
+                  ស្ថានភាព: <b style="color: ${statColor};">${statText}</b>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                  <button onclick="c360RevealCard('${c.id}')" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                      <i class="fa-solid fa-eye"></i> មើល
+                  </button>
+                  <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: ${toggleBtnColor}; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                      <i class="fa-solid ${toggleBtnIcon}"></i> ${toggleBtnText}
+                  </button>
+                  <button onclick="c360DeleteCard('${c.id}')" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: #f1f5f9; color: #ef4444; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid #e2e8f0;">
+                      <i class="fa-solid fa-trash"></i> លុប
+                  </button>
+              </div>
+          </div>
       </div>`;
   });
   container.innerHTML = html + `</div>`;
 }
 
-// Action បិទ/បើក កាតជាមួយមូលហេតុ (Log ទៅ Admin Logs)
-async function c360ToggleCard(cardId, isLocked) {
-  const { value: remark } = await Swal.fire({
-    title: "បញ្ជាក់មូលហេតុ",
-    input: "text",
-    inputPlaceholder: "ហេតុអ្វីបានជាអ្នកបិទ/បើកកាតនេះ?",
+// -------------------------------------------------------
+// មុខងារទី ១៖ បង្កើតកាតថ្មី (Create Card) ពី Admin
+// -------------------------------------------------------
+async function c360CreateCardForUser() {
+  // ជំហានទី ១: ជ្រើសរើសប្រភេទកាត
+  const { value: cardType } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size:1.4rem;">ជ្រើសរើសប្រភេទកាត</span>',
+    html: `
+            <div style="display:flex; flex-direction:column; gap:15px; text-align: left; margin-top: 15px;">
+                <label style="padding:15px; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:15px; transition: 0.2s;" onclick="this.style.borderColor='#004d40'">
+                    <input type="radio" name="swal-card-type" value="platinum" checked style="width:20px; height:20px; accent-color:#004d40;">
+                    <div style="width:60px; height:40px; background:linear-gradient(135deg, #1e293b, #0f172a); border-radius:6px; border:1px solid #ccc;"></div>
+                    <div><h4 class="kh-text" style="margin:0; font-size:1rem; color:#1e293b;">Platinum (កាតខ្មៅ)</h4><p class="kh-text" style="margin:0; font-size:0.8rem; color:#64748b;">កម្រិតខ្ពស់</p></div>
+                </label>
+                <label style="padding:15px; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:15px; transition: 0.2s;" onclick="this.previousElementSibling.style.borderColor='#e2e8f0'; this.style.borderColor='#004d40'">
+                    <input type="radio" name="swal-card-type" value="standard" style="width:20px; height:20px; accent-color:#004d40;">
+                    <div style="width:60px; height:40px; background:linear-gradient(135deg, #149a83, #00695c); border-radius:6px; border:1px solid #ccc;"></div>
+                    <div><h4 class="kh-text" style="margin:0; font-size:1rem; color:#1e293b;">Standard (កាតបៃតង)</h4><p class="kh-text" style="margin:0; font-size:0.8rem; color:#64748b;">កម្រិតធម្មតា</p></div>
+                </label>
+            </div>
+        `,
+    focusConfirm: false,
     showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">បន្ត (Next)</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#004d40",
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      return document.querySelector('input[name="swal-card-type"]:checked')
+        .value;
+    },
   });
 
-  if (remark !== undefined) {
+  if (cardType) {
+    // ជំហានទី ២: ដាក់មូលហេតុ និងបញ្ជាក់ការកាត់លុយ
+    const { value: confirmData } = await Swal.fire({
+      title:
+        '<span class="kh-text" style="font-size:1.4rem;">បញ្ជាក់ការបង្កើតកាត</span>',
+      html: `
+                <div style="text-align:left; font-size:0.95rem; color:#475569; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;" class="kh-text">
+                    <p style="margin: 0 0 10px;">ប្រភេទកាត: <b style="color:#0f172a; text-transform:uppercase;">${cardType}</b></p>
+                    <p style="margin: 0 0 10px;">ថ្លៃសេវា: <b style="color:#ef4444;">$5.00</b> (ប្រព័ន្ធនឹងកាត់ពីគណនីអតិថិជនចូល U-PAY Fee ដោយស្វ័យប្រវត្តិ)</p>
+                </div>
+                <div style="text-align: left; margin-top: 15px;">
+                    <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
+                    <input id="swal-card-remark" class="swal2-input kh-text" placeholder="មូលហេតុបង្កើតកាតឱ្យអតិថិជន..." style="margin: 5px 0 0; width: 100%;">
+                </div>
+            `,
+      showCancelButton: true,
+      confirmButtonText: '<span class="kh-text">បញ្ជាក់ & បង្កើត</span>',
+      cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+      confirmButtonColor: "#10b981",
+      customClass: { popup: "modal-radius" },
+      preConfirm: () => {
+        const remark = document.getElementById("swal-card-remark").value.trim();
+        if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+        return remark;
+      },
+    });
+
+    if (confirmData) {
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        // ប្រើ API ធម្មតា (Pin ដាក់ 0000 ជា Bypass សម្រាប់ Admin)
+        const res = await fetch("/api/card/generate", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            username: currentC360User.username,
+            cardType: cardType,
+            pin: "0000",
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // កត់ត្រាចូល Admin Logs
+          await fetch("/api/admin/log-action", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              action: "Created Virtual Card",
+              target: currentC360User.username,
+              details: `បង្កើតកាត ${cardType.toUpperCase()} - មូលហេតុ: ${confirmData}`,
+            }),
+          });
+
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ!",
+            text: "កាតត្រូវបានបង្កើត និងកាត់ទឹកប្រាក់រួចរាល់។",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          if (typeof loadData === "function") loadData(); // Reload UI
+        } else {
+          Swal.fire("បរាជ័យ", data.message, "error");
+        }
+      } catch (e) {
+        Swal.fire("Error", "មានបញ្ហា Server", "error");
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------
+// មុខងារទី ២៖ មើលលេខកាតពេញ និង EXP (Reveal Card)
+// -------------------------------------------------------
+async function c360RevealCard(cardId) {
+  const card = currentC360User.virtualCards.find((c) => c.id === cardId);
+  if (!card) return;
+
+  const { value: remark } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size:1.4rem;">មើលព័ត៌មានកាតសម្ងាត់</span>',
+    html: `
+            <div style="text-align: left; padding: 10px;">
+                <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុនៃការចង់មើលលេខកាត (Remark)</label>
+                <input id="swal-reveal-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+                <p class="kh-text" style="font-size: 0.75rem; color: #ef4444; margin-top: 10px;"><i class="fa-solid fa-triangle-exclamation"></i> សកម្មភាពនេះនឹងត្រូវបានកត់ត្រាចូល Admin Logs។</p>
+            </div>
+        `,
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">បញ្ជាក់ (Confirm)</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#3b82f6",
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      const remark = document.getElementById("swal-reveal-remark").value.trim();
+      if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return remark;
+    },
+  });
+
+  if (remark) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
     try {
+      // កត់ត្រាចូល Admin Logs មុននឹងបង្ហាញ
+      await fetch("/api/admin/log-action", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: "Viewed Card Details",
+          target: currentC360User.username,
+          details: `មើលលេខកាតចុងក្រោយ ${card.number.slice(-4)} - មូលហេតុ: ${remark}`,
+        }),
+      });
+
+      // បង្ហាញលេខកាតពេញ និង EXP
+      Swal.fire({
+        title:
+          '<span class="kh-text" style="font-size:1.3rem;">ព័ត៌មានកាត (សម្ងាត់)</span>',
+        html: `
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 15px; border: 1px solid #e2e8f0; margin-top: 15px;">
+                        <div style="font-family:'Courier New', monospace; font-size:1.6rem; font-weight:bold; color:#0f172a; letter-spacing: 3px; margin-bottom: 15px;">
+                            ${card.number.match(/.{1,4}/g).join(" ")}
+                        </div>
+                        <div style="font-size:1.1rem; color:#475569; font-family: 'Inter', sans-serif;">
+                            EXP: <b style="color: #0f172a;">${card.expiryDate || card.expiry}</b>
+                        </div>
+                    </div>
+                `,
+        icon: "info",
+        confirmButtonText: '<span class="kh-text">បិទ</span>',
+        confirmButtonColor: "#0f172a",
+        customClass: { popup: "modal-radius" },
+      });
+    } catch (e) {
+      Swal.fire("Error", "បរាជ័យក្នុងការកត់ត្រា Logs", "error");
+    }
+  }
+}
+
+// -------------------------------------------------------
+// មុខងារទី ៣៖ បិទ/បើកកាត (Toggle Freeze)
+// -------------------------------------------------------
+async function c360ToggleCard(cardId, isLocked) {
+  const card = currentC360User.virtualCards.find((c) => c.id === cardId);
+  const actionText = isLocked ? "បិទកាត (Freeze)" : "បើកកាត (Unfreeze)";
+  const themeColor = isLocked ? "#ef4444" : "#10b981";
+
+  const { value: remark } = await Swal.fire({
+    title: `<span class="kh-text" style="font-size:1.4rem; color: ${themeColor};">${actionText}</span>`,
+    html: `
+            <div style="text-align: left; padding: 10px;">
+                <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុនៃការ${actionText} (Remark)</label>
+                <input id="swal-toggle-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+            </div>
+        `,
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">បញ្ជាក់ (Confirm)</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: themeColor,
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      const remark = document.getElementById("swal-toggle-remark").value.trim();
+      if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return remark;
+    },
+  });
+
+  if (remark) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      // ហៅ API បិទ/បើកកាត
       const res = await fetch("/api/admin/toggle-card-lock", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -442,75 +709,109 @@ async function c360ToggleCard(cardId, isLocked) {
           username: currentC360User.username,
           cardId,
           isLocked,
-          remark,
         }),
       });
       const data = await res.json();
+
       if (data.success) {
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "ជោគជ័យ",
-          timer: 1500,
+        // កត់ត្រាចូល Logs
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: isLocked ? "Frozen Card" : "Unfrozen Card",
+            target: currentC360User.username,
+            details: `${actionText} លេខកាត ${card.number.slice(-4)} - មូលហេតុ: ${remark}`,
+          }),
         });
-        loadData(); // Reload ដើម្បី Update UI
-      }
+
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: `កាតត្រូវបាន ${isLocked ? "បិទ" : "បើក"} រួចរាល់។`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        if (typeof loadData === "function") loadData(); // Reload UI
+      } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
-      Swal.fire("Error", "បរាជ័យ", "error");
+      Swal.fire("Error", "មានបញ្ហា Server", "error");
     }
   }
 }
 
-// Action មើលលេខកាត (Reveal)
-async function c360RevealCard(cardId) {
+// -------------------------------------------------------
+// មុខងារទី ៤៖ លុបកាតចោលទាំងស្រុង (Delete Card)
+// -------------------------------------------------------
+async function c360DeleteCard(cardId) {
+  const card = currentC360User.virtualCards.find((c) => c.id === cardId);
+
   const { value: remark } = await Swal.fire({
-    title: "ចង់មើលលេខកាត?",
-    input: "text",
-    inputPlaceholder: "មូលហេតុ",
+    title:
+      '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">លុបកាតនេះចោល?</span>',
+    html: `
+            <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">
+                សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ! កាតលេខ <b>*${card.number.slice(-4)}</b> នឹងត្រូវលុបចេញពីប្រព័ន្ធ។
+            </p>
+            <div style="text-align: left; padding: 0 10px;">
+                <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុនៃការលុបកាត (Remark)</label>
+                <input id="swal-del-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+            </div>
+        `,
     showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">លុបចោល (Delete)</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ef4444",
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      const remark = document.getElementById("swal-del-remark").value.trim();
+      if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return remark;
+    },
   });
 
   if (remark) {
-    // បាញ់ API ទៅ Backend ដើម្បីឱ្យវាកត់ត្រាចូល Logs
-    await fetch("/api/admin/log-action", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        action: "Reveal Card Number",
-        target: currentC360User.username,
-        details: `មើលលេខកាត ${cardId} មូលហេតុ: ${remark}`,
-      }),
+    Swal.fire({
+      title: "កំពុងលុប...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
     });
+    try {
+      // ហៅ API លុបកាត (ប្រើ Route ដើមរបស់ User ប៉ុន្តែបញ្ជូនពី Admin)
+      const res = await fetch("/api/card/delete", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: cardId,
+          reason: remark,
+        }),
+      });
+      const data = await res.json();
 
-    // បង្ហាញលេខកាត (កូដនេះទាមទារអោយអ្នកមាន Logic ត្រលប់លេខពេញមកវិញ)
-    Swal.fire("លេខកាត", "មុខងារនេះត្រូវការទាញពី DB...", "info");
-  }
-}
+      if (data.success) {
+        // កត់ត្រាចូល Logs
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: "Deleted Card",
+            target: currentC360User.username,
+            details: `បានលុបកាត ${card.number.slice(-4)} - មូលហេតុ: ${remark}`,
+          }),
+        });
 
-// Action បង្កើតកាតថ្មី (ប្រើ API ដូច User)
-async function c360CreateCardForUser() {
-  const { value: cardType } = await Swal.fire({
-    title: "ជ្រើសរើសប្រភេទកាត",
-    input: "select",
-    inputOptions: { platinum: "Platinum (ខ្មៅ)", standard: "Standard (បៃតង)" },
-    showCancelButton: true,
-  });
-  if (cardType) {
-    const res = await fetch("/api/card/generate", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        username: currentC360User.username,
-        cardType,
-        pin: "0000",
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      Swal.fire("ជោគជ័យ", "កាតត្រូវបានបង្កើត!", "success");
-      loadData();
-    } else Swal.fire("បរាជ័យ", data.message, "error");
+        Swal.fire({
+          icon: "success",
+          title: "បានលុបជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        if (typeof loadData === "function") loadData(); // Reload UI
+      } else Swal.fire("បរាជ័យ", data.message, "error");
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហា Server", "error");
+    }
   }
 }
 
