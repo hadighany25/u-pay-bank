@@ -1144,7 +1144,9 @@
 
       function logout() {
         sessionStorage.removeItem("user");
-        window.location.href = "index.html";
+        sessionStorage.removeItem("userToken");
+        localStorage.removeItem("userToken"); // បើមាន
+        window.location.href = "index.html"; // ឬផ្ទាំង Login
       }
     </script>
   </body>

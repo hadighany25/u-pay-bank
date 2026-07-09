@@ -1454,14 +1454,27 @@
       // ==========================================
       // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       // ==========================================
+      // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
       async function loadDashboardData(isAuto = true) {
         try {
-          // បាញ់សំណួរទៅ Server តែម្តងគត់ ដើម្បីសន្សំសំចៃ Network
           const res = await fetch("/api/users", { headers: authHeaders });
           const users = await res.json();
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser) {
+            // 🔥 បន្ថែមនេះ៖ បើកំពុងតែ Upload ឯកសារ (Pending) យើងកុំទាន់អាល Update ពី Server
+            // ព្រោះ Admin ទើបតែដាក់រូបចូលក្នុង RAM ស្រស់ៗ!
+            if (
+              serverUser.kycStatus === "pending" &&
+              user.kycStatus === "pending"
+            ) {
+              // រក្សាស្ថានភាព Pending ទុក កុំអោយវាទាញ 'unverified' ពី server មកជាន់
+            } else {
+              // ករណីធម្មតា ទើប Update ពី Server
+              user = serverUser;
+              sessionStorage.setItem("user", JSON.stringify(serverUser));
+            }
+
             // ១. ឆែកលុយចូល (Update Balance)
             if (isAuto && serverUser.balance > lastBalance) {
               Swal.fire({
@@ -1475,16 +1488,14 @@
               });
             }
             lastBalance = serverUser.balance;
-            user = serverUser;
-            sessionStorage.setItem("user", JSON.stringify(serverUser));
 
-            // ២. ធ្វើអោយ UI ថ្មី (លុយខាងក្រៅ, កាត, ប្រវត្តិ)
-            updateUI(serverUser);
+            // ២. ធ្វើអោយ UI ថ្មី
+            updateUI(user);
             if (currentViewingCurrency)
-              renderTransactionsInModal(serverUser, currentViewingCurrency);
+              renderTransactionsInModal(user, currentViewingCurrency);
 
-            // ៣. បាញ់សារចូល UI (Update Notifications) ភ្លាមៗដោយមិនបាច់រង់ចាំ
-            updateNotificationsUI(serverUser);
+            // ៣. បាញ់សារចូល UI
+            updateNotificationsUI(user);
           }
         } catch (err) {
           console.error("Turbo Load Error:", err);

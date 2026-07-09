@@ -130,14 +130,30 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   const { username } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (user) {
-      user.isOnline = false;
-      await user.save();
+    // រក User និងធ្វើការ Reset ស្ថានភាព
+    const user = await User.findOneAndUpdate(
+      { username: username },
+      {
+        $set: {
+          isOnline: false,
+          forceLogout: false, // ធានាថា Reset ស្ថានភាព Force Logout វិញដើម្បីឱ្យគាត់ Login ចូលបានធម្មតានៅពេលក្រោយ
+        },
+        $unset: {
+          currentToken: "", // លុប Token ចោលពី DB (ប្រសិនបើអ្នកមានរក្សាទុក)
+        },
+      },
+      { new: true },
+    );
+
+    // បើអ្នកប្រើ Express-Session (បើអត់ទេ អាចរំលងបន្ទាត់នេះ)
+    if (req.session) {
+      req.session.destroy();
     }
-    res.json({ success: true });
+
+    res.json({ success: true, message: "Logged out successfully" });
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("Logout Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
