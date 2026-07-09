@@ -1080,70 +1080,246 @@ async function c360KycAction(action) {
   }
 }
 
-// ➡️ TAB 5: Transactions (ប្រវត្តិប្រតិបត្តិការ)
-function renderTrxTab(user) {
-  const container = document.getElementById("c360-tab-trx");
-  if (!user.transactions || user.transactions.length === 0) {
-    container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">អតិថិជននេះគ្មានប្រវត្តិប្រតិបត្តិការទេ។</div>`;
+// =======================================================
+// 💸 TAB 5: ឯកសារប្រតិបត្តិការ (Transactions & Receipt)
+// =======================================================
+
+// ១. មុខងារបង្កើត UI ផ្ទាំង Transactions ដើម
+function renderTransactionsTab(user) {
+  const container = document.getElementById("c360-tab-transactions");
+
+  // បង្កើត Dropdown Filter គណនី
+  let filterHtml = `
+        <div style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; text-align: left;">
+            <label class="kh-text" style="font-size: 0.9rem; font-weight: 600; color: #475569; display: block; margin-bottom: 8px;">ជ្រើសរើសគណនីដើម្បីបង្ហាញ</label>
+            <select id="c360-trx-filter" class="swal2-input kh-text" style="width: 100%; margin: 0; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; background: white;" onchange="c360RenderTrxList()">
+                <option value="ALL">ប្រតិបត្តិការទាំងអស់ (All Transactions)</option>
+                <option value="${user.accountNumber}">គណនី USD ($) - ${user.accountNumber}</option>
+                ${user.accountNumberKHR ? `<option value="${user.accountNumberKHR}">គណនី KHR (៛) - ${user.accountNumberKHR}</option>` : ""}
+            </select>
+        </div>
+        <div id="c360-trx-list-container"></div>
+    `;
+  container.innerHTML = filterHtml;
+
+  // ទាញទិន្នន័យមកគូរលើកដំបូង
+  c360RenderTrxList();
+}
+
+// ២. មុខងារគូរបញ្ជីប្រតិបត្តិការ (UI ដូច Dashboard User)
+function c360RenderTrxList() {
+  const container = document.getElementById("c360-trx-list-container");
+  const filterVal = document.getElementById("c360-trx-filter").value;
+  const trxs = currentC360User.transactions || [];
+
+  // ចម្រោះទិន្នន័យតាមគណនី (USD / KHR / ALL)
+  let filteredTrx = trxs;
+  if (filterVal !== "ALL") {
+    let currencyTarget =
+      filterVal === currentC360User.accountNumber ? "USD" : "KHR";
+    filteredTrx = trxs.filter((t) => t.currency === currencyTarget);
+  }
+
+  if (filteredTrx.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding: 40px;"><i class="fa-solid fa-folder-open" style="font-size:3.5rem; margin-bottom:15px; opacity:0.5;"></i><p class="kh-text" style="font-size: 1.1rem;">មិនមានប្រតិបត្តិការទេ</p></div>`;
     return;
   }
 
-  let html = `<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-    <thead><tr style="background:#f8fafc; text-align:left;">
-        <th style="padding:12px;">កាលបរិច្ឆេទ</th>
-        <th style="padding:12px;">Ref ID</th>
-        <th style="padding:12px;">ប្រភេទ</th>
-        <th style="padding:12px;">ទឹកប្រាក់</th>
-        <th style="padding:12px; text-align:right;">សកម្មភាព</th>
-    </tr></thead><tbody>`;
+  // តម្រៀបពីថ្មីទៅចាស់
+  filteredTrx.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  // តម្រៀបពីថ្មីទៅចាស់ ហើយបង្ហាញត្រឹម ៥០ ប្រតិបត្តិការដើម
-  [...user.transactions]
-    .reverse()
-    .slice(0, 50)
-    .forEach((t) => {
-      let color = t.type === "Received" || t.amount > 0 ? "#10b981" : "#ef4444";
-      let sign = t.type === "Received" || t.amount > 0 ? "+" : "";
-      html += `
-    <tr style="border-bottom: 1px solid var(--border);">
-      <td style="padding:12px; color: var(--text-muted);">${t.date}</td>
-      <td style="padding:12px; font-family:'JetBrains Mono', monospace; font-weight: 600;">${t.refId}</td>
-      <td style="padding:12px;">${t.type}</td>
-      <td style="padding:12px; font-weight:bold; color:${color}; font-family:'JetBrains Mono', monospace;">${sign}${t.amount} ${t.currency}</td>
-      <td style="padding:12px; text-align:right; display: flex; justify-content: flex-end; gap: 5px;">
-        <button onclick="c360Refund('${t.refId}')" class="btn-action" style="background:#f59e0b;" title="Refund" ${t.amount > 0 || t.status === "Refunded" ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ""}><i class="fa-solid fa-rotate-left"></i></button>
-        <button onclick="document.getElementById('searchTrxId').value='${t.refId}'; showSection('check-trx'); searchTrx();" class="btn-action" style="background:#3b82f6;" title="Trace Trx"><i class="fa-solid fa-magnifying-glass"></i></button>
-      </td>
-    </tr>`;
+  let html = "";
+  let lastDateLabel = "";
+
+  filteredTrx.forEach((t) => {
+    const isIncome = t.amount > 0;
+    const isPending = t.status === "Pending";
+    let parsedDate = new Date(t.date);
+    let dateLabel = c360GetSmartDateLabel(parsedDate);
+
+    // បែងចែកប្លុកតាមថ្ងៃ
+    if (dateLabel !== lastDateLabel) {
+      html += `<div class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; text-align: left;">${dateLabel}</div>`;
+      lastDateLabel = dateLabel;
+    }
+
+    // កំណត់ពណ៌ និង Icon
+    let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+    let bgClass = isIncome
+      ? "background: #ecfdf5; color: #10b981;"
+      : isPending
+        ? "background: #fff7ed; color: #f97316;"
+        : "background: #fef2f2; color: #ef4444;";
+    let textClass = isIncome
+      ? "color: #10b981;"
+      : isPending
+        ? "color: #f97316;"
+        : "color: #ef4444;";
+
+    // កំណត់ចំណងជើង (Title) និង Account ដែលពាក់ព័ន្ធ
+    let title = t.type || "Transaction";
+    if (isIncome) title = t.senderName || "Received";
+    else
+      title =
+        t.receiverName ||
+        (t.type === "Card Payment" ? "Card Payment" : "Transfer");
+
+    if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
+      title = t.type || t.trxMethod || title;
+
+    let displayAmt =
+      t.currency === "KHR"
+        ? Math.abs(t.amount).toLocaleString() + " ៛"
+        : "$" + Math.abs(t.amount).toFixed(2);
+    let timeStr = parsedDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
-  container.innerHTML = html + `</tbody></table>`;
+    let relevantAcc = isIncome
+      ? t.senderAcc || t.trxMethod
+      : t.receiverAcc || t.trxMethod;
+
+    // HTML របស់ Item នីមួយៗ
+    html += `
+            <div onclick="c360ViewTrxDetail('${t.id}')" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: white; border-radius: 16px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; transition: transform 0.2s, background 0.2s;" onmouseover="this.style.background='#f8fafc'; this.style.transform='scale(0.99)';" onmouseout="this.style.background='white'; this.style.transform='scale(1)';">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; ${bgClass}">
+                        <i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <h4 class="kh-text" style="margin: 0; font-size: 0.95rem; color: #1e293b; font-weight: 600; text-transform: capitalize;">${title}</h4>
+                        <p class="kh-text" style="margin: 4px 0 0 0; font-size: 0.8rem; color: #64748b;">${timeStr} • ${relevantAcc || "U-Pay"}</p>
+                    </div>
+                </div>
+                <div style="font-weight: bold; font-size: 1.1rem; ${textClass} font-family: 'Inter', sans-serif;">
+                    ${isIncome ? "+" : "-"}${displayAmt}
+                </div>
+            </div>
+        `;
+  });
+
+  container.innerHTML = html;
 }
 
-// Action Refund លុយ
-async function c360Refund(refId) {
-  const { value: reason } = await Swal.fire({
-    title: "Refund លុយត្រឡប់វិញ",
-    input: "text",
-    inputPlaceholder: "បញ្ជាក់មូលហេតុ",
-    showCancelButton: true,
+// ៣. មុខងារជំនួយ៖ បម្លែងកាលបរិច្ឆេទឱ្យឆ្លាតវៃ
+function c360GetSmartDateLabel(d) {
+  if (isNaN(d.getTime())) return "Unknown Date";
+  let t = new Date();
+  t.setHours(0, 0, 0, 0);
+  let y = new Date();
+  y.setDate(t.getDate() - 1);
+  y.setHours(0, 0, 0, 0);
+  let c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  if (c.getTime() === t.getTime()) return "ថ្ងៃនេះ (Today)";
+  if (c.getTime() === y.getTime()) return "ម្សិលមិញ (Yesterday)";
+  return c.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
   });
-  if (reason) {
-    try {
-      const res = await fetch("/api/admin/refund-transaction", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ refId, reason }),
-      });
-      const data = await res.json();
-      Swal.fire(
-        data.success ? "ជោគជ័យ" : "បរាជ័យ",
-        data.message,
-        data.success ? "success" : "error",
-      );
-    } catch (e) {
-      Swal.fire("Error", "Server Error", "error");
-    }
-  }
+}
+
+// ៤. មុខងារចុចមើលលម្អិត (Popup Slip ពីណា ទៅណា)
+function c360ViewTrxDetail(trxId) {
+  const t = currentC360User.transactions.find((x) => x.id === trxId);
+  if (!t) return;
+
+  const isIncome = t.amount > 0;
+  const color = isIncome ? "#10b981" : "#ef4444";
+  const sign = isIncome ? "+" : "-";
+  const displayAmt =
+    t.currency === "KHR"
+      ? Math.abs(t.amount).toLocaleString() + " ៛"
+      : "$" + Math.abs(t.amount).toFixed(2);
+
+  // ចាប់យកឈ្មោះ និងគណនី (From & To)
+  let fromName =
+    t.senderName ||
+    (isIncome
+      ? "Unknown Sender"
+      : currentC360User.fullName || currentC360User.username);
+  let fromAcc =
+    t.senderAcc ||
+    (isIncome
+      ? "N/A"
+      : t.currency === "KHR"
+        ? currentC360User.accountNumberKHR
+        : currentC360User.accountNumber);
+
+  let toName =
+    t.receiverName ||
+    (!isIncome
+      ? "Unknown Receiver"
+      : currentC360User.fullName || currentC360User.username);
+  let toAcc =
+    t.receiverAcc ||
+    (!isIncome
+      ? "N/A"
+      : t.currency === "KHR"
+        ? currentC360User.accountNumberKHR
+        : currentC360User.accountNumber);
+
+  Swal.fire({
+    html: `
+            <div style="text-align: center; padding-top: 10px; font-family: 'Kantumruy Pro', 'Inter', sans-serif;">
+                <div style="width: 65px; height: 65px; background: ${isIncome ? "#ecfdf5" : "#fef2f2"}; color: ${color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 15px;">
+                    <i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i>
+                </div>
+                <h2 style="margin: 0 0 5px 0; color: ${color}; font-size: 2.2rem; font-weight: bold;">${sign}${displayAmt}</h2>
+                <p style="margin: 0 0 20px 0; color: #64748b; font-size: 0.95rem; font-weight: bold;">${t.status || "Completed"}</p>
+
+                <div style="background: #f8fafc; border-radius: 15px; padding: 20px; text-align: left; border: 1px solid #e2e8f0;">
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                        <span style="color: #64748b; font-size: 0.85rem;">ប្រភេទប្រតិបត្តិការ</span>
+                        <span style="color: #0f172a; font-size: 0.9rem; font-weight: 600; text-transform: capitalize;">${t.type || "Transfer"}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                        <span style="color: #64748b; font-size: 0.85rem;">កាលបរិច្ឆេទ</span>
+                        <span style="color: #0f172a; font-size: 0.9rem; font-weight: 600;">${new Date(t.date).toLocaleString()}</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 15px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+                        <div style="display: flex; flex-direction: column; width: 40%;">
+                            <span style="color: #64748b; font-size: 0.75rem; text-transform: uppercase;">អ្នកផ្ញើ (From)</span>
+                            <span style="color: #0f172a; font-size: 0.9rem; font-weight: bold; margin-top: 4px;" class="kh-text">${fromName}</span>
+                            <span style="color: #64748b; font-size: 0.8rem; font-family: monospace;">${fromAcc}</span>
+                        </div>
+                        
+                        <div style="width: 30px; height: 30px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #94a3b8;">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; width: 40%; text-align: right;">
+                            <span style="color: #64748b; font-size: 0.75rem; text-transform: uppercase;">អ្នកទទួល (To)</span>
+                            <span style="color: #0f172a; font-size: 0.9rem; font-weight: bold; margin-top: 4px;" class="kh-text">${toName}</span>
+                            <span style="color: #64748b; font-size: 0.8rem; font-family: monospace;">${toAcc}</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
+                        <span style="color: #64748b; font-size: 0.85rem;">លេខប្រតិបត្តិការ</span>
+                        <span style="color: #3b82f6; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: monospace;" onclick="navigator.clipboard.writeText('${t.id}'); Swal.fire({toast:true, position:'top', title:'Copied', showConfirmButton:false, timer:1000})">
+                            ${t.id} <i class="fa-regular fa-copy"></i>
+                        </span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #64748b; font-size: 0.85rem;">កំណត់សម្គាល់ (Remark)</span>
+                        <span style="color: #0f172a; font-size: 0.9rem; font-weight: 600; max-width: 60%; text-align: right;" class="kh-text">${t.remark || "គ្មាន"}</span>
+                    </div>
+
+                </div>
+            </div>
+        `,
+    showConfirmButton: true,
+    confirmButtonText: '<span class="kh-text">បិទ (Close)</span>',
+    confirmButtonColor: "#0f172a",
+    customClass: { popup: "modal-radius" },
+  });
 }
 
 // ➡️ TAB 6: Security (សន្តិសុខគណនី)
