@@ -724,22 +724,34 @@ async function c360DeleteCard(cardId) {
       });
       const data = await res.json();
       if (data.success) {
+        // ១. អាប់ដេតទិន្នន័យក្នុង RAM របស់អតិថិជនបច្ចុប្បន្ន
+        currentC360User.balance = data.newBalance;
+        currentC360User.virtualCards = data.newCards;
+
+        // ២. បញ្ជាឱ្យគូរផ្ទាំងកាត និងផ្ទាំងលុយឡើងវិញភ្លាមៗ (កុំឱ្យចាំបាច់ Refresh)
+        renderCardsTab(currentC360User);
+        renderWalletsTab(currentC360User);
+
+        // ៣. កត់ត្រាចូល Logs
         await fetch("/api/admin/log-action", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            action: "Deleted Card",
+            action: "Created Card",
             target: currentC360User.username,
-            details: `លុបកាត ${cardId} - ${remark}`,
+            details: `បង្កើតកាត ${cardType} - ${remark}`,
           }),
         });
+
         Swal.fire({
           icon: "success",
-          title: "បានលុបជោគជ័យ!",
+          title: "ជោគជ័យ!",
+          text: "កាត់លុយ $5.00 និងបង្កើតកាតរួចរាល់។",
           timer: 1500,
           showConfirmButton: false,
         });
-        if (typeof loadData === "function") loadData();
+
+        if (typeof loadData === "function") loadData(); // Update តារាងធំខាងក្រៅ
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
       Swal.fire("Error", "មានបញ្ហា Server", "error");
