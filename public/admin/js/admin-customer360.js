@@ -1384,39 +1384,127 @@ async function c360Refund(refId) {
   }
 }
 
-// ➡️ TAB 6: Security (សន្តិសុខគណនី)
+// =======================================================
+// 🛡️ TAB 6: Security (សុវត្ថិភាព និង Force Logout)
+// =======================================================
+
 function renderSecurityTab(user) {
   const container = document.getElementById("c360-tab-security");
+
+  // បើប្រព័ន្ធមិនទាន់មានទិន្នន័យ វាបង្ហាញ N/A ដោយស្វ័យប្រវត្តិ
+  const lastIp = user.lastIp || "មិនមានទិន្នន័យ (N/A)";
+  const lastDevice = user.lastDevice || "មិនមានទិន្នន័យ (N/A)";
+  const lastLogin = user.lastLogin || "មិនមានទិន្នន័យ (N/A)";
+
   container.innerHTML = `
-    <div class="dash-card">
-      <h4 style="margin-top:0;">កំណត់ត្រាសុវត្ថិភាព និងឧបករណ៍</h4>
-      <p style="margin: 10px 0;">IP ចូលប្រើចុងក្រោយ: <span style="font-family:monospace; background:#f1f5f9; padding: 2px 6px; border-radius: 4px;">${user.lastLoginIp || "N/A"}</span></p>
-      <p style="margin: 10px 0;">ឧបករណ៍ (Device): <span style="font-family:monospace; background:#f1f5f9; padding: 2px 6px; border-radius: 4px;">${user.lastLoginDevice || "Mobile Application"}</span></p>
-      <p style="margin: 10px 0; color:var(--danger);">ការវាយ PIN ខុស: <b>${user.pinAttempts || 0} ដង</b></p>
-      
-      <div style="margin-top: 25px; display: flex; gap: 15px; border-top: 1px dashed var(--border); padding-top: 20px;">
-        <button class="btn-primary" style="background:#10b981; flex:1;" onclick="c360ClearPinAttempts()"><i class="fa-solid fa-unlock-keyhole"></i> Clear PIN Attempts</button>
-        <button class="btn-primary" style="background:#ef4444; flex:1;" onclick="Swal.fire('មុខងារ Force Logout','នឹងមានឆាប់ៗនេះ','info')"><i class="fa-solid fa-power-off"></i> Force Logout</button>
-      </div>
-    </div>`;
+        <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+            
+            <div style="background: white; border-radius: 18px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;">
+                <h4 class="kh-text" style="margin: 0 0 15px; color: #1e293b; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i> ព័ត៌មានចូលប្រើប្រាស់ចុងក្រោយ
+                </h4>
+                
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0;">
+                    <span class="kh-text" style="color: #64748b; font-size: 0.9rem;">អាសយដ្ឋាន IP:</span>
+                    <span style="font-weight: 600; color: #0f172a; font-family: 'Inter', monospace; font-size: 0.9rem;">${lastIp}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0;">
+                    <span class="kh-text" style="color: #64748b; font-size: 0.9rem;">ឧបករណ៍ (Device):</span>
+                    <span style="font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif; font-size: 0.9rem;">${lastDevice}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px 0;">
+                    <span class="kh-text" style="color: #64748b; font-size: 0.9rem;">ពេលវេលា:</span>
+                    <span style="font-weight: 600; color: #0f172a; font-family: 'Inter', sans-serif; font-size: 0.9rem;">${lastLogin}</span>
+                </div>
+            </div>
+
+            <div style="background: #fef2f2; border-radius: 18px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #fecaca;">
+                <h4 class="kh-text" style="margin: 0 0 10px; color: #ef4444; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> សកម្មភាពបន្ទាន់ (Emergency)
+                </h4>
+                <p class="kh-text" style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 20px; line-height: 1.6;">
+                    ប្រសិនបើអ្នកសង្ស័យថាគណនីនេះត្រូវបានគេលួចប្រើប្រាស់ ឬមានហានិភ័យ អ្នកអាចទាត់អតិថិជននេះចេញពីកម្មវិធីភ្លាមៗ។ គាត់នឹងត្រូវតម្រូវឱ្យ Login ម្តងទៀត។
+                </p>
+                <button onclick="c360ForceLogout()" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25); display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី (Force Logout)
+                </button>
+            </div>
+
+        </div>
+    `;
 }
 
-async function c360ClearPinAttempts() {
-  try {
-    await fetch("/api/admin/toggle-freeze", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ id: currentC360User._id, isFrozen: false }),
-    });
+// 🔥 មុខងារ Force Logout ជាមួយការបញ្ជាក់មូលហេតុ
+async function c360ForceLogout() {
+  const { value: remark } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">Force Logout</span>',
+    html: `
+            <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">
+                តើអ្នកពិតជាចង់ទាត់អតិថិជននេះចេញពីប្រព័ន្ធមែនទេ?
+            </p>
+            <div style="text-align: left; padding: 0 10px;">
+                <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
+                <input id="swal-logout-remark" class="swal2-input kh-text" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+            </div>
+        `,
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">យល់ព្រមទាត់ចេញ</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ef4444",
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      const remark = document.getElementById("swal-logout-remark").value.trim();
+      if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return remark;
+    },
+  });
+
+  if (remark) {
     Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "ដោះសោរ PIN ជោគជ័យ",
-      showConfirmButton: false,
-      timer: 1500,
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
     });
-  } catch (e) {}
+
+    try {
+      // ហៅ API ទាត់ចេញ
+      const res = await fetch("/api/admin/force-logout", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          reason: remark,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // កត់ត្រាចូល Admin Logs ជានិច្ច
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: "Force Logout",
+            target: currentC360User.username,
+            details: `បានទាត់អតិថិជនចេញពីប្រព័ន្ធ - មូលហេតុ: ${remark}`,
+          }),
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: "អតិថិជនត្រូវបានទាត់ចេញពីប្រព័ន្ធ។",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire("បរាជ័យ", data.message, "error");
+      }
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហា Server", "error");
+    }
+  }
 }
 
 // ➡️ TAB 7: Merchant (ហាងអាជីវកម្ម)

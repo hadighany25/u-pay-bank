@@ -1235,6 +1235,33 @@ const adminUploadKyc = async (req, res) => {
   }
 };
 
+// មុខងារទាត់អតិថិជនចេញពី App ភ្លាមៗ (Force Logout)
+const adminForceLogout = async (req, res) => {
+  const { username, reason } = req.body;
+  try {
+    const User = require("../models/User");
+
+    // ធ្វើការ Update Database របស់ User ដើម្បីទាត់គាត់ចេញ
+    // (ចំណាំ៖ វិធីសាស្ត្រនេះអាស្រ័យលើរបៀបដែលអ្នករៀបចំ Login, ទីនេះយើងសាកល្បងលុប Token)
+    const updatedUser = await User.findOneAndUpdate(
+      { username: username },
+      {
+        $set: { forceLogout: true }, // ប្រាប់ App ឱ្យលោតចេញ
+        $unset: { currentToken: "", pushToken: "" }, // លុប Token ចោល
+      },
+      { new: true },
+    );
+
+    if (updatedUser) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1270,4 +1297,5 @@ module.exports = {
   adminCreateCard,
   getSingleUser,
   adminUploadKyc,
+  adminForceLogout,
 };

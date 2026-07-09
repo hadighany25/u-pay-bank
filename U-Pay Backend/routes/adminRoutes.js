@@ -195,4 +195,9 @@ router.post(
   checkRole(["super_admin", "support_agent"]),
   adminController.adminUploadKyc,
 );
+router.post(
+  "/force-logout",
+  checkRole(["super_admin"]),
+  adminController.adminForceLogout,
+);
 module.exports = router;
