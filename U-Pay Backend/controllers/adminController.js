@@ -1119,6 +1119,78 @@ const logCustomAction = async (req, res) => {
   }
 };
 
+// ១. មុខងារលុបកាតដោយ Admin
+const adminDeleteCard = async (req, res) => {
+  const { username, cardId, reason } = req.body;
+  try {
+    const User = require("../models/User"); // ត្រូវប្រាកដថាបានទាញ Model មក
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+
+    // ចម្រោះយកកាតដែលត្រូវលុបចេញ
+    user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ២. មុខងារបង្កើតកាតដោយ Admin (មានកាត់លុយ $5)
+const adminCreateCard = async (req, res) => {
+  const { username, cardType } = req.body;
+  try {
+    const User = require("../models/User");
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+
+    // ឆែកលុយក្នុងកុង
+    if (user.balance < 5) {
+      return res.json({
+        success: false,
+        message: "អតិថិជនមិនមានប្រាក់គ្រប់គ្រាន់ ($5.00) ក្នុងគណនីទេ!",
+      });
+    }
+
+    // កាត់លុយ User $5
+    user.balance -= 5;
+
+    // កូដបន្ថែមលុយ $5 ចូលគណនី @system_fee របស់អ្នក
+    const systemFeeAcc = await User.findOne({ username: "system_fee" });
+    if (systemFeeAcc) {
+      systemFeeAcc.balance += 5;
+      await systemFeeAcc.save();
+    }
+
+    // បង្កើតលេខកាតថ្មី (Random)
+    const generateNumber = (length) =>
+      Math.floor(Math.random() * Math.pow(10, length))
+        .toString()
+        .padStart(length, "0");
+    const newCard = {
+      id: "card_" + Date.now(),
+      type: cardType,
+      number:
+        cardType === "platinum"
+          ? "43050521" + generateNumber(8)
+          : "47718680" + generateNumber(8),
+      expiryDate: "12/28", // ឬកំណត់ Auto
+      cvv: generateNumber(3),
+      isLocked: false,
+      createdAt: new Date(),
+    };
+
+    if (!user.virtualCards) user.virtualCards = [];
+    user.virtualCards.push(newCard);
+    await user.save();
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1150,4 +1222,6 @@ module.exports = {
   getPromoCodes,
   togglePromoCode,
   logCustomAction,
+  adminDeleteCard,
+  adminCreateCard,
 };

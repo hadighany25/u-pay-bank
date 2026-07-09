@@ -175,4 +175,14 @@ router.post(
   checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
   adminController.logCustomAction,
 );
+router.post(
+  "/delete-card",
+  checkRole(["super_admin"]),
+  adminController.adminDeleteCard,
+);
+router.post(
+  "/create-card",
+  checkRole(["super_admin"]),
+  adminController.adminCreateCard,
+);
 module.exports = router;
