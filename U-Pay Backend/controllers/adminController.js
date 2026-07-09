@@ -1211,11 +1211,18 @@ const adminUploadKyc = async (req, res) => {
   const { username, kycImage } = req.body;
   try {
     const User = require("../models/User");
-    // ត្រូវតែមានកូដ Save ចូល DB បែបនេះ៖
+
+    // 🔥 កូដថ្មី៖ បង្ខំឱ្យ Save ទាំង kycImage និង idCardImage ព្រមទាំងដាក់ strict: false
     const updatedUser = await User.findOneAndUpdate(
       { username: username },
-      { $set: { kycImage: kycImage, kycStatus: "pending" } },
-      { new: true },
+      {
+        $set: {
+          kycImage: kycImage,
+          idCardImage: kycImage, // ដាក់ទាំង២ ដើម្បីកុំឱ្យខុស Schema
+          kycStatus: "pending",
+        },
+      },
+      { new: true, strict: false }, // strict:false បង្ខំឱ្យ MongoDB Save ទោះអត់មានក្នុង Schema ក៏ដោយ
     );
 
     if (updatedUser) {

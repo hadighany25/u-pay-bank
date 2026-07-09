@@ -810,17 +810,17 @@ async function c360DeleteCard(cardId) {
 }
 
 // =======================================================
-// 🪪 TAB 4: KYC & Identity (ដើរ ១០០% / បែងចែក ៣ លក្ខខណ្ឌច្បាស់លាស់ / មិនគាំង)
+// 🪪 TAB 4: KYC & Identity (ដើរ ១០០% ធានាមិនលោតបាត់)
 // =======================================================
 
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   const status = user.kycStatus || "unverified";
-  const imgUrl = user.kycImage || user.idCardImage || "";
+  const imgUrl = user.kycImage || user.idCardImage || ""; // ចាប់យករូបពី Field ទាំង២
 
   let content = "";
 
-  // 🔥 លក្ខខណ្ឌទី ១៖ គ្មាន KYC (Unverified, Rejected, Revoked ឬអត់មានរូបសោះ)
+  // 🔥 លក្ខខណ្ឌទី ១៖ គ្មាន KYC
   if (
     !imgUrl ||
     status === "unverified" ||
@@ -834,7 +834,6 @@ function renderKycTab(user) {
                     <h3 style="color: #475569; margin: 0 0 10px 0;">អតិថិជនមិនទាន់មានឯកសារ KYC ទេ</h3>
                     <p style="font-size: 0.9rem; margin: 0;">អ្នកអាចជួយបញ្ចូលឯកសារជំនួសអតិថិជនទីនេះ</p>
                 </div>
-                
                 <label style="border: 2px dashed #10b981; border-radius: 18px; padding: 40px 20px; text-align: center; cursor: pointer; width: 100%; background: #f0fdf4; transition: 0.2s;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
                     <input type="file" style="display: none;" accept="image/*" onchange="c360AdminUploadKyc(event)">
                     <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: #10b981; margin-bottom: 10px;"></i>
@@ -843,12 +842,12 @@ function renderKycTab(user) {
             </div>
         `;
   }
-  // 🔥 លក្ខខណ្ឌទី ២ និង ៣៖ មានឯកសារ (Pending ឬ Approved)
+  // 🔥 លក្ខខណ្ឌទី ២ និង ៣៖ មានឯកសាររួចហើយ
   else {
     const isVerified = status === "verified" || status === "approved";
     let buttonsHtml = "";
 
-    // លក្ខខណ្ឌទី ៣៖ Approve រួចហើយ ឃើញប៊ូតុង "បដិសេធសិទ្ធិវិញ"
+    // លក្ខខណ្ឌទី ៣៖ Approve រួចហើយ
     if (isVerified) {
       buttonsHtml = `
                 <button onclick="c360KycAction('revoke')" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
@@ -856,7 +855,7 @@ function renderKycTab(user) {
                 </button>
             `;
     }
-    // លក្ខខណ្ឌទី ២៖ កំពុង Pending ឃើញប៊ូតុង "អនុម័ត" និង "បដិសេធ"
+    // លក្ខខណ្ឌទី ២៖ កំពុង Pending
     else {
       buttonsHtml = `
                 <button onclick="c360KycAction('approve')" class="kh-text" style="flex: 1; padding: 15px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
@@ -868,7 +867,6 @@ function renderKycTab(user) {
             `;
     }
 
-    // ស្លាកបង្ហាញនៅលើរូបភាព (Status Badge)
     let statusBadge = isVerified
       ? `<div style="position: absolute; top: 12px; left: 12px; background: rgba(16, 185, 129, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-check-circle"></i> បានអនុម័តរួច</div>`
       : `<div style="position: absolute; top: 12px; left: 12px; background: rgba(245, 158, 11, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត</div>`;
@@ -876,49 +874,40 @@ function renderKycTab(user) {
     content = `
             <div style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; margin: 0 auto; gap: 20px;">
                 <h4 class="kh-text" style="margin: 0; color: #475569; width: 100%; text-align: left;">ឯកសារអត្តសញ្ញាណប័ណ្ណ / លិខិតឆ្លងដែន</h4>
-                
                 <div style="width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); cursor: pointer; position: relative; border: 2px solid #e2e8f0; aspect-ratio: 1.6/1; background: #000;" 
                      onclick="c360ViewLargeImage('${imgUrl}')" title="ចុចដើម្បីពង្រីកមើលឱ្យច្បាស់">
-                    
                     <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; opacity: 0.9;" 
                          onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='1'" 
                          onmouseout="this.style.transform='scale(1)'; this.style.opacity='0.9'">
-                    
                     ${statusBadge}
-                    
                     <div style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; backdrop-filter: blur(4px);" class="kh-text">
                         <i class="fa-solid fa-magnifying-glass-plus"></i> ចុចពង្រីក
                     </div>
                 </div>
-
                 <div style="display: flex; gap: 15px; width: 100%;">
                     ${buttonsHtml}
                 </div>
             </div>
         `;
   }
-
   container.innerHTML = content;
 }
 
-// 🔥 មុខងារ ១៖ ចុចពង្រីករូបភាពធំ (Lightbox Modal)
+// មុខងារចុចពង្រីក
 function c360ViewLargeImage(url) {
   Swal.fire({
     imageUrl: url,
     imageAlt: "KYC Document",
-    width: "80%", // ទំហំធំពេញអេក្រង់
+    width: "80%",
     padding: 0,
     showConfirmButton: false,
     showCloseButton: true,
-    background: "transparent", // លាក់ផ្ទៃសខាងក្រោយ
-    customClass: {
-      image: "modal-radius", // ប្រើ CSS Border Radius របស់អ្នក
-      popup: "transparent-popup",
-    },
+    background: "transparent",
+    customClass: { image: "modal-radius", popup: "transparent-popup" },
   });
 }
 
-// 🔥 មុខងារ ២៖ Admin បញ្ចូលរូបភាព KYC ជំនួសអតិថិជន (ធានាមិនគាំងទោះ File ធំ)
+// 🔥 មុខងារ Upload KYC ដោយ Admin
 async function c360AdminUploadKyc(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -930,17 +919,14 @@ async function c360AdminUploadKyc(event) {
   });
 
   try {
-    // ប្រើបច្ចេកទេស Compress រូបភាពផ្ទាល់នៅទីនេះ កាត់ទំហំឱ្យតូចល្មម
     const base64Image = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 600; // 🎯 បង្រួមរូបត្រឹម 600px ឱ្យស្រាលបំផុត និងលឿន
+          const MAX_WIDTH = 600;
           const scaleSize = MAX_WIDTH / img.width;
-
-          // បើកាតតូចស្រាប់ យកទំហំដើម បើធំជាង 600px ត្រូវបង្រួម
           if (img.width > MAX_WIDTH) {
             canvas.width = MAX_WIDTH;
             canvas.height = img.height * scaleSize;
@@ -948,10 +934,9 @@ async function c360AdminUploadKyc(event) {
             canvas.width = img.width;
             canvas.height = img.height;
           }
-
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.6)); // 🎯 Quality 60% លឿនមែនទែន
+          resolve(canvas.toDataURL("image/jpeg", 0.6));
         };
         img.onerror = () => reject("Cannot load image");
         img.src = e.target.result;
@@ -970,9 +955,23 @@ async function c360AdminUploadKyc(event) {
     const data = await res.json();
 
     if (data.success) {
-      // Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ
+      // 💡 រក្សាទុកទិន្នន័យក្នុង RAM ឱ្យជាប់ ដើម្បីកុំឱ្យបាត់រូប
       currentC360User.kycImage = base64Image;
+      currentC360User.idCardImage = base64Image;
       currentC360User.kycStatus = "pending";
+
+      // កត់ត្រាចូល global array ក្រែងលោ Admin ចុចទៅ Tab ផ្សេងរួចត្រឡប់មកវិញ
+      const idx = globalUsersData.findIndex(
+        (u) => u.username === currentC360User.username,
+      );
+      if (idx !== -1) {
+        globalUsersData[idx].kycImage = base64Image;
+        globalUsersData[idx].idCardImage = base64Image;
+        globalUsersData[idx].kycStatus = "pending";
+      }
+
+      // គូរអេក្រង់ឡើងវិញភ្លាមៗ
+      renderCustomerProfile(currentC360User);
       renderKycTab(currentC360User);
 
       // កត់ត្រា Logs
@@ -989,72 +988,95 @@ async function c360AdminUploadKyc(event) {
       Swal.fire({
         icon: "success",
         title: "ជោគជ័យ!",
-        text: "ឯកសារបានបញ្ជូនទៅកាន់ការរង់ចាំអនុម័ត។",
+        text: "លោតចូលផ្ទាំងរង់ចាំអនុម័ត!",
         timer: 1500,
         showConfirmButton: false,
       });
-    } else {
-      Swal.fire("បរាជ័យ", data.message, "error");
-    }
+      // 🚫 ដក c360RefreshData() ចេញ ដើម្បីការពារកុំឱ្យវាឆក់ទិន្នន័យចាស់មកជាន់រូបថ្មី
+    } else Swal.fire("បរាជ័យ", data.message, "error");
   } catch (e) {
-    Swal.fire("Error", "បញ្ហាក្នុងការ Upload សូមសាកល្បងរូបភាពផ្សេង", "error");
+    Swal.fire("Error", "មានបញ្ហាក្នុងការ Upload!", "error");
   }
 }
 
-// Action អនុម័ត ឬ បដិសេធ KYC (កែសម្រួល ១០០%)
+// 🔥 មុខងារ Action (Approve / Reject / Revoke)
 async function c360KycAction(action) {
-  // ១. បញ្ជាក់មូលហេតុ (អ្នកចង់បាន Feature នេះ)
+  let actionKh =
+    action === "approve"
+      ? "អនុម័ត (Approve)"
+      : action === "reject"
+        ? "បដិសេធ (Reject)"
+        : "ដកសិទ្ធិ (Revoke)";
+  let color = action === "approve" ? "#10b981" : "#ef4444";
+
   const { value: remark } = await Swal.fire({
-    title: '<span class="kh-text">បញ្ជាក់មូលហេតុ</span>',
-    input: "text",
-    inputPlaceholder: "បញ្ចូលមូលហេតុ...",
+    title: `<span class="kh-text" style="font-size:1.4rem; color: ${color};">${actionKh} KYC</span>`,
+    html: `
+        <div style="text-align: left; padding: 10px;">
+            <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
+            <input id="swal-kyc-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+        </div>`,
     showCancelButton: true,
     confirmButtonText: "បញ្ជាក់",
     cancelButtonText: "បោះបង់",
+    confirmButtonColor: color,
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      const r = document.getElementById("swal-kyc-remark").value.trim();
+      if (action !== "approve" && !r)
+        Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
+      return r || "គ្មានមូលហេតុ";
+    },
   });
 
-  if (!remark) return; // បើមិនវាយមូលហេតុ មិនឱ្យបន្ត
-
-  try {
+  if (remark) {
     Swal.fire({ title: "កំពុងដំណើរការ...", didOpen: () => Swal.showLoading() });
-
-    const res = await fetch("/api/admin/kyc-action", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        username: currentC360User.username,
-        action,
-        remark, // បញ្ជូន Remark ទៅ Backend ផង
-      }),
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      // ២. Update RAM Data ឱ្យត្រឹមត្រូវ
-      if (action === "approve") currentC360User.kycStatus = "approved";
-      else if (action === "reject") currentC360User.kycStatus = "rejected";
-      else if (action === "revoke") currentC360User.kycStatus = "revoked";
-
-      // ៣. លុបឯកសារចោល បើករណី Reject/Revoke ដើម្បីឱ្យវាលោតទៅផ្ទាំង Upload វិញ
-      if (action === "reject" || action === "revoke") {
-        currentC360User.kycImage = "";
-      }
-
-      Swal.fire({
-        icon: "success",
-        title: "ជោគជ័យ",
-        timer: 1200,
-        showConfirmButton: false,
+    try {
+      const res = await fetch("/api/admin/kyc-action", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          action,
+          remark,
+        }),
       });
+      const data = await res.json();
 
-      // ៤. គូរ UI ទាំងមូលឡើងវិញដើម្បីឱ្យផ្ទាំងប្តូរពណ៌/ប៊ូតុង
-      renderCustomerProfile(currentC360User);
-      renderKycTab(currentC360User); // 🔥 នេះជាគន្លឹះ៖ ហៅមុខងារគូរផ្ទាំង KYC ផ្ទាល់តែម្តង
-    } else {
-      Swal.fire("បរាជ័យ", data.message, "error");
+      if (data.success) {
+        // អាប់ដេត RAM
+        if (action === "approve") currentC360User.kycStatus = "approved";
+        else if (action === "reject" || action === "revoke") {
+          currentC360User.kycStatus = "unverified";
+          currentC360User.kycImage = "";
+          currentC360User.idCardImage = "";
+        }
+
+        // គូរអេក្រង់ឡើងវិញ
+        renderCustomerProfile(currentC360User);
+        renderKycTab(currentC360User);
+
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: `KYC ${action.toUpperCase()}`,
+            target: currentC360User.username,
+            details: `បាន ${actionKh} KYC - ${remark}`,
+          }),
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        // 🚫 ដក c360RefreshData() ចេញដូចគ្នា
+      } else Swal.fire("បរាជ័យ", data.message, "error");
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហាបច្ចេកទេស", "error");
     }
-  } catch (e) {
-    Swal.fire("Error", "មានបញ្ហាបច្ចេកទេស", "error");
   }
 }
 
