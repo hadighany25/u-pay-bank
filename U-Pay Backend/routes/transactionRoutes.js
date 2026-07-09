@@ -9,7 +9,6 @@ const {
 
 // 🕹️ IMPORT CONTROLLERS
 const transactionController = require("../controllers/transactionController"); // Import ទាំងមូលដើម្បីងាយហៅ
-const userController = require("../controllers/userController");
 
 // 🌐 API ROUTES
 router.post("/check-account", verifyUser, transactionController.checkAccount);
@@ -43,7 +42,7 @@ router.post(
   "/egift/send",
   verifyUser,
   enforceSystemActive,
-  userController.sendEgift,
+  transactionController.sendEgift,
 );
 
 module.exports = router;
