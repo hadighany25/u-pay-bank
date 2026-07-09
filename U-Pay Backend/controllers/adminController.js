@@ -1211,17 +1211,20 @@ const adminUploadKyc = async (req, res) => {
   const { username, kycImage } = req.body;
   try {
     const User = require("../models/User");
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+    // ត្រូវតែមានកូដ Save ចូល DB បែបនេះ៖
+    const updatedUser = await User.findOneAndUpdate(
+      { username: username },
+      { $set: { kycImage: kycImage, kycStatus: "pending" } },
+      { new: true },
+    );
 
-    // ដាក់រូបចូល និងកំណត់ស្ថានភាពទៅជា "រង់ចាំការអនុម័ត (pending)"
-    user.kycImage = kycImage;
-    user.kycStatus = "pending";
-    await user.save();
-
-    res.json({ success: true });
+    if (updatedUser) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញ User" });
+    }
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

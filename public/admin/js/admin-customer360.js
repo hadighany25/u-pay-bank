@@ -835,19 +835,57 @@ function renderKycTab(user) {
   `;
 }
 
-// Action អនុម័ត ឬ បដិសេធ KYC
+// Action អនុម័ត ឬ បដិសេធ KYC (កែសម្រួល ១០០%)
 async function c360KycAction(action) {
+  // ១. បញ្ជាក់មូលហេតុ (អ្នកចង់បាន Feature នេះ)
+  const { value: remark } = await Swal.fire({
+    title: '<span class="kh-text">បញ្ជាក់មូលហេតុ</span>',
+    input: "text",
+    inputPlaceholder: "បញ្ចូលមូលហេតុ...",
+    showCancelButton: true,
+    confirmButtonText: "បញ្ជាក់",
+    cancelButtonText: "បោះបង់",
+  });
+
+  if (!remark) return; // បើមិនវាយមូលហេតុ មិនឱ្យបន្ត
+
   try {
+    Swal.fire({ title: "កំពុងដំណើរការ...", didOpen: () => Swal.showLoading() });
+
     const res = await fetch("/api/admin/kyc-action", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ username: currentC360User.username, action }),
+      body: JSON.stringify({
+        username: currentC360User.username,
+        action,
+        remark, // បញ្ជូន Remark ទៅ Backend ផង
+      }),
     });
     const data = await res.json();
+
     if (data.success) {
-      Swal.fire("ជោគជ័យ", "អនុវត្តរួចរាល់", "success");
-      currentC360User.kycStatus = action; // Update RAM Data
-      renderCustomerProfile(currentC360User); // Re-render
+      // ២. Update RAM Data ឱ្យត្រឹមត្រូវ
+      if (action === "approve") currentC360User.kycStatus = "approved";
+      else if (action === "reject") currentC360User.kycStatus = "rejected";
+      else if (action === "revoke") currentC360User.kycStatus = "revoked";
+
+      // ៣. លុបឯកសារចោល បើករណី Reject/Revoke ដើម្បីឱ្យវាលោតទៅផ្ទាំង Upload វិញ
+      if (action === "reject" || action === "revoke") {
+        currentC360User.kycImage = "";
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "ជោគជ័យ",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
+      // ៤. គូរ UI ទាំងមូលឡើងវិញដើម្បីឱ្យផ្ទាំងប្តូរពណ៌/ប៊ូតុង
+      renderCustomerProfile(currentC360User);
+      renderKycTab(currentC360User); // 🔥 នេះជាគន្លឹះ៖ ហៅមុខងារគូរផ្ទាំង KYC ផ្ទាល់តែម្តង
+    } else {
+      Swal.fire("បរាជ័យ", data.message, "error");
     }
   } catch (e) {
     Swal.fire("Error", "មានបញ្ហាបច្ចេកទេស", "error");
