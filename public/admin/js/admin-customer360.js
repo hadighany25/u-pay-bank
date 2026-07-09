@@ -1258,18 +1258,28 @@ function c360ViewTrxDetails(refId) {
 
   // កែសម្រួលផ្នែក statusBadge ក្នុងមុខងារ c360ViewTrxDetails
   let statusBadge = "";
-  const s = (t.status || "").toLowerCase(); // ធ្វើជាអក្សរតូចទាំងអស់ដើម្បីងាយឆែក
+  const s = (t.status || "").toLowerCase();
 
-  if (s === "completed" || s === "success") {
+  // បញ្ជីពាក្យដែលចាត់ទុកថាជោគជ័យ
+  const successStatus = [
+    "completed",
+    "success",
+    "approved",
+    "paid",
+    "finished",
+  ];
+
+  if (successStatus.includes(s)) {
     statusBadge = `<span style="background: #ecfdf5; color: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
   } else if (s === "pending") {
     statusBadge = `<span style="background: #fff7ed; color: #f97316; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-clock"></i> កំពុងរង់ចាំ</span>`;
   } else if (s === "refunded") {
     statusBadge = `<span style="background: #f1f5f9; color: #64748b; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-rotate-left"></i> បានបង្វិលសង</span>`;
+  } else if (s === "failed" || s === "rejected") {
+    statusBadge = `<span style="background: #fef2f2; color: #ef4444; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-times-circle"></i> បរាជ័យ</span>`;
   } else {
-    // នេះជាកន្លែងដែលវាធ្លាក់ចូល (Default) ប្រសិនបើ Status មិនមែនខាងលើ
-    // អ្នកអាចពិនិត្យមើលក្នុង Database ថា Status ពិតប្រាកដរបស់ប្រតិបត្តិការនេះគឺជាអ្វី
-    statusBadge = `<span style="background: #ecfdf5; color: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
+    // ករណី Status ផ្សេងៗដែលមិនស្គាល់ ឱ្យវាបង្ហាញតាមតម្លៃពិតប្រាកដក្នុង DB
+    statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;">${t.status || "N/A"}</span>`;
   }
   // ប៊ូតុង Refund នឹងបង្ហាញតែរាល់ការកាត់ប្រាក់ចេញដែលមិនទាន់ Refund
   let refundBtnHtml = "";
