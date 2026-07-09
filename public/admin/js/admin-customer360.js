@@ -918,7 +918,8 @@ function c360ViewLargeImage(url) {
   });
 }
 
-// 🔥 មុខងារ ២៖ Admin បញ្ចូលរូបភាព KYC ជំនួសអតិថិជន
+// 🔥 មុខងារ ២៖ Admin បញ្ចូលរូបភាព KYC ជំនួសអតិថិជន (កែសម្រួលឱ្យលោតផ្ទាំងភ្លាមៗ)
+
 async function c360AdminUploadKyc(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -930,18 +931,25 @@ async function c360AdminUploadKyc(event) {
   });
 
   try {
-    // បើអ្នកមានមុខងារ compressImageAndPreview ប្រើវាទីនេះកាន់តែល្អ ដើម្បីកុំឱ្យធ្ងន់ DB
-    let base64Image = "";
-    if (typeof compressImageAndPreview === "function") {
-      base64Image = await compressImageAndPreview(file);
-    } else {
-      // Backup ករណីគ្មានមុខងារ Compress
-      base64Image = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
-    }
+    // ប្រើបច្ចេកទេស Compress រូបភាពផ្ទាល់នៅទីនេះ ការពារ Server គាំងព្រោះរូបធំពេក
+    const base64Image = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 800; // បង្រួមរូបត្រឹម 800px ឱ្យស្រាលលឿន
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7)); // Quality 70%
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
     const res = await fetch("/api/admin/upload-kyc", {
       method: "POST",
@@ -954,6 +962,12 @@ async function c360AdminUploadKyc(event) {
     const data = await res.json();
 
     if (data.success) {
+      // 💡 គន្លឹះសំខាន់៖ Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ (លែងជាប់ផ្ទាំងចាស់ទៀតហើយ)
+      currentC360User.kycImage = base64Image;
+      currentC360User.kycStatus = "pending";
+      renderKycTab(currentC360User);
+
+      // កត់ត្រា Logs
       await fetch("/api/admin/log-action", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -963,25 +977,26 @@ async function c360AdminUploadKyc(event) {
           details: `Admin បានបញ្ចូលឯកសារ KYC ជំនួសអតិថិជន`,
         }),
       });
+
       Swal.fire({
         icon: "success",
         title: "ជោគជ័យ!",
-        text: "ឯកសារត្រូវបានបញ្ចូល និងស្ថិតក្នុងការរង់ចាំអនុម័ត។",
+        text: "ឯកសារបានបញ្ជូនទៅកាន់ការរង់ចាំអនុម័ត។",
         timer: 1500,
         showConfirmButton: false,
       });
 
-      // Refresh ទិន្នន័យដើម្បីប្តូរ UI ទៅជា Pending
+      // Update ទិន្នន័យក្រៅតារាង
       if (typeof c360RefreshData === "function") c360RefreshData();
     } else {
       Swal.fire("បរាជ័យ", data.message, "error");
     }
   } catch (e) {
-    Swal.fire("Error", "បញ្ហាក្នុងការ Upload", "error");
+    Swal.fire("Error", "បញ្ហាក្នុងការ Upload (អាចមកពីរូបភាពធំពេក)", "error");
   }
 }
 
-// 🔥 មុខងារ ៣៖ អនុម័ត / បដិសេធ / ដកសិទ្ធិ (មានទាមទារមូលហេតុ)
+// 🔥 មុខងារ ៣៖ អនុម័ត / បដិសេធ / ដកសិទ្ធិ (កែសម្រួលឱ្យលោតផ្ទាំងភ្លាមៗ)
 async function c360KycAction(action) {
   let actionKh =
     action === "approve"
@@ -994,11 +1009,10 @@ async function c360KycAction(action) {
   const { value: remark } = await Swal.fire({
     title: `<span class="kh-text" style="font-size:1.4rem; color: ${color};">${actionKh} KYC</span>`,
     html: `
-            <div style="text-align: left; padding: 10px;">
-                <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
-                <input id="swal-kyc-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
-            </div>
-        `,
+        <div style="text-align: left; padding: 10px;">
+            <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
+            <input id="swal-kyc-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
+        </div>`,
     showCancelButton: true,
     confirmButtonText: '<span class="kh-text">បញ្ជាក់</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
@@ -1015,7 +1029,6 @@ async function c360KycAction(action) {
   if (remark) {
     Swal.fire({ title: "កំពុងដំណើរការ...", didOpen: () => Swal.showLoading() });
     try {
-      // ហៅ API KYC ចាស់របស់អ្នក
       const res = await fetch("/api/admin/kyc-action", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -1028,6 +1041,16 @@ async function c360KycAction(action) {
       const data = await res.json();
 
       if (data.success) {
+        // 💡 គន្លឹះសំខាន់៖ Update RAM ផ្ទាល់ និងបញ្ជាឱ្យគូរ UI ថ្មីភ្លាមៗ
+        if (action === "approve") {
+          currentC360User.kycStatus = "approved";
+        } else if (action === "reject" || action === "revoke") {
+          currentC360User.kycStatus = "unverified";
+          currentC360User.kycImage = ""; // លុបរូបចោលចេញពីអេក្រង់
+        }
+        renderKycTab(currentC360User); // ប្តូរផ្ទាំងភ្លាមៗដោយស្វ័យប្រវត្តិ
+
+        // កត់ត្រា Logs
         await fetch("/api/admin/log-action", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -1037,6 +1060,7 @@ async function c360KycAction(action) {
             details: `បាន ${actionKh} KYC - ${remark}`,
           }),
         });
+
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
@@ -1044,7 +1068,6 @@ async function c360KycAction(action) {
           showConfirmButton: false,
         });
 
-        // Refresh ទិន្នន័យ
         if (typeof c360RefreshData === "function") c360RefreshData();
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
