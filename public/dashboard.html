@@ -2021,51 +2021,89 @@
       }
 
       // ==========================================
-      // 🎁 មុខងារបើកអាំងប៉ាវអនឡាញ (E-Gift
+      // 🎁 មុខងារបើកអាំងប៉ាវអនឡាញ (E-Gift)
       // ==========================================
+
       // រក្សាទុកកាដូដែលកំពុងបើកក្នុង Variable បណ្តោះអាសន្ន
       let currentGiftData = null;
+      let currentNotifId = null; // 🔥 ត្រូវការ ID នេះដើម្បីប្រាប់ Server ថាបានអានរួចហើយ
 
       function checkEgiftNotification(currentUser) {
         if (!currentUser.notifications) return;
+
+        // ស្វែងរកសារអាំងប៉ាវដែលមិនទាន់អាន
         const gift = currentUser.notifications.find(
           (n) => n.type === "egift_receive" && !n.isRead,
         );
 
         if (gift) {
-          currentGiftData = gift.egiftData; // 🔥 ទាញយកទិន្នន័យកាដូទុក
-          document.getElementById("egiftModal").style.display = "flex";
-          // កុំទាន់ Mark as Read ភ្លាម ចាំបើកសំបុត្រសិន
+          currentGiftData = gift.egiftData; // ទាញយកទិន្នន័យកាដូទុក
+          currentNotifId = gift._id || gift.id; // 🔥 រក្សាទុក ID របស់សារ
+
+          const modal = document.getElementById("egiftModal");
+          if (modal) modal.style.display = "flex";
         }
       }
 
-      function openEgift() {
+      async function openEgift() {
         if (!currentGiftData) return;
 
         const envelope = document.getElementById("envelope");
-        envelope.style.transform = "scale(0) rotate(720deg)";
+        if (envelope) envelope.style.transform = "scale(0) rotate(720deg)"; // វិល 2 ជុំ
 
-        setTimeout(() => {
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        setTimeout(async () => {
+          // ១. បាញ់ព្រិល
+          if (typeof confetti === "function") {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          }
 
+          // រៀបចំទម្រង់លុយ
+          const curSym = currentGiftData.currency === "USD" ? "$" : "៛";
+          const displayAmt =
+            currentGiftData.currency === "USD"
+              ? Number(currentGiftData.amount).toFixed(2)
+              : Number(currentGiftData.amount).toLocaleString();
+
+          // ២. បង្ហាញផ្ទាំង Surprise
           Swal.fire({
             html: `
-                <div style="padding:20px;">
-                    <h2 class="kh-text">ទទួលបានអាំងប៉ាវ!</h2>
-                    <div style="font-size:3rem; font-weight:bold; color:var(--gift-red);">${currentGiftData.currency === "USD" ? "$" : "៛"}${currentGiftData.amount}</div>
-                    <p class="kh-text">ពី: <b>${currentGiftData.senderName}</b></p>
-                    <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:10px;">"${currentGiftData.message}"</p>
+                <div style="padding:20px; text-align:center;">
+                    <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                    <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                    <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                    <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${currentGiftData.senderName}</b></p>
+                    <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${currentGiftData.message}"</p>
                 </div>
             `,
-            confirmButtonText: "យល់ព្រម",
+            confirmButtonText: "ឡូយកប់!",
             confirmButtonColor: "#004d40",
+            customClass: { popup: "modal-radius" },
+          }).then(() => {
+            // ៤. ពេលចុច "ឡូយកប់!" អោយវា Refresh ទិន្នន័យដើម្បីបាត់ Notification នេះចេញពី UI
+            if (typeof loadDashboardData === "function") {
+              loadDashboardData(false);
+            }
           });
 
-          document.getElementById("egiftModal").style.display = "none";
+          // បិទផ្ទាំងស្រោមសំបុត្រខ្មៅ
+          const modal = document.getElementById("egiftModal");
+          if (modal) modal.style.display = "none";
 
-          // 🔥 ទើប Mark as read បន្ទាប់ពីបើកជោគជ័យ
-          // ហៅ API ដើម្បី Update ក្នុង DB ថាអានហើយ
-        }, 500);
+          // ៣. 🔥 ហៅ API ដើម្បី Update ក្នុង DB ថាអានហើយ & ប្រាប់អ្នកផ្ញើវិញ
+          try {
+            await fetch("/api/egift/opened", {
+              method: "POST",
+              headers: authHeaders, // យកពី Variable បងដែលមានស្រាប់
+              body: JSON.stringify({
+                receiverName: user.fullName || user.username,
+                senderUsername: currentGiftData.senderUsername, // បាញ់ទៅអ្នកផ្ញើវិញ
+                notifId: currentNotifId, // ID ដើម្បីលុប Notification នេះចោល
+              }),
+            });
+          } catch (e) {
+            console.error("មិនអាច Mark អាំងប៉ាវនេះជាអានហើយបានទេ:", e);
+          }
+        }, 500); // រង់ចាំ 0.5 វិនាទី អោយវិលចប់សិន
       }
 
       // ==========================================
