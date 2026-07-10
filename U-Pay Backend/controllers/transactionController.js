@@ -674,6 +674,7 @@ const sendEgift = async (req, res) => {
 
     // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transactions)
     const refId = "GIFT" + Date.now().toString().slice(-6);
+    const trxHash = Math.random().toString(36).substring(2, 11);
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
@@ -681,6 +682,7 @@ const sendEgift = async (req, res) => {
 
     const senderTrx = {
       refId,
+      hash: trxHash,
       type: "E-Gift Sent",
       amount: -giftAmount,
       currency,
@@ -691,6 +693,7 @@ const sendEgift = async (req, res) => {
     };
     const receiverTrx = {
       refId,
+      hash: trxHash,
       type: "E-Gift Received",
       amount: giftAmount,
       currency,

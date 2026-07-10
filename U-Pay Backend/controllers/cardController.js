@@ -43,8 +43,10 @@ const generateCard = async (req, res) => {
     // កាត់លុយ $5 ពី User
     user.balance -= 5;
     const refId = "CARD-" + Date.now().toString().slice(-6);
+    const trxHash = Math.random().toString(36).substring(2, 11);
     user.transactions.unshift({
       refId,
+      hash: trxHash,
       date: getFormattedDate(),
       type: "Card Issuance Fee",
       amount: -5,
@@ -60,6 +62,7 @@ const generateCard = async (req, res) => {
       centralBank.balance += 5;
       centralBank.transactions.unshift({
         refId,
+        hash: trxHash,
         date: getFormattedDate(),
         type: "System Income",
         amount: 5,
