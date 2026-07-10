@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- U-Pay Core Scripts -->
     <script src="js/lang.js"></script>
@@ -573,7 +574,6 @@
 
       syncAllData();
       setInterval(syncAllData, 3000);
-
       function renderTransactions() {
         const list = document.getElementById("historyList");
         const selectedCurrency =
@@ -600,25 +600,28 @@
           return;
         }
 
-        list.innerHTML = ""; // លាងទិន្នន័យចាស់ចេញ
-        let lastDateLabel = ""; // អថេរចាំទុកថ្ងៃ
+        list.innerHTML = "";
+        let lastDateLabel = "";
 
         currentTransactions.forEach((t, index) => {
           const isIncome = t.amount > 0;
-          const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-          const color = isIncome ? "text-green" : "text-red";
-          const bg = isIncome ? "bg-green" : "bg-red";
+          let icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+          let color = isIncome ? "text-green" : "text-red";
+          let bg = isIncome ? "bg-green" : "bg-red";
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🔥 ព្យាយាមទាញយកថ្ងៃខែឱ្យបានត្រឹមត្រូវ
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift
+          if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
+            icon = "fa-gift";
+          }
+
           let dateObj = new Date(t.date);
           if (isNaN(dateObj.getTime()) && t.date && t.date.includes(",")) {
             dateObj = new Date(t.date.split(",")[0].trim());
           }
-          if (isNaN(dateObj.getTime())) dateObj = new Date(); // បើគ្មានថ្ងៃ ដាក់ថ្ងៃនេះ
+          if (isNaN(dateObj.getTime())) dateObj = new Date();
 
-          // 🔥 បម្លែងថ្ងៃខែទៅជាទម្រង់ស្អាត ឧទាហរណ៍: "JUL 04, 2026"
           let dateStr = dateObj
             .toLocaleDateString("en-US", {
               month: "short",
@@ -627,7 +630,6 @@
             })
             .toUpperCase();
 
-          // បើថ្ងៃប្តូរ ត្រូវបង្កើត Header ថ្មី
           if (dateStr !== lastDateLabel) {
             const dateHeader = document.createElement("div");
             dateHeader.style.cssText =
@@ -637,9 +639,13 @@
             lastDateLabel = dateStr;
           }
 
-          // 🔥 Smart Naming System
+          // 🔥 Smart Naming System ឱ្យត្រូវជាមួយអាំងប៉ាវ
           let name = "";
-          if (isIncome) {
+          if (t.type === "E-Gift Received") {
+            name = "Received E-Gift";
+          } else if (t.type === "E-Gift Sent") {
+            name = `Sent E-Gift to ${t.receiverName || "Someone"}`;
+          } else if (isIncome) {
             name =
               t.senderName || t.merchantName || t.name || t.type || "Received";
           } else {
@@ -655,13 +661,11 @@
             name = t.trxMethod || t.type || "System Transaction";
           }
 
-          // ទាញម៉ោង
           let timeStr = dateObj.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
           });
 
-          // បង្កើត Element ថ្មីសម្រាប់ប្រតិបត្តិការ
           const item = document.createElement("div");
           item.className = "trx-item";
           item.onclick = () => showSlip(index);
@@ -691,22 +695,77 @@
         }
 
         containerMsg.innerHTML = activeMsgs
-          .map(
-            (m) => `
-          <div class="msg-card">
-            <div class="msg-icon"><i class="fa-regular fa-bell"></i></div>
+          .map((m) => {
+            let displayMsg = m.message;
+            let iconClass = "fa-regular fa-bell";
+            let iconBg = "#e0f2fe";
+            let iconColor = "#0284c7";
+            let clickAction = "";
+            let cursorStyle = "";
+
+            // 🎁 ឆែកមើលបើជាសារអាំងប៉ាវ លាក់លុយ ហើយឱ្យគេចុចបើក
+            if (m.type === "egift_receive") {
+              displayMsg =
+                "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក..."; // លាក់ចំនួនលុយ
+              iconClass = "fa-solid fa-gift";
+              iconBg = "#fee2e2";
+              iconColor = "#dc2626";
+              cursorStyle = "cursor: pointer;";
+
+              // ត្រៀមទិន្នន័យដើម្បីបោះចូលទៅ Modal Surprise
+              const amt = m.egiftData?.amount || 0;
+              const cur = m.egiftData?.currency || "USD";
+              const sender =
+                m.egiftData?.senderName?.replace(/'/g, "\\'") || "មិត្តភក្តិ";
+              const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
+
+              clickAction = `onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}')"`;
+            }
+
+            return `
+          <div class="msg-card" ${clickAction} style="${cursorStyle}">
+            <div class="msg-icon" style="background:${iconBg}; color:${iconColor};"><i class="${iconClass}"></i></div>
             <div class="msg-content">
               <h4>${m.title}</h4>
-              <p>${m.message}</p>
+              <p>${displayMsg}</p>
               <span class="msg-date"><i class="fa-regular fa-clock"></i> ${m.date}</span>
             </div>
-            <button class="msg-del-btn" onclick="deleteMessage('${m.title}', '${m.date}')">
+            <button class="msg-del-btn" onclick="event.stopPropagation(); deleteMessage('${m.title}', '${m.date}')">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
-        `,
-          )
+          `;
+          })
           .join("");
+      }
+
+      // 🔥 មុខងារថ្មី៖ បើកអាំងប៉ាវ (Surprise Popup)
+      function handleOpenGift(amount, currency, sender, msg) {
+        // បាញ់ព្រិល (ត្រូវប្រាកដថាបានដាក់ script canvas-confetti ក្នុង <head>)
+        if (typeof confetti === "function") {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        const curSym = currency === "USD" ? "$" : "៛";
+        const displayAmt =
+          currency === "USD"
+            ? Number(amount).toFixed(2)
+            : Number(amount).toLocaleString();
+
+        Swal.fire({
+          html: `
+                  <div style="padding:20px; text-align:center;">
+                      <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                      <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                      <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                      <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
+                      <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
+                  </div>
+              `,
+          confirmButtonText: "ឡូយកប់!",
+          confirmButtonColor: "#004d40",
+          customClass: { popup: "modal-radius" },
+        });
       }
 
       function deleteMessage(title, date) {

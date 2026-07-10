@@ -705,7 +705,8 @@ const sendEgift = async (req, res) => {
     // ៥. 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (មានភ្ជាប់ Theme អាំងប៉ាវ)
     const giftNotification = {
       title: "មានកាដូថ្មី! 🎁",
-      message: `អ្នកទទួលបានអាំងប៉ាវចំនួន ${giftAmount} ${currency} ពី ${sender.fullName || sender.username}`,
+      // លាក់ចំនួនលុយនៅទីនេះ ដើម្បីកុំឱ្យលោតចេញមកមុន
+      message: `អ្នកទទួលបានអាំងប៉ាវពី ${sender.fullName || sender.username}។ ចុចដើម្បីបើកមើល!`,
       type: "egift_receive",
       date: dateStr,
       isRead: false,
@@ -716,6 +717,7 @@ const sendEgift = async (req, res) => {
         theme: theme,
         message: message,
         senderName: sender.fullName || sender.username,
+        senderUsername: sender.username, // 🔥 សំខាន់៖ ត្រូវថែមបន្ទាត់នេះ ដើម្បីផ្ញើសារប្រាប់គាត់វិញពេលគេបើកហើយ
       },
     };
 
@@ -738,6 +740,51 @@ const sendEgift = async (req, res) => {
   }
 };
 
+// 🔥 មុខងារថ្មី៖ ទទួលដំណឹងពេលបើកអាំងប៉ាវ និងផ្ញើសារទៅអ្នកផ្ញើវិញ
+const egiftOpened = async (req, res) => {
+  const { receiverName, senderUsername, notifId } = req.body;
+
+  try {
+    const User = require("../models/User"); // ហៅ User Model
+
+    // ១. Mark អាំងប៉ាវនេះជា "បានអានហើយ" សម្រាប់អ្នកទទួល (ដើម្បីកុំឱ្យវាលោតជាប៊ូតុង "បើកអាំងប៉ាវ" ទៀត)
+    if (notifId) {
+      await User.updateOne(
+        { "notifications._id": notifId },
+        { $set: { "notifications.$.isRead": true } },
+      );
+    }
+
+    // ២. បង្កើត Notification ជូនដំណឹងដល់អ្នកផ្ញើវិញ (Sender)
+    if (senderUsername) {
+      const sender = await User.findOne({ username: senderUsername });
+      if (sender) {
+        const dateStr = new Date().toLocaleString("en-US", { hour12: true });
+
+        const openedNotification = {
+          title: "អាំងប៉ាវត្រូវបានបើកហើយ! 🎉",
+          message: `${receiverName} បានបើកមើលអាំងប៉ាវរបស់អ្នកហើយ។`,
+          type: "egift_opened",
+          date: dateStr,
+          isRead: false,
+        };
+
+        if (!sender.notifications) sender.notifications = [];
+        sender.notifications.push(openedNotification);
+        await sender.save();
+
+        // ប្រសិនបើមាន Socket.IO អាចបញ្ជូនទៅអ្នកផ្ញើភ្លាមៗបាន
+        // req.app.get('io').to(senderUsername).emit('notification', openedNotification);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("E-Gift Opened Error:", error);
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   checkAccount,
   transfer,
@@ -746,4 +793,5 @@ module.exports = {
   claimPromoCode,
   scanBankBill,
   sendEgift,
+  egiftOpened,
 };

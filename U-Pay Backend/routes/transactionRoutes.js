@@ -44,5 +44,6 @@ router.post(
   enforceSystemActive,
   transactionController.sendEgift,
 );
+router.post("/egift/opened", verifyUser, transactionController.egiftOpened);
 
 module.exports = router;

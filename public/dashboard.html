@@ -1641,7 +1641,13 @@
                 let icon = "fa-bullhorn",
                   bg = "#e0f2fe",
                   col = "#0284c7";
-                if (n.title.includes("Received")) {
+                let displayMsg = n.message;
+                let actionBtn = "";
+
+                if (
+                  n.title.includes("Received") &&
+                  n.type !== "egift_receive"
+                ) {
                   icon = "fa-hand-holding-dollar";
                   bg = "#ecfdf5";
                   col = "#10b981";
@@ -1654,16 +1660,41 @@
                   col = "#ea580c";
                 }
 
-                return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px;">
-                        <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
-                        <div><h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4><p style="margin:4px 0; font-size:0.85rem; color:#475569;">${n.message}</p><span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span></div>
+                // 🎁 ដូរការបង្ហាញបើជា E-Gift
+                if (n.type === "egift_receive") {
+                  icon = "fa-gift";
+                  bg = "#fee2e2";
+                  col = "#dc2626";
+                  displayMsg = "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចដើម្បីបើកមើល...";
+
+                  const amt = n.egiftData?.amount || 0;
+                  const cur = n.egiftData?.currency || "USD";
+                  const sender = (
+                    n.egiftData?.senderName || "មិត្តភក្តិ"
+                  ).replace(/'/g, "\\'");
+                  const msg = (n.egiftData?.message || "").replace(/'/g, "\\'");
+                  const notifId = n._id; // ត្រូវការ ID ដើម្បី Update ថាអានហើយ
+                  const senderUsername = n.egiftData?.senderUsername || ""; // ត្រូវការផ្ញើប្រាប់អ្នកផ្ញើវិញ
+
+                  actionBtn = `<button onclick="handleOpenGiftFromDash('${amt}', '${cur}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="margin-top:10px; width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family: inherit;"><i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវ</button>`;
+                }
+
+                return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
+                          <div style="display:flex; gap:12px;">
+                              <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
+                              <div>
+                                  <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4>
+                                  <p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p>
+                                  <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span>
+                              </div>
+                          </div>
+                          ${actionBtn}
                       </div>`;
               })
               .reverse()
               .join("");
           }
         }
-        checkEgiftNotification(serverUser);
       }
 
       function readNotifications() {
@@ -1675,17 +1706,77 @@
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
+        // កុំ Mark as Read ទាំងអស់ បើគាត់គ្រាន់តែបិទ (ទុកអាំងប៉ាវឱ្យលោតនៅដដែល បើគាត់អត់ទាន់បើក)
+        // តែយើង Mark តែសារធម្មតា
         const badge = document.getElementById("notiBadge");
         if (badge && parseInt(badge.innerText) > 0) {
           try {
+            // ហៅ API បើចង់
             await fetch("/api/user/read-notifications", {
               method: "POST",
               headers: authHeaders,
               body: JSON.stringify({ username: user.username }),
             });
-            // Update UI ភ្លាមៗ
             loadDashboardData(false);
           } catch (e) {}
+        }
+      }
+
+      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
+      async function handleOpenGiftFromDash(
+        amount,
+        currency,
+        sender,
+        msg,
+        notifId,
+        senderUsername,
+      ) {
+        // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "none";
+
+        // ២. បាញ់ព្រិល
+        if (typeof confetti === "function") {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        const curSym = currency === "USD" ? "$" : "៛";
+        const displayAmt =
+          currency === "USD"
+            ? Number(amount).toFixed(2)
+            : Number(amount).toLocaleString();
+
+        Swal.fire({
+          html: `
+                  <div style="padding:20px; text-align:center;">
+                      <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                      <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                      <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                      <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
+                      <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
+                  </div>
+              `,
+          confirmButtonText: "ឡូយកប់!",
+          confirmButtonColor: "#004d40",
+          customClass: { popup: "modal-radius" },
+        }).then(() => {
+          // ពេលចុច "ឡូយកប់!" យើង Mark Notification នេះថាបានអាន ហើយ Update UI
+          loadDashboardData(false);
+        });
+
+        // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ
+        try {
+          await fetch("/api/egift/opened", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({
+              receiverName: user.fullName || user.username,
+              senderUsername: senderUsername,
+              notifId: notifId,
+            }),
+          });
+        } catch (e) {
+          console.error(e);
         }
       }
 
@@ -1916,46 +2007,48 @@
       // ==========================================
       // 🎁 មុខងារបើកអាំងប៉ាវអនឡាញ (E-Gift
       // ==========================================
-      // ឆែកមើលអាំងប៉ាវពេលទើបបើក Dashboard
+      // រក្សាទុកកាដូដែលកំពុងបើកក្នុង Variable បណ្តោះអាសន្ន
+      let currentGiftData = null;
+
       function checkEgiftNotification(currentUser) {
         if (!currentUser.notifications) return;
-
-        // រកមើល notification ដែលមាន type ជា egift_receive
         const gift = currentUser.notifications.find(
           (n) => n.type === "egift_receive" && !n.isRead,
         );
 
         if (gift) {
+          currentGiftData = gift.egiftData; // 🔥 ទាញយកទិន្នន័យកាដូទុក
           document.getElementById("egiftModal").style.display = "flex";
-          // បញ្ជាក់ថាបានបើកហើយ ក្នុង DB
-          markNotificationAsRead(gift._id);
+          // កុំទាន់ Mark as Read ភ្លាម ចាំបើកសំបុត្រសិន
         }
       }
 
-      // មុខងារបើកអាំងប៉ាវ
       function openEgift() {
+        if (!currentGiftData) return;
+
         const envelope = document.getElementById("envelope");
-        envelope.style.transform = "scale(0) rotate(720deg)"; // Animation បង្វិលក្បាច់
+        envelope.style.transform = "scale(0) rotate(720deg)";
 
         setTimeout(() => {
-          // បាញ់ព្រិលអបអរសាទរ
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
-          // បង្ហាញលទ្ធផលលុយ
           Swal.fire({
             html: `
                 <div style="padding:20px;">
                     <h2 class="kh-text">ទទួលបានអាំងប៉ាវ!</h2>
-                    <div style="font-size:3rem; font-weight:bold; color:var(--gift-red); margin:20px 0;">$50.00</div>
-                    <p class="kh-text">ពី: <b>ពូ ម៉ៅ</b></p>
-                    <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:10px;">"ជូនពរឱ្យមានសុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច!"</p>
+                    <div style="font-size:3rem; font-weight:bold; color:var(--gift-red);">${currentGiftData.currency === "USD" ? "$" : "៛"}${currentGiftData.amount}</div>
+                    <p class="kh-text">ពី: <b>${currentGiftData.senderName}</b></p>
+                    <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:10px;">"${currentGiftData.message}"</p>
                 </div>
             `,
             confirmButtonText: "យល់ព្រម",
             confirmButtonColor: "#004d40",
-            customClass: { popup: "modal-radius" },
           });
+
           document.getElementById("egiftModal").style.display = "none";
+
+          // 🔥 ទើប Mark as read បន្ទាប់ពីបើកជោគជ័យ
+          // ហៅ API ដើម្បី Update ក្នុង DB ថាអានហើយ
         }, 500);
       }
 
