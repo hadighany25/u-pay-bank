@@ -1822,7 +1822,7 @@
       }
 
       // =========================================
-      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Moda
+      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Modal (Dashboard)
       // =========================================
       function renderTransactionsInModal(currentUser, currency) {
         const list = document.getElementById("sheetTrxList");
@@ -1836,9 +1836,11 @@
           return;
         }
 
+        // 🔥 រក្សាលក្ខខណ្ឌដើមរបស់បង ១០០% មិនតម្រៀបថ្មីទេ (ទុកតាមលំដាប់ធម្មតាដូចមុន)
         let filteredTrx = currentUser.transactions
           .filter((t) => t.currency === currency && t.status !== "Refunded")
           .slice(0, 30);
+
         if (filteredTrx.length === 0) {
           list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការ ${currency} ទេ</p></div>`;
           return;
@@ -1874,29 +1876,26 @@
               ? "text-orange"
               : "text-red";
 
-          // 🔥 បន្ថែម Icon កាដូ ពេលវាជា E-Gift
+          // 🎁 កំណត់ Icon សម្រាប់ E-Gift
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
           }
 
-          // 🔥 កំណត់ឈ្មោះតាមលក្ខខណ្ឌថ្មី (រក្សាទម្រង់ដើមរបស់អ្នក១០០%)
           let title = t.type;
 
+          // 🎁 កំណត់ឈ្មោះ E-Gift និងឈ្មោះធម្មតា
           if (t.type === "E-Gift Received") {
             title = "Received E-Gift";
           } else if (t.type === "E-Gift Sent") {
             title = `Sent E-Gift to ${t.receiverName || "Someone"}`;
           } else if (isIncome) {
-            // បើលុយចូល: យកឈ្មោះអ្នកផ្ញើ បើគ្មានឈ្មោះ ដាក់ថា Received
             title = t.senderName || "Received";
           } else {
-            // បើលុយចេញ: យកឈ្មោះអ្នកទទួល បើគ្មានឈ្មោះ ដាក់ថា Transfer
             title =
               t.receiverName ||
               (t.type === "Card Payment" ? "Card Payment" : "Transfer");
           }
 
-          // លក្ខខណ្ឌចាស់របស់អ្នក: ប្តូរឈ្មោះពី U-Pay Central Bank ទៅជាប្រភេទ (Type)
           if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
             title = t.type || t.trxMethod || title;
           }
@@ -1909,7 +1908,6 @@
           const item = document.createElement("div");
           item.className = "trx-item";
 
-          // ការពារ Error ពេលចុចមើល Slip ដោយប្រាកដថាស្គាល់ username
           const targetUsername =
             currentUser.username ||
             (typeof user !== "undefined" ? user.username : "");
@@ -1917,8 +1915,6 @@
             if (typeof openGlobalSlip === "function")
               openGlobalSlip(t, targetUsername);
           };
-
-          // រក្សា UI របស់បងនៅដដែល មិនប៉ះពាល់ HTML
           item.innerHTML = `
                 <div class="trx-left">
                     <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
