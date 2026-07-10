@@ -1836,9 +1836,15 @@
           return;
         }
 
-        // 🔥 រក្សាលក្ខខណ្ឌដើមរបស់បង ១០០% មិនតម្រៀបថ្មីទេ (ទុកតាមលំដាប់ធម្មតាដូចមុន)
+        // 🔥 ដោះស្រាយបញ្ហាបាត់ Transaction ថ្មី: យើង Reverse វាឱ្យអាថ្មីមកលើគេសិន រួចចាំយក ៣០
         let filteredTrx = currentUser.transactions
-          .filter((t) => t.currency === currency && t.status !== "Refunded")
+          .filter(
+            (t) =>
+              (t.currency === currency ||
+                (!t.currency && currency === "USD")) &&
+              t.status !== "Refunded",
+          )
+          .reverse() // ដាក់អាថ្មីបំផុតនៅលំដាប់លើគេ ដូចបាញ់លុយធម្មតា
           .slice(0, 30);
 
         if (filteredTrx.length === 0) {
@@ -1883,7 +1889,7 @@
 
           let title = t.type;
 
-          // 🎁 កំណត់ឈ្មោះ E-Gift និងឈ្មោះធម្មតា
+          // 🎁 កំណត់ឈ្មោះ
           if (t.type === "E-Gift Received") {
             title = "Received E-Gift";
           } else if (t.type === "E-Gift Sent") {
@@ -1915,6 +1921,7 @@
             if (typeof openGlobalSlip === "function")
               openGlobalSlip(t, targetUsername);
           };
+
           item.innerHTML = `
                 <div class="trx-left">
                     <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
