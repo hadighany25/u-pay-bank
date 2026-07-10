@@ -1820,8 +1820,9 @@
         if (modal) modal.classList.remove("active");
         if (overlay) overlay.classList.remove("active");
       }
+
       // =========================================
-      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Modal
+      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Moda
       // =========================================
       function renderTransactionsInModal(currentUser, currency) {
         const list = document.getElementById("sheetTrxList");
@@ -1873,12 +1874,12 @@
               ? "text-orange"
               : "text-red";
 
-          // 🔥 ថែម Icon កាដូ សម្រាប់ E-Gift
+          // 🔥 បន្ថែម Icon កាដូ ពេលវាជា E-Gift
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
           }
 
-          // 🔥 កូដកែសម្រួលថ្មី ដើម្បីបង្ហាញឈ្មោះអ្នកផ្ញើ និង អាំងប៉ាវ
+          // 🔥 កំណត់ឈ្មោះតាមលក្ខខណ្ឌថ្មី (រក្សាទម្រង់ដើមរបស់អ្នក១០០%)
           let title = t.type;
 
           if (t.type === "E-Gift Received") {
@@ -1895,9 +1896,8 @@
               (t.type === "Card Payment" ? "Card Payment" : "Transfer");
           }
 
-          // 🔥 លក្ខខណ្ឌថ្មី: ប្តូរឈ្មោះពី U-Pay Central Bank ទៅជាប្រភេទ (Type)
+          // លក្ខខណ្ឌចាស់របស់អ្នក: ប្តូរឈ្មោះពី U-Pay Central Bank ទៅជាប្រភេទ (Type)
           if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
-            // វានឹងទាញយក t.type (ឧ. Fixed Deposit, Lucky Spin) មកបង្ហាញជំនួស
             title = t.type || t.trxMethod || title;
           }
 
@@ -1909,16 +1909,16 @@
           const item = document.createElement("div");
           item.className = "trx-item";
 
-          // 🔥 ជួសជុលបញ្ហាចុចមិនដើរ (ធានាថាវាស្គាល់ Username ជានិច្ច)
+          // ការពារ Error ពេលចុចមើល Slip ដោយប្រាកដថាស្គាល់ username
           const targetUsername =
             currentUser.username ||
             (typeof user !== "undefined" ? user.username : "");
           item.onclick = function () {
-            if (typeof openGlobalSlip === "function") {
+            if (typeof openGlobalSlip === "function")
               openGlobalSlip(t, targetUsername);
-            }
           };
 
+          // រក្សា UI របស់បងនៅដដែល មិនប៉ះពាល់ HTML
           item.innerHTML = `
                 <div class="trx-left">
                     <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
