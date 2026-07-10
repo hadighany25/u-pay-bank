@@ -674,7 +674,10 @@ const sendEgift = async (req, res) => {
 
     // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transactions)
     const refId = "GIFT" + Date.now().toString().slice(-6);
-    const dateStr = new Date().toLocaleString("en-US", { hour12: true });
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
 
     const senderTrx = {
       refId,

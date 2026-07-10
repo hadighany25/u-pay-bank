@@ -685,9 +685,10 @@
 
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
-        const activeMsgs = (messages || []).filter(
-          (m) => !deletedMessages.includes(m.date + m.title),
-        );
+        // បន្ថែម .reverse() ដើម្បីឱ្យសារថ្មីៗលោតមកលើគេ
+        const activeMsgs = (messages || [])
+          .filter((m) => !deletedMessages.includes(m.date + m.title))
+          .reverse();
 
         if (activeMsgs.length === 0) {
           containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ / No New Messages</p></div>`;
@@ -703,23 +704,40 @@
             let clickAction = "";
             let cursorStyle = "";
 
-            // 🎁 ឆែកមើលបើជាសារអាំងប៉ាវ លាក់លុយ ហើយឱ្យគេចុចបើក
+            // 🎁 ឆែកមើលបើជាសារអាំងប៉ាវ (អ្នកទទួល)
             if (m.type === "egift_receive") {
-              displayMsg =
-                "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក..."; // លាក់ចំនួនលុយ
               iconClass = "fa-solid fa-gift";
-              iconBg = "#fee2e2";
-              iconColor = "#dc2626";
-              cursorStyle = "cursor: pointer;";
 
-              // ត្រៀមទិន្នន័យដើម្បីបោះចូលទៅ Modal Surprise
-              const amt = m.egiftData?.amount || 0;
-              const cur = m.egiftData?.currency || "USD";
-              const sender =
-                m.egiftData?.senderName?.replace(/'/g, "\\'") || "មិត្តភក្តិ";
-              const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
+              if (!m.isRead) {
+                // មិនទាន់បើក ឱ្យលោតពណ៌ក្រហម និងអាចចុចបាន
+                displayMsg =
+                  "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក..."; // លាក់ចំនួនលុយ
+                iconBg = "#fee2e2";
+                iconColor = "#dc2626";
+                cursorStyle = "cursor: pointer;";
 
-              clickAction = `onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}')"`;
+                // ត្រៀមទិន្នន័យដើម្បីបោះចូលទៅ Modal Surprise និង API
+                const amt = m.egiftData?.amount || 0;
+                const cur = m.egiftData?.currency || "USD";
+                const sender =
+                  m.egiftData?.senderName?.replace(/'/g, "\\'") || "មិត្តភក្តិ";
+                const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
+                const notifId = m._id || m.id || "";
+                const senderUsername = m.egiftData?.senderUsername || "";
+
+                clickAction = `onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}', '${notifId}', '${senderUsername}')"`;
+              } else {
+                // បើករួចហើយ លោតពណ៌បៃតង មិនឱ្យចុច Surprise ម្តងទៀតទេ
+                displayMsg = "✅ អ្នកបានបើកអាំងប៉ាវនេះរួចរាល់ហើយ។";
+                iconBg = "#d1fae5";
+                iconColor = "#10b981";
+              }
+            }
+            // 🎁 សារសម្រាប់អ្នកផ្ញើ ពេលគេបើកអាំងប៉ាវរួច
+            else if (m.type === "egift_opened") {
+              iconClass = "fa-solid fa-envelope-open";
+              iconBg = "#fce7f3"; // ពណ៌ផ្កាឈូក
+              iconColor = "#db2777";
             }
 
             return `
@@ -739,8 +757,15 @@
           .join("");
       }
 
-      // 🔥 មុខងារថ្មី៖ បើកអាំងប៉ាវ (Surprise Popup)
-      function handleOpenGift(amount, currency, sender, msg) {
+      // 🔥 មុខងារថ្មី៖ បើកអាំងប៉ាវ (Surprise Popup) រួចបាញ់ API
+      async function handleOpenGift(
+        amount,
+        currency,
+        sender,
+        msg,
+        notifId,
+        senderUsername,
+      ) {
         // បាញ់ព្រិល (ត្រូវប្រាកដថាបានដាក់ script canvas-confetti ក្នុង <head>)
         if (typeof confetti === "function") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -765,7 +790,25 @@
           confirmButtonText: "ឡូយកប់!",
           confirmButtonColor: "#004d40",
           customClass: { popup: "modal-radius" },
+        }).then(() => {
+          // Refresh ឱ្យបាត់ប៊ូតុងពណ៌ក្រហម (ដូរទៅពណ៌បៃតង)
+          if (typeof syncAllData === "function") syncAllData();
         });
+
+        // បាញ់ API ប្រាប់ Server ថាអានហើយ & ផ្ញើដំណឹងប្រាប់ម្ចាស់លុយវិញ
+        try {
+          await fetch("/api/egift/opened", {
+            method: "POST",
+            headers: authHeadersFetch,
+            body: JSON.stringify({
+              receiverName: sessionUser.fullName || sessionUser.username,
+              senderUsername: senderUsername,
+              notifId: notifId,
+            }),
+          });
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       function deleteMessage(title, date) {
