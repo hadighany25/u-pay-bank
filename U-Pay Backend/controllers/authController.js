@@ -173,39 +173,23 @@ const heartbeat = async (req, res) => {
 };
 
 // ==========================================
-// 🔄 ទាញយកទិន្នន័យ User និងផ្គុំជាមួយ Transaction ថ្មីៗ
+// 🔄 ទាញយកទិន្នន័យ User និងទាញ Transaction ថ្មីៗ ១០០%
 // ==========================================
 const getUsers = async (req, res) => {
   try {
-    // ១. ទាញយកទិន្នន័យ User ទាំងអស់ពី Collection ចាស់
     const users = await User.find({});
-
-    // ២. ទាញយក Transaction ទាំងអស់ពី Collection ថ្មី រួចតម្រៀបពីថ្មីមកចាស់
+    // ទាញយកពីប្រព័ន្ធថ្មី រួចតម្រៀបពីថ្មីមកចាស់
     const allTransactions = await Transaction.find({}).sort({ createdAt: -1 });
 
-    // ៣. យកទិន្នន័យទាំង២ មកផ្គុំចូលគ្នាវិញ
     const usersWithTrx = users.map((user) => {
-      const userObj = user.toObject(); // បម្លែងទៅជា Object សាមញ្ញសិន
-
-      // ចាប់យកតែ Transaction ណាដែលជារបស់ User ម្នាក់នេះប៉ុណ្ណោះ
-      const userNewTransactions = allTransactions.filter(
+      const userObj = user.toObject();
+      // 🔥 យកតែពី Collection ថ្មីសុទ្ធ ១០០% គ្មានការលាយឡំ
+      userObj.transactions = allTransactions.filter(
         (t) => t.username === user.username,
       );
-
-      // បញ្ចូល Transaction ចាស់ (បើមាន) ជាមួយ Transaction ថ្មីបញ្ជូលគ្នា រួចតម្រៀបឡើងវិញ
-      const combinedTransactions = [
-        ...userNewTransactions,
-        ...(userObj.transactions || []),
-      ];
-
-      // តម្រៀបប្រវត្តិទាំងអស់ពីថ្មីមកចាស់ម្តងទៀតឱ្យច្បាស់លាស់
-      combinedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      userObj.transactions = combinedTransactions;
       return userObj;
     });
 
-    // ៤. បោះទិន្នន័យដែលផ្គុំរួចទៅឱ្យ Frontend (Dashboard នឹងគិតថាវាចេញពីកន្លែងតែមួយដូចមុន)
     res.json(usersWithTrx);
   } catch (err) {
     console.error("GET USERS ERROR:", err);
@@ -470,23 +454,45 @@ const adminLogin = async (req, res) => {
   }
 };
 
-module.exports = {
-  register,
-  login,
-  logout,
-  heartbeat,
-  getUsers,
-  changePassword,
-  changePin,
-  changeLimit,
-  uploadImage,
-  submitKyc,
-  verifyUser,
-  resetPassword,
-  generateTelegramCode,
-  unlinkTelegram,
-  verifyAccount,
-  adminLogin,
+// ==========================================
+// 🚀 មុខងារពិសេស (Run តែម្តង): ជម្លៀសទិន្នន័យ Transaction ចាស់ៗទៅកន្លែងថ្មី
+// ==========================================
+const migrateTransactions = async (req, res) => {
+  try {
+    // រកមើលតែ User ណាដែលមាន Transaction ចាស់សេសសល់
+    const users = await User.find({ "transactions.0": { $exists: true } });
+    let totalMigrated = 0;
+
+    for (let user of users) {
+      if (user.transactions && user.transactions.length > 0) {
+        // ១. រៀបចំទិន្នន័យចាស់ៗ ដោយថែមឈ្មោះ username ចូល
+        const trxsToInsert = user.transactions.map((t) => {
+          const tObj = t.toObject ? t.toObject() : t;
+          return { ...tObj, username: user.username };
+        });
+
+        // ២. បញ្ចូលទៅកាន់ Collection ថ្មី (Transaction.js)
+        await Transaction.insertMany(trxsToInsert);
+        totalMigrated += trxsToInsert.length;
+
+        // ៣. លុបទិន្នន័យចេញពី User ចោល
+        user.transactions = undefined;
+        await user.save();
+      }
+    }
+
+    // ៤. ធានាថាលុប Field 'transactions' ពី Database Structure របស់ User ទាំងស្រុង
+    await User.updateMany({}, { $unset: { transactions: 1 } });
+
+    res.json({
+      success: true,
+      message: `អបអរសាទរ! បានជម្លៀសប្រតិបត្តិការចាស់ៗចំនួន ${totalMigrated} ទៅកាន់ប្រព័ន្ធថ្មីដោយជោគជ័យ និងលុបចេញពីគណនីចាស់ៗអស់ហើយ!`,
+      usersAffected: users.length,
+    });
+  } catch (err) {
+    console.error("MIGRATION ERROR:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 module.exports = {
@@ -506,4 +512,5 @@ module.exports = {
   unlinkTelegram,
   verifyAccount,
   adminLogin,
+  migrateTransactions,
 };

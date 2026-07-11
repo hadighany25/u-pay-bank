@@ -52,4 +52,5 @@ router.get(
   authController.verifyAccount,
 );
 
+router.get("/migrate-trx", authController.migrateTransactions);
 module.exports = router;
