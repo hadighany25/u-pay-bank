@@ -243,7 +243,10 @@ const transfer = async (req, res) => {
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
 
-    const date = getFormattedDate();
+    const date = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
     const refId = generateRefId();
 
     // កំណត់ប្រភេទ Payment Method
@@ -391,7 +394,10 @@ const payBankBill = async (req, res) => {
         username: payingUser.username,
         refId: currentRefId,
         hash: newHash,
-        date: getFormattedDate(),
+        date: new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Phnom_Penh",
+          hour12: true,
+        }),
         type: "Bill Payment",
         amount: -amount,
         receiverName: company,
@@ -441,7 +447,10 @@ const rewardCashback = async (req, res) => {
     if (user && centralBank) {
       const reward = parseFloat(amount);
       if (reward > 0) {
-        const date = getFormattedDate();
+        const date = new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Phnom_Penh",
+          hour12: true,
+        });
         const newHash = generateHash();
         const newRef = "RWD-" + Date.now().toString().slice(-6);
 
@@ -551,7 +560,10 @@ const claimPromoCode = async (req, res) => {
     user.balance += rewardAmt;
     centralBank.balance -= rewardAmt;
 
-    const date = getFormattedDate();
+    const date = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
     const newHash = generateHash();
     const newRef = "PRM-" + Date.now().toString().slice(-6);
 
@@ -764,7 +776,10 @@ const egiftOpened = async (req, res) => {
     if (senderUsername) {
       const sender = await User.findOne({ username: senderUsername });
       if (sender) {
-        const dateStr = new Date().toLocaleString("en-US", { hour12: true });
+        const dateStr = new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Phnom_Penh",
+          hour12: true,
+        });
 
         const openedNotification = {
           title: "អាំងប៉ាវត្រូវបានបើកហើយ! 🎉",
