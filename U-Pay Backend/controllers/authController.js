@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const Transaction = require("../models/Transaction");
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
@@ -171,11 +172,43 @@ const heartbeat = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🔄 ទាញយកទិន្នន័យ User និងផ្គុំជាមួយ Transaction ថ្មីៗ
+// ==========================================
 const getUsers = async (req, res) => {
   try {
+    // ១. ទាញយកទិន្នន័យ User ទាំងអស់ពី Collection ចាស់
     const users = await User.find({});
-    res.json(users);
+
+    // ២. ទាញយក Transaction ទាំងអស់ពី Collection ថ្មី រួចតម្រៀបពីថ្មីមកចាស់
+    const allTransactions = await Transaction.find({}).sort({ createdAt: -1 });
+
+    // ៣. យកទិន្នន័យទាំង២ មកផ្គុំចូលគ្នាវិញ
+    const usersWithTrx = users.map((user) => {
+      const userObj = user.toObject(); // បម្លែងទៅជា Object សាមញ្ញសិន
+
+      // ចាប់យកតែ Transaction ណាដែលជារបស់ User ម្នាក់នេះប៉ុណ្ណោះ
+      const userNewTransactions = allTransactions.filter(
+        (t) => t.username === user.username,
+      );
+
+      // បញ្ចូល Transaction ចាស់ (បើមាន) ជាមួយ Transaction ថ្មីបញ្ជូលគ្នា រួចតម្រៀបឡើងវិញ
+      const combinedTransactions = [
+        ...userNewTransactions,
+        ...(userObj.transactions || []),
+      ];
+
+      // តម្រៀបប្រវត្តិទាំងអស់ពីថ្មីមកចាស់ម្តងទៀតឱ្យច្បាស់លាស់
+      combinedTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      userObj.transactions = combinedTransactions;
+      return userObj;
+    });
+
+    // ៤. បោះទិន្នន័យដែលផ្គុំរួចទៅឱ្យ Frontend (Dashboard នឹងគិតថាវាចេញពីកន្លែងតែមួយដូចមុន)
+    res.json(usersWithTrx);
   } catch (err) {
+    console.error("GET USERS ERROR:", err);
     res.status(500).json({ success: false });
   }
 };

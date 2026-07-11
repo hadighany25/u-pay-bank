@@ -4,6 +4,7 @@ const PromoCode = require("../models/PromoCode");
 const bot = require("../services/telegramBot");
 const Merchant = require("../models/Merchant");
 const mongoose = require("mongoose");
+const Transaction = require("../models/Transaction");
 const {
   getFormattedDate,
   generateRefId,
@@ -78,6 +79,7 @@ const checkAccount = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 // ==========================================
 // ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវាដែលបានជួសជុលរួច
 // ==========================================
@@ -289,11 +291,13 @@ const transfer = async (req, res) => {
       status: "Success",
     };
 
-    // 👈 ត្រូវបញ្ជូន senderTrx និង receiverTrx ដែលបានរៀបចំរួច ចូលទៅក្នុង Database
-    sender.transactions.unshift(senderTrx);
-    receiver.transactions.unshift(receiverTrx);
+    // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+    senderTrx.username = sender.username;
+    receiverTrx.username = receiver.username;
+    await Transaction.create(senderTrx);
+    await Transaction.create(receiverTrx);
 
-    // បញ្ជាក់ការ Save ម្តងទៀត ដើម្បីធានាថា Transaction ចូល
+    // បញ្ជាក់ការ Save ម្តងទៀត ដើម្បីធានាថា Transaction ចូល (Save តែ User ដើម្បីអាប់ដេតលុយ)
     await sender.save();
     await receiver.save();
 
@@ -350,13 +354,6 @@ const scanBankBill = async (req, res) => {
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
 
-  // ⚠️ លុប ឬ Comment របាំងសុវត្ថិភាពនេះចោលបណ្តោះអាសន្នសិន ដើម្បីឱ្យរត់រួច
-  /*
-  if (req.user && req.user.username !== username) {
-    return res.status(403).json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
-  }
-  */
-
   try {
     let payingUser = await User.findOne({ username });
     if (!payingUser)
@@ -389,7 +386,9 @@ const payBankBill = async (req, res) => {
       payingUser.balance -= amount;
       const newHash = generateHash();
 
-      payingUser.transactions.unshift({
+      // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+      await Transaction.create({
+        username: payingUser.username,
         refId: currentRefId,
         hash: newHash,
         date: getFormattedDate(),
@@ -399,7 +398,7 @@ const payBankBill = async (req, res) => {
         remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
         status: "Success",
       });
-      payingUser.markModified("transactions");
+
       await payingUser.save();
 
       // ឆ្លើយតបទៅ payment.html វិញ
@@ -447,8 +446,11 @@ const rewardCashback = async (req, res) => {
         const newRef = "RWD-" + Date.now().toString().slice(-6);
 
         user.balance += reward;
-        if (!user.transactions) user.transactions = [];
-        user.transactions.unshift({
+        centralBank.balance -= reward;
+
+        // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+        await Transaction.create({
+          username: user.username,
           refId: newRef,
           hash: newHash,
           date: date,
@@ -464,9 +466,8 @@ const rewardCashback = async (req, res) => {
           ip: req.ip || "127.0.0.1",
         });
 
-        centralBank.balance -= reward;
-        if (!centralBank.transactions) centralBank.transactions = [];
-        centralBank.transactions.unshift({
+        await Transaction.create({
+          username: centralBank.username,
           refId: newRef,
           hash: newHash,
           date: date,
@@ -482,13 +483,10 @@ const rewardCashback = async (req, res) => {
           ip: "127.0.0.1",
         });
 
-        user.markModified("transactions");
-        centralBank.markModified("transactions");
-
         await user.save();
         await centralBank.save();
       }
-      res.json({ success: true, balance: user.balance }); // ត្រឹមត្រូវ (លុបកូដដែលច្រឡំដាក់ចូលចោលហើយ)
+      res.json({ success: true, balance: user.balance });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីធនាគារកណ្តាល!" });
     }
@@ -557,8 +555,9 @@ const claimPromoCode = async (req, res) => {
     const newHash = generateHash();
     const newRef = "PRM-" + Date.now().toString().slice(-6);
 
-    // កត់ត្រាប្រវត្តិ
-    user.transactions.unshift({
+    // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+    await Transaction.create({
+      username: user.username,
       refId: newRef,
       hash: newHash,
       date: date,
@@ -573,7 +572,8 @@ const claimPromoCode = async (req, res) => {
       trxMethod: "API Endpoint",
     });
 
-    centralBank.transactions.unshift({
+    await Transaction.create({
+      username: centralBank.username,
       refId: newRef,
       hash: newHash,
       date: date,
@@ -592,9 +592,6 @@ const claimPromoCode = async (req, res) => {
     promo.usedCount += 1;
     promo.usedBy.push(username);
 
-    user.markModified("transactions");
-    centralBank.markModified("transactions");
-
     await promo.save();
     await user.save();
     await centralBank.save();
@@ -608,6 +605,7 @@ const claimPromoCode = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 // ==========================================
 // 6. Egift / Scan Bank Bill API (សម្រាប់ App ផ្សេងៗហៅមកទាញលុយ)
 // ==========================================
@@ -703,10 +701,11 @@ const sendEgift = async (req, res) => {
       status: "Completed",
     };
 
-    if (!sender.transactions) sender.transactions = [];
-    if (!receiver.transactions) receiver.transactions = [];
-    sender.transactions.push(senderTrx);
-    receiver.transactions.push(receiverTrx);
+    // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+    senderTrx.username = sender.username;
+    receiverTrx.username = receiver.username;
+    await Transaction.create(senderTrx);
+    await Transaction.create(receiverTrx);
 
     // ៥. 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (មានភ្ជាប់ Theme អាំងប៉ាវ)
     const giftNotification = {
