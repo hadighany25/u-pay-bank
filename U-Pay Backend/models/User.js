@@ -18,7 +18,6 @@ const userSchema = new mongoose.Schema(
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
-    transactions: { type: Array, default: [] },
     notifications: { type: Array, default: [] },
     tickets: { type: Array, default: [] },
     savings: { type: Array, default: [] },
