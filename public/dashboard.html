@@ -1661,23 +1661,21 @@
                   col = "#ea580c";
                 }
 
-                // 🎁 ដូរការបង្ហាញបើជា E-Gift
+                // 🎁 ដូរការបង្ហាញបើជា E-Gift (ដាក់ជាសារធម្មតា គ្មានប៊ូតុង)
                 if (n.type === "egift_receive") {
                   icon = "fa-gift";
                   bg = "#fee2e2";
                   col = "#dc2626";
-                  displayMsg = "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចដើម្បីបើកមើល...";
 
-                  const amt = n.egiftData?.amount || 0;
-                  const cur = n.egiftData?.currency || "USD";
                   const sender = (
                     n.egiftData?.senderName || "មិត្តភក្តិ"
                   ).replace(/'/g, "\\'");
-                  const msg = (n.egiftData?.message || "").replace(/'/g, "\\'");
-                  const notifId = n._id; // ត្រូវការ ID ដើម្បី Update ថាអានហើយ
-                  const senderUsername = n.egiftData?.senderUsername || ""; // ត្រូវការផ្ញើប្រាប់អ្នកផ្ញើវិញ
 
-                  actionBtn = `<button onclick="handleOpenGiftFromDash('${amt}', '${cur}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="margin-top:10px; width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-family: inherit;"><i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវ</button>`;
+                  // បង្ហាញជាអត្ថបទធម្មតា ប្រាប់ឱ្យគាត់ទៅមើលក្នុង History វិញ
+                  displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}! (សូមចូលទៅកាន់ History > Messages ដើម្បីបើកមើល)`;
+
+                  // 👈 ទុក actionBtn ឱ្យនៅទទេ ដើម្បីលុបប៊ូតុងចេញពី Dashboard
+                  actionBtn = "";
                 }
 
                 return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
