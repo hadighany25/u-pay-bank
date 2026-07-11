@@ -14,11 +14,19 @@ function renderUsersTable(users) {
     return;
   }
 
-  // 🔥 កែត្រង់នេះ៖ បើកសិទ្ធិឱ្យឃើញប៊ូតុង Edit, Add, Deduct, Delete ទាំងអស់
-  const canEdit = true;
-  const canDelete = true;
-  const canFreeze = true;
-  const canAdjust = true;
+  const canEdit =
+    adminRole === "super_admin" ||
+    (myAdminPermissions && myAdminPermissions.actions?.editUser);
+  const canDelete =
+    adminRole === "super_admin" ||
+    (myAdminPermissions && myAdminPermissions.actions?.deleteUser);
+  const canFreeze =
+    adminRole === "super_admin" ||
+    (myAdminPermissions && myAdminPermissions.actions?.freezeUser);
+  const canAdjust =
+    adminRole === "super_admin" ||
+    (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
+
   // បង្កើត HTML ជាដុំធំតែមួយ ដើម្បីឱ្យ Browser គូរបានលឿនបំផុត ទោះមានរាប់ពាន់ជួរក៏ដោយ
   const rowsHtml = users
     .map((u) => {
