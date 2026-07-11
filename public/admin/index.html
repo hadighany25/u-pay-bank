@@ -544,6 +544,36 @@
                 <th data-i18n="current-balance">Current Balance</th>
                 <th data-i18n="status-freeze">Status / Freeze</th>
                 <th style="text-align: right" data-i18n="actions">Actions</th>
+                <td style="text-align: right; white-space: nowrap">
+                  <button
+                    class="action-btn"
+                    onclick="openEditUser('${user.username}')"
+                    title="Edit"
+                  >
+                    <i class="fa-solid fa-pen" style="color: #3b82f6"></i>
+                  </button>
+                  <button
+                    class="action-btn"
+                    onclick="addBalance('${user.username}')"
+                    title="Add Balance"
+                  >
+                    <i class="fa-solid fa-plus" style="color: #10b981"></i>
+                  </button>
+                  <button
+                    class="action-btn"
+                    onclick="deductBalance('${user.username}')"
+                    title="Deduct Balance"
+                  >
+                    <i class="fa-solid fa-minus" style="color: #f97316"></i>
+                  </button>
+                  <button
+                    class="action-btn"
+                    onclick="deleteUser('${user.username}')"
+                    title="Delete"
+                  >
+                    <i class="fa-solid fa-trash" style="color: #ef4444"></i>
+                  </button>
+                </td>
               </tr>
             </thead>
             <tbody></tbody>
