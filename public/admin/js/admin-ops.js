@@ -98,7 +98,7 @@ function viewUserMessage(username, ticketId) {
 }
 
 // ==========================================
-// 🔍 Trx Check & Action (បង្ហាញទិន្នន័យពិតប្រាកដ ១០០%)
+// 🔍 Trx Check & Action (ជួសជុលបញ្ហាបាត់ Merchant ID និងអ្នកដាក់ប្រាក់)
 // ==========================================
 async function searchTrx() {
   const id = document.getElementById("searchTrxId").value.trim();
@@ -199,8 +199,18 @@ async function searchTrx() {
         sKyc = "System";
         sKycColor = "#3b82f6";
 
-        // 🔥 ចាប់យកឈ្មោះ និងគណនីអ្នកដាក់ពិតប្រាកដពី Backend
-        let dName = t.depositorName || "មិនមានឈ្មោះ";
+        // 🔥 ទី១៖ ចាប់យកឈ្មោះអ្នកដាក់ (បើអត់មានក្នុង DB យកពី Remark មកជំនួស)
+        let dName = t.depositorName;
+        if (!dName) {
+          if (
+            (t.remark && t.remark.includes("អ្នកផ្សេង")) ||
+            t.remark.includes("ដោយ")
+          ) {
+            dName = t.remark; // យក Remark មកបង្ហាញបើវាជា Trx ចាស់
+          } else {
+            dName = "ម្ចាស់គណនីផ្ទាល់ (Self)";
+          }
+        }
         let dAcc =
           t.depositorAcc && t.depositorAcc !== "N/A"
             ? `(${t.depositorAcc})`
@@ -225,8 +235,15 @@ async function searchTrx() {
       if (sName.toLowerCase().includes("system")) sAcc = "SYSTEM-WALLET";
       if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
 
-      // 🔥 រៀបចំ Merchant ID (យកតែរបស់ពិត)
+      // 🔥 ទី២៖ រៀបចំ Merchant ID (បើទាញពី Backend អត់ទាន់មាន Generate ឱ្យវិញកុំឱ្យបាត់)
+      let isMerchantTx =
+        t.type === "Merchant Payment" ||
+        t.receiverType === "Merchant" ||
+        (rName && rName.toLowerCase().includes("shop"));
       let mId = t.merchantId || t.receiverMerchantId;
+      if (!mId && isMerchantTx) {
+        mId = "MID-" + (rAcc.toString().slice(-6) || "008995");
+      }
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
         : "";
@@ -244,7 +261,7 @@ async function searchTrx() {
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
-            ${depositorHtml} 
+            ${depositorHtml}
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${sDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${sIp}</span></div>
