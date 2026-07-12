@@ -937,23 +937,22 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
-// 🔍 Transaction Verification (កែតម្រូវឱ្យស្វែងរកក្នុង Transaction Collection)
+// 🔍 Transaction Verification (កែតម្រូវឱ្យចាប់យក Account Number ពិតប្រាកដ)
 const getTransaction = async (req, res) => {
   const searchTerm = req.params.id.trim();
 
   try {
-    // ១. ស្វែងរកដោយផ្ទាល់នៅក្នុង Transaction Collection
     const foundTrx = await Transaction.findOne({
       $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
 
     if (foundTrx) {
-      // ២. ស្វែងរកព័ត៌មានអ្នកផ្ញើ និងអ្នកទទួល ដើម្បីយកស្ថានភាព KYC
+      // ស្វែងរក Object របស់អ្នកផ្ញើ និងអ្នកទទួល ដើម្បីទាញយក KYC និង លេខគណនី
       const senderObj = await User.findOne({
         $or: [
-          { username: foundTrx.username }, // អាចជាម្ចាស់ Transaction ផ្ទាល់
+          { username: foundTrx.username },
+          { username: foundTrx.senderName },
           { accountNumber: foundTrx.senderAcc },
-          { accountNumberKHR: foundTrx.senderAcc },
         ],
       });
 
@@ -961,15 +960,15 @@ const getTransaction = async (req, res) => {
         $or: [
           { accountNumber: foundTrx.receiverAcc },
           { accountNumberKHR: foundTrx.receiverAcc },
+          { username: foundTrx.receiverName },
         ],
       });
 
-      // ៣. បំប្លែងទិន្នន័យ (Object) ដើម្បីអាចបន្ថែម Field KYC ចូលបាន
       let trxDetails = {
         ...(foundTrx.toObject ? foundTrx.toObject() : foundTrx),
       };
 
-      // បន្ថែមស្ថានភាព KYC ចូលទៅក្នុង Object មុននឹងបញ្ជូនទៅ Frontend
+      // ដាក់បញ្ចូល KYC
       trxDetails.senderKyc = senderObj
         ? senderObj.kycStatus || "Unverified"
         : "Unverified";
@@ -977,7 +976,12 @@ const getTransaction = async (req, res) => {
         ? receiverObj.kycStatus || "Unverified"
         : "Unverified";
 
-      // ៤. បញ្ជូនលទ្ធផលជោគជ័យ
+      // 🔥 ទាញយក Account Number ពិតប្រាកដ បើសិនក្នុង Trx ចាស់ៗអត់មាន
+      if (!trxDetails.senderAcc && senderObj)
+        trxDetails.senderAcc = senderObj.accountNumber;
+      if (!trxDetails.receiverAcc && receiverObj)
+        trxDetails.receiverAcc = receiverObj.accountNumber;
+
       res.json({
         success: true,
         transaction: trxDetails,
