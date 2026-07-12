@@ -274,3 +274,129 @@ async function togglePromoStatus(id) {
   });
   loadPromoCodes();
 }
+
+/* ==========================================
+   Cashier (បេឡាករ) Logic
+   ========================================== */
+let currentTargetUser = null;
+let currentDepositorUser = null;
+
+// បិទ/បើក ប្រអប់ "អ្នកផ្សេងដាក់ឱ្យ"
+function toggleDepositorType() {
+  const type = document.querySelector(
+    'input[name="depositorType"]:checked',
+  ).value;
+  const otherDiv = document.getElementById("otherDepositorDiv");
+  if (type === "other") {
+    otherDiv.style.display = "block";
+  } else {
+    otherDiv.style.display = "none";
+    currentDepositorUser = null;
+    document.getElementById("depositorSearch").value = "";
+    document.getElementById("depositorName").style.display = "none";
+  }
+}
+
+// ស្វែងរកអ្នកទទួលប្រាក់ (Mock Data ជាបណ្តោះអាសន្នសិន)
+function searchTargetUser() {
+  const searchValue = document.getElementById("targetUserSearch").value.trim();
+  if (!searchValue)
+    return Swal.fire("បំរាម", "សូមវាយលេខគណនី ឬ Username", "warning");
+
+  Swal.showLoading();
+
+  // ចាំយើងដូរទៅជាការ Fetch API ពិតប្រាកដនៅជំហានក្រោយ
+  setTimeout(() => {
+    Swal.close();
+    currentTargetUser = {
+      username: searchValue,
+      fullName: "សុខ ដារ៉ា (Mock)",
+      balanceUSD: 1500.5,
+      balanceKHR: 400000,
+      kycImage: "https://via.placeholder.com/400x250?text=KYC+Card+Image",
+    };
+
+    document.getElementById("cardName").innerText =
+      `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
+    document.getElementById("cardBalUSD").innerText =
+      `USD: $${currentTargetUser.balanceUSD}`;
+    document.getElementById("cardBalKHR").innerText =
+      `KHR: ៛${currentTargetUser.balanceKHR}`;
+
+    document.getElementById("targetUserCard").style.display = "flex";
+    document.getElementById("transactionForm").style.display = "block";
+  }, 600);
+}
+
+// ឆែកឈ្មោះអ្នកដាក់ឱ្យ
+function verifyDepositor() {
+  const val = document.getElementById("depositorSearch").value.trim();
+  if (val.length >= 3) {
+    document.getElementById("depositorName").style.display = "block";
+    document.getElementById("depNameText").innerText = "កំពុងស្វែងរក...";
+
+    setTimeout(() => {
+      currentDepositorUser = { fullName: "ចាន់ មករា (Mock)", username: val };
+      document.getElementById("depNameText").innerText =
+        `${currentDepositorUser.fullName} (@${currentDepositorUser.username})`;
+    }, 500);
+  } else {
+    document.getElementById("depositorName").style.display = "none";
+    currentDepositorUser = null;
+  }
+}
+
+// មើល KYC
+function viewKYC() {
+  if (!currentTargetUser) return;
+  Swal.fire({
+    title: `អត្តសញ្ញាណប័ណ្ណរបស់ ${currentTargetUser.fullName}`,
+    imageUrl: currentTargetUser.kycImage,
+    imageWidth: 400,
+    imageAlt: "KYC Image",
+  });
+}
+
+// ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់
+function processCashTransaction() {
+  const type = document.querySelector(
+    'input[name="depositorType"]:checked',
+  ).value;
+  const currency = document.getElementById("cashCurrency").value;
+  const amount = document.getElementById("cashAmount").value;
+  let remark = document.getElementById("cashRemark").value.trim();
+
+  if (!amount || amount <= 0)
+    return Swal.fire("កំហុស", "សូមបញ្ចូលចំនួនទឹកប្រាក់", "error");
+  if (type === "other" && !currentDepositorUser)
+    return Swal.fire(
+      "កំហុស",
+      "សូមស្វែងរកគណនីអ្នកដាក់ប្រាក់ឱ្យបានត្រឹមត្រូវ",
+      "error",
+    );
+
+  if (!remark) {
+    if (type === "self") {
+      remark = `ដាក់ប្រាក់ដោយម្ចាស់គណនី (${currentTargetUser.fullName})`;
+    } else {
+      remark = `ដាក់ប្រាក់ដោយ ${currentDepositorUser.fullName} ជូនទៅ ${currentTargetUser.fullName}`;
+    }
+  }
+
+  Swal.fire({
+    title: "បញ្ជាក់ការដាក់ប្រាក់",
+    html: `អ្នកកំពុងដាក់ប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${amount}</b> <br>ចូលទៅគណនី <b>@${currentTargetUser.username}</b> <br><br> <i>ចំណាំ៖ ${remark}</i>`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#10b981",
+    confirmButtonText: "យល់ព្រមដាក់ប្រាក់",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire(
+        "ជោគជ័យ",
+        "UI ដើររលូន! ជំហានបន្ទាប់គឺភ្ជាប់ Backend!",
+        "success",
+      );
+    }
+  });
+}
