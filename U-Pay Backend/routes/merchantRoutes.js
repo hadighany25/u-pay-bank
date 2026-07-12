@@ -3,6 +3,7 @@ const router = express.Router();
 const Merchant = require("../models/Merchant"); // <--- ត្រូវ Import មកទើបប្រើ Merchant.find បាន
 const merchantController = require("../controllers/merchantController");
 const { verifyUser } = require("../middleware/authMiddleware");
+const Transaction = require("../models/Transaction");
 
 // Routes សម្រាប់ Merchant ធម្មតា
 router.post("/create", verifyUser, merchantController.createMerchant);

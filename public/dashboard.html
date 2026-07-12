@@ -1890,8 +1890,16 @@
             bgClass = "bg-orange";
             textClass = "text-orange";
           } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
-            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Promo Code
             iconClass = "fa-tag";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
+          } else if (
+            t.type === "Cash Deposit" ||
+            t.type === "Cash Withdrawal" ||
+            t.type.includes("System")
+          ) {
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal
+            iconClass = "fa-money-bill-transfer"; // ជារូបលុយផ្ទេរចុះឡើង (ឬដាក់ "fa-wallet" ក៏បាន)
             bgClass = isIncome ? "bg-green" : "bg-red";
             textClass = isIncome ? "text-green" : "text-red";
           }

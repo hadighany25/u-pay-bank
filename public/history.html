@@ -620,11 +620,20 @@
             color = "text-orange";
             bg = "bg-orange";
           } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
-            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Promo Code ក្នុង History
             icon = "fa-tag";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";
+          } else if (
+            t.type === "Cash Deposit" ||
+            t.type === "Cash Withdrawal" ||
+            t.type.includes("System")
+          ) {
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal ក្នុង History
+            icon = "fa-money-bill-transfer";
+            color = isIncome ? "text-green" : "text-red";
+            bg = isIncome ? "bg-green" : "bg-red";
           }
+
           let dateObj = new Date(t.date);
           if (isNaN(dateObj.getTime()) && t.date && t.date.includes(",")) {
             dateObj = new Date(t.date.split(",")[0].trim());
