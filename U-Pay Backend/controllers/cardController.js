@@ -20,17 +20,15 @@ const generateCardDetails = () => {
   return { number, cvv, expiry };
 };
 
-// ១. បង្កើតកាតថ្មី (កាត់លុយ $5)
+// ១. បង្កើតកាតថ្មី (កាត់លុយ $5 និងបាញ់ចូល system_fee)
 const generateCard = async (req, res) => {
   const { username, cardType, pin } = req.body;
 
-  // របាំងការពារ Security
   if (req.user.username !== username)
     return res.status(403).json({ success: false, message: "Unauthorized!" });
 
   try {
     const user = await User.findOne({ username });
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
 
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin)
@@ -41,18 +39,31 @@ const generateCard = async (req, res) => {
         message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់បង់សេវា $5 ទេ!",
       });
 
+    // 🔥 ស្វែងរកគណនី system_fee បើគ្មានទេ បង្កើតវាភ្លាមៗ
+    let systemFeeAcc = await User.findOne({ username: "system_fee" });
+    if (!systemFeeAcc) {
+      systemFeeAcc = new User({
+        id: "sys_" + Date.now(),
+        username: "system_fee",
+        fullName: "U-Pay System Fee",
+        accountNumber: "999999999", // លេខគណនីពិសេសសម្រាប់ Fee
+        balance: 0.0,
+        balanceKHR: 0.0,
+        role: "system",
+      });
+      await systemFeeAcc.save();
+    }
+
     // កាត់លុយ $5 ពី User
     user.balance -= 5;
     const refId = "CARD-" + Date.now().toString().slice(-6);
     const trxHash = Math.random().toString(36).substring(2, 11);
-
-    // 🔥 កំណត់ម៉ោងស្រុកខ្មែរ
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
 
-    // 🔥 ទី២៖ បញ្ចូលទិន្នន័យចូល Collection ថ្មី (Transaction) សម្រាប់អតិថិជន
+    // បញ្ជូន Transaction សម្រាប់អតិថិជន
     await Transaction.create({
       username: user.username,
       refId: refId,
@@ -62,37 +73,36 @@ const generateCard = async (req, res) => {
       amount: -5,
       currency: "USD",
       senderName: user.username,
-      receiverName: "Card Issuance Fee",
+      receiverName: "Card Issuance Service",
       status: "Success",
       remark: `Issued ${cardType} Virtual Card`,
     });
 
-    // បញ្ចូលលុយទៅធនាគារកណ្តាល
-    if (centralBank) {
-      centralBank.balance += 5;
+    // បញ្ចូលលុយទៅគណនី system_fee
+    systemFeeAcc.balance += 5;
 
-      // 🔥 ទី៣៖ បញ្ចូលទិន្នន័យចូល Collection ថ្មី (Transaction) សម្រាប់ Central Bank
-      await Transaction.create({
-        username: centralBank.username || "system_fee",
-        refId: refId,
-        hash: trxHash,
-        date: dateStr,
-        type: "System Income",
-        amount: 5,
-        currency: "USD",
-        senderName: user.username,
-        receiverName: "Card Issuance Fee",
-        status: "Success",
-        remark: "Card Issuance Fee",
-      });
-      await centralBank.save();
-    }
+    // បញ្ជូន Transaction សម្រាប់ system_fee
+    await Transaction.create({
+      username: systemFeeAcc.username,
+      refId: refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "System Income",
+      amount: 5,
+      currency: "USD",
+      senderName: user.username,
+      receiverName: "Card Issuance Service",
+      status: "Success",
+      remark: "Card Issuance Fee",
+    });
+
+    await systemFeeAcc.save(); // Save លុយថ្មីរបស់ system_fee
 
     // បង្កើតកាតថ្មី
     const details = generateCardDetails();
     const newCard = {
       id: "card_" + Date.now(),
-      type: cardType, // 'platinum' or 'standard'
+      type: cardType,
       name: cardType === "platinum" ? "VISA PLATINUM" : "VISA STANDARD",
       number: details.number,
       cvv: details.cvv,
@@ -101,12 +111,11 @@ const generateCard = async (req, res) => {
       isOnlinePayEnabled: true,
       dailyLimit: 500,
       linkedAccount: "USD",
-      pin: "0000", // PIN កាតដើម
+      pin: "0000",
     };
 
     if (!user.virtualCards) user.virtualCards = [];
     user.virtualCards.push(newCard);
-
     user.markModified("virtualCards");
     await user.save();
 

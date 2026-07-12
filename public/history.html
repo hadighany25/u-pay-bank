@@ -611,9 +611,14 @@
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift និង Fee
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             icon = "fa-gift";
+          } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee) ក្នុង History
+            icon = "fa-file-invoice-dollar";
+            color = "text-orange";
+            bg = "bg-orange";
           }
 
           let dateObj = new Date(t.date);

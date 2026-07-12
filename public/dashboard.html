@@ -1881,9 +1881,14 @@
               ? "text-orange"
               : "text-red";
 
-          // 🎁 កំណត់ Icon សម្រាប់ E-Gift
+          // 🎁 កំណត់ Icon សម្រាប់ E-Gift និង Fee
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
+          } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee)
+            iconClass = "fa-file-invoice-dollar"; // ជារូបវិក្កយបត្រកាត់លុយ
+            bgClass = "bg-orange"; // ដាក់ផ្ទៃពណ៌ទឹកក្រូច
+            textClass = "text-orange";
           }
 
           let title = t.type;
