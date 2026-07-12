@@ -937,18 +937,16 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
-// 🔍 Transaction Verification (កែតម្រូវឱ្យចាប់យក Account Number ទាំងអ្នកផ្ញើ និងអ្នកទទួលបាន ១០០%)
+// 🔍 Transaction Verification (ទាញ Merchant ID ពិត)
 const getTransaction = async (req, res) => {
   const searchTerm = req.params.id.trim();
 
   try {
-    // ១. ស្វែងរក Transaction
     const foundTrx = await Transaction.findOne({
       $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
 
     if (foundTrx) {
-      // ២. ស្វែងរក Object របស់អ្នកផ្ញើ
       const senderObj = await User.findOne({
         $or: [
           { username: foundTrx.senderName },
@@ -957,14 +955,13 @@ const getTransaction = async (req, res) => {
         ],
       });
 
-      // ៣. ស្វែងរក Object របស់អ្នកទទួល (🔥 បន្ថែម foundTrx.username ព្រោះពេលដាក់លុយតាម Cashier អ្នកទទួលគឺស្ថិតនៅ Field នេះ)
       const receiverObj = await User.findOne({
         $or: [
           { accountNumber: foundTrx.receiverAcc },
           { accountNumberKHR: foundTrx.receiverAcc },
           { username: foundTrx.receiverName },
           { fullName: foundTrx.receiverName },
-          { username: foundTrx.username }, // <- ចំណុចសំខាន់សម្រាប់ Cashier
+          { username: foundTrx.username },
         ],
       });
 
@@ -972,7 +969,6 @@ const getTransaction = async (req, res) => {
         ...(foundTrx.toObject ? foundTrx.toObject() : foundTrx),
       };
 
-      // ៤. ដាក់បញ្ចូល KYC
       trxDetails.senderKyc = senderObj
         ? senderObj.kycStatus || "Unverified"
         : "Unverified";
@@ -980,23 +976,25 @@ const getTransaction = async (req, res) => {
         ? receiverObj.kycStatus || "Unverified"
         : "Unverified";
 
-      // ៥. 🔥 បង្ខំទាញយក Account Number ពិតប្រាកដមកបង្ហាញ បើទោះជា Database ចាស់អត់បាន Save ក៏ដោយ
       if (
         (!trxDetails.senderAcc || trxDetails.senderAcc === "N/A") &&
         senderObj
       ) {
         trxDetails.senderAcc = senderObj.accountNumber;
       }
-
       if (
         (!trxDetails.receiverAcc || trxDetails.receiverAcc === "N/A") &&
         receiverObj
       ) {
-        // បើជាគណនីរៀល ឱ្យវាទាញលេខគណនីរៀល បើអត់មានទាញលេខដុល្លារ
         trxDetails.receiverAcc =
           trxDetails.currency === "KHR" && receiverObj.accountNumberKHR
             ? receiverObj.accountNumberKHR
             : receiverObj.accountNumber;
+      }
+
+      // 🔥 ចាប់យក Merchant ID តែរបស់ពិតពី Database ប៉ុណ្ណោះ
+      if (receiverObj && receiverObj.merchantId) {
+        trxDetails.merchantId = receiverObj.merchantId;
       }
 
       res.json({
@@ -1011,10 +1009,12 @@ const getTransaction = async (req, res) => {
     }
   } catch (err) {
     console.error("GET TRX ERROR:", err);
-    res.status(500).json({
-      success: false,
-      message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
-    });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
+      });
   }
 };
 
@@ -1393,7 +1393,7 @@ const searchCashierUser = async (req, res) => {
   }
 };
 
-// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification (បន្ថែមការចាប់យកអ្នកដាក់ប្រាក់)
+// 💰 ២. ដំណើរការដាក់ប្រាក់ (កែសម្រួលលេខ Trx ID ឱ្យខ្លីស្អាត)
 const processCashierTransaction = async (req, res) => {
   const {
     targetUsername,
@@ -1406,7 +1406,7 @@ const processCashierTransaction = async (req, res) => {
 
   try {
     const targetUser = await User.findOne({ username: targetUsername });
-    const centralBank = await User.findOne({ accountNumber: "888888888" }); // ធនាគារកណ្តាល
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
 
     if (!targetUser)
       return res.json({ success: false, message: "រកមិនឃើញគណនីអ្នកទទួលទេ!" });
@@ -1430,7 +1430,6 @@ const processCashierTransaction = async (req, res) => {
     const isKHR = currency === "KHR";
     const sign = isKHR ? "៛" : "$";
 
-    // 🔄 កាត់លុយ
     if (isKHR) {
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
       targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
@@ -1443,17 +1442,12 @@ const processCashierTransaction = async (req, res) => {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const refId =
-      "DEP-" +
-      Date.now().toString().slice(-8) +
-      "-" +
-      Math.floor(1000 + Math.random() * 9000);
-    const trxHash =
-      "HSH" +
-      Math.random().toString(36).substring(2, 12).toUpperCase() +
-      Date.now().toString(36).toUpperCase();
 
-    // 📝 រៀបចំទិន្នន័យ Transaction
+    // 🔥 កែលេខឱ្យខ្លី៖ ឧ. DEP-638190 និង HSH16AF1C
+    const refId = "DEP-" + Math.floor(100000 + Math.random() * 900000);
+    const trxHash =
+      "HSH" + Math.random().toString(16).substring(2, 9).toUpperCase();
+
     const targetTrx = {
       username: targetUser.username,
       refId,
@@ -1463,8 +1457,8 @@ const processCashierTransaction = async (req, res) => {
       amount: cashAmount,
       currency: currency,
       fee: 0,
-      senderName: "Cash Deposit", // បង្ហាញស្តង់ដារ
-      senderAcc: "CASH-DESK", // បង្ហាញស្តង់ដារ
+      senderName: "Cash Deposit",
+      senderAcc: "CASH-DESK",
       receiverName: targetUser.fullName || targetUser.username,
       receiverAcc: isKHR
         ? targetUser.accountNumberKHR
@@ -1472,7 +1466,7 @@ const processCashierTransaction = async (req, res) => {
       remark: remark,
       status: "Success",
       trxMethod: "U-PAY System",
-      // 🔥 បន្ថែម Field ថ្មី ដើម្បីកត់ចំណាំអ្នកដែលកាន់លុយមកដាក់ផ្ទាល់
+      // ចាប់យកឈ្មោះ និងលេខគណនីអ្នកដាក់ពិតប្រាកដ
       depositorName:
         depositorType === "self"
           ? targetUser.fullName || targetUser.username
@@ -1497,7 +1491,7 @@ const processCashierTransaction = async (req, res) => {
     await Transaction.create(targetTrx);
     await Transaction.create(bankTrx);
 
-    // 🔔 ទី១៖ ផ្ញើសារចូលកណ្តឹង ម្ចាស់គណនីដែលទទួលបានលុយ
+    // ... (រក្សាកូដ Notification ដដែល) ...
     if (!targetUser.notifications) targetUser.notifications = [];
     targetUser.notifications.unshift({
       id: "NOTIF-" + Date.now(),
@@ -1509,7 +1503,6 @@ const processCashierTransaction = async (req, res) => {
     targetUser.markModified("notifications");
     await targetUser.save();
 
-    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (បើមាន)
     if (depositorType === "other" && depUser) {
       if (!depUser.notifications) depUser.notifications = [];
       depUser.notifications.unshift({
