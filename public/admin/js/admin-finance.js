@@ -1,4 +1,6 @@
-// FX Rate
+// ==========================================
+// 1. FX Rate (អត្រាប្តូរប្រាក់)
+// ==========================================
 async function fetchFXRates() {
   const res = await fetch("/api/admin/fx/rates", { headers: getAuthHeaders() });
   const data = await res.json();
@@ -7,6 +9,7 @@ async function fetchFXRates() {
     document.getElementById("fxSell").value = data.rates.usdToKhrSell;
   }
 }
+
 async function updateFX() {
   const buy = document.getElementById("fxBuy").value;
   const sell = document.getElementById("fxSell").value;
@@ -38,7 +41,9 @@ async function updateFX() {
   }
 }
 
-// Fees & Limits
+// ==========================================
+// 2. Fees & Limits (កម្រៃសេវា និង ដែនកំណត់)
+// ==========================================
 let feeTiersList = [];
 async function loadFeeSettings() {
   try {
@@ -196,7 +201,9 @@ async function saveFeeSettings() {
 }
 setTimeout(loadFeeSettings, 1000);
 
-// Promo Codes
+// ==========================================
+// 3. Promo Codes (ប្រូម៉ូសិនកូដ)
+// ==========================================
 function openPromoModal() {
   document.getElementById("prmCode").value = "";
   document.getElementById("prmReward").value = "";
@@ -275,9 +282,9 @@ async function togglePromoStatus(id) {
   loadPromoCodes();
 }
 
-/* ==========================================
-   Cashier (បេឡាករ) Logic (ភ្ជាប់ API ពិតប្រាកដ)
-   ========================================== */
+// ==========================================
+// 4. Cashier (បេឡាករ) Logic - ភ្ជាប់ API ពិតប្រាកដ
+// ==========================================
 let currentTargetUser = null;
 let currentDepositorUser = null;
 
@@ -297,7 +304,7 @@ function toggleDepositorType() {
   }
 }
 
-// ស្វែងរកអ្នកទទួលប្រាក់ (ហៅ API)
+// ២. ស្វែងរកអ្នកទទួលប្រាក់ (ហៅ API)
 async function searchTargetUser() {
   const searchValue = document.getElementById("targetUserSearch").value.trim();
   if (!searchValue)
@@ -320,7 +327,7 @@ async function searchTargetUser() {
       document.getElementById("cardName").innerText =
         `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
       document.getElementById("cardBalUSD").innerText =
-        `USD: $${currentTargetUser.balanceUSD.toLocaleString("en-US")}`;
+        `USD: $${currentTargetUser.balanceUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
       document.getElementById("cardBalKHR").innerText =
         `KHR: ៛${currentTargetUser.balanceKHR.toLocaleString("en-US")}`;
 
@@ -338,7 +345,7 @@ async function searchTargetUser() {
   }
 }
 
-// ឆែកឈ្មោះអ្នកដាក់ឱ្យ (ហៅ API)
+// ៣. ឆែកឈ្មោះអ្នកដាក់ឱ្យ (ហៅ API)
 async function verifyDepositor() {
   const val = document.getElementById("depositorSearch").value.trim();
   const nameText = document.getElementById("depNameText");
@@ -373,20 +380,20 @@ async function verifyDepositor() {
   }
 }
 
-// មើល KYC
+// ៤. មើល KYC
 function viewKYC() {
   if (!currentTargetUser || !currentTargetUser.kycImage) {
     return Swal.fire("ព័ត៌មាន", "អតិថិជននេះមិនទាន់មានរូប KYC ទេ", "info");
   }
   Swal.fire({
     title: `អត្តសញ្ញាណប័ណ្ណរបស់ ${currentTargetUser.fullName}`,
-    imageUrl: currentTargetUser.kycImage, // ទាញរូបពី Database
+    imageUrl: currentTargetUser.kycImage, // ទាញរូបពី Database ពិត
     imageWidth: 400,
     imageAlt: "KYC Image",
   });
 }
 
-// ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់ (បញ្ជូនទិន្នន័យទៅ Backend)
+// ៥. ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់ (បញ្ជូនទិន្នន័យទៅ Backend)
 async function processCashTransaction() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
