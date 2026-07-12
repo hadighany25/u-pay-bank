@@ -263,10 +263,9 @@ function openAdjustBalance(username, type) {
   const title = isAdd
     ? "ដាក់ប្រាក់ (Cash Deposit)"
     : "ដកប្រាក់ (Cash Withdrawal)";
-  const confirmBtnColor = isAdd ? "#10b981" : "#ef4444"; // ពណ៌បៃតង សម្រាប់ដាក់, ក្រហម សម្រាប់ដក
+  const confirmBtnColor = isAdd ? "#10b981" : "#ef4444";
   const icon = isAdd ? "circle-down" : "circle-up";
 
-  // រៀបចំ UI ឱ្យមើលទៅ Professional (Premium Look)
   const formHtml = `
     <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
         <!-- ប្រអប់បង្ហាញឈ្មោះអតិថិជន -->
@@ -293,7 +292,7 @@ function openAdjustBalance(username, type) {
             <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000">
         </div>
 
-        <!-- 🌟 បន្ថែមប្រអប់ចំណាំ (Remark) ថ្មី -->
+        <!-- 🌟 ប្រអប់ចំណាំ (Remark) -->
         <div style="margin-bottom: 5px;">
             <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំណាំ (Remark)</label>
             <input id="adjRemark" type="text" class="custom-swal-input" placeholder="បញ្ជាក់មូលហេតុ... (ជម្រើស)">
@@ -330,18 +329,15 @@ function openAdjustBalance(username, type) {
     cancelButtonColor: "#64748b",
     confirmButtonText: "បញ្ជាក់ (Confirm)",
     cancelButtonText: "បោះបង់",
-    customClass: {
-      popup: "professional-popup", // បន្ថែម Class សម្រាប់ Custom បន្ថែមបើចង់
-    },
     preConfirm: () => {
       const currency = document.getElementById("adjCurrency").value;
       const amount = document.getElementById("adjAmount").value;
-      const remark = document.getElementById("adjRemark").value.trim(); // ទាញយកតម្លៃ Remark
+      const remark = document.getElementById("adjRemark").value.trim();
 
       if (!amount || amount <= 0) {
         Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!");
       }
-      return { currency, amount, remark }; // បញ្ជូន Remark ទៅកាន់ Promise
+      return { currency, amount, remark }; // បញ្ជូន Remark ទៅឱ្យ then()
     },
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -353,17 +349,13 @@ function openAdjustBalance(username, type) {
       try {
         const res = await fetch("/api/admin/adjust-balance", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer " + localStorage.getItem("adminToken"), // កុំភ្លេច Header
-          },
-          // 🚀 បញ្ជូន remark ទៅឱ្យ Backend
+          headers: getAuthHeaders(), // ✅ ប្រើ Headers របស់បងវិញទើបដើរ
           body: JSON.stringify({
             username,
             amount: result.value.amount,
             currency: result.value.currency,
             type,
-            remark: result.value.remark,
+            remark: result.value.remark, // ✅ បញ្ជូន Remark ចូលទៅ Backend
           }),
         });
         const data = await res.json();
