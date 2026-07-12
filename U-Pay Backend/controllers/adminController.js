@@ -937,30 +937,34 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
-// 🔍 Transaction Verification (កែតម្រូវឱ្យចាប់យក Account Number ពិតប្រាកដ)
+// 🔍 Transaction Verification (កែតម្រូវឱ្យចាប់យក Account Number ទាំងអ្នកផ្ញើ និងអ្នកទទួលបាន ១០០%)
 const getTransaction = async (req, res) => {
   const searchTerm = req.params.id.trim();
 
   try {
+    // ១. ស្វែងរក Transaction
     const foundTrx = await Transaction.findOne({
       $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
 
     if (foundTrx) {
-      // ស្វែងរក Object របស់អ្នកផ្ញើ និងអ្នកទទួល ដើម្បីទាញយក KYC និង លេខគណនី
+      // ២. ស្វែងរក Object របស់អ្នកផ្ញើ
       const senderObj = await User.findOne({
         $or: [
-          { username: foundTrx.username },
           { username: foundTrx.senderName },
           { accountNumber: foundTrx.senderAcc },
+          { fullName: foundTrx.senderName },
         ],
       });
 
+      // ៣. ស្វែងរក Object របស់អ្នកទទួល (🔥 បន្ថែម foundTrx.username ព្រោះពេលដាក់លុយតាម Cashier អ្នកទទួលគឺស្ថិតនៅ Field នេះ)
       const receiverObj = await User.findOne({
         $or: [
           { accountNumber: foundTrx.receiverAcc },
           { accountNumberKHR: foundTrx.receiverAcc },
           { username: foundTrx.receiverName },
+          { fullName: foundTrx.receiverName },
+          { username: foundTrx.username }, // <- ចំណុចសំខាន់សម្រាប់ Cashier
         ],
       });
 
@@ -968,7 +972,7 @@ const getTransaction = async (req, res) => {
         ...(foundTrx.toObject ? foundTrx.toObject() : foundTrx),
       };
 
-      // ដាក់បញ្ចូល KYC
+      // ៤. ដាក់បញ្ចូល KYC
       trxDetails.senderKyc = senderObj
         ? senderObj.kycStatus || "Unverified"
         : "Unverified";
@@ -976,11 +980,24 @@ const getTransaction = async (req, res) => {
         ? receiverObj.kycStatus || "Unverified"
         : "Unverified";
 
-      // 🔥 ទាញយក Account Number ពិតប្រាកដ បើសិនក្នុង Trx ចាស់ៗអត់មាន
-      if (!trxDetails.senderAcc && senderObj)
+      // ៥. 🔥 បង្ខំទាញយក Account Number ពិតប្រាកដមកបង្ហាញ បើទោះជា Database ចាស់អត់បាន Save ក៏ដោយ
+      if (
+        (!trxDetails.senderAcc || trxDetails.senderAcc === "N/A") &&
+        senderObj
+      ) {
         trxDetails.senderAcc = senderObj.accountNumber;
-      if (!trxDetails.receiverAcc && receiverObj)
-        trxDetails.receiverAcc = receiverObj.accountNumber;
+      }
+
+      if (
+        (!trxDetails.receiverAcc || trxDetails.receiverAcc === "N/A") &&
+        receiverObj
+      ) {
+        // បើជាគណនីរៀល ឱ្យវាទាញលេខគណនីរៀល បើអត់មានទាញលេខដុល្លារ
+        trxDetails.receiverAcc =
+          trxDetails.currency === "KHR" && receiverObj.accountNumberKHR
+            ? receiverObj.accountNumberKHR
+            : receiverObj.accountNumber;
+      }
 
       res.json({
         success: true,
