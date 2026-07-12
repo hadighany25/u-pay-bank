@@ -9,6 +9,9 @@
     <link rel="icon" type="image/png" href="../images/favicon.png" />
     <title>Admin Dashboard - U-Pay Premium</title>
 
+    <!-- ======================================================= -->
+    <!-- ផ្នែកបណ្ណាល័យ (Libraries) & Fonts -->
+    <!-- ======================================================= -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -24,9 +27,14 @@
     <link rel="stylesheet" href="css/admin-style.css" />
   </head>
   <body>
+    <!-- ស្រមោលពណ៌ខ្មៅ សម្រាប់បិទ Sidebar លើទូរស័ព្ទដៃ -->
     <div class="overlay" onclick="toggleSidebar()"></div>
 
+    <!-- ======================================================= -->
+    <!-- ផ្នែកទី១៖ របារចំហៀងខាងឆ្វេង (SIDEBAR MENU) -->
+    <!-- ======================================================= -->
     <div class="sidebar" id="sidebar">
+      <!-- ប្រវត្តិរូប Admin ខាងលើ -->
       <div
         style="
           padding: 0 20px 20px;
@@ -70,6 +78,7 @@
         ></div>
       </div>
 
+      <!-- ក្រុមទី១៖ ម៉ឺនុយគោល (Main Menu) -->
       <div class="menu-label" id="label-main" data-i18n="menu-main">
         Main Menu
       </div>
@@ -107,6 +116,8 @@
       >
         <i class="fa-solid fa-store"></i> Merchant Management
       </div>
+
+      <!-- ក្រុមទី២៖ ប្រតិបត្តិការ (Operations) -->
       <div class="menu-label" id="label-ops" data-i18n="menu-ops">
         Operations
       </div>
@@ -130,9 +141,8 @@
         "
       >
         <i class="fa-solid fa-cash-register"></i>
-        <span data-i18n="menu-cashier">Cashier(Deposit/Withdraw)</span>
+        <span data-i18n="menu-cashier">Cashier (Deposit/Withdraw)</span>
       </div>
-
       <div
         class="menu-item"
         id="menu-checktrx"
@@ -144,7 +154,6 @@
       >
         <i class="fa-solid fa-shield-halved"></i> Transaction Check
       </div>
-
       <div
         class="menu-item"
         id="menu-broadcast"
@@ -157,6 +166,7 @@
         <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
+      <!-- ក្រុមទី៣៖ ហិរញ្ញវត្ថុ និងកាត (Finance & Cards) -->
       <div class="menu-label" id="label-finance" data-i18n="menu-finance">
         Finance & Cards
       </div>
@@ -205,6 +215,7 @@
         <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
 
+      <!-- ក្រុមទី៤៖ សុវត្ថិភាព និងជំនួយ (Security & Support) -->
       <div class="menu-label" id="label-security" data-i18n="menu-security">
         Security & Support
       </div>
@@ -242,6 +253,7 @@
         <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
+      <!-- ក្រុមទី៥៖ សម្រាប់តែ Super Admin (Super Admin Only) -->
       <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
         Super Admin Only
       </div>
@@ -277,6 +289,7 @@
         Control
       </div>
 
+      <!-- ចាកចេញ (Logout) -->
       <div
         class="menu-item logout-btn"
         onclick="logout()"
@@ -287,7 +300,11 @@
       </div>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- ផ្នែកទី២៖ ផ្ទៃបង្ហាញគោលខាងស្តាំ (MAIN CONTENT) -->
+    <!-- ======================================================= -->
     <div class="main-content">
+      <!-- របារខាងលើសម្រាប់កុំព្យូទ័រ (Top Nav Actions) -->
       <div class="top-nav-actions">
         <button
           class="icon-btn"
@@ -309,6 +326,7 @@
         </button>
       </div>
 
+      <!-- របារខាងលើសម្រាប់ទូរស័ព្ទដៃ (Mobile Header) -->
       <div class="mobile-header">
         <div
           class="brand"
@@ -347,8 +365,14 @@
         </div>
       </div>
 
-      <!-- Dashboard Content -->
-      <div id="sec-dashboard" class="dash-wrapper">
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៖ Dashboard Content -->
+      <!-- ------------------------------------------------------- -->
+      <div
+        id="sec-dashboard"
+        class="dash-wrapper"
+        style="width: 100%; box-sizing: border-box; padding: 0 15px"
+      >
         <div class="dash-header">
           <div>
             <h2 class="dash-title" data-i18n="dash-title">Platform Overview</h2>
@@ -374,6 +398,7 @@
             Live Sync Active
           </div>
         </div>
+        <!-- (កាតទិន្នន័យ Dashboard) -->
         <div class="dash-stats">
           <div class="dash-card stat-item">
             <div class="bg-shape" style="background: #3b82f6"></div>
@@ -527,10 +552,19 @@
         </div>
       </div>
 
-      <!-- User Management -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី២៖ User Management -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-users"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <h2 class="dash-title" data-i18n="user-management">
@@ -562,8 +596,19 @@
         </div>
       </div>
 
-      <!-- Trx Check -->
-      <div id="sec-check-trx" style="display: none" class="trx-check-wrapper">
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៣៖ Transaction Verification (Trx Check) -->
+      <!-- ------------------------------------------------------- -->
+      <div
+        id="sec-check-trx"
+        style="
+          display: none;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
+        class="trx-check-wrapper"
+      >
         <h2
           class="dash-title"
           style="text-align: center; margin-bottom: 20px"
@@ -585,13 +630,18 @@
         <div id="trxResult" class="trx-result-card"></div>
       </div>
 
-      <!-- Customer 360 View -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៤៖ Customer 360 View -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-customer-360"
         style="
           display: none;
+          width: 100%;
           max-width: 1400px;
           margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
           position: relative;
         "
       >
@@ -721,7 +771,6 @@
                 <i class="fa-solid fa-clock-rotate-left"></i> Admin Logs
               </div>
             </div>
-
             <div style="padding: 25px">
               <div
                 id="c360-tab-info"
@@ -768,10 +817,175 @@
         </div>
       </div>
 
-      <!-- Broadcast -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៥៖ បេឡាករ (Cashier) ដាក់/ដកប្រាក់ -->
+      <!-- ------------------------------------------------------- -->
+      <div
+        id="sec-cashier"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
+      >
+        <div class="cashier-container">
+          <div class="cashier-title">
+            <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
+          </div>
+
+          <!-- ១. ផ្នែកស្វែងរកអ្នកទទួល -->
+          <div class="input-group">
+            <label class="input-label"
+              >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
+            >
+            <div style="display: flex; gap: 10px">
+              <input
+                type="text"
+                id="targetUserSearch"
+                class="custom-input"
+                placeholder="ឧ. dara123 ឬ 012345678"
+              />
+              <button
+                class="btn-primary"
+                style="width: 120px"
+                onclick="searchTargetUser()"
+              >
+                ស្វែងរក
+              </button>
+            </div>
+          </div>
+
+          <!-- ២. កាតព័ត៌មានអ្នកទទួល (លាក់សិន) -->
+          <div id="targetUserCard" class="user-card" style="display: none">
+            <img
+              src="https://via.placeholder.com/60"
+              id="cardAvatar"
+              class="user-avatar"
+              alt="User"
+            />
+            <div class="user-details">
+              <div
+                style="font-weight: bold; color: #0f172a; font-size: 1.1rem"
+                id="cardName"
+              >
+                កំពុងស្វែងរក...
+              </div>
+              <div style="margin-top: 5px">
+                <span class="balance-badge" id="cardBalUSD">USD: $0.00</span>
+                <span
+                  class="balance-badge"
+                  style="background: #dcfce7; color: #166534"
+                  id="cardBalKHR"
+                  >KHR: ៛0</span
+                >
+              </div>
+            </div>
+            <div>
+              <button class="kyc-btn" onclick="viewKYC()">
+                <i class="fa-solid fa-id-card"></i> មើល KYC
+              </button>
+            </div>
+          </div>
+
+          <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
+          <div id="transactionForm" style="display: none">
+            <div class="input-group">
+              <label class="input-label">តើនរណាជាអ្នកយកប្រាក់មកដាក់?</label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="depositorType"
+                    value="self"
+                    checked
+                    onchange="toggleDepositorType()"
+                  />
+                  ម្ចាស់គណនីផ្ទាល់
+                </label>
+                <label class="radio-option">
+                  <input
+                    type="radio"
+                    name="depositorType"
+                    value="other"
+                    onchange="toggleDepositorType()"
+                  />
+                  អ្នកផ្សេងដាក់ឱ្យ (តំណាង)
+                </label>
+              </div>
+            </div>
+
+            <div id="otherDepositorDiv" style="display: none">
+              <label class="input-label"
+                >លេខគណនី ឬ Username (អ្នកយកលុយមកដាក់)</label
+              >
+              <input
+                type="text"
+                id="depositorSearch"
+                class="custom-input"
+                placeholder="វាយលេខគណនីអ្នកដាក់..."
+                oninput="verifyDepositor()"
+              />
+              <div id="depositorName" class="depositor-name">
+                <i class="fa-solid fa-check-circle"></i> ឈ្មោះ:
+                <span id="depNameText">...</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 15px">
+              <div class="input-group" style="width: 40%">
+                <label class="input-label">ប្រភេទគណនី</label>
+                <select id="cashCurrency" class="custom-input">
+                  <option value="USD">គណនី USD ($)</option>
+                  <option value="KHR">គណនី KHR (៛)</option>
+                </select>
+              </div>
+              <div class="input-group" style="width: 60%">
+                <label class="input-label">ចំនួនទឹកប្រាក់</label>
+                <input
+                  type="number"
+                  id="cashAmount"
+                  class="custom-input"
+                  placeholder="ឧ. 100.00"
+                />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label">ចំណាំ (Remark)</label>
+              <input
+                type="text"
+                id="cashRemark"
+                class="custom-input"
+                placeholder="ទុកទទេ ប្រព័ន្ធនឹងបំពេញស្វ័យប្រវត្តិ..."
+              />
+            </div>
+
+            <button
+              class="btn-primary btn-success"
+              onclick="processCashTransaction()"
+            >
+              <i class="fa-solid fa-check-circle"></i> បញ្ជាក់ការដាក់ប្រាក់
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៦៖ Broadcast History -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-broadcast-history"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -818,10 +1032,19 @@
         </div>
       </div>
 
-      <!-- Merchant Management -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៧៖ Merchant Management -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchants"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -870,10 +1093,20 @@
           </table>
         </div>
       </div>
-      <!-- Merchant History -->
+
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៨៖ Merchant History -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchant-history"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <button class="btn-cancel" onclick="showSection('merchants')">
@@ -897,8 +1130,20 @@
         </div>
       </div>
 
-      <!-- FX -->
-      <div id="sec-fx" style="display: none; max-width: 1400px; margin: 0 auto">
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី៩៖ FX Settings (អត្រាប្តូរប្រាក់) -->
+      <!-- ------------------------------------------------------- -->
+      <div
+        id="sec-fx"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
+      >
         <h2
           class="dash-title"
           style="text-align: center; margin-bottom: 30px"
@@ -955,10 +1200,19 @@
         </div>
       </div>
 
-      <!-- Fee -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១០៖ Fees & Limits -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-fees"
-        style="display: none; max-width: 1000px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1000px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <h2
           class="dash-title"
@@ -974,6 +1228,7 @@
         >
           កំណត់តម្លៃសេវាវេរប្រាក់ និងកម្រិតទឹកប្រាក់អតិបរមាក្នុងមួយថ្ងៃ។
         </p>
+
         <div class="fx-card" style="margin-bottom: 20px">
           <h3 style="margin-top: 0">
             <i class="fa-solid fa-chart-line" style="color: var(--accent)"></i>
@@ -1001,6 +1256,7 @@
             </div>
           </div>
         </div>
+
         <div class="fx-card" style="max-width: 100%">
           <div
             style="
@@ -1079,10 +1335,19 @@
         </div>
       </div>
 
-      <!-- Promo Codes -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១១៖ Promo Codes -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-promo"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1126,10 +1391,19 @@
         </div>
       </div>
 
-      <!-- Cards -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១២៖ Card Management -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-cards"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1163,10 +1437,19 @@
         </div>
       </div>
 
-      <!-- KYC -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៣៖ KYC Approvals -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-kyc"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1200,10 +1483,19 @@
         </div>
       </div>
 
-      <!-- Tickets -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៤៖ Support Tickets -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-tickets"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1233,14 +1525,18 @@
         </div>
       </div>
 
-      <!-- Chat -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៥៖ Live Chat Support -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-live-chat"
         style="
           display: none;
           height: calc(100vh - 100px);
+          width: 100%;
           max-width: 1400px;
           margin: 0 auto;
+          box-sizing: border-box;
           background: white;
           border-radius: 20px;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
@@ -1350,8 +1646,8 @@
                 <i
                   class="fa-regular fa-comments"
                   style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5"
-                ></i>
-                <br />
+                ></i
+                ><br />
                 <span data-i18n="select-message"
                   >សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង</span
                 >
@@ -1403,10 +1699,19 @@
         </div>
       </div>
 
-      <!-- Admin Management -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៦៖ Admin Management -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-admins"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1454,10 +1759,19 @@
         </div>
       </div>
 
-      <!-- Audit Logs -->
+      <!-- ------------------------------------------------------- -->
+      <!-- ផ្ទាំងទី១៧៖ Audit Logs -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-logs"
-        style="display: none; max-width: 1400px; margin: 0 auto"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
       >
         <div class="table-header-controls">
           <div>
@@ -1499,10 +1813,13 @@
         </div>
       </div>
     </div>
+    <!-- បញ្ចប់ Main Content (ទី២) -->
 
-    <!-- END main-content -->
+    <!-- ======================================================= -->
+    <!-- ផ្នែកទី៣៖ ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
+    <!-- ======================================================= -->
 
-    <!-- Edit User Modal -->
+    <!-- ១. Modal សម្រាប់កែប្រែគណនីអ្នកប្រើប្រាស់ (Edit User) -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1527,10 +1844,8 @@
               "
             />
           </div>
-
           <div class="form-group">
             <label data-i18n="upload-profile-image">Upload Profile Image</label>
-
             <input
               type="file"
               id="uploadProfileBtn"
@@ -1539,7 +1854,6 @@
               style="padding: 10px; cursor: pointer"
               onchange="handleProfileImageUpload(event)"
             />
-
             <input type="hidden" id="editProfileImg" />
           </div>
           <div class="form-group">
@@ -1598,7 +1912,7 @@
       </div>
     </div>
 
-    <!-- Admin Account Modal -->
+    <!-- ២. Modal សម្រាប់គ្រប់គ្រងគណនីបុគ្គលិក (Admin Account) -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1863,7 +2177,7 @@
       </div>
     </div>
 
-    <!-- Promo Modal -->
+    <!-- ៣. Modal សម្រាប់បង្កើតកូដប្រូម៉ូសិន (Promo Modal) -->
     <div id="promoModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -1933,154 +2247,9 @@
       </div>
     </div>
 
-    <!-- Cashier -->
-    <div
-      id="sec-cashier"
-      style="display: none; max-width: 1400px; margin: 0 auto"
-    >
-      <div class="cashier-container">
-        <div class="cashier-title">
-          <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
-        </div>
-
-        <!-- ១. ផ្នែកស្វែងរកអ្នកទទួល -->
-        <div class="input-group">
-          <label class="input-label"
-            >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
-          >
-          <div style="display: flex; gap: 10px">
-            <input
-              type="text"
-              id="targetUserSearch"
-              class="custom-input"
-              placeholder="ឧ. dara123 ឬ 012345678"
-            />
-            <button
-              class="btn-primary"
-              style="width: 120px"
-              onclick="searchTargetUser()"
-            >
-              ស្វែងរក
-            </button>
-          </div>
-        </div>
-
-        <!-- ២. កាតព័ត៌មានអ្នកទទួល (លាក់សិន) -->
-        <div id="targetUserCard" class="user-card" style="display: none">
-          <img
-            src="https://via.placeholder.com/60"
-            id="cardAvatar"
-            class="user-avatar"
-            alt="User"
-          />
-          <div class="user-details">
-            <div
-              style="font-weight: bold; color: #0f172a; font-size: 1.1rem"
-              id="cardName"
-            >
-              កំពុងស្វែងរក...
-            </div>
-            <div style="margin-top: 5px">
-              <span class="balance-badge" id="cardBalUSD">USD: $0.00</span>
-              <span
-                class="balance-badge"
-                style="background: #dcfce7; color: #166534"
-                id="cardBalKHR"
-                >KHR: ៛0</span
-              >
-            </div>
-          </div>
-          <div>
-            <button class="kyc-btn" onclick="viewKYC()">
-              <i class="fa-solid fa-id-card"></i> មើល KYC
-            </button>
-          </div>
-        </div>
-
-        <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
-        <div id="transactionForm" style="display: none">
-          <div class="input-group">
-            <label class="input-label">តើនរណាជាអ្នកយកប្រាក់មកដាក់?</label>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input
-                  type="radio"
-                  name="depositorType"
-                  value="self"
-                  checked
-                  onchange="toggleDepositorType()"
-                />
-                ម្ចាស់គណនីផ្ទាល់
-              </label>
-              <label class="radio-option">
-                <input
-                  type="radio"
-                  name="depositorType"
-                  value="other"
-                  onchange="toggleDepositorType()"
-                />
-                អ្នកផ្សេងដាក់ឱ្យ (តំណាង)
-              </label>
-            </div>
-          </div>
-
-          <div id="otherDepositorDiv" style="display: none">
-            <label class="input-label"
-              >លេខគណនី ឬ Username (អ្នកយកលុយមកដាក់)</label
-            >
-            <input
-              type="text"
-              id="depositorSearch"
-              class="custom-input"
-              placeholder="វាយលេខគណនីអ្នកដាក់..."
-              oninput="verifyDepositor()"
-            />
-            <div id="depositorName" class="depositor-name">
-              <i class="fa-solid fa-check-circle"></i> ឈ្មោះ:
-              <span id="depNameText">...</span>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 15px">
-            <div class="input-group" style="width: 40%">
-              <label class="input-label">ប្រភេទគណនី</label>
-              <select id="cashCurrency" class="custom-input">
-                <option value="USD">គណនី USD ($)</option>
-                <option value="KHR">គណនី KHR (៛)</option>
-              </select>
-            </div>
-            <div class="input-group" style="width: 60%">
-              <label class="input-label">ចំនួនទឹកប្រាក់</label>
-              <input
-                type="number"
-                id="cashAmount"
-                class="custom-input"
-                placeholder="ឧ. 100.00"
-              />
-            </div>
-          </div>
-
-          <div class="input-group">
-            <label class="input-label">ចំណាំ (Remark)</label>
-            <input
-              type="text"
-              id="cashRemark"
-              class="custom-input"
-              placeholder="ទុកទទេ ប្រព័ន្ធនឹងបំពេញស្វ័យប្រវត្តិ..."
-            />
-          </div>
-
-          <button
-            class="btn-primary btn-success"
-            onclick="processCashTransaction()"
-          >
-            <i class="fa-solid fa-check-circle"></i> បញ្ជាក់ការដាក់ប្រាក់
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ភ្ជាប់ JS ទាំង ៥ (បន្ថែម admin-lang.js ខាងលើគេ) -->
+    <!-- ======================================================= -->
+    <!-- ផ្នែកទី៤៖ តំណភ្ជាប់ File JavaScript (SCRIPTS) -->
+    <!-- ======================================================= -->
     <script src="js/admin-lang.js"></script>
     <script src="js/admin-core.js"></script>
     <script src="js/admin-users.js"></script>
