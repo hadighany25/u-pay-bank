@@ -205,4 +205,15 @@ router.post(
   checkRole(["super_admin"]),
   adminController.adminCreateMerchant,
 );
+// 🌟 Routes សម្រាប់មុខងារ Cashier
+router.get(
+  "/cashier/search/:identifier",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.searchCashierUser,
+);
+router.post(
+  "/cashier/transaction",
+  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  adminController.processCashierTransaction,
+);
 module.exports = router;

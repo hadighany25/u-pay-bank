@@ -1315,6 +1315,163 @@ const adminCreateMerchant = async (req, res) => {
   }
 };
 
+// 🔍 ១. ស្វែងរកអ្នកប្រើប្រាស់ (តាមរយៈ Username ឬ លេខគណនី)
+const searchCashierUser = async (req, res) => {
+  try {
+    const { identifier } = req.params;
+
+    // ស្វែងរកតាម username ឬ លេខគណនី (USD / KHR)
+    const user = await User.findOne({
+      $or: [
+        { username: identifier },
+        { accountNumber: identifier },
+        { accountNumberKHR: identifier },
+      ],
+    });
+
+    if (!user) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+    }
+
+    // បញ្ជូនតែទិន្នន័យចាំបាច់ទៅ Frontend
+    res.json({
+      success: true,
+      data: {
+        username: user.username,
+        fullName: user.fullName || "មិនទាន់កំណត់ឈ្មោះ",
+        balanceUSD: user.balance || 0,
+        balanceKHR: user.balanceKHR || 0,
+        kycImage: user.idCardImage || null, // ដូរឈ្មោះ Field តាម Database របស់បង
+      },
+    });
+  } catch (error) {
+    console.error("SEARCH CASHIER ERROR:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification
+const processCashierTransaction = async (req, res) => {
+  const {
+    targetUsername,
+    depositorType,
+    depositorUsername,
+    currency,
+    amount,
+    remark,
+  } = req.body;
+
+  try {
+    const targetUser = await User.findOne({ username: targetUsername });
+    const centralBank = await User.findOne({ accountNumber: "888888888" }); // ធនាគារកណ្តាល
+
+    if (!targetUser)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអ្នកទទួលទេ!" });
+    if (!centralBank)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនី Central Bank!",
+      });
+
+    // បើមានអ្នកផ្សេងដាក់ឱ្យ ត្រូវស្វែងរកអ្នកនោះសិន
+    let depUser = null;
+    if (depositorType === "other") {
+      depUser = await User.findOne({ username: depositorUsername });
+      if (!depUser)
+        return res.json({
+          success: false,
+          message: "រកមិនឃើញគណនីអ្នកតំណាងដែលដាក់ប្រាក់ឱ្យទេ!",
+        });
+    }
+
+    const cashAmount = parseFloat(amount);
+    const isKHR = currency === "KHR";
+    const sign = isKHR ? "៛" : "$";
+
+    // 🔄 កាត់លុយពីធនាគារកណ្តាល ហើយបូកចូលគណនីអ្នកទទួល
+    if (isKHR) {
+      centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
+      targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
+    } else {
+      centralBank.balance = (centralBank.balance || 0) - cashAmount;
+      targetUser.balance = (targetUser.balance || 0) + cashAmount;
+    }
+
+    // 📝 រៀបចំទិន្នន័យ Transaction
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+    const refId = "DEP-" + Math.floor(Math.random() * 1000000);
+    const trxHash =
+      "HSH" + Math.random().toString(36).substring(7).toUpperCase();
+
+    const targetTrx = {
+      username: targetUser.username,
+      refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "Cash Deposit",
+      amount: cashAmount,
+      currency: currency,
+      fee: 0,
+      senderName:
+        depositorType === "self"
+          ? "Cash Deposit"
+          : depUser.fullName || depUser.username,
+      senderAcc:
+        depositorType === "self"
+          ? "Cash"
+          : isKHR
+            ? depUser.accountNumberKHR
+            : depUser.accountNumber,
+      receiverName: targetUser.fullName || targetUser.username,
+      receiverAcc: isKHR
+        ? targetUser.accountNumberKHR
+        : targetUser.accountNumber,
+      remark: remark,
+      status: "Success",
+      trxMethod: "U-PAY Cashier",
+    };
+
+    // បាញ់ចូល Collection 'Transaction' (កុំភ្លេច Import Transaction Model នៅខាងលើ File)
+    await Transaction.create(targetTrx);
+
+    // 🔔 ទី១៖ ផ្ញើសារចូលកណ្តឹង ម្ចាស់គណនីដែលទទួលបានលុយ
+    if (!targetUser.notifications) targetUser.notifications = [];
+    targetUser.notifications.unshift({
+      id: "NOTIF-" + Date.now(),
+      title: "ទទួលបានប្រាក់ (Cash Deposit)",
+      message: `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនីរបស់អ្នក។ ចំណាំ៖ ${remark}`,
+      date: dateStr,
+      isRead: false,
+    });
+    targetUser.markModified("notifications");
+    await targetUser.save();
+
+    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (តែអត់បូកលុយគាត់ទេ)
+    if (depositorType === "other" && depUser) {
+      if (!depUser.notifications) depUser.notifications = [];
+      depUser.notifications.unshift({
+        id: "NOTIF-" + Date.now(),
+        title: "ប្រតិបត្តិការតំណាងជោគជ័យ",
+        message: `អ្នកបានដាក់ប្រាក់ចំនួន ${sign}${cashAmount.toLocaleString("en-US")} ជូនទៅកាន់គណនី ${targetUser.fullName} ដោយជោគជ័យ។`,
+        date: dateStr,
+        isRead: false,
+      });
+      depUser.markModified("notifications");
+      await depUser.save();
+    }
+
+    await centralBank.save();
+
+    res.json({ success: true, message: "ប្រតិបត្តិការដាក់ប្រាក់ជោគជ័យ!" });
+  } catch (err) {
+    console.error("PROCESS CASHIER ERROR:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1352,4 +1509,6 @@ module.exports = {
   adminUploadKyc,
   adminForceLogout,
   adminCreateMerchant,
+  searchCashierUser,
+  processCashierTransaction,
 };
