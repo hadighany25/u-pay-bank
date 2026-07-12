@@ -1350,7 +1350,7 @@ const searchCashierUser = async (req, res) => {
   }
 };
 
-// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification (Update Standard Trx ID)
+// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification
 const processCashierTransaction = async (req, res) => {
   const {
     targetUsername,
@@ -1373,6 +1373,7 @@ const processCashierTransaction = async (req, res) => {
         message: "រកមិនឃើញគណនី Central Bank!",
       });
 
+    // បើមានអ្នកផ្សេងដាក់ឱ្យ ត្រូវស្វែងរកអ្នកនោះសិន
     let depUser = null;
     if (depositorType === "other") {
       depUser = await User.findOne({ username: depositorUsername });
@@ -1387,7 +1388,7 @@ const processCashierTransaction = async (req, res) => {
     const isKHR = currency === "KHR";
     const sign = isKHR ? "៛" : "$";
 
-    // 🔄 កាត់លុយ
+    // 🔄 កាត់លុយពីធនាគារកណ្តាល ហើយបូកចូលគណនីអ្នកទទួល
     if (isKHR) {
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
       targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
@@ -1396,22 +1397,14 @@ const processCashierTransaction = async (req, res) => {
       targetUser.balance = (targetUser.balance || 0) + cashAmount;
     }
 
-    // 🔥 កែប្រែទម្រង់ Ref ID និង Hash ឱ្យវែង ត្រូវតាមស្តង់ដារប្រព័ន្ធ U-PAY
+    // 📝 រៀបចំទិន្នន័យ Transaction
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    // បង្កើត Ref ID វែង (ឧ. DEP-1705829123-8942)
-    const refId =
-      "DEP-" +
-      Date.now().toString().slice(-8) +
-      "-" +
-      Math.floor(1000 + Math.random() * 9000);
-    // បង្កើត Hash វែង
+    const refId = "DEP-" + Math.floor(Math.random() * 1000000);
     const trxHash =
-      "HSH" +
-      Math.random().toString(36).substring(2, 12).toUpperCase() +
-      Date.now().toString(36).toUpperCase();
+      "HSH" + Math.random().toString(36).substring(7).toUpperCase();
 
     const targetTrx = {
       username: targetUser.username,
@@ -1438,19 +1431,11 @@ const processCashierTransaction = async (req, res) => {
         : targetUser.accountNumber,
       remark: remark,
       status: "Success",
-      trxMethod: "U-PAY System", // ដូរមកដាក់ System ដើម្បីឱ្យ Trace ស្គាល់
+      trxMethod: "U-PAY Cashier",
     };
 
-    const bankTrx = {
-      ...targetTrx,
-      username: centralBank.username, // របស់ Central Bank
-      amount: -cashAmount, // កាត់លុយចេញពីកណ្តាល
-      type: "Fund Disbursement",
-    };
-
-    // 🔥 បាញ់ចូល Collection 'Transaction' ទាំងសងខាង
+    // បាញ់ចូល Collection 'Transaction' (កុំភ្លេច Import Transaction Model នៅខាងលើ File)
     await Transaction.create(targetTrx);
-    await Transaction.create(bankTrx);
 
     // 🔔 ទី១៖ ផ្ញើសារចូលកណ្តឹង ម្ចាស់គណនីដែលទទួលបានលុយ
     if (!targetUser.notifications) targetUser.notifications = [];
@@ -1464,7 +1449,7 @@ const processCashierTransaction = async (req, res) => {
     targetUser.markModified("notifications");
     await targetUser.save();
 
-    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (បើមាន)
+    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (តែអត់បូកលុយគាត់ទេ)
     if (depositorType === "other" && depUser) {
       if (!depUser.notifications) depUser.notifications = [];
       depUser.notifications.unshift({
