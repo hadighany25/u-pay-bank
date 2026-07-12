@@ -121,7 +121,6 @@
         <i class="fa-solid fa-users-viewfinder"></i>
         <span data-i18n="menu-customer-360">Customer 360°</span>
       </div>
-
       <!-- 🌟 បន្ថែម Menu បេឡាករ (Cashier) ត្រង់នេះ -->
       <div
         class="menu-item"
@@ -132,9 +131,8 @@
         "
         data-i18n="menu-cashier"
       >
-        <i class="fa-solid fa-cash-register"></i> Cashier(Deposit/Withdraw)
+        <i class="fa-solid fa-cash-register"></i> Cashier (ដាក់/ដកប្រាក់)
       </div>
-
       <div
         class="menu-item"
         id="menu-checktrx"
@@ -561,154 +559,6 @@
             </thead>
             <tbody></tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- បេឡាករ -->
-      <div class="cashier-container">
-        <div class="cashier-title">
-          <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
-        </div>
-
-        <!-- ១. ផ្នែកស្វែងរកអ្នកទទួល -->
-        <div class="input-group">
-          <label class="input-label"
-            >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
-          >
-          <div style="display: flex; gap: 10px">
-            <input
-              type="text"
-              id="targetUserSearch"
-              class="custom-input"
-              placeholder="ឧ. dara123 ឬ 012345678"
-            />
-            <button
-              class="btn-primary"
-              style="width: 120px"
-              onclick="searchTargetUser()"
-            >
-              ស្វែងរក
-            </button>
-          </div>
-        </div>
-
-        <!-- ២. កាតព័ត៌មានអ្នកទទួល (លាក់សិន ទាល់តែរកឃើញទើបបង្ហាញ) -->
-        <div id="targetUserCard" class="user-card" style="display: none">
-          <img
-            src="default-avatar.png"
-            id="cardAvatar"
-            class="user-avatar"
-            alt="User"
-          />
-          <div class="user-details">
-            <div
-              style="font-weight: bold; color: #0f172a; font-size: 1.1rem"
-              id="cardName"
-            >
-              សុខ ដារ៉ា (@dara123)
-            </div>
-            <div style="margin-top: 5px">
-              <span class="balance-badge" id="cardBalUSD">USD: $0.00</span>
-              <span
-                class="balance-badge"
-                style="background: #dcfce7; color: #166534"
-                id="cardBalKHR"
-                >KHR: ៛0</span
-              >
-            </div>
-          </div>
-          <div>
-            <!-- ប៊ូតុងមើល KYC -->
-            <button class="kyc-btn" onclick="viewKYC()">
-              <i class="fa-solid fa-id-card"></i> មើល KYC
-            </button>
-          </div>
-        </div>
-
-        <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
-        <div id="transactionForm" style="display: none">
-          <!-- ជម្រើស: ខ្លួនឯង ឬ គេដាក់ឱ្យ -->
-          <div class="input-group">
-            <label class="input-label">តើនរណាជាអ្នកយកប្រាក់មកដាក់?</label>
-            <div class="radio-group">
-              <label class="radio-option">
-                <input
-                  type="radio"
-                  name="depositorType"
-                  value="self"
-                  checked
-                  onchange="toggleDepositorType()"
-                />
-                ម្ចាស់គណនីផ្ទាល់
-              </label>
-              <label class="radio-option">
-                <input
-                  type="radio"
-                  name="depositorType"
-                  value="other"
-                  onchange="toggleDepositorType()"
-                />
-                អ្នកផ្សេងដាក់ឱ្យ (តំណាង)
-              </label>
-            </div>
-          </div>
-
-          <!-- ប្រអប់វាយលេខគណនីអ្នកដាក់ឱ្យ (លេចចេញពេលរើស "អ្នកផ្សេងដាក់ឱ្យ") -->
-          <div id="otherDepositorDiv" style="display: none">
-            <label class="input-label"
-              >លេខគណនី ឬ Username (អ្នកយកលុយមកដាក់)</label
-            >
-            <input
-              type="text"
-              id="depositorSearch"
-              class="custom-input"
-              placeholder="វាយលេខគណនីអ្នកដាក់..."
-              oninput="verifyDepositor()"
-            />
-            <div id="depositorName" class="depositor-name">
-              <i class="fa-solid fa-check-circle"></i> ឈ្មោះ:
-              <span id="depNameText">...</span>
-            </div>
-          </div>
-
-          <!-- ជ្រើសរើសកងលុយ (USD/KHR) និង ចំនួនទឹកប្រាក់ -->
-          <div style="display: flex; gap: 15px">
-            <div class="input-group" style="width: 40%">
-              <label class="input-label">ប្រភេទគណនី</label>
-              <select id="cashCurrency" class="custom-input">
-                <option value="USD">គណនី USD ($)</option>
-                <option value="KHR">គណនី KHR (៛)</option>
-              </select>
-            </div>
-            <div class="input-group" style="width: 60%">
-              <label class="input-label">ចំនួនទឹកប្រាក់</label>
-              <input
-                type="number"
-                id="cashAmount"
-                class="custom-input"
-                placeholder="ឧ. 100.00"
-              />
-            </div>
-          </div>
-
-          <!-- ចំណាំ -->
-          <div class="input-group">
-            <label class="input-label">ចំណាំ (Remark)</label>
-            <input
-              type="text"
-              id="cashRemark"
-              class="custom-input"
-              placeholder="ទុកទទេ ប្រព័ន្ធនឹងបំពេញស្វ័យប្រវត្តិ..."
-            />
-          </div>
-
-          <!-- ប៊ូតុង Submit -->
-          <button
-            class="btn-primary btn-success"
-            onclick="processCashTransaction()"
-          >
-            <i class="fa-solid fa-check-circle"></i> បញ្ជាក់ការដាក់ប្រាក់
-          </button>
         </div>
       </div>
 
