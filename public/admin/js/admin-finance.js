@@ -276,12 +276,12 @@ async function togglePromoStatus(id) {
 }
 
 /* ==========================================
-   Cashier (បេឡាករ) Logic
+   Cashier (បេឡាករ) Logic (ភ្ជាប់ API ពិតប្រាកដ)
    ========================================== */
 let currentTargetUser = null;
 let currentDepositorUser = null;
 
-// បិទ/បើក ប្រអប់ "អ្នកផ្សេងដាក់ឱ្យ"
+// ១. បិទ/បើក ប្រអប់ "អ្នកផ្សេងដាក់ឱ្យ"
 function toggleDepositorType() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
@@ -297,49 +297,76 @@ function toggleDepositorType() {
   }
 }
 
-// ស្វែងរកអ្នកទទួលប្រាក់ (Mock Data ជាបណ្តោះអាសន្នសិន)
-function searchTargetUser() {
+// ស្វែងរកអ្នកទទួលប្រាក់ (ហៅ API)
+async function searchTargetUser() {
   const searchValue = document.getElementById("targetUserSearch").value.trim();
   if (!searchValue)
     return Swal.fire("បំរាម", "សូមវាយលេខគណនី ឬ Username", "warning");
 
-  Swal.showLoading();
+  Swal.fire({ title: "កំពុងស្វែងរក...", didOpen: () => Swal.showLoading() });
 
-  // ចាំយើងដូរទៅជាការ Fetch API ពិតប្រាកដនៅជំហានក្រោយ
-  setTimeout(() => {
+  try {
+    const res = await fetch(`/api/admin/cashier/search/${searchValue}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+    const result = await res.json();
     Swal.close();
-    currentTargetUser = {
-      username: searchValue,
-      fullName: "សុខ ដារ៉ា (Mock)",
-      balanceUSD: 1500.5,
-      balanceKHR: 400000,
-      kycImage: "https://via.placeholder.com/400x250?text=KYC+Card+Image",
-    };
 
-    document.getElementById("cardName").innerText =
-      `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
-    document.getElementById("cardBalUSD").innerText =
-      `USD: $${currentTargetUser.balanceUSD}`;
-    document.getElementById("cardBalKHR").innerText =
-      `KHR: ៛${currentTargetUser.balanceKHR}`;
+    if (result.success) {
+      currentTargetUser = result.data;
 
-    document.getElementById("targetUserCard").style.display = "flex";
-    document.getElementById("transactionForm").style.display = "block";
-  }, 600);
+      // បង្ហាញទិន្នន័យលើកាត
+      document.getElementById("cardName").innerText =
+        `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
+      document.getElementById("cardBalUSD").innerText =
+        `USD: $${currentTargetUser.balanceUSD.toLocaleString("en-US")}`;
+      document.getElementById("cardBalKHR").innerText =
+        `KHR: ៛${currentTargetUser.balanceKHR.toLocaleString("en-US")}`;
+
+      document.getElementById("targetUserCard").style.display = "flex";
+      document.getElementById("transactionForm").style.display = "block";
+    } else {
+      Swal.fire("រកមិនឃើញ", result.message, "error");
+      document.getElementById("targetUserCard").style.display = "none";
+      document.getElementById("transactionForm").style.display = "none";
+      currentTargetUser = null;
+    }
+  } catch (error) {
+    Swal.close();
+    Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+  }
 }
 
-// ឆែកឈ្មោះអ្នកដាក់ឱ្យ
-function verifyDepositor() {
+// ឆែកឈ្មោះអ្នកដាក់ឱ្យ (ហៅ API)
+async function verifyDepositor() {
   const val = document.getElementById("depositorSearch").value.trim();
+  const nameText = document.getElementById("depNameText");
+
   if (val.length >= 3) {
     document.getElementById("depositorName").style.display = "block";
-    document.getElementById("depNameText").innerText = "កំពុងស្វែងរក...";
+    nameText.innerText = "កំពុងស្វែងរក...";
+    nameText.style.color = "#475569";
 
-    setTimeout(() => {
-      currentDepositorUser = { fullName: "ចាន់ មករា (Mock)", username: val };
-      document.getElementById("depNameText").innerText =
-        `${currentDepositorUser.fullName} (@${currentDepositorUser.username})`;
-    }, 500);
+    try {
+      const res = await fetch(`/api/admin/cashier/search/${val}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        currentDepositorUser = result.data;
+        nameText.innerText = `${currentDepositorUser.fullName} (@${currentDepositorUser.username})`;
+        nameText.style.color = "#16a34a"; // ពណ៌បៃតងពេលរកឃើញ
+      } else {
+        currentDepositorUser = null;
+        nameText.innerText = "រកមិនឃើញគណនីនេះទេ!";
+        nameText.style.color = "#ef4444"; // ពណ៌ក្រហមពេលរកមិនឃើញ
+      }
+    } catch (error) {
+      nameText.innerText = "Error Network";
+    }
   } else {
     document.getElementById("depositorName").style.display = "none";
     currentDepositorUser = null;
@@ -348,17 +375,19 @@ function verifyDepositor() {
 
 // មើល KYC
 function viewKYC() {
-  if (!currentTargetUser) return;
+  if (!currentTargetUser || !currentTargetUser.kycImage) {
+    return Swal.fire("ព័ត៌មាន", "អតិថិជននេះមិនទាន់មានរូប KYC ទេ", "info");
+  }
   Swal.fire({
     title: `អត្តសញ្ញាណប័ណ្ណរបស់ ${currentTargetUser.fullName}`,
-    imageUrl: currentTargetUser.kycImage,
+    imageUrl: currentTargetUser.kycImage, // ទាញរូបពី Database
     imageWidth: 400,
     imageAlt: "KYC Image",
   });
 }
 
-// ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់
-function processCashTransaction() {
+// ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់ (បញ្ជូនទិន្នន័យទៅ Backend)
+async function processCashTransaction() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
   ).value;
@@ -367,7 +396,11 @@ function processCashTransaction() {
   let remark = document.getElementById("cashRemark").value.trim();
 
   if (!amount || amount <= 0)
-    return Swal.fire("កំហុស", "សូមបញ្ចូលចំនួនទឹកប្រាក់", "error");
+    return Swal.fire(
+      "កំហុស",
+      "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ",
+      "error",
+    );
   if (type === "other" && !currentDepositorUser)
     return Swal.fire(
       "កំហុស",
@@ -375,6 +408,7 @@ function processCashTransaction() {
       "error",
     );
 
+  // កំណត់ Remark ស្វ័យប្រវត្តិ
   if (!remark) {
     if (type === "self") {
       remark = `ដាក់ប្រាក់ដោយម្ចាស់គណនី (${currentTargetUser.fullName})`;
@@ -390,13 +424,48 @@ function processCashTransaction() {
     showCancelButton: true,
     confirmButtonColor: "#10b981",
     confirmButtonText: "យល់ព្រមដាក់ប្រាក់",
-  }).then((result) => {
+  }).then(async (result) => {
     if (result.isConfirmed) {
-      Swal.fire(
-        "ជោគជ័យ",
-        "UI ដើររលូន! ជំហានបន្ទាប់គឺភ្ជាប់ Backend!",
-        "success",
-      );
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        didOpen: () => Swal.showLoading(),
+      });
+
+      try {
+        const res = await fetch("/api/admin/cashier/transaction", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            targetUsername: currentTargetUser.username,
+            depositorType: type,
+            depositorUsername: currentDepositorUser
+              ? currentDepositorUser.username
+              : null,
+            currency: currency,
+            amount: amount,
+            remark: remark,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          Swal.fire("ជោគជ័យ!", data.message, "success");
+
+          // Clear ទិន្នន័យចេញពី Form ពេលជោគជ័យ
+          document.getElementById("cashAmount").value = "";
+          document.getElementById("cashRemark").value = "";
+          document.getElementById("depositorSearch").value = "";
+          document.getElementById("targetUserSearch").value = "";
+          document.getElementById("targetUserCard").style.display = "none";
+          document.getElementById("transactionForm").style.display = "none";
+          currentTargetUser = null;
+          currentDepositorUser = null;
+        } else {
+          Swal.fire("បរាជ័យ", data.message, "error");
+        }
+      } catch (error) {
+        Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+      }
     }
   });
 }
