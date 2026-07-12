@@ -937,41 +937,65 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
+// 🔍 Transaction Verification (កែតម្រូវឱ្យស្វែងរកក្នុង Transaction Collection)
 const getTransaction = async (req, res) => {
   const searchTerm = req.params.id.trim();
+
   try {
-    const owner = await User.findOne({
-      $or: [
-        { "transactions.refId": searchTerm },
-        { "transactions.hash": searchTerm },
-      ],
+    // ១. ស្វែងរកដោយផ្ទាល់នៅក្នុង Transaction Collection
+    const foundTrx = await Transaction.findOne({
+      $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
-    if (owner) {
-      const foundTrx = owner.transactions.find(
-        (t) => t.refId === searchTerm || t.hash === searchTerm,
-      );
-      const senderObj = await User.findOne({ username: foundTrx.senderName });
+
+    if (foundTrx) {
+      // ២. ស្វែងរកព័ត៌មានអ្នកផ្ញើ និងអ្នកទទួល ដើម្បីយកស្ថានភាព KYC
+      const senderObj = await User.findOne({
+        $or: [
+          { username: foundTrx.username }, // អាចជាម្ចាស់ Transaction ផ្ទាល់
+          { accountNumber: foundTrx.senderAcc },
+          { accountNumberKHR: foundTrx.senderAcc },
+        ],
+      });
+
       const receiverObj = await User.findOne({
         $or: [
           { accountNumber: foundTrx.receiverAcc },
           { accountNumberKHR: foundTrx.receiverAcc },
         ],
       });
+
+      // ៣. បំប្លែងទិន្នន័យ (Object) ដើម្បីអាចបន្ថែម Field KYC ចូលបាន
       let trxDetails = {
         ...(foundTrx.toObject ? foundTrx.toObject() : foundTrx),
       };
-      trxDetails.senderKyc = senderObj ? senderObj.kycStatus : "Unverified";
-      trxDetails.receiverKyc = receiverObj
-        ? receiverObj.kycStatus
+
+      // បន្ថែមស្ថានភាព KYC ចូលទៅក្នុង Object មុននឹងបញ្ជូនទៅ Frontend
+      trxDetails.senderKyc = senderObj
+        ? senderObj.kycStatus || "Unverified"
         : "Unverified";
+      trxDetails.receiverKyc = receiverObj
+        ? receiverObj.kycStatus || "Unverified"
+        : "Unverified";
+
+      // ៤. បញ្ជូនលទ្ធផលជោគជ័យ
       res.json({
         success: true,
         transaction: trxDetails,
-        user: { username: owner.username, accountNumber: owner.accountNumber },
       });
-    } else res.json({ success: false });
+    } else {
+      res.json({
+        success: false,
+        message: "រកមិនឃើញប្រតិបត្តិការនេះទេ! លេខ Ref ID ឬ Hash មិនត្រឹមត្រូវ។",
+      });
+    }
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("GET TRX ERROR:", err);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
+      });
   }
 };
 
