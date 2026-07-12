@@ -62,7 +62,7 @@ const generateCard = async (req, res) => {
       amount: -5,
       currency: "USD",
       senderName: user.username,
-      receiverName: "U-Pay System",
+      receiverName: "Card Issuance Fee",
       status: "Success",
       remark: `Issued ${cardType} Virtual Card`,
     });
@@ -73,7 +73,7 @@ const generateCard = async (req, res) => {
 
       // 🔥 ទី៣៖ បញ្ចូលទិន្នន័យចូល Collection ថ្មី (Transaction) សម្រាប់ Central Bank
       await Transaction.create({
-        username: centralBank.username || "CentralBank",
+        username: centralBank.username || "system_fee",
         refId: refId,
         hash: trxHash,
         date: dateStr,
@@ -81,7 +81,7 @@ const generateCard = async (req, res) => {
         amount: 5,
         currency: "USD",
         senderName: user.username,
-        receiverName: "U-Pay System",
+        receiverName: "Card Issuance Fee",
         status: "Success",
         remark: "Card Issuance Fee",
       });
