@@ -611,11 +611,16 @@
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code
-          if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
+          // 🌟 ប្តូរទៅជា Logo ហាង (Icon រូបហាង) សម្រាប់ Merchant Payment
+          if (t.type === "Merchant Payment" || t.type.includes("Merchant")) {
+            icon = "fa-store";
+            color = isIncome ? "text-green" : "text-red";
+            bg = isIncome ? "bg-green" : "bg-red";
+          }
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code ផ្សេងៗ
+          else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             icon = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
-            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee) ក្នុង History
             icon = "fa-file-invoice-dollar";
             color = "text-orange";
             bg = "bg-orange";
@@ -628,7 +633,6 @@
             t.type === "Cash Withdrawal" ||
             t.type.includes("System")
           ) {
-            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal ក្នុង History
             icon = "fa-money-bill-transfer";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";
