@@ -125,7 +125,6 @@ async function searchTrx() {
       const isKHR = t.currency === "KHR";
       const currSym = isKHR ? "៛" : "$";
 
-      // រៀបចំការបង្ហាញលេខ (ក្បៀស)
       const fmtAmt = isKHR
         ? Math.abs(t.amount || 0).toLocaleString("en-US", {
             maximumFractionDigits: 0,
@@ -142,7 +141,6 @@ async function searchTrx() {
           })
         : Math.abs(t.profit || t.commission || 0).toFixed(2);
 
-      // រៀបចំឈ្មោះ និងលេខគណនី
       let sName =
         t.senderName || t.sender || t.fromName || t.senderPhone || "System";
       let sAcc =
@@ -155,7 +153,6 @@ async function searchTrx() {
         t.receiverName || t.receiver || t.toName || t.receiverPhone || "System";
       let rAcc = t.receiverAcc || t.receiverAccount || t.toAccount || "N/A";
 
-      // កុហក IP និង Device បើអត់មាន (Random ឱ្យដូចពិតៗ)
       const mockDevices = [
         "iPhone 14 Pro Max",
         "Samsung Galaxy S23 Ultra",
@@ -192,7 +189,9 @@ async function searchTrx() {
           ? "#10b981"
           : "#ef4444";
 
-      // 🔥 ទី១៖ ដោះស្រាយបញ្ហាប្រអប់ Sender & Receiver ពេលវាយលុយនៅបេឡាករ (Cashier)
+      // 🌟 រៀបចំកូដបង្ហាញ "អ្នកដាក់ប្រាក់ (Depositor Info)"
+      let depositorHtml = "";
+
       if (t.type === "Cash Deposit") {
         sName = "Cash Deposit (ដាក់ប្រាក់)";
         sAcc = "CASH-DESK";
@@ -200,6 +199,22 @@ async function searchTrx() {
         sIp = "Internal Network";
         sKyc = "System";
         sKycColor = "#3b82f6";
+
+        // ទាញទិន្នន័យអ្នកដាក់ប្រាក់
+        let dName =
+          t.depositorName ||
+          (t.remark && t.remark.includes("ម្ចាស់គណនី")
+            ? "ម្ចាស់គណនីផ្ទាល់ (Self)"
+            : "អ្នកតំណាង");
+        let dAcc = t.depositorAcc || "N/A";
+
+        depositorHtml = `
+          <div class="t-row">
+            <span class="t-label">Deposited By</span> 
+            <span class="t-value" style="font-weight: 900; color: #d97706; background: #fffbeb; padding: 3px 10px; border-radius: 6px; border: 1px dashed #fcd34d;">
+              ${dName} ${dAcc !== "N/A" ? `(${dAcc})` : ""}
+            </span>
+          </div>`;
       } else if (t.type === "Cash Withdrawal") {
         rName = "Cash Withdrawal (ដកប្រាក់)";
         rAcc = "CASH-DESK";
@@ -209,27 +224,22 @@ async function searchTrx() {
         rKycColor = "#3b82f6";
       }
 
-      // ឆែកមើលក្រែងលោជាប្រព័ន្ធ (System Wallet ទូទៅ)
       if (sName.toLowerCase().includes("system")) sAcc = "SYSTEM-WALLET";
       if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
 
-      // 🔥 ទី២៖ រៀបចំ Merchant ID (បើជាការទូទាត់ទៅហាង វានឹងលោតចេញ)
+      // 🌟 រៀបចំ Merchant ID
       let isMerchantTx =
         t.type === "Merchant Payment" ||
         t.receiverType === "Merchant" ||
         (rName && rName.toLowerCase().includes("shop"));
-      // ទាញយក Merchant ID ពិតពី Backend បើមាន បើមិនទាន់មាន ប្រើល្បិច Generate លេខបញ្ជាក់មួយសិន
       let mId =
         t.merchantId ||
         t.receiverMerchantId ||
         (isMerchantTx ? "MID-" + (rAcc.toString().slice(-5) || "8899") : null);
-
-      // កូដ HTML បង្ហាញ Merchant ID
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
         : "";
 
-      // សិទ្ធិក្នុងការ Refund លុយ
       let canRefund =
         adminRole === "super_admin" ||
         (myAdminPermissions && myAdminPermissions.actions?.refund);
@@ -241,10 +251,11 @@ async function searchTrx() {
       box.style.display = "block";
       box.innerHTML = `
         <div class="trx-grid">
-          <!-- ផ្នែកអ្នកផ្ញើ -->
+          <!-- ផ្នែកអ្នកផ្ញើ / អ្នកដាក់ប្រាក់ -->
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
+            ${depositorHtml} <!-- 🌟 បង្ហាញព័ត៌មានអ្នកដាក់ប្រាក់នៅទីនេះ 🌟 -->
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${sDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${sIp}</span></div>
@@ -257,7 +268,7 @@ async function searchTrx() {
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
-            ${merchantHtml} <!-- 🌟 Merchant ID នឹងលេចចេញនៅទីនេះ បើវាជាការទូទាត់ទៅកាន់ហាង -->
+            ${merchantHtml} <!-- 🌟 Merchant ID -->
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${rDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${rIp}</span></div>

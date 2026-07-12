@@ -1011,12 +1011,10 @@ const getTransaction = async (req, res) => {
     }
   } catch (err) {
     console.error("GET TRX ERROR:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
+    });
   }
 };
 
@@ -1395,7 +1393,7 @@ const searchCashierUser = async (req, res) => {
   }
 };
 
-// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification
+// 💰 ២. ដំណើរការដាក់ប្រាក់ និងផ្ញើសារ Notification (បន្ថែមការចាប់យកអ្នកដាក់ប្រាក់)
 const processCashierTransaction = async (req, res) => {
   const {
     targetUsername,
@@ -1418,7 +1416,6 @@ const processCashierTransaction = async (req, res) => {
         message: "រកមិនឃើញគណនី Central Bank!",
       });
 
-    // បើមានអ្នកផ្សេងដាក់ឱ្យ ត្រូវស្វែងរកអ្នកនោះសិន
     let depUser = null;
     if (depositorType === "other") {
       depUser = await User.findOne({ username: depositorUsername });
@@ -1433,7 +1430,7 @@ const processCashierTransaction = async (req, res) => {
     const isKHR = currency === "KHR";
     const sign = isKHR ? "៛" : "$";
 
-    // 🔄 កាត់លុយពីធនាគារកណ្តាល ហើយបូកចូលគណនីអ្នកទទួល
+    // 🔄 កាត់លុយ
     if (isKHR) {
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
       targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
@@ -1442,15 +1439,21 @@ const processCashierTransaction = async (req, res) => {
       targetUser.balance = (targetUser.balance || 0) + cashAmount;
     }
 
-    // 📝 រៀបចំទិន្នន័យ Transaction
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const refId = "DEP-" + Math.floor(Math.random() * 1000000);
+    const refId =
+      "DEP-" +
+      Date.now().toString().slice(-8) +
+      "-" +
+      Math.floor(1000 + Math.random() * 9000);
     const trxHash =
-      "HSH" + Math.random().toString(36).substring(7).toUpperCase();
+      "HSH" +
+      Math.random().toString(36).substring(2, 12).toUpperCase() +
+      Date.now().toString(36).toUpperCase();
 
+    // 📝 រៀបចំទិន្នន័យ Transaction
     const targetTrx = {
       username: targetUser.username,
       refId,
@@ -1460,27 +1463,39 @@ const processCashierTransaction = async (req, res) => {
       amount: cashAmount,
       currency: currency,
       fee: 0,
-      senderName:
-        depositorType === "self"
-          ? "Cash Deposit"
-          : depUser.fullName || depUser.username,
-      senderAcc:
-        depositorType === "self"
-          ? "Cash"
-          : isKHR
-            ? depUser.accountNumberKHR
-            : depUser.accountNumber,
+      senderName: "Cash Deposit", // បង្ហាញស្តង់ដារ
+      senderAcc: "CASH-DESK", // បង្ហាញស្តង់ដារ
       receiverName: targetUser.fullName || targetUser.username,
       receiverAcc: isKHR
         ? targetUser.accountNumberKHR
         : targetUser.accountNumber,
       remark: remark,
       status: "Success",
-      trxMethod: "U-PAY Cashier",
+      trxMethod: "U-PAY System",
+      // 🔥 បន្ថែម Field ថ្មី ដើម្បីកត់ចំណាំអ្នកដែលកាន់លុយមកដាក់ផ្ទាល់
+      depositorName:
+        depositorType === "self"
+          ? targetUser.fullName || targetUser.username
+          : depUser.fullName || depUser.username,
+      depositorAcc:
+        depositorType === "self"
+          ? isKHR
+            ? targetUser.accountNumberKHR
+            : targetUser.accountNumber
+          : isKHR
+            ? depUser.accountNumberKHR
+            : depUser.accountNumber,
     };
 
-    // បាញ់ចូល Collection 'Transaction' (កុំភ្លេច Import Transaction Model នៅខាងលើ File)
+    const bankTrx = {
+      ...targetTrx,
+      username: centralBank.username,
+      amount: -cashAmount,
+      type: "Fund Disbursement",
+    };
+
     await Transaction.create(targetTrx);
+    await Transaction.create(bankTrx);
 
     // 🔔 ទី១៖ ផ្ញើសារចូលកណ្តឹង ម្ចាស់គណនីដែលទទួលបានលុយ
     if (!targetUser.notifications) targetUser.notifications = [];
@@ -1494,7 +1509,7 @@ const processCashierTransaction = async (req, res) => {
     targetUser.markModified("notifications");
     await targetUser.save();
 
-    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (តែអត់បូកលុយគាត់ទេ)
+    // 🔔 ទី២៖ ផ្ញើសារវិក្កយបត្រ ទៅកាន់ "អ្នកដែលដាក់លុយឱ្យ" (បើមាន)
     if (depositorType === "other" && depUser) {
       if (!depUser.notifications) depUser.notifications = [];
       depUser.notifications.unshift({
@@ -1509,7 +1524,6 @@ const processCashierTransaction = async (req, res) => {
     }
 
     await centralBank.save();
-
     res.json({ success: true, message: "ប្រតិបត្តិការដាក់ប្រាក់ជោគជ័យ!" });
   } catch (err) {
     console.error("PROCESS CASHIER ERROR:", err);
