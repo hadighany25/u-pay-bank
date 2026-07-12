@@ -98,7 +98,7 @@ function viewUserMessage(username, ticketId) {
 }
 
 // ==========================================
-// 🔍 Trx Check & Action (បង្ហាញទិន្នន័យពិតប្រាកដ ១០០%)
+// 🔍 Trx Check & Action (មុខងារស្វែងរកប្រវត្តិប្រតិបត្តិការ)
 // ==========================================
 async function searchTrx() {
   const id = document.getElementById("searchTrxId").value.trim();
@@ -189,6 +189,7 @@ async function searchTrx() {
           ? "#10b981"
           : "#ef4444";
 
+      // 🌟 រៀបចំកូដបង្ហាញ "អ្នកដាក់ប្រាក់ (Depositor Info)"
       let depositorHtml = "";
 
       if (t.type === "Cash Deposit") {
@@ -199,18 +200,19 @@ async function searchTrx() {
         sKyc = "System";
         sKycColor = "#3b82f6";
 
-        // 🔥 ចាប់យកឈ្មោះ និងគណនីអ្នកដាក់ពិតប្រាកដពី Backend
-        let dName = t.depositorName || "មិនមានឈ្មោះ";
-        let dAcc =
-          t.depositorAcc && t.depositorAcc !== "N/A"
-            ? `(${t.depositorAcc})`
-            : "";
+        // ទាញទិន្នន័យអ្នកដាក់ប្រាក់
+        let dName =
+          t.depositorName ||
+          (t.remark && t.remark.includes("ម្ចាស់គណនី")
+            ? "ម្ចាស់គណនីផ្ទាល់ (Self)"
+            : "អ្នកតំណាង");
+        let dAcc = t.depositorAcc || "N/A";
 
         depositorHtml = `
           <div class="t-row">
             <span class="t-label">Deposited By</span> 
             <span class="t-value" style="font-weight: 900; color: #d97706; background: #fffbeb; padding: 3px 10px; border-radius: 6px; border: 1px dashed #fcd34d;">
-              ${dName} ${dAcc}
+              ${dName} ${dAcc !== "N/A" ? `(${dAcc})` : ""}
             </span>
           </div>`;
       } else if (t.type === "Cash Withdrawal") {
@@ -225,8 +227,15 @@ async function searchTrx() {
       if (sName.toLowerCase().includes("system")) sAcc = "SYSTEM-WALLET";
       if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
 
-      // 🔥 រៀបចំ Merchant ID (យកតែរបស់ពិត)
-      let mId = t.merchantId || t.receiverMerchantId;
+      // 🌟 រៀបចំ Merchant ID
+      let isMerchantTx =
+        t.type === "Merchant Payment" ||
+        t.receiverType === "Merchant" ||
+        (rName && rName.toLowerCase().includes("shop"));
+      let mId =
+        t.merchantId ||
+        t.receiverMerchantId ||
+        (isMerchantTx ? "MID-" + (rAcc.toString().slice(-5) || "8899") : null);
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
         : "";
@@ -238,13 +247,15 @@ async function searchTrx() {
         ? `<button onclick="handleAdminAction('refund', '${t.refId || t.id}')" style="padding: 8px 15px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-rotate-left"></i> Refund Transaction</button>`
         : `<span style="color: var(--text-muted);">គ្មានសិទ្ធិ Refund ទេ</span>`;
 
+      // បង្ហាញ UI
       box.style.display = "block";
       box.innerHTML = `
         <div class="trx-grid">
+          <!-- ផ្នែកអ្នកផ្ញើ / អ្នកដាក់ប្រាក់ -->
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Sender Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${sName}</span></div>
-            ${depositorHtml} 
+            ${depositorHtml} <!-- 🌟 បង្ហាញព័ត៌មានអ្នកដាក់ប្រាក់នៅទីនេះ 🌟 -->
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${sAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${sDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${sIp}</span></div>
@@ -253,10 +264,11 @@ async function searchTrx() {
             <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "General"}</span></div>
           </div>
           
+          <!-- ផ្នែកអ្នកទទួល -->
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
-            ${merchantHtml}
+            ${merchantHtml} <!-- 🌟 Merchant ID -->
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${rDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${rIp}</span></div>
@@ -265,6 +277,7 @@ async function searchTrx() {
             <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "General"}</span></div>
           </div>
           
+          <!-- ផ្នែកព័ត៌មានប្រតិបត្តិការរួម -->
           <div class="trx-box full">
             <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
             <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
