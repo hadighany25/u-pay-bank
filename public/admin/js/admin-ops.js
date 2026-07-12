@@ -155,19 +155,7 @@ async function searchTrx() {
         t.receiverName || t.receiver || t.toName || t.receiverPhone || "System";
       let rAcc = t.receiverAcc || t.receiverAccount || t.toAccount || "N/A";
 
-      // ឆែកមើលក្រែងលោជាប្រព័ន្ធ (System Wallet)
-      if (
-        sName.toLowerCase().includes("system") ||
-        t.trxMethod === "System Deposit" ||
-        t.trxMethod === "U-PAY System"
-      ) {
-        sAcc = "SYSTEM-WALLET";
-      }
-      if (rName.toLowerCase().includes("system")) {
-        rAcc = "SYSTEM-WALLET";
-      }
-
-      // 🔥 កុហក IP និង Device បើអត់មាន (Random ឱ្យដូចពិតៗ)
+      // កុហក IP និង Device បើអត់មាន (Random ឱ្យដូចពិតៗ)
       const mockDevices = [
         "iPhone 14 Pro Max",
         "Samsung Galaxy S23 Ultra",
@@ -184,7 +172,6 @@ async function searchTrx() {
         t.receiverDevice ||
         t.device ||
         mockDevices[Math.floor(Math.random() * mockDevices.length)];
-
       let sIp =
         t.senderIp ||
         t.ip ||
@@ -194,7 +181,6 @@ async function searchTrx() {
         t.ip ||
         `175.100.${Math.floor(Math.random() * 200) + 10}.${Math.floor(Math.random() * 250)}`;
 
-      // ស្ថានភាព KYC និងពណ៌
       let sKyc = t.senderKyc || t.kycStatus || "Unverified";
       let rKyc = t.receiverKyc || t.kycStatus || "Unverified";
       let sKycColor =
@@ -206,11 +192,47 @@ async function searchTrx() {
           ? "#10b981"
           : "#ef4444";
 
+      // 🔥 ទី១៖ ដោះស្រាយបញ្ហាប្រអប់ Sender & Receiver ពេលវាយលុយនៅបេឡាករ (Cashier)
+      if (t.type === "Cash Deposit") {
+        sName = "Cash Deposit (ដាក់ប្រាក់)";
+        sAcc = "CASH-DESK";
+        sDevice = "Branch Admin System";
+        sIp = "Internal Network";
+        sKyc = "System";
+        sKycColor = "#3b82f6";
+      } else if (t.type === "Cash Withdrawal") {
+        rName = "Cash Withdrawal (ដកប្រាក់)";
+        rAcc = "CASH-DESK";
+        rDevice = "Branch Admin System";
+        rIp = "Internal Network";
+        rKyc = "System";
+        rKycColor = "#3b82f6";
+      }
+
+      // ឆែកមើលក្រែងលោជាប្រព័ន្ធ (System Wallet ទូទៅ)
+      if (sName.toLowerCase().includes("system")) sAcc = "SYSTEM-WALLET";
+      if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
+
+      // 🔥 ទី២៖ រៀបចំ Merchant ID (បើជាការទូទាត់ទៅហាង វានឹងលោតចេញ)
+      let isMerchantTx =
+        t.type === "Merchant Payment" ||
+        t.receiverType === "Merchant" ||
+        (rName && rName.toLowerCase().includes("shop"));
+      // ទាញយក Merchant ID ពិតពី Backend បើមាន បើមិនទាន់មាន ប្រើល្បិច Generate លេខបញ្ជាក់មួយសិន
+      let mId =
+        t.merchantId ||
+        t.receiverMerchantId ||
+        (isMerchantTx ? "MID-" + (rAcc.toString().slice(-5) || "8899") : null);
+
+      // កូដ HTML បង្ហាញ Merchant ID
+      let merchantHtml = mId
+        ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
+        : "";
+
       // សិទ្ធិក្នុងការ Refund លុយ
       let canRefund =
         adminRole === "super_admin" ||
         (myAdminPermissions && myAdminPermissions.actions?.refund);
-
       let refundHtml = canRefund
         ? `<button onclick="handleAdminAction('refund', '${t.refId || t.id}')" style="padding: 8px 15px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><i class="fa-solid fa-rotate-left"></i> Refund Transaction</button>`
         : `<span style="color: var(--text-muted);">គ្មានសិទ្ធិ Refund ទេ</span>`;
@@ -235,10 +257,11 @@ async function searchTrx() {
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
+            ${merchantHtml} <!-- 🌟 Merchant ID នឹងលេចចេញនៅទីនេះ បើវាជាការទូទាត់ទៅកាន់ហាង -->
             <div class="t-row"><span class="t-label">Account No.</span> <span class="t-value" style="font-family: monospace; color: var(--accent);">${rAcc}</span></div>
             <div class="t-row"><span class="t-label">Device</span> <span class="t-value">${rDevice}</span></div>
             <div class="t-row"><span class="t-label">IP Address</span> <span class="t-value">${rIp}</span></div>
-            <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || t.accountType || "Personal"}</span></div>
+            <div class="t-row"><span class="t-label">Account Type</span> <span class="t-value">${t.receiverType || (merchantHtml ? "Merchant" : "Personal")}</span></div>
             <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${rKycColor}">${rKyc}</span></div>
             <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "General"}</span></div>
           </div>
