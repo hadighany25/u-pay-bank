@@ -611,7 +611,7 @@
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift និង Fee
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             icon = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
@@ -619,8 +619,12 @@
             icon = "fa-file-invoice-dollar";
             color = "text-orange";
             bg = "bg-orange";
+          } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Promo Code ក្នុង History
+            icon = "fa-tag";
+            color = isIncome ? "text-green" : "text-red";
+            bg = isIncome ? "bg-green" : "bg-red";
           }
-
           let dateObj = new Date(t.date);
           if (isNaN(dateObj.getTime()) && t.date && t.date.includes(",")) {
             dateObj = new Date(t.date.split(",")[0].trim());

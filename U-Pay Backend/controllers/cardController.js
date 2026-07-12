@@ -12,9 +12,11 @@ const generateCardDetails = () => {
       .padStart(15, "0");
   const cvv = Math.floor(100 + Math.random() * 900).toString();
   const d = new Date();
-  const year = d.getFullYear() + 4; // បូកឆ្នាំទុកក្នុងអថេរមួយ
+  d.setFullYear(d.getFullYear() + 4); // ផុតកំណត់ ៤ ឆ្នាំក្រោយ
   const expiry =
-    ("0" + (d.getMonth() + 1)).slice(-2) + "/" + year.toString().slice(-2);
+    ("0" + (d.getMonth() + 1)).slice(-2) +
+    "/" +
+    d.getFullYear().toString().slice(-2);
   return { number, cvv, expiry };
 };
 

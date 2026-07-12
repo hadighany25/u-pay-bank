@@ -1881,14 +1881,19 @@
               ? "text-orange"
               : "text-red";
 
-          // 🎁 កំណត់ Icon សម្រាប់ E-Gift និង Fee
+          // 🎁 កំណត់ Icon សម្រាប់ E-Gift, Fee និង Promo Code
           if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
             // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee)
-            iconClass = "fa-file-invoice-dollar"; // ជារូបវិក្កយបត្រកាត់លុយ
-            bgClass = "bg-orange"; // ដាក់ផ្ទៃពណ៌ទឹកក្រូច
+            iconClass = "fa-file-invoice-dollar";
+            bgClass = "bg-orange";
             textClass = "text-orange";
+          } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Promo Code
+            iconClass = "fa-tag";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
           }
 
           let title = t.type;
