@@ -253,7 +253,7 @@ const adjustBalance = async (req, res) => {
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { username, amount, type, currency } = req.body;
+  const { username, amount, type, currency, remark } = req.body;
   try {
     const user = await User.findOne({ username });
     const centralBank = await User.findOne({ accountNumber: "888888888" });
@@ -342,7 +342,11 @@ const adjustBalance = async (req, res) => {
             ? centralBank.accountNumberKHR
             : centralBank.accountNumber,
       // 🔥 ប្តូរ Remark "Admin Deduction" ចេញ ដាក់ "Cash Withdrawal"
-      remark: type === "add" ? "Cash Deposit" : "Cash Withdrawal",
+      remark: remark
+        ? remark
+        : type === "add"
+          ? "Cash Deposit"
+          : "Cash Withdrawal",
       status: "Success",
       trxMethod: "U-PAY System",
     };

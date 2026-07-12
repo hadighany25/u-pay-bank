@@ -259,34 +259,89 @@ async function saveUserEdit() {
 }
 
 function openAdjustBalance(username, type) {
-  const title =
-    type === "add" ? "ដាក់ប្រាក់ (Add Money)" : "ដកប្រាក់ (Deduct Money)";
-  const confirmBtnColor = type === "add" ? "#10b981" : "#ef4444";
-  const icon = type === "add" ? "plus-circle" : "minus-circle";
+  const isAdd = type === "add";
+  const title = isAdd
+    ? "ដាក់ប្រាក់ (Cash Deposit)"
+    : "ដកប្រាក់ (Cash Withdrawal)";
+  const confirmBtnColor = isAdd ? "#10b981" : "#ef4444"; // ពណ៌បៃតង សម្រាប់ដាក់, ក្រហម សម្រាប់ដក
+  const icon = isAdd ? "circle-down" : "circle-up";
 
-  Swal.fire({
-    title: `<i class="fa-solid fa-${icon}"></i> ${title}`,
-    html: `
-        <div style="text-align: left; font-family: 'Kantumruy Pro';">
-            <p style="margin-bottom: 10px; color: #64748b;">សម្រាប់អតិថិជន៖ <b style="color: #0f172a;">@${username}</b></p>
-            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ប្រភេទគណនី</label>
-            <select id="adjCurrency" class="swal2-input" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 15px;">
+  // រៀបចំ UI ឱ្យមើលទៅ Professional (Premium Look)
+  const formHtml = `
+    <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
+        <!-- ប្រអប់បង្ហាញឈ្មោះអតិថិជន -->
+        <div style="background: #f8fafc; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-user-circle" style="color: #94a3b8; font-size: 1.5rem;"></i>
+            <div>
+                <div style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">សម្រាប់អតិថិជន</div>
+                <div style="color: #0f172a; font-size: 1.05rem; font-weight: bold;">@${username}</div>
+            </div>
+        </div>
+
+        <!-- ជ្រើសរើសប្រភេទគណនី -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ប្រភេទគណនី (Account Type)</label>
+            <select id="adjCurrency" class="custom-swal-input">
                 <option value="USD">គណនី USD ($)</option>
                 <option value="KHR">គណនី KHR (៛)</option>
             </select>
-            <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">ចំនួនទឹកប្រាក់</label>
-            <input id="adjAmount" class="swal2-input" type="number" placeholder="ឧ. 50.00 ឬ 40000" style="width: 100%; max-width: 100%; box-sizing: border-box; margin: 5px 0 0;">
-        </div>`,
+        </div>
+
+        <!-- បញ្ចូលចំនួនទឹកប្រាក់ -->
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំនួនទឹកប្រាក់ (Amount)</label>
+            <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000">
+        </div>
+
+        <!-- 🌟 បន្ថែមប្រអប់ចំណាំ (Remark) ថ្មី -->
+        <div style="margin-bottom: 5px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំណាំ (Remark)</label>
+            <input id="adjRemark" type="text" class="custom-swal-input" placeholder="បញ្ជាក់មូលហេតុ... (ជម្រើស)">
+        </div>
+
+        <!-- CSS សម្រាប់ Input ឱ្យស្អាត -->
+        <style>
+            .custom-swal-input {
+                width: 100%;
+                box-sizing: border-box;
+                height: 45px;
+                padding: 0 15px;
+                font-size: 0.95rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                color: #1e293b;
+                transition: all 0.2s ease-in-out;
+                font-family: inherit;
+            }
+            .custom-swal-input:focus {
+                border-color: ${confirmBtnColor};
+                box-shadow: 0 0 0 3px ${confirmBtnColor}20;
+                outline: none;
+            }
+        </style>
+    </div>
+  `;
+
+  Swal.fire({
+    title: `<div style="color: #1e293b; font-size: 1.4rem;"><i class="fa-solid fa-${icon}" style="color: ${confirmBtnColor}; margin-right: 8px;"></i> ${title}</div>`,
+    html: formHtml,
     showCancelButton: true,
     confirmButtonColor: confirmBtnColor,
     cancelButtonColor: "#64748b",
     confirmButtonText: "បញ្ជាក់ (Confirm)",
+    cancelButtonText: "បោះបង់",
+    customClass: {
+      popup: "professional-popup", // បន្ថែម Class សម្រាប់ Custom បន្ថែមបើចង់
+    },
     preConfirm: () => {
       const currency = document.getElementById("adjCurrency").value;
       const amount = document.getElementById("adjAmount").value;
-      if (!amount || amount <= 0)
+      const remark = document.getElementById("adjRemark").value.trim(); // ទាញយកតម្លៃ Remark
+
+      if (!amount || amount <= 0) {
         Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!");
-      return { currency, amount };
+      }
+      return { currency, amount, remark }; // បញ្ជូន Remark ទៅកាន់ Promise
     },
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -298,12 +353,17 @@ function openAdjustBalance(username, type) {
       try {
         const res = await fetch("/api/admin/adjust-balance", {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + localStorage.getItem("adminToken"), // កុំភ្លេច Header
+          },
+          // 🚀 បញ្ជូន remark ទៅឱ្យ Backend
           body: JSON.stringify({
             username,
             amount: result.value.amount,
             currency: result.value.currency,
             type,
+            remark: result.value.remark,
           }),
         });
         const data = await res.json();
