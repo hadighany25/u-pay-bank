@@ -29,6 +29,7 @@ const generateCard = async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
+
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
@@ -38,27 +39,22 @@ const generateCard = async (req, res) => {
         message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់បង់សេវា $5 ទេ!",
       });
 
-    // 🔥 ឆែករក system_fee ដោយសុវត្ថិភាព
+    // 🔥 ស្វែងរកគណនី system_fee បើគ្មានទេ បង្កើតវាភ្លាមៗ
     let systemFeeAcc = await User.findOne({ username: "system_fee" });
-
     if (!systemFeeAcc) {
-      try {
-        systemFeeAcc = await User.create({
-          id: "sys_" + Date.now(),
-          username: "system_fee",
-          fullName: "U-Pay System Fee",
-          accountNumber: "999999999",
-          balance: 0.0,
-          balanceKHR: 0.0,
-          role: "user", // 🔥 ប្តូរមកដាក់ user ដើម្បីកុំឱ្យជួបបញ្ហា Role Validation
-        });
-      } catch (e) {
-        // បើវា error ព្រោះមានគេបង្កើតមុន ព្យាយាមរកម្តងទៀត
-        systemFeeAcc = await User.findOne({ username: "system_fee" });
-      }
+      systemFeeAcc = new User({
+        id: "sys_" + Date.now(),
+        username: "system_fee",
+        fullName: "U-Pay System Fee",
+        accountNumber: "999999999", // លេខគណនីពិសេសសម្រាប់ Fee
+        balance: 0.0,
+        balanceKHR: 0.0,
+        role: "user",
+      });
+      await systemFeeAcc.save();
     }
 
-    // កាត់លុយ និងធ្វើប្រតិបត្តិការ
+    // កាត់លុយ $5 ពី User
     user.balance -= 5;
     const refId = "CARD-" + Date.now().toString().slice(-6);
     const trxHash = Math.random().toString(36).substring(2, 11);
@@ -67,41 +63,44 @@ const generateCard = async (req, res) => {
       hour12: true,
     });
 
-    // បញ្ជូន Transaction (ប្រើ async/await គ្រប់កន្លែង)
-    await Promise.all([
-      Transaction.create({
-        username: user.username,
-        refId,
-        hash: trxHash,
-        date: dateStr,
-        type: "Card Issuance Fee",
-        amount: -5,
-        currency: "USD",
-        senderName: user.username,
-        receiverName: "U-Pay System Fee",
-        status: "Success",
-        remark: `Issued ${cardType} Virtual Card`,
-      }),
-      Transaction.create({
-        username: systemFeeAcc.username,
-        refId,
-        hash: trxHash,
-        date: dateStr,
-        type: "System Income",
-        amount: 5,
-        currency: "USD",
-        senderName: user.username,
-        receiverName: "U-Pay System Fee",
-        status: "Success",
-        remark: "Card Issuance Fee",
-      }),
-    ]);
+    // បញ្ជូន Transaction សម្រាប់អតិថិជន
+    await Transaction.create({
+      username: user.username,
+      refId: refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "Card Issuance Fee",
+      amount: -5,
+      currency: "USD",
+      senderName: user.username,
+      receiverName: "Card Issuance Service",
+      status: "Success",
+      remark: `Issued ${cardType} Virtual Card`,
+    });
 
+    // បញ្ចូលលុយទៅគណនី system_fee
     systemFeeAcc.balance += 5;
-    await systemFeeAcc.save();
 
+    // បញ្ជូន Transaction សម្រាប់ system_fee
+    await Transaction.create({
+      username: systemFeeAcc.username,
+      refId: refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "System Income",
+      amount: 5,
+      currency: "USD",
+      senderName: user.username,
+      receiverName: "Card Issuance Service",
+      status: "Success",
+      remark: "Card Issuance Fee",
+    });
+
+    await systemFeeAcc.save(); // Save លុយថ្មីរបស់ system_fee
+
+    // បង្កើតកាតថ្មី
     const details = generateCardDetails();
-    user.virtualCards.push({
+    const newCard = {
       id: "card_" + Date.now(),
       type: cardType,
       name: cardType === "platinum" ? "VISA PLATINUM" : "VISA STANDARD",
@@ -113,8 +112,10 @@ const generateCard = async (req, res) => {
       dailyLimit: 500,
       linkedAccount: "USD",
       pin: "0000",
-    });
+    };
 
+    if (!user.virtualCards) user.virtualCards = [];
+    user.virtualCards.push(newCard);
     user.markModified("virtualCards");
     await user.save();
 
@@ -125,9 +126,7 @@ const generateCard = async (req, res) => {
     });
   } catch (err) {
     console.error("GENERATE CARD ERROR:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Server Error: " + err.message });
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
