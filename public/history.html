@@ -611,16 +611,24 @@
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🌟 ប្តូរទៅជា Logo ហាង (Icon រូបហាង) សម្រាប់ Merchant Payment
-          if (t.type === "Merchant Payment" || t.type.includes("Merchant")) {
+          // 🔥 បង្កើតអថេរឆែកមើលថាវាជាប្រតិបត្តិការទូទាត់ហាងឬអត់ (Merchant)
+          let isMerchantTrx =
+            t.type === "Merchant Payment" ||
+            t.trxMethod === "Merchant Payment" ||
+            t.merchantId ||
+            t.receiverType === "Merchant";
+
+          // 🌟 ប្តូរទៅជា Logo ហាង (Icon រូបហាង) បើវាជា Merchant
+          if (isMerchantTrx) {
             icon = "fa-store";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";
           }
-          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code ផ្សេងៗ
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code
           else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             icon = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee) ក្នុង History
             icon = "fa-file-invoice-dollar";
             color = "text-orange";
             bg = "bg-orange";
@@ -633,6 +641,7 @@
             t.type === "Cash Withdrawal" ||
             t.type.includes("System")
           ) {
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal ក្នុង History
             icon = "fa-money-bill-transfer";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";

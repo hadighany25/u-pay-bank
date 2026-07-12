@@ -1881,8 +1881,15 @@
               ? "text-orange"
               : "text-red";
 
-          // 🌟 ប្តូរទៅជា Logo ហាង (Icon រូបហាង) សម្រាប់ Merchant Payment
-          if (t.type === "Merchant Payment" || t.type.includes("Merchant")) {
+          // 🔥 ឆែករកមើល Merchant
+          let isMerchantTrx =
+            t.type === "Merchant Payment" ||
+            t.trxMethod === "Merchant Payment" ||
+            t.merchantId ||
+            t.receiverType === "Merchant";
+
+          // 🌟 ប្តូរទៅជា Logo ហាង
+          if (isMerchantTrx) {
             iconClass = "fa-store";
             bgClass = isIncome
               ? "bg-green"
@@ -1895,10 +1902,11 @@
                 ? "text-orange"
                 : "text-red";
           }
-          // 🎁 កំណត់ Icon សម្រាប់ E-Gift, Fee និង Promo Code ផ្សេងៗ
+          // 🎁 កំណត់ Icon សម្រាប់ E-Gift, Fee និង Promo Code
           else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee)
             iconClass = "fa-file-invoice-dollar";
             bgClass = "bg-orange";
             textClass = "text-orange";
@@ -1911,7 +1919,8 @@
             t.type === "Cash Withdrawal" ||
             t.type.includes("System")
           ) {
-            iconClass = "fa-money-bill-transfer";
+            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal
+            iconClass = "fa-money-bill-transfer"; // ជារូបលុយផ្ទេរចុះឡើង (ឬដាក់ "fa-wallet" ក៏បាន)
             bgClass = isIncome ? "bg-green" : "bg-red";
             textClass = isIncome ? "text-green" : "text-red";
           }
