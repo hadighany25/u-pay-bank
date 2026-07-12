@@ -7,6 +7,7 @@ const {
 
 const Admin = require("../models/Admin");
 const AdminLog = require("../models/AdminLog");
+const Transaction = require("../models/Transaction"); // 🔥 កុំភ្លេចហៅវាមកប្រើ
 const System = require("../models/System");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -298,17 +299,23 @@ const adjustBalance = async (req, res) => {
       }
     }
 
-    const date = getFormattedDate();
+    // 🔥 ទី១៖ ប្តូរមកចាប់ម៉ោងស្រុកខ្មែរ
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
     const refId =
       (type === "add" ? "DEP-" : "DED-") + Math.floor(Math.random() * 1000000);
     const trxHash =
       "HSH" + Math.random().toString(36).substring(7).toUpperCase();
 
+    // 📝 រៀបចំទិន្នន័យសម្រាប់អតិថិជន
     const userTrx = {
+      username: user.username, // 🔥 សំខាន់! ត្រូវមាន username សម្រាប់ Collection ថ្មី
       refId,
       hash: trxHash,
-      date,
-      type: type === "add" ? "Received" : "Deducted",
+      date: dateStr,
+      type: type === "add" ? "System Deposit" : "System Deduction",
       amount: type === "add" ? adjustAmount : -adjustAmount,
       currency: currency,
       fee: 0,
@@ -336,19 +343,19 @@ const adjustBalance = async (req, res) => {
       trxMethod: "U-PAY System",
     };
 
+    // 📝 រៀបចំទិន្នន័យសម្រាប់ធនាគារកណ្តាល
     const bankTrx = {
       ...userTrx,
+      username: centralBank.username, // 🔥 សម្រាប់ Central Bank
       amount: type === "add" ? -adjustAmount : adjustAmount,
       type: type === "add" ? "Fund Disbursement" : "Fund Recovery",
     };
 
-    if (!user.transactions) user.transactions = [];
-    user.transactions.unshift(userTrx);
-    user.markModified("transactions");
-    if (!centralBank.transactions) centralBank.transactions = [];
-    centralBank.transactions.unshift(bankTrx);
-    centralBank.markModified("transactions");
+    // 🔥 ទី២៖ បញ្ជូនចូល Collection 'Transaction' ថ្មី (លុបចោលការ push ចូល user)
+    await Transaction.create(userTrx);
+    await Transaction.create(bankTrx);
 
+    // 🔔 ទុកប្រព័ន្ធលោត Notification ឱ្យនៅដដែល
     if (!user.notifications) user.notifications = [];
     const notifMsg =
       type === "add"
@@ -359,7 +366,7 @@ const adjustBalance = async (req, res) => {
       id: "NOTIF-" + Date.now(),
       title: type === "add" ? "Deposit Received" : "Balance Deducted",
       message: notifMsg,
-      date,
+      date: dateStr,
       isRead: false,
     });
     user.markModified("notifications");
@@ -375,10 +382,10 @@ const adjustBalance = async (req, res) => {
     );
     res.json({ success: true, message: `Operation Success!` });
   } catch (err) {
+    console.error("ADJUST BALANCE ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 const approveTransaction = async (req, res) => {
   const { refId } = req.body;
   try {
