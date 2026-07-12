@@ -162,8 +162,7 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះ៖ ទាញយក Transactions ទាំងអស់ពី Collection ថ្មីផ្ទាល់តែម្តង
-    // ដោយស្វែងរកតាម ឈ្មោះហាង លេខគណនី ឬ Merchant ID
+    // 🔥 កែត្រង់នេះ៖ ថែម amount: { $gt: 0 } ដើម្បីទាញយកតែ Record លុយចូល (បំបាត់អាលោតត្រួតគ្នា)
     let transactions = await Transaction.find({
       $or: [
         { receiverName: merchant.name },
@@ -171,9 +170,9 @@ exports.getMerchantTransactions = async (req, res) => {
         { receiverAcc: merchant.accountNumbers.USD },
         { receiverAcc: merchant.accountNumbers.KHR },
       ],
-    }).sort({ _id: -1 }); // រៀបចំឱ្យអាថ្មីលោតមកលើគេ
+      amount: { $gt: 0 }, // <--- បញ្ជាឱ្យយកតែលុយដែល + ធំជាង ០
+    }).sort({ _id: -1 });
 
-    // ត្រងតាមពេលវេលា (បំប្លែងទៅជាម៉ោងកម្ពុជា UTC+7)
     const currentUTC = new Date();
     const nowKhmerTime = new Date(currentUTC.getTime() + 7 * 60 * 60 * 1000);
 
@@ -198,7 +197,7 @@ exports.getMerchantTransactions = async (req, res) => {
           trxKhmerTime.getFullYear() === nowKhmerTime.getFullYear()
         );
       }
-      return true; // default: total
+      return true;
     });
 
     res.status(200).json({ success: true, transactions });
@@ -217,8 +216,7 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះ៖ គណនាចំណូលឡើងវិញដោយស្វ័យប្រវត្តិពី Transaction Collection
-    // ដើម្បីធានាថាទិន្នន័យលុយគឺច្បាស់លាស់ ១០០%
+    // 🔥 កែត្រង់នេះដូចគ្នា៖ ថែម amount: { $gt: 0 } ដើម្បីកុំឱ្យវាបូកលុយទ្វេដង
     const transactions = await Transaction.find({
       $or: [
         { receiverName: merchant.name },
@@ -226,15 +224,15 @@ exports.getMerchantRevenue = async (req, res) => {
         { receiverAcc: merchant.accountNumbers.USD },
         { receiverAcc: merchant.accountNumbers.KHR },
       ],
-      status: "Success", // បូកតែប្រតិបត្តិការណាដែលជោគជ័យប៉ុណ្ណោះ
+      status: "Success",
+      amount: { $gt: 0 }, // <--- បញ្ជាឱ្យយកតែលុយចូលមកបូកបញ្ចូលគ្នា
     });
 
     let revenue = 0;
 
-    // បូកលុយបញ្ចូលគ្នា ទៅតាមរូបិយប័ណ្ណដែលហាងជ្រើសរើស (USD ឬ KHR)
     transactions.forEach((t) => {
       if (t.currency === merchant.linkedAccount) {
-        revenue += Math.abs(t.amount || 0);
+        revenue += t.amount; // លែងប្រើ Math.abs() ព្រោះយើងយកតែលុយវិជ្ជមានមកបូកហើយ
       }
     });
 
