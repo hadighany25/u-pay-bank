@@ -12,11 +12,9 @@ const generateCardDetails = () => {
       .padStart(15, "0");
   const cvv = Math.floor(100 + Math.random() * 900).toString();
   const d = new Date();
-  d.setFullYear(d.getFullYear() + 4); // ផុតកំណត់ ៤ ឆ្នាំក្រោយ
+  const year = d.getFullYear() + 4; // បូកឆ្នាំទុកក្នុងអថេរមួយ
   const expiry =
-    ("0" + (d.getMonth() + 1)).slice(-2) +
-    "/" +
-    d.getFullYear().toString().slice(-2);
+    ("0" + (d.getMonth() + 1)).slice(-2) + "/" + year.toString().slice(-2);
   return { number, cvv, expiry };
 };
 
@@ -45,7 +43,7 @@ const generateCard = async (req, res) => {
       systemFeeAcc = new User({
         id: "sys_" + Date.now(),
         username: "system_fee",
-        fullName: "U-Pay System Fee",
+        fullName: "U PAY FEE",
         accountNumber: "999999999", // លេខគណនីពិសេសសម្រាប់ Fee
         balance: 0.0,
         balanceKHR: 0.0,
