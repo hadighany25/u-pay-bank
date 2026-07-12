@@ -1,11 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const Merchant = require("../models/Merchant"); // <--- ត្រូវ Import មកទើបប្រើ Merchant.find បាន
+
+// នាំចូល Models និង Controllers ដែលចាំបាច់
+const Merchant = require("../models/Merchant");
 const merchantController = require("../controllers/merchantController");
 const { verifyUser } = require("../middleware/authMiddleware");
-const Transaction = require("../models/Transaction");
 
-// Routes សម្រាប់ Merchant ធម្មតា
+// ========================================================
+// ផ្នែកទី១៖ Routes សម្រាប់ម្ចាស់ហាង (Merchant End-User)
+// ទាមទារការផ្ទៀងផ្ទាត់ (verifyUser) មុននឹងអាចប្រើបាន
+// ========================================================
+
 router.post("/create", verifyUser, merchantController.createMerchant);
 router.get("/my-merchants", verifyUser, merchantController.getMyMerchants);
 router.put(
@@ -29,16 +34,28 @@ router.get(
   merchantController.getMerchantTransactions,
 );
 
-// 🔥 Route សម្រាប់ Admin (កែជា router.get ជំនួសអោយ app.get)
+// ========================================================
+// ផ្នែកទី២៖ Route សម្រាប់ Admin
+// (សម្រាប់ទាញយកទិន្នន័យហាងទាំងអស់ទៅបង្ហាញលើ Admin Dashboard)
+// ========================================================
+
 router.get("/admin/all-merchants", verifyUser, async (req, res) => {
   try {
-    // បន្ថែមការឆែកសិទ្ធិ Admin បន្តិច បើមិនចង់ឱ្យ User ធម្មតាចូលមើលបាន
+    // ឆែកសិទ្ធិ: អនុញ្ញាតឱ្យតែ Super Admin ប៉ុណ្ណោះដែលអាចមើលបញ្ជីហាងទាំងអស់បាន
     if (req.user.role !== "super_admin") {
-      return res.status(403).json({ success: false, message: "Access Denied" });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Access Denied: គ្មានសិទ្ធិចូលមើលទេ!",
+        });
     }
+
+    // ទាញយកហាងទាំងអស់ពី Database
     const merchants = await Merchant.find({});
     res.json({ success: true, merchants });
   } catch (error) {
+    console.error("GET ALL MERCHANTS ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

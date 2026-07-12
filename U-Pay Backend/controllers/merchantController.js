@@ -1,8 +1,13 @@
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
 const User = require("../models/User");
+// 🔥 ត្រូវ Import Transaction Model ចូល ព្រោះយើងបានផ្តាច់វាចេញពី User
+const Transaction = require("../models/Transaction");
 
-// Function ជំនួយសម្រាប់បង្កើតលេខ Random តាមចំនួនខ្ទង់ដែលចង់បាន
+// ========================================================
+// Function ជំនួយ (Helpers)
+// ========================================================
+// ជំនួយសម្រាប់បង្កើតលេខ Random តាមចំនួនខ្ទង់ដែលចង់បាន
 const generateRandomNumber = (length) => {
   let result = "";
   for (let i = 0; i < length; i++) {
@@ -11,10 +16,14 @@ const generateRandomNumber = (length) => {
   return result;
 };
 
+// ========================================================
+// Merchant End-User APIs (សម្រាប់ម្ចាស់ហាង)
+// ========================================================
+
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
 exports.createMerchant = async (req, res) => {
   try {
-    // 🔥 កែទី១៖ ទទួលយក category ពី Frontend ដែលយើងបានបញ្ជូនមក
+    // ទទួលយកទិន្នន័យពី Frontend
     const {
       name,
       city,
@@ -36,7 +45,7 @@ exports.createMerchant = async (req, res) => {
       userId,
       name,
       city,
-      category, // 🔥 បន្ថែម: Save category ចូល Database
+      category, // Save category ចូល Database
       linkedAccount,
       merchantId,
       accountNumbers: {
@@ -59,7 +68,7 @@ exports.createMerchant = async (req, res) => {
         id: savedMerchant._id.toString(),
         merchantId: savedMerchant.merchantId,
         name: savedMerchant.name,
-        category: savedMerchant.category, // 🔥 បន្ថែម: ត្រឡប់ទៅឱ្យ Frontend វិញ
+        category: savedMerchant.category, // ត្រឡប់ទៅឱ្យ Frontend វិញ
         accountNumbers: savedMerchant.accountNumbers,
         apiKey: savedMerchant.apiKey,
         apiSecret: savedMerchant.apiSecret,
@@ -76,14 +85,14 @@ exports.getMyMerchants = async (req, res) => {
   try {
     // យក username ពី req.user ដែលបានមកពី Auth Middleware
     const username = req.user.username;
-    console.log("Fetching merchants for username:", username); // បន្ថែម Log នេះដើម្បីមើលក្នុង terminal
+    console.log("Fetching merchants for username:", username);
 
     // ស្វែងរកហាងតាម userId ដែលយើងបាន Save ជា username
     const merchants = await Merchant.find({ userId: username }).select(
       "-apiSecret",
     );
 
-    console.log("Found merchants:", merchants); // បន្ថែម Log នេះដើម្បីមើលថាតើវាឃើញហាងដែរឬទេ
+    console.log("Found merchants:", merchants);
 
     res.status(200).json({ success: true, merchants });
   } catch (error) {
@@ -129,7 +138,6 @@ exports.updateMerchant = async (req, res) => {
       { new: true }, // ត្រឡប់ទិន្នន័យថ្មីបន្ទាប់ពី Update រួច
     );
 
-    // 🔥 បន្ថែមការឆែកក្រែងរកមិនឃើញ
     if (!merchant) {
       return res
         .status(404)
@@ -142,7 +150,7 @@ exports.updateMerchant = async (req, res) => {
   }
 };
 
-// ៤. មុខងារទាញយកចំណូលហាង (Revenue)
+// ៥. មុខងារទាញយកប្រវត្តិប្រតិបត្តិការហាង (Get Transactions)
 exports.getMerchantTransactions = async (req, res) => {
   try {
     const { merchantId } = req.params;
@@ -154,25 +162,26 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // ទាញយក Transactions ទាំងអស់ពីគណនីមេ (ម្ចាស់ហាង)
-    const user = await User.findOne({ username: merchant.userId });
-    let transactions = user.transactions || [];
+    // 🔥 កែត្រង់នេះ៖ ទាញយក Transactions ទាំងអស់ពី Collection ថ្មីផ្ទាល់តែម្តង
+    // ដោយស្វែងរកតាម ឈ្មោះហាង លេខគណនី ឬ Merchant ID
+    let transactions = await Transaction.find({
+      $or: [
+        { receiverName: merchant.name },
+        { merchantId: merchant.merchantId },
+        { receiverAcc: merchant.accountNumbers.USD },
+        { receiverAcc: merchant.accountNumbers.KHR },
+      ],
+    }).sort({ _id: -1 }); // រៀបចំឱ្យអាថ្មីលោតមកលើគេ
 
-    // Filter តាមហាង
-    transactions = transactions.filter((t) => t.receiverName === merchant.name);
-
-    // 🔥 កែត្រង់នេះ៖ ត្រងតាមពេលវេលា (បំប្លែងទៅជាម៉ោងកម្ពុជា UTC+7)
+    // ត្រងតាមពេលវេលា (បំប្លែងទៅជាម៉ោងកម្ពុជា UTC+7)
     const currentUTC = new Date();
-    // បូក ៧ ម៉ោង ដើម្បីឱ្យស្មើម៉ោងនៅស្រុកខ្មែរ
     const nowKhmerTime = new Date(currentUTC.getTime() + 7 * 60 * 60 * 1000);
 
     transactions = transactions.filter((t) => {
       const trxUTC = new Date(t.date);
-      // បូក ៧ ម៉ោងឱ្យប្រតិបត្តិការនីមួយៗ ដើម្បីប្រៀបធៀបគ្នាឱ្យត្រូវ
       const trxKhmerTime = new Date(trxUTC.getTime() + 7 * 60 * 60 * 1000);
 
       if (filter === "today") {
-        // ប្រៀបធៀបតែ ឆ្នាំ-ខែ-ថ្ងៃ (YYYY-MM-DD)
         return (
           trxKhmerTime.toISOString().split("T")[0] ===
           nowKhmerTime.toISOString().split("T")[0]
@@ -198,7 +207,7 @@ exports.getMerchantTransactions = async (req, res) => {
   }
 };
 
-// ៥. មុខងារទាញយកចំណូលហាង (Revenue)
+// ៦. មុខងារទាញយកចំណូលហាង (Revenue)
 exports.getMerchantRevenue = async (req, res) => {
   try {
     const { merchantId } = req.params;
@@ -208,11 +217,26 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // ទាញយកលុយដែលបានពីការលក់ (collected)
-    const revenue =
-      merchant.linkedAccount === "USD"
-        ? merchant.collected?.USD || 0
-        : merchant.collected?.KHR || 0;
+    // 🔥 កែត្រង់នេះ៖ គណនាចំណូលឡើងវិញដោយស្វ័យប្រវត្តិពី Transaction Collection
+    // ដើម្បីធានាថាទិន្នន័យលុយគឺច្បាស់លាស់ ១០០%
+    const transactions = await Transaction.find({
+      $or: [
+        { receiverName: merchant.name },
+        { merchantId: merchant.merchantId },
+        { receiverAcc: merchant.accountNumbers.USD },
+        { receiverAcc: merchant.accountNumbers.KHR },
+      ],
+      status: "Success", // បូកតែប្រតិបត្តិការណាដែលជោគជ័យប៉ុណ្ណោះ
+    });
+
+    let revenue = 0;
+
+    // បូកលុយបញ្ចូលគ្នា ទៅតាមរូបិយប័ណ្ណដែលហាងជ្រើសរើស (USD ឬ KHR)
+    transactions.forEach((t) => {
+      if (t.currency === merchant.linkedAccount) {
+        revenue += Math.abs(t.amount || 0);
+      }
+    });
 
     res.status(200).json({ success: true, revenue });
   } catch (error) {
@@ -221,8 +245,10 @@ exports.getMerchantRevenue = async (req, res) => {
 };
 
 // ========================================================
-// admin Merchant/Business Management APIs
+// Admin Merchant/Business Management APIs (សម្រាប់ Admin)
 // ========================================================
+
+// ១. មុខងារ Admin ផ្អាកឬបើកដំណើរការហាង (Toggle Freeze)
 exports.adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
@@ -234,7 +260,7 @@ exports.adminToggleMerchantFreeze = async (req, res) => {
   }
 };
 
-// ១. មុខងារ Admin លុបហាងចោល
+// ២. មុខងារ Admin លុបហាងចោល (Delete Merchant)
 exports.adminDeleteMerchant = async (req, res) => {
   try {
     const { id } = req.params;
@@ -245,7 +271,7 @@ exports.adminDeleteMerchant = async (req, res) => {
   }
 };
 
-// ២. មុខងារ Admin កែប្រែព័ត៌មានហាង
+// ៣. មុខងារ Admin កែប្រែព័ត៌មានហាង (Edit Merchant)
 exports.adminEditMerchant = async (req, res) => {
   try {
     const { id, name, merchantId, linkedAccount, category } = req.body;
