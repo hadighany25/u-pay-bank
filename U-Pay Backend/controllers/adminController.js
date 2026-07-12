@@ -315,12 +315,13 @@ const adjustBalance = async (req, res) => {
       refId,
       hash: trxHash,
       date: dateStr,
-      // 🔥 ១. កែឈ្មោះប្រភេទប្រតិបត្តិការត្រង់នេះ
       type: type === "add" ? "Cash Deposit" : "Cash Withdrawal",
       amount: type === "add" ? adjustAmount : -adjustAmount,
       currency: currency,
       fee: 0,
-      senderName: type === "add" ? "U-Pay Agent" : user.username,
+      // 🔥 ប្តូរ "U-Pay Agent" ទៅជា "Cash Deposit"
+      senderName:
+        type === "add" ? "Cash Deposit" : user.fullName || user.username,
       senderAcc:
         type === "add"
           ? isKHR
@@ -329,7 +330,7 @@ const adjustBalance = async (req, res) => {
           : isKHR
             ? user.accountNumberKHR
             : user.accountNumber,
-      // 🔥 ២. (ជម្រើស) បើបងចង់ឱ្យឈ្មោះអ្នកទទួល/ផ្ញើ បង្ហាញជា Cash ដែរ អាចកែត្រង់នេះ
+      // 🔥 ប្តូរអ្នកទទួលឱ្យត្រូវនឹង Cash Withdrawal ពេលដកលុយ
       receiverName:
         type === "add" ? user.fullName || user.username : "Cash Withdrawal",
       receiverAcc:
@@ -340,7 +341,8 @@ const adjustBalance = async (req, res) => {
           : isKHR
             ? centralBank.accountNumberKHR
             : centralBank.accountNumber,
-      remark: type === "add" ? "Admin Deposit" : "Admin Deduction",
+      // 🔥 ប្តូរ Remark "Admin Deduction" ចេញ ដាក់ "Cash Withdrawal"
+      remark: type === "add" ? "Cash Deposit" : "Cash Withdrawal",
       status: "Success",
       trxMethod: "U-PAY System",
     };
