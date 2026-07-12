@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Transaction = require("../models/Transaction"); // 🔥 ទី១៖ ត្រូវហៅ Model ថ្មីមកប្រើ
 const { getFormattedDate, generateHash } = require("../services/helpers");
 
 // មុខងារជំនួយ: បង្កើតលេខកាត
@@ -44,10 +45,19 @@ const generateCard = async (req, res) => {
     user.balance -= 5;
     const refId = "CARD-" + Date.now().toString().slice(-6);
     const trxHash = Math.random().toString(36).substring(2, 11);
-    user.transactions.unshift({
-      refId,
+
+    // 🔥 កំណត់ម៉ោងស្រុកខ្មែរ
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    // 🔥 ទី២៖ បញ្ចូលទិន្នន័យចូល Collection ថ្មី (Transaction) សម្រាប់អតិថិជន
+    await Transaction.create({
+      username: user.username,
+      refId: refId,
       hash: trxHash,
-      date: getFormattedDate(),
+      date: dateStr,
       type: "Card Issuance Fee",
       amount: -5,
       currency: "USD",
@@ -60,10 +70,13 @@ const generateCard = async (req, res) => {
     // បញ្ចូលលុយទៅធនាគារកណ្តាល
     if (centralBank) {
       centralBank.balance += 5;
-      centralBank.transactions.unshift({
-        refId,
+
+      // 🔥 ទី៣៖ បញ្ចូលទិន្នន័យចូល Collection ថ្មី (Transaction) សម្រាប់ Central Bank
+      await Transaction.create({
+        username: centralBank.username || "CentralBank",
+        refId: refId,
         hash: trxHash,
-        date: getFormattedDate(),
+        date: dateStr,
         type: "System Income",
         amount: 5,
         currency: "USD",
@@ -94,7 +107,6 @@ const generateCard = async (req, res) => {
     if (!user.virtualCards) user.virtualCards = [];
     user.virtualCards.push(newCard);
 
-    user.markModified("transactions");
     user.markModified("virtualCards");
     await user.save();
 
@@ -104,6 +116,7 @@ const generateCard = async (req, res) => {
       newBalance: user.balance,
     });
   } catch (err) {
+    console.error("GENERATE CARD ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -116,7 +129,6 @@ const toggleLock = async (req, res) => {
   const username = req.user ? req.user.username : req.body.username;
 
   try {
-    const User = require("../models/User"); // ហៅ User Model មក (បើបងមាននៅខាងលើហើយ មិនបាច់ក៏បាន)
     const user = await User.findOne({ username });
 
     if (!user || !user.virtualCards) {
