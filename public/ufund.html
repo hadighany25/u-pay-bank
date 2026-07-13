@@ -544,9 +544,17 @@
           >
             Start a personal goal or group tontine to save money smartly!
           </p>
+          <!-- ប៊ូតុងក្នុង No Fund State -->
           <button class="btn-create" onclick="openCreateFundUI()">
             <span data-i18n="ufund_btn_create_new">Create New U-Fund</span>
           </button>
+
+          <!-- ប៊ូតុង FAB ខាងក្រោម -->
+          <div class="fab-container" id="fabContainer" style="display: none">
+            <button class="fab-btn" onclick="openCreateFundUI()">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
         </div>
 
         <!-- === HAS FUND STATE === -->
@@ -723,9 +731,9 @@
       // 🚀 ON PAGE LOAD
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage(); // អនុវត្តការបកប្រែពី lang.js របស់បង
+        if (typeof applyLanguage === "function") applyLanguage();
         fetchMyFunds();
-        document.body.classList.add("loaded"); // បញ្ចេញ UI ដោយរលូន
+        document.body.classList.add("loaded");
       });
 
       // 🌐 API HELPER
