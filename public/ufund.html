@@ -466,13 +466,35 @@
             headers: getAuthHeaders(),
             body: JSON.stringify({ username: user.username }),
           });
+
+          // បើ API អត់ដើរ ឬអត់ទាន់ស្គាល់ Route (ឧ. 404 Not Found)
+          if (!res.ok) {
+            throw new Error(`HTTP Error: ${res.status}`);
+          }
+
           const data = await res.json();
           if (data.success) {
-            activeFunds = data.funds;
-            renderFundCards();
+            activeFunds = data.funds || [];
+            renderFundCards(); // គូរទិន្នន័យលើអេក្រង់
+          } else {
+            // បើ Backend បោះមកថា success: false
+            document.getElementById("fundSwiper").innerHTML = `
+        <div class="empty-state" style="width:100%; color: var(--danger);">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <p>មានបញ្ហា៖ ${data.message}</p>
+        </div>`;
+            document.getElementById("fundActions").style.display = "none";
           }
         } catch (e) {
-          console.error("Failed to load funds", e);
+          console.error("Failed to load funds:", e);
+          // បង្ហាញ Error លើអេក្រង់ពេលគាំង
+          document.getElementById("fundSwiper").innerHTML = `
+        <div class="empty-state" style="width:100%; color: var(--danger);">
+          <i class="fa-solid fa-wifi"></i>
+          <p>បរាជ័យក្នុងការភ្ជាប់ទៅកាន់ Server។ សូមពិនិត្យ Console (F12)!</p>
+          <p style="font-size: 0.8rem; margin-top:10px;">${e.message}</p>
+        </div>`;
+          document.getElementById("fundActions").style.display = "none";
         }
       }
 
