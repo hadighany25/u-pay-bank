@@ -6,9 +6,7 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>U-Fund - U-Pay</title>
 
-    <!-- ==========================================
-         📦 ឯកសារយោង (FONTS & ICONS)
-         ========================================== -->
+    <!-- FONTS & ICONS -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -18,19 +16,14 @@
       rel="stylesheet"
     />
 
-    <!-- ==========================================
-         📦 ឯកសារយោង (SCRIPTS)
-         ========================================== -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
-    <!-- កូដ Core ដែលផ្ទុក Dark Mode & FOUC Logic -->
 
     <style>
-      /* ==========================================
-         🚀 FOUC PREVENTION (ការពារការលោតពណ៌ស)
-         ========================================== */
+      /* FOUC PREVENTION */
       body {
         background-color: #f2f4f6;
         margin: 0;
@@ -50,9 +43,7 @@
         opacity: 1;
       }
 
-      /* ==========================================
-         📱 BASE APP CONTAINER & LAYOUT
-         ========================================== */
+      /* BASE APP CONTAINER */
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -93,9 +84,7 @@
         transition: background-color 0.3s;
       }
 
-      /* ==========================================
-         📭 NO FUND STATE (ពេលមិនទាន់មាន Fund)
-         ========================================== */
+      /* NO FUND STATE */
       #noFundState {
         text-align: center;
         margin-top: 50px;
@@ -123,14 +112,11 @@
         transform: scale(0.95);
       }
 
-      /* ==========================================
-         💳 CAROUSEL (SWIPEABLE FUND CARDS)
-         ========================================== */
+      /* CAROUSEL (SWIPEABLE CARDS) */
       #hasFundState {
         width: 100%;
         display: none;
       }
-
       .funds-slider {
         display: flex;
         overflow-x: auto;
@@ -148,10 +134,9 @@
         flex: 0 0 100%;
         scroll-snap-align: center;
         width: 100%;
-        height: 200px;
+        height: 210px;
         z-index: 10;
       }
-
       .fund-inner {
         position: relative;
         width: 100%;
@@ -171,7 +156,6 @@
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
       }
 
-      /* ផ្ទៃ Background Icon (សញ្ញាកូនជ្រូកព្រាលៗ) */
       .fund-inner::after {
         content: "\f4d3";
         font-family: "Font Awesome 6 Free";
@@ -203,6 +187,7 @@
         font-weight: 800;
         margin: 0;
         z-index: 2;
+        line-height: 1.2;
       }
 
       .fund-middle {
@@ -244,6 +229,9 @@
         border-radius: 3px;
         transition: 1s;
       }
+      .progress-bar.success {
+        background: #f59e0b;
+      }
 
       /* DOTS INDICATOR */
       .slider-dots {
@@ -251,7 +239,7 @@
         justify-content: center;
         gap: 8px;
         margin-top: 5px;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
       }
       .dot {
         width: 8px;
@@ -266,9 +254,7 @@
         border-radius: 10px;
       }
 
-      /* ==========================================
-         ⚙️ ABA STYLE SETTINGS (MENU LIST)
-         ========================================== */
+      /* SETTINGS LIST */
       .settings-section {
         background: transparent;
         padding: 0 10px;
@@ -320,9 +306,7 @@
         color: #94a3b8;
       }
 
-      /* ==========================================
-         👥 LEADERBOARD / MEMBERS ACCORDION
-         ========================================== */
+      /* LEADERBOARD ACCORDION */
       .members-list {
         max-height: 0;
         transition: max-height 0.4s ease-out;
@@ -333,8 +317,8 @@
       .members-list.open {
         max-height: 500px;
         overflow-y: auto;
+        padding-bottom: 10px;
       }
-
       .member-item {
         display: flex;
         justify-content: space-between;
@@ -367,6 +351,8 @@
         padding: 2px 6px;
         border-radius: 8px;
         font-weight: bold;
+        display: inline-block;
+        margin-top: 2px;
       }
       .st-active {
         background: #dcfce7;
@@ -386,35 +372,29 @@
         font-size: 1rem;
       }
 
-      /* ==========================================
-         ➕ BOTTOM NAV & FAB
-         ========================================== */
+      /* 🚀 FLOATING ACTION BUTTON (FAB) */
       .fab-container {
         position: fixed;
         bottom: 95px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 450px;
-        display: flex;
-        justify-content: flex-end;
-        padding: 0 20px;
-        box-sizing: border-box;
-        pointer-events: none;
+        right: calc(50% - 200px); /* Center relative for desktop testing */
         z-index: 100;
       }
+      @media (max-width: 450px) {
+        .fab-container {
+          right: 20px;
+        } /* Mobile right alignment */
+      }
       .fab-btn {
-        pointer-events: auto;
         background: #004d40;
         color: white;
-        width: 55px;
-        height: 55px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.3);
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.4);
         cursor: pointer;
         border: none;
         transition: 0.2s;
@@ -423,6 +403,7 @@
         transform: scale(0.9);
       }
 
+      /* BOTTOM NAV */
       .bottom-nav {
         position: fixed;
         bottom: 0;
@@ -458,9 +439,7 @@
         transform: translateY(-5px);
       }
 
-      /* ==========================================
-         🌙 DARK MODE OVERRIDES
-         ========================================== */
+      /* 🌙 DARK MODE OVERRIDES (Fixed contrast) */
       body.dark-mode {
         background-color: #000000 !important;
       }
@@ -483,7 +462,7 @@
       }
       body.dark-mode .setting-info h4,
       body.dark-mode .member-name {
-        color: #ffffff !important;
+        color: #f1f5f9 !important;
       }
       body.dark-mode .setting-info p {
         color: #94a3b8 !important;
@@ -497,7 +476,7 @@
         border-top: 1px solid #2d2d2d !important;
       }
       body.dark-mode .nav-item {
-        color: #94a3b8 !important;
+        color: #64748b !important;
       }
       body.dark-mode .nav-item.active {
         color: #10b981 !important;
@@ -505,21 +484,22 @@
       body.dark-mode #noFundState h3 {
         color: #ffffff !important;
       }
-      body.dark-mode #noFundState p {
-        color: #94a3b8 !important;
-      }
       body.dark-mode .members-list {
         background-color: #1e1e1e !important;
       }
       body.dark-mode .member-item {
         border-bottom-color: #2d2d2d !important;
       }
+      body.dark-mode .member-avatar {
+        background-color: #334155 !important;
+        color: #10b981 !important;
+      }
 
-      /* Premium Swal Customization */
       .premium-swal {
         border-radius: 20px !important;
       }
-      .swal2-input {
+      .swal2-input,
+      .swal2-select {
         border-radius: 12px !important;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
       }
@@ -527,14 +507,13 @@
   </head>
   <body>
     <div class="app-container">
-      <!-- === HEADER === -->
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
         <span data-i18n="ufund_title">U-Fund (Savings)</span>
       </div>
 
       <div class="content-body">
-        <!-- === NO FUND STATE === -->
+        <!-- NO FUND STATE -->
         <div id="noFundState">
           <i class="fa-solid fa-piggy-bank"></i>
           <h3 data-i18n="ufund_no_fund_title">No U-Funds Yet</h3>
@@ -544,39 +523,26 @@
           >
             Start a personal goal or group tontine to save money smartly!
           </p>
-          <!-- ប៊ូតុងក្នុង No Fund State -->
           <button class="btn-create" onclick="openCreateFundUI()">
             <span data-i18n="ufund_btn_create_new">Create New U-Fund</span>
           </button>
-
-          <!-- ប៊ូតុង FAB ខាងក្រោម -->
-          <div class="fab-container" id="fabContainer" style="display: none">
-            <button class="fab-btn" onclick="openCreateFundUI()">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
         </div>
 
-        <!-- === HAS FUND STATE === -->
+        <!-- HAS FUND STATE -->
         <div id="hasFundState">
-          <!-- Slider -->
           <div
             class="funds-slider"
             id="fundsSlider"
             onscroll="updateActiveDot()"
-          >
-            <!-- Funds dynamically injected here -->
-          </div>
-          <!-- Dots -->
+          ></div>
           <div class="slider-dots" id="sliderDots"></div>
 
-          <!-- Actions / Settings Style List -->
           <div class="settings-section">
             <div class="settings-header" data-i18n="ufund_actions">
               Fund Actions
             </div>
 
-            <!-- Deposit -->
+            <!-- Manual Deposit (Catch-up or Extra) -->
             <div class="setting-item" onclick="openDepositUI()">
               <div class="setting-left">
                 <div class="setting-icon">
@@ -585,7 +551,7 @@
                 <div class="setting-info">
                   <h4 data-i18n="ufund_act_deposit">Deposit Money</h4>
                   <p data-i18n="ufund_act_deposit_desc">
-                    Add funds or set auto-deposit
+                    Add funds manually to the pool
                   </p>
                 </div>
               </div>
@@ -595,7 +561,7 @@
               ></i>
             </div>
 
-            <!-- Invite -->
+            <!-- Invite (Visible only to Creator/Group) -->
             <div
               class="setting-item"
               onclick="openInviteUI()"
@@ -637,10 +603,56 @@
               ></i>
             </div>
 
-            <!-- Members / Leaderboard Accordion -->
+            <!-- Lifecycle: Edit Fund (Creator Only) -->
             <div
               class="setting-item"
-              style="padding: 15px 0 15px 0; border-bottom: none"
+              onclick="openEditFundUI()"
+              id="btnEditFund"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </div>
+                <div class="setting-info">
+                  <h4>Edit Fund Details</h4>
+                  <p>Change name, target, or auto-deposit rules</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <!-- Lifecycle: Close/Cancel Fund (Creator Only) -->
+            <div
+              class="setting-item"
+              onclick="closeOrCancelFund()"
+              id="btnCloseFund"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i
+                    class="fa-solid fa-power-off"
+                    id="closeFundIcon"
+                    style="color: #ef4444"
+                  ></i>
+                </div>
+                <div class="setting-info">
+                  <h4 id="closeFundText" style="color: #ef4444">Cancel Fund</h4>
+                  <p id="closeFundDesc">Stop and refund all members</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <!-- Leaderboard Accordion -->
+            <div
+              class="setting-item"
+              style="padding: 15px 0; border-bottom: none"
               onclick="toggleMembersList()"
             >
               <div class="setting-left">
@@ -660,23 +672,19 @@
                 style="color: #cbd5e1; transition: 0.3s"
               ></i>
             </div>
-
-            <!-- Expandable Member List -->
-            <div class="members-list" id="membersListContainer">
-              <!-- Members dynamically injected here -->
-            </div>
+            <div class="members-list" id="membersListContainer"></div>
           </div>
         </div>
       </div>
 
-      <!-- === FAB BUTTON (For creating new fund when you already have some) === -->
+      <!-- FLOATING ACTION BUTTON (+) -->
       <div class="fab-container" id="fabContainer" style="display: none">
         <button class="fab-btn" onclick="openCreateFundUI()">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
 
-      <!-- === BOTTOM NAVIGATION === -->
+      <!-- BOTTOM NAV -->
       <div class="bottom-nav">
         <a href="dashboard.html" class="nav-item"
           ><i class="fa-solid fa-house"></i
@@ -697,47 +705,37 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         💻 JAVASCRIPT LOGIC
-         ========================================== -->
+    <!-- SCRIPT LOGIC -->
     <script>
-      // 🔐 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
+      let token = sessionStorage.getItem("userToken");
+      if (!user || !token) window.location.href = "index.html";
 
       const authHeaders = {
         "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
+        Authorization: `Bearer ${token}`,
       };
 
-      // 📌 GLOBAL VARIABLES
       let activeFunds = [];
       let currentFundIndex = 0;
 
-      // 🌙 THEME HANDLING (From u-pay-core structure)
-      const userThemeKey = "darkMode_" + user.username;
+      // THEME & LOAD
       function applyTheme() {
         const isDark =
           localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
-        }
+          localStorage.getItem("darkMode_" + user.username) === "true";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
       }
 
-      // 🚀 ON PAGE LOAD
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
-        }
-
+        if (typeof applyLanguage === "function") applyLanguage();
         fetchMyFunds();
         document.body.classList.add("loaded");
       });
 
-      // 🌐 API HELPER
+      // API HELPER
       async function fetchAPI(endpoint, payload) {
         try {
           const res = await fetch(endpoint, {
@@ -753,7 +751,7 @@
         }
       }
 
-      // 🔄 FETCH FUNDS
+      // FETCH FUNDS
       async function fetchMyFunds() {
         const data = await fetchAPI("/api/ufund/list", {
           username: user.username,
@@ -762,13 +760,12 @@
           activeFunds = data.funds || [];
           renderFunds();
         } else {
-          // បង្ហាញ Error ក្នុង Empty State
           document.getElementById("noFundState").innerHTML =
             `<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i><p>${data.message}</p>`;
         }
       }
 
-      // 🎨 RENDER CAROUSEL
+      // RENDER CAROUSEL
       function renderFunds() {
         const slider = document.getElementById("fundsSlider");
         const dots = document.getElementById("sliderDots");
@@ -779,38 +776,37 @@
         if (activeFunds.length > 0) {
           document.getElementById("noFundState").style.display = "none";
           document.getElementById("hasFundState").style.display = "block";
-          fab.style.display = "flex"; // បង្ហាញប៊ូតុង +
+          fab.style.display = "flex";
 
           activeFunds.forEach((f, i) => {
             const percent = Math.min(
               100,
               Math.round((f.currentAmount / f.targetAmount) * 100),
             );
-            const themeClass =
-              f.type === "group" ? "theme-group" : "theme-personal";
+            const isFull = percent >= 100;
+            const themeClass = f.type === "group" ? "theme-group" : "";
             const badgeIcon = f.type === "group" ? "fa-users" : "fa-user";
 
             slider.innerHTML += `
               <div class="fund-perspective">
                 <div class="fund-inner ${themeClass}">
                   <div class="fund-top">
-                    <h3 class="fund-name">${f.name}</h3>
+                    <h3 class="fund-name">${f.name} <br><span style="font-size:0.7rem; font-weight:normal; color:rgba(255,255,255,0.7)">Creator: ${f.creator}</span></h3>
                     <div class="fund-type-badge"><i class="fa-solid ${badgeIcon}"></i> <span style="text-transform:capitalize;">${f.type}</span></div>
                   </div>
                   <div class="fund-middle">
-                    <p class="fund-target"><span data-i18n="ufund_target">Target:</span> $${f.targetAmount.toLocaleString()}</p>
+                    <p class="fund-target">Target: $${f.targetAmount.toLocaleString()}</p>
                     <h1 class="fund-amount">$${f.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
                   </div>
                   <div class="fund-bottom">
                     <div class="progress-header"><span>Progress</span><span>${percent}%</span></div>
-                    <div class="progress-bg"><div class="progress-bar" style="width: ${percent}%"></div></div>
+                    <div class="progress-bg"><div class="progress-bar ${isFull ? "success" : ""}" style="width: ${percent}%"></div></div>
                   </div>
                 </div>
               </div>`;
             dots.innerHTML += `<div class="dot ${i === currentFundIndex ? "active" : ""}"></div>`;
           });
-
-          syncFundActions(); // Update members/buttons for the current fund
+          syncFundActions();
         } else {
           document.getElementById("noFundState").style.display = "block";
           document.getElementById("hasFundState").style.display = "none";
@@ -818,7 +814,6 @@
         }
       }
 
-      // 🖱️ HANDLE SCROLL / ACTIVE DOT
       function updateActiveDot() {
         const slider = document.getElementById("fundsSlider");
         let index = Math.round(slider.scrollLeft / slider.offsetWidth);
@@ -835,25 +830,52 @@
         }
       }
 
-      // 🔄 UPDATE ACTIONS & LEADERBOARD BASED ON SELECTED FUND
+      // SYNC ACTIONS based on Creator privileges & Fund Status
       function syncFundActions() {
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
 
-        // លាក់ប៊ូតុង Invite បើវាជា Personal Fund
-        document.getElementById("btnInviteFriend").style.display =
-          currentFund.type === "group" ? "flex" : "none";
+        const isCreator = currentFund.creator === user.username;
+        const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
-        // គូរ Member List
+        // Group Features Visibility
+        document.getElementById("btnInviteFriend").style.display =
+          currentFund.type === "group" && isCreator ? "flex" : "none";
+
+        // Creator Lifecycle Buttons
+        document.getElementById("btnEditFund").style.display = isCreator
+          ? "flex"
+          : "none";
+        document.getElementById("btnCloseFund").style.display = isCreator
+          ? "flex"
+          : "none";
+
+        // Dynamic Close/Cancel UI
+        const btnCloseIcon = document.getElementById("closeFundIcon");
+        const btnCloseText = document.getElementById("closeFundText");
+        const btnCloseDesc = document.getElementById("closeFundDesc");
+
+        if (isFull) {
+          btnCloseIcon.className = "fa-solid fa-check-double";
+          btnCloseIcon.style.color = "#10b981";
+          btnCloseText.innerText = "Success & Close Fund";
+          btnCloseText.style.color = "#10b981";
+          btnCloseDesc.innerText = "Transfer pool to your account";
+        } else {
+          btnCloseIcon.className = "fa-solid fa-power-off";
+          btnCloseIcon.style.color = "#ef4444";
+          btnCloseText.innerText = "Cancel Fund";
+          btnCloseText.style.color = "#ef4444";
+          btnCloseDesc.innerText = "Stop and refund all members";
+        }
+
+        // Render Leaderboard
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
-
         const sortedMembers = [...currentFund.members].sort(
           (a, b) => b.contributedAmount - a.contributedAmount,
         );
-
         sortedMembers.forEach((m) => {
-          let initial = m.fullName.charAt(0).toUpperCase();
           let stClass = "st-active";
           let stText = "Active";
           if (m.status === "pending") {
@@ -866,20 +888,19 @@
           }
 
           container.innerHTML += `
-                <div class="member-item">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div class="member-avatar">${initial}</div>
-                        <div>
-                            <div class="member-name">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}</div>
-                            <span class="member-status ${stClass}">${stText}</span>
-                        </div>
+            <div class="member-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="member-avatar">${m.fullName.charAt(0).toUpperCase()}</div>
+                    <div>
+                        <div class="member-name">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}</div>
+                        <span class="member-status ${stClass}">${stText}</span>
                     </div>
-                    <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                </div>`;
+                </div>
+                <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            </div>`;
         });
       }
 
-      // ⬇️ TOGGLE MEMBERS ACCORDION
       function toggleMembersList() {
         document
           .getElementById("membersListContainer")
@@ -892,22 +913,31 @@
       }
 
       // ==========================================
-      // 🛠️ ACTION FUNCTIONS (CREATE, DEPOSIT, INVITE)
+      // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
       // ==========================================
 
       async function openCreateFundUI() {
-        console.log("Triggering Create Fund...");
         const { value: formValues } = await Swal.fire({
           title:
-            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br><span data-i18n="swal_create_title">Create U-Fund</span>',
+            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Create U-Fund',
           html: `
-                <input id="swal-fname" class="swal2-input" placeholder="Fund Name (e.g. Bali Trip)">
-                <input id="swal-famt" type="number" class="swal2-input" placeholder="Target Amount ($)">
-                <select id="swal-ftype" class="swal2-input" style="width:100%; margin-top:15px;">
-                    <option value="personal">Personal Saving</option>
-                    <option value="group">Group Saving (U-Fund)</option>
+            <input id="swal-fname" class="swal2-input" placeholder="Fund Name (e.g. Bali Trip)">
+            <input id="swal-famt" type="number" class="swal2-input" placeholder="Target Amount ($)">
+            <select id="swal-ftype" class="swal2-select" style="width:100%; margin-top:15px; padding:10px;">
+                <option value="personal">Personal Saving</option>
+                <option value="group">Group Tontine / Fund</option>
+            </select>
+            <div style="margin-top:15px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
+                <label style="font-weight:bold; font-size:0.85rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deduct Rule (For all members)</label>
+                <input id="swal-auto-amt" type="number" class="swal2-input" placeholder="Auto-Deduct Amount ($)" style="margin-top:10px;">
+                <select id="swal-auto-freq" class="swal2-select" style="width:100%; margin-top:10px; padding:10px;">
+                    <option value="none">No Auto-Deduct</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
                 </select>
-             `,
+            </div>
+          `,
           showCancelButton: true,
           confirmButtonColor: "var(--primary)",
           confirmButtonText: "Create Now",
@@ -917,6 +947,8 @@
               name: document.getElementById("swal-fname").value,
               target: document.getElementById("swal-famt").value,
               type: document.getElementById("swal-ftype").value,
+              autoAmt: document.getElementById("swal-auto-amt").value || 0,
+              autoFreq: document.getElementById("swal-auto-freq").value,
             };
           },
         });
@@ -928,9 +960,7 @@
           });
           const data = await fetchAPI("/api/ufund/create", {
             username: user.username,
-            name: formValues.name,
-            targetAmount: formValues.target,
-            type: formValues.type,
+            ...formValues,
           });
           if (data.success) {
             Swal.fire({
@@ -944,39 +974,81 @@
         }
       }
 
-      async function openDepositUI() {
+      async function openEditFundUI() {
         const fund = activeFunds[currentFundIndex];
-        if (!fund) return;
-
-        const { value: formVals } = await Swal.fire({
-          title:
-            '<i class="fa-solid fa-circle-plus" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Deposit Funds',
+        const { value: formValues } = await Swal.fire({
+          title: "Edit Fund Settings",
           html: `
-                <div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
-                <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">
-                <div style="margin-top:20px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
-                    <label style="font-weight:bold; font-size:0.9rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deposit Setup</label>
-                    <select id="dep-auto" class="swal2-input" style="width:100%; margin-top:10px; padding:10px;">
-                        <option value="none">Manual Only</option>
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
-                </div>
-              `,
+            <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
+            <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
+          `,
           showCancelButton: true,
           confirmButtonColor: "var(--primary)",
-          confirmButtonText: "Confirm",
+          confirmButtonText: "Save Changes",
           customClass: { popup: "premium-swal" },
           preConfirm: () => {
             return {
-              amount: document.getElementById("dep-amt").value,
-              autoType: document.getElementById("dep-auto").value,
+              name: document.getElementById("swal-edit-name").value,
+              target: document.getElementById("swal-edit-target").value,
             };
           },
         });
 
-        if (formVals && formVals.amount > 0) {
+        if (formValues) {
+          // TODO: Call your edit API endpoint here in the next backend step
+          Swal.fire(
+            "Info",
+            "Backend logic for Edit will be connected next!",
+            "info",
+          );
+        }
+      }
+
+      async function closeOrCancelFund() {
+        const fund = activeFunds[currentFundIndex];
+        const isFull = fund.currentAmount >= fund.targetAmount;
+
+        const confirmMsg = isFull
+          ? "Are you sure you want to close this successful fund and transfer the balance to your main account?"
+          : "Are you sure you want to cancel this fund? All contributions will be refunded to the members.";
+
+        const result = await Swal.fire({
+          title: isFull ? "Success & Close?" : "Cancel Fund?",
+          text: confirmMsg,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: isFull ? "#10b981" : "#ef4444",
+          confirmButtonText: isFull ? "Yes, Close it!" : "Yes, Cancel it!",
+          customClass: { popup: "premium-swal" },
+        });
+
+        if (result.isConfirmed) {
+          // TODO: Call your close API endpoint here in the next backend step
+          Swal.fire(
+            "Info",
+            "Backend logic for Closing/Refunding will be connected next!",
+            "info",
+          );
+        }
+      }
+
+      // ==========================================
+      // STANDARD ACTIONS (DEPOSIT, INVITE, QR)
+      // ==========================================
+      async function openDepositUI() {
+        const fund = activeFunds[currentFundIndex];
+        const { value: amt } = await Swal.fire({
+          title: "Manual Deposit",
+          html: `<div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
+                 <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: "Deposit",
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => document.getElementById("dep-amt").value,
+        });
+
+        if (amt && amt > 0) {
           Swal.fire({
             title: "Processing...",
             didOpen: () => Swal.showLoading(),
@@ -984,7 +1056,7 @@
           const data = await fetchAPI("/api/ufund/deposit", {
             username: user.username,
             fundId: fund._id,
-            amount: formVals.amount,
+            amount: amt,
             isAuto: false,
           });
           if (data.success) {
@@ -1006,11 +1078,8 @@
 
       async function openInviteUI() {
         const fund = activeFunds[currentFundIndex];
-        if (!fund) return;
-
         const { value: invitee } = await Swal.fire({
-          title:
-            '<i class="fa-solid fa-user-plus" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Invite Friend',
+          title: "Invite Friend",
           text: fund.name,
           input: "text",
           inputPlaceholder: "Username, Phone, or Account No.",
@@ -1042,12 +1111,10 @@
 
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
-        if (!fund) return;
         Swal.fire({
           title: "Fund QR Code",
-          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Scan to receive money directly into <b>${fund.name}</b></p>
-                     <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${fund.qrCodeString}" style="border-radius:15px; margin-top:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
-                     <p style="font-family:monospace; font-weight:bold; margin-top:15px; color:var(--primary); font-size:1.1rem;">${fund.qrCodeString}</p>`,
+          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Scan via U-Pay to deposit into <b>${fund.name}</b></p>
+                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${fund.qrCodeString}" style="border-radius:15px; margin-top:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">`,
           confirmButtonColor: "var(--primary)",
           customClass: { popup: "premium-swal" },
         });
