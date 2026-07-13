@@ -1537,7 +1537,7 @@ const processCashierTransaction = async (req, res) => {
 // =======================================================
 
 // 🔍 ១. ស្វែងរកអតិថិជនពី Database ផ្ទាល់ (Live Search)
-exports.searchUserByAdmin = async (req, res) => {
+const searchUserByAdmin = async (req, res) => {
   try {
     const { searchTerm } = req.body;
 
@@ -1572,7 +1572,7 @@ exports.searchUserByAdmin = async (req, res) => {
 };
 
 // 🔄 ២. ទាញយកទិន្នន័យអតិថិជនម្នាក់ (Fast Refresh)
-exports.getUserByAdmin = async (req, res) => {
+const getUserByAdmin = async (req, res) => {
   try {
     const { username } = req.body;
 
