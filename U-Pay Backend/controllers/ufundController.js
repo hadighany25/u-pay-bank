@@ -196,3 +196,19 @@ exports.getMyFunds = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+// ៥. កំណត់ Auto Deposit សម្រាប់សមាជិក
+exports.setAutoDeposit = async (req, res) => {
+  const { username, fundId, enabled, amount, frequency } = req.body;
+  try {
+    const fund = await UFund.findById(fundId);
+    const member = fund.members.find((m) => m.username === username);
+    if (member) {
+      member.autoDeposit = { enabled, amount, frequency };
+      await fund.save();
+      res.json({ success: true });
+    }
+  } catch (e) {
+    res.status(500).json({ success: false });
+  }
+};

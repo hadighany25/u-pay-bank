@@ -7,5 +7,6 @@ router.post("/create", verifyUser, ufundController.createFund);
 router.post("/invite", verifyUser, ufundController.inviteMember);
 router.post("/deposit", verifyUser, ufundController.depositFund);
 router.post("/list", verifyUser, ufundController.getMyFunds);
+router.post("/set-auto", verifyUser, ufundController.setAutoDeposit);
 
 module.exports = router;
