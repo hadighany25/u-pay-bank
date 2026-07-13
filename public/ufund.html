@@ -707,15 +707,13 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
-      // 🔐 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
-      // គ្រាន់តែប្រើ let token តែម្តងគត់នៅទីនេះ
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
       const authHeaders = {
         "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
+        Authorization: `Bearer ${token}`,
       };
 
       let activeFunds = [];
@@ -730,16 +728,9 @@
         else document.body.classList.remove("dark-mode");
       }
 
-      // 🚀 ON PAGE LOAD
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-
-        // ប្រើឈ្មោះ function ដែលមានក្នុង lang.js របស់បង
-        // បើ lang.js បងប្រើ applyLanguage() គឺដាក់អញ្ចឹងទៅ
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
-        }
-
+        if (typeof applyLanguage === "function") applyLanguage();
         fetchMyFunds();
         document.body.classList.add("loaded");
       });
