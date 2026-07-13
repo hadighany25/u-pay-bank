@@ -1533,7 +1533,7 @@ const processCashierTransaction = async (req, res) => {
 };
 
 // =======================================================
-// 🛡️ CUSTOMER 360° VIEW APIs (ទាញទិន្នន័យផ្ទាល់ពី Database)
+// 🛡️ CUSTOMER 360° VIEW APIs (ជួសជុលជួប KYC និង Transactions)
 // =======================================================
 
 // 🔍 ១. ស្វែងរកអតិថិជនពី Database ផ្ទាល់ (Live Search)
@@ -1545,23 +1545,44 @@ const searchUserByAdmin = async (req, res) => {
       return res.json({ success: false, message: "សូមបញ្ចូលពាក្យស្វែងរក!" });
     }
 
-    // បង្កើត Regex សម្រាប់ Search មិនប្រកាន់អក្សរតូចធំ
     const regex = new RegExp(searchTerm, "i");
 
-    // ស្វែងរកតាម ឈ្មោះ ឈ្មោះគណនី លេខទូរស័ព្ទ និងលេខគណនីធនាគារ
-    const user = await User.findOne({
+    // ស្វែងរក User ពី Database
+    const userObj = await User.findOne({
       $or: [
         { username: regex },
         { fullName: regex },
         { phone: regex },
         { phoneNumber: regex },
-        { accountNumber: searchTerm }, // លេខគណនីធនាគារត្រូវស្មើ ១០០% ទើបរាវឃើញ
+        { accountNumber: searchTerm },
         { accountNumberKHR: searchTerm },
       ],
-    }).select("-password"); // លាក់ Password មិនឱ្យបោះទៅ Frontend ដើម្បីសុវត្ថិភាព
+    }).select("-password");
 
-    if (user) {
-      res.json({ success: true, user });
+    if (userObj) {
+      // បំប្លែងទៅជា Object ធម្មតាដើម្បីអាចថែម Field បាន
+      let userDetails = userObj.toObject();
+
+      // 🔥 គាស់កកាយរក Transactions ទាំងអស់របស់ User នេះពី Transaction Collection
+      const userTransactions = await Transaction.find({
+        $or: [
+          { username: userDetails.username },
+          { senderAcc: userDetails.accountNumber },
+          { senderAcc: userDetails.accountNumberKHR },
+          { receiverAcc: userDetails.accountNumber },
+          { receiverAcc: userDetails.accountNumberKHR },
+        ],
+      }).sort({ _id: -1 }); // យកអាថ្មីៗមកលើគេ
+
+      // ញាត់ចូលទៅក្នុង Object User វិញដើម្បីឱ្យ Frontend ចាប់បាន
+      userDetails.transactions = userTransactions || [];
+
+      // 🔧 Fallback ធានាឱ្យជាប់រូប KYC ទោះជា Schema ចាស់ឬថ្មី
+      userDetails.kycImage =
+        userDetails.kycImage || userDetails.idCardImage || "";
+      userDetails.idCardImage = userDetails.kycImage;
+
+      res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
     }
@@ -1576,11 +1597,30 @@ const getUserByAdmin = async (req, res) => {
   try {
     const { username } = req.body;
 
-    // ស្វែងរកតែមួយគត់តាម Username
-    const user = await User.findOne({ username }).select("-password");
+    const userObj = await User.findOne({ username }).select("-password");
 
-    if (user) {
-      res.json({ success: true, user });
+    if (userObj) {
+      let userDetails = userObj.toObject();
+
+      // 🔥 គាស់កកាយរក Transactions ដូចគ្នាពេលចុច Refresh
+      const userTransactions = await Transaction.find({
+        $or: [
+          { username: userDetails.username },
+          { senderAcc: userDetails.accountNumber },
+          { senderAcc: userDetails.accountNumberKHR },
+          { receiverAcc: userDetails.accountNumber },
+          { receiverAcc: userDetails.accountNumberKHR },
+        ],
+      }).sort({ _id: -1 });
+
+      userDetails.transactions = userTransactions || [];
+
+      // 🔧 Fallback ធានាឱ្យជាប់រូប KYC
+      userDetails.kycImage =
+        userDetails.kycImage || userDetails.idCardImage || "";
+      userDetails.idCardImage = userDetails.kycImage;
+
+      res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
     }
