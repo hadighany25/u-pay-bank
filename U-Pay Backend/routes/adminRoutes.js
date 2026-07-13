@@ -20,9 +20,8 @@ router.post(
   checkRole([ROLE_SUPER]),
   adminController.deleteUser,
 );
-// បន្ថែមបន្ទាត់នេះ ដើម្បីអោយ Super Admin អាចទាញមើលប្រវត្តិ Logs បាន
-router.get("/logs", checkRole(["super_admin"]), adminController.getAdminLogs);
-// 🔥 អាប់ដេត៖ ដកសិទ្ធិ Finance ចេញ អោយតែ Super ទើបអាច Refund បាន!
+router.get("/logs", checkRole([ROLE_SUPER]), adminController.getAdminLogs);
+
 router.post(
   "/refund-transaction",
   checkRole([ROLE_SUPER]),
@@ -51,7 +50,6 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
   adminController.approveTransaction,
 );
-// 🔥 បន្ថែមផ្លូវនេះដើម្បីឱ្យ Admin អាច Save អត្រាប្តូរប្រាក់ (FX) ថ្មីបាន!
 router.post(
   "/fx/update",
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
@@ -97,7 +95,7 @@ router.post(
 );
 router.post(
   "/toggle-card-lock",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.toggleAdminCardLock,
 );
 router.post(
@@ -110,124 +108,121 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_SUPPORT]),
   adminController.ticketReply,
 );
-// បន្ថែមពាក្យ "custom" ចូលទៅក្នុង Array ផង ដើម្បីអោយអ្នកមាន Role នេះអាចចូលបាន
 router.get(
   "/me",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getMe,
 );
 
 router.post(
   "/broadcast",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.broadcast,
 );
 router.post(
   "/delete-broadcast",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.deleteBroadcast,
 );
 router.get(
   "/fees",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getFeeSettings,
 );
 router.post(
   "/fees",
-  checkRole(["super_admin"]),
+  checkRole([ROLE_SUPER]),
   adminController.updateFeeSettings,
 );
 router.post(
   "/promo/create",
-  checkRole(["super_admin", "finance_admin"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE]),
   adminController.createPromoCode,
 );
-// ផ្លូវសម្រាប់ទាញយក និង បិទ/បើកកូដ
 router.get(
   "/promos",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getPromoCodes,
 );
 router.post(
   "/promo/toggle",
-  checkRole(["super_admin", "finance_admin"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE]),
   adminController.togglePromoCode,
 );
+
+// ៤. មុខងារគ្រប់គ្រង Merchant
 router.post(
   "/toggle-merchant-freeze",
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
   merchantController.adminToggleMerchantFreeze,
 );
-
-// បន្ថែម ២ បន្ទាត់នេះ៖
 router.delete(
   "/delete-merchant/:id",
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
   merchantController.adminDeleteMerchant,
 );
-
 router.put(
   "/edit-merchant",
   checkRole([ROLE_SUPER, ROLE_FINANCE]),
   merchantController.adminEditMerchant,
 );
 router.post(
+  "/create-merchant",
+  checkRole([ROLE_SUPER]),
+  adminController.adminCreateMerchant,
+);
+
+// ៥. មុខងារ Logs និងកាត
+router.post(
   "/log-action",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.logCustomAction,
 );
 router.post(
   "/delete-card",
-  checkRole(["super_admin"]),
+  checkRole([ROLE_SUPER]),
   adminController.adminDeleteCard,
 );
 router.post(
   "/create-card",
-  checkRole(["super_admin"]),
+  checkRole([ROLE_SUPER]),
   adminController.adminCreateCard,
 );
 router.post(
-  "/get-user",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
-  adminController.getSingleUser,
-);
-router.post(
   "/upload-kyc",
-  checkRole(["super_admin", "support_agent"]),
+  checkRole([ROLE_SUPER, ROLE_SUPPORT]),
   adminController.adminUploadKyc,
 );
 router.post(
   "/force-logout",
-  checkRole(["super_admin"]),
+  checkRole([ROLE_SUPER]),
   adminController.adminForceLogout,
 );
-router.post(
-  "/create-merchant",
-  checkRole(["super_admin"]),
-  adminController.adminCreateMerchant,
-);
-// 🌟 Routes សម្រាប់មុខងារ Cashier
+
+// 🌟 ៦. Routes សម្រាប់មុខងារ Cashier
 router.get(
   "/cashier/search/:identifier",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.searchCashierUser,
 );
 router.post(
   "/cashier/transaction",
-  checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.processCashierTransaction,
 );
+
 // ==========================================
-// CUSTOMER 360° ROUTES (បន្ថែមសិទ្ធិ Role ឱ្យគ្រប់ជ្រុង)
+// 🛡️ ៧. CUSTOMER 360° ROUTES (LIVE DB SEARCH)
 // ==========================================
 router.post(
   "/search-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.searchUserByAdmin,
 );
+// 🔥 ទុកតែមួយនេះ ដើម្បីកុំឱ្យជាន់គ្នា (លុបអាចាស់ចោលហើយ)
 router.post(
   "/get-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getUserByAdmin,
 );
 
