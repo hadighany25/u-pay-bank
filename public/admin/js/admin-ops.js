@@ -236,14 +236,8 @@ async function searchTrx() {
       if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
 
       // 🔥 ទី២៖ រៀបចំ Merchant ID (បើទាញពី Backend អត់ទាន់មាន Generate ឱ្យវិញកុំឱ្យបាត់)
-      let isMerchantTx =
-        t.type === "Merchant Payment" ||
-        t.receiverType === "Merchant" ||
-        (rName && rName.toLowerCase().includes("shop"));
+      // 🌟 រៀបចំ Merchant ID (យកទិន្នន័យពិត ១០០% ពី Backend)
       let mId = t.merchantId || t.receiverMerchantId;
-      if (!mId && isMerchantTx) {
-        mId = "MID-" + (rAcc.toString().slice(-6) || "008995");
-      }
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
         : "";

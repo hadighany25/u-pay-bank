@@ -15,6 +15,7 @@ const Chat = require("../models/Chat");
 const mongoose = require("mongoose");
 const PromoCode = require("../models/PromoCode");
 const { getFormattedDate, generateHash } = require("../services/helpers");
+const Merchant = require("../models/Merchant");
 
 // ========================================================
 // 🧠 មុខងារលួចកត់ត្រាសកម្មភាពចូល Database (Audit Log Helper)
@@ -937,7 +938,7 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
-// 🔍 Transaction Verification (ទាញ Merchant ID ពិត)
+// 🔍 Transaction Verification (កែតម្រូវឱ្យស្វែងរក Merchant ID ពិតប្រាកដពី Merchant Collection)
 const getTransaction = async (req, res) => {
   const searchTerm = req.params.id.trim();
 
@@ -992,9 +993,18 @@ const getTransaction = async (req, res) => {
             : receiverObj.accountNumber;
       }
 
-      // 🔥 ចាប់យក Merchant ID តែរបស់ពិតពី Database ប៉ុណ្ណោះ
-      if (receiverObj && receiverObj.merchantId) {
-        trxDetails.merchantId = receiverObj.merchantId;
+      // 🔥 ចូលទៅកកាយយក Merchant ID របស់ពិតពី Merchant Collection តែម្តង
+      const merchantData = await Merchant.findOne({
+        $or: [
+          { name: foundTrx.receiverName },
+          { "accountNumbers.USD": foundTrx.receiverAcc },
+          { "accountNumbers.KHR": foundTrx.receiverAcc },
+        ],
+      });
+
+      // បើរាវរកឃើញហាង គឺយក ID ពិតមកដាក់បញ្ជូនទៅឱ្យ Frontend
+      if (merchantData && merchantData.merchantId) {
+        trxDetails.merchantId = merchantData.merchantId;
       }
 
       res.json({
@@ -1009,12 +1019,10 @@ const getTransaction = async (req, res) => {
     }
   } catch (err) {
     console.error("GET TRX ERROR:", err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
+    });
   }
 };
 
