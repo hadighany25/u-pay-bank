@@ -98,7 +98,7 @@ function viewUserMessage(username, ticketId) {
 }
 
 // ==========================================
-// 🔍 Trx Check & Action (ជួសជុលបញ្ហាបាត់ Merchant ID និងអ្នកដាក់ប្រាក់)
+// 🔍 Trx Check & Action (ជួសជុលបញ្ហា Receiver ពេលកាត់ថ្លៃសេវា Fee)
 // ==========================================
 async function searchTrx() {
   const id = document.getElementById("searchTrxId").value.trim();
@@ -191,22 +191,23 @@ async function searchTrx() {
 
       let depositorHtml = "";
 
+      // 🔥 ទី១៖ ឆែកមើលក្រែងលោជា Cash Deposit ឬ Withdrawal
       if (t.type === "Cash Deposit") {
         sName = "Cash Deposit (ដាក់ប្រាក់)";
         sAcc = "CASH-DESK";
         sDevice = "Branch Admin System";
         sIp = "Internal Network";
+        t.senderType = "System";
         sKyc = "System";
         sKycColor = "#3b82f6";
 
-        // 🔥 ទី១៖ ចាប់យកឈ្មោះអ្នកដាក់ (បើអត់មានក្នុង DB យកពី Remark មកជំនួស)
         let dName = t.depositorName;
         if (!dName) {
           if (
             (t.remark && t.remark.includes("អ្នកផ្សេង")) ||
             t.remark.includes("ដោយ")
           ) {
-            dName = t.remark; // យក Remark មកបង្ហាញបើវាជា Trx ចាស់
+            dName = t.remark;
           } else {
             dName = "ម្ចាស់គណនីផ្ទាល់ (Self)";
           }
@@ -215,7 +216,6 @@ async function searchTrx() {
           t.depositorAcc && t.depositorAcc !== "N/A"
             ? `(${t.depositorAcc})`
             : "";
-
         depositorHtml = `
           <div class="t-row">
             <span class="t-label">Deposited By</span> 
@@ -228,15 +228,43 @@ async function searchTrx() {
         rAcc = "CASH-DESK";
         rDevice = "Branch Admin System";
         rIp = "Internal Network";
+        t.receiverType = "System";
+        rKyc = "System";
+        rKycColor = "#3b82f6";
+      }
+      // 🔥 ទី២៖ ដោះស្រាយបញ្ហា Receiver Details ពេលកាត់ថ្លៃសេវា (Fee / Service)
+      else if (
+        t.type === "Card Issuance Fee" ||
+        (t.type && t.type.includes("Fee")) ||
+        (rName && rName.toLowerCase().includes("service"))
+      ) {
+        rAcc = "SYSTEM-FEE-WALLET";
+        rDevice = "U-PAY Core System";
+        rIp = "Internal Network";
+        t.receiverType = "System Revenue";
         rKyc = "System";
         rKycColor = "#3b82f6";
       }
 
-      if (sName.toLowerCase().includes("system")) sAcc = "SYSTEM-WALLET";
-      if (rName.toLowerCase().includes("system")) rAcc = "SYSTEM-WALLET";
+      // 🔥 ទី៣៖ បើមានពាក្យ System ត្រូវទម្លាក់វាជាប្រព័ន្ធទាំងអស់
+      if (sName.toLowerCase().includes("system")) {
+        sAcc = "SYSTEM-WALLET";
+        sDevice = "System Server";
+        sIp = "Internal Network";
+        t.senderType = "System";
+        sKyc = "System";
+        sKycColor = "#3b82f6";
+      }
+      if (rName.toLowerCase().includes("system")) {
+        rAcc = "SYSTEM-WALLET";
+        rDevice = "System Server";
+        rIp = "Internal Network";
+        t.receiverType = "System";
+        rKyc = "System";
+        rKycColor = "#3b82f6";
+      }
 
-      // 🔥 ទី២៖ រៀបចំ Merchant ID (បើទាញពី Backend អត់ទាន់មាន Generate ឱ្យវិញកុំឱ្យបាត់)
-      // 🌟 រៀបចំ Merchant ID (យកទិន្នន័យពិត ១០០% ពី Backend)
+      // 🌟 រៀបចំ Merchant ID
       let mId = t.merchantId || t.receiverMerchantId;
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
