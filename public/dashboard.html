@@ -1602,7 +1602,7 @@
       }
 
       // ==========================================
-      // 🔔 មុខងាររៀបចំសារ Notif ភ្លាមៗ
+      // 🔔 មុខងាររៀបចំសារ Notif ភ្លាមៗ (Update)
       // ==========================================
       let currentUnreadCount = 0;
       function updateNotificationsUI(currentUser) {
@@ -1671,11 +1671,23 @@
                     n.egiftData?.senderName || "មិត្តភក្តិ"
                   ).replace(/'/g, "\\'");
 
-                  // បង្ហាញជាអត្ថបទធម្មតា ប្រាប់ឱ្យគាត់ទៅមើលក្នុង History វិញ
                   displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}! (សូមចូលទៅកាន់ History > Messages ដើម្បីបើកមើល)`;
-
-                  // 👈 ទុក actionBtn ឱ្យនៅទទេ ដើម្បីលុបប៊ូតុងចេញពី Dashboard
                   actionBtn = "";
+                }
+
+                // 🔥 បន្ថែម UI សម្រាប់ U-Fund Invite ត្រង់នេះ
+                if (n.type === "ufund_invite") {
+                  icon = "fa-bullseye"; // រូបតំណាងគោលដៅសន្សំ
+                  bg = "#ecfeff"; // ផ្ទៃក្រោយពណ៌ខៀវស្រាល
+                  col = "#0891b2"; // ពណ៌ខៀវទឹកប៊ិច
+
+                  // បន្ថែមប៊ូតុង យល់ព្រម និង បដិសេធ
+                  actionBtn = `
+                    <div style="margin-top: 10px; display: flex; gap: 10px;">
+                      <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                      <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                    </div>
+                  `;
                 }
 
                 return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
@@ -1776,6 +1788,50 @@
           });
         } catch (e) {
           console.error(e);
+        }
+      }
+
+      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund
+      async function respondUFundInvite(fundId, notifId, response) {
+        try {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/ufund/respond-invite", {
+            method: "POST",
+            headers: authHeaders, // ប្រើ authHeaders របស់បង
+            body: JSON.stringify({
+              username: user.username,
+              fundId: fundId,
+              notifId: notifId,
+              response: response, // 'accept' ឬ 'decline'
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            // បិទប្រអប់ Notification សិន
+            closeNotifications();
+
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ!",
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+            }).then(() => {
+              // Refresh ទិន្នន័យ Dashboard ឡើងវិញ ដើម្បីឱ្យសារនោះបាត់ (ព្រោះវាถูก Mark as Read ហើយ)
+              loadDashboardData(false);
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
 
