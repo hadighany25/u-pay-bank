@@ -21,6 +21,7 @@ const cardRoutes = require("./routes/cardRoutes");
 const financeRoutes = require("./routes/financeRoutes");
 const communicationRoutes = require("./routes/communicationRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
+const ufundRoutes = require("./routes/ufundRoutes");
 
 const PORT = process.env.PORT || 3000;
 
@@ -76,6 +77,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/card", cardRoutes);
 app.use("/api", financeRoutes);
 app.use("/api", communicationRoutes);
+app.use("/api/ufund", ufundRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));

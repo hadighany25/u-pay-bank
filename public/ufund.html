@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>U-Fund - U-Pay</title>
+
+    <!-- Font & Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- External Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/lang.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <!-- កូដ Core របស់បង -->
+
+    <style>
+      :root {
+        --primary: #004d40;
+        --primary-light: #00695c;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+      }
+
+      body.dark-mode {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #334155;
+      }
+
+      body {
+        background-color: #e2e8f0;
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition: 0.3s;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: var(--bg-color);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        transition: 0.3s;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* HEADER */
+      .nav-header {
+        padding: 20px;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 1.2rem;
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+      }
+
+      .content-body {
+        padding: 20px 0;
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 90px;
+      }
+      .section-title {
+        padding: 0 20px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0 0 15px;
+      }
+
+      /* 🌟 CARD SWIPING (HORIZONTAL SCROLL) */
+      .fund-swiper {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 15px;
+        padding: 10px 20px 25px 20px;
+        scrollbar-width: none; /* Firefox */
+      }
+      .fund-swiper::-webkit-scrollbar {
+        display: none;
+      } /* Chrome */
+
+      .fund-card {
+        min-width: 85%;
+        scroll-snap-align: center;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-light) 100%
+        );
+        border-radius: 20px;
+        padding: 20px;
+        color: white;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.25);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .fund-card::after {
+        content: "\f4d3";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        right: -20px;
+        bottom: -20px;
+        font-size: 7rem;
+        color: rgba(255, 255, 255, 0.05);
+        pointer-events: none;
+      }
+
+      .fund-type-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        backdrop-filter: blur(5px);
+      }
+
+      .fund-name {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 0 0 5px;
+      }
+      .fund-amount {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 15px 0 5px;
+      }
+      .fund-target {
+        font-size: 0.85rem;
+        color: #a7f3d0;
+        margin: 0 0 15px;
+      }
+
+      /* PROGRESS BAR */
+      .progress-bg {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .progress-bar {
+        height: 100%;
+        background: #10b981;
+        border-radius: 3px;
+        transition: 1s;
+      }
+
+      /* 🌟 QUICK ACTIONS */
+      .action-row {
+        display: flex;
+        gap: 15px;
+        padding: 0 20px;
+        margin-bottom: 25px;
+      }
+      .action-btn {
+        flex: 1;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        color: var(--text-main);
+        padding: 15px;
+        border-radius: 16px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        transition: 0.2s;
+      }
+      .action-btn:active {
+        transform: scale(0.95);
+      }
+      .action-btn i {
+        font-size: 1.5rem;
+        color: var(--primary);
+      }
+
+      /* 🌟 LEADERBOARD / MEMBERS */
+      .member-list {
+        padding: 0 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .member-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        padding: 15px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .member-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .member-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: var(--primary);
+        font-size: 1.2rem;
+      }
+      .member-name {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 1rem;
+        margin: 0;
+      }
+      .member-role {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .member-stats {
+        text-align: right;
+      }
+      .member-amt {
+        font-weight: 800;
+        color: var(--success);
+        font-size: 1.1rem;
+      }
+      .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 4px;
+      }
+      .status-active {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .status-overdue {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      /* FAB */
+      .fab-btn {
+        position: fixed;
+        bottom: 25px;
+        right: calc(50% - 200px); /* Adjust based on container max-width */
+        background: var(--primary);
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 77, 64, 0.4);
+        cursor: pointer;
+        border: none;
+        z-index: 100;
+        transition: 0.2s;
+      }
+      .fab-btn:active {
+        transform: scale(0.9);
+      }
+
+      @media (max-width: 450px) {
+        .fab-btn {
+          right: 25px;
+        }
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+      }
+      .empty-state i {
+        font-size: 4rem;
+        color: var(--border);
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_ufund">U-Fund (Savings)</span>
+        <i
+          class="fa-solid fa-clock-rotate-left"
+          style="font-size: 1rem; cursor: pointer"
+        ></i>
+      </div>
+
+      <div class="content-body">
+        <!-- Swiper for Funds -->
+        <div class="fund-swiper" id="fundSwiper">
+          <!-- Cards will be injected here -->
+          <div class="empty-state" style="width: 100%; margin-top: 20px">
+            <i class="fa-solid fa-piggy-bank"></i>
+            <p data-lang="loading_funds">Loading your U-Funds...</p>
+          </div>
+        </div>
+
+        <!-- Dynamic Actions based on selected Fund -->
+        <div id="fundActions" style="display: none">
+          <div class="action-row">
+            <button class="action-btn" onclick="openDepositUI()">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span data-lang="btn_deposit">Deposit</span>
+            </button>
+            <button class="action-btn" onclick="openInviteUI()">
+              <i class="fa-solid fa-user-plus"></i>
+              <span data-lang="btn_invite">Invite</span>
+            </button>
+            <button class="action-btn" onclick="showFundQR()">
+              <i class="fa-solid fa-qrcode"></i>
+              <span data-lang="btn_qr">Receive</span>
+            </button>
+          </div>
+
+          <h3 class="section-title" data-lang="title_members">
+            Members & Leaderboard
+          </h3>
+          <div class="member-list" id="memberList">
+            <!-- Members injected here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Create New Fund Button -->
+      <button class="fab-btn" onclick="openCreateFundUI()">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      let activeFunds = [];
+      let currentSelectedFundId = null;
+
+      if (!user) window.location.href = "index.html";
+
+      // 🌐 TRANSLATIONS
+      const translations = {
+        en: {
+          title_ufund: "U-Fund",
+          loading_funds: "Loading your U-Funds...",
+          btn_deposit: "Deposit",
+          btn_invite: "Add Friend",
+          btn_qr: "Fund QR",
+          title_members: "Members & Leaderboard",
+          no_funds: "You don't have any U-Funds yet. Create one!",
+          create_title: "Create U-Fund",
+          ph_fund_name: "Fund Name (e.g. Bali Trip)",
+          ph_target: "Target Amount ($)",
+          btn_create: "Create Now",
+          invite_title: "Invite to U-Fund",
+          ph_invite: "Username, Phone, or Account No.",
+          dep_title: "Deposit to U-Fund",
+          ph_amount: "Amount ($)",
+          auto_dep_title: "Auto-Deposit Setup",
+          opt_manual: "Manual Only",
+          opt_daily: "Daily",
+          opt_weekly: "Weekly",
+          opt_monthly: "Monthly",
+        },
+        kh: {
+          title_ufund: "យូ-ហ្វាន់ (សន្សំប្រាក់)",
+          loading_funds: "កំពុងទាញយកទិន្នន័យ...",
+          btn_deposit: "ដាក់ប្រាក់",
+          btn_invite: "អញ្ជើញមិត្ត",
+          btn_qr: "QR កូដ",
+          title_members: "សមាជិក និង ប្រវត្តិ",
+          no_funds: "អ្នកមិនទាន់មាន U-Fund ទេ។ ចុច + ដើម្បីបង្កើត!",
+          create_title: "បង្កើត U-Fund ថ្មី",
+          ph_fund_name: "ឈ្មោះគម្រោង (ឧ. លុយដើរលេង)",
+          ph_target: "ទំហំទឹកប្រាក់គោលដៅ ($)",
+          btn_create: "បង្កើតឥឡូវនេះ",
+          invite_title: "អញ្ជើញមិត្តភក្តិ",
+          ph_invite: "ឈ្មោះ, លេខទូរស័ព្ទ ឬលេខគណនី",
+          dep_title: "ដាក់ប្រាក់ចូល U-Fund",
+          ph_amount: "ចំនួនទឹកប្រាក់ ($)",
+          auto_dep_title: "កំណត់ការកាត់លុយស្វ័យប្រវត្តិ",
+          opt_manual: "ដាក់ដោយផ្ទាល់ដៃ",
+          opt_daily: "រៀងរាល់ថ្ងៃ",
+          opt_weekly: "រៀងរាល់សប្តាហ៍",
+          opt_monthly: "រៀងរាល់ខែ",
+        },
+      };
+
+      let currentLang = localStorage.getItem("lang") || "en";
+      function applyLang() {
+        document.querySelectorAll("[data-lang]").forEach((el) => {
+          const key = el.getAttribute("data-lang");
+          if (translations[currentLang] && translations[currentLang][key]) {
+            el.innerText = translations[currentLang][key];
+          }
+        });
+      }
+
+      const getAuthHeaders = () => ({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+      });
+
+      // 🔄 ១. ទាញយកទិន្នន័យ U-Fund ពី Server
+      async function fetchMyFunds() {
+        try {
+          const res = await fetch("/api/ufund/list", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ username: user.username }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            activeFunds = data.funds;
+            renderFundCards();
+          }
+        } catch (e) {
+          console.error("Failed to load funds", e);
+        }
+      }
+
+      // 🎨 ២. គូរកាត U-Fund នៅលើអេក្រង់
+      function renderFundCards() {
+        const swiper = document.getElementById("fundSwiper");
+
+        if (activeFunds.length === 0) {
+          swiper.innerHTML = `<div class="empty-state" style="width:100%;"><i class="fa-solid fa-piggy-bank"></i><p>${translations[currentLang].no_funds}</p></div>`;
+          document.getElementById("fundActions").style.display = "none";
+          return;
+        }
+
+        swiper.innerHTML = "";
+        activeFunds.forEach((fund, index) => {
+          const percent = Math.min(
+            100,
+            Math.round((fund.currentAmount / fund.targetAmount) * 100),
+          );
+          const badgeTxt =
+            fund.type === "group" ? "👥 Group Fund" : "👤 Personal";
+
+          // កំណត់ Fund ដំបូងគេឱ្យលោតចេញ Details ពីក្រោម
+          if (index === 0 && !currentSelectedFundId) {
+            currentSelectedFundId = fund._id;
+            renderFundDetails(fund._id);
+          }
+
+          swiper.innerHTML += `
+              <div class="fund-card" onclick="selectFund('${fund._id}')">
+                <div class="fund-type-badge">${badgeTxt}</div>
+                <h3 class="fund-name">${fund.name}</h3>
+                <p class="fund-target">Target: $${fund.targetAmount.toLocaleString()}</p>
+                <h1 class="fund-amount">$${fund.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
+                
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-top:15px;">
+                    <span>Progress</span>
+                    <span>${percent}%</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-bar" style="width: ${percent}%"></div>
+                </div>
+              </div>
+            `;
+        });
+
+        // ធានាថា Details ខាងក្រោមបង្ហាញ
+        document.getElementById("fundActions").style.display = "block";
+      }
+
+      // ជម្រើសពេលចុច ឬ Scroll លើកាត
+      function selectFund(fundId) {
+        currentSelectedFundId = fundId;
+        renderFundDetails(fundId);
+      }
+
+      // 👥 ៣. គូរបញ្ជីសមាជិក (Leaderboard) នៅខាងក្រោម
+      function renderFundDetails(fundId) {
+        const fund = activeFunds.find((f) => f._id === fundId);
+        if (!fund) return;
+
+        const list = document.getElementById("memberList");
+        list.innerHTML = "";
+
+        // តម្រៀបអ្នកដាក់លុយច្រើនជាងគេមកលើ (Leaderboard sorting)
+        const sortedMembers = [...fund.members].sort(
+          (a, b) => b.contributedAmount - a.contributedAmount,
+        );
+
+        sortedMembers.forEach((m) => {
+          let initial = m.fullName.charAt(0).toUpperCase();
+
+          // ពណ៌ Status
+          let stClass = "status-active";
+          let stText = "Active";
+          if (m.status === "pending") {
+            stClass = "status-pending";
+            stText = "Pending Invite";
+          }
+          if (m.status === "overdue") {
+            stClass = "status-overdue";
+            stText = "Overdue (Unpaid)";
+          }
+
+          let roleBadge =
+            m.role === "admin"
+              ? `<i class="fa-solid fa-crown" style="color:#f59e0b; font-size:0.7rem;"></i> `
+              : "";
+
+          list.innerHTML += `
+                <div class="member-item">
+                    <div class="member-info">
+                        <div class="member-avatar">${initial}</div>
+                        <div>
+                            <h4 class="member-name">${roleBadge}${m.fullName}</h4>
+                            <span class="status-badge ${stClass}">${stText}</span>
+                        </div>
+                    </div>
+                    <div class="member-stats">
+                        <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                        <div class="member-role">Saved</div>
+                    </div>
+                </div>
+             `;
+        });
+      }
+
+      // 🛠️ ៤. មុខងារ Create Fund
+      async function openCreateFundUI() {
+        const { value: formValues } = await Swal.fire({
+          title: translations[currentLang].create_title,
+          html: `
+                <input id="swal-fname" class="swal2-input" placeholder="${translations[currentLang].ph_fund_name}">
+                <input id="swal-famt" type="number" class="swal2-input" placeholder="${translations[currentLang].ph_target}">
+                <div style="margin-top:15px; text-align:left;">
+                    <label style="font-weight:bold; font-size:0.9rem; margin-left:5px;">Fund Type:</label>
+                    <select id="swal-ftype" class="swal2-input" style="width:100%; margin-top:5px; padding: 0 15px;">
+                        <option value="personal">Personal Saving</option>
+                        <option value="group">Group Saving (U-Fund)</option>
+                    </select>
+                </div>
+             `,
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: translations[currentLang].btn_create,
+          customClass: { popup: "modal-radius" },
+          preConfirm: () => {
+            return {
+              name: document.getElementById("swal-fname").value,
+              target: document.getElementById("swal-famt").value,
+              type: document.getElementById("swal-ftype").value,
+            };
+          },
+        });
+
+        if (formValues && formValues.name && formValues.target > 0) {
+          Swal.fire({
+            title: "Creating...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/ufund/create", {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                username: user.username,
+                name: formValues.name,
+                targetAmount: formValues.target,
+                type: formValues.type,
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Created!",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              fetchMyFunds(); // Reload
+            } else Swal.fire("Error", data.message, "error");
+          } catch (e) {
+            Swal.fire("Error", "Network error", "error");
+          }
+        }
+      }
+
+      // 💌 ៥. មុខងារ Invite មិត្តភក្តិ
+      async function openInviteUI() {
+        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
+        if (!fund || fund.type === "personal")
+          return Swal.fire(
+            "Info",
+            "This is a personal fund. Create a Group Fund to invite friends.",
+            "info",
+          );
+
+        const { value: invitee } = await Swal.fire({
+          title: translations[currentLang].invite_title,
+          text: fund.name,
+          input: "text",
+          inputPlaceholder: translations[currentLang].ph_invite,
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText:
+            '<i class="fa-solid fa-paper-plane"></i> Send Invite',
+        });
+
+        if (invitee) {
+          Swal.fire({ title: "Sending...", didOpen: () => Swal.showLoading() });
+          try {
+            const res = await fetch("/api/ufund/invite", {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                fundId: fund._id,
+                inviterUsername: user.username,
+                inviteeIdentifier: invitee.trim(),
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Invited!",
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false,
+              });
+              fetchMyFunds();
+            } else Swal.fire("Failed", data.message, "error");
+          } catch (e) {
+            Swal.fire("Error", "Network error", "error");
+          }
+        }
+      }
+
+      // 💵 ៦. មុខងារដាក់លុយ (មាន Setup Auto-Deposit)
+      async function openDepositUI() {
+        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
+        if (!fund) return;
+
+        const { value: formVals } = await Swal.fire({
+          title: translations[currentLang].dep_title,
+          html: `
+                <div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
+                <input id="dep-amt" type="number" class="swal2-input" placeholder="${translations[currentLang].ph_amount}">
+                
+                <div style="margin-top:20px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
+                    <label style="font-weight:bold; font-size:0.9rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> ${translations[currentLang].auto_dep_title}</label>
+                    <select id="dep-auto" class="swal2-input" style="width:100%; margin-top:10px; height:auto; padding:10px;">
+                        <option value="none">${translations[currentLang].opt_manual}</option>
+                        <option value="daily">${translations[currentLang].opt_daily}</option>
+                        <option value="weekly">${translations[currentLang].opt_weekly}</option>
+                        <option value="monthly">${translations[currentLang].opt_monthly}</option>
+                    </select>
+                </div>
+              `,
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: '<i class="fa-solid fa-check-circle"></i> Confirm',
+          preConfirm: () => {
+            return {
+              amount: document.getElementById("dep-amt").value,
+              autoType: document.getElementById("dep-auto").value,
+            };
+          },
+        });
+
+        if (formVals && formVals.amount > 0) {
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/ufund/deposit", {
+              method: "POST",
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                username: user.username,
+                fundId: fund._id,
+                amount: formVals.amount,
+                isAuto: false, // នេះជាការដាក់ផ្ទាល់
+                // (បើគាត់រើស Auto បងអាចបញ្ជូន API ផ្សេងទៅ Save Setting)
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              // លេងសំឡេងលុយចូល
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch(() => {});
+              Swal.fire({
+                icon: "success",
+                title: "Saved!",
+                text: data.message,
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              fetchMyFunds();
+            } else Swal.fire("Failed", data.message, "error");
+          } catch (e) {
+            Swal.fire("Error", "Network error", "error");
+          }
+        }
+      }
+
+      // 📷 ៧. បង្ហាញ QR កូដ
+      function showFundQR() {
+        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
+        if (!fund) return;
+        Swal.fire({
+          title: "Fund QR Code",
+          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Share this code with friends to receive funds directly into <b>${fund.name}</b></p>
+                     <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${fund.qrCodeString}" style="border-radius:15px; margin-top:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+                     <p style="font-family:monospace; font-weight:bold; margin-top:15px; color:var(--primary); font-size:1.1rem;">${fund.qrCodeString}</p>`,
+          confirmButtonColor: "var(--primary)",
+        });
+      }
+
+      // Start App
+      applyLang();
+      fetchMyFunds();
+    </script>
+  </body>
+</html>

@@ -20,7 +20,6 @@ const userSchema = new mongoose.Schema(
     pinAttempts: { type: Number, default: 0 },
     notifications: { type: Array, default: [] },
     tickets: { type: Array, default: [] },
-    savings: { type: Array, default: [] },
     deposits: { type: Array, default: [] },
     kycStatus: { type: String, default: "unverified" },
     kycDocument: { type: String, default: "" },
