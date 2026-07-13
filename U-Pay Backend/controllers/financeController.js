@@ -5,7 +5,7 @@ const {
   generateHash,
 } = require("../services/helpers");
 
-// ៤. គណនីបញ្ញើ (Fixed Deposit)
+// ១. គណនីបញ្ញើ (Fixed Deposit)
 const createFixedDeposit = async (req, res) => {
   const { accountNumber, amount, pin, duration, rate, type, currency } =
     req.body;
@@ -74,6 +74,7 @@ const createFixedDeposit = async (req, res) => {
       trxMethod: "Fixed Deposit",
       isHold: false,
     });
+
     centralBank.transactions.unshift({
       refId,
       hash,
@@ -199,7 +200,7 @@ const withdrawFixedDeposit = async (req, res) => {
   }
 };
 
-// ៥. រង្វាន់ Cashbacks
+// ២. រង្វាន់ Cashbacks
 const cashbackReward = async (req, res) => {
   const { username, amount, refId } = req.body;
   try {
@@ -234,9 +235,6 @@ const cashbackReward = async (req, res) => {
 };
 
 module.exports = {
-  createSaving,
-  depositSaving,
-  breakSaving,
   createFixedDeposit,
   withdrawFixedDeposit,
   cashbackReward,
