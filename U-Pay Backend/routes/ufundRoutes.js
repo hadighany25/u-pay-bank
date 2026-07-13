@@ -1,12 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const ufundController = require("../controllers/ufundController");
-const { verifyUser } = require("../middleware/authMiddleware");
+const { verifyUser } = require("../middleware/authMiddleware"); // ប្រសិនបើបងមាន Middleware
 
-router.post("/create", verifyUser, ufundController.createFund);
-router.post("/invite", verifyUser, ufundController.inviteMember);
-router.post("/deposit", verifyUser, ufundController.depositFund);
-router.post("/list", verifyUser, ufundController.getMyFunds);
-router.post("/set-auto", verifyUser, ufundController.setAutoDeposit);
+// ទាញយកបញ្ជី Fund
+router.post("/list", ufundController.getMyFunds); // អាចដាក់ verifyUser បើមាន
+
+// បង្កើត / ដាក់ប្រាក់
+router.post("/create", ufundController.createFund);
+router.post("/deposit", ufundController.depositFund);
+
+// អញ្ជើញ / ទទួល
+router.post("/invite", ufundController.inviteMember);
+router.post("/respond-invite", ufundController.respondToInvite);
+
+// វដ្តជីវិតគម្រោង (Lifecycle)
+router.post("/edit", ufundController.editFund);
+router.post("/close", ufundController.closeOrCancelFund);
 
 module.exports = router;
