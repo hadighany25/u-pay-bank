@@ -1532,6 +1532,64 @@ const processCashierTransaction = async (req, res) => {
   }
 };
 
+// =======================================================
+// 🛡️ CUSTOMER 360° VIEW APIs (ទាញទិន្នន័យផ្ទាល់ពី Database)
+// =======================================================
+
+// 🔍 ១. ស្វែងរកអតិថិជនពី Database ផ្ទាល់ (Live Search)
+exports.searchUserByAdmin = async (req, res) => {
+  try {
+    const { searchTerm } = req.body;
+
+    if (!searchTerm) {
+      return res.json({ success: false, message: "សូមបញ្ចូលពាក្យស្វែងរក!" });
+    }
+
+    // បង្កើត Regex សម្រាប់ Search មិនប្រកាន់អក្សរតូចធំ
+    const regex = new RegExp(searchTerm, "i");
+
+    // ស្វែងរកតាម ឈ្មោះ ឈ្មោះគណនី លេខទូរស័ព្ទ និងលេខគណនីធនាគារ
+    const user = await User.findOne({
+      $or: [
+        { username: regex },
+        { fullName: regex },
+        { phone: regex },
+        { phoneNumber: regex },
+        { accountNumber: searchTerm }, // លេខគណនីធនាគារត្រូវស្មើ ១០០% ទើបរាវឃើញ
+        { accountNumberKHR: searchTerm },
+      ],
+    }).select("-password"); // លាក់ Password មិនឱ្យបោះទៅ Frontend ដើម្បីសុវត្ថិភាព
+
+    if (user) {
+      res.json({ success: true, user });
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
+    }
+  } catch (error) {
+    console.error("ADMIN SEARCH USER ERROR:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 🔄 ២. ទាញយកទិន្នន័យអតិថិជនម្នាក់ (Fast Refresh)
+exports.getUserByAdmin = async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    // ស្វែងរកតែមួយគត់តាម Username
+    const user = await User.findOne({ username }).select("-password");
+
+    if (user) {
+      res.json({ success: true, user });
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+    }
+  } catch (error) {
+    console.error("ADMIN GET USER ERROR:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   toggleSystem,
   updateFX,
@@ -1571,4 +1629,6 @@ module.exports = {
   adminCreateMerchant,
   searchCashierUser,
   processCashierTransaction,
+  searchUserByAdmin,
+  getUserByAdmin,
 };

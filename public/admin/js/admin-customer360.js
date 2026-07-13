@@ -1,49 +1,62 @@
 // ========================================================================
-// 🛡️ CUSTOMER 360° VIEW LOGIC (BANK-GRADE STANDARD)
+// 🛡️ CUSTOMER 360° VIEW LOGIC (BANK-GRADE STANDARD - REALTIME DATABASE)
 // ========================================================================
 
 let currentC360User = null;
 
 // =======================================================
-// ១. មុខងារស្វែងរកអតិថិជន
+// ១. មុខងារស្វែងរកអតិថិជន (Live Search API - ចាប់ ១០០% ពី Database)
 // =======================================================
 async function searchCustomer360() {
-  const term = document.getElementById("searchC360").value.toLowerCase().trim();
+  const term = document.getElementById("searchC360").value.trim();
   if (!term) return;
 
-  if (!globalUsersData || globalUsersData.length === 0) {
-    Swal.fire({
-      title: "កំពុងទាញយកទិន្នន័យ...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    if (typeof loadData === "function") await loadData();
-    Swal.close();
-  }
-
-  const foundUser = globalUsersData.find((u) => {
-    const uname = (u.username || "").toLowerCase();
-    const fname = (u.fullName || "").toLowerCase();
-    const phone = (u.phone || u.phoneNumber || "").toString().toLowerCase();
-    const accUSD = (u.accountNumber || "").toString();
-    const accKHR = (u.accountNumberKHR || "").toString();
-    return (
-      uname.includes(term) ||
-      fname.includes(term) ||
-      phone.includes(term) ||
-      accUSD.includes(term) ||
-      accKHR.includes(term)
-    );
+  Swal.fire({
+    title: "កំពុងស្វែងរក...",
+    text: "ឆែកមើលក្នុងមូលដ្ឋានទិន្នន័យផ្ទាល់",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
   });
 
-  if (foundUser) renderCustomerProfile(foundUser);
-  else
-    Swal.fire({
-      icon: "error",
-      title: "រកមិនឃើញ",
-      text: "គ្មានអតិថិជននេះក្នុងប្រព័ន្ធទេ!",
-      customClass: { popup: "premium-swal kh-text" },
+  try {
+    // 🚀 បាញ់ API ទៅស្វែងរក User ក្នុង Database ផ្ទាល់ការពារការគាំង ឬលោតខុសទិន្នន័យ
+    const res = await fetch("/api/admin/search-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ searchTerm: term }),
     });
+    const data = await res.json();
+
+    Swal.close();
+
+    if (data.success && data.user) {
+      // បើរកឃើញ Update RAM ក្រែងលោត្រូវការប្រើកន្លែងផ្សេង
+      currentC360User = data.user;
+      if (typeof globalUsersData !== "undefined") {
+        const index = globalUsersData.findIndex(
+          (u) => u.username === data.user.username,
+        );
+        if (index !== -1) {
+          globalUsersData[index] = data.user;
+        } else {
+          globalUsersData.push(data.user);
+        }
+      }
+
+      // បង្ហាញទិន្នន័យលើអេក្រង់
+      renderCustomerProfile(data.user);
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "រកមិនឃើញ",
+        text: `គ្មានអតិថិជនដែលទាក់ទងនឹងពាក្យ "${term}" ក្នុងប្រព័ន្ធទេ!`,
+        customClass: { popup: "premium-swal kh-text" },
+      });
+    }
+  } catch (error) {
+    console.error("SEARCH ERROR:", error);
+    Swal.fire("បរាជ័យ", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
+  }
 }
 
 // =======================================================
@@ -76,7 +89,6 @@ function renderCustomerProfile(user) {
     statusHtml += `<span style="background: #dbeafe; color: #3b82f6; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> KYC</span>`;
   document.getElementById("c360-status-badge").innerHTML = statusHtml;
 
-  // ប៊ូតុងមាន Font ខ្មែរស្អាត
   // ប៊ូតុងមាន Font ខ្មែរស្អាត និងថែមប៊ូតុង Refresh
   document.getElementById("c360-quick-actions").innerHTML = `
     <button onclick="c360RefreshData()" class="kh-text" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Refresh ទិន្នន័យអតិថិជននេះ">
@@ -134,10 +146,12 @@ async function c360RefreshData() {
       renderCustomerProfile(data.user);
 
       // ក៏ Update ទិន្នន័យនេះចូលក្នុង globalUsersData ដែរ ការពារពេលចាកចេញ
-      const index = globalUsersData.findIndex(
-        (u) => u.username === data.user.username,
-      );
-      if (index !== -1) globalUsersData[index] = data.user;
+      if (typeof globalUsersData !== "undefined") {
+        const index = globalUsersData.findIndex(
+          (u) => u.username === data.user.username,
+        );
+        if (index !== -1) globalUsersData[index] = data.user;
+      }
 
       Swal.fire({
         toast: true,
@@ -168,7 +182,6 @@ function renderInfoTab(user) {
     ? new Date(user.createdAt).toLocaleDateString("km-KH")
     : "មិនស្គាល់";
 
-  // ជួរទី១ មាន ៣, ជួរទី២ មាន ២
   container.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
       <div class="form-group">
@@ -228,7 +241,7 @@ async function toggleSensitiveView(inputId, iconEl, type) {
     input.type = "text";
     iconEl.classList.remove("fa-eye-slash");
     iconEl.classList.add("fa-eye");
-    iconEl.style.color = "#3b82f6"; // ដូរពណ៌ពេលបើកមើល
+    iconEl.style.color = "#3b82f6";
 
     if (type === "Password") {
       Swal.fire({
@@ -239,7 +252,6 @@ async function toggleSensitiveView(inputId, iconEl, type) {
       });
     }
 
-    // បាញ់ API កត់ត្រាចូល Admin Logs ស្ងាត់ៗ
     try {
       await fetch("/api/admin/log-action", {
         method: "POST",
@@ -290,7 +302,6 @@ async function saveC360Info() {
         customClass: { popup: "kh-text" },
       });
 
-      // កត់ត្រា Logs ពេលកែប្រែ PIN/Password
       if (passVal !== "*********" || pinVal !== (currentC360User.pin || "")) {
         await fetch("/api/admin/log-action", {
           method: "POST",
@@ -380,12 +391,10 @@ function c360AdjustBalance(type) {
     confirmButtonColor: themeColor,
     cancelButtonColor: "#64748b",
     confirmButtonText:
-      '<span class="kh-text" style="font-size: 1rem;">បញ្ជាក</span>',
+      '<span class="kh-text" style="font-size: 1rem;">បញ្ជាក់</span>',
     cancelButtonText:
       '<span class="kh-text" style="font-size: 1rem;">បោះបង់</span>',
-    customClass: {
-      popup: "modal-radius", // ដាក់ Border Radius ឱ្យស្អាត
-    },
+    customClass: { popup: "modal-radius" },
     preConfirm: () => {
       const amount = document.getElementById("adjAmount").value;
       if (!amount || amount <= 0)
@@ -410,7 +419,7 @@ function c360AdjustBalance(type) {
           body: JSON.stringify({
             username: currentC360User.username,
             amount: result.value.amount,
-            accountNumber: result.value.accountNumber, // ផ្ញើលេខគណនីដែលជ្រើសរើសទៅ Backend
+            accountNumber: result.value.accountNumber,
             remark: result.value.remark,
             type: type,
           }),
@@ -513,9 +522,6 @@ function renderCardsTab(user) {
   container.innerHTML = html + `</div>`;
 }
 
-// -------------------------------------------------------
-// មុខងារទី ១៖ បង្កើតកាតថ្មី (Create Card) ពី Admin
-// -------------------------------------------------------
 async function c360CreateCardForUser() {
   const { value: cardType } = await Swal.fire({
     title:
@@ -569,7 +575,6 @@ async function c360CreateCardForUser() {
         didOpen: () => Swal.showLoading(),
       });
       try {
-        // ហៅទៅ API Admin ថ្មីដែលយើងទើបបង្កើត
         const res = await fetch("/api/admin/create-card", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -606,13 +611,8 @@ async function c360CreateCardForUser() {
   }
 }
 
-// -------------------------------------------------------
-// មុខងារទី ២៖ មើលលេខកាតពេញ និង EXP (Reveal Card)
-// -------------------------------------------------------
 async function c360RevealCard(cardId) {
   const card = currentC360User.virtualCards.find((c) => c.id === cardId);
-
-  // បើលេខបង្ហាញរួចហើយ ចុចម្តងទៀតអោយបិទវិញ
   const numEl = document.getElementById(`c360-cardnum-${cardId}`);
   if (numEl.innerText.includes(card.number.slice(0, 4))) {
     numEl.innerText = `**** **** **** ${card.number.slice(-4)}`;
@@ -652,7 +652,6 @@ async function c360RevealCard(cardId) {
         }),
       });
 
-      // 🚀 ប្តូរលេខ និង EXP នៅលើកាតផ្ទាល់តែម្តង
       document.getElementById(`c360-cardnum-${cardId}`).innerText = card.number
         .match(/.{1,4}/g)
         .join(" ");
@@ -671,9 +670,6 @@ async function c360RevealCard(cardId) {
   }
 }
 
-// -------------------------------------------------------
-// មុខងារទី ៣៖ បិទ/បើកកាត (Toggle Freeze)
-// -------------------------------------------------------
 async function c360ToggleCard(cardId, isLocked) {
   const card = currentC360User.virtualCards.find((c) => c.id === cardId);
   const actionText = isLocked ? "បិទកាត (Freeze)" : "បើកកាត (Unfreeze)";
@@ -706,7 +702,6 @@ async function c360ToggleCard(cardId, isLocked) {
       didOpen: () => Swal.showLoading(),
     });
     try {
-      // ហៅ API បិទ/បើកកាត
       const res = await fetch("/api/admin/toggle-card-lock", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -719,7 +714,6 @@ async function c360ToggleCard(cardId, isLocked) {
       const data = await res.json();
 
       if (data.success) {
-        // កត់ត្រាចូល Logs
         await fetch("/api/admin/log-action", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -737,7 +731,7 @@ async function c360ToggleCard(cardId, isLocked) {
           timer: 1500,
           showConfirmButton: false,
         });
-        if (typeof loadData === "function") loadData(); // Reload UI
+        if (typeof loadData === "function") loadData();
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
       Swal.fire("Error", "មានបញ្ហា Server", "error");
@@ -745,9 +739,6 @@ async function c360ToggleCard(cardId, isLocked) {
   }
 }
 
-// -------------------------------------------------------
-// មុខងារទី ៤៖ លុបកាតចោលទាំងស្រុង (Delete Card)
-// -------------------------------------------------------
 async function c360DeleteCard(cardId) {
   const { value: remark } = await Swal.fire({
     title:
@@ -774,34 +765,30 @@ async function c360DeleteCard(cardId) {
       });
       const data = await res.json();
       if (data.success) {
-        // ១. អាប់ដេតទិន្នន័យក្នុង RAM របស់អតិថិជនបច្ចុប្បន្ន
         currentC360User.balance = data.newBalance;
         currentC360User.virtualCards = data.newCards;
-
-        // ២. បញ្ជាឱ្យគូរផ្ទាំងកាត និងផ្ទាំងលុយឡើងវិញភ្លាមៗ (កុំឱ្យចាំបាច់ Refresh)
         renderCardsTab(currentC360User);
         renderWalletsTab(currentC360User);
 
-        // ៣. កត់ត្រាចូល Logs
         await fetch("/api/admin/log-action", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            action: "Created Card",
+            action: "Deleted Card",
             target: currentC360User.username,
-            details: `បង្កើតកាត ${cardType} - ${remark}`,
+            details: `លុបកាតចោល - មូលហេតុ: ${remark}`,
           }),
         });
 
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
-          text: "កាត់លុយ $5.00 និងបង្កើតកាតរួចរាល់។",
+          text: "លុបកាតរួចរាល់។",
           timer: 1500,
           showConfirmButton: false,
         });
 
-        if (typeof loadData === "function") loadData(); // Update តារាងធំខាងក្រៅ
+        if (typeof loadData === "function") loadData();
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
       Swal.fire("Error", "មានបញ្ហា Server", "error");
@@ -810,17 +797,16 @@ async function c360DeleteCard(cardId) {
 }
 
 // =======================================================
-// 🪪 TAB 4: KYC & Identity (ដើរ ១០០% ធានាមិនលោតបាត់)
+// 🪪 TAB 4: KYC & Identity
 // =======================================================
 
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   const status = user.kycStatus || "unverified";
-  const imgUrl = user.kycImage || user.idCardImage || ""; // ចាប់យករូបពី Field ទាំង២
+  const imgUrl = user.kycImage || user.idCardImage || "";
 
   let content = "";
 
-  // 🔥 លក្ខខណ្ឌទី ១៖ គ្មាន KYC
   if (
     !imgUrl ||
     status === "unverified" ||
@@ -841,22 +827,17 @@ function renderKycTab(user) {
                 </label>
             </div>
         `;
-  }
-  // 🔥 លក្ខខណ្ឌទី ២ និង ៣៖ មានឯកសាររួចហើយ
-  else {
+  } else {
     const isVerified = status === "verified" || status === "approved";
     let buttonsHtml = "";
 
-    // លក្ខខណ្ឌទី ៣៖ Approve រួចហើយ
     if (isVerified) {
       buttonsHtml = `
                 <button onclick="c360KycAction('revoke')" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-ban"></i> បដិសេធសិទ្ធិវិញ (Revoke KYC)
                 </button>
             `;
-    }
-    // លក្ខខណ្ឌទី ២៖ កំពុង Pending
-    else {
+    } else {
       buttonsHtml = `
                 <button onclick="c360KycAction('approve')" class="kh-text" style="flex: 1; padding: 15px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)
@@ -893,7 +874,6 @@ function renderKycTab(user) {
   container.innerHTML = content;
 }
 
-// មុខងារចុចពង្រីក
 function c360ViewLargeImage(url) {
   Swal.fire({
     imageUrl: url,
@@ -907,7 +887,6 @@ function c360ViewLargeImage(url) {
   });
 }
 
-// 🔥 មុខងារ Upload KYC ដោយ Admin
 async function c360AdminUploadKyc(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -955,26 +934,24 @@ async function c360AdminUploadKyc(event) {
     const data = await res.json();
 
     if (data.success) {
-      // 💡 រក្សាទុកទិន្នន័យក្នុង RAM ឱ្យជាប់ ដើម្បីកុំឱ្យបាត់រូប
       currentC360User.kycImage = base64Image;
       currentC360User.idCardImage = base64Image;
       currentC360User.kycStatus = "pending";
 
-      // កត់ត្រាចូល global array ក្រែងលោ Admin ចុចទៅ Tab ផ្សេងរួចត្រឡប់មកវិញ
-      const idx = globalUsersData.findIndex(
-        (u) => u.username === currentC360User.username,
-      );
-      if (idx !== -1) {
-        globalUsersData[idx].kycImage = base64Image;
-        globalUsersData[idx].idCardImage = base64Image;
-        globalUsersData[idx].kycStatus = "pending";
+      if (typeof globalUsersData !== "undefined") {
+        const idx = globalUsersData.findIndex(
+          (u) => u.username === currentC360User.username,
+        );
+        if (idx !== -1) {
+          globalUsersData[idx].kycImage = base64Image;
+          globalUsersData[idx].idCardImage = base64Image;
+          globalUsersData[idx].kycStatus = "pending";
+        }
       }
 
-      // គូរអេក្រង់ឡើងវិញភ្លាមៗ
       renderCustomerProfile(currentC360User);
       renderKycTab(currentC360User);
 
-      // កត់ត្រា Logs
       await fetch("/api/admin/log-action", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -992,14 +969,12 @@ async function c360AdminUploadKyc(event) {
         timer: 1500,
         showConfirmButton: false,
       });
-      // 🚫 ដក c360RefreshData() ចេញ ដើម្បីការពារកុំឱ្យវាឆក់ទិន្នន័យចាស់មកជាន់រូបថ្មី
     } else Swal.fire("បរាជ័យ", data.message, "error");
   } catch (e) {
     Swal.fire("Error", "មានបញ្ហាក្នុងការ Upload!", "error");
   }
 }
 
-// 🔥 មុខងារ Action (Approve / Reject / Revoke)
 async function c360KycAction(action) {
   let actionKh =
     action === "approve"
@@ -1044,7 +1019,6 @@ async function c360KycAction(action) {
       const data = await res.json();
 
       if (data.success) {
-        // អាប់ដេត RAM
         if (action === "approve") currentC360User.kycStatus = "approved";
         else if (action === "reject" || action === "revoke") {
           currentC360User.kycStatus = "unverified";
@@ -1052,7 +1026,6 @@ async function c360KycAction(action) {
           currentC360User.idCardImage = "";
         }
 
-        // គូរអេក្រង់ឡើងវិញ
         renderCustomerProfile(currentC360User);
         renderKycTab(currentC360User);
 
@@ -1072,7 +1045,6 @@ async function c360KycAction(action) {
           timer: 1500,
           showConfirmButton: false,
         });
-        // 🚫 ដក c360RefreshData() ចេញដូចគ្នា
       } else Swal.fire("បរាជ័យ", data.message, "error");
     } catch (e) {
       Swal.fire("Error", "មានបញ្ហាបច្ចេកទេស", "error");
@@ -1081,10 +1053,9 @@ async function c360KycAction(action) {
 }
 
 // =======================================================
-// 💸 TAB 5: Transactions (រចនាថ្មីបែប App ABA & មាន Dropdown)
+// 💸 TAB 5: Transactions
 // =======================================================
 
-// មុខងារជំនួយសម្រាប់បំប្លែងថ្ងៃខែ
 function c360ParseDateString(dateStr) {
   if (!dateStr) return new Date();
   let d = new Date(dateStr);
@@ -1122,11 +1093,8 @@ function c360GetTimeString(d, orig) {
       : "";
 }
 
-// មុខងារចម្បងគូរផ្ទាំង Transactions
 function renderTrxTab(user) {
   const container = document.getElementById("c360-tab-trx");
-
-  // បង្កើត Filter Dropdown នៅខាងលើ
   let filterHtml = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0;">
           <div class="kh-text" style="color: #475569; font-weight: bold; display: flex; align-items: center; gap: 10px;">
@@ -1141,12 +1109,9 @@ function renderTrxTab(user) {
       <div id="c360-trx-content"></div>
   `;
   container.innerHTML = filterHtml;
-
-  // ហៅមុខងារទាញទិន្នន័យមកគូរភ្លាមៗ
   c360FilterTrxList();
 }
 
-// មុខងារចម្រោះ និងគូរបញ្ជីប្រតិបត្តិការ (Grouped by Date)
 function c360FilterTrxList() {
   const user = currentC360User;
   if (!user) return;
@@ -1154,8 +1119,6 @@ function c360FilterTrxList() {
   const container = document.getElementById("c360-trx-content");
 
   let trxs = user.transactions || [];
-
-  // ចម្រោះតាម Dropdown
   if (filterVal === "USD")
     trxs = trxs.filter((t) => !t.currency || t.currency === "USD");
   if (filterVal === "KHR") trxs = trxs.filter((t) => t.currency === "KHR");
@@ -1170,13 +1133,10 @@ function c360FilterTrxList() {
     return;
   }
 
-  // តម្រៀបថ្មីទៅចាស់
   trxs = [...trxs].reverse();
-
   let html = "";
   let lastDateLabel = "";
 
-  // បង្ហាញត្រឹម 100 ប្រតិបត្តិការចុងក្រោយ
   trxs.slice(0, 100).forEach((t) => {
     const isIncome = t.amount > 0 || t.type === "Received";
     const isPending = t.status === "Pending";
@@ -1185,13 +1145,11 @@ function c360FilterTrxList() {
     let parsedDate = c360ParseDateString(t.date);
     let dateLabel = c360GetSmartDateLabel(parsedDate);
 
-    // បង្កើត Group Date Header
     if (dateLabel !== lastDateLabel) {
       html += `<div class="kh-text" style="font-size: 0.85rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 0; padding: 0 5px; text-transform: uppercase;">${dateLabel}</div>`;
       lastDateLabel = dateLabel;
     }
 
-    // ការរៀបចំ Icon និងពណ៌
     let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
     let bgStyle = isIncome
       ? "background: #ecfdf5; color: #10b981;"
@@ -1203,7 +1161,32 @@ function c360FilterTrxList() {
     if (isPending) textColor = "#f97316";
     if (isRefunded) textColor = "#64748b";
 
-    // រៀបចំចំណងជើង
+    // ការរៀបចំ Icon ទៅតាមលក្ខខណ្ឌដែលធ្លាប់បានកែសម្រួល
+    let isMerchantTrx =
+      t.type === "Merchant Payment" ||
+      t.trxMethod === "Merchant Payment" ||
+      t.merchantId ||
+      t.receiverType === "Merchant";
+    if (isMerchantTrx) {
+      iconClass = "fa-store";
+    } else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
+      iconClass = "fa-gift";
+    } else if (
+      t.type === "Card Issuance Fee" ||
+      (t.type && t.type.includes("Fee"))
+    ) {
+      iconClass = "fa-file-invoice-dollar";
+      bgStyle = "background: #ffedd5; color: #f97316;";
+    } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
+      iconClass = "fa-tag";
+    } else if (
+      t.type === "Cash Deposit" ||
+      t.type === "Cash Withdrawal" ||
+      (t.type && t.type.includes("System"))
+    ) {
+      iconClass = "fa-money-bill-transfer";
+    }
+
     let title = t.type;
     if (isIncome) title = t.senderName || "Received";
     else
@@ -1220,7 +1203,6 @@ function c360FilterTrxList() {
     const sign = isIncome ? "+" : "-";
     const timeStr = c360GetTimeString(parsedDate, t.date);
 
-    // UI របស់ Item នីមួយៗ (អាចចុចបាន)
     html += `
         <div onclick="c360ViewTrxDetails('${t.refId}')" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: white; border-radius: 16px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.borderColor='#cbd5e1'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#f1f5f9'; this.style.transform='translateY(0)'">
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -1236,14 +1218,13 @@ function c360FilterTrxList() {
                 <div style="font-weight: bold; font-size: 1.1rem; color: ${textColor}; font-family: 'Inter', sans-serif;">
                     ${isRefunded ? "" : sign}${displayAmt}
                 </div>
-                <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 3px; font-family: monospace;">#${t.refId.substring(0, 8)}</div>
+                <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 3px; font-family: monospace;">#${(t.refId || "").substring(0, 8)}</div>
             </div>
         </div>`;
   });
   container.innerHTML = html;
 }
 
-// មុខងារចុចមើលវិក្កយបត្រលម្អិត (ចំណេញពេលមិនបាច់រត់ទៅថេបផ្សេង)
 function c360ViewTrxDetails(refId) {
   const t = currentC360User.transactions.find((x) => x.refId === refId);
   if (!t) return;
@@ -1256,11 +1237,8 @@ function c360ViewTrxDetails(refId) {
   const sign = isIncome ? "+" : "-";
   const color = isIncome ? "#10b981" : "#ef4444";
 
-  // កែសម្រួលផ្នែក statusBadge ក្នុងមុខងារ c360ViewTrxDetails
   let statusBadge = "";
   const s = (t.status || "").toLowerCase();
-
-  // បញ្ជីពាក្យដែលចាត់ទុកថាជោគជ័យ
   const successStatus = [
     "completed",
     "success",
@@ -1278,10 +1256,9 @@ function c360ViewTrxDetails(refId) {
   } else if (s === "failed" || s === "rejected") {
     statusBadge = `<span style="background: #fef2f2; color: #ef4444; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-times-circle"></i> បរាជ័យ</span>`;
   } else {
-    // ករណី Status ផ្សេងៗដែលមិនស្គាល់ ឱ្យវាបង្ហាញតាមតម្លៃពិតប្រាកដក្នុង DB
     statusBadge = `<span style="background: #e2e8f0; color: #475569; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;">${t.status || "N/A"}</span>`;
   }
-  // ប៊ូតុង Refund នឹងបង្ហាញតែរាល់ការកាត់ប្រាក់ចេញដែលមិនទាន់ Refund
+
   let refundBtnHtml = "";
   if (t.amount < 0 && t.status !== "Refunded") {
     refundBtnHtml = `
@@ -1290,7 +1267,6 @@ function c360ViewTrxDetails(refId) {
             </button>`;
   }
 
-  // Modal បង្ហាញព័ត៌មានលម្អិត
   Swal.fire({
     title:
       '<span class="kh-text" style="font-size:1.3rem;">វិក្កយបត្រលម្អិត (Receipt)</span>',
@@ -1335,7 +1311,6 @@ function c360ViewTrxDetails(refId) {
   });
 }
 
-// Action Refund លុយ (កែឱ្យចេញ Modal ស្អាត)
 async function c360Refund(refId) {
   const { value: reason } = await Swal.fire({
     title:
@@ -1374,7 +1349,7 @@ async function c360Refund(refId) {
           timer: 1500,
           showConfirmButton: false,
         });
-        if (typeof c360RefreshData === "function") c360RefreshData(); // Update ទិន្នន័យភ្លាមៗ
+        if (typeof c360RefreshData === "function") c360RefreshData();
       } else {
         Swal.fire("បរាជ័យ", data.message, "error");
       }
@@ -1390,20 +1365,16 @@ async function c360Refund(refId) {
 
 function renderSecurityTab(user) {
   const container = document.getElementById("c360-tab-security");
-
-  // បើប្រព័ន្ធមិនទាន់មានទិន្នន័យ វាបង្ហាញ N/A ដោយស្វ័យប្រវត្តិ
   const lastIp = user.lastIp || "មិនមានទិន្នន័យ (N/A)";
   const lastDevice = user.lastDevice || "មិនមានទិន្នន័យ (N/A)";
   const lastLogin = user.lastLogin || "មិនមានទិន្នន័យ (N/A)";
 
   container.innerHTML = `
         <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
-            
             <div style="background: white; border-radius: 18px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;">
                 <h4 class="kh-text" style="margin: 0 0 15px; color: #1e293b; display: flex; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i> ព័ត៌មានចូលប្រើប្រាស់ចុងក្រោយ
                 </h4>
-                
                 <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0;">
                     <span class="kh-text" style="color: #64748b; font-size: 0.9rem;">អាសយដ្ឋាន IP:</span>
                     <span style="font-weight: 600; color: #0f172a; font-family: 'Inter', monospace; font-size: 0.9rem;">${lastIp}</span>
@@ -1429,20 +1400,16 @@ function renderSecurityTab(user) {
                     <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី (Force Logout)
                 </button>
             </div>
-
         </div>
     `;
 }
 
-// 🔥 មុខងារ Force Logout ជាមួយការបញ្ជាក់មូលហេតុ
 async function c360ForceLogout() {
   const { value: remark } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">Force Logout</span>',
     html: `
-            <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">
-                តើអ្នកពិតជាចង់ទាត់អតិថិជននេះចេញពីប្រព័ន្ធមែនទេ?
-            </p>
+            <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">តើអ្នកពិតជាចង់ទាត់អតិថិជននេះចេញពីប្រព័ន្ធមែនទេ?</p>
             <div style="text-align: left; padding: 0 10px;">
                 <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">មូលហេតុ (Remark)</label>
                 <input id="swal-logout-remark" class="swal2-input kh-text" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0;">
@@ -1466,9 +1433,7 @@ async function c360ForceLogout() {
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
-
     try {
-      // ហៅ API ទាត់ចេញ
       const res = await fetch("/api/admin/force-logout", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -1478,9 +1443,7 @@ async function c360ForceLogout() {
         }),
       });
       const data = await res.json();
-
       if (data.success) {
-        // កត់ត្រាចូល Admin Logs ជានិច្ច
         await fetch("/api/admin/log-action", {
           method: "POST",
           headers: getAuthHeaders(),
@@ -1490,7 +1453,6 @@ async function c360ForceLogout() {
             details: `បានទាត់អតិថិជនចេញពីប្រព័ន្ធ - មូលហេតុ: ${remark}`,
           }),
         });
-
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
@@ -1508,7 +1470,7 @@ async function c360ForceLogout() {
 }
 
 // =======================================================
-// 🏪 TAB 7: Merchant (ទាញទិន្នន័យពិតៗពី /api/merchants/admin/all-merchants)
+// 🏪 TAB 7: Merchant
 // =======================================================
 
 let c360CurrentMerchantId = null;
@@ -1518,7 +1480,6 @@ async function renderMerchantTab(user) {
   container.innerHTML = `<div style="text-align: center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: #cbd5e1;"></i></div>`;
 
   try {
-    // 🚀 ទាញយកហាងទាំងអស់ពី Database (ដោយប្រើ API របស់អ្នកផ្ទាល់)
     const res = await fetch("/api/merchants/admin/all-merchants", {
       headers: getAuthHeaders(),
     });
@@ -1526,13 +1487,11 @@ async function renderMerchantTab(user) {
 
     let userMerchants = [];
     if (data.success && data.merchants) {
-      // ចម្រោះយកតែហាងដែលជារបស់ User នេះ (ដោយផ្អែកលើ username / userId)
       userMerchants = data.merchants.filter(
         (m) => m.userId === user.username || m.merchantId === user.merchantId,
       );
     }
 
-    // 🔥 ករណីទី ១៖ អត់មានហាងសោះ
     if (userMerchants.length === 0) {
       container.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px;">
@@ -1547,7 +1506,6 @@ async function renderMerchantTab(user) {
       return;
     }
 
-    // រើសហាងដំបូងគេដើម្បីបង្ហាញ បើមិនទាន់បានរើស
     if (
       !c360CurrentMerchantId ||
       !userMerchants.find((m) => m._id === c360CurrentMerchantId)
@@ -1558,13 +1516,13 @@ async function renderMerchantTab(user) {
     const m = userMerchants.find((m) => m._id === c360CurrentMerchantId);
     const isSuspended = m.status === "Suspended";
 
-    // Dropdown រើសសាខា បើមានច្រើន
     let branchSelector = "";
     if (userMerchants.length > 1) {
       let options = userMerchants
-        .map((branch) => {
-          return `<option value="${branch._id}" ${branch._id === c360CurrentMerchantId ? "selected" : ""}>${branch.name || "Unnamed"} (MID: ${branch.merchantId})</option>`;
-        })
+        .map(
+          (branch) =>
+            `<option value="${branch._id}" ${branch._id === c360CurrentMerchantId ? "selected" : ""}>${branch.name || "Unnamed"} (MID: ${branch.merchantId})</option>`,
+        )
         .join("");
       branchSelector = `
                 <div style="margin-bottom: 15px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
@@ -1576,7 +1534,6 @@ async function renderMerchantTab(user) {
                 </div>`;
     }
 
-    // គណនាលុយសរុបដែលបានកត់ត្រាក្នុង Database (ពីទិន្នន័យ API `m.collected`)
     let balUSD =
       m.collected && m.collected.USD
         ? parseFloat(m.collected.USD).toFixed(2)
@@ -1637,17 +1594,13 @@ async function renderMerchantTab(user) {
                 </div>
             </div>
         `;
-
     container.innerHTML = html;
-
-    // ហៅមុខងារទាញ Transaction
     c360FetchMerchantTransactions(m._id);
   } catch (e) {
     container.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ Server</div>`;
   }
 }
 
-// 🔥 ទាញយកប្រតិបត្តិការហាង (Transactions) ប្រើ API របស់ហាង
 async function c360FetchMerchantTransactions(mid) {
   const listDiv = document.getElementById("c360-merchant-trx-list");
   try {
@@ -1684,7 +1637,6 @@ async function c360FetchMerchantTransactions(mid) {
   }
 }
 
-// មុខងារបង្កើតហាងថ្មី (ហៅ API ដែលទើបបង្កើត)
 async function c360RegisterMerchant() {
   const { value: formValues } = await Swal.fire({
     title: '<span class="kh-text" style="color:#004d40;">បង្កើតហាងថ្មី</span>',
@@ -1740,7 +1692,7 @@ async function c360RegisterMerchant() {
           timer: 1500,
           showConfirmButton: false,
         });
-        renderMerchantTab(currentC360User); // Refresh tab ឡើងវិញ
+        renderMerchantTab(currentC360User);
       } else {
         Swal.fire("បរាជ័យ", data.message, "error");
       }
@@ -1759,7 +1711,6 @@ async function renderLogsTab(user) {
     const res = await fetch("/api/admin/logs", { headers: getAuthHeaders() });
     const data = await res.json();
     if (data.success) {
-      // ទាញយកតែ Logs ណាដែល Target ស្មើនឹង Username របស់គាត់
       const userLogs = data.logs.filter((l) => l.target === user.username);
       if (userLogs.length === 0) {
         container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">គ្មានកំណត់ត្រា Admin កែប្រែលើគណនីនេះទេ។</div>`;
@@ -1820,11 +1771,18 @@ async function c360ToggleFreeze() {
   }
 }
 
-// 💬 មុខងារ Chat អណ្តែតនៅខាងស្តាំ (Floating Chat)
-function c360OpenFloatingChat() {
-  let chatWidget = document.getElementById("c360-floating-chat");
+// 💬 មុខងារ Chat
+async function c360OpenFloatingChat() {
+  await fetch("/api/chat/force-start", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      receiverAcc: currentC360User.accountNumber,
+      adminName: "Admin",
+    }),
+  });
 
-  // បង្កើត Widget ថ្មីបើមិនទាន់មាន
+  let chatWidget = document.getElementById("c360-floating-chat");
   if (!chatWidget) {
     chatWidget = document.createElement("div");
     chatWidget.id = "c360-floating-chat";
@@ -1851,7 +1809,6 @@ function c360OpenFloatingChat() {
         `;
     document.body.appendChild(chatWidget);
   } else {
-    // បើមានស្រាប់ គ្រាន់តែ Update ឈ្មោះ រូប ហើយបើកវាឡើងវិញ
     document.getElementById("f-chat-name").innerText =
       currentC360User.fullName || currentC360User.username;
     document.getElementById("f-chat-img").src =
@@ -1860,30 +1817,11 @@ function c360OpenFloatingChat() {
   }
 }
 
-// កែសម្រួលមុខងារនេះនៅក្នុង admin-customer360.js
-async function c360OpenFloatingChat() {
-  // ១. បង្ខំឱ្យ User នោះចូល Support Mode
-  await fetch("/api/chat/force-start", {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      receiverAcc: currentC360User.accountNumber,
-      adminName: "Admin",
-    }),
-  });
-
-  // ២. បើក Floating Chat ដូចដែលយើងបានសរសេរពីមុន
-  // មុខងារចាស់នេះនៅតែដំណើរការធម្មតា
-  showFloatingChatWidget();
-}
-
-// មុខងារផ្ញើសារដែលភ្ជាប់ទៅ Backend របស់អ្នក
 async function c360SendFloatingMessage() {
   const input = document.getElementById("f-chat-input");
   const msg = input.value.trim();
   if (!msg) return;
 
-  // ហៅ API សាររបស់អ្នកដែលអ្នកមានស្រាប់ (sendChat)
   const res = await fetch("/api/chat/send", {
     method: "POST",
     headers: getAuthHeaders(),
@@ -1895,10 +1833,8 @@ async function c360SendFloatingMessage() {
     }),
   });
 
-  // បង្ហាញសារក្នុង UI បន្ទាប់ពី Save ចូល DB ជោគជ័យ
   const data = await res.json();
-  if (data.success) {
-    // បង្ហាញសារក្នុង Floating Chat (កូដដដែលដែលខ្ញុំឱ្យពីមុន)
+  if (data.success && typeof appendMessageToFloatingChat === "function") {
     appendMessageToFloatingChat(msg, true);
     input.value = "";
   }

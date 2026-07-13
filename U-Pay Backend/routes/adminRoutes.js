@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
-const { checkRole } = require("../middleware/authMiddleware");
 const merchantController = require("../controllers/merchantController");
+const { checkRole, verifyUser } = require("../middleware/authMiddleware");
 
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
@@ -216,4 +216,18 @@ router.post(
   checkRole(["super_admin", "finance_admin", "support_agent", "custom"]),
   adminController.processCashierTransaction,
 );
+// ==========================================
+// CUSTOMER 360° ROUTES (បន្ថែមសិទ្ធិ Role ឱ្យគ្រប់ជ្រុង)
+// ==========================================
+router.post(
+  "/search-user",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  adminController.searchUserByAdmin,
+);
+router.post(
+  "/get-user",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, "custom"]),
+  adminController.getUserByAdmin,
+);
+
 module.exports = router;
