@@ -83,7 +83,7 @@ exports.createFund = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-// ៣. ដាក់ប្រាក់ចូល U-Fund (Deposit)
+// ៣. ដាក់ប្រាក់ចូល U-Fund (Deposit) + ផ្ទេរចូលធនាគារកណ្តាល
 // ---------------------------------------------------------
 exports.depositFund = async (req, res) => {
   const { username, fundId, amount, isAuto } = req.body;
@@ -91,8 +91,15 @@ exports.depositFund = async (req, res) => {
     const user = await User.findOne({ username });
     const fund = await UFund.findById(fundId);
 
-    if (!user || !fund)
-      return res.json({ success: false, message: "ទិន្នន័យមិនត្រឹមត្រូវ!" });
+    // 🔥 ទាញយកគណនីធនាគារកណ្តាល (Central Bank USD)
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+
+    if (!user || !fund || !centralBank) {
+      return res.json({
+        success: false,
+        message: "ទិន្នន័យគណនី ឬធនាគារកណ្តាលមិនត្រឹមត្រូវ!",
+      });
+    }
 
     const depositAmount = parseFloat(amount);
     if (user.balance < depositAmount) {
@@ -111,8 +118,9 @@ exports.depositFund = async (req, res) => {
       });
     }
 
-    // កាត់លុយពី User និងបញ្ចូលទៅ U-Fund
+    // 💸 កាត់លុយពី User និង បូកលុយចូល Central Bank
     user.balance -= depositAmount;
+    centralBank.balance = (centralBank.balance || 0) + depositAmount;
     fund.currentAmount += depositAmount;
 
     // Update ទិន្នន័យសមាជិក
@@ -124,12 +132,13 @@ exports.depositFund = async (req, res) => {
 
     const dateNow = getFormattedDate();
     const refId = generateRefId();
+    const hash = generateHash();
 
-    // កត់ត្រាចូល Transaction Collection ពិតប្រាកដ
+    // 🧾 វិក្កយបត្រកាត់លុយ (User)
     await Transaction.create({
       username: user.username,
       refId: refId,
-      hash: generateHash(),
+      hash: hash,
       date: dateNow,
       type: "U-Fund Deposit",
       amount: -depositAmount,
@@ -141,14 +150,30 @@ exports.depositFund = async (req, res) => {
       trxMethod: "U-PAY App",
     });
 
-    await Promise.all([user.save(), fund.save()]);
+    // 🧾 វិក្កយបត្រទទួលលុយ (Central Bank)
+    await Transaction.create({
+      username: centralBank.username,
+      refId: refId,
+      hash: hash,
+      date: dateNow,
+      type: "U-Fund Pool Receive",
+      amount: depositAmount,
+      currency: "USD",
+      senderName: user.fullName || user.username,
+      receiverName: "U-Pay Central Bank",
+      remark: `Received for U-Fund: ${fund.name}`,
+      status: "Success",
+      trxMethod: "System Transfer",
+    });
+
+    // Save ទាំង ៣ ព្រមគ្នា
+    await Promise.all([user.save(), centralBank.save(), fund.save()]);
     res.json({ success: true, message: "ដាក់ប្រាក់ជោគជ័យ!", fund });
   } catch (error) {
     console.error("Deposit Error:", error);
     res.json({ success: false, message: "បរាជ័យក្នុងការដាក់ប្រាក់" });
   }
 };
-
 // ---------------------------------------------------------
 // ៤. អញ្ជើញមិត្តភក្តិ (Invite)
 // ---------------------------------------------------------
@@ -269,13 +294,17 @@ exports.editFund = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-// ៧. បិទគម្រោង (Close Success / Cancel Refund)
+// ៧. បិទគម្រោង (Close Success / Cancel Refund) + ដកពីធនាគារកណ្តាល
 // ---------------------------------------------------------
 exports.closeOrCancelFund = async (req, res) => {
   const { username, fundId } = req.body;
   try {
     const fund = await UFund.findById(fundId);
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+
     if (!fund) return res.json({ success: false, message: "Fund Not Found!" });
+    if (!centralBank)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីធនាគារកណ្តាល!" });
     if (fund.creator !== username)
       return res.json({ success: false, message: "អ្នកគ្មានសិទ្ធិទេ!" });
 
@@ -283,50 +312,94 @@ exports.closeOrCancelFund = async (req, res) => {
     const dateNow = getFormattedDate();
 
     if (isFull) {
-      // ✅ SUCCESS: ផ្ទេរលុយទាំងអស់ចូលកុងម្ចាស់គម្រោង
+      // ✅ SUCCESS: ផ្ទេរលុយទាំងអស់ពី Central Bank ចូលកុងម្ចាស់គម្រោង
       const creatorUser = await User.findOne({ username: fund.creator });
-      creatorUser.balance += fund.currentAmount;
 
+      creatorUser.balance += fund.currentAmount;
+      centralBank.balance -= fund.currentAmount;
+
+      const refId = generateRefId();
+      const hash = generateHash();
+
+      // វិក្កយបត្រទទួលលុយ (Creator)
       await Transaction.create({
         username: creatorUser.username,
-        refId: generateRefId(),
-        hash: generateHash(),
+        refId: refId,
+        hash: hash,
         date: dateNow,
         type: "U-Fund Completed",
         amount: fund.currentAmount,
         currency: "USD",
-        senderName: `U-Fund Pool: ${fund.name}`,
+        senderName: "U-Pay Central Bank",
         receiverName: creatorUser.fullName || creatorUser.username,
-        remark: "Fund target reached and closed.",
+        remark: `Fund target reached: ${fund.name}`,
         status: "Success",
       });
 
-      await creatorUser.save();
-      await UFund.findByIdAndDelete(fundId); // លុបគម្រោងចោលក្រោយយកលុយហើយ
+      // វិក្កយបត្រដកលុយ (Central Bank)
+      await Transaction.create({
+        username: centralBank.username,
+        refId: refId,
+        hash: hash,
+        date: dateNow,
+        type: "U-Fund Payout",
+        amount: -fund.currentAmount,
+        currency: "USD",
+        senderName: "U-Pay Central Bank",
+        receiverName: creatorUser.fullName || creatorUser.username,
+        remark: `Payout for U-Fund: ${fund.name}`,
+        status: "Success",
+      });
+
+      await Promise.all([
+        creatorUser.save(),
+        centralBank.save(),
+        UFund.findByIdAndDelete(fundId),
+      ]);
 
       return res.json({
         success: true,
         message: "អបអរសាទរ! លុយត្រូវបានផ្ទេរចូលគណនីរបស់អ្នក។",
       });
     } else {
-      // ❌ CANCEL: បង្វិលសងលុយ (Refund) ទៅសមាជិកគ្រប់គ្នាវិញ
+      // ❌ CANCEL: ដកពី Central Bank បង្វិលសងលុយ (Refund) ទៅសមាជិកគ្រប់គ្នាវិញ
       for (let member of fund.members) {
         if (member.contributedAmount > 0) {
           const mUser = await User.findOne({ username: member.username });
           if (mUser) {
             mUser.balance += member.contributedAmount;
+            centralBank.balance -= member.contributedAmount;
 
+            const refId = generateRefId();
+            const hash = generateHash();
+
+            // វិក្កយបត្រទទួលលុយវិញ (Member)
             await Transaction.create({
               username: mUser.username,
-              refId: generateRefId(),
-              hash: generateHash(),
+              refId: refId,
+              hash: hash,
               date: dateNow,
               type: "U-Fund Refund",
               amount: member.contributedAmount,
               currency: "USD",
-              senderName: `U-Fund Cancelled: ${fund.name}`,
+              senderName: "U-Pay Central Bank",
               receiverName: mUser.fullName || mUser.username,
-              remark: "Fund was cancelled by creator.",
+              remark: `Fund Cancelled: ${fund.name}`,
+              status: "Success",
+            });
+
+            // វិក្កយបត្រដកលុយ (Central Bank)
+            await Transaction.create({
+              username: centralBank.username,
+              refId: refId,
+              hash: hash,
+              date: dateNow,
+              type: "U-Fund Pool Refund",
+              amount: -member.contributedAmount,
+              currency: "USD",
+              senderName: "U-Pay Central Bank",
+              receiverName: mUser.fullName || mUser.username,
+              remark: `Refund to member for ${fund.name}`,
               status: "Success",
             });
 
@@ -335,6 +408,7 @@ exports.closeOrCancelFund = async (req, res) => {
         }
       }
 
+      await centralBank.save();
       await UFund.findByIdAndDelete(fundId);
       return res.json({
         success: true,
