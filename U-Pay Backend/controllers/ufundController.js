@@ -83,7 +83,7 @@ exports.createFund = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-// ៣. ដាក់ប្រាក់ចូល U-Fund (Deposit) + ផ្ទេរចូលធនាគារកណ្តាល
+// ៣. ដាក់ប្រាក់ចូល U-Fund (Deposit) + ផ្ទេរចូលធនាគារកណ្តាល + ជូនដំណឹង
 // ---------------------------------------------------------
 exports.depositFund = async (req, res) => {
   const { username, fundId, amount, isAuto } = req.body;
@@ -91,7 +91,7 @@ exports.depositFund = async (req, res) => {
     const user = await User.findOne({ username });
     const fund = await UFund.findById(fundId);
 
-    // 🔥 ទាញយកគណនីធនាគារកណ្តាល (Central Bank USD)
+    // ទាញយកគណនីធនាគារកណ្តាល (Central Bank USD)
     const centralBank = await User.findOne({ accountNumber: "888888888" });
 
     if (!user || !fund || !centralBank) {
@@ -123,7 +123,7 @@ exports.depositFund = async (req, res) => {
     centralBank.balance = (centralBank.balance || 0) + depositAmount;
     fund.currentAmount += depositAmount;
 
-    // Update ទិន្នន័យសមាជិក
+    // Update ទិន្នន័យសមាជិកដែលបានដាក់
     const member = fund.members.find((m) => m.username === username);
     if (member) {
       member.contributedAmount += depositAmount;
@@ -133,6 +133,7 @@ exports.depositFund = async (req, res) => {
     const dateNow = getFormattedDate();
     const refId = generateRefId();
     const hash = generateHash();
+    const depositorName = user.fullName || user.username;
 
     // 🧾 វិក្កយបត្រកាត់លុយ (User)
     await Transaction.create({
@@ -143,7 +144,7 @@ exports.depositFund = async (req, res) => {
       type: "U-Fund Deposit",
       amount: -depositAmount,
       currency: "USD",
-      senderName: user.fullName || user.username,
+      senderName: depositorName,
       receiverName: `U-Fund: ${fund.name}`,
       remark: isAuto ? "Auto Deposit" : "Manual Deposit",
       status: "Success",
@@ -159,14 +160,40 @@ exports.depositFund = async (req, res) => {
       type: "U-Fund Pool Receive",
       amount: depositAmount,
       currency: "USD",
-      senderName: user.fullName || user.username,
+      senderName: depositorName,
       receiverName: "U-Pay Central Bank",
       remark: `Received for U-Fund: ${fund.name}`,
       status: "Success",
       trxMethod: "System Transfer",
     });
 
-    // Save ទាំង ៣ ព្រមគ្នា
+    // 🔔 ផ្ញើ Notification ទៅកាន់សមាជិក "ផ្សេងទៀត" ទាំងអស់ក្នុងគម្រោង
+    const notifyPromises = fund.members.map(async (m) => {
+      // មិនបាច់ផ្ញើសារប្រាប់អ្នកដែលទើបតែដាក់លុយទេ (ព្រោះគាត់ដឹងហើយ)
+      if (m.username !== user.username) {
+        const otherMember = await User.findOne({ username: m.username });
+        if (otherMember) {
+          if (!otherMember.notifications) otherMember.notifications = [];
+
+          otherMember.notifications.unshift({
+            id: "FND-DEP-" + Date.now() + Math.floor(Math.random() * 1000),
+            title: "មានការដាក់ប្រាក់ថ្មី! 💰",
+            message: `${depositorName} បានដាក់ប្រាក់ $${depositAmount.toLocaleString()} ចូលគម្រោង "${fund.name}"។`,
+            date: dateNow,
+            isRead: false,
+            type: "ufund_deposit",
+          });
+
+          otherMember.markModified("notifications");
+          return otherMember.save();
+        }
+      }
+    });
+
+    // រង់ចាំរុញសារឱ្យសមាជិកទាំងអស់ចប់សិន
+    await Promise.all(notifyPromises);
+
+    // Save ទិន្នន័យចម្បងទាំង ៣ ព្រមគ្នា
     await Promise.all([user.save(), centralBank.save(), fund.save()]);
     res.json({ success: true, message: "ដាក់ប្រាក់ជោគជ័យ!", fund });
   } catch (error) {
@@ -174,6 +201,7 @@ exports.depositFund = async (req, res) => {
     res.json({ success: false, message: "បរាជ័យក្នុងការដាក់ប្រាក់" });
   }
 };
+
 // ---------------------------------------------------------
 // ៤. អញ្ជើញមិត្តភក្តិ (Invite)
 // ---------------------------------------------------------
