@@ -30,16 +30,27 @@ exports.getMyFunds = async (req, res) => {
 // ២. បង្កើត U-Fund ថ្មី (Create)
 // ---------------------------------------------------------
 exports.createFund = async (req, res) => {
-  const { username, name, targetAmount, type, autoAmt, autoFreq } = req.body;
+  // 🔥 កែត្រង់នេះ៖ ប្រើពាក្យ 'target' អោយត្រូវនឹង Frontend ដែលបោះមក
+  const { username, name, target, type, autoAmt, autoFreq } = req.body;
+
   try {
     const user = await User.findOne({ username });
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ!" });
 
+    // ឆែកមើលក្រែងលោ Frontend បោះមកទទេ
+    if (!name || !target) {
+      return res.json({
+        success: false,
+        message: "សូមបំពេញឈ្មោះ និងចំនួនទឹកប្រាក់គោលដៅអោយបានត្រឹមត្រូវ!",
+      });
+    }
+
+    // បង្កើត Object ថ្មីតាមស្តង់ដារ Model
     const newFund = new UFund({
-      name,
+      name: name,
       type: type || "personal",
-      targetAmount: parseFloat(targetAmount),
+      targetAmount: parseFloat(target), // យក target មកបម្លែងជាលេខ
       creator: username,
       qrCodeString: `UFND-${Date.now()}-${username}`,
       members: [
@@ -65,7 +76,8 @@ exports.createFund = async (req, res) => {
       fund: newFund,
     });
   } catch (error) {
-    console.error("Create Fund Error:", error);
+    // 🔥 បង្ហាញ Error លម្អិតក្នុង Terminal ដើម្បីងាយស្រួលរកកំហុស
+    console.error("Create Fund Mongoose Error:", error.message);
     res.json({ success: false, message: "បរាជ័យក្នុងការបង្កើត U-Fund" });
   }
 };
