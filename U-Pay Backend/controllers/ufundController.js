@@ -294,7 +294,7 @@ exports.editFund = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-// ៧. បិទគម្រោង (Close Success / Cancel Refund) + ដកពីធនាគារកណ្តាល
+// ៧. បិទគម្រោង (Close Success / Cancel Refund) + ជូនដំណឹងដល់សមាជិក
 // ---------------------------------------------------------
 exports.closeOrCancelFund = async (req, res) => {
   const { username, fundId } = req.body;
@@ -320,6 +320,7 @@ exports.closeOrCancelFund = async (req, res) => {
 
       const refId = generateRefId();
       const hash = generateHash();
+      const creatorName = creatorUser.fullName || creatorUser.username;
 
       // វិក្កយបត្រទទួលលុយ (Creator)
       await Transaction.create({
@@ -330,8 +331,8 @@ exports.closeOrCancelFund = async (req, res) => {
         type: "U-Fund Completed",
         amount: fund.currentAmount,
         currency: "USD",
-        senderName: "U-Pay Central Bank",
-        receiverName: creatorUser.fullName || creatorUser.username,
+        senderName: "U-Pay U-Fund Pool",
+        receiverName: creatorName,
         remark: `Fund target reached: ${fund.name}`,
         status: "Success",
       });
@@ -345,11 +346,40 @@ exports.closeOrCancelFund = async (req, res) => {
         type: "U-Fund Payout",
         amount: -fund.currentAmount,
         currency: "USD",
-        senderName: "U-Pay Central Bank",
-        receiverName: creatorUser.fullName || creatorUser.username,
+        senderName: "U-Pay U-Fund Pool",
+        receiverName: creatorName,
         remark: `Payout for U-Fund: ${fund.name}`,
         status: "Success",
       });
+
+      // 🔔 ផ្ញើ Notification ទៅកាន់សមាជិកទាំងអស់ក្នុងគម្រោង
+      for (let member of fund.members) {
+        // បើកអ្នកនោះជាម្ចាស់គម្រោងស្រាប់ យើងប្រើ object creatorUser, បើអ្នកផ្សេង យើង query ថ្មី
+        let mUser =
+          member.username === creatorUser.username
+            ? creatorUser
+            : await User.findOne({ username: member.username });
+
+        if (mUser) {
+          if (!mUser.notifications) mUser.notifications = [];
+
+          mUser.notifications.unshift({
+            id: "FND-WIN-" + Date.now() + Math.floor(Math.random() * 1000),
+            title: "គម្រោងសន្សំជោគជ័យ! 🎉",
+            message: `គម្រោង "${fund.name}" សម្រេចគោលដៅហើយ! ទឹកប្រាក់សរុប $${fund.currentAmount.toLocaleString()} ត្រូវបានដកដោយម្ចាស់គម្រោង (${creatorName}) រួចរាល់។`,
+            date: dateNow,
+            isRead: false,
+            type: "ufund_success",
+          });
+
+          mUser.markModified("notifications");
+
+          // Save សមាជិកផ្សេងៗ (ចំណែកឯម្ចាស់គម្រោងនឹងត្រូវ Save នៅខាងក្រោម)
+          if (mUser.username !== creatorUser.username) {
+            await mUser.save();
+          }
+        }
+      }
 
       await Promise.all([
         creatorUser.save(),
@@ -359,7 +389,8 @@ exports.closeOrCancelFund = async (req, res) => {
 
       return res.json({
         success: true,
-        message: "អបអរសាទរ! លុយត្រូវបានផ្ទេរចូលគណនីរបស់អ្នក។",
+        message:
+          "គម្រោងត្រូវបានបិទ! ប្រាក់បានបញ្ចូលទៅគណនីអ្នក ហើយសមាជិកទាំងអស់ទទួលបានសារដំណឹង។",
       });
     } else {
       // ❌ CANCEL: ដកពី Central Bank បង្វិលសងលុយ (Refund) ទៅសមាជិកគ្រប់គ្នាវិញ
@@ -382,7 +413,7 @@ exports.closeOrCancelFund = async (req, res) => {
               type: "U-Fund Refund",
               amount: member.contributedAmount,
               currency: "USD",
-              senderName: "U-Pay Central Bank",
+              senderName: "U-Pay U-Fund Pool",
               receiverName: mUser.fullName || mUser.username,
               remark: `Fund Cancelled: ${fund.name}`,
               status: "Success",
@@ -397,11 +428,23 @@ exports.closeOrCancelFund = async (req, res) => {
               type: "U-Fund Pool Refund",
               amount: -member.contributedAmount,
               currency: "USD",
-              senderName: "U-Pay Central Bank",
+              senderName: "U-Pay U-Fund Pool",
               receiverName: mUser.fullName || mUser.username,
               remark: `Refund to member for ${fund.name}`,
               status: "Success",
             });
+
+            // 🔔 ផ្ញើសារប្រាប់សមាជិកថាគម្រោងត្រូវលុបចោល ហើយលុយបានបង្វិលសងវិញ
+            if (!mUser.notifications) mUser.notifications = [];
+            mUser.notifications.unshift({
+              id: "FND-CANC-" + Date.now() + Math.floor(Math.random() * 1000),
+              title: "គម្រោងត្រូវបានរំសាយ ⚠️",
+              message: `គម្រោង "${fund.name}" ត្រូវបានបិទមុនកំណត់។ ទឹកប្រាក់ $${member.contributedAmount.toLocaleString()} ត្រូវបានបង្វិលចូលគណនីរបស់អ្នកវិញ។`,
+              date: dateNow,
+              isRead: false,
+              type: "ufund_cancelled",
+            });
+            mUser.markModified("notifications");
 
             await mUser.save();
           }
