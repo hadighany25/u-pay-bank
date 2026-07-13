@@ -707,13 +707,15 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
+      // 🔐 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
+      // គ្រាន់តែប្រើ let token តែម្តងគត់នៅទីនេះ
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
       const authHeaders = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: token ? `Bearer ${token}` : "",
       };
 
       let activeFunds = [];
