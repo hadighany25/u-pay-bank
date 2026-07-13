@@ -6,78 +6,75 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>U-Fund - U-Pay</title>
 
-    <!-- Font & Icons -->
+    <!-- ==========================================
+         📦 ឯកសារយោង (FONTS & ICONS)
+         ========================================== -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@400;500;600;700&family=Courier+New:wght@700&display=swap"
       rel="stylesheet"
     />
 
-    <!-- External Scripts -->
+    <!-- ==========================================
+         📦 ឯកសារយោង (SCRIPTS)
+         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
-    <!-- កូដ Core របស់បង -->
+    <!-- កូដ Core ដែលផ្ទុក Dark Mode & FOUC Logic -->
 
     <style>
-      :root {
-        --primary: #004d40;
-        --primary-light: #00695c;
-        --bg-color: #f8fafc;
-        --card-bg: #ffffff;
-        --text-main: #1e293b;
-        --text-muted: #64748b;
-        --border: #e2e8f0;
-        --success: #10b981;
-        --danger: #ef4444;
-        --warning: #f59e0b;
-      }
-
-      body.dark-mode {
-        --bg-color: #121212;
-        --card-bg: #1e1e1e;
-        --text-main: #f1f5f9;
-        --text-muted: #94a3b8;
-        --border: #334155;
-      }
-
+      /* ==========================================
+         🚀 FOUC PREVENTION (ការពារការលោតពណ៌ស)
+         ========================================== */
       body {
-        background-color: #e2e8f0;
+        background-color: #f2f4f6;
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
+        visibility: hidden;
+        opacity: 0;
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        transition: 0.3s;
+        transition:
+          opacity 0.4s ease,
+          background-color 0.3s ease;
+        -webkit-font-smoothing: antialiased;
+      }
+      body.loaded {
+        visibility: visible;
+        opacity: 1;
       }
 
+      /* ==========================================
+         📱 BASE APP CONTAINER & LAYOUT
+         ========================================== */
       .app-container {
         width: 100%;
         max-width: 450px;
-        background: var(--bg-color);
+        background: #f8fafc;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-        transition: 0.3s;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        transition: background-color 0.3s;
+        padding-bottom: 90px;
         position: relative;
-        overflow-x: hidden;
       }
-
-      /* HEADER */
       .nav-header {
         padding: 20px;
-        background: var(--primary);
+        background: #004d40;
         color: white;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        font-size: 1.2rem;
+        gap: 15px;
+        font-size: 1.1rem;
         font-weight: 700;
+        transition: background-color 0.3s;
         position: sticky;
         top: 0;
         z-index: 50;
@@ -88,96 +85,158 @@
       }
 
       .content-body {
-        padding: 20px 0;
+        padding: 20px 20px 30px;
         flex: 1;
-        overflow-y: auto;
-        padding-bottom: 90px;
-      }
-      .section-title {
-        padding: 0 20px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0 0 15px;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        transition: background-color 0.3s;
       }
 
-      /* 🌟 CARD SWIPING (HORIZONTAL SCROLL) */
-      .fund-swiper {
+      /* ==========================================
+         📭 NO FUND STATE (ពេលមិនទាន់មាន Fund)
+         ========================================== */
+      #noFundState {
+        text-align: center;
+        margin-top: 50px;
+        padding: 20px;
+      }
+      #noFundState i {
+        font-size: 5rem;
+        color: #cbd5e1;
+        margin-bottom: 20px;
+        transition: color 0.3s;
+      }
+      .btn-create {
+        background: #004d40;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 15px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-create:active {
+        transform: scale(0.95);
+      }
+
+      /* ==========================================
+         💳 CAROUSEL (SWIPEABLE FUND CARDS)
+         ========================================== */
+      #hasFundState {
+        width: 100%;
+        display: none;
+      }
+
+      .funds-slider {
         display: flex;
         overflow-x: auto;
         scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
         gap: 15px;
-        padding: 10px 20px 25px 20px;
-        scrollbar-width: none; /* Firefox */
       }
-      .fund-swiper::-webkit-scrollbar {
+      .funds-slider::-webkit-scrollbar {
         display: none;
-      } /* Chrome */
+      }
 
-      .fund-card {
-        min-width: 85%;
+      .fund-perspective {
+        flex: 0 0 100%;
         scroll-snap-align: center;
-        background: linear-gradient(
-          135deg,
-          var(--primary) 0%,
-          var(--primary-light) 100%
-        );
-        border-radius: 20px;
-        padding: 20px;
-        color: white;
-        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.25);
+        width: 100%;
+        height: 200px;
+        z-index: 10;
+      }
+
+      .fund-inner {
         position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 18px;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        background: linear-gradient(135deg, #004d40 0%, #00251a 100%);
+        color: white;
+        padding: 25px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         overflow: hidden;
       }
+      .fund-inner.theme-group {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      }
 
-      .fund-card::after {
+      /* ផ្ទៃ Background Icon (សញ្ញាកូនជ្រូកព្រាលៗ) */
+      .fund-inner::after {
         content: "\f4d3";
         font-family: "Font Awesome 6 Free";
         font-weight: 900;
         position: absolute;
         right: -20px;
         bottom: -20px;
-        font-size: 7rem;
+        font-size: 8rem;
         color: rgba(255, 255, 255, 0.05);
         pointer-events: none;
       }
 
+      .fund-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 2;
+      }
       .fund-type-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 4px 12px;
         border-radius: 20px;
         font-size: 0.75rem;
-        font-weight: bold;
+        font-weight: 600;
         backdrop-filter: blur(5px);
       }
-
       .fund-name {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         font-weight: 800;
+        margin: 0;
+        z-index: 2;
+      }
+
+      .fund-middle {
+        z-index: 2;
+        margin-top: 10px;
+      }
+      .fund-target {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
         margin: 0 0 5px;
       }
       .fund-amount {
-        font-size: 2.2rem;
-        font-weight: 800;
-        margin: 15px 0 5px;
-      }
-      .fund-target {
-        font-size: 0.85rem;
-        color: #a7f3d0;
-        margin: 0 0 15px;
+        font-family: "Courier New", monospace;
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
       }
 
-      /* PROGRESS BAR */
+      .fund-bottom {
+        z-index: 2;
+      }
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
       .progress-bg {
         width: 100%;
         height: 6px;
         background: rgba(255, 255, 255, 0.2);
         border-radius: 3px;
         overflow: hidden;
-        margin-top: 10px;
       }
       .progress-bar {
         height: 100%;
@@ -186,441 +245,663 @@
         transition: 1s;
       }
 
-      /* 🌟 QUICK ACTIONS */
-      .action-row {
+      /* DOTS INDICATOR */
+      .slider-dots {
         display: flex;
-        gap: 15px;
-        padding: 0 20px;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 5px;
         margin-bottom: 25px;
       }
-      .action-btn {
-        flex: 1;
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        color: var(--text-main);
-        padding: 15px;
-        border-radius: 16px;
-        font-weight: 700;
-        font-size: 0.9rem;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-        transition: 0.2s;
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: #cbd5e1;
+        border-radius: 50%;
+        transition: 0.3s;
       }
-      .action-btn:active {
-        transform: scale(0.95);
-      }
-      .action-btn i {
-        font-size: 1.5rem;
-        color: var(--primary);
+      .dot.active {
+        background: #004d40;
+        width: 20px;
+        border-radius: 10px;
       }
 
-      /* 🌟 LEADERBOARD / MEMBERS */
-      .member-list {
-        padding: 0 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+      /* ==========================================
+         ⚙️ ABA STYLE SETTINGS (MENU LIST)
+         ========================================== */
+      .settings-section {
+        background: transparent;
+        padding: 0 10px;
       }
-      .member-item {
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        padding: 15px;
-        border-radius: 16px;
+      .settings-header {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 15px;
+      }
+
+      .setting-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        padding: 15px 0;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: 0.2s;
       }
-      .member-info {
+      .setting-item:last-child {
+        border-bottom: none;
+      }
+      .setting-item:active {
+        opacity: 0.6;
+      }
+
+      .setting-left {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 15px;
+      }
+      .setting-icon {
+        width: 30px;
+        display: flex;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: #64748b;
+      }
+      .setting-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+        font-weight: 600;
+      }
+      .setting-info p {
+        margin: 3px 0 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+
+      /* ==========================================
+         👥 LEADERBOARD / MEMBERS ACCORDION
+         ========================================== */
+      .members-list {
+        max-height: 0;
+        transition: max-height 0.4s ease-out;
+        overflow: hidden;
+        background: #f8fafc;
+        border-radius: 0 0 15px 15px;
+      }
+      .members-list.open {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .member-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 10px;
+        border-bottom: 1px dashed #e2e8f0;
+      }
+      .member-item:last-child {
+        border-bottom: none;
       }
       .member-avatar {
-        width: 45px;
-        height: 45px;
+        width: 35px;
+        height: 35px;
         border-radius: 50%;
         background: #e2e8f0;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: var(--primary);
-        font-size: 1.2rem;
+        color: #004d40;
+        font-size: 0.9rem;
       }
       .member-name {
         font-weight: 700;
-        color: var(--text-main);
-        font-size: 1rem;
-        margin: 0;
+        color: #1e293b;
+        font-size: 0.9rem;
       }
-      .member-role {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin: 0;
-      }
-
-      .member-stats {
-        text-align: right;
-      }
-      .member-amt {
-        font-weight: 800;
-        color: var(--success);
-        font-size: 1.1rem;
-      }
-      .status-badge {
-        font-size: 0.7rem;
-        padding: 3px 8px;
-        border-radius: 10px;
+      .member-status {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 8px;
         font-weight: bold;
-        display: inline-block;
-        margin-top: 4px;
       }
-      .status-active {
+      .st-active {
         background: #dcfce7;
         color: #166534;
       }
-      .status-overdue {
+      .st-overdue {
         background: #fee2e2;
         color: #991b1b;
       }
-      .status-pending {
+      .st-pending {
         background: #fef3c7;
         color: #92400e;
       }
+      .member-amt {
+        font-weight: 800;
+        color: #10b981;
+        font-size: 1rem;
+      }
 
-      /* FAB */
-      .fab-btn {
+      /* ==========================================
+         ➕ BOTTOM NAV & FAB
+         ========================================== */
+      .fab-container {
         position: fixed;
-        bottom: 25px;
-        right: calc(50% - 200px); /* Adjust based on container max-width */
-        background: var(--primary);
+        bottom: 95px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 20px;
+        box-sizing: border-box;
+        pointer-events: none;
+        z-index: 100;
+      }
+      .fab-btn {
+        pointer-events: auto;
+        background: #004d40;
         color: white;
-        width: 60px;
-        height: 60px;
-        border-radius: 30px;
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.5rem;
-        box-shadow: 0 10px 25px rgba(0, 77, 64, 0.4);
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.3);
         cursor: pointer;
         border: none;
-        z-index: 100;
         transition: 0.2s;
       }
       .fab-btn:active {
         transform: scale(0.9);
       }
 
-      @media (max-width: 450px) {
-        .fab-btn {
-          right: 25px;
-        }
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        background: white;
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+      }
+      .nav-item {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: 0.2s;
+        flex: 1;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: #004d40;
+        font-weight: 700;
+        transform: translateY(-5px);
       }
 
-      /* Empty State */
-      .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-muted);
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
       }
-      .empty-state i {
-        font-size: 4rem;
-        color: var(--border);
-        margin-bottom: 15px;
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #00251f !important;
+        color: #ffffff !important;
+      }
+      body.dark-mode .content-body {
+        background-color: #121212 !important;
+      }
+      body.dark-mode .settings-header {
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .setting-item {
+        border-bottom: 1px solid #2d2d2d !important;
+      }
+      body.dark-mode .setting-info h4,
+      body.dark-mode .member-name {
+        color: #ffffff !important;
+      }
+      body.dark-mode .setting-info p {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .setting-icon {
+        color: #10b981 !important;
+      }
+      body.dark-mode .bottom-nav {
+        background-color: #1e1e1e !important;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4) !important;
+        border-top: 1px solid #2d2d2d !important;
+      }
+      body.dark-mode .nav-item {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .nav-item.active {
+        color: #10b981 !important;
+      }
+      body.dark-mode #noFundState h3 {
+        color: #ffffff !important;
+      }
+      body.dark-mode #noFundState p {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .members-list {
+        background-color: #1e1e1e !important;
+      }
+      body.dark-mode .member-item {
+        border-bottom-color: #2d2d2d !important;
+      }
+
+      /* Premium Swal Customization */
+      .premium-swal {
+        border-radius: 20px !important;
+      }
+      .swal2-input {
+        border-radius: 12px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
+      <!-- === HEADER === -->
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_ufund">U-Fund (Savings)</span>
-        <i
-          class="fa-solid fa-clock-rotate-left"
-          style="font-size: 1rem; cursor: pointer"
-        ></i>
+        <span data-i18n="ufund_title">U-Fund (Savings)</span>
       </div>
 
       <div class="content-body">
-        <!-- Swiper for Funds -->
-        <div class="fund-swiper" id="fundSwiper">
-          <!-- Cards will be injected here -->
-          <div class="empty-state" style="width: 100%; margin-top: 20px">
-            <i class="fa-solid fa-piggy-bank"></i>
-            <p data-lang="loading_funds">Loading your U-Funds...</p>
-          </div>
+        <!-- === NO FUND STATE === -->
+        <div id="noFundState">
+          <i class="fa-solid fa-piggy-bank"></i>
+          <h3 data-i18n="ufund_no_fund_title">No U-Funds Yet</h3>
+          <p
+            data-i18n="ufund_no_fund_desc"
+            style="color: #888; margin-bottom: 30px"
+          >
+            Start a personal goal or group tontine to save money smartly!
+          </p>
+          <button class="btn-create" onclick="openCreateFundUI()">
+            <span data-i18n="ufund_btn_create_new">Create New U-Fund</span>
+          </button>
         </div>
 
-        <!-- Dynamic Actions based on selected Fund -->
-        <div id="fundActions" style="display: none">
-          <div class="action-row">
-            <button class="action-btn" onclick="openDepositUI()">
-              <i class="fa-solid fa-plus-circle"></i>
-              <span data-lang="btn_deposit">Deposit</span>
-            </button>
-            <button class="action-btn" onclick="openInviteUI()">
-              <i class="fa-solid fa-user-plus"></i>
-              <span data-lang="btn_invite">Invite</span>
-            </button>
-            <button class="action-btn" onclick="showFundQR()">
-              <i class="fa-solid fa-qrcode"></i>
-              <span data-lang="btn_qr">Receive</span>
-            </button>
+        <!-- === HAS FUND STATE === -->
+        <div id="hasFundState">
+          <!-- Slider -->
+          <div
+            class="funds-slider"
+            id="fundsSlider"
+            onscroll="updateActiveDot()"
+          >
+            <!-- Funds dynamically injected here -->
           </div>
+          <!-- Dots -->
+          <div class="slider-dots" id="sliderDots"></div>
 
-          <h3 class="section-title" data-lang="title_members">
-            Members & Leaderboard
-          </h3>
-          <div class="member-list" id="memberList">
-            <!-- Members injected here -->
+          <!-- Actions / Settings Style List -->
+          <div class="settings-section">
+            <div class="settings-header" data-i18n="ufund_actions">
+              Fund Actions
+            </div>
+
+            <!-- Deposit -->
+            <div class="setting-item" onclick="openDepositUI()">
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-circle-plus"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-i18n="ufund_act_deposit">Deposit Money</h4>
+                  <p data-i18n="ufund_act_deposit_desc">
+                    Add funds or set auto-deposit
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <!-- Invite -->
+            <div
+              class="setting-item"
+              onclick="openInviteUI()"
+              id="btnInviteFriend"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-i18n="ufund_act_invite">Invite Friends</h4>
+                  <p data-i18n="ufund_act_invite_desc">
+                    Add members to this group fund
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <!-- Show QR -->
+            <div class="setting-item" onclick="showFundQR()">
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-i18n="ufund_act_qr">Fund QR Code</h4>
+                  <p data-i18n="ufund_act_qr_desc">
+                    Scan to receive money directly
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
+
+            <!-- Members / Leaderboard Accordion -->
+            <div
+              class="setting-item"
+              style="padding: 15px 0 15px 0; border-bottom: none"
+              onclick="toggleMembersList()"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="setting-info">
+                  <h4 data-i18n="ufund_act_members">Members & Leaderboard</h4>
+                  <p data-i18n="ufund_act_members_desc">
+                    Tap to view contributions
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-down"
+                id="membersArrow"
+                style="color: #cbd5e1; transition: 0.3s"
+              ></i>
+            </div>
+
+            <!-- Expandable Member List -->
+            <div class="members-list" id="membersListContainer">
+              <!-- Members dynamically injected here -->
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Create New Fund Button -->
-      <button class="fab-btn" onclick="openCreateFundUI()">
-        <i class="fa-solid fa-plus"></i>
-      </button>
+      <!-- === FAB BUTTON (For creating new fund when you already have some) === -->
+      <div class="fab-container" id="fabContainer" style="display: none">
+        <button class="fab-btn" onclick="openCreateFundUI()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <!-- === BOTTOM NAVIGATION === -->
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i
+          ><span data-i18n="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i
+          ><span data-i18n="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i
+          ><span data-i18n="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i
+          ><span data-i18n="nav_settings">Settings</span></a
+        >
+      </div>
     </div>
 
+    <!-- ==========================================
+         💻 JAVASCRIPT LOGIC
+         ========================================== -->
     <script>
+      // 🔐 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
-      let activeFunds = [];
-      let currentSelectedFundId = null;
+      let token = sessionStorage.getItem("userToken");
+      if (!user || !token) window.location.href = "index.html";
 
-      if (!user) window.location.href = "index.html";
-
-      // 🌐 TRANSLATIONS
-      const translations = {
-        en: {
-          title_ufund: "U-Fund",
-          loading_funds: "Loading your U-Funds...",
-          btn_deposit: "Deposit",
-          btn_invite: "Add Friend",
-          btn_qr: "Fund QR",
-          title_members: "Members & Leaderboard",
-          no_funds: "You don't have any U-Funds yet. Create one!",
-          create_title: "Create U-Fund",
-          ph_fund_name: "Fund Name (e.g. Bali Trip)",
-          ph_target: "Target Amount ($)",
-          btn_create: "Create Now",
-          invite_title: "Invite to U-Fund",
-          ph_invite: "Username, Phone, or Account No.",
-          dep_title: "Deposit to U-Fund",
-          ph_amount: "Amount ($)",
-          auto_dep_title: "Auto-Deposit Setup",
-          opt_manual: "Manual Only",
-          opt_daily: "Daily",
-          opt_weekly: "Weekly",
-          opt_monthly: "Monthly",
-        },
-        kh: {
-          title_ufund: "យូ-ហ្វាន់ (សន្សំប្រាក់)",
-          loading_funds: "កំពុងទាញយកទិន្នន័យ...",
-          btn_deposit: "ដាក់ប្រាក់",
-          btn_invite: "អញ្ជើញមិត្ត",
-          btn_qr: "QR កូដ",
-          title_members: "សមាជិក និង ប្រវត្តិ",
-          no_funds: "អ្នកមិនទាន់មាន U-Fund ទេ។ ចុច + ដើម្បីបង្កើត!",
-          create_title: "បង្កើត U-Fund ថ្មី",
-          ph_fund_name: "ឈ្មោះគម្រោង (ឧ. លុយដើរលេង)",
-          ph_target: "ទំហំទឹកប្រាក់គោលដៅ ($)",
-          btn_create: "បង្កើតឥឡូវនេះ",
-          invite_title: "អញ្ជើញមិត្តភក្តិ",
-          ph_invite: "ឈ្មោះ, លេខទូរស័ព្ទ ឬលេខគណនី",
-          dep_title: "ដាក់ប្រាក់ចូល U-Fund",
-          ph_amount: "ចំនួនទឹកប្រាក់ ($)",
-          auto_dep_title: "កំណត់ការកាត់លុយស្វ័យប្រវត្តិ",
-          opt_manual: "ដាក់ដោយផ្ទាល់ដៃ",
-          opt_daily: "រៀងរាល់ថ្ងៃ",
-          opt_weekly: "រៀងរាល់សប្តាហ៍",
-          opt_monthly: "រៀងរាល់ខែ",
-        },
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
       };
 
-      let currentLang = localStorage.getItem("lang") || "en";
-      function applyLang() {
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key]) {
-            el.innerText = translations[currentLang][key];
-          }
-        });
+      // 📌 GLOBAL VARIABLES
+      let activeFunds = [];
+      let currentFundIndex = 0;
+
+      // 🌙 THEME HANDLING (From u-pay-core structure)
+      const userThemeKey = "darkMode_" + user.username;
+      function applyTheme() {
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
       }
 
-      const getAuthHeaders = () => ({
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+      // 🚀 ON PAGE LOAD
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage(); // អនុវត្តការបកប្រែពី lang.js របស់បង
+        fetchMyFunds();
+        document.body.classList.add("loaded"); // បញ្ចេញ UI ដោយរលូន
       });
 
-      // 🔄 ១. ទាញយកទិន្នន័យ U-Fund ពី Server
-      async function fetchMyFunds() {
+      // 🌐 API HELPER
+      async function fetchAPI(endpoint, payload) {
         try {
-          const res = await fetch("/api/ufund/list", {
+          const res = await fetch(endpoint, {
             method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ username: user.username }),
+            headers: authHeaders,
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+          return await res.json();
+        } catch (e) {
+          console.error(e);
+          return { success: false, message: "Network connection error" };
+        }
+      }
+
+      // 🔄 FETCH FUNDS
+      async function fetchMyFunds() {
+        const data = await fetchAPI("/api/ufund/list", {
+          username: user.username,
+        });
+        if (data.success) {
+          activeFunds = data.funds || [];
+          renderFunds();
+        } else {
+          // បង្ហាញ Error ក្នុង Empty State
+          document.getElementById("noFundState").innerHTML =
+            `<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i><p>${data.message}</p>`;
+        }
+      }
+
+      // 🎨 RENDER CAROUSEL
+      function renderFunds() {
+        const slider = document.getElementById("fundsSlider");
+        const dots = document.getElementById("sliderDots");
+        const fab = document.getElementById("fabContainer");
+        slider.innerHTML = "";
+        dots.innerHTML = "";
+
+        if (activeFunds.length > 0) {
+          document.getElementById("noFundState").style.display = "none";
+          document.getElementById("hasFundState").style.display = "block";
+          fab.style.display = "flex"; // បង្ហាញប៊ូតុង +
+
+          activeFunds.forEach((f, i) => {
+            const percent = Math.min(
+              100,
+              Math.round((f.currentAmount / f.targetAmount) * 100),
+            );
+            const themeClass =
+              f.type === "group" ? "theme-group" : "theme-personal";
+            const badgeIcon = f.type === "group" ? "fa-users" : "fa-user";
+
+            slider.innerHTML += `
+              <div class="fund-perspective">
+                <div class="fund-inner ${themeClass}">
+                  <div class="fund-top">
+                    <h3 class="fund-name">${f.name}</h3>
+                    <div class="fund-type-badge"><i class="fa-solid ${badgeIcon}"></i> <span style="text-transform:capitalize;">${f.type}</span></div>
+                  </div>
+                  <div class="fund-middle">
+                    <p class="fund-target"><span data-i18n="ufund_target">Target:</span> $${f.targetAmount.toLocaleString()}</p>
+                    <h1 class="fund-amount">$${f.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
+                  </div>
+                  <div class="fund-bottom">
+                    <div class="progress-header"><span>Progress</span><span>${percent}%</span></div>
+                    <div class="progress-bg"><div class="progress-bar" style="width: ${percent}%"></div></div>
+                  </div>
+                </div>
+              </div>`;
+            dots.innerHTML += `<div class="dot ${i === currentFundIndex ? "active" : ""}"></div>`;
           });
 
-          // បើ API អត់ដើរ ឬអត់ទាន់ស្គាល់ Route (ឧ. 404 Not Found)
-          if (!res.ok) {
-            throw new Error(`HTTP Error: ${res.status}`);
-          }
-
-          const data = await res.json();
-          if (data.success) {
-            activeFunds = data.funds || [];
-            renderFundCards(); // គូរទិន្នន័យលើអេក្រង់
-          } else {
-            // បើ Backend បោះមកថា success: false
-            document.getElementById("fundSwiper").innerHTML = `
-        <div class="empty-state" style="width:100%; color: var(--danger);">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <p>មានបញ្ហា៖ ${data.message}</p>
-        </div>`;
-            document.getElementById("fundActions").style.display = "none";
-          }
-        } catch (e) {
-          console.error("Failed to load funds:", e);
-          // បង្ហាញ Error លើអេក្រង់ពេលគាំង
-          document.getElementById("fundSwiper").innerHTML = `
-        <div class="empty-state" style="width:100%; color: var(--danger);">
-          <i class="fa-solid fa-wifi"></i>
-          <p>បរាជ័យក្នុងការភ្ជាប់ទៅកាន់ Server។ សូមពិនិត្យ Console (F12)!</p>
-          <p style="font-size: 0.8rem; margin-top:10px;">${e.message}</p>
-        </div>`;
-          document.getElementById("fundActions").style.display = "none";
+          syncFundActions(); // Update members/buttons for the current fund
+        } else {
+          document.getElementById("noFundState").style.display = "block";
+          document.getElementById("hasFundState").style.display = "none";
+          fab.style.display = "none";
         }
       }
 
-      // 🎨 ២. គូរកាត U-Fund នៅលើអេក្រង់
-      function renderFundCards() {
-        const swiper = document.getElementById("fundSwiper");
-
-        if (activeFunds.length === 0) {
-          swiper.innerHTML = `<div class="empty-state" style="width:100%;"><i class="fa-solid fa-piggy-bank"></i><p>${translations[currentLang].no_funds}</p></div>`;
-          document.getElementById("fundActions").style.display = "none";
-          return;
+      // 🖱️ HANDLE SCROLL / ACTIVE DOT
+      function updateActiveDot() {
+        const slider = document.getElementById("fundsSlider");
+        let index = Math.round(slider.scrollLeft / slider.offsetWidth);
+        if (
+          index !== currentFundIndex &&
+          index >= 0 &&
+          index < activeFunds.length
+        ) {
+          currentFundIndex = index;
+          document
+            .querySelectorAll(".dot")
+            .forEach((d, i) => d.classList.toggle("active", i === index));
+          syncFundActions();
         }
-
-        swiper.innerHTML = "";
-        activeFunds.forEach((fund, index) => {
-          const percent = Math.min(
-            100,
-            Math.round((fund.currentAmount / fund.targetAmount) * 100),
-          );
-          const badgeTxt =
-            fund.type === "group" ? "👥 Group Fund" : "👤 Personal";
-
-          // កំណត់ Fund ដំបូងគេឱ្យលោតចេញ Details ពីក្រោម
-          if (index === 0 && !currentSelectedFundId) {
-            currentSelectedFundId = fund._id;
-            renderFundDetails(fund._id);
-          }
-
-          swiper.innerHTML += `
-              <div class="fund-card" onclick="selectFund('${fund._id}')">
-                <div class="fund-type-badge">${badgeTxt}</div>
-                <h3 class="fund-name">${fund.name}</h3>
-                <p class="fund-target">Target: $${fund.targetAmount.toLocaleString()}</p>
-                <h1 class="fund-amount">$${fund.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
-                
-                <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-top:15px;">
-                    <span>Progress</span>
-                    <span>${percent}%</span>
-                </div>
-                <div class="progress-bg">
-                    <div class="progress-bar" style="width: ${percent}%"></div>
-                </div>
-              </div>
-            `;
-        });
-
-        // ធានាថា Details ខាងក្រោមបង្ហាញ
-        document.getElementById("fundActions").style.display = "block";
       }
 
-      // ជម្រើសពេលចុច ឬ Scroll លើកាត
-      function selectFund(fundId) {
-        currentSelectedFundId = fundId;
-        renderFundDetails(fundId);
-      }
+      // 🔄 UPDATE ACTIONS & LEADERBOARD BASED ON SELECTED FUND
+      function syncFundActions() {
+        const currentFund = activeFunds[currentFundIndex];
+        if (!currentFund) return;
 
-      // 👥 ៣. គូរបញ្ជីសមាជិក (Leaderboard) នៅខាងក្រោម
-      function renderFundDetails(fundId) {
-        const fund = activeFunds.find((f) => f._id === fundId);
-        if (!fund) return;
+        // លាក់ប៊ូតុង Invite បើវាជា Personal Fund
+        document.getElementById("btnInviteFriend").style.display =
+          currentFund.type === "group" ? "flex" : "none";
 
-        const list = document.getElementById("memberList");
-        list.innerHTML = "";
+        // គូរ Member List
+        const container = document.getElementById("membersListContainer");
+        container.innerHTML = "";
 
-        // តម្រៀបអ្នកដាក់លុយច្រើនជាងគេមកលើ (Leaderboard sorting)
-        const sortedMembers = [...fund.members].sort(
+        const sortedMembers = [...currentFund.members].sort(
           (a, b) => b.contributedAmount - a.contributedAmount,
         );
 
         sortedMembers.forEach((m) => {
           let initial = m.fullName.charAt(0).toUpperCase();
-
-          // ពណ៌ Status
-          let stClass = "status-active";
+          let stClass = "st-active";
           let stText = "Active";
           if (m.status === "pending") {
-            stClass = "status-pending";
-            stText = "Pending Invite";
+            stClass = "st-pending";
+            stText = "Pending";
           }
           if (m.status === "overdue") {
-            stClass = "status-overdue";
-            stText = "Overdue (Unpaid)";
+            stClass = "st-overdue";
+            stText = "Overdue";
           }
 
-          let roleBadge =
-            m.role === "admin"
-              ? `<i class="fa-solid fa-crown" style="color:#f59e0b; font-size:0.7rem;"></i> `
-              : "";
-
-          list.innerHTML += `
+          container.innerHTML += `
                 <div class="member-item">
-                    <div class="member-info">
+                    <div style="display:flex; align-items:center; gap:10px;">
                         <div class="member-avatar">${initial}</div>
                         <div>
-                            <h4 class="member-name">${roleBadge}${m.fullName}</h4>
-                            <span class="status-badge ${stClass}">${stText}</span>
+                            <div class="member-name">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}</div>
+                            <span class="member-status ${stClass}">${stText}</span>
                         </div>
                     </div>
-                    <div class="member-stats">
-                        <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                        <div class="member-role">Saved</div>
-                    </div>
-                </div>
-             `;
+                    <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                </div>`;
         });
       }
 
-      // 🛠️ ៤. មុខងារ Create Fund
+      // ⬇️ TOGGLE MEMBERS ACCORDION
+      function toggleMembersList() {
+        document
+          .getElementById("membersListContainer")
+          .classList.toggle("open");
+        document.getElementById("membersArrow").style.transform = document
+          .getElementById("membersListContainer")
+          .classList.contains("open")
+          ? "rotate(180deg)"
+          : "rotate(0)";
+      }
+
+      // ==========================================
+      // 🛠️ ACTION FUNCTIONS (CREATE, DEPOSIT, INVITE)
+      // ==========================================
+
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
-          title: translations[currentLang].create_title,
+          title:
+            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br><span data-i18n="swal_create_title">Create U-Fund</span>',
           html: `
-                <input id="swal-fname" class="swal2-input" placeholder="${translations[currentLang].ph_fund_name}">
-                <input id="swal-famt" type="number" class="swal2-input" placeholder="${translations[currentLang].ph_target}">
-                <div style="margin-top:15px; text-align:left;">
-                    <label style="font-weight:bold; font-size:0.9rem; margin-left:5px;">Fund Type:</label>
-                    <select id="swal-ftype" class="swal2-input" style="width:100%; margin-top:5px; padding: 0 15px;">
-                        <option value="personal">Personal Saving</option>
-                        <option value="group">Group Saving (U-Fund)</option>
-                    </select>
-                </div>
+                <input id="swal-fname" class="swal2-input" placeholder="Fund Name (e.g. Bali Trip)">
+                <input id="swal-famt" type="number" class="swal2-input" placeholder="Target Amount ($)">
+                <select id="swal-ftype" class="swal2-input" style="width:100%; margin-top:15px;">
+                    <option value="personal">Personal Saving</option>
+                    <option value="group">Group Saving (U-Fund)</option>
+                </select>
              `,
           showCancelButton: true,
           confirmButtonColor: "var(--primary)",
-          confirmButtonText: translations[currentLang].btn_create,
-          customClass: { popup: "modal-radius" },
+          confirmButtonText: "Create Now",
+          customClass: { popup: "premium-swal" },
           preConfirm: () => {
             return {
               name: document.getElementById("swal-fname").value,
@@ -635,107 +916,48 @@
             title: "Creating...",
             didOpen: () => Swal.showLoading(),
           });
-          try {
-            const res = await fetch("/api/ufund/create", {
-              method: "POST",
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                username: user.username,
-                name: formValues.name,
-                targetAmount: formValues.target,
-                type: formValues.type,
-              }),
+          const data = await fetchAPI("/api/ufund/create", {
+            username: user.username,
+            name: formValues.name,
+            targetAmount: formValues.target,
+            type: formValues.type,
+          });
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Created!",
+              timer: 1500,
+              showConfirmButton: false,
             });
-            const data = await res.json();
-            if (data.success) {
-              Swal.fire({
-                icon: "success",
-                title: "Created!",
-                timer: 1500,
-                showConfirmButton: false,
-              });
-              fetchMyFunds(); // Reload
-            } else Swal.fire("Error", data.message, "error");
-          } catch (e) {
-            Swal.fire("Error", "Network error", "error");
-          }
+            fetchMyFunds();
+          } else Swal.fire("Error", data.message, "error");
         }
       }
 
-      // 💌 ៥. មុខងារ Invite មិត្តភក្តិ
-      async function openInviteUI() {
-        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
-        if (!fund || fund.type === "personal")
-          return Swal.fire(
-            "Info",
-            "This is a personal fund. Create a Group Fund to invite friends.",
-            "info",
-          );
-
-        const { value: invitee } = await Swal.fire({
-          title: translations[currentLang].invite_title,
-          text: fund.name,
-          input: "text",
-          inputPlaceholder: translations[currentLang].ph_invite,
-          showCancelButton: true,
-          confirmButtonColor: "var(--primary)",
-          confirmButtonText:
-            '<i class="fa-solid fa-paper-plane"></i> Send Invite',
-        });
-
-        if (invitee) {
-          Swal.fire({ title: "Sending...", didOpen: () => Swal.showLoading() });
-          try {
-            const res = await fetch("/api/ufund/invite", {
-              method: "POST",
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                fundId: fund._id,
-                inviterUsername: user.username,
-                inviteeIdentifier: invitee.trim(),
-              }),
-            });
-            const data = await res.json();
-            if (data.success) {
-              Swal.fire({
-                icon: "success",
-                title: "Invited!",
-                text: data.message,
-                timer: 2000,
-                showConfirmButton: false,
-              });
-              fetchMyFunds();
-            } else Swal.fire("Failed", data.message, "error");
-          } catch (e) {
-            Swal.fire("Error", "Network error", "error");
-          }
-        }
-      }
-
-      // 💵 ៦. មុខងារដាក់លុយ (មាន Setup Auto-Deposit)
       async function openDepositUI() {
-        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
+        const fund = activeFunds[currentFundIndex];
         if (!fund) return;
 
         const { value: formVals } = await Swal.fire({
-          title: translations[currentLang].dep_title,
+          title:
+            '<i class="fa-solid fa-circle-plus" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Deposit Funds',
           html: `
                 <div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
-                <input id="dep-amt" type="number" class="swal2-input" placeholder="${translations[currentLang].ph_amount}">
-                
+                <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">
                 <div style="margin-top:20px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
-                    <label style="font-weight:bold; font-size:0.9rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> ${translations[currentLang].auto_dep_title}</label>
-                    <select id="dep-auto" class="swal2-input" style="width:100%; margin-top:10px; height:auto; padding:10px;">
-                        <option value="none">${translations[currentLang].opt_manual}</option>
-                        <option value="daily">${translations[currentLang].opt_daily}</option>
-                        <option value="weekly">${translations[currentLang].opt_weekly}</option>
-                        <option value="monthly">${translations[currentLang].opt_monthly}</option>
+                    <label style="font-weight:bold; font-size:0.9rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deposit Setup</label>
+                    <select id="dep-auto" class="swal2-input" style="width:100%; margin-top:10px; padding:10px;">
+                        <option value="none">Manual Only</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
                     </select>
                 </div>
               `,
           showCancelButton: true,
           confirmButtonColor: "var(--primary)",
-          confirmButtonText: '<i class="fa-solid fa-check-circle"></i> Confirm',
+          confirmButtonText: "Confirm",
+          customClass: { popup: "premium-swal" },
           preConfirm: () => {
             return {
               amount: document.getElementById("dep-amt").value,
@@ -749,57 +971,77 @@
             title: "Processing...",
             didOpen: () => Swal.showLoading(),
           });
-          try {
-            const res = await fetch("/api/ufund/deposit", {
-              method: "POST",
-              headers: getAuthHeaders(),
-              body: JSON.stringify({
-                username: user.username,
-                fundId: fund._id,
-                amount: formVals.amount,
-                isAuto: false, // នេះជាការដាក់ផ្ទាល់
-                // (បើគាត់រើស Auto បងអាចបញ្ជូន API ផ្សេងទៅ Save Setting)
-              }),
+          const data = await fetchAPI("/api/ufund/deposit", {
+            username: user.username,
+            fundId: fund._id,
+            amount: formVals.amount,
+            isAuto: false,
+          });
+          if (data.success) {
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            )
+              .play()
+              .catch(() => {});
+            Swal.fire({
+              icon: "success",
+              title: "Deposited!",
+              timer: 1500,
+              showConfirmButton: false,
             });
-            const data = await res.json();
-            if (data.success) {
-              // លេងសំឡេងលុយចូល
-              new Audio(
-                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-              )
-                .play()
-                .catch(() => {});
-              Swal.fire({
-                icon: "success",
-                title: "Saved!",
-                text: data.message,
-                timer: 1500,
-                showConfirmButton: false,
-              });
-              fetchMyFunds();
-            } else Swal.fire("Failed", data.message, "error");
-          } catch (e) {
-            Swal.fire("Error", "Network error", "error");
-          }
+            fetchMyFunds();
+          } else Swal.fire("Failed", data.message, "error");
         }
       }
 
-      // 📷 ៧. បង្ហាញ QR កូដ
+      async function openInviteUI() {
+        const fund = activeFunds[currentFundIndex];
+        if (!fund) return;
+
+        const { value: invitee } = await Swal.fire({
+          title:
+            '<i class="fa-solid fa-user-plus" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Invite Friend',
+          text: fund.name,
+          input: "text",
+          inputPlaceholder: "Username, Phone, or Account No.",
+          showCancelButton: true,
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: "Send Invite",
+          customClass: { popup: "premium-swal" },
+        });
+
+        if (invitee) {
+          Swal.fire({ title: "Sending...", didOpen: () => Swal.showLoading() });
+          const data = await fetchAPI("/api/ufund/invite", {
+            fundId: fund._id,
+            inviterUsername: user.username,
+            inviteeIdentifier: invitee.trim(),
+          });
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Invited!",
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+            });
+            fetchMyFunds();
+          } else Swal.fire("Failed", data.message, "error");
+        }
+      }
+
       function showFundQR() {
-        const fund = activeFunds.find((f) => f._id === currentSelectedFundId);
+        const fund = activeFunds[currentFundIndex];
         if (!fund) return;
         Swal.fire({
           title: "Fund QR Code",
-          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Share this code with friends to receive funds directly into <b>${fund.name}</b></p>
+          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Scan to receive money directly into <b>${fund.name}</b></p>
                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${fund.qrCodeString}" style="border-radius:15px; margin-top:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
                      <p style="font-family:monospace; font-weight:bold; margin-top:15px; color:var(--primary); font-size:1.1rem;">${fund.qrCodeString}</p>`,
           confirmButtonColor: "var(--primary)",
+          customClass: { popup: "premium-swal" },
         });
       }
-
-      // Start App
-      applyLang();
-      fetchMyFunds();
     </script>
   </body>
 </html>
