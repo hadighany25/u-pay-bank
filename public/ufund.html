@@ -703,8 +703,6 @@
     <script>
       // 🔐 JWT SECURITY & SESSION MANAGEMENT
       let user = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken");
-      if (!user || !token) window.location.href = "index.html";
 
       const authHeaders = {
         "Content-Type": "application/json",
@@ -731,7 +729,10 @@
       // 🚀 ON PAGE LOAD
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage();
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        }
+
         fetchMyFunds();
         document.body.classList.add("loaded");
       });
