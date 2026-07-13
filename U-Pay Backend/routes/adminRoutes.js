@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
-const { checkRole, verifyUser } = require("../middleware/authMiddleware");
+const { checkRole } = require("../middleware/authMiddleware");
 
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
 const ROLE_SUPPORT = "support_agent";
+const ROLE_CUSTOM = "custom";
 
 // ១. មុខងារដែលទាមទារសិទ្ធិ Super Admin តែម្នាក់គត់
 router.post(
