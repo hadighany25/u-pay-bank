@@ -372,17 +372,17 @@
         font-size: 1rem;
       }
 
-      /* 🚀 FLOATING ACTION BUTTON (FAB) */
+      /* FLOATING ACTION BUTTON (FAB) */
       .fab-container {
         position: fixed;
         bottom: 95px;
-        right: calc(50% - 200px); /* Center relative for desktop testing */
+        right: calc(50% - 200px);
         z-index: 100;
       }
       @media (max-width: 450px) {
         .fab-container {
           right: 20px;
-        } /* Mobile right alignment */
+        }
       }
       .fab-btn {
         background: #004d40;
@@ -439,7 +439,7 @@
         transform: translateY(-5px);
       }
 
-      /* 🌙 DARK MODE OVERRIDES (Fixed contrast) */
+      /* DARK MODE OVERRIDES */
       body.dark-mode {
         background-color: #000000 !important;
       }
@@ -705,45 +705,26 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         💻 SCRIPT LOGIC (FIXED VARIABLE SCOPE)
-         ========================================== -->
+    <!-- SCRIPT LOGIC -->
     <script>
-      // 🔐 ប្តូរពី let ទៅ var ដើម្បីការពារការគាំង (Conflict) ជាមួយ u-pay-core.js
-      var user = JSON.parse(sessionStorage.getItem("user"));
-      var token = sessionStorage.getItem("userToken");
-      if (!user || !token) window.location.href = "index.html";
+      // 🟢 ប្រើប្រាស់ទិន្នន័យពី u-pay-core.js ដែលបានទាញរួចរាល់ (លែងប្រកាស token ម្តងទៀតហើយ)
+      const user = window.currentUser;
 
-      var authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
+      let activeFunds = [];
+      let currentFundIndex = 0;
 
-      var activeFunds = [];
-      var currentFundIndex = 0;
-
-      // 🌙 THEME & LOAD
-      function applyTheme() {
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem("darkMode_" + user.username) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
-        else document.body.classList.remove("dark-mode");
-      }
-
+      // ដំណើរការពេល Page Load
       document.addEventListener("DOMContentLoaded", () => {
-        applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage();
+        // Theme និង Language ត្រូវបានរត់ដោយ u-pay-core.js រួចហើយ
         fetchMyFunds();
-        document.body.classList.add("loaded");
       });
 
-      // 🌐 API HELPER
+      // API HELPER (ប្រើប្រាស់ window.authHeaders ពី core)
       async function fetchAPI(endpoint, payload) {
         try {
           const res = await fetch(endpoint, {
             method: "POST",
-            headers: authHeaders,
+            headers: window.authHeaders,
             body: JSON.stringify(payload),
           });
           if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
@@ -754,8 +735,9 @@
         }
       }
 
-      // 🔄 FETCH FUNDS
+      // FETCH FUNDS
       async function fetchMyFunds() {
+        if (!user) return; // ការពារ Error បើ user អត់ទាន់មាន
         const data = await fetchAPI("/api/ufund/list", {
           username: user.username,
         });
@@ -768,7 +750,7 @@
         }
       }
 
-      // 🎨 RENDER CAROUSEL
+      // RENDER CAROUSEL
       function renderFunds() {
         const slider = document.getElementById("fundsSlider");
         const dots = document.getElementById("sliderDots");
@@ -833,7 +815,7 @@
         }
       }
 
-      // ⚙️ SYNC ACTIONS
+      // SYNC ACTIONS based on Creator privileges & Fund Status
       function syncFundActions() {
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
@@ -841,8 +823,11 @@
         const isCreator = currentFund.creator === user.username;
         const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
+        // Group Features Visibility
         document.getElementById("btnInviteFriend").style.display =
           currentFund.type === "group" && isCreator ? "flex" : "none";
+
+        // Creator Lifecycle Buttons
         document.getElementById("btnEditFund").style.display = isCreator
           ? "flex"
           : "none";
@@ -850,6 +835,7 @@
           ? "flex"
           : "none";
 
+        // Dynamic Close/Cancel UI
         const btnCloseIcon = document.getElementById("closeFundIcon");
         const btnCloseText = document.getElementById("closeFundText");
         const btnCloseDesc = document.getElementById("closeFundDesc");
@@ -868,6 +854,7 @@
           btnCloseDesc.innerText = "Stop and refund all members";
         }
 
+        // Render Leaderboard
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
         const sortedMembers = [...currentFund.members].sort(
@@ -910,7 +897,10 @@
           : "rotate(0)";
       }
 
-      // 🛠️ LIFECYCLE FUNCTIONS
+      // ==========================================
+      // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
+      // ==========================================
+
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
           title:
@@ -924,7 +914,7 @@
             </select>
             <div style="margin-top:15px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
                 <label style="font-weight:bold; font-size:0.85rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deduct Rule</label>
-                <input id="swal-auto-amt" type="number" class="swal2-input" placeholder="Auto-Deduct Amount ($)" style="margin-top:10px;">
+                <input id="swal-auto-amt" type="number" class="swal2-input" placeholder="Deduct Amount ($)" style="margin-top:10px;">
                 <select id="swal-auto-freq" class="swal2-select" style="width:100%; margin-top:10px; padding:10px;">
                     <option value="none">No Auto-Deduct</option>
                     <option value="daily">Daily</option>
@@ -1042,9 +1032,9 @@
           if (data.success) {
             Swal.fire({
               icon: "success",
-              title: "Completed!",
+              title: "Done!",
               text: data.message,
-              timer: 3000,
+              timer: 2000,
               showConfirmButton: false,
             });
             fetchMyFunds();
@@ -1052,7 +1042,9 @@
         }
       }
 
-      // 💵 MANUAL DEPOSIT
+      // ==========================================
+      // STANDARD ACTIONS (DEPOSIT, INVITE, QR)
+      // ==========================================
       async function openDepositUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: amt } = await Swal.fire({
@@ -1094,7 +1086,6 @@
         }
       }
 
-      // 💌 INVITE FRIEND
       async function openInviteUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: invitee } = await Swal.fire({
@@ -1128,7 +1119,6 @@
         }
       }
 
-      // 📸 QR CODE
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
         Swal.fire({
