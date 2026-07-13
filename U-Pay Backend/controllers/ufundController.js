@@ -30,15 +30,15 @@ exports.getMyFunds = async (req, res) => {
 // ២. បង្កើត U-Fund ថ្មី (Create)
 // ---------------------------------------------------------
 exports.createFund = async (req, res) => {
-  // 🔥 កែត្រង់នេះ៖ ប្រើពាក្យ 'target' អោយត្រូវនឹង Frontend ដែលបោះមក
-  const { username, name, target, type, autoAmt, autoFreq } = req.body;
+  // 🔥 បន្ថែមពាក្យ autoTime មកទទួលពី Frontend
+  const { username, name, target, type, autoAmt, autoFreq, autoTime } =
+    req.body;
 
   try {
     const user = await User.findOne({ username });
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ!" });
 
-    // ឆែកមើលក្រែងលោ Frontend បោះមកទទេ
     if (!name || !target) {
       return res.json({
         success: false,
@@ -46,11 +46,10 @@ exports.createFund = async (req, res) => {
       });
     }
 
-    // បង្កើត Object ថ្មីតាមស្តង់ដារ Model
     const newFund = new UFund({
       name: name,
       type: type || "personal",
-      targetAmount: parseFloat(target), // យក target មកបម្លែងជាលេខ
+      targetAmount: parseFloat(target),
       creator: username,
       qrCodeString: `UFND-${Date.now()}-${username}`,
       members: [
@@ -64,6 +63,7 @@ exports.createFund = async (req, res) => {
             enabled: autoFreq && autoFreq !== "none",
             amount: parseFloat(autoAmt) || 0,
             frequency: autoFreq || "none",
+            time: autoTime || "08:00", // 👈 Save ម៉ោងចូល Database
           },
         },
       ],
@@ -76,7 +76,6 @@ exports.createFund = async (req, res) => {
       fund: newFund,
     });
   } catch (error) {
-    // 🔥 បង្ហាញ Error លម្អិតក្នុង Terminal ដើម្បីងាយស្រួលរកកំហុស
     console.error("Create Fund Mongoose Error:", error.message);
     res.json({ success: false, message: "បរាជ័យក្នុងការបង្កើត U-Fund" });
   }

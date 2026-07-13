@@ -33,6 +33,7 @@ const ufundSchema = new mongoose.Schema(
             enum: ["none", "daily", "weekly", "monthly"],
             default: "none",
           },
+          time: { type: String, default: "08:00" },
           dayOfWeek: { type: Number }, // 1 (Mon) ដល់ 7 (Sun)
           dayOfMonth: { type: Number }, // 1 ដល់ 28
         },

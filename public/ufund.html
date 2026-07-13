@@ -901,32 +901,92 @@
       // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
       // ==========================================
 
+      // ==========================================
+      // 🛠️ មុខងារបង្កើត U-Fund (UI ថ្មី ស្អាត Premium)
+      // ==========================================
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
           title:
-            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2rem; margin-bottom:10px;"></i><br>Create U-Fund',
+            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2.5rem; margin-bottom:10px;"></i><br><span style="font-size:1.4rem;">Create U-Fund</span>',
           html: `
-            <input id="swal-fname" class="swal2-input" placeholder="Fund Name (e.g. Bali Trip)">
-            <input id="swal-famt" type="number" class="swal2-input" placeholder="Target Amount ($)">
-            <select id="swal-ftype" class="swal2-select" style="width:100%; margin-top:15px; padding:10px;">
-                <option value="personal">Personal Saving</option>
-                <option value="group">Group Tontine / Fund</option>
-            </select>
-            <div style="margin-top:15px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
-                <label style="font-weight:bold; font-size:0.85rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deduct Rule</label>
-                <input id="swal-auto-amt" type="number" class="swal2-input" placeholder="Deduct Amount ($)" style="margin-top:10px;">
-                <select id="swal-auto-freq" class="swal2-select" style="width:100%; margin-top:10px; padding:10px;">
-                    <option value="none">No Auto-Deduct</option>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                </select>
+            <style>
+                .fund-form-group { margin-bottom: 12px; text-align: left; }
+                .fund-form-group label { font-size: 0.85rem; color: #475569; font-weight: 600; margin-bottom: 6px; display: block; }
+                .fund-input { width: 100%; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; outline: none; transition: 0.3s; background: white; font-family: 'Inter', 'Kantumruy Pro', sans-serif;}
+                .fund-input:focus { border-color: #004d40; box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1); }
+                .auto-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; }
+                .flex-row { display: flex; gap: 10px; margin-top: 10px; }
+                .flex-row > div { flex: 1; }
+            </style>
+
+            <!-- Fund Info -->
+            <div class="fund-form-group">
+                <label>Fund Name</label>
+                <input id="swal-fname" class="fund-input" placeholder="e.g. Bali Trip 2026">
+            </div>
+            
+            <div class="flex-row">
+                <div class="fund-form-group">
+                    <label>Target Amount ($)</label>
+                    <input id="swal-famt" type="number" class="fund-input" placeholder="0.00">
+                </div>
+                <div class="fund-form-group">
+                    <label>Fund Type</label>
+                    <select id="swal-ftype" class="fund-input">
+                        <option value="personal">Personal</option>
+                        <option value="group">Group</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Auto-Deduct Rule -->
+            <div class="auto-box">
+                <label style="font-weight:bold; font-size:0.9rem; color:#004d40; margin-bottom:10px; display:block;">
+                    <i class="fa-solid fa-robot"></i> Auto-Deduct Rule
+                </label>
+                
+                <div class="flex-row">
+                    <div class="fund-form-group" style="margin-bottom:0;">
+                        <label>Amount ($)</label>
+                        <input id="swal-auto-amt" type="number" class="fund-input" placeholder="0.00">
+                    </div>
+                    <div class="fund-form-group" style="margin-bottom:0;">
+                        <label>Frequency</label>
+                        <select id="swal-auto-freq" class="fund-input">
+                            <option value="none">None</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ពេលវេលាកាត់លុយ (លាក់ទុកសិន បង្ហាញពេលរើស Frequency) -->
+                <div id="time-picker-box" class="fund-form-group" style="display: none; margin-top: 15px; margin-bottom: 0;">
+                    <label><i class="fa-regular fa-clock"></i> Execution Time (AM/PM)</label>
+                    <input id="swal-auto-time" type="time" class="fund-input" value="08:00">
+                    <span style="font-size:0.7rem; color:#94a3b8; margin-top:5px; display:block;">* Time is strictly based on Cambodia Time (GMT+7).</span>
+                </div>
             </div>
           `,
           showCancelButton: true,
-          confirmButtonColor: "var(--primary)",
-          confirmButtonText: "Create Now",
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#94a3b8",
+          confirmButtonText: "Create Fund",
           customClass: { popup: "premium-swal" },
+          didOpen: () => {
+            // Logic សម្រាប់ Show/Hide ប្រអប់ម៉ោងពេលរើស Frequency
+            const freqSelect = document.getElementById("swal-auto-freq");
+            const timeBox = document.getElementById("time-picker-box");
+
+            freqSelect.addEventListener("change", (e) => {
+              if (e.target.value !== "none") {
+                timeBox.style.display = "block";
+              } else {
+                timeBox.style.display = "none";
+              }
+            });
+          },
           preConfirm: () => {
             return {
               name: document.getElementById("swal-fname").value,
@@ -934,6 +994,7 @@
               type: document.getElementById("swal-ftype").value,
               autoAmt: document.getElementById("swal-auto-amt").value || 0,
               autoFreq: document.getElementById("swal-auto-freq").value,
+              autoTime: document.getElementById("swal-auto-time").value, // ទាញយកម៉ោង (ឧទាហរណ៍ "14:30")
             };
           },
         });
@@ -943,10 +1004,12 @@
             title: "Creating...",
             didOpen: () => Swal.showLoading(),
           });
+
           const data = await fetchAPI("/api/ufund/create", {
             username: user.username,
             ...formValues,
           });
+
           if (data.success) {
             Swal.fire({
               icon: "success",
@@ -954,7 +1017,7 @@
               timer: 1500,
               showConfirmButton: false,
             });
-            fetchMyFunds();
+            fetchMyFunds(); // Refresh ទិន្នន័យ
           } else Swal.fire("Error", data.message, "error");
         }
       }
