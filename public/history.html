@@ -734,6 +734,7 @@
             let iconColor = "#0284c7";
             let clickAction = "";
             let cursorStyle = "";
+            let actionBtns = ""; // 🔥 បន្ថែមអថេរនេះសម្រាប់ដាក់ប៊ូតុង
 
             // 🎁 ឆែកមើលបើជាសារអាំងប៉ាវ (អ្នកទទួល)
             if (m.type === "egift_receive") {
@@ -742,7 +743,7 @@
               if (!m.isRead) {
                 // មិនទាន់បើក ឱ្យលោតពណ៌ក្រហម និងអាចចុចបាន
                 displayMsg =
-                  "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក..."; // លាក់ចំនួនលុយ
+                  "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក...";
                 iconBg = "#fee2e2";
                 iconColor = "#dc2626";
                 cursorStyle = "cursor: pointer;";
@@ -770,6 +771,28 @@
               iconBg = "#fce7f3"; // ពណ៌ផ្កាឈូក
               iconColor = "#db2777";
             }
+            // 🎯 សារអញ្ជើញចូល U-Fund
+            else if (m.type === "ufund_invite") {
+              iconClass = "fa-solid fa-bullseye";
+
+              if (!m.isRead) {
+                // មិនទាន់បានចុច គឺលោតពណ៌ខៀវ និងបង្ហាញប៊ូតុង
+                iconBg = "#ecfeff";
+                iconColor = "#0891b2";
+
+                // ប្រើ event.stopPropagation() ដើម្បីការពារកុំឱ្យពេលចុចប៊ូតុង ប៉ះពាល់ដល់ div ធំ
+                actionBtns = `
+                  <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button onclick="event.stopPropagation(); respondUFundInvite('${m.fundId}', '${m._id || m.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                    <button onclick="event.stopPropagation(); respondUFundInvite('${m.fundId}', '${m._id || m.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                  </div>
+                `;
+              } else {
+                // ចុចរួចហើយ លាក់ប៊ូតុងចេញ តែរក្សាអក្សរដដែល គ្រាន់តែដូរពណ៌ Icon
+                iconBg = "#f1f5f9";
+                iconColor = "#94a3b8";
+              }
+            }
 
             return `
           <div class="msg-card" ${clickAction} style="${cursorStyle}">
@@ -777,6 +800,7 @@
             <div class="msg-content">
               <h4>${m.title}</h4>
               <p>${displayMsg}</p>
+              ${actionBtns} <!-- 🔴 ប៊ូតុងនឹងលោតចេញនៅទីនេះ បើមិនទាន់ចុច -->
               <span class="msg-date"><i class="fa-regular fa-clock"></i> ${m.date}</span>
             </div>
             <button class="msg-del-btn" onclick="event.stopPropagation(); deleteMessage('${m.title}', '${m.date}')">
