@@ -705,21 +705,24 @@
       </div>
     </div>
 
-    <!-- SCRIPT LOGIC -->
+    <!-- ==========================================
+         💻 SCRIPT LOGIC (FIXED VARIABLE SCOPE)
+         ========================================== -->
     <script>
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken");
+      // 🔐 ប្តូរពី let ទៅ var ដើម្បីការពារការគាំង (Conflict) ជាមួយ u-pay-core.js
+      var user = JSON.parse(sessionStorage.getItem("user"));
+      var token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
-      const authHeaders = {
+      var authHeaders = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
-      let activeFunds = [];
-      let currentFundIndex = 0;
+      var activeFunds = [];
+      var currentFundIndex = 0;
 
-      // THEME & LOAD
+      // 🌙 THEME & LOAD
       function applyTheme() {
         const isDark =
           localStorage.getItem("theme") === "dark" ||
@@ -735,7 +738,7 @@
         document.body.classList.add("loaded");
       });
 
-      // API HELPER
+      // 🌐 API HELPER
       async function fetchAPI(endpoint, payload) {
         try {
           const res = await fetch(endpoint, {
@@ -751,7 +754,7 @@
         }
       }
 
-      // FETCH FUNDS
+      // 🔄 FETCH FUNDS
       async function fetchMyFunds() {
         const data = await fetchAPI("/api/ufund/list", {
           username: user.username,
@@ -765,7 +768,7 @@
         }
       }
 
-      // RENDER CAROUSEL
+      // 🎨 RENDER CAROUSEL
       function renderFunds() {
         const slider = document.getElementById("fundsSlider");
         const dots = document.getElementById("sliderDots");
@@ -830,7 +833,7 @@
         }
       }
 
-      // SYNC ACTIONS based on Creator privileges & Fund Status
+      // ⚙️ SYNC ACTIONS
       function syncFundActions() {
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
@@ -838,11 +841,8 @@
         const isCreator = currentFund.creator === user.username;
         const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
-        // Group Features Visibility
         document.getElementById("btnInviteFriend").style.display =
           currentFund.type === "group" && isCreator ? "flex" : "none";
-
-        // Creator Lifecycle Buttons
         document.getElementById("btnEditFund").style.display = isCreator
           ? "flex"
           : "none";
@@ -850,7 +850,6 @@
           ? "flex"
           : "none";
 
-        // Dynamic Close/Cancel UI
         const btnCloseIcon = document.getElementById("closeFundIcon");
         const btnCloseText = document.getElementById("closeFundText");
         const btnCloseDesc = document.getElementById("closeFundDesc");
@@ -869,7 +868,6 @@
           btnCloseDesc.innerText = "Stop and refund all members";
         }
 
-        // Render Leaderboard
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
         const sortedMembers = [...currentFund.members].sort(
@@ -912,10 +910,7 @@
           : "rotate(0)";
       }
 
-      // ==========================================
-      // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
-      // ==========================================
-
+      // 🛠️ LIFECYCLE FUNCTIONS
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
           title:
@@ -928,7 +923,7 @@
                 <option value="group">Group Tontine / Fund</option>
             </select>
             <div style="margin-top:15px; text-align:left; background:#f1f5f9; padding:15px; border-radius:12px;">
-                <label style="font-weight:bold; font-size:0.85rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deduct Rule (For all members)</label>
+                <label style="font-weight:bold; font-size:0.85rem; color:var(--primary);"><i class="fa-solid fa-robot"></i> Auto-Deduct Rule</label>
                 <input id="swal-auto-amt" type="number" class="swal2-input" placeholder="Auto-Deduct Amount ($)" style="margin-top:10px;">
                 <select id="swal-auto-freq" class="swal2-select" style="width:100%; margin-top:10px; padding:10px;">
                     <option value="none">No Auto-Deduct</option>
@@ -995,12 +990,25 @@
         });
 
         if (formValues) {
-          // TODO: Call your edit API endpoint here in the next backend step
-          Swal.fire(
-            "Info",
-            "Backend logic for Edit will be connected next!",
-            "info",
-          );
+          Swal.fire({
+            title: "Updating...",
+            didOpen: () => Swal.showLoading(),
+          });
+          const data = await fetchAPI("/api/ufund/edit", {
+            username: user.username,
+            fundId: fund._id,
+            name: formValues.name,
+            target: formValues.target,
+          });
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Updated!",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+            fetchMyFunds();
+          } else Swal.fire("Error", data.message, "error");
         }
       }
 
@@ -1023,18 +1031,28 @@
         });
 
         if (result.isConfirmed) {
-          // TODO: Call your close API endpoint here in the next backend step
-          Swal.fire(
-            "Info",
-            "Backend logic for Closing/Refunding will be connected next!",
-            "info",
-          );
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+          const data = await fetchAPI("/api/ufund/close", {
+            username: user.username,
+            fundId: fund._id,
+          });
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Completed!",
+              text: data.message,
+              timer: 3000,
+              showConfirmButton: false,
+            });
+            fetchMyFunds();
+          } else Swal.fire("Error", data.message, "error");
         }
       }
 
-      // ==========================================
-      // STANDARD ACTIONS (DEPOSIT, INVITE, QR)
-      // ==========================================
+      // 💵 MANUAL DEPOSIT
       async function openDepositUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: amt } = await Swal.fire({
@@ -1076,6 +1094,7 @@
         }
       }
 
+      // 💌 INVITE FRIEND
       async function openInviteUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: invitee } = await Swal.fire({
@@ -1109,6 +1128,7 @@
         }
       }
 
+      // 📸 QR CODE
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
         Swal.fire({
