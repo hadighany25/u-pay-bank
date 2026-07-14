@@ -1024,11 +1024,12 @@
         const { value: formValues } = await Swal.fire({
           title: "Edit Fund Settings",
           html: `
-            <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
-            <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
-          `,
+      <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
+      <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
+    `,
           showCancelButton: true,
-          confirmButtonColor: "var(--primary)",
+          confirmButtonColor: "#004d40", // 🔥 ដូរមកប្រើកូដពណ៌ផ្ទាល់ទើបវាលោតចេញមក
+          cancelButtonColor: "#64748b", // 🔥 បន្ថែមពណ៌ឱ្យប៊ូតុង Cancel
           confirmButtonText: "Save Changes",
           customClass: { popup: "premium-swal" },
           preConfirm: () => {
@@ -1096,10 +1097,11 @@
         const fund = activeFunds[currentFundIndex];
         const { value: amt } = await Swal.fire({
           title: "Manual Deposit",
-          html: `<div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
-                 <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
+          html: `<div style="font-weight:bold; color:#0284c7; margin-bottom:15px;">➡️ ${fund.name}</div>
+           <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
           showCancelButton: true,
-          confirmButtonColor: "var(--primary)",
+          confirmButtonColor: "#004d40", // 🔥 ដូរមកប្រើកូដពណ៌ផ្ទាល់
+          cancelButtonColor: "#64748b", // 🔥 បន្ថែមពណ៌ឱ្យប៊ូតុង Cancel
           confirmButtonText: "Deposit",
           customClass: { popup: "premium-swal" },
           preConfirm: () => document.getElementById("dep-amt").value,
