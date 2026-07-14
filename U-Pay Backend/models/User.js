@@ -49,6 +49,7 @@ const userSchema = new mongoose.Schema(
         lockedByAdmin: { type: Boolean, default: false }, // សោរអំណាច Admin នៅដដែល!
       },
     ],
+    // 🔥 បន្ថែមថ្មី: អនុគណនី (Sub Accounts) សម្រាប់ទុកគណនីលេខពិសេស ហោប៉ៅ និងគ្រួសារ
     subAccounts: [
       {
         accountId: { type: String, default: () => Date.now().toString() },
