@@ -900,10 +900,7 @@
       // ==========================================
       // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
       // ==========================================
-
-      // ==========================================
       // 🛠️ មុខងារបង្កើត U-Fund (UI ថ្មី ស្អាត Premium)
-      // ==========================================
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
           title:
@@ -1116,9 +1113,9 @@
           html: `<div style="font-weight:bold; color:#0284c7; margin-bottom:15px;">➡️ ${fundName}</div>
                  <input id="deposit-amt" type="number" class="swal2-input" placeholder="Amount ($)" style="width: 80%;">`,
           showCancelButton: true,
-          confirmButtonText: "ដាក់ប្រាក់ / Deposit", // 🔥 ជួរនេះធ្វើឱ្យប៊ូតុងលោតមកវិញ
-          confirmButtonColor: "#004d40", // 🔥 ពណ៌បៃតងចាស់
-          cancelButtonColor: "#64748b", // ពណ៌ប្រផេះ
+          confirmButtonText: "ដាក់ប្រាក់ / Deposit",
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
           preConfirm: () => {
             const amt = document.getElementById("deposit-amt").value;
             if (!amt || amt <= 0) {
@@ -1131,15 +1128,16 @@
           },
         });
 
-        if (amt && amt > 0) {
+        // 🔥 កែពី amt ទៅជា amount វិញ
+        if (amount && amount > 0) {
           Swal.fire({
             title: "Processing...",
             didOpen: () => Swal.showLoading(),
           });
           const data = await fetchAPI("/api/ufund/deposit", {
             username: user.username,
-            fundId: fund._id,
-            amount: amt,
+            fundId: fundId, // 🔥 កែពី fund._id មក fundId វិញ
+            amount: amount, // 🔥 កែពី amt មក amount វិញ
             isAuto: false,
           });
           if (data.success) {
@@ -1155,7 +1153,9 @@
               showConfirmButton: false,
             });
             fetchMyFunds();
-          } else Swal.fire("Failed", data.message, "error");
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
         }
       }
 
