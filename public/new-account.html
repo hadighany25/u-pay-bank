@@ -444,6 +444,13 @@
           });
         }
       }
+
+      // បញ្ជាឱ្យប្រព័ន្ធបកប្រែដំណើរការភ្លាមៗពេលបើកទំព័រ
+      document.addEventListener("DOMContentLoaded", () => {
+        if (typeof window.applyLanguage === "function") {
+          window.applyLanguage();
+        }
+      });
     </script>
   </body>
 </html>
