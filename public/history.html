@@ -497,6 +497,8 @@
       </div>
     </div>
 
+    នៅតែមិនបង្ហាញ
+
     <script>
       const sessionUser = JSON.parse(sessionStorage.getItem("user"));
       const sessionToken = sessionStorage.getItem("userToken");
@@ -530,11 +532,6 @@
       window.addEventListener("DOMContentLoaded", () => {
         applyThemeHistory();
         if (typeof applyLanguage === "function") applyLanguage();
-
-        // 🔥 បន្ថែមបន្ទាត់នេះ ដើម្បីឱ្យសារលោតចេញភ្លាមពេល Page ដំណើរការ
-        if (sessionUser && sessionUser.notifications) {
-          renderMessages(sessionUser.notifications);
-        }
       });
 
       const today = new Date();
@@ -724,9 +721,11 @@
       // ==========================================
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
+
+        // 🔥 កែត្រង់នេះ៖ ប្រើ .sort() ដើម្បីតម្រៀបម៉ោងថ្មីបំផុតឱ្យនៅលើគេ
         const activeMsgs = (messages || [])
           .filter((m) => !deletedMessages.includes(m.date + m.title))
-          .reverse();
+          .sort((a, b) => new Date(b.date) - new Date(a.date)); // 👈 កូដនេះជាអ្នករៀបតាមម៉ោង
 
         if (activeMsgs.length === 0) {
           containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ / No New Messages</p></div>`;
@@ -806,7 +805,7 @@
               iconBg = "#fef08a";
               iconColor = "#ca8a04";
             }
-            let type = m.type || "general";
+
             return `
           <div class="msg-card" ${clickAction} style="${cursorStyle}">
             <div class="msg-icon" style="background:${iconBg}; color:${iconColor};"><i class="${iconClass}"></i></div>
