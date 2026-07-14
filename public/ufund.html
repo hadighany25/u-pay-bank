@@ -1107,37 +1107,28 @@
       // ==========================================
       // STANDARD ACTIONS (DEPOSIT, INVITE, QR)
       // ==========================================
-      async function openDepositUI(fundId, fundName) {
-        const { value: amount } = await Swal.fire({
+      async function openDepositUI() {
+        const fund = activeFunds[currentFundIndex];
+        const { value: amt } = await Swal.fire({
           title: "Manual Deposit",
-          html: `<div style="font-weight:bold; color:#0284c7; margin-bottom:15px;">➡️ ${fundName}</div>
-                 <input id="deposit-amt" type="number" class="swal2-input" placeholder="Amount ($)" style="width: 80%;">`,
+          html: `<div style="font-weight:bold; color:var(--primary); margin-bottom:15px;">➡️ ${fund.name}</div>
+                 <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
           showCancelButton: true,
-          confirmButtonText: "ដាក់ប្រាក់ / Deposit",
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#64748b",
-          preConfirm: () => {
-            const amt = document.getElementById("deposit-amt").value;
-            if (!amt || amt <= 0) {
-              Swal.showValidationMessage(
-                "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
-              );
-              return false;
-            }
-            return amt;
-          },
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: "Deposit",
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => document.getElementById("dep-amt").value,
         });
 
-        // 🔥 កែពី amt ទៅជា amount វិញ
-        if (amount && amount > 0) {
+        if (amt && amt > 0) {
           Swal.fire({
             title: "Processing...",
             didOpen: () => Swal.showLoading(),
           });
           const data = await fetchAPI("/api/ufund/deposit", {
             username: user.username,
-            fundId: fund._id, // 🔥 កែពី fund._id មក fundId វិញ
-            amount: amount, // 🔥 កែពី amt មក amount វិញ
+            fundId: fund._id,
+            amount: amt,
             isAuto: false,
           });
           if (data.success) {
@@ -1153,9 +1144,7 @@
               showConfirmButton: false,
             });
             fetchMyFunds();
-          } else {
-            Swal.fire("Failed", data.message, "error");
-          }
+          } else Swal.fire("Failed", data.message, "error");
         }
       }
 
