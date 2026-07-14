@@ -1170,12 +1170,47 @@
 
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
+
+        // 🔥 ប្រើ ecc=H (High Error Correction) ដើម្បីឱ្យស្កេនបាន ទោះបីមាន Logo បាំងនៅកណ្តាល
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&ecc=H&data=${fund.qrCodeString}`;
+
         Swal.fire({
-          title: "Fund QR Code",
-          html: `<p style="font-size:0.9rem; color:var(--text-muted);">Scan via U-Pay to deposit into <b>${fund.name}</b></p>
-                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${fund.qrCodeString}" style="border-radius:15px; margin-top:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">`,
-          confirmButtonColor: "var(--primary)",
-          customClass: { popup: "premium-swal" },
+          html: `
+            <!-- ផ្នែកខាងលើ (Header) -->
+            <div style="background: linear-gradient(135deg, #004d40, #0284c7); margin: -1.25em -1.25em 20px -1.25em; padding: 30px 15px 20px 15px; border-radius: 15px 15px 0 0; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+               <i class="fa-solid fa-piggy-bank" style="font-size: 3rem; margin-bottom: 10px; animation: bounce 2s infinite;"></i>
+               <h3 style="margin: 0; font-family: 'Kantumruy Pro', sans-serif; font-weight: bold; letter-spacing: 1px;">U-Fund QR</h3>
+               <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">ស្កេនដើម្បីដាក់ប្រាក់សន្សំ</p>
+            </div>
+            
+            <!-- ឈ្មោះគម្រោង និង លេខកូដ -->
+            <h4 style="color: #0f172a; font-weight: bold; font-size: 1.4rem; margin-bottom: 5px; text-transform: capitalize;">${fund.name}</h4>
+            <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 6px 15px; border-radius: 20px; display: inline-block; margin-bottom: 25px;">
+               <span style="color: #64748b; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;">
+                  <i class="fa-solid fa-hashtag" style="color: #0284c7;"></i> ${fund.qrCodeString}
+               </span>
+            </div>
+
+            <!-- ប្រអប់ QR Code ដែលមាន Icon កណ្តាល -->
+            <div style="position: relative; width: 220px; height: 220px; margin: 0 auto; padding: 10px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 2px solid #e2e8f0;">
+               <img src="${qrUrl}" alt="QR Code" style="width: 100%; height: 100%; border-radius: 10px; object-fit: contain;">
+               
+               <!-- 🐷 រូប Icon កណ្តាល QR -->
+               <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                  <i class="fa-solid fa-piggy-bank" style="color: #0284c7; font-size: 1.3rem;"></i>
+               </div>
+            </div>
+            
+            <!-- ផ្នែកខាងក្រោម (Footer) -->
+            <p style="margin-top: 25px; margin-bottom: 0; font-size: 0.85rem; color: #94a3b8;">
+               <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> សុវត្ថិភាពខ្ពស់ដោយ U-Pay
+            </p>
+          `,
+          showConfirmButton: true,
+          confirmButtonColor: "#004d40", // ធានាថាមិនបាត់ប៊ូតុង
+          confirmButtonText: "បិទ / Close",
+          customClass: { popup: "modal-radius" },
+          width: "380px",
         });
       }
     </script>
