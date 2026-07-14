@@ -321,47 +321,248 @@
       const user = window.currentUser;
 
       // មុខងារ ១: បើកផ្ទាំង គណនីពិសេស
+      // រូបមន្តគណនាតម្លៃលេខ (Auto-Pricing Algorithm)
+      function calculatePremiumPrice(numStr) {
+        let price = 0;
+
+        // ១. ឆែកប្រវែងលេខ (លេខខ្លីថ្លៃជាង)
+        if (numStr.length < 8) price += 50;
+
+        // ២. ឆែកលេខស្ទួន (Repeating digits)
+        let maxRepeat = 1;
+        let currentRepeat = 1;
+        for (let i = 1; i < numStr.length; i++) {
+          if (numStr[i] === numStr[i - 1]) {
+            currentRepeat++;
+            if (currentRepeat > maxRepeat) maxRepeat = currentRepeat;
+          } else {
+            currentRepeat = 1;
+          }
+        }
+
+        if (maxRepeat === 3) price += 10;
+        else if (maxRepeat === 4) price += 50;
+        else if (maxRepeat >= 5) price += 200;
+
+        // ៣. ឆែកលេខហុងស៊ុយ (Lucky Numbers)
+        if (numStr.includes("168")) price += 88;
+        if (numStr.includes("888") && maxRepeat < 3) price += 30;
+        if (numStr.includes("999") && maxRepeat < 3) price += 30;
+
+        return price;
+      }
+
+      // មុខងារចម្បង: លំហូរ ៦ ជំហាន (6-Step Flow)
       async function openPremiumAccountModal() {
-        // កំណត់ភាសាបច្ចុប្បន្ន ដើម្បីបង្ហាញ Placeholder ត្រូវ
         const isKh = window.currentLang === "kh";
 
-        const { value: formValues } = await Swal.fire({
+        // ==========================================
+        // STEP 1: បញ្ចូលលេខ និង ឆែកតម្លៃ (Search & Check)
+        // ==========================================
+        const { value: requestedNumber } = await Swal.fire({
           title: `<i class="fa-solid fa-crown" style="color:#d97706; font-size:2.5rem; margin-bottom:10px;"></i><br>${isKh ? "គណនីពិសេស" : "Premium Account"}`,
           html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px;">${isKh ? "សូមបញ្ចូលលេខគណនីដែលអ្នកចង់បាន (៨ ខ្ទង់ឡើងទៅ)" : "Enter your desired account number (min. 8 digits)"}</p>
-            <input id="swal-acc-name" class="swal2-input" placeholder="${isKh ? "ឈ្មោះគណនី (ឧ. លុយអាជីវកម្ម)" : "Account Name (e.g. Business)"}">
-            <input id="swal-acc-num" type="number" class="swal2-input" placeholder="${isKh ? "ឧទាហរណ៍: 88888888" : "e.g. 88888888"}" style="font-weight:bold; letter-spacing: 2px;">
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px;">${isKh ? "ស្វែងរកលេខគណនីដែលអ្នកស្រលាញ់" : "Search for your desired account number"}</p>
+            <input id="swal-search-num" type="number" class="swal2-input" placeholder="${isKh ? "បញ្ចូលលេខ (យ៉ាងហោច ៦ខ្ទង់)" : "Enter number (min 6 digits)"}" style="font-weight:bold; letter-spacing: 2px; text-align: center; font-size: 1.5rem;">
           `,
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           cancelButtonColor: "#f1f5f9",
-          confirmButtonText: isKh ? "បន្ត" : "Next",
+          confirmButtonText: `<i class="fa-solid fa-magnifying-glass"></i> ${isKh ? "ឆែកមើល" : "Check"}`,
           cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
           customClass: { popup: "premium-swal" },
           preConfirm: () => {
-            const name = document.getElementById("swal-acc-name").value;
-            const num = document.getElementById("swal-acc-num").value;
-            if (!name || !num || num.length < 8) {
+            const num = document.getElementById("swal-search-num").value;
+            if (!num || num.length < 6) {
               Swal.showValidationMessage(
                 isKh
-                  ? "សូមបំពេញឈ្មោះ និងលេខគណនីឱ្យបានត្រឹមត្រូវ!"
-                  : "Please enter valid name and number!",
+                  ? "លេខគណនីត្រូវមានយ៉ាងហោចណាស់ ៦ ខ្ទង់!"
+                  : "Account number must be at least 6 digits!",
               );
               return false;
             }
-            return { name, num };
+            return num;
           },
         });
 
-        if (formValues) {
-          Swal.fire({
-            icon: "info",
-            title: isKh ? "កំពុងភ្ជាប់ទៅ Backend" : "Connecting to Backend",
-            text: isKh
-              ? `ប្រព័ន្ធនឹងឆែកលេខ ${formValues.num} នៅជំហានបន្ទាប់!`
-              : `System will verify number ${formValues.num} next!`,
-            confirmButtonColor: "#004d40",
+        if (!requestedNumber) return;
+
+        // បង្ហាញ Loading ក្លែងក្លាយឱ្យមើលទៅ Professional
+        Swal.fire({
+          title: isKh ? "កំពុងត្រួតពិនិត្យ..." : "Checking...",
+          didOpen: () => Swal.showLoading(),
+        });
+        await new Promise((r) => setTimeout(r, 1000)); // រង់ចាំ 1 វិនាទី
+
+        // គណនាតម្លៃ
+        const price = calculatePremiumPrice(requestedNumber);
+        const priceDisplay =
+          price === 0
+            ? isKh
+              ? "ឥតគិតថ្លៃ"
+              : "FREE"
+            : `$${price.toLocaleString()}`;
+
+        const { isConfirmed: proceedToTNC } = await Swal.fire({
+          title: isKh ? "លេខនេះនៅទំនេរ! ✅" : "Number Available! ✅",
+          html: `
+            <div style="background: #f8fafc; border: 1px dashed #10b981; padding: 20px; border-radius: 15px; margin-top: 10px;">
+              <h2 style="margin: 0; color: #1e293b; letter-spacing: 3px; font-family: 'Courier New', monospace;">${requestedNumber}</h2>
+              <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+              <p style="margin: 0; font-size: 0.95rem; color: #64748b;">${isKh ? "តម្លៃគណនី:" : "Account Price:"} <b style="color: ${price === 0 ? "#10b981" : "#ef4444"}; font-size: 1.2rem;">${priceDisplay}</b></p>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#f1f5f9",
+          confirmButtonText: isKh ? "យកលេខនេះ" : "Get this number",
+          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
+          customClass: { popup: "premium-swal" },
+        });
+
+        if (!proceedToTNC) return;
+
+        // ==========================================
+        // STEP 2 & 3: យល់ព្រមលក្ខខណ្ឌ និង បញ្ជាក់ព័ត៌មាន
+        // ==========================================
+        const { value: accountData } = await Swal.fire({
+          title: isKh ? "បញ្ជាក់ព័ត៌មាន" : "Confirm Details",
+          html: `
+            <div style="text-align: left; margin-bottom: 15px;">
+              <label style="font-size: 0.85rem; color: #64748b; font-weight: bold;">${isKh ? "ឈ្មោះគណនី (ឧ. លុយរកស៊ី):" : "Account Name:"}</label>
+              <input id="swal-acc-name" class="swal2-input" placeholder="${isKh ? "បញ្ចូលឈ្មោះគណនី" : "Enter account name"}" style="margin-top: 5px; width: 100%; box-sizing: border-box;">
+            </div>
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; text-align: left; border: 1px solid #bbf7d0;">
+              <label style="display: flex; align-items: start; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="swal-tnc" style="width: 20px; height: 20px; margin-top: 2px; accent-color: #004d40;">
+                <span style="font-size: 0.85rem; color: #166534; line-height: 1.5;">
+                  ${isKh ? "ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា និងគោរពតាមលក្ខខណ្ឌប្រើប្រាស់គណនីពិសេសរបស់ U-Pay។" : "I agree to pay the fee and accept U-Pay premium account terms & conditions."}
+                </span>
+              </label>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#f1f5f9",
+          confirmButtonText: isKh ? "បន្តការទូទាត់" : "Proceed to Pay",
+          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "ត្រឡប់ក្រោយ" : "Back"}</span>`,
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const accName = document.getElementById("swal-acc-name").value;
+            const tnc = document.getElementById("swal-tnc").checked;
+            if (!accName) {
+              Swal.showValidationMessage(
+                isKh ? "សូមបញ្ចូលឈ្មោះគណនី!" : "Please enter account name!",
+              );
+              return false;
+            }
+            if (!tnc) {
+              Swal.showValidationMessage(
+                isKh
+                  ? "សូមយល់ព្រមលើលក្ខខណ្ឌសិន!"
+                  : "Please accept terms & conditions!",
+              );
+              return false;
+            }
+            return accName;
+          },
+        });
+
+        if (!accountData) return;
+
+        // ==========================================
+        // STEP 4 & 5: បញ្ចូល PIN ដើម្បីកាត់លុយ (Pay & PIN)
+        // ==========================================
+        const { value: pinCode } = await Swal.fire({
+          title: isKh ? "បញ្ចូលលេខសម្ងាត់ PIN" : "Enter PIN",
+          html: `
+            <p style="font-size: 0.9rem; color: #64748b;">${isKh ? "ទឹកប្រាក់ត្រូវទូទាត់សរុប:" : "Total amount to pay:"} <b style="color: #ef4444; font-size: 1.2rem;">${priceDisplay}</b></p>
+            <input id="swal-pin" type="password" class="swal2-input" placeholder="****" maxlength="4" style="text-align: center; letter-spacing: 10px; font-size: 1.8rem;">
+          `,
+          showCancelButton: true,
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#f1f5f9",
+          confirmButtonText: `<i class="fa-solid fa-lock"></i> ${isKh ? "ទូទាត់ & បង្កើតគណនី" : "Pay & Create"}`,
+          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const pin = document.getElementById("swal-pin").value;
+            if (!pin || pin.length !== 4) {
+              Swal.showValidationMessage(
+                isKh ? "PIN ត្រូវមាន ៤ ខ្ទង់!" : "PIN must be 4 digits!",
+              );
+              return false;
+            }
+            return pin;
+          },
+        });
+
+        if (!pinCode) return;
+
+        // ==========================================
+        // STEP 6: ដំណើរការ Backend និង បង្ហាញវិក្កយបត្រ (Success & Receipt)
+        // ==========================================
+        Swal.fire({
+          title: isKh ? "កំពុងបង្កើតគណនី..." : "Creating Account...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const res = await fetchAPI("/api/account/create-premium", {
+            username: user.username,
+            requestedNumber: requestedNumber,
+            accountName: accountData,
+            price: price,
+            pin: pinCode,
           });
+
+          if (res.success) {
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            )
+              .play()
+              .catch(() => {});
+
+            // គូរវិក្កយបត្រដ៏ស្រស់ស្អាត
+            Swal.fire({
+              title: isKh ? "ជោគជ័យ!" : "Success!",
+              html: `
+                <div style="background: #f8fafc; border-radius: 15px; padding: 20px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "ប្រភេទប្រតិបត្តិការ" : "Transaction"}</span>
+                    <b style="color: #1e293b; font-size: 0.85rem;">${isKh ? "ទិញលេខគណនីពិសេស" : "Premium Account"}</b>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "លេខគណនីថ្មី" : "New Account No."}</span>
+                    <b style="color: #0284c7; font-size: 0.95rem; font-family: monospace;">${requestedNumber}</b>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "ឈ្មោះគណនី" : "Account Name"}</span>
+                    <b style="color: #1e293b; font-size: 0.85rem;">${accountData}</b>
+                  </div>
+                  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #64748b; font-size: 0.9rem;">${isKh ? "ប្រាក់បានទូទាត់" : "Total Paid"}</span>
+                    <b style="color: #ef4444; font-size: 1.3rem;">$${price.toLocaleString()}</b>
+                  </div>
+                </div>
+              `,
+              icon: "success",
+              confirmButtonColor: "#004d40",
+              confirmButtonText: isKh ? "រួចរាល់" : "Done",
+              customClass: { popup: "premium-swal" },
+            });
+
+            // Update user balance in sessionStorage (Optional)
+            if (user && user.balance) {
+              user.balance -= price;
+              sessionStorage.setItem("user", JSON.stringify(user));
+            }
+          } else {
+            Swal.fire("បរាជ័យ / Failed", res.message, "error");
+          }
+        } catch (error) {
+          Swal.fire("Error", "Network connection error", "error");
         }
       }
 

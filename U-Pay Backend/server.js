@@ -22,6 +22,7 @@ const financeRoutes = require("./routes/financeRoutes");
 const communicationRoutes = require("./routes/communicationRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
 const ufundRoutes = require("./routes/ufundRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 
 const PORT = process.env.PORT || 3000;
 
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "../public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
 app.use(cors({ origin: "*" }));
 app.use("/api/merchants", merchantRoutes);
+app.use("/api/account", accountRoutes);
 
 // ភ្ជាប់ Database និងចាប់ផ្តើមប្រព័ន្ធ
 connectDB()
