@@ -202,7 +202,7 @@ exports.depositFund = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-// ៤. អញ្ជើញមិត្តភក្តិ (Invite)
+// ៤. អញ្ជើញមិត្តភក្តិ (Invite) - កំណត់អោយកាត់លុយស្មើម្ចាស់គម្រោង
 // ---------------------------------------------------------
 exports.inviteMember = async (req, res) => {
   const { fundId, inviteeIdentifier, inviterUsername } = req.body;
@@ -231,19 +231,30 @@ exports.inviteMember = async (req, res) => {
         message: "គាត់ស្ថិតក្នុងក្រុមរួចហើយ!",
       });
 
+    // 🔥 ស្វែងរកម្ចាស់គម្រោង (Admin) ដើម្បី Copy ការកំណត់កាត់លុយរបស់គាត់
+    const adminMember = fund.members.find((m) => m.role === "admin");
+
     fund.members.push({
       username: invitee.username,
       fullName: invitee.fullName || invitee.username,
       role: "member",
-      status: "pending", // រង់ចាំគាត់ Accept ក្នុង Notification
+      status: "pending",
+      contributedAmount: 0,
+      // 🔥 Copy ច្បាប់កាត់លុយស្វ័យប្រវត្តិពី Admin យកមកដាក់អោយសមាជិកនេះ!
+      autoDeposit: {
+        enabled: adminMember.autoDeposit.enabled,
+        amount: adminMember.autoDeposit.amount,
+        frequency: adminMember.autoDeposit.frequency,
+        time: adminMember.autoDeposit.time,
+      },
     });
 
-    // ផ្ញើ Notification ទៅគាត់
+    // ផ្ញើ Notification សំបុត្រអញ្ជើញទៅគាត់
     if (!invitee.notifications) invitee.notifications = [];
     invitee.notifications.unshift({
       id: "INV-" + Date.now(),
       title: "ការអញ្ជើញចូល U-Fund 🎯",
-      message: `${inviterUsername} បានអញ្ជើញអ្នកចូលរួមសន្សំប្រាក់ក្នុងក្រុម "${fund.name}"។`,
+      message: `${inviterUsername} បានអញ្ជើញអ្នកចូលរួមសន្សំប្រាក់ក្នុងក្រុម "${fund.name}" (លក្ខខណ្ឌ: $${adminMember.autoDeposit.amount} / ${adminMember.autoDeposit.frequency})។`,
       date: getFormattedDate(),
       isRead: false,
       type: "ufund_invite",
@@ -258,7 +269,6 @@ exports.inviteMember = async (req, res) => {
     res.json({ success: false, message: "បរាជ័យក្នុងការផ្ញើការអញ្ជើញ" });
   }
 };
-
 // ---------------------------------------------------------
 // ៥. ឆ្លើយតបការអញ្ជើញ (Accept / Decline) ពី Notification
 // ---------------------------------------------------------
