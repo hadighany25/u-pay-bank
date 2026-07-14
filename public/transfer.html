@@ -1139,6 +1139,20 @@
         const boxUI = document.getElementById("receiverBoxUI");
         const iconUI = document.getElementById("receiverIconUI");
 
+        // 🔥 ១. ថែមការចាប់យក QR របស់ U-Fund នៅត្រង់នេះ
+        if (acc.startsWith("UFND-")) {
+          nameDisplay.innerText = "U-Fund (Scan Pay)"; // បង្ហាញឈ្មោះជា U-Fund
+          status.innerText = "✔";
+          status.className = "check-status status-ok";
+          boxUI.style.borderColor = "#10b981";
+          boxUI.style.background = "#ecfdf5";
+          iconUI.style.background = "#10b981";
+          iconUI.style.color = "white";
+          targetUserIsKHR = false; // U-Fund ប្រើតែដុល្លារ
+          calculateExchangePreview();
+          return true; // បញ្ឈប់កុំឱ្យវាទៅឆែក API ធម្មតា
+        }
+
         if (acc.length < 8) {
           nameDisplay.innerText = "...";
           status.innerText = "";
@@ -1368,6 +1382,9 @@
         const amount = document.getElementById("amount").value;
         const fromAccountType = document.getElementById("fromAccount").value;
 
+        // 🔥 ទាញយកលេខគណនី / QR
+        const receiverAcc = document.getElementById("receiverAcc").value;
+
         if (pin.length === 4) {
           closeModal("pinModal");
           Swal.fire({
@@ -1375,68 +1392,108 @@
             didOpen: () => Swal.showLoading(),
           });
 
-          const res = await fetch("/api/transfer", {
-            method: "POST",
-            headers: authHeaders, // ប្រើ authHeaders ដែលមាន Token ស្រាប់
-            body: JSON.stringify({
-              senderUsername: user.username,
-              receiverAccount: document.getElementById("receiverAcc").value,
+          // 🔥 ១. រៀបចំ API និងទិន្នន័យ ទៅតាមប្រភេទការទូទាត់ (ធម្មតា ឬ U-Fund)
+          let apiUrl = "/api/transfer";
+          let requestBody = {
+            senderUsername: user.username,
+            receiverAccount: receiverAcc,
+            amount: amount,
+            remark: document.getElementById("remark").value,
+            pin: pin,
+            trxMethod: method,
+            currency: fromAccountType,
+          };
+
+          // បើសិនជា QR របស់ U-Fund គឺត្រូវប្តូរ API ទៅកាន់ ufundController
+          if (receiverAcc.startsWith("UFND-")) {
+            apiUrl = "/api/ufund/scan-pay";
+            requestBody = {
+              username: user.username,
+              qrString: receiverAcc,
               amount: amount,
-              remark: document.getElementById("remark").value,
-              pin: pin,
-              trxMethod: method,
-              currency: fromAccountType,
-            }),
-          });
-          const data = await res.json();
-          Swal.close();
+              pin: pin, // ផ្ញើ PIN ទៅក្រែងលោ Backend បងចង់ឆែកសុវត្ថិភាព
+            };
+          }
 
-          if (data.success) {
-            if (fromAccountType === "USD") user.balance = data.newBalance;
-            else user.balanceKHR = data.newBalance;
-            user.transactions.unshift(data.slipData);
-            sessionStorage.setItem("user", JSON.stringify(user));
-            new Audio(
-              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-            ).play();
+          try {
+            const res = await fetch(apiUrl, {
+              method: "POST",
+              headers: authHeaders, // ប្រើ authHeaders ដែលមាន Token ស្រាប់
+              body: JSON.stringify(requestBody),
+            });
+            const data = await res.json();
+            Swal.close();
 
-            if (typeof showAppNotification === "function") {
-              let lang = localStorage.getItem("lang") || "en";
-              let tTitle =
-                lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
-              let tMsg =
-                lang === "kh"
-                  ? `អ្នកបានវេរ ${amount} ទៅកាន់គណនី ${document.getElementById("receiverAcc").value}`
-                  : `You have transferred ${amount} to account ${document.getElementById("receiverAcc").value}`;
-              showAppNotification(tTitle, tMsg, "send");
-            }
+            if (data.success) {
+              // 🔥 ២. បើជា U-Fund Scan Pay លោតជោគជ័យរួចបញ្ជូនទៅ U-Fund វិញ
+              if (receiverAcc.startsWith("UFND-")) {
+                new Audio(
+                  "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                ).play();
+                Swal.fire({
+                  icon: "success",
+                  title: "ដាក់ប្រាក់ជោគជ័យ",
+                  text: data.message,
+                  confirmButtonColor: "#004d40",
+                }).then(() => {
+                  window.location.href = "ufund.html";
+                });
+                return; // បញ្ឈប់កុំឱ្យវាលោតទៅកងវិលផ្សងសំណាងខាងក្រោម
+              }
 
-            if (orderId && callbackUrl) {
-              fetch(callbackUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  orderId: orderId,
-                  amount: urlParams.get("amount"),
-                  user: shopBuyerName,
-                  items: items,
-                }),
-              }).catch((err) => console.log("Webhook Error:", err));
-            }
+              // --- ៣. កូដចាស់ៗ សម្រាប់វេរលុយធម្មតា (P2P/Merchant) ---
+              if (fromAccountType === "USD") user.balance = data.newBalance;
+              else user.balanceKHR = data.newBalance;
 
-            const threshold = fromAccountType === "USD" ? 10 : 40000;
-            if (parseFloat(amount) >= threshold) {
-              currentSlipData = data.slipData;
-              document.getElementById("spinModal").style.display = "flex";
-              document.getElementById("wheelCanvas").style.transition = "none";
-              document.getElementById("wheelCanvas").style.transform =
-                "rotate(0deg)";
-              spinIsActive = false;
+              user.transactions.unshift(data.slipData);
+              sessionStorage.setItem("user", JSON.stringify(user));
+
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              ).play();
+
+              if (typeof showAppNotification === "function") {
+                let lang = localStorage.getItem("lang") || "en";
+                let tTitle =
+                  lang === "kh" ? "វេរប្រាក់ជោគជ័យ" : "Transfer Successful";
+                let tMsg =
+                  lang === "kh"
+                    ? `អ្នកបានវេរ ${amount} ទៅកាន់គណនី ${receiverAcc}`
+                    : `You have transferred ${amount} to account ${receiverAcc}`;
+                showAppNotification(tTitle, tMsg, "send");
+              }
+
+              if (orderId && callbackUrl) {
+                fetch(callbackUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    orderId: orderId,
+                    amount: urlParams.get("amount"),
+                    user: shopBuyerName,
+                    items: items,
+                  }),
+                }).catch((err) => console.log("Webhook Error:", err));
+              }
+
+              const threshold = fromAccountType === "USD" ? 10 : 40000;
+              if (parseFloat(amount) >= threshold) {
+                currentSlipData = data.slipData;
+                document.getElementById("spinModal").style.display = "flex";
+                document.getElementById("wheelCanvas").style.transition =
+                  "none";
+                document.getElementById("wheelCanvas").style.transform =
+                  "rotate(0deg)";
+                spinIsActive = false;
+              } else {
+                showSlipData(data.slipData);
+              }
             } else {
-              showSlipData(data.slipData);
+              Swal.fire("Failed", data.message, "error");
             }
-          } else {
-            Swal.fire("Failed", data.message, "error");
+          } catch (error) {
+            console.error("API Error:", error);
+            Swal.fire("Error", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
           }
         }
       }

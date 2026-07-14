@@ -500,3 +500,127 @@ exports.closeOrCancelFund = async (req, res) => {
     res.json({ success: false, message: "បរាជ័យក្នុងការបិទគម្រោង" });
   }
 };
+
+// ---------------------------------------------------------
+// ៨. មុខងារ Scan QR ដាក់ប្រាក់ចូល U-Fund (Scan Pay)
+// ---------------------------------------------------------
+exports.scanDepositFund = async (req, res) => {
+  const { username, qrString, amount } = req.body;
+  try {
+    // ១. ស្វែងរកគម្រោងតាមរយៈ QR String
+    const fund = await UFund.findOne({ qrCodeString: qrString });
+    if (!fund)
+      return res.json({
+        success: false,
+        message: "QR Code មិនត្រឹមត្រូវ ឬគម្រោងត្រូវបានលុប!",
+      });
+
+    const user = await User.findOne({ username });
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+
+    if (!user || !centralBank)
+      return res.json({ success: false, message: "គណនីមិនត្រឹមត្រូវ!" });
+
+    const depositAmount = parseFloat(amount);
+    if (depositAmount <= 0)
+      return res.json({
+        success: false,
+        message: "ចំនួនទឹកប្រាក់ត្រូវធំជាង ០!",
+      });
+    if (user.balance < depositAmount)
+      return res.json({
+        success: false,
+        message: "សមតុល្យរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
+      });
+
+    // ២. ឆែកមើលថាតើគាត់ជាសមាជិកឬនៅ? បើនៅទេ អោយគាត់ចូលជាសមាជិកស្វ័យប្រវត្តិ (Auto-Join)
+    let member = fund.members.find((m) => m.username === username);
+    if (!member) {
+      fund.members.push({
+        username: user.username,
+        fullName: user.fullName || user.username,
+        role: "member",
+        status: "active",
+        contributedAmount: 0,
+        autoDeposit: { enabled: false }, // អ្នក Scan ថ្មី មិនមានកំណត់ Auto-Deduct ទេ
+      });
+      member = fund.members[fund.members.length - 1];
+    }
+
+    // ៣. 💸 ប្រព័ន្ធកាត់លុយ (Double-Entry)
+    user.balance -= depositAmount;
+    centralBank.balance += depositAmount;
+    fund.currentAmount += depositAmount;
+    member.contributedAmount += depositAmount;
+    member.status = "active";
+
+    const dateNow = getFormattedDate();
+    const refId = generateRefId();
+    const hash = generateHash();
+    const depositorName = user.fullName || user.username;
+
+    // ៤. កត់ត្រាវិក្កយបត្រ (User Scan Pay)
+    await Transaction.create({
+      username: user.username,
+      refId: refId,
+      hash: hash,
+      date: dateNow,
+      type: "U-Fund Scan Pay",
+      amount: -depositAmount,
+      currency: "USD",
+      senderName: depositorName,
+      receiverName: `U-Fund: ${fund.name}`,
+      remark: "QR Scan Deposit",
+      status: "Success",
+      trxMethod: "Scan QR",
+    });
+
+    // ៥. កត់ត្រាវិក្កយបត្រ (Central Bank Receive)
+    await Transaction.create({
+      username: centralBank.username,
+      refId: refId,
+      hash: hash,
+      date: dateNow,
+      type: "U-Fund Pool Receive",
+      amount: depositAmount,
+      currency: "USD",
+      senderName: depositorName,
+      receiverName: "U-Pay Central Bank",
+      remark: `QR Scan for U-Fund: ${fund.name}`,
+      status: "Success",
+      trxMethod: "System Transfer",
+    });
+
+    // ៦. 🔔 ផ្ញើ Notification ទៅកាន់សមាជិកផ្សេងទៀត
+    const notifyPromises = fund.members.map(async (m) => {
+      if (m.username !== user.username) {
+        const otherMember = await User.findOne({ username: m.username });
+        if (otherMember) {
+          if (!otherMember.notifications) otherMember.notifications = [];
+          otherMember.notifications.unshift({
+            id: "FND-SCAN-" + Date.now() + Math.floor(Math.random() * 100),
+            title: "មានការដាក់ប្រាក់តាម QR! 💸",
+            message: `${depositorName} បាន Scan ដាក់ប្រាក់ $${depositAmount.toLocaleString()} ចូលគម្រោង "${fund.name}"។`,
+            date: dateNow,
+            isRead: false,
+            type: "ufund_deposit",
+          });
+          otherMember.markModified("notifications");
+          return otherMember.save();
+        }
+      }
+    });
+
+    await Promise.all(notifyPromises);
+    await Promise.all([user.save(), centralBank.save(), fund.save()]);
+
+    res.json({
+      success: true,
+      message: "Scan បង់ប្រាក់ចូល U-Fund ជោគជ័យ!",
+      fund,
+    });
+  } catch (error) {
+    console.error("Scan U-Fund Error:", error);
+    res.json({ success: false, message: "បរាជ័យក្នុងការ Scan ដាក់ប្រាក់" });
+  }
+};

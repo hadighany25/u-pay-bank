@@ -862,6 +862,13 @@
           "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
         ).play();
 
+        // 🔥 ១. ឆែកមើលទីនេះ៖ បើវាជា QR របស់ U-Fund
+        if (decodedText.startsWith("UFND-")) {
+          handleUFundScan(decodedText);
+          return; // បញ្ឈប់កុំឱ្យវារត់ទៅកូដវេរលុយខាងក្រោម
+        }
+
+        // ២. កូដវេរលុយចាស់របស់បង (រក្សាទុកដដែល)
         if (
           decodedText.includes("transfer.html") &&
           decodedText.includes("acc=")

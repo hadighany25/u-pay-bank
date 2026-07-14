@@ -17,5 +17,7 @@ router.post("/respond-invite", ufundController.respondToInvite);
 // វដ្តជីវិតគម្រោង (Lifecycle)
 router.post("/edit", ufundController.editFund);
 router.post("/close", ufundController.closeOrCancelFund);
+// បន្ថែមនៅពីក្រោម Route ចាស់ៗរបស់បង
+router.post("/scan-pay", ufundController.scanDepositFund);
 
 module.exports = router;
