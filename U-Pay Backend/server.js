@@ -31,8 +31,6 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static(path.join(__dirname, "../public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
 app.use(cors({ origin: "*" }));
-app.use("/api/merchants", merchantRoutes);
-app.use("/api/account", accountRoutes);
 
 // ភ្ជាប់ Database និងចាប់ផ្តើមប្រព័ន្ធ
 connectDB()
@@ -80,6 +78,8 @@ app.use("/api/card", cardRoutes);
 app.use("/api", financeRoutes);
 app.use("/api", communicationRoutes);
 app.use("/api/ufund", ufundRoutes);
+app.use("/api/merchants", merchantRoutes);
+app.use("/api/account", accountRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
