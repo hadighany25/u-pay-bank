@@ -633,8 +633,10 @@
                   <i class="fa-solid fa-pen-to-square"></i>
                 </div>
                 <div class="setting-info">
-                  <h4>Edit Fund Details</h4>
-                  <p>Change name, target, or auto-deposit rules</p>
+                  <h4 data-i18n="ufund_act_edit">Edit Fund Details</h4>
+                  <p data-i18n="ufund_act_edit_desc">
+                    Change name, target, or auto-deposit rules
+                  </p>
                 </div>
               </div>
               <i
@@ -658,8 +660,16 @@
                   ></i>
                 </div>
                 <div class="setting-info">
-                  <h4 id="closeFundText" style="color: #ef4444">Cancel Fund</h4>
-                  <p id="closeFundDesc">Stop and refund all members</p>
+                  <h4
+                    id="closeFundText"
+                    style="color: #ef4444"
+                    data-i18n="ufund_close_cancel"
+                  >
+                    Cancel Fund
+                  </h4>
+                  <p id="closeFundDesc" data-i18n="ufund_close_cancel_desc">
+                    Stop and refund all members
+                  </p>
                 </div>
               </div>
               <i
@@ -804,29 +814,28 @@
             const themeClass = f.type === "group" ? "theme-group" : "";
             const badgeIcon = f.type === "group" ? "fa-users" : "fa-user";
 
-            // បង្កើតកាតសន្សំ
+            // បន្ថែម data-i18n ទៅលើអក្សរដែលគូរដោយ JS
             slider.innerHTML += `
               <div class="fund-perspective">
                 <div class="fund-inner ${themeClass}">
                   <div class="fund-top">
-                    <h3 class="fund-name">${f.name} <br><span style="font-size:0.7rem; font-weight:normal; color:rgba(255,255,255,0.7)">Creator: ${f.creator}</span></h3>
+                    <h3 class="fund-name">${f.name} <br><span style="font-size:0.7rem; font-weight:normal; color:rgba(255,255,255,0.7)"><span data-i18n="ufund_creator">Creator:</span> ${f.creator}</span></h3>
                     <div class="fund-type-badge"><i class="fa-solid ${badgeIcon}"></i> <span style="text-transform:capitalize;">${f.type}</span></div>
                   </div>
                   <div class="fund-middle">
-                    <p class="fund-target">Target: $${f.targetAmount.toLocaleString()}</p>
+                    <p class="fund-target"><span data-i18n="ufund_target">Target:</span> $${f.targetAmount.toLocaleString()}</p>
                     <h1 class="fund-amount">$${f.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
                   </div>
                   <div class="fund-bottom">
-                    <div class="progress-header"><span>Progress</span><span>${percent}%</span></div>
+                    <div class="progress-header"><span data-i18n="ufund_progress">Progress</span><span>${percent}%</span></div>
                     <div class="progress-bg"><div class="progress-bar ${isFull ? "success" : ""}" style="width: ${percent}%"></div></div>
                   </div>
                 </div>
               </div>`;
 
-            // បង្កើតចំណុចប្រាប់ទីតាំង (Dots)
             dots.innerHTML += `<div class="dot ${i === currentFundIndex ? "active" : ""}"></div>`;
           });
-          syncFundActions(); // រៀបចំបិទបើកសិទ្ធិសម្រាប់កាតនីមួយៗ
+          syncFundActions();
         } else {
           document.getElementById("noFundState").style.display = "block";
           document.getElementById("hasFundState").style.display = "none";
@@ -857,11 +866,9 @@
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
 
-        // កំណត់សិទ្ធិអ្នកបង្កើតគម្រោង និងស្ថានភាពគម្រោង (ពេញឬនៅ?)
         const isCreator = currentFund.creator === user.username;
         const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
-        // លាក់/បង្ហាញប៊ូតុង អញ្ជើញ, កែប្រែ, បិទគម្រោង
         document.getElementById("btnInviteFriend").style.display =
           currentFund.type === "group" && isCreator ? "flex" : "none";
         document.getElementById("btnEditFund").style.display = isCreator
@@ -871,26 +878,25 @@
           ? "flex"
           : "none";
 
-        // ដូរទម្រង់ UI ប៊ូតុងបិទគម្រោង ទៅតាមស្ថានភាពកាត (Cancel / Success)
         const btnCloseIcon = document.getElementById("closeFundIcon");
         const btnCloseText = document.getElementById("closeFundText");
         const btnCloseDesc = document.getElementById("closeFundDesc");
 
+        // ដូរ data-i18n ទៅតាមលក្ខខណ្ឌ ពេញ ឬ មិនពេញ
         if (isFull) {
           btnCloseIcon.className = "fa-solid fa-check-double";
           btnCloseIcon.style.color = "#10b981";
-          btnCloseText.innerText = "Success & Close Fund";
+          btnCloseText.setAttribute("data-i18n", "ufund_close_success");
           btnCloseText.style.color = "#10b981";
-          btnCloseDesc.innerText = "Transfer pool to your account";
+          btnCloseDesc.setAttribute("data-i18n", "ufund_close_success_desc");
         } else {
           btnCloseIcon.className = "fa-solid fa-power-off";
           btnCloseIcon.style.color = "#ef4444";
-          btnCloseText.innerText = "Cancel Fund";
+          btnCloseText.setAttribute("data-i18n", "ufund_close_cancel");
           btnCloseText.style.color = "#ef4444";
-          btnCloseDesc.innerText = "Stop and refund all members";
+          btnCloseDesc.setAttribute("data-i18n", "ufund_close_cancel_desc");
         }
 
-        // បង្ហាញបញ្ជីសមាជិក (Leaderboard)
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
         const sortedMembers = [...currentFund.members].sort(
@@ -899,14 +905,14 @@
 
         sortedMembers.forEach((m) => {
           let stClass = "st-active";
-          let stText = "Active";
+          let stI18n = "ufund_status_active";
           if (m.status === "pending") {
             stClass = "st-pending";
-            stText = "Pending";
+            stI18n = "ufund_status_pending";
           }
           if (m.status === "overdue") {
             stClass = "st-overdue";
-            stText = "Overdue";
+            stI18n = "ufund_status_overdue";
           }
 
           container.innerHTML += `
@@ -915,12 +921,17 @@
                     <div class="member-avatar">${m.fullName.charAt(0).toUpperCase()}</div>
                     <div>
                         <div class="member-name">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}</div>
-                        <span class="member-status ${stClass}">${stText}</span>
+                        <span class="member-status ${stClass}" data-i18n="${stI18n}"></span>
                     </div>
                 </div>
                 <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             </div>`;
         });
+
+        // 🔥 បញ្ជាឱ្យប្រព័ន្ធបកប្រែដំណើរការម្តងទៀត បន្ទាប់ពីគូរកូដថ្មីរួច
+        if (typeof window.applyLanguage === "function") {
+          window.applyLanguage();
+        }
       }
 
       function toggleMembersList() {

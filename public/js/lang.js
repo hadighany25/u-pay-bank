@@ -308,6 +308,18 @@ const translations = {
     nav_scan: "Scan",
     nav_history: "History",
     nav_settings: "Settings",
+    ufund_act_edit: "Edit Fund Details",
+    ufund_act_edit_desc: "Change name, target, or auto-deposit rules",
+    ufund_close_cancel: "Cancel Fund",
+    ufund_close_cancel_desc: "Stop and refund all members",
+    ufund_close_success: "Success & Close Fund",
+    ufund_close_success_desc: "Transfer pool to your account",
+    ufund_creator: "Creator:",
+    ufund_target: "Target:",
+    ufund_progress: "Progress",
+    ufund_status_active: "Active",
+    ufund_status_pending: "Pending",
+    ufund_status_overdue: "Overdue",
   },
 
   // ភាសាខ្មែរ (Khmer) Translation
@@ -621,6 +633,18 @@ const translations = {
   nav_scan: "ស្កេន",
   nav_history: "ប្រវត្តិ",
   nav_settings: "ការកំណត់",
+  ufund_act_edit: "កែប្រែព័ត៌មានគម្រោង",
+  ufund_act_edit_desc: "កែឈ្មោះ គោលដៅ ឬលក្ខខណ្ឌផ្សេងៗ",
+  ufund_close_cancel: "រំសាយគម្រោង",
+  ufund_close_cancel_desc: "បញ្ឈប់ និងបង្វិលប្រាក់សងសមាជិកវិញ",
+  ufund_close_success: "គម្រោងជោគជ័យ (ដកប្រាក់)",
+  ufund_close_success_desc: "ផ្ទេរប្រាក់សន្សំចូលគណនីរបស់អ្នក",
+  ufund_creator: "អ្នកបង្កើត:",
+  ufund_target: "គោលដៅ:",
+  ufund_progress: "ដំណើរការ",
+  ufund_status_active: "សកម្ម",
+  ufund_status_pending: "រង់ចាំ",
+  ufund_status_overdue: "យឺតយ៉ាវ",
 };
 
 function applyLanguage() {
