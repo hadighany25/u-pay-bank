@@ -788,10 +788,35 @@
                   </div>
                 `;
               } else {
-                // ចុចរួចហើយ លាក់ប៊ូតុងចេញ តែរក្សាអក្សរដដែល គ្រាន់តែដូរពណ៌ Icon
+                // ចុចរួចហើយ លាក់ប៊ូតុងចេញ តែរក្សាអក្សរដដែល គ្រាន់តែដូរពណ៌ Icon និងបន្ថែមអក្សរបញ្ជាក់
                 iconBg = "#f1f5f9";
                 iconColor = "#94a3b8";
+                displayMsg += ` <br><b style="color:#10b981; font-size: 0.8rem;">(បានឆ្លើយតបរួចរាល់)</b>`;
               }
+            }
+            // ✅ សារ U-Fund Deposit (ពេលមានគេដាក់លុយ ឬ កាត់លុយ Auto ជោគជ័យ)
+            else if (m.type === "ufund_deposit") {
+              iconClass = "fa-solid fa-coins";
+              iconBg = "#dcfce7";
+              iconColor = "#16a34a";
+            }
+            // 🎉 សារ U-Fund Success (ពេលគម្រោងដល់គោលដៅ)
+            else if (m.type === "ufund_success") {
+              iconClass = "fa-solid fa-check-double";
+              iconBg = "#d1fae5";
+              iconColor = "#059669";
+            }
+            // ⚠️ សារ U-Fund Cancelled (ពេលគម្រោងត្រូវលុបចោល)
+            else if (m.type === "ufund_cancelled") {
+              iconClass = "fa-solid fa-ban";
+              iconBg = "#fee2e2";
+              iconColor = "#dc2626";
+            }
+            // ❌ សារ U-Fund Fail (ពេលកាត់លុយ Auto អត់បានព្រោះលុយអត់គ្រប់)
+            else if (m.type === "ufund_fail") {
+              iconClass = "fa-solid fa-triangle-exclamation";
+              iconBg = "#fef08a";
+              iconColor = "#ca8a04";
             }
 
             return `
