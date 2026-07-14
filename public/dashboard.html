@@ -1958,6 +1958,10 @@
                 ? "text-orange"
                 : "text-red";
           }
+          // 🎯 ប្តូរ Icon សម្រាប់ប្រតិបត្តិការ U-Fund ទាំងអស់ ទៅជារូបកូនជ្រូក
+          else if (t.type && t.type.includes("U-Fund")) {
+            iconClass = "fa-piggy-bank";
+          }
           // 🎁 កំណត់ Icon សម្រាប់ E-Gift, Fee និង Promo Code
           else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
@@ -1976,7 +1980,7 @@
             t.type.includes("System")
           ) {
             // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal
-            iconClass = "fa-money-bill-transfer"; // ជារូបលុយផ្ទេរចុះឡើង (ឬដាក់ "fa-wallet" ក៏បាន)
+            iconClass = "fa-money-bill-transfer";
             bgClass = isIncome ? "bg-green" : "bg-red";
             textClass = isIncome ? "text-green" : "text-red";
           }
