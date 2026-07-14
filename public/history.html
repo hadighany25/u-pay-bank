@@ -714,9 +714,11 @@
         });
       }
 
+      // ==========================================
+      // ១. មុខងារគូរសារ (Render Messages)
+      // ==========================================
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
-        // បន្ថែម .reverse() ដើម្បីឱ្យសារថ្មីៗលោតមកលើគេ
         const activeMsgs = (messages || [])
           .filter((m) => !deletedMessages.includes(m.date + m.title))
           .reverse();
@@ -734,21 +736,17 @@
             let iconColor = "#0284c7";
             let clickAction = "";
             let cursorStyle = "";
-            let actionBtns = ""; // 🔥 បន្ថែមអថេរនេះសម្រាប់ដាក់ប៊ូតុង
+            let actionBtns = "";
 
-            // 🎁 ឆែកមើលបើជាសារអាំងប៉ាវ (អ្នកទទួល)
+            // 🎁 សារអាំងប៉ាវ
             if (m.type === "egift_receive") {
               iconClass = "fa-solid fa-gift";
-
               if (!m.isRead) {
-                // មិនទាន់បើក ឱ្យលោតពណ៌ក្រហម និងអាចចុចបាន
                 displayMsg =
                   "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក...";
                 iconBg = "#fee2e2";
                 iconColor = "#dc2626";
                 cursorStyle = "cursor: pointer;";
-
-                // ត្រៀមទិន្នន័យដើម្បីបោះចូលទៅ Modal Surprise និង API
                 const amt = m.egiftData?.amount || 0;
                 const cur = m.egiftData?.currency || "USD";
                 const sender =
@@ -756,31 +754,23 @@
                 const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
                 const notifId = m._id || m.id || "";
                 const senderUsername = m.egiftData?.senderUsername || "";
-
                 clickAction = `onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}', '${notifId}', '${senderUsername}')"`;
               } else {
-                // បើករួចហើយ លោតពណ៌បៃតង មិនឱ្យចុច Surprise ម្តងទៀតទេ
                 displayMsg = "✅ អ្នកបានបើកអាំងប៉ាវនេះរួចរាល់ហើយ។";
                 iconBg = "#d1fae5";
                 iconColor = "#10b981";
               }
-            }
-            // 🎁 សារសម្រាប់អ្នកផ្ញើ ពេលគេបើកអាំងប៉ាវរួច
-            else if (m.type === "egift_opened") {
+            } else if (m.type === "egift_opened") {
               iconClass = "fa-solid fa-envelope-open";
-              iconBg = "#fce7f3"; // ពណ៌ផ្កាឈូក
+              iconBg = "#fce7f3";
               iconColor = "#db2777";
             }
             // 🎯 សារអញ្ជើញចូល U-Fund
             else if (m.type === "ufund_invite") {
               iconClass = "fa-solid fa-bullseye";
-
               if (!m.isRead) {
-                // មិនទាន់បានចុច គឺលោតពណ៌ខៀវ និងបង្ហាញប៊ូតុង
                 iconBg = "#ecfeff";
                 iconColor = "#0891b2";
-
-                // ប្រើ event.stopPropagation() ដើម្បីការពារកុំឱ្យពេលចុចប៊ូតុង ប៉ះពាល់ដល់ div ធំ
                 actionBtns = `
                   <div style="margin-top: 10px; display: flex; gap: 10px;">
                     <button onclick="event.stopPropagation(); respondUFundInvite('${m.fundId}', '${m._id || m.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
@@ -788,32 +778,25 @@
                   </div>
                 `;
               } else {
-                // ចុចរួចហើយ លាក់ប៊ូតុងចេញ តែរក្សាអក្សរដដែល គ្រាន់តែដូរពណ៌ Icon និងបន្ថែមអក្សរបញ្ជាក់
                 iconBg = "#f1f5f9";
                 iconColor = "#94a3b8";
                 displayMsg += ` <br><b style="color:#10b981; font-size: 0.8rem;">(បានឆ្លើយតបរួចរាល់)</b>`;
               }
             }
-            // ✅ សារ U-Fund Deposit (ពេលមានគេដាក់លុយ ឬ កាត់លុយ Auto ជោគជ័យ)
+            // ✅ សារផ្សេងៗរបស់ U-Fund
             else if (m.type === "ufund_deposit") {
               iconClass = "fa-solid fa-coins";
               iconBg = "#dcfce7";
               iconColor = "#16a34a";
-            }
-            // 🎉 សារ U-Fund Success (ពេលគម្រោងដល់គោលដៅ)
-            else if (m.type === "ufund_success") {
+            } else if (m.type === "ufund_success") {
               iconClass = "fa-solid fa-check-double";
               iconBg = "#d1fae5";
               iconColor = "#059669";
-            }
-            // ⚠️ សារ U-Fund Cancelled (ពេលគម្រោងត្រូវលុបចោល)
-            else if (m.type === "ufund_cancelled") {
+            } else if (m.type === "ufund_cancelled") {
               iconClass = "fa-solid fa-ban";
               iconBg = "#fee2e2";
               iconColor = "#dc2626";
-            }
-            // ❌ សារ U-Fund Fail (ពេលកាត់លុយ Auto អត់បានព្រោះលុយអត់គ្រប់)
-            else if (m.type === "ufund_fail") {
+            } else if (m.type === "ufund_fail") {
               iconClass = "fa-solid fa-triangle-exclamation";
               iconBg = "#fef08a";
               iconColor = "#ca8a04";
@@ -825,7 +808,7 @@
             <div class="msg-content">
               <h4>${m.title}</h4>
               <p>${displayMsg}</p>
-              ${actionBtns} <!-- 🔴 ប៊ូតុងនឹងលោតចេញនៅទីនេះ បើមិនទាន់ចុច -->
+              ${actionBtns}
               <span class="msg-date"><i class="fa-regular fa-clock"></i> ${m.date}</span>
             </div>
             <button class="msg-del-btn" onclick="event.stopPropagation(); deleteMessage('${m.title}', '${m.date}')">
@@ -835,6 +818,49 @@
           `;
           })
           .join("");
+      }
+
+      // ==========================================
+      // ២. មុខងារឆ្លើយតប U-Fund (សម្រាប់ History.html)
+      // ==========================================
+      async function respondUFundInvite(fundId, notifId, response) {
+        try {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/ufund/respond-invite", {
+            method: "POST",
+            headers: authHeadersFetch, // ប្រើអថេរ header របស់ History.html
+            body: JSON.stringify({
+              username: sessionUser.username, // ប្រើអថេរ User របស់ History.html
+              fundId: fundId,
+              notifId: notifId,
+              response: response, // 'accept' ឬ 'decline'
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ!",
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+            }).then(() => {
+              // ពេលចុចជោគជ័យ ឱ្យវា Refresh Page ដើម្បី Update ទិន្នន័យ
+              window.location.reload();
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
       }
 
       // 🔥 មុខងារថ្មី៖ បើកអាំងប៉ាវ (Surprise Popup) រួចបាញ់ API
