@@ -1,12 +1,17 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- ==========================================
+         ១. ផ្នែកក្បាល (META & SEO)
+         ========================================== -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>U-Fund - U-Pay</title>
 
-    <!-- FONTS & ICONS -->
+    <!-- ==========================================
+         ២. ភ្ជាប់ពុម្ពអក្សរ និងរូបតំណាង (FONTS & ICONS)
+         ========================================== -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -16,19 +21,25 @@
       rel="stylesheet"
     />
 
-    <!-- SCRIPTS -->
+    <!-- ==========================================
+         ៣. ភ្ជាប់បណ្ណាល័យ និង CORE (SCRIPTS)
+         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
+    <!-- 🧠 ភ្ជាប់ខួរក្បាលកណ្តាល -->
 
+    <!-- ==========================================
+         ៤. ផ្នែករចនា (CSS STYLES)
+         ========================================== -->
     <style>
-      /* FOUC PREVENTION */
+      /* --- 🚀 ការពារការលោតពណ៌ស (FOUC PREVENTION) --- */
       body {
         background-color: #f2f4f6;
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
-        visibility: hidden;
+        visibility: hidden; /* លាក់សិនរង់ចាំ Core ដំណើរការចប់ */
         opacity: 0;
         display: flex;
         justify-content: center;
@@ -40,10 +51,10 @@
       }
       body.loaded {
         visibility: visible;
-        opacity: 1;
+        opacity: 1; /* បង្ហាញវិញយ៉ាងរលូន */
       }
 
-      /* BASE APP CONTAINER */
+      /* --- 📱 រចនាសម្ព័ន្ធទូទៅ (BASE APP CONTAINER) --- */
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -74,7 +85,6 @@
         color: white;
         text-decoration: none;
       }
-
       .content-body {
         padding: 20px 20px 30px;
         flex: 1;
@@ -84,7 +94,7 @@
         transition: background-color 0.3s;
       }
 
-      /* NO FUND STATE */
+      /* --- ❌ ទិដ្ឋភាពពេលគ្មានគម្រោង (NO FUND STATE) --- */
       #noFundState {
         text-align: center;
         margin-top: 50px;
@@ -112,7 +122,7 @@
         transform: scale(0.95);
       }
 
-      /* CAROUSEL (SWIPEABLE CARDS) */
+      /* --- ✅ ទិដ្ឋភាពពេលមានគម្រោង (HAS FUND STATE - CAROUSEL) --- */
       #hasFundState {
         width: 100%;
         display: none;
@@ -129,7 +139,6 @@
       .funds-slider::-webkit-scrollbar {
         display: none;
       }
-
       .fund-perspective {
         flex: 0 0 100%;
         scroll-snap-align: center;
@@ -155,7 +164,6 @@
       .fund-inner.theme-group {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
       }
-
       .fund-inner::after {
         content: "\f4d3";
         font-family: "Font Awesome 6 Free";
@@ -168,6 +176,7 @@
         pointer-events: none;
       }
 
+      /* --- 📝 ព័ត៌មានកាតសន្សំ (FUND DETAILS) --- */
       .fund-top {
         display: flex;
         justify-content: space-between;
@@ -189,7 +198,6 @@
         z-index: 2;
         line-height: 1.2;
       }
-
       .fund-middle {
         z-index: 2;
         margin-top: 10px;
@@ -205,10 +213,11 @@
         font-weight: bold;
         margin: 0;
       }
-
       .fund-bottom {
         z-index: 2;
       }
+
+      /* --- 📊 របារភាគរយ (PROGRESS BAR) --- */
       .progress-header {
         display: flex;
         justify-content: space-between;
@@ -233,7 +242,7 @@
         background: #f59e0b;
       }
 
-      /* DOTS INDICATOR */
+      /* --- 🔘 ចំណុចប្រាប់ទំព័រ (DOTS INDICATOR) --- */
       .slider-dots {
         display: flex;
         justify-content: center;
@@ -254,7 +263,7 @@
         border-radius: 10px;
       }
 
-      /* SETTINGS LIST */
+      /* --- ⚙️ បញ្ជីការកំណត់ (SETTINGS LIST) --- */
       .settings-section {
         background: transparent;
         padding: 0 10px;
@@ -265,7 +274,6 @@
         color: #333;
         margin: 0 0 15px;
       }
-
       .setting-item {
         display: flex;
         align-items: center;
@@ -281,7 +289,6 @@
       .setting-item:active {
         opacity: 0.6;
       }
-
       .setting-left {
         display: flex;
         align-items: center;
@@ -306,7 +313,7 @@
         color: #94a3b8;
       }
 
-      /* LEADERBOARD ACCORDION */
+      /* --- 👥 បញ្ជីសមាជិក (LEADERBOARD ACCORDION) --- */
       .members-list {
         max-height: 0;
         transition: max-height 0.4s ease-out;
@@ -372,7 +379,7 @@
         font-size: 1rem;
       }
 
-      /* FLOATING ACTION BUTTON (FAB) */
+      /* --- ➕ ប៊ូតុងអណ្តែត (FLOATING ACTION BUTTON) --- */
       .fab-container {
         position: fixed;
         bottom: 95px;
@@ -403,7 +410,7 @@
         transform: scale(0.9);
       }
 
-      /* BOTTOM NAV */
+      /* --- 🧭 ម៉ឺនុយខាងក្រោម (BOTTOM NAV) --- */
       .bottom-nav {
         position: fixed;
         bottom: 0;
@@ -439,7 +446,17 @@
         transform: translateY(-5px);
       }
 
-      /* DARK MODE OVERRIDES */
+      /* --- 🎨 តុបតែង SWEETALERT (PREMIUM SWAL) --- */
+      .premium-swal {
+        border-radius: 20px !important;
+      }
+      .swal2-input,
+      .swal2-select {
+        border-radius: 12px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+
+      /* --- 🌙 មុខងារងងឹត (DARK MODE OVERRIDES) --- */
       body.dark-mode {
         background-color: #000000 !important;
       }
@@ -494,26 +511,23 @@
         background-color: #334155 !important;
         color: #10b981 !important;
       }
-
-      .premium-swal {
-        border-radius: 20px !important;
-      }
-      .swal2-input,
-      .swal2-select {
-        border-radius: 12px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
-      }
     </style>
   </head>
   <body>
+    <!-- ==========================================
+         ៥. រចនាសម្ព័ន្ធទំព័រ (BODY LAYOUT)
+         ========================================== -->
     <div class="app-container">
+      <!-- ក្បាលទំព័រ (Header) -->
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
         <span data-i18n="ufund_title">U-Fund (Savings)</span>
       </div>
 
       <div class="content-body">
-        <!-- NO FUND STATE -->
+        <!-- ==========================================
+             ទិដ្ឋភាព ១: គ្មានគម្រោងសន្សំទេ (NO FUND STATE)
+             ========================================== -->
         <div id="noFundState">
           <i class="fa-solid fa-piggy-bank"></i>
           <h3 data-i18n="ufund_no_fund_title">No U-Funds Yet</h3>
@@ -528,21 +542,26 @@
           </button>
         </div>
 
-        <!-- HAS FUND STATE -->
+        <!-- ==========================================
+             ទិដ្ឋភាព ២: មានគម្រោងសន្សំ (HAS FUND STATE)
+             ========================================== -->
         <div id="hasFundState">
+          <!-- កន្លែងអូសកាតគម្រោង (Slider) -->
           <div
             class="funds-slider"
             id="fundsSlider"
             onscroll="updateActiveDot()"
           ></div>
+          <!-- ចំណុចប្រាប់ទីតាំងកាត (Dots) -->
           <div class="slider-dots" id="sliderDots"></div>
 
+          <!-- បញ្ជីមុខងារការកំណត់ (Settings Section) -->
           <div class="settings-section">
             <div class="settings-header" data-i18n="ufund_actions">
               Fund Actions
             </div>
 
-            <!-- Manual Deposit (Catch-up or Extra) -->
+            <!-- មុខងារទី ១: ដាក់ប្រាក់ (Manual Deposit) -->
             <div class="setting-item" onclick="openDepositUI()">
               <div class="setting-left">
                 <div class="setting-icon">
@@ -561,7 +580,7 @@
               ></i>
             </div>
 
-            <!-- Invite (Visible only to Creator/Group) -->
+            <!-- មុខងារទី ២: អញ្ជើញមិត្តភក្តិ (Invite) - ឃើញតែអ្នកបង្កើត (Creator) -->
             <div
               class="setting-item"
               onclick="openInviteUI()"
@@ -584,7 +603,7 @@
               ></i>
             </div>
 
-            <!-- Show QR -->
+            <!-- មុខងារទី ៣: បង្ហាញ QR Code (Show QR) -->
             <div class="setting-item" onclick="showFundQR()">
               <div class="setting-left">
                 <div class="setting-icon">
@@ -603,7 +622,7 @@
               ></i>
             </div>
 
-            <!-- Lifecycle: Edit Fund (Creator Only) -->
+            <!-- មុខងារទី ៤: កែប្រែគម្រោង (Edit Fund) - ឃើញតែអ្នកបង្កើត -->
             <div
               class="setting-item"
               onclick="openEditFundUI()"
@@ -624,7 +643,7 @@
               ></i>
             </div>
 
-            <!-- Lifecycle: Close/Cancel Fund (Creator Only) -->
+            <!-- មុខងារទី ៥: បិទគម្រោង (Close/Cancel Fund) - ឃើញតែអ្នកបង្កើត -->
             <div
               class="setting-item"
               onclick="closeOrCancelFund()"
@@ -649,7 +668,7 @@
               ></i>
             </div>
 
-            <!-- Leaderboard Accordion -->
+            <!-- មុខងារទី ៦: បញ្ជីសមាជិក (Leaderboard Accordion) -->
             <div
               class="setting-item"
               style="padding: 15px 0; border-bottom: none"
@@ -677,54 +696,66 @@
         </div>
       </div>
 
-      <!-- FLOATING ACTION BUTTON (+) -->
+      <!-- ==========================================
+           ប៊ូតុងអណ្តែតបង្កើតថ្មី (FAB)
+           ========================================== -->
       <div class="fab-container" id="fabContainer" style="display: none">
         <button class="fab-btn" onclick="openCreateFundUI()">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
 
-      <!-- BOTTOM NAV -->
+      <!-- ==========================================
+           ម៉ឺនុយខាងក្រោម (BOTTOM NAV)
+           ========================================== -->
       <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item"
-          ><i class="fa-solid fa-house"></i
-          ><span data-i18n="nav_home">Home</span></a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i
-          ><span data-i18n="nav_scan">Scan</span></a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i
-          ><span data-i18n="nav_history">History</span></a
-        >
-        <a href="settings.html" class="nav-item"
-          ><i class="fa-solid fa-gear"></i
-          ><span data-i18n="nav_settings">Settings</span></a
-        >
+        <a href="dashboard.html" class="nav-item">
+          <i class="fa-solid fa-house"></i>
+          <span data-i18n="nav_home">Home</span>
+        </a>
+        <a href="scan.html" class="nav-item">
+          <i class="fa-solid fa-qrcode"></i>
+          <span data-i18n="nav_scan">Scan</span>
+        </a>
+        <a href="history.html" class="nav-item">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span data-i18n="nav_history">History</span>
+        </a>
+        <a href="settings.html" class="nav-item">
+          <i class="fa-solid fa-gear"></i>
+          <span data-i18n="nav_settings">Settings</span>
+        </a>
       </div>
     </div>
 
-    <!-- SCRIPT LOGIC -->
+    <!-- ==========================================
+         ៦. ផ្នែកដំណើរការកម្មវិធី (JAVASCRIPT LOGIC)
+         ========================================== -->
     <script>
-      // 🟢 ប្រើប្រាស់ទិន្នន័យពី u-pay-core.js ដែលបានទាញរួចរាល់ (លែងប្រកាស token ម្តងទៀតហើយ)
+      // ==========================================
+      // 🧠 ក. ការគ្រប់គ្រងទិន្នន័យពី CORE (Global Variables)
+      // ==========================================
+      // ប្រើប្រាស់ទិន្នន័យ (User, Token, Headers) ពី u-pay-core.js ដោយផ្ទាល់
       const user = window.currentUser;
-
       let activeFunds = [];
       let currentFundIndex = 0;
 
-      // ដំណើរការពេល Page Load
+      // ==========================================
+      // 🔄 ខ. ដំណើរការពេលទំព័រលោតចេញ (On Load)
+      // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
-        // Theme និង Language ត្រូវបានរត់ដោយ u-pay-core.js រួចហើយ
-        fetchMyFunds();
+        // ចំណាំ៖ ការរៀបចំ Theme និង Language ត្រូវបានគ្រប់គ្រងដោយ u-pay-core.js រួចរាល់ហើយ។
+        fetchMyFunds(); // ទាញទិន្នន័យគម្រោងសន្សំភ្លាមៗ
       });
 
-      // API HELPER (ប្រើប្រាស់ window.authHeaders ពី core)
+      // ==========================================
+      // 📡 គ. មុខងារទាក់ទងជាមួយ API (API Helpers)
+      // ==========================================
       async function fetchAPI(endpoint, payload) {
         try {
           const res = await fetch(endpoint, {
             method: "POST",
-            headers: window.authHeaders,
+            headers: window.authHeaders, // ប្រើ Header របស់កណ្តាល
             body: JSON.stringify(payload),
           });
           if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
@@ -735,22 +766,23 @@
         }
       }
 
-      // FETCH FUNDS
       async function fetchMyFunds() {
-        if (!user) return; // ការពារ Error បើ user អត់ទាន់មាន
+        if (!user) return; // ការពារកុំឱ្យ Error ពេល User អត់មានទិន្នន័យ
         const data = await fetchAPI("/api/ufund/list", {
           username: user.username,
         });
         if (data.success) {
           activeFunds = data.funds || [];
-          renderFunds();
+          renderFunds(); // បញ្ជូនទៅគូរ UI
         } else {
           document.getElementById("noFundState").innerHTML =
             `<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i><p>${data.message}</p>`;
         }
       }
 
-      // RENDER CAROUSEL
+      // ==========================================
+      // 🎨 ឃ. មុខងារគូរទិដ្ឋភាព (Render UI)
+      // ==========================================
       function renderFunds() {
         const slider = document.getElementById("fundsSlider");
         const dots = document.getElementById("sliderDots");
@@ -772,6 +804,7 @@
             const themeClass = f.type === "group" ? "theme-group" : "";
             const badgeIcon = f.type === "group" ? "fa-users" : "fa-user";
 
+            // បង្កើតកាតសន្សំ
             slider.innerHTML += `
               <div class="fund-perspective">
                 <div class="fund-inner ${themeClass}">
@@ -789,9 +822,11 @@
                   </div>
                 </div>
               </div>`;
+
+            // បង្កើតចំណុចប្រាប់ទីតាំង (Dots)
             dots.innerHTML += `<div class="dot ${i === currentFundIndex ? "active" : ""}"></div>`;
           });
-          syncFundActions();
+          syncFundActions(); // រៀបចំបិទបើកសិទ្ធិសម្រាប់កាតនីមួយៗ
         } else {
           document.getElementById("noFundState").style.display = "block";
           document.getElementById("hasFundState").style.display = "none";
@@ -811,23 +846,24 @@
           document
             .querySelectorAll(".dot")
             .forEach((d, i) => d.classList.toggle("active", i === index));
-          syncFundActions();
+          syncFundActions(); // រៀបចំសិទ្ធិឡើងវិញពេលអូសកាត
         }
       }
 
-      // SYNC ACTIONS based on Creator privileges & Fund Status
+      // ==========================================
+      // ⚙️ ង. មុខងារបិទ/បើកសិទ្ធិ (Sync Actions)
+      // ==========================================
       function syncFundActions() {
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
 
+        // កំណត់សិទ្ធិអ្នកបង្កើតគម្រោង និងស្ថានភាពគម្រោង (ពេញឬនៅ?)
         const isCreator = currentFund.creator === user.username;
         const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
-        // Group Features Visibility
+        // លាក់/បង្ហាញប៊ូតុង អញ្ជើញ, កែប្រែ, បិទគម្រោង
         document.getElementById("btnInviteFriend").style.display =
           currentFund.type === "group" && isCreator ? "flex" : "none";
-
-        // Creator Lifecycle Buttons
         document.getElementById("btnEditFund").style.display = isCreator
           ? "flex"
           : "none";
@@ -835,7 +871,7 @@
           ? "flex"
           : "none";
 
-        // Dynamic Close/Cancel UI
+        // ដូរទម្រង់ UI ប៊ូតុងបិទគម្រោង ទៅតាមស្ថានភាពកាត (Cancel / Success)
         const btnCloseIcon = document.getElementById("closeFundIcon");
         const btnCloseText = document.getElementById("closeFundText");
         const btnCloseDesc = document.getElementById("closeFundDesc");
@@ -854,12 +890,13 @@
           btnCloseDesc.innerText = "Stop and refund all members";
         }
 
-        // Render Leaderboard
+        // បង្ហាញបញ្ជីសមាជិក (Leaderboard)
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
         const sortedMembers = [...currentFund.members].sort(
           (a, b) => b.contributedAmount - a.contributedAmount,
         );
+
         sortedMembers.forEach((m) => {
           let stClass = "st-active";
           let stText = "Active";
@@ -898,9 +935,9 @@
       }
 
       // ==========================================
-      // LIFECYCLE FUNCTIONS (CREATE, EDIT, CLOSE)
+      // 🚀 ច. មុខងារចម្បង (LIFECYCLE: Create, Edit, Close)
       // ==========================================
-      // 🛠️ មុខងារបង្កើត U-Fund (UI ថ្មី ស្អាត Premium)
+      // ១. បង្កើតគម្រោងថ្មី
       async function openCreateFundUI() {
         const { value: formValues } = await Swal.fire({
           title:
@@ -916,7 +953,6 @@
                 .flex-row > div { flex: 1; }
             </style>
 
-            <!-- Fund Info -->
             <div class="fund-form-group">
                 <label>Fund Name</label>
                 <input id="swal-fname" class="fund-input" placeholder="e.g. Bali Trip 2026">
@@ -936,7 +972,6 @@
                 </div>
             </div>
 
-            <!-- Auto-Deduct Rule -->
             <div class="auto-box">
                 <label style="font-weight:bold; font-size:0.9rem; color:#004d40; margin-bottom:10px; display:block;">
                     <i class="fa-solid fa-robot"></i> Auto-Deduct Rule
@@ -958,7 +993,6 @@
                     </div>
                 </div>
 
-                <!-- ពេលវេលាកាត់លុយ (លាក់ទុកសិន បង្ហាញពេលរើស Frequency) -->
                 <div id="time-picker-box" class="fund-form-group" style="display: none; margin-top: 15px; margin-bottom: 0;">
                     <label><i class="fa-regular fa-clock"></i> Execution Time (AM/PM)</label>
                     <input id="swal-auto-time" type="time" class="fund-input" value="08:00">
@@ -972,10 +1006,8 @@
           confirmButtonText: "Create Fund",
           customClass: { popup: "premium-swal" },
           didOpen: () => {
-            // Logic សម្រាប់ Show/Hide ប្រអប់ម៉ោងពេលរើស Frequency
             const freqSelect = document.getElementById("swal-auto-freq");
             const timeBox = document.getElementById("time-picker-box");
-
             freqSelect.addEventListener("change", (e) => {
               if (e.target.value !== "none") {
                 timeBox.style.display = "block";
@@ -991,7 +1023,7 @@
               type: document.getElementById("swal-ftype").value,
               autoAmt: document.getElementById("swal-auto-amt").value || 0,
               autoFreq: document.getElementById("swal-auto-freq").value,
-              autoTime: document.getElementById("swal-auto-time").value, // ទាញយកម៉ោង (ឧទាហរណ៍ "14:30")
+              autoTime: document.getElementById("swal-auto-time").value,
             };
           },
         });
@@ -1014,22 +1046,23 @@
               timer: 1500,
               showConfirmButton: false,
             });
-            fetchMyFunds(); // Refresh ទិន្នន័យ
+            fetchMyFunds();
           } else Swal.fire("Error", data.message, "error");
         }
       }
 
+      // ២. កែប្រែគម្រោង (Edit Fund)
       async function openEditFundUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: formValues } = await Swal.fire({
           title: "Edit Fund Settings",
           html: `
-      <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
-      <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
-    `,
+            <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
+            <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
+          `,
           showCancelButton: true,
-          confirmButtonColor: "#004d40", // 🔥 ដូរមកប្រើកូដពណ៌ផ្ទាល់ទើបវាលោតចេញមក
-          cancelButtonColor: "#64748b", // 🔥 បន្ថែមពណ៌ឱ្យប៊ូតុង Cancel
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
           confirmButtonText: "Save Changes",
           customClass: { popup: "premium-swal" },
           preConfirm: () => {
@@ -1041,15 +1074,32 @@
         });
 
         if (formValues) {
-          // TODO: Call your edit API endpoint here in the next backend step
-          Swal.fire(
-            "Info",
-            "Backend logic for Edit will be connected next!",
-            "info",
-          );
+          Swal.fire({
+            title: "Processing...",
+            didOpen: () => Swal.showLoading(),
+          });
+          const data = await fetchAPI("/api/ufund/edit", {
+            username: user.username,
+            fundId: fund._id,
+            name: formValues.name,
+            target: formValues.target,
+          });
+
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Saved!",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+            fetchMyFunds();
+          } else {
+            Swal.fire("Failed", data.message, "error");
+          }
         }
       }
 
+      // ៣. បិទគម្រោង (Close / Cancel Fund)
       async function closeOrCancelFund() {
         const fund = activeFunds[currentFundIndex];
         const isFull = fund.currentAmount >= fund.targetAmount;
@@ -1091,17 +1141,18 @@
       }
 
       // ==========================================
-      // STANDARD ACTIONS (DEPOSIT, INVITE, QR)
+      // 💸 ឆ. មុខងារប្រតិបត្តិការ (Deposit, Invite, QR)
       // ==========================================
+      // ១. ដាក់ប្រាក់ចូលគម្រោង (Manual Deposit)
       async function openDepositUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: amt } = await Swal.fire({
           title: "Manual Deposit",
           html: `<div style="font-weight:bold; color:#0284c7; margin-bottom:15px;">➡️ ${fund.name}</div>
-           <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
+                 <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
           showCancelButton: true,
-          confirmButtonColor: "#004d40", // 🔥 ដូរមកប្រើកូដពណ៌ផ្ទាល់
-          cancelButtonColor: "#64748b", // 🔥 បន្ថែមពណ៌ឱ្យប៊ូតុង Cancel
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
           confirmButtonText: "Deposit",
           customClass: { popup: "premium-swal" },
           preConfirm: () => document.getElementById("dep-amt").value,
@@ -1135,6 +1186,7 @@
         }
       }
 
+      // ២. អញ្ជើញមិត្តភក្តិ (Invite Friend)
       async function openInviteUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: invitee } = await Swal.fire({
@@ -1143,7 +1195,8 @@
           input: "text",
           inputPlaceholder: "Username, Phone, or Account No.",
           showCancelButton: true,
-          confirmButtonColor: "var(--primary)",
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
           confirmButtonText: "Send Invite",
           customClass: { popup: "premium-swal" },
         });
@@ -1168,46 +1221,36 @@
         }
       }
 
+      // ៣. បង្ហាញ QR Code សម្រាប់ស្កេន
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
-
-        // 🔥 ប្រើ ecc=H (High Error Correction) ដើម្បីឱ្យស្កេនបាន ទោះបីមាន Logo បាំងនៅកណ្តាល
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&ecc=H&data=${fund.qrCodeString}`;
 
         Swal.fire({
           html: `
-            <!-- ផ្នែកខាងលើ (Header) -->
             <div style="background: linear-gradient(135deg, #004d40, #0284c7); margin: -1.25em -1.25em 20px -1.25em; padding: 30px 15px 20px 15px; border-radius: 15px 15px 0 0; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                <i class="fa-solid fa-piggy-bank" style="font-size: 3rem; margin-bottom: 10px; animation: bounce 2s infinite;"></i>
                <h3 style="margin: 0; font-family: 'Kantumruy Pro', sans-serif; font-weight: bold; letter-spacing: 1px;">U-Fund QR</h3>
                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">ស្កេនដើម្បីដាក់ប្រាក់សន្សំ</p>
             </div>
-            
-            <!-- ឈ្មោះគម្រោង និង លេខកូដ -->
             <h4 style="color: #0f172a; font-weight: bold; font-size: 1.4rem; margin-bottom: 5px; text-transform: capitalize;">${fund.name}</h4>
             <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 6px 15px; border-radius: 20px; display: inline-block; margin-bottom: 25px;">
                <span style="color: #64748b; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;">
                   <i class="fa-solid fa-hashtag" style="color: #0284c7;"></i> ${fund.qrCodeString}
                </span>
             </div>
-
-            <!-- ប្រអប់ QR Code ដែលមាន Icon កណ្តាល -->
             <div style="position: relative; width: 220px; height: 220px; margin: 0 auto; padding: 10px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 2px solid #e2e8f0;">
                <img src="${qrUrl}" alt="QR Code" style="width: 100%; height: 100%; border-radius: 10px; object-fit: contain;">
-               
-               <!-- 🐷 រូប Icon កណ្តាល QR -->
                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
                   <i class="fa-solid fa-piggy-bank" style="color: #0284c7; font-size: 1.3rem;"></i>
                </div>
             </div>
-            
-            <!-- ផ្នែកខាងក្រោម (Footer) -->
             <p style="margin-top: 25px; margin-bottom: 0; font-size: 0.85rem; color: #94a3b8;">
                <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> សុវត្ថិភាពខ្ពស់ដោយ U-Pay
             </p>
           `,
           showConfirmButton: true,
-          confirmButtonColor: "#004d40", // ធានាថាមិនបាត់ប៊ូតុង
+          confirmButtonColor: "#004d40",
           confirmButtonText: "បិទ / Close",
           customClass: { popup: "modal-radius" },
           width: "380px",
