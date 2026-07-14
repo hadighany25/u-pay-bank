@@ -23,9 +23,6 @@
     <script src="js/u-pay-core.js"></script>
 
     <style>
-      /* ==========================================
-         🚀 FOUC PREVENTION (ការពារការលោតពណ៌ស)
-         ========================================== */
       body {
         background-color: #f2f4f6;
         margin: 0;
@@ -45,9 +42,6 @@
         opacity: 1;
       }
 
-      /* ==========================================
-         📱 BASE APP CONTAINER & LAYOUT
-         ========================================== */
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -56,9 +50,42 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        transition: background-color 0.3s;
         position: relative;
+        overflow: hidden; /* ការពារកុំឱ្យ Scroll ពេលប្តូរផ្ទាំង */
       }
+
+      /* ==========================================
+         🚀 NATIVE APP SCREEN TRANSITIONS
+         ========================================== */
+      .screen {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        min-height: 100vh;
+        background: #f8fafc;
+        animation: slideIn 0.3s ease forwards;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1;
+      }
+      .screen.active {
+        display: flex;
+        z-index: 2;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* --- HEADER & CONTENT --- */
       .nav-header {
         padding: 20px;
         background: #004d40;
@@ -67,24 +94,25 @@
         align-items: center;
         gap: 15px;
         font-size: 1.1rem;
-        transition: background-color 0.3s;
         position: sticky;
         top: 0;
         z-index: 50;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
-      .nav-header a {
-        color: white;
-        text-decoration: none;
+      .nav-header i {
+        cursor: pointer;
+        font-size: 1.3rem;
       }
       .content-body {
-        padding: 20px 20px 30px;
+        padding: 20px;
         flex: 1;
         display: flex;
         flex-direction: column;
-        transition: background-color 0.3s;
+        overflow-y: auto;
+        padding-bottom: 90px; /* ទុកកន្លែងឱ្យប៊ូតុង Fixed Bottom */
       }
 
-      /* --- ចំណងជើងរង (SUBTITLE) --- */
+      /* --- UI ELEMENTS --- */
       .page-desc {
         color: #475569;
         font-size: 0.95rem;
@@ -93,7 +121,6 @@
         margin-bottom: 25px;
       }
 
-      /* --- កាតជម្រើសគណនី (ACCOUNT TYPE CARDS) --- */
       .account-card {
         background: #ffffff;
         border-radius: 16px;
@@ -105,18 +132,13 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
         border: 1px solid #f1f5f9;
         cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .account-card:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
-        transform: translateY(-2px);
+        transition: 0.2s;
       }
       .account-card:active {
-        transform: translateY(1px);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        transform: scale(0.98);
+        background: #f8fafc;
       }
 
-      /* រូបតំណាង (Icons) សម្រាប់កាតនីមួយៗ */
       .card-icon-box {
         width: 55px;
         height: 55px;
@@ -127,7 +149,6 @@
         font-size: 1.6rem;
         flex-shrink: 0;
       }
-      /* ពណ៍សម្រាប់ Icon នីមួយៗ */
       .icon-premium {
         background: #fef3c7;
         color: #d97706;
@@ -139,10 +160,6 @@
       .icon-pocket {
         background: #dcfce7;
         color: #16a34a;
-      }
-      .icon-savings {
-        background: #e0f2f1;
-        color: #004d40;
       }
 
       .card-text {
@@ -160,504 +177,570 @@
         margin: 0;
         line-height: 1.4;
       }
-      .card-arrow {
-        color: #cbd5e1;
-        font-size: 1.2rem;
+
+      /* --- FORM STYLES --- */
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-label {
+        font-size: 0.9rem;
+        color: #475569;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .native-input {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        box-sizing: border-box;
+        outline: none;
+        transition: 0.2s;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .native-input:focus {
+        border-color: #004d40;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+      .native-input.center {
+        text-align: center;
+        font-weight: bold;
+        letter-spacing: 2px;
+        font-size: 1.5rem;
       }
 
-      /* 🔥 PREMIUM SWAL STYLING FOR PROMPTS */
-      .premium-swal {
-        border-radius: 20px !important;
+      .info-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
       }
-      .premium-swal .swal2-title {
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
-        font-size: 1.3rem;
+
+      /* --- FIXED BOTTOM BUTTON (Native App Style) --- */
+      .fixed-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        background: white;
+        padding: 15px 20px 20px;
+        box-sizing: border-box;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+        border-radius: 20px 20px 0 0;
       }
-      .swal2-input {
-        border-radius: 12px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      .btn-primary {
+        width: 100%;
+        background: #004d40;
+        color: white;
+        padding: 16px;
+        border: none;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
       }
 
       /* ==========================================
-         🌙 FULL DARK MODE OVERRIDES
+         🌙 DARK MODE
          ========================================== */
-      body.dark-mode {
-        background-color: #000000 !important;
-      }
-      body.dark-mode .app-container {
+      body.dark-mode .app-container,
+      body.dark-mode .screen {
         background-color: #121212 !important;
-        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
       }
       body.dark-mode .nav-header {
         background-color: #00251f !important;
-        color: #ffffff !important;
-      }
-      body.dark-mode .content-body {
-        background-color: #121212 !important;
-      }
-      body.dark-mode .page-desc {
-        color: #94a3b8 !important;
       }
       body.dark-mode .account-card {
         background-color: #1e1e1e !important;
         border-color: #2d2d2d !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
       }
-      body.dark-mode .account-card:hover {
-        background-color: #2a2a2a !important;
-      }
-      body.dark-mode .card-title {
+      body.dark-mode .card-title,
+      body.dark-mode .form-label {
         color: #ffffff !important;
       }
-      body.dark-mode .card-desc {
+      body.dark-mode .card-desc,
+      body.dark-mode .page-desc {
         color: #94a3b8 !important;
       }
-      /* Icons background adjust for Dark Mode */
-      body.dark-mode .icon-premium {
-        background: rgba(217, 119, 6, 0.15) !important;
+      body.dark-mode .native-input {
+        background: #1e1e1e;
+        border-color: #333;
+        color: white;
       }
-      body.dark-mode .icon-family {
-        background: rgba(79, 70, 229, 0.15) !important;
+      body.dark-mode .fixed-bottom-bar {
+        background: #1e1e1e !important;
+        border-top: 1px solid #2d2d2d;
       }
-      body.dark-mode .icon-pocket {
-        background: rgba(22, 163, 74, 0.15) !important;
-      }
-      body.dark-mode .icon-savings {
-        background: rgba(0, 77, 64, 0.3) !important;
-        color: #10b981 !important;
+      body.dark-mode .info-box {
+        background: #00251f;
+        border-color: #004d40;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <!-- ក្បាលទំព័រ -->
-      <div class="nav-header">
-        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-i18n="new_acc_title">New Account</span>
+      <!-- ==========================================
+           អេក្រង់ទី ១: ម៉ឺនុយដើម (MAIN MENU SCREEN)
+           ========================================== -->
+      <div id="screen-menu" class="screen active">
+        <div class="nav-header">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="window.location.href = 'dashboard.html'"
+          ></i>
+          <span data-i18n="new_acc_title">New Account</span>
+        </div>
+        <div class="content-body">
+          <p class="page-desc" data-i18n="new_acc_desc">
+            ជ្រើសរើសគណនីណាមួយ ក្នុងចំណោមជម្រើសជាច្រើនរបស់យើង
+            ហើយបើកវាភ្លាមៗយ៉ាងងាយស្រួល។
+          </p>
+
+          <!-- កាត Premium -->
+          <div class="account-card" onclick="switchScreen('screen-search')">
+            <div class="card-icon-box icon-premium">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title" data-i18n="acc_premium_title">
+                គណនីលេខពិសេស
+              </h4>
+              <p class="card-desc" data-i18n="acc_premium_desc">
+                ស្វែងរកលេខគណនីដែលងាយចំណាំ និងមានអត្ថន័យ។
+              </p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+
+          <!-- កាតផ្សេងៗ (ទុកជាគំរូសិន) -->
+          <div
+            class="account-card"
+            onclick="
+              Swal.fire('Coming Soon', 'មុខងារនេះកំពុងអភិវឌ្ឍន៍!', 'info')
+            "
+          >
+            <div class="card-icon-box icon-family">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title" data-i18n="acc_family_title">
+                គណនីរួមគ្រួសារ
+              </h4>
+              <p class="card-desc">ភ្ជាប់គណនីជាមួយដៃគូ ឬសមាជិកគ្រួសារ។</p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+        </div>
       </div>
 
-      <div class="content-body">
-        <p class="page-desc" data-i18n="new_acc_desc">
-          Choose an account type from our various options and open it instantly
-          with ease.
-        </p>
-
-        <!-- ១. គណនីពិសេស និង អាជីវកម្ម -->
-        <div class="account-card" onclick="openPremiumAccountModal()">
-          <div class="card-icon-box icon-premium">
-            <i class="fa-solid fa-crown"></i>
+      <!-- ==========================================
+           អេក្រង់ទី ២: ស្វែងរកលេខ (SEARCH SCREEN)
+           ========================================== -->
+      <div id="screen-search" class="screen">
+        <div class="nav-header">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="switchScreen('screen-menu')"
+          ></i>
+          <span>ស្វែងរកលេខពិសេស</span>
+        </div>
+        <div class="content-body">
+          <div class="form-group">
+            <label class="form-label">បញ្ចូលលេខគណនី (យ៉ាងហោច ៦ ខ្ទង់)</label>
+            <input
+              type="number"
+              id="input-search-num"
+              class="native-input center"
+              placeholder="ឧ. 88888888"
+            />
           </div>
-          <div class="card-text">
-            <h4 class="card-title" data-i18n="acc_premium_title">
-              Premium Number
-            </h4>
-            <p class="card-desc" data-i18n="acc_premium_desc">
-              Open a U-Pay account with a custom, memorable, or meaningful
-              number.
+          <p style="font-size: 0.85rem; color: #64748b; text-align: center">
+            ប្រព័ន្ធនឹងឆែកភាពទំនេរ និងគណនាតម្លៃដោយស្វ័យប្រវត្តិ។
+          </p>
+        </div>
+        <div class="fixed-bottom-bar">
+          <button class="btn-primary" onclick="processSearch()">
+            <i class="fa-solid fa-magnifying-glass"></i> ឆែកមើលឥឡូវនេះ
+          </button>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           អេក្រង់ទី ៣: បញ្ជាក់ព័ត៌មាន (DETAILS SCREEN)
+           ========================================== -->
+      <div id="screen-details" class="screen">
+        <div class="nav-header">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="switchScreen('screen-search')"
+          ></i>
+          <span>បញ្ជាក់ព័ត៌មាន</span>
+        </div>
+        <div class="content-body">
+          <div style="text-align: center; margin-bottom: 25px">
+            <div
+              style="
+                background: #10b981;
+                color: white;
+                display: inline-block;
+                padding: 5px 15px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: bold;
+                margin-bottom: 10px;
+              "
+            >
+              លេខនេះទំនេរ ✅
+            </div>
+            <h1
+              id="display-num"
+              style="
+                margin: 0;
+                font-size: 2.5rem;
+                color: #004d40;
+                font-family: &quot;Courier New&quot;, monospace;
+                letter-spacing: 2px;
+              "
+            >
+              88888888
+            </h1>
+            <p style="margin: 10px 0 0 0; font-size: 1.1rem; color: #475569">
+              តម្លៃ:
+              <b id="display-price" style="color: #ef4444; font-size: 1.5rem"
+                >$100</b
+              >
             </p>
           </div>
-          <i class="fa-solid fa-chevron-right card-arrow"></i>
-        </div>
 
-        <!-- ២. គណនីគ្រួសារ និង ដៃគូ -->
-        <div class="account-card" onclick="openFamilyAccountModal()">
-          <div class="card-icon-box icon-family">
-            <i class="fa-solid fa-users"></i>
+          <div class="form-group">
+            <label class="form-label">ឈ្មោះគណនី (Account Name)</label>
+            <input
+              type="text"
+              id="input-acc-name"
+              class="native-input"
+              placeholder="ឧ. លុយអាជីវកម្ម"
+            />
           </div>
-          <div class="card-text">
-            <h4 class="card-title" data-i18n="acc_family_title">
-              Joint Account
-            </h4>
-            <p class="card-desc" data-i18n="acc_family_desc">
-              Create a shared account with a family member or partner to manage
-              funds together.
-            </p>
-          </div>
-          <i class="fa-solid fa-chevron-right card-arrow"></i>
-        </div>
 
-        <!-- ៣. ហោប៉ៅចំណាយ (Smart Budgeting) -->
-        <div class="account-card" onclick="openPocketAccountModal()">
-          <div class="card-icon-box icon-pocket">
-            <i class="fa-solid fa-wallet"></i>
+          <div class="info-box">
+            <label
+              style="
+                display: flex;
+                align-items: start;
+                gap: 10px;
+                cursor: pointer;
+                margin: 0;
+              "
+            >
+              <input
+                type="checkbox"
+                id="input-tnc"
+                style="
+                  width: 22px;
+                  height: 22px;
+                  margin-top: 2px;
+                  accent-color: #004d40;
+                "
+              />
+              <span style="font-size: 0.85rem; color: #166534; line-height: 1.5"
+                >ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា
+                និងគោរពតាមលក្ខខណ្ឌប្រើប្រាស់គណនីពិសេសរបស់ U-Pay។</span
+              >
+            </label>
           </div>
-          <div class="card-text">
-            <h4 class="card-title" data-i18n="acc_pocket_title">
-              Spending Pocket
-            </h4>
-            <p class="card-desc" data-i18n="acc_pocket_desc">
-              Split your money into separate pockets for smart daily budget
-              management.
-            </p>
-          </div>
-          <i class="fa-solid fa-chevron-right card-arrow"></i>
         </div>
+        <div class="fixed-bottom-bar">
+          <button class="btn-primary" onclick="processDetails()">
+            បន្តការទូទាត់
+          </button>
+        </div>
+      </div>
 
-        <!-- ៤. សន្សំ និង កំណើនទ្រព្យ -->
+      <!-- ==========================================
+           អេក្រង់ទី ៤: បញ្ចូល PIN (PIN SCREEN)
+           ========================================== -->
+      <div id="screen-pin" class="screen">
+        <div class="nav-header">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="switchScreen('screen-details')"
+          ></i>
+          <span>បញ្ចូលលេខសម្ងាត់</span>
+        </div>
         <div
-          class="account-card"
-          onclick="window.location.href = 'fixed-deposit.html'"
+          class="content-body"
+          style="justify-content: center; text-align: center"
         >
-          <div class="card-icon-box icon-savings">
-            <i class="fa-solid fa-vault"></i>
+          <i
+            class="fa-solid fa-shield-halved"
+            style="font-size: 4rem; color: #004d40; margin-bottom: 20px"
+          ></i>
+          <h2 style="margin: 0 0 10px 0; color: #1e293b">សុវត្ថិភាពទូទាត់</h2>
+          <p style="color: #64748b; margin-bottom: 25px">
+            ទឹកប្រាក់ត្រូវកាត់:
+            <b id="display-total" style="color: #ef4444; font-size: 1.2rem"
+              >$0</b
+            >
+          </p>
+
+          <input
+            type="password"
+            id="input-pin"
+            class="native-input center"
+            placeholder="****"
+            maxlength="4"
+            style="letter-spacing: 15px; font-size: 2rem"
+          />
+        </div>
+        <div class="fixed-bottom-bar">
+          <button class="btn-primary" onclick="submitCreation()">
+            ទូទាត់ & បង្កើតគណនី
+          </button>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           អេក្រង់ទី ៥: ជោគជ័យ (SUCCESS SCREEN)
+           ========================================== -->
+      <div id="screen-success" class="screen">
+        <div
+          class="content-body"
+          style="justify-content: center; text-align: center; padding-top: 50px"
+        >
+          <div
+            style="
+              width: 80px;
+              height: 80px;
+              background: #10b981;
+              color: white;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 2.5rem;
+              margin: 0 auto 20px;
+            "
+          >
+            <i class="fa-solid fa-check"></i>
           </div>
-          <div class="card-text">
-            <h4 class="card-title" data-i18n="acc_savings_title">
-              Fixed Deposit
-            </h4>
-            <p class="card-desc" data-i18n="acc_savings_desc">
-              Earn up to 6.5% p.a. with our highly secure fixed deposit
-              accounts.
-            </p>
+          <h2 style="color: #1e293b; margin: 0 0 10px 0">ជោគជ័យ!</h2>
+          <p style="color: #64748b; margin-bottom: 30px">
+            គណនីពិសេសរបស់អ្នកត្រូវបានបង្កើតរួចរាល់។
+          </p>
+
+          <div
+            style="
+              background: white;
+              border: 1px dashed #cbd5e1;
+              border-radius: 15px;
+              padding: 20px;
+              text-align: left;
+              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 15px;
+              "
+            >
+              <span style="color: #64748b">លេខគណនី</span>
+              <b
+                style="
+                  color: #0284c7;
+                  font-family: monospace;
+                  font-size: 1.1rem;
+                "
+                id="receipt-num"
+                >...</b
+              >
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 15px;
+              "
+            >
+              <span style="color: #64748b">ឈ្មោះគណនី</span>
+              <b style="color: #1e293b" id="receipt-name">...</b>
+            </div>
+            <hr
+              style="border: 0; border-top: 1px dashed #e2e8f0; margin: 15px 0"
+            />
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span style="color: #64748b">ប្រាក់បានទូទាត់</span>
+              <b style="color: #ef4444; font-size: 1.3rem" id="receipt-price"
+                >...</b
+              >
+            </div>
           </div>
-          <i class="fa-solid fa-chevron-right card-arrow"></i>
+        </div>
+        <div class="fixed-bottom-bar">
+          <button
+            class="btn-primary"
+            onclick="window.location.href = 'dashboard.html'"
+          >
+            ត្រឡប់ទៅទំព័រដើម
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- SCRIPT LOGIC -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-      // ទាញយក User បច្ចុប្បន្នពី u-pay-core.js
       const user = window.currentUser;
 
-      // មុខងារ ១: បើកផ្ទាំង គណនីពិសេស
-      // រូបមន្តគណនាតម្លៃលេខ (Auto-Pricing Algorithm)
+      // Object ទុកទិន្នន័យបណ្តោះអាសន្នពេលឆ្លងកាត់ Screen ម្តងៗ
+      let state = { number: "", price: 0, name: "", pin: "" };
+
+      // មុខងារប្តូរផ្ទាំង (Screen Router)
+      function switchScreen(screenId) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(screenId).classList.add("active");
+        window.scrollTo(0, 0); // ទាញអូសឡើងលើវិញ
+      }
+
+      // រូបមន្តគណនាតម្លៃ
       function calculatePremiumPrice(numStr) {
         let price = 0;
-
-        // ១. ឆែកប្រវែងលេខ (លេខខ្លីថ្លៃជាង)
         if (numStr.length < 8) price += 50;
-
-        // ២. ឆែកលេខស្ទួន (Repeating digits)
-        let maxRepeat = 1;
-        let currentRepeat = 1;
+        let maxRep = 1,
+          curRep = 1;
         for (let i = 1; i < numStr.length; i++) {
           if (numStr[i] === numStr[i - 1]) {
-            currentRepeat++;
-            if (currentRepeat > maxRepeat) maxRepeat = currentRepeat;
-          } else {
-            currentRepeat = 1;
-          }
+            curRep++;
+            if (curRep > maxRep) maxRep = curRep;
+          } else curRep = 1;
         }
-
-        if (maxRepeat === 3) price += 10;
-        else if (maxRepeat === 4) price += 50;
-        else if (maxRepeat >= 5) price += 200;
-
-        // ៣. ឆែកលេខហុងស៊ុយ (Lucky Numbers)
+        if (maxRep === 3) price += 10;
+        else if (maxRep === 4) price += 50;
+        else if (maxRep >= 5) price += 200;
         if (numStr.includes("168")) price += 88;
-        if (numStr.includes("888") && maxRepeat < 3) price += 30;
-        if (numStr.includes("999") && maxRepeat < 3) price += 30;
-
+        if (numStr.includes("888") && maxRep < 3) price += 30;
+        if (numStr.includes("999") && maxRep < 3) price += 30;
         return price;
       }
 
-      // មុខងារចម្បង: លំហូរ ៦ ជំហាន (6-Step Flow)
-      async function openPremiumAccountModal() {
-        const isKh = window.currentLang === "kh";
+      // Action 1: ឆែកលេខ
+      function processSearch() {
+        const num = document.getElementById("input-search-num").value;
+        if (!num || num.length < 6) {
+          showToast("សូមបញ្ចូលយ៉ាងហោច ៦ ខ្ទង់!", "error");
+          return;
+        }
 
-        // ==========================================
-        // STEP 1: បញ្ចូលលេខ និង ឆែកតម្លៃ (Search & Check)
-        // ==========================================
-        const { value: requestedNumber } = await Swal.fire({
-          title: `<i class="fa-solid fa-crown" style="color:#d97706; font-size:2.5rem; margin-bottom:10px;"></i><br>${isKh ? "គណនីពិសេស" : "Premium Account"}`,
-          html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px;">${isKh ? "ស្វែងរកលេខគណនីដែលអ្នកស្រលាញ់" : "Search for your desired account number"}</p>
-            <input id="swal-search-num" type="number" class="swal2-input" placeholder="${isKh ? "បញ្ចូលលេខ (យ៉ាងហោច ៦ខ្ទង់)" : "Enter number (min 6 digits)"}" style="font-weight:bold; letter-spacing: 2px; text-align: center; font-size: 1.5rem;">
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: `<i class="fa-solid fa-magnifying-glass"></i> ${isKh ? "ឆែកមើល" : "Check"}`,
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const num = document.getElementById("swal-search-num").value;
-            if (!num || num.length < 6) {
-              Swal.showValidationMessage(
-                isKh
-                  ? "លេខគណនីត្រូវមានយ៉ាងហោចណាស់ ៦ ខ្ទង់!"
-                  : "Account number must be at least 6 digits!",
-              );
-              return false;
-            }
-            return num;
-          },
-        });
-
-        if (!requestedNumber) return;
-
-        // បង្ហាញ Loading ក្លែងក្លាយឱ្យមើលទៅ Professional
+        // បង្ហាញ Loading (យើងប្រើ SweetAlert ត្រឹមតែជា Loading Overlay ស្រដៀង Native Loader)
         Swal.fire({
-          title: isKh ? "កំពុងត្រួតពិនិត្យ..." : "Checking...",
+          title: "កំពុងត្រួតពិនិត្យ...",
           didOpen: () => Swal.showLoading(),
-        });
-        await new Promise((r) => setTimeout(r, 1000)); // រង់ចាំ 1 វិនាទី
-
-        // គណនាតម្លៃ
-        const price = calculatePremiumPrice(requestedNumber);
-        const priceDisplay =
-          price === 0
-            ? isKh
-              ? "ឥតគិតថ្លៃ"
-              : "FREE"
-            : `$${price.toLocaleString()}`;
-
-        const { isConfirmed: proceedToTNC } = await Swal.fire({
-          title: isKh ? "លេខនេះនៅទំនេរ! ✅" : "Number Available! ✅",
-          html: `
-            <div style="background: #f8fafc; border: 1px dashed #10b981; padding: 20px; border-radius: 15px; margin-top: 10px;">
-              <h2 style="margin: 0; color: #1e293b; letter-spacing: 3px; font-family: 'Courier New', monospace;">${requestedNumber}</h2>
-              <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
-              <p style="margin: 0; font-size: 0.95rem; color: #64748b;">${isKh ? "តម្លៃគណនី:" : "Account Price:"} <b style="color: ${price === 0 ? "#10b981" : "#ef4444"}; font-size: 1.2rem;">${priceDisplay}</b></p>
-            </div>
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: isKh ? "យកលេខនេះ" : "Get this number",
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
-          customClass: { popup: "premium-swal" },
+          allowOutsideClick: false,
         });
 
-        if (!proceedToTNC) return;
+        // សន្មតថា Backend ឆ្លើយតបមកថាទំនេរ (Simulate API delay)
+        setTimeout(() => {
+          Swal.close();
+          state.number = num;
+          state.price = calculatePremiumPrice(num);
 
-        // ==========================================
-        // STEP 2 & 3: យល់ព្រមលក្ខខណ្ឌ និង បញ្ជាក់ព័ត៌មាន
-        // ==========================================
-        const { value: accountData } = await Swal.fire({
-          title: isKh ? "បញ្ជាក់ព័ត៌មាន" : "Confirm Details",
-          html: `
-            <div style="text-align: left; margin-bottom: 15px;">
-              <label style="font-size: 0.85rem; color: #64748b; font-weight: bold;">${isKh ? "ឈ្មោះគណនី (ឧ. លុយរកស៊ី):" : "Account Name:"}</label>
-              <input id="swal-acc-name" class="swal2-input" placeholder="${isKh ? "បញ្ចូលឈ្មោះគណនី" : "Enter account name"}" style="margin-top: 5px; width: 100%; box-sizing: border-box;">
-            </div>
-            <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; text-align: left; border: 1px solid #bbf7d0;">
-              <label style="display: flex; align-items: start; gap: 10px; cursor: pointer;">
-                <input type="checkbox" id="swal-tnc" style="width: 20px; height: 20px; margin-top: 2px; accent-color: #004d40;">
-                <span style="font-size: 0.85rem; color: #166534; line-height: 1.5;">
-                  ${isKh ? "ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា និងគោរពតាមលក្ខខណ្ឌប្រើប្រាស់គណនីពិសេសរបស់ U-Pay។" : "I agree to pay the fee and accept U-Pay premium account terms & conditions."}
-                </span>
-              </label>
-            </div>
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: isKh ? "បន្តការទូទាត់" : "Proceed to Pay",
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "ត្រឡប់ក្រោយ" : "Back"}</span>`,
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const accName = document.getElementById("swal-acc-name").value;
-            const tnc = document.getElementById("swal-tnc").checked;
-            if (!accName) {
-              Swal.showValidationMessage(
-                isKh ? "សូមបញ្ចូលឈ្មោះគណនី!" : "Please enter account name!",
-              );
-              return false;
-            }
-            if (!tnc) {
-              Swal.showValidationMessage(
-                isKh
-                  ? "សូមយល់ព្រមលើលក្ខខណ្ឌសិន!"
-                  : "Please accept terms & conditions!",
-              );
-              return false;
-            }
-            return accName;
-          },
-        });
+          // រៀបចំទិន្នន័យលើអេក្រង់ទី ៣
+          document.getElementById("display-num").innerText = state.number;
+          document.getElementById("display-price").innerText =
+            state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
 
-        if (!accountData) return;
+          switchScreen("screen-details");
+        }, 800);
+      }
 
-        // ==========================================
-        // STEP 4 & 5: បញ្ចូល PIN ដើម្បីកាត់លុយ (Pay & PIN)
-        // ==========================================
-        const { value: pinCode } = await Swal.fire({
-          title: isKh ? "បញ្ចូលលេខសម្ងាត់ PIN" : "Enter PIN",
-          html: `
-            <p style="font-size: 0.9rem; color: #64748b;">${isKh ? "ទឹកប្រាក់ត្រូវទូទាត់សរុប:" : "Total amount to pay:"} <b style="color: #ef4444; font-size: 1.2rem;">${priceDisplay}</b></p>
-            <input id="swal-pin" type="password" class="swal2-input" placeholder="****" maxlength="4" style="text-align: center; letter-spacing: 10px; font-size: 1.8rem;">
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#10b981",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: `<i class="fa-solid fa-lock"></i> ${isKh ? "ទូទាត់ & បង្កើតគណនី" : "Pay & Create"}`,
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const pin = document.getElementById("swal-pin").value;
-            if (!pin || pin.length !== 4) {
-              Swal.showValidationMessage(
-                isKh ? "PIN ត្រូវមាន ៤ ខ្ទង់!" : "PIN must be 4 digits!",
-              );
-              return false;
-            }
-            return pin;
-          },
-        });
+      // Action 2: បញ្ជាក់ឈ្មោះ និង T&C
+      function processDetails() {
+        const name = document.getElementById("input-acc-name").value;
+        const tnc = document.getElementById("input-tnc").checked;
 
-        if (!pinCode) return;
+        if (!name) return showToast("សូមបញ្ចូលឈ្មោះគណនី!", "error");
+        if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌ!", "error");
 
-        // ==========================================
-        // STEP 6: ដំណើរការ Backend និង បង្ហាញវិក្កយបត្រ (Success & Receipt)
-        // ==========================================
+        state.name = name;
+
+        // រៀបចំទិន្នន័យលើអេក្រង់ទី ៤
+        document.getElementById("display-total").innerText =
+          state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
+        switchScreen("screen-pin");
+      }
+
+      // Action 3: បញ្ចូល PIN និង បាញ់ API
+      async function submitCreation() {
+        const pin = document.getElementById("input-pin").value;
+        if (!pin || pin.length !== 4)
+          return showToast("PIN ត្រូវមាន ៤ ខ្ទង់!", "error");
+
+        state.pin = pin;
+
         Swal.fire({
-          title: isKh ? "កំពុងបង្កើតគណនី..." : "Creating Account...",
+          title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
         });
 
         try {
-          const res = await fetchAPI("/api/account/create-premium", {
-            username: user.username,
-            requestedNumber: requestedNumber,
-            accountName: accountData,
-            price: price,
-            pin: pinCode,
+          // បាញ់ API ទៅ Backend របស់អ្នក
+          const res = await fetch("/api/account/create-premium", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              username: user.username,
+              requestedNumber: state.number,
+              accountName: state.name,
+              price: state.price,
+              pin: state.pin,
+            }),
           });
+          const data = await res.json();
 
-          if (res.success) {
+          if (data.success) {
+            Swal.close();
             new Audio(
               "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
             )
               .play()
               .catch(() => {});
 
-            // 🔥 Update Session Storage ភ្លាមៗជាមួយទិន្នន័យថ្មីដែលមានផ្ទុក subAccounts ស្រាប់
-            sessionStorage.setItem("user", JSON.stringify(res.user));
+            // Update Session Data
+            sessionStorage.setItem("user", JSON.stringify(data.user || user));
 
-            // គូរវិក្កយបត្រដ៏ស្រស់ស្អាត
-            Swal.fire({
-              title: isKh ? "ជោគជ័យ!" : "Success!",
-              html: `
-                <div style="background: #f8fafc; border-radius: 15px; padding: 20px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "ប្រភេទប្រតិបត្តិការ" : "Transaction"}</span>
-                    <b style="color: #1e293b; font-size: 0.85rem;">${isKh ? "ទិញលេខគណនីពិសេស" : "Premium Account"}</b>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "លេខគណនីថ្មី" : "New Account No."}</span>
-                    <b style="color: #0284c7; font-size: 0.95rem; font-family: monospace;">${requestedNumber}</b>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <span style="color: #64748b; font-size: 0.85rem;">${isKh ? "ឈ្មោះគណនី" : "Account Name"}</span>
-                    <b style="color: #1e293b; font-size: 0.85rem;">${accountData}</b>
-                  </div>
-                  <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #64748b; font-size: 0.9rem;">${isKh ? "ប្រាក់បានទូទាត់" : "Total Paid"}</span>
-                    <b style="color: #ef4444; font-size: 1.3rem;">$${price.toLocaleString()}</b>
-                  </div>
-                </div>
-              `,
-              icon: "success",
-              confirmButtonColor: "#004d40",
-              confirmButtonText: isKh ? "រួចរាល់" : "Done",
-              customClass: { popup: "premium-swal" },
-            }).then(() => {
-              // (ជម្រើស) បន្ទាប់ពីទិញរួច ឱ្យត្រឡប់ទៅទំព័រដើម ដើម្បីបង្ហាញគណនីថ្មី
-              window.location.href = "dashboard.html";
-            });
+            // រៀបចំវិក្កយបត្រលើអេក្រង់ទី ៥
+            document.getElementById("receipt-num").innerText = state.number;
+            document.getElementById("receipt-name").innerText = state.name;
+            document.getElementById("receipt-price").innerText =
+              state.price === 0 ? "FREE" : `$${state.price}`;
 
-            // Update user balance in sessionStorage (Optional)
-            if (user && user.balance) {
-              user.balance -= price;
-              sessionStorage.setItem("user", JSON.stringify(user));
-            }
+            switchScreen("screen-success");
           } else {
-            Swal.fire("បរាជ័យ / Failed", res.message, "error");
+            Swal.fire("បរាជ័យ", data.message, "error");
           }
         } catch (error) {
-          Swal.fire("Error", "Network connection error", "error");
+          Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
         }
       }
-
-      // មុខងារ ២: បើកផ្ទាំង គណនីគ្រួសារ/ដៃគូ
-      async function openFamilyAccountModal() {
-        const isKh = window.currentLang === "kh";
-
-        const { value: partnerId } = await Swal.fire({
-          title: `<i class="fa-solid fa-users" style="color:#4f46e5; font-size:2.5rem; margin-bottom:10px;"></i><br>${isKh ? "គណនីរួមគ្រួសារ" : "Joint Account"}`,
-          html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px;">${isKh ? "បញ្ចូលលេខទូរស័ព្ទ ឬ លេខគណនីដៃគូ ដើម្បីភ្ជាប់។" : "Enter partner phone or account number to connect."}</p>
-            <input id="swal-partner-id" class="swal2-input" placeholder="${isKh ? "លេខទូរស័ព្ទ / លេខគណនី" : "Phone / Account No."}">
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: isKh ? "ផ្ញើសំណើ" : "Send Invite",
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const pid = document.getElementById("swal-partner-id").value;
-            if (!pid) {
-              Swal.showValidationMessage(
-                isKh ? "សូមបញ្ចូលព័ត៌មានដៃគូ!" : "Please enter partner info!",
-              );
-              return false;
-            }
-            return pid;
-          },
-        });
-
-        if (partnerId) {
-          Swal.fire({
-            icon: "info",
-            title: isKh ? "កំពុងភ្ជាប់ទៅ Backend" : "Connecting to Backend",
-            text: isKh
-              ? `ប្រព័ន្ធនឹងផ្ញើ Notification ទៅកាន់ ${partnerId}!`
-              : `Invitation will be sent to ${partnerId}!`,
-            confirmButtonColor: "#004d40",
-          });
-        }
-      }
-
-      // មុខងារ ៣: បើកផ្ទាំង ហោប៉ៅចំណាយ (Pocket)
-      async function openPocketAccountModal() {
-        const isKh = window.currentLang === "kh";
-
-        const { value: pocketName } = await Swal.fire({
-          title: `<i class="fa-solid fa-wallet" style="color:#16a34a; font-size:2.5rem; margin-bottom:10px;"></i><br>${isKh ? "ហោប៉ៅចំណាយ" : "Spending Pocket"}`,
-          html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px;">${isKh ? "បង្កើតហោប៉ៅតូចៗ ដើម្បីញែកលុយទុកចំណាយតាមគោលដៅ។" : "Create mini-pockets to divide your daily budget."}</p>
-            <input id="swal-pocket-name" class="swal2-input" placeholder="${isKh ? "ឈ្មោះហោប៉ៅ (ឧ. ទិញកាហ្វេ)" : "Pocket Name (e.g. Coffee)"}">
-          `,
-          showCancelButton: true,
-          confirmButtonColor: "#004d40",
-          cancelButtonColor: "#f1f5f9",
-          confirmButtonText: isKh ? "បង្កើត" : "Create",
-          cancelButtonText: `<span style="color:#64748b; font-weight:bold;">${isKh ? "បោះបង់" : "Cancel"}</span>`,
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const name = document.getElementById("swal-pocket-name").value;
-            if (!name) {
-              Swal.showValidationMessage(
-                isKh ? "សូមបញ្ចូលឈ្មោះហោប៉ៅ!" : "Please enter pocket name!",
-              );
-              return false;
-            }
-            return name;
-          },
-        });
-
-        if (pocketName) {
-          Swal.fire({
-            icon: "info",
-            title: isKh ? "កំពុងភ្ជាប់ទៅ Backend" : "Connecting to Backend",
-            text: isKh
-              ? `ប្រព័ន្ធនឹងបង្កើតអនុគណនី "${pocketName}" ឱ្យអ្នក!`
-              : `Sub-account "${pocketName}" will be created!`,
-            confirmButtonColor: "#004d40",
-          });
-        }
-      }
-
-      // បញ្ជាឱ្យប្រព័ន្ធបកប្រែដំណើរការភ្លាមៗពេលបើកទំព័រ
-      document.addEventListener("DOMContentLoaded", () => {
-        if (typeof window.applyLanguage === "function") {
-          window.applyLanguage();
-        }
-      });
     </script>
   </body>
 </html>
