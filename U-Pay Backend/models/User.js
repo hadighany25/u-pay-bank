@@ -49,6 +49,19 @@ const userSchema = new mongoose.Schema(
         lockedByAdmin: { type: Boolean, default: false }, // សោរអំណាច Admin នៅដដែល!
       },
     ],
+    subAccounts: [
+      {
+        accountId: { type: String, default: () => Date.now().toString() },
+        accountNumber: { type: String }, // លេខគណនីថ្មី (ឧ. លេខទូរស័ព្ទ លេខ VIP)
+        accountName: { type: String }, // ឈ្មោះ (ឧ. លុយអាជីវកម្ម)
+        accountType: { type: String, default: "premium" }, // premium, joint, pocket
+        balance: { type: Number, default: 0.0 },
+        currency: { type: String, default: "USD" },
+        isLocked: { type: Boolean, default: false },
+        metadata: { type: Object, default: {} }, // សម្រាប់ទុកទិន្នន័យផ្សេងៗតាមប្រភេទ
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true },
 );

@@ -22,6 +22,7 @@ const financeRoutes = require("./routes/financeRoutes");
 const communicationRoutes = require("./routes/communicationRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
 const ufundRoutes = require("./routes/ufundRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 
 const PORT = process.env.PORT || 3000;
 
@@ -78,6 +79,7 @@ app.use("/api/card", cardRoutes);
 app.use("/api", financeRoutes);
 app.use("/api", communicationRoutes);
 app.use("/api/ufund", ufundRoutes);
+app.use("/api/account", accountRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));

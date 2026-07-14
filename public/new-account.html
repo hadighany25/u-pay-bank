@@ -523,6 +523,9 @@
               .play()
               .catch(() => {});
 
+            // 🔥 Update Session Storage ភ្លាមៗជាមួយទិន្នន័យថ្មីដែលមានផ្ទុក subAccounts ស្រាប់
+            sessionStorage.setItem("user", JSON.stringify(res.user));
+
             // គូរវិក្កយបត្រដ៏ស្រស់ស្អាត
             Swal.fire({
               title: isKh ? "ជោគជ័យ!" : "Success!",
@@ -551,6 +554,9 @@
               confirmButtonColor: "#004d40",
               confirmButtonText: isKh ? "រួចរាល់" : "Done",
               customClass: { popup: "premium-swal" },
+            }).then(() => {
+              // (ជម្រើស) បន្ទាប់ពីទិញរួច ឱ្យត្រឡប់ទៅទំព័រដើម ដើម្បីបង្ហាញគណនីថ្មី
+              window.location.href = "dashboard.html";
             });
 
             // Update user balance in sessionStorage (Optional)
