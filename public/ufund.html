@@ -1136,7 +1136,7 @@
           });
           const data = await fetchAPI("/api/ufund/deposit", {
             username: user.username,
-            fundId: fundId, // 🔥 កែពី fund._id មក fundId វិញ
+            fundId: fund._id, // 🔥 កែពី fund._id មក fundId វិញ
             amount: amount, // 🔥 កែពី amt មក amount វិញ
             isAuto: false,
           });
