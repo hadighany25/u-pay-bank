@@ -1019,48 +1019,33 @@
         }
       }
 
-      async function openEditFundUI(fundId, oldName, oldTarget) {
+      async function openEditFundUI() {
+        const fund = activeFunds[currentFundIndex];
         const { value: formValues } = await Swal.fire({
           title: "Edit Fund Settings",
           html: `
-            <input id="edit-fname" class="swal2-input" value="${oldName}" placeholder="Fund Name" style="width: 80%;">
-            <input id="edit-ftarget" type="number" class="swal2-input" value="${oldTarget}" placeholder="Target Amount" style="width: 80%;">
+            <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
+            <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
           `,
           showCancelButton: true,
-          confirmButtonText: "រក្សាទុក / Save", // 🔥 ជួរនេះធ្វើឱ្យប៊ូតុងលោតមកវិញ
-          confirmButtonColor: "#004d40", // 🔥 ពណ៌បៃតងចាស់
-          cancelButtonColor: "#64748b",
+          confirmButtonColor: "var(--primary)",
+          confirmButtonText: "Save Changes",
+          customClass: { popup: "premium-swal" },
           preConfirm: () => {
-            const newName = document.getElementById("edit-fname").value;
-            const newTarget = document.getElementById("edit-ftarget").value;
-            if (!newName || !newTarget || newTarget <= 0) {
-              Swal.showValidationMessage("សូមបំពេញព័ត៌មានឱ្យបានត្រឹមត្រូវ!");
-              return false;
-            }
-            return { name: newName, target: newTarget };
+            return {
+              name: document.getElementById("swal-edit-name").value,
+              target: document.getElementById("swal-edit-target").value,
+            };
           },
         });
 
         if (formValues) {
-          Swal.fire({
-            title: "Updating...",
-            didOpen: () => Swal.showLoading(),
-          });
-          const data = await fetchAPI("/api/ufund/edit", {
-            username: user.username,
-            fundId: fund._id,
-            name: formValues.name,
-            target: formValues.target,
-          });
-          if (data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "Updated!",
-              timer: 1500,
-              showConfirmButton: false,
-            });
-            fetchMyFunds();
-          } else Swal.fire("Error", data.message, "error");
+          // TODO: Call your edit API endpoint here in the next backend step
+          Swal.fire(
+            "Info",
+            "Backend logic for Edit will be connected next!",
+            "info",
+          );
         }
       }
 
