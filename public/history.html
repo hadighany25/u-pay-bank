@@ -530,6 +530,11 @@
       window.addEventListener("DOMContentLoaded", () => {
         applyThemeHistory();
         if (typeof applyLanguage === "function") applyLanguage();
+
+        // 🔥 បន្ថែមបន្ទាត់នេះ ដើម្បីឱ្យសារលោតចេញភ្លាមពេល Page ដំណើរការ
+        if (sessionUser && sessionUser.notifications) {
+          renderMessages(sessionUser.notifications);
+        }
       });
 
       const today = new Date();
@@ -801,7 +806,7 @@
               iconBg = "#fef08a";
               iconColor = "#ca8a04";
             }
-
+            let type = m.type || "general";
             return `
           <div class="msg-card" ${clickAction} style="${cursorStyle}">
             <div class="msg-icon" style="background:${iconBg}; color:${iconColor};"><i class="${iconClass}"></i></div>
