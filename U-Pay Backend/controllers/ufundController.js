@@ -87,18 +87,32 @@ exports.createFund = async (req, res) => {
 exports.depositFund = async (req, res) => {
   const { username, fundId, amount, isAuto } = req.body;
   try {
+    // 🔥 ១. ឆែកមើល User
     const user = await User.findOne({ username });
-    const fund = await UFund.findById(fundId);
+    if (!user)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ!" });
 
-    // ទាញយកគណនីធនាគារកណ្តាល (Central Bank USD)
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
-
-    if (!user || !fund || !centralBank) {
+    // 🔥 ២. ឆែកមើល Fund ID
+    if (!fundId)
       return res.json({
         success: false,
-        message: "ទិន្នន័យគណនី ឬធនាគារកណ្តាលមិនត្រឹមត្រូវ!",
+        message: "Fund ID មិនត្រូវបានបញ្ជូនមកទេ!",
       });
-    }
+
+    const fund = await UFund.findById(fundId);
+    if (!fund)
+      return res.json({
+        success: false,
+        message: "រកគម្រោង U-Fund មិនឃើញទេ! សូមពិនិត្យមើល Fund ID ម្តងទៀត។",
+      });
+
+    // 🔥 ៣. ឆែកមើលធនាគារកណ្តាល
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    if (!centralBank)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីធនាគារកណ្តាល (888888888) ទេ!",
+      });
 
     const depositAmount = parseFloat(amount);
     if (user.balance < depositAmount) {
@@ -168,7 +182,6 @@ exports.depositFund = async (req, res) => {
 
     // 🔔 ផ្ញើ Notification ទៅកាន់សមាជិក "ផ្សេងទៀត" ទាំងអស់ក្នុងគម្រោង
     const notifyPromises = fund.members.map(async (m) => {
-      // មិនបាច់ផ្ញើសារប្រាប់អ្នកដែលទើបតែដាក់លុយទេ (ព្រោះគាត់ដឹងហើយ)
       if (m.username !== user.username) {
         const otherMember = await User.findOne({ username: m.username });
         if (otherMember) {
@@ -189,11 +202,9 @@ exports.depositFund = async (req, res) => {
       }
     });
 
-    // រង់ចាំរុញសារឱ្យសមាជិកទាំងអស់ចប់សិន
     await Promise.all(notifyPromises);
-
-    // Save ទិន្នន័យចម្បងទាំង ៣ ព្រមគ្នា
     await Promise.all([user.save(), centralBank.save(), fund.save()]);
+
     res.json({ success: true, message: "ដាក់ប្រាក់ជោគជ័យ!", fund });
   } catch (error) {
     console.error("Deposit Error:", error);
