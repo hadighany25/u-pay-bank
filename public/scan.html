@@ -862,13 +862,14 @@
           "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
         ).play();
 
-        // 🔥 ១. ឆែកមើលទីនេះ៖ បើវាជា QR របស់ U-Fund
+        // 🔥 ១. បើវាជា QR របស់ U-Fund ឱ្យវារុញទៅទំព័រ Transfer តែម្តង!
         if (decodedText.startsWith("UFND-")) {
-          handleUFundScan(decodedText);
-          return; // បញ្ឈប់កុំឱ្យវារត់ទៅកូដវេរលុយខាងក្រោម
+          // បញ្ជូនទៅ transfer.html រួចភ្ជាប់កូដ U-Fund ទៅជាមួយ
+          window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
+          return;
         }
 
-        // ២. កូដវេរលុយចាស់របស់បង (រក្សាទុកដដែល)
+        // ២. កូដចាស់សម្រាប់ទំព័រ Transfer ធម្មតា និង Merchant
         if (
           decodedText.includes("transfer.html") &&
           decodedText.includes("acc=")
