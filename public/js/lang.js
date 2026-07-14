@@ -321,6 +321,25 @@ const translations = {
     ufund_status_active: "Active",
     ufund_status_pending: "Pending",
     ufund_status_overdue: "Overdue",
+
+    // =====================================
+    // --- Create New Account ---
+    // =====================================
+    new_acc_title: "New Account",
+    new_acc_desc:
+      "Choose an account type from our various options and open it instantly with ease.",
+    acc_premium_title: "Premium Number",
+    acc_premium_desc:
+      "Open a U-Pay account with a custom, memorable, or meaningful number.",
+    acc_family_title: "Joint Account",
+    acc_family_desc:
+      "Create a shared account with a family member or partner to manage funds together.",
+    acc_pocket_title: "Spending Pocket",
+    acc_pocket_desc:
+      "Split your money into separate pockets for smart daily budget management.",
+    acc_savings_title: "Fixed Deposit",
+    acc_savings_desc:
+      "Earn up to 6.5% p.a. with our highly secure fixed deposit accounts.",
   },
 
   // ភាសាខ្មែរ (Khmer) Translation
@@ -647,6 +666,25 @@ const translations = {
   ufund_status_active: "សកម្ម",
   ufund_status_pending: "រង់ចាំ",
   ufund_status_overdue: "យឺតយ៉ាវ",
+
+  // =====================================
+  // --- Create New Account ---
+  // =====================================
+  new_acc_title: "គណនីថ្មី",
+  new_acc_desc:
+    "ជ្រើសរើសគណនីណាមួយ ក្នុងចំណោមជម្រើសជាច្រើនរបស់យើង ហើយបើកវាភ្លាមៗយ៉ាងងាយស្រួល។",
+  acc_premium_title: "គណនីលេខពិសេស",
+  acc_premium_desc:
+    "បើកគណនី U-Pay ជាមួយលេខដែលងាយស្រួលចំណាំ ឬមានអត្ថន័យសម្រាប់លោកអ្នក។",
+  acc_family_title: "គណនីរួមគ្រួសារ",
+  acc_family_desc:
+    "បង្កើតគណនីរួមជាមួយសមាជិកគ្រួសារ ឬដៃគូ ដើម្បីគ្រប់គ្រងប្រាក់សន្សំជាមួយគ្នា។",
+  acc_pocket_title: "ហោប៉ៅចំណាយ",
+  acc_pocket_desc:
+    "បែងចែកលុយជាចំណែកៗ ដើម្បីងាយស្រួលគ្រប់គ្រងការចាយវាយប្រចាំថ្ងៃ។",
+  acc_savings_title: "គណនីបញ្ញើមានកាលកំណត់",
+  acc_savings_desc:
+    "ទទួលអត្រាការប្រាក់ខ្ពស់រហូតដល់ 6.5% ក្នុងមួយឆ្នាំ សម្រាប់ការសន្សំដែលមានសុវត្ថិភាពខ្ពស់។",
 };
 
 function applyLanguage() {
