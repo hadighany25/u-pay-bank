@@ -1571,45 +1571,88 @@
         if (usernameEl)
           usernameEl.innerText = currentUser.fullName || currentUser.username;
 
-        const accNumEl = document.getElementById("accNum");
-        if (accNumEl)
-          accNumEl.innerText = currentUser.accountNumber.replace(
-            /(\d{3})(\d{3})(\d{3})/,
-            "$1 $2 $3",
-          );
+        // 🔥 កន្លែងនេះដែលយើងត្រូវកែ៖ គូរ Cards ទាំងអស់មកដាក់ក្នុង Slider
+        const sliderWrapper = document.querySelector(".card-slider-wrapper");
+        sliderWrapper.innerHTML = ""; // លុបរបស់ចាស់ចោល
 
-        const balEl = document.getElementById("balance");
-        if (balEl) balEl.innerText = currentUser.balance.toFixed(2);
+        // ១. គូរកុង USD Main
+        sliderWrapper.appendChild(
+          createCardElement(
+            "USD",
+            currentUser.balance,
+            currentUser.accountNumber,
+            "usd-card",
+          ),
+        );
 
-        let khrAcc = currentUser.accountNumberKHR || "N/A";
-        const accNumKHREl = document.getElementById("accNumKHR");
-        if (accNumKHREl)
-          accNumKHREl.innerText = khrAcc.replace(
-            /(\d{3})(\d{3})(\d{3})/,
-            "$1 $2 $3",
-          );
+        // ២. គូរកុង KHR Main
+        sliderWrapper.appendChild(
+          createCardElement(
+            "KHR",
+            currentUser.balanceKHR || 0,
+            currentUser.accountNumberKHR,
+            "khr-card",
+          ),
+        );
 
-        const balKHREl = document.getElementById("balanceKHR");
-        if (balKHREl)
-          balKHREl.innerText = (currentUser.balanceKHR || 0).toLocaleString(
-            "en-US",
-          );
-
-        let totalHold = currentUser.transactions
-          ? currentUser.transactions
-              .filter((t) => t.isHold === true && t.status === "Pending")
-              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-          : 0;
-        const holdArea = document.getElementById("holdDisplay");
-        if (totalHold > 0 && holdArea) {
-          holdArea.style.display = "block";
-          document.getElementById("holdAmount").innerText =
-            totalHold.toFixed(2);
-        } else if (holdArea) holdArea.style.display = "none";
+        // ៣. 🔥 បន្ថែម Sub-Accounts (Premium/Pocket/Joint) ចូលទៅក្នុង Slider
+        if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
+          currentUser.subAccounts.forEach((sub) => {
+            const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
+            sliderWrapper.appendChild(
+              createCardElement(
+                sub.currency,
+                sub.balance,
+                sub.accountNumber,
+                cardClass,
+                sub.accountName,
+              ),
+            );
+          });
+        }
 
         const avatarBox = document.getElementById("avatarBox");
         if (currentUser.profileImage && avatarBox)
           avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
+      }
+
+      // មុខងារជំនួយ៖ បង្កើត HTML នៃកាតនីមួយៗ
+      function createCardElement(
+        currency,
+        balance,
+        accNum,
+        cardClass,
+        customName = null,
+      ) {
+        const sign = currency === "USD" ? "$" : "៛";
+        const label = customName
+          ? customName
+          : currency === "USD"
+            ? "Available Balance (USD)"
+            : "Available Balance (KHR)";
+        const displayBal =
+          currency === "USD"
+            ? balance.toFixed(2)
+            : balance.toLocaleString("en-US");
+
+        const card = document.createElement("div");
+        card.className = `credit-card ${cardClass}`;
+        card.onclick = () => openAccountDetails(currency, accNum); // ហៅមកកាន់កុងណា ក៏ដឹងដែរ
+
+        card.innerHTML = `
+          <div class="card-top">
+            <span class="card-chip"></span>
+            <img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'">
+          </div>
+          <div class="card-body">
+            <p class="card-label">${label}</p>
+            <h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1>
+          </div>
+          <div class="card-footer">
+            <p class="card-number">${accNum.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
+          </div>
+        `;
+        return card;
       }
 
       // ==========================================
@@ -1851,32 +1894,39 @@
       // ==========================================
       let currentViewingCurrency = null;
 
-      function openAccountDetails(currency) {
-        currentViewingCurrency = currency;
+      function openAccountDetails(currency, accNum) {
+        // រកមើលកុងដែលគេចុច (ឆែកក្នុងកុង Main ឬ Sub)
+        const account = findAccountByNumber(user, accNum);
+
         const modal = document.getElementById("accountBottomSheet");
         const overlay = document.getElementById("accountModalOverlay");
 
-        if (modal && overlay) {
+        if (modal && overlay && account) {
           document.getElementById("sheetAccType").innerText =
-            currency === "USD"
-              ? "គណនីប្រាក់ដុល្លារ (USD)"
-              : "គណនីប្រាក់រៀល (KHR)";
+            account.accountName ||
+            (currency === "USD" ? "គណនីប្រាក់ដុល្លារ" : "គណនីប្រាក់រៀល");
           document.getElementById("sheetBalance").innerText =
             currency === "USD"
-              ? `$${user.balance.toFixed(2)}`
-              : `${(user.balanceKHR || 0).toLocaleString("en-US")} ៛`;
+              ? `$${account.balance.toFixed(2)}`
+              : `${account.balance.toLocaleString("en-US")} ៛`;
           document.getElementById("sheetAccNum").innerText =
-            currency === "USD"
-              ? user.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
-              : (user.accountNumberKHR || "").replace(
-                  /(\d{3})(\d{3})(\d{3})/,
-                  "$1 $2 $3",
-                );
+            account.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
 
-          renderTransactionsInModal(user, currency);
+          renderTransactionsInModal(user, currency, accNum); // កែដើម្បីហៅ Transaction តាមលេខកុង
           overlay.classList.add("active");
           modal.classList.add("active");
         }
+      }
+
+      // មុខងារស្វែងរក Account តាមលេខកុង
+      function findAccountByNumber(user, accNum) {
+        if (user.accountNumber === accNum || user.accountNumberKHR === accNum)
+          return {
+            ...user,
+            balance: user.balance,
+            accountName: "Main Account",
+          };
+        return user.subAccounts.find((sub) => sub.accountNumber === accNum);
       }
 
       function closeAccountDetails() {
@@ -1890,7 +1940,7 @@
       // =========================================
       // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Modal (Dashboard)
       // =========================================
-      function renderTransactionsInModal(currentUser, currency) {
+      function renderTransactionsInModal(currentUser, currency, accNum) {
         const list = document.getElementById("sheetTrxList");
         if (!list) return;
 
@@ -1898,23 +1948,31 @@
           !currentUser.transactions ||
           currentUser.transactions.length === 0
         ) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
           return;
         }
 
-        // 🔥 ដោះស្រាយបញ្ហាបាត់ Transaction ថ្មី: យើង Reverse វាឱ្យអាថ្មីមកលើគេសិន រួចចាំយក ៣០
         let filteredTrx = currentUser.transactions
-          .filter(
-            (t) =>
-              (t.currency === currency ||
-                (!t.currency && currency === "USD")) &&
-              t.status !== "Refunded",
-          )
-          .sort((a, b) => new Date(b.date) - new Date(a.date)) // 🔥 តម្រៀបយកអាថ្មីបំផុតមកលើគេបង្អស់
+          .filter((t) => {
+            // ១. ករណី Transaction មានលេខកុង (ទាំង Main និង Sub-Accounts)
+            const isMyAccount =
+              t.senderAcc === accNum || t.receiverAcc === accNum;
+
+            // ២. ករណី Main Account (ពេលខ្លះ Database អត់ដាក់ receiverAcc ឱ្យ)
+            // យើងត្រូវឆែកថា បើកុងហ្នឹងជាកុង Main ហើយ Currency ត្រូវគ្នា គឺយក!
+            const isMainAccountMatch =
+              t.currency === currency &&
+              (accNum === currentUser.accountNumber ||
+                accNum === currentUser.accountNumberKHR) &&
+              (!t.receiverAcc || t.receiverAcc === ""); // ត្រង់នេះសំខាន់៖ បើគ្មានលេខកុង គឺរាប់ថាជាកុង Main
+
+            return isMyAccount || isMainAccountMatch;
+          })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 30);
 
         if (filteredTrx.length === 0) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការ ${currency} ទេ</p></div>`;
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការសម្រាប់គណនីនេះទេ</p></div>`;
           return;
         }
 
@@ -1922,6 +1980,7 @@
         let lastDateLabel = "";
 
         filteredTrx.forEach((t) => {
+          // (រក្សាកូដគូរ UI ក្នុង Loop ដដែល)
           const isIncome = t.amount > 0;
           const isPending = t.status === "Pending";
           let parsedDate = parseDateString(t.date);

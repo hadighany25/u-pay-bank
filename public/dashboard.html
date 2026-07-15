@@ -1680,6 +1680,7 @@
           (n) => !n.isRead,
         );
 
+        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
         if (unread.length > currentUnreadCount) {
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
@@ -1708,12 +1709,14 @@
           } else {
             list.innerHTML = unread
               .map((n) => {
+                // តម្លៃដើម (Default) សម្រាប់ Icon និង ពណ៌
                 let icon = "fa-bullhorn",
                   bg = "#e0f2fe",
                   col = "#0284c7";
                 let displayMsg = n.message;
                 let actionBtn = "";
 
+                // 💵 ពណ៌សម្រាប់ ការទទួលប្រាក់ធម្មតា
                 if (
                   n.title.includes("Received") &&
                   n.type !== "egift_receive"
@@ -1721,7 +1724,9 @@
                   icon = "fa-hand-holding-dollar";
                   bg = "#ecfdf5";
                   col = "#10b981";
-                } else if (
+                }
+                // 🛒 ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request)
+                else if (
                   n.title.includes("សំណើទូទាត់ប្រាក់") ||
                   n.type === "payment_request"
                 ) {
@@ -1729,25 +1734,54 @@
                   bg = "#fff7ed";
                   col = "#ea580c";
                 }
+                // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward ដែលទើបតែបន្ថែម
+                else if (
+                  n.title.includes("Cashback") ||
+                  n.type === "cashback_reward" ||
+                  n.title.includes("ឈ្នះបាន")
+                ) {
+                  icon = "fa-sack-dollar";
+                  bg = "#dcfce7";
+                  col = "#059669";
+                }
 
+                // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
                 if (n.type === "egift_receive") {
                   icon = "fa-gift";
                   bg = "#fee2e2";
                   col = "#dc2626";
 
+                  const amount = n.egiftData?.amount || 0;
+                  const currency = n.egiftData?.currency || "USD";
                   const sender = (
                     n.egiftData?.senderName || "មិត្តភក្តិ"
                   ).replace(/'/g, "\\'");
+                  const msg = (n.egiftData?.message || "ជូនពរសំណាងល្អ").replace(
+                    /'/g,
+                    "\\'",
+                  );
+                  const senderUsername = n.egiftData?.senderUsername || "";
+                  const notifId = n._id || n.id;
 
-                  displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}! (សូមចូលទៅកាន់ History > Messages ដើម្បីបើកមើល)`;
-                  actionBtn = "";
+                  displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
+
+                  // 🔥 បន្ថែមប៊ូតុងចុចទទួលកាដូមកវិញ
+                  actionBtn = `
+                    <div style="margin-top: 10px;">
+                      <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                        <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
+                      </button>
+                    </div>
+                  `;
                 }
 
+                // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
                 if (n.type === "ufund_invite") {
                   icon = "fa-bullseye";
                   bg = "#ecfeff";
                   col = "#0891b2";
 
+                  // ប៊ូតុង យល់ព្រម និង បដិសេធ សម្រាប់ U-Fund
                   actionBtn = `
                     <div style="margin-top: 10px; display: flex; gap: 10px;">
                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
@@ -1756,6 +1790,7 @@
                   `;
                 }
 
+                // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
                 return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
                           <div style="display:flex; gap:12px;">
                               <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
@@ -1774,15 +1809,18 @@
         }
       }
 
+      // មុខងារបើកផ្ទាំងសារ (Open Notification Modal)
       function readNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "flex";
       }
 
+      // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
       async function closeNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
+        // Mark as Read តែសារធម្មតា (ទុកសារ E-Gift ឲ្យនៅដដែលបើមិនទាន់បើក)
         const badge = document.getElementById("notiBadge");
         if (badge && parseInt(badge.innerText) > 0) {
           try {
@@ -1796,6 +1834,7 @@
         }
       }
 
+      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
       async function handleOpenGiftFromDash(
         amount,
         currency,
@@ -1804,9 +1843,11 @@
         notifId,
         senderUsername,
       ) {
+        // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
+        // ២. បាញ់ព្រិល (Confetti Effect)
         if (typeof confetti === "function") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -1817,6 +1858,7 @@
             ? Number(amount).toFixed(2)
             : Number(amount).toLocaleString();
 
+        // បង្ហាញផ្ទាំងប្រាក់រង្វាន់ (Surprise Alert)
         Swal.fire({
           html: `
                   <div style="padding:20px; text-align:center;">
@@ -1831,9 +1873,11 @@
           confirmButtonColor: "#004d40",
           customClass: { popup: "modal-radius" },
         }).then(() => {
+          // ពេលចុច "ឡូយកប់!" យើង Update UI ដើម្បីឱ្យបាត់សារ
           loadDashboardData(false);
         });
 
+        // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ (Update Server)
         try {
           await fetch("/api/egift/opened", {
             method: "POST",
@@ -1849,6 +1893,7 @@
         }
       }
 
+      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
       async function respondUFundInvite(fundId, notifId, response) {
         try {
           Swal.fire({
@@ -1863,7 +1908,7 @@
               username: user.username,
               fundId: fundId,
               notifId: notifId,
-              response: response,
+              response: response, // 'accept' ឬ 'decline'
             }),
           });
 
@@ -1878,7 +1923,7 @@
               timer: 2000,
               showConfirmButton: false,
             }).then(() => {
-              loadDashboardData(false);
+              loadDashboardData(false); // Refresh ទិន្នន័យ Dashboard
             });
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
