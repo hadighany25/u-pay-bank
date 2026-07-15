@@ -1103,15 +1103,19 @@
         const boxUI = document.getElementById("receiverBoxUI");
         const iconUI = document.getElementById("receiverIconUI");
 
+        // 🔥 បន្ថែម Logic កែប្រែ icon កូនជ្រូក និងបង្ហាញឈ្មោះគម្រោង U-Fund
         if (acc.startsWith("UFND-")) {
-          nameDisplay.innerText = "U-Fund (Scan Pay)";
+          const parts = acc.split("-");
+          const projectName = parts.length > 2 ? parts[2] : "Scan Pay";
+
+          nameDisplay.innerHTML = `U-Fund (${projectName})`; // បង្ហាញឈ្មោះគម្រោង
           status.innerText = "✔";
           status.className = "check-status status-ok";
           boxUI.style.borderColor = "#10b981";
           boxUI.style.background = "#ecfdf5";
           iconUI.style.background = "#10b981";
           iconUI.style.color = "white";
-          iconUI.innerHTML = '<i class="fa-solid fa-qrcode"></i>'; // QR Icon
+          iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>'; // ប្តូរជាកូនជ្រូក
           targetUserIsKHR = false;
           calculateExchangePreview();
           return true;
