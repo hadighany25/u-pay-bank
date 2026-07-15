@@ -8,6 +8,9 @@
     />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Dashboard - U-Pay</title>
+    <!-- ==========================================
+         ១. ការភ្ជាប់ឯកសារ CSS & JS (STYLES & SCRIPTS)
+         ========================================== -->
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
@@ -26,7 +29,7 @@
 
     <style>
       /* ==========================================
-         🚀 GLOBAL & FONTS
+         ២. ការរចនាទូទៅ និងពុម្ពអក្សរ (GLOBAL & FONTS)
          ========================================== */
       body {
         visibility: hidden;
@@ -77,7 +80,7 @@
       }
 
       /* ==========================================
-         👤 HEADER (ក្បាលលើ)
+         ៣. ផ្នែកក្បាលខាងលើ (HEADER)
          ========================================== */
       .header {
         padding: 20px 20px 15px 20px;
@@ -87,6 +90,7 @@
         background: transparent;
         z-index: 10;
       }
+      /* ៣.១. ប្រវត្តិរូបអ្នកប្រើប្រាស់ (User Profile) */
       .user-profile {
         display: flex;
         align-items: center;
@@ -125,6 +129,7 @@
         letter-spacing: -0.3px;
       }
 
+      /* ៣.២. ប៊ូតុងសកម្មភាព (Header Actions) */
       .header-actions {
         display: flex;
         align-items: center;
@@ -156,6 +161,7 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       }
 
+      /* ៣.៣. សញ្ញាជូនដំណឹង (Notification Badge) */
       .noti-badge {
         position: absolute;
         top: -6px;
@@ -175,7 +181,7 @@
       }
 
       /* ==========================================
-         💳 CARDS SLIDER
+         ៤. ផ្នែករុញកាតគណនី (CARDS SLIDER)
          ========================================== */
       .card-slider-wrapper {
         display: flex;
@@ -216,6 +222,7 @@
         box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
       }
 
+      /* ៤.១. ផ្ទៃខាងក្រោយកាត (Card Backgrounds) */
       .usd-card::before,
       .khr-card::before {
         content: "";
@@ -266,6 +273,7 @@
         }
       }
 
+      /* ៤.២. ផ្នែកកាតខាងក្នុង (Card Content) */
       .card-top {
         width: 100%;
         display: flex;
@@ -323,7 +331,7 @@
       }
 
       /* ==========================================
-         📱 PREMIUM MENU GRID (ICONS)
+         ៥. ម៉ឺនុយជម្រើស (PREMIUM MENU GRID)
          ========================================== */
       .menu-grid {
         display: grid;
@@ -340,6 +348,7 @@
         max-height: 450px;
       }
 
+      /* ៥.១. សញ្ញាអូសចុះឡើង (Scroll Hint) */
       .scroll-hint {
         text-align: center;
         color: #94a3b8;
@@ -370,6 +379,7 @@
         }
       }
 
+      /* ៥.២. ប៊ូតុងម៉ឺនុយនីមួយៗ (Menu Items) */
       .menu-item {
         display: flex;
         flex-direction: column;
@@ -383,7 +393,7 @@
         outline: none;
       }
 
-      /* 🔥 ពណ៌ Icon និងស្រមោលផុសថ្មី (3D Feel) */
+      /* ប្រអប់ Icon (Icon Box) */
       .icon-box {
         width: 58px;
         height: 58px;
@@ -398,7 +408,7 @@
         border: 1px solid rgba(255, 255, 255, 0.5);
       }
 
-      /* Hover & Active Animation */
+      /* ចលនាពេលយក Mouse ដាក់លើ ឬចុច (Hover & Active Animation) */
       .menu-item:hover .icon-box {
         transform: translateY(-4px) scale(1.05);
         box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.15);
@@ -423,7 +433,7 @@
         transform: scale(0.9);
       }
 
-      /* ពណ៌ Specific នីមួយៗ (Gradient) */
+      /* ៥.៣. ពណ៌ Icon នីមួយៗ (Specific Icon Colors) */
       .icon-transfer {
         background: linear-gradient(135deg, #e0f2f1, #b2dfdb);
         color: #004d40;
@@ -446,7 +456,7 @@
       }
 
       /* ==========================================
-         🎁 PROMO SECTION
+         ៦. ផ្នែកប្រូម៉ូសិន (PROMO SECTION)
          ========================================== */
       .promo-section {
         flex: 1;
@@ -540,7 +550,7 @@
       }
 
       /* ==========================================
-         📄 ABA STYLE BOTTOM SHEET
+         ៧. ផ្ទាំងលោតពីក្រោម (ABA STYLE BOTTOM SHEET)
          ========================================== */
       .bottom-sheet-overlay {
         position: fixed;
@@ -577,6 +587,7 @@
         bottom: 0;
       }
 
+      /* ៧.១. ក្បាលផ្ទាំងលោតពីក្រោម (Bottom Sheet Header) */
       .sheet-header {
         background: white;
         padding: 15px 20px 25px 20px;
@@ -638,6 +649,7 @@
         border: 1px dashed #bae6fd;
       }
 
+      /* ៧.២. ផ្ទៃផ្ទុកប្រវត្តិប្រតិបត្តិការ (Transaction Container) */
       .sheet-trx-container {
         flex: 1;
         overflow-y: auto;
@@ -645,7 +657,7 @@
         background: #f8fafc;
       }
 
-      /* Transaction Item */
+      /* ប្រតិបត្តិការនីមួយៗ (Transaction Item) */
       .trx-item {
         display: flex;
         align-items: center;
@@ -695,7 +707,7 @@
         font-size: 1.1rem;
       }
 
-      /* Transaction Colors */
+      /* ៧.៣. ពណ៌សម្រាប់ប្រភេទប្រតិបត្តិការ (Transaction Colors) */
       .text-green {
         color: #10b981;
       }
@@ -722,7 +734,7 @@
       }
 
       /* ==========================================
-         🧭 BOTTOM NAV & MODALS
+         ៨. ម៉ឺនុយខាងក្រោម និងផ្ទាំងលោត (BOTTOM NAV & MODALS)
          ========================================== */
       .bottom-nav {
         position: fixed;
@@ -765,7 +777,7 @@
         transform: scale(1.15);
       }
 
-      /* Notif Modal */
+      /* ៨.១. ផ្ទាំងសារជូនដំណឹង (Notif Modal) */
       .notif-modal {
         display: none;
         position: fixed;
@@ -838,7 +850,7 @@
       }
 
       /* ==========================================
-         🌙 FULL DARK MODE OVERRIDES (100% PERFECT)
+         🌙 ៩. មុខងារងងឹត (FULL DARK MODE OVERRIDES)
          ========================================== */
       body.dark-mode {
         background-color: #0f172a !important;
@@ -849,7 +861,7 @@
         box-shadow: none;
       }
 
-      /* Header */
+      /* ៩.១. ផ្នែកក្បាល (Header - Dark) */
       body.dark-mode .avatar {
         border-color: #1e293b !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -868,7 +880,7 @@
         background-color: #0f172a !important;
       }
 
-      /* Cards */
+      /* ៩.២. កាតគណនី (Cards - Dark) */
       body.dark-mode .credit-card {
         background: #1e293b !important;
         box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
@@ -889,20 +901,14 @@
         color: #f8fafc !important;
       }
 
-      /* 🔥 Premium Dark Mode Icons (Glassmorphism) */
+      /* ៩.៣. ម៉ឺនុយជម្រើស (Premium Dark Mode Icons) */
       body.dark-mode .menu-item .icon-box {
-        background: rgba(
-          30,
-          41,
-          59,
-          0.8
-        ) !important; /* ប្តូរទៅជាពណ៌កញ្ចក់ងងឹត (Dark Glass) */
+        background: rgba(30, 41, 59, 0.8) !important;
         border: 1px solid rgba(255, 255, 255, 0.05) !important;
         box-shadow:
           0 8px 16px rgba(0, 0, 0, 0.4),
           inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
       }
-      /* រក្សាពណ៌ Icon អោយលេចធ្លោលើផ្ទៃងងឹត */
       body.dark-mode .menu-item .icon-box i {
         filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.15));
       }
@@ -913,7 +919,7 @@
         color: #64748b !important;
       }
 
-      /* Promo Section */
+      /* ៩.៤. ផ្នែកប្រូម៉ូសិន (Promo Section - Dark) */
       body.dark-mode .promo-section {
         background-color: #0f172a !important;
         box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.3) !important;
@@ -923,7 +929,7 @@
         color: #f8fafc !important;
       }
 
-      /* Bottom Nav */
+      /* ៩.៥. ម៉ឺនុយខាងក្រោម (Bottom Nav - Dark) */
       body.dark-mode .bottom-nav {
         background: rgba(30, 41, 59, 0.95) !important;
         border-top: 1px solid #334155 !important;
@@ -936,7 +942,7 @@
         color: #10b981 !important;
       }
 
-      /* Bottom Sheet (Transactions) */
+      /* ៩.៦. ផ្ទាំងលោតពីក្រោម (Bottom Sheet - Dark) */
       body.dark-mode .bottom-sheet {
         background: #0f172a !important;
         box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
@@ -976,7 +982,7 @@
         color: #94a3b8 !important;
       }
 
-      /* Pastel Colors សម្រាប់លុយចូល/ចេញ ក្នុង Dark Mode */
+      /* ពណ៌ Pastel សម្រាប់ Dark Mode (Pastel Colors - Dark) */
       body.dark-mode .bg-green {
         background: rgba(16, 185, 129, 0.15) !important;
         border-color: rgba(16, 185, 129, 0.3) !important;
@@ -1002,7 +1008,7 @@
         color: #fb923c !important;
       }
 
-      /* Notifications Modal */
+      /* ៩.៧. ផ្ទាំងជូនដំណឹង (Notifications Modal - Dark) */
       body.dark-mode .notif-card {
         background: #1e293b !important;
         box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
@@ -1030,7 +1036,7 @@
       }
 
       /* ==========================================
-         🧾 ការពារពណ៌អក្សរក្នុងផ្ទាំង SLIP ពេលបើក DARK MODE
+         ១០. វិក្កយបត្រ (SLIP - KEEP WHITE)
          ========================================== */
       body.dark-mode #slipModal .slip-container,
       body.dark-mode #slipModal .slip-body {
@@ -1057,6 +1063,7 @@
   </head>
   <body>
     <div class="app-container">
+      <!-- ផ្នែកក្បាល (HEADER) -->
       <div class="header">
         <div class="user-profile">
           <div class="avatar" id="avatarBox">
@@ -1092,6 +1099,7 @@
         </div>
       </div>
 
+      <!-- ផ្នែករុញកាតគណនី (CARDS SLIDER) -->
       <div class="card-slider-wrapper">
         <div class="credit-card usd-card" onclick="openAccountDetails('USD')">
           <div class="card-top">
@@ -1146,9 +1154,10 @@
           </div>
         </div>
       </div>
-      <!-- MENU GRID -->
+
+      <!-- ម៉ឺនុយជម្រើស (MENU GRID) -->
       <div class="menu-grid" id="sortableMenu">
-        <!-- Transfer -->
+        <!-- វេរប្រាក់ (Transfer) -->
         <button
           class="menu-item"
           id="m1"
@@ -1159,7 +1168,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_transfer">Transfer</span>
         </button>
-        <!-- Scan QR -->
+        <!-- ស្កេន (Scan QR) -->
         <button
           class="menu-item"
           id="m2"
@@ -1170,7 +1179,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_scan">Scan QR</span>
         </button>
-        <!-- Promo -->
+        <!-- ទូទាត់ (Payment) -->
         <button
           class="menu-item"
           id="m3"
@@ -1181,7 +1190,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_payment">Payment</span>
         </button>
-        <!-- Fixed Deposit -->
+        <!-- កាត (Cards) -->
         <button
           class="menu-item"
           id="m4"
@@ -1192,7 +1201,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_card">Cards</span>
         </button>
-        <!-- Analytics -->
+        <!-- វិភាគ (Analytics) -->
         <button
           class="menu-item"
           id="m5"
@@ -1203,7 +1212,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_analytics">Analytics</span>
         </button>
-        <!-- Savings -->
+        <!-- សន្សំ (Savings) -->
         <button
           class="menu-item"
           id="m6"
@@ -1214,7 +1223,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_savings">Savings</span>
         </button>
-        <!-- Split Bill -->
+        <!-- បំបែកវិក្កយបត្រ (Split Bill) -->
         <button
           class="menu-item"
           id="m7"
@@ -1225,7 +1234,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_split">Split Bill</span>
         </button>
-        <!-- Fixed Deposit -->
+        <!-- ដាក់ប្រាក់ (Fixed Deposit) -->
         <button
           class="menu-item"
           id="m8"
@@ -1236,8 +1245,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_deposit">Deposit</span>
         </button>
-        <!-- Merchant -->
-
+        <!-- អាជីវករ (Merchant) -->
         <button
           class="menu-item"
           id="m10"
@@ -1248,14 +1256,14 @@
           </div>
           <span class="menu-text" data-i18n="btn_merchant">Merchant</span>
         </button>
-        <!-- Promo -->
+        <!-- ប្រូម៉ូសិន (Promo) -->
         <button class="menu-item" id="m9" onclick="claimPromoPopup()">
           <div class="icon-box" style="background: #fce7f3; color: #db2777">
             <i class="fa-solid fa-gift"></i>
           </div>
           <span class="menu-text" data-i18n="btn_promo">Promo</span>
         </button>
-        <!-- E-Gift / Angpao -->
+        <!-- អាំងប៉ាវ (E-Gift) -->
         <button
           class="menu-item"
           id="m11"
@@ -1266,7 +1274,7 @@
           </div>
           <span class="menu-text" data-i18n="btn_egift">E-Gift</span>
         </button>
-        <!-- New Account / គណនីថ្មី -->
+        <!-- គណនីថ្មី (New Account) -->
         <button
           class="menu-item"
           id="m12"
@@ -1287,7 +1295,7 @@
         <i class="fa-solid fa-angle-down"></i>
       </div>
 
-      <!-- ពាណិជ្ជម្ម -->
+      <!-- ផ្នែកប្រូម៉ូសិន (PROMO SECTION) -->
       <div class="promo-section">
         <h3 class="section-title" data-i18n="promo_title">
           Promotions & Offers
@@ -1311,7 +1319,8 @@
           </div>
         </div>
       </div>
-      <!-- អាំងប៉ាវអនឡាញ Modal -->
+
+      <!-- ផ្ទាំងអាំងប៉ាវអនឡាញ (E-Gift Modal) -->
       <div
         id="egiftModal"
         style="
@@ -1354,6 +1363,7 @@
       </div>
     </div>
 
+    <!-- ម៉ឺនុយខាងក្រោម (BOTTOM NAV) -->
     <div class="bottom-nav">
       <a href="dashboard.html" class="nav-item active"
         ><i class="fa-solid fa-house"></i
@@ -1373,6 +1383,7 @@
       >
     </div>
 
+    <!-- ផ្ទាំងលោតពីក្រោមបង្ហាញគណនី (BOTTOM SHEET) -->
     <div
       id="accountModalOverlay"
       class="bottom-sheet-overlay"
@@ -1398,6 +1409,7 @@
       </div>
     </div>
 
+    <!-- ផ្ទាំងសារជូនដំណឹង (NOTIFICATION MODAL) -->
     <div class="notif-modal" id="notifModal">
       <div class="notif-card">
         <div class="notif-header">
@@ -1425,7 +1437,7 @@
 
     <script>
       // ==========================================
-      // 🔒 JWT SECURITY & SESSION MANAGEMENT
+      // ១១. សុវត្ថិភាព និងការគ្រប់គ្រងសម័យ (JWT SECURITY & SESSION MANAGEMENT)
       // ==========================================
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
@@ -1441,10 +1453,10 @@
       let lastBalance = user.balance;
 
       // ==========================================
-      // 🖐️ DRAG & DROP MENU (ABA STYLE) - PER ACCOUNT
+      // ១២. រៀបចំម៉ឺនុយដែលអាចអូសបាន (DRAG & DROP MENU)
       // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
-        // 1. ឆែក Dark Mode តាម Account និងដាក់ Class ភ្លាមៗ (កុំឱ្យភ្លឺភ្លែតៗ)
+        // ឆែក Dark Mode តាម Account
         const userThemeKey = "darkMode_" + user.username;
         const isDark = localStorage.getItem(userThemeKey) === "true";
 
@@ -1452,10 +1464,10 @@
           document.body.classList.add("dark-mode");
         }
 
-        // 2. បង្ហាញ Body វិញ ព្រោះយើងបានលាក់វាពីលើ
+        // បង្ហាញ Body វិញ
         document.body.classList.add("loaded");
 
-        // 3. រៀបចំ Menu Sortable
+        // រៀបចំ Menu Sortable
         const grid = document.getElementById("sortableMenu");
         const userMenuKey = "menuOrder_" + user.username;
         const savedOrder = localStorage.getItem(userMenuKey);
@@ -1480,29 +1492,24 @@
           },
         });
 
-        // 4. ហៅមុខងារផ្សេងទៀត
+        // ហៅមុខងារផ្សេងទៀត
         updateUI(user);
         loadDashboardData(false);
       });
 
       function applyTheme() {
-        // បង្កើត Key ដូចដែលយើងបានធ្វើក្នុង settings.html (ចាប់តាម Account)
         const userThemeKey = "darkMode_" + user.username;
         const userThemeValue = localStorage.getItem(userThemeKey);
-
         let isDark = false;
 
-        // បើមានការកំណត់ថ្មីតាម Account គឺយកតាម Account ហ្នឹង
         if (userThemeValue !== null) {
           isDark = userThemeValue === "true";
         } else {
-          // បើអត់ទាន់មាន (ទើប Login ថ្មី) ឱ្យវាឆែកអាការកំណត់ចាស់
           isDark =
             localStorage.getItem("theme") === "dark" ||
             localStorage.getItem("darkMode") === "true";
         }
 
-        // ដាក់ពណ៌ទៅតាមលទ្ធផល
         if (isDark) {
           document.body.classList.add("dark-mode");
         } else {
@@ -1510,13 +1517,12 @@
         }
       }
 
-      // ធានាថាមុខងារទាំង២នេះដើរភ្លាមៗពេលបើក Page
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
       });
 
       // ==========================================
-      // 🚀 TURBO LOAD: ទាញយកលុយ និង សារព្រមគ្នា
+      // ១៣. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD)
       // ==========================================
       async function loadDashboardData(isAuto = true) {
         try {
@@ -1525,20 +1531,18 @@
           const serverUser = users.find((u) => u.username === user.username);
 
           if (serverUser) {
-            // 🔥 បន្ថែមនេះ៖ បើកំពុងតែ Upload ឯកសារ (Pending) យើងកុំទាន់អាល Update ពី Server
-            // ព្រោះ Admin ទើបតែដាក់រូបចូលក្នុង RAM ស្រស់ៗ!
+            // ការពារមិនឱ្យ Update ពេលកំពុង Pending KYC
             if (
               serverUser.kycStatus === "pending" &&
               user.kycStatus === "pending"
             ) {
-              // រក្សាស្ថានភាព Pending ទុក កុំអោយវាទាញ 'unverified' ពី server មកជាន់
+              // រក្សាស្ថានភាព
             } else {
-              // ករណីធម្មតា ទើប Update ពី Server
               user = serverUser;
               sessionStorage.setItem("user", JSON.stringify(serverUser));
             }
 
-            // ១. ឆែកលុយចូល (Update Balance)
+            // ឆែកលុយចូល
             if (isAuto && serverUser.balance > lastBalance) {
               Swal.fire({
                 toast: true,
@@ -1552,12 +1556,23 @@
             }
             lastBalance = serverUser.balance;
 
-            // ២. ធ្វើអោយ UI ថ្មី
+            // ធ្វើអោយ UI ថ្មី
             updateUI(user);
-            if (currentViewingCurrency)
-              renderTransactionsInModal(user, currentViewingCurrency);
+            if (currentViewingCurrency) {
+              // ត្រូវផ្តល់ accNum ទៅអោយ renderTransactionsInModal បើមិនអញ្ចឹងវានឹង undefined
+              // ដោយសារយើងមិនដឹង accNum ជាក់លាក់ពី currentViewingCurrency, យើងអាចបណ្តោះអាសន្នយកកុង Main មកប្រើ
+              let tempAccNum =
+                currentViewingCurrency === "USD"
+                  ? user.accountNumber
+                  : user.accountNumberKHR;
+              renderTransactionsInModal(
+                user,
+                currentViewingCurrency,
+                tempAccNum,
+              );
+            }
 
-            // ៣. បាញ់សារចូល UI
+            // បាញ់សារចូល UI
             updateNotificationsUI(user);
           }
         } catch (err) {
@@ -1565,15 +1580,16 @@
         }
       }
 
+      // ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់អ្នកប្រើ (Update UI)
       function updateUI(currentUser) {
         updateGreeting();
         const usernameEl = document.getElementById("username");
         if (usernameEl)
           usernameEl.innerText = currentUser.fullName || currentUser.username;
 
-        // 🔥 កន្លែងនេះដែលយើងត្រូវកែ៖ គូរ Cards ទាំងអស់មកដាក់ក្នុង Slider
+        // គូរ Cards ទាំងអស់មកដាក់ក្នុង Slider
         const sliderWrapper = document.querySelector(".card-slider-wrapper");
-        sliderWrapper.innerHTML = ""; // លុបរបស់ចាស់ចោល
+        sliderWrapper.innerHTML = "";
 
         // ១. គូរកុង USD Main
         sliderWrapper.appendChild(
@@ -1595,7 +1611,7 @@
           ),
         );
 
-        // ៣. 🔥 បន្ថែម Sub-Accounts (Premium/Pocket/Joint) ចូលទៅក្នុង Slider
+        // ៣. បន្ថែម Sub-Accounts
         if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
           currentUser.subAccounts.forEach((sub) => {
             const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
@@ -1616,7 +1632,7 @@
           avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
       }
 
-      // មុខងារជំនួយ៖ បង្កើត HTML នៃកាតនីមួយៗ
+      // បង្កើតកាតគណនី (Create Card Element)
       function createCardElement(
         currency,
         balance,
@@ -1637,7 +1653,7 @@
 
         const card = document.createElement("div");
         card.className = `credit-card ${cardClass}`;
-        card.onclick = () => openAccountDetails(currency, accNum); // ហៅមកកាន់កុងណា ក៏ដឹងដែរ
+        card.onclick = () => openAccountDetails(currency, accNum);
 
         card.innerHTML = `
           <div class="card-top">
@@ -1656,7 +1672,7 @@
       }
 
       // ==========================================
-      // 🔔 មុខងាររៀបចំសារ Notif ភ្លាមៗ (Update)
+      // ១៤. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
       // ==========================================
       let currentUnreadCount = 0;
       function updateNotificationsUI(currentUser) {
@@ -1664,7 +1680,6 @@
           (n) => !n.isRead,
         );
 
-        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
         if (unread.length > currentUnreadCount) {
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
@@ -1715,7 +1730,6 @@
                   col = "#ea580c";
                 }
 
-                // 🎁 ដូរការបង្ហាញបើជា E-Gift (ដាក់ជាសារធម្មតា គ្មានប៊ូតុង)
                 if (n.type === "egift_receive") {
                   icon = "fa-gift";
                   bg = "#fee2e2";
@@ -1729,13 +1743,11 @@
                   actionBtn = "";
                 }
 
-                // 🔥 បន្ថែម UI សម្រាប់ U-Fund Invite ត្រង់នេះ
                 if (n.type === "ufund_invite") {
-                  icon = "fa-bullseye"; // រូបតំណាងគោលដៅសន្សំ
-                  bg = "#ecfeff"; // ផ្ទៃក្រោយពណ៌ខៀវស្រាល
-                  col = "#0891b2"; // ពណ៌ខៀវទឹកប៊ិច
+                  icon = "fa-bullseye";
+                  bg = "#ecfeff";
+                  col = "#0891b2";
 
-                  // បន្ថែមប៊ូតុង យល់ព្រម និង បដិសេធ
                   actionBtn = `
                     <div style="margin-top: 10px; display: flex; gap: 10px;">
                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
@@ -1771,12 +1783,9 @@
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
-        // កុំ Mark as Read ទាំងអស់ បើគាត់គ្រាន់តែបិទ (ទុកអាំងប៉ាវឱ្យលោតនៅដដែល បើគាត់អត់ទាន់បើក)
-        // តែយើង Mark តែសារធម្មតា
         const badge = document.getElementById("notiBadge");
         if (badge && parseInt(badge.innerText) > 0) {
           try {
-            // ហៅ API បើចង់
             await fetch("/api/user/read-notifications", {
               method: "POST",
               headers: authHeaders,
@@ -1787,7 +1796,6 @@
         }
       }
 
-      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
       async function handleOpenGiftFromDash(
         amount,
         currency,
@@ -1796,11 +1804,9 @@
         notifId,
         senderUsername,
       ) {
-        // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
-        // ២. បាញ់ព្រិល
         if (typeof confetti === "function") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -1825,11 +1831,9 @@
           confirmButtonColor: "#004d40",
           customClass: { popup: "modal-radius" },
         }).then(() => {
-          // ពេលចុច "ឡូយកប់!" យើង Mark Notification នេះថាបានអាន ហើយ Update UI
           loadDashboardData(false);
         });
 
-        // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ
         try {
           await fetch("/api/egift/opened", {
             method: "POST",
@@ -1845,7 +1849,6 @@
         }
       }
 
-      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund
       async function respondUFundInvite(fundId, notifId, response) {
         try {
           Swal.fire({
@@ -1855,21 +1858,19 @@
 
           const res = await fetch("/api/ufund/respond-invite", {
             method: "POST",
-            headers: authHeaders, // ប្រើ authHeaders របស់បង
+            headers: authHeaders,
             body: JSON.stringify({
               username: user.username,
               fundId: fundId,
               notifId: notifId,
-              response: response, // 'accept' ឬ 'decline'
+              response: response,
             }),
           });
 
           const data = await res.json();
 
           if (data.success) {
-            // បិទប្រអប់ Notification សិន
             closeNotifications();
-
             Swal.fire({
               icon: "success",
               title: "ជោគជ័យ!",
@@ -1877,7 +1878,6 @@
               timer: 2000,
               showConfirmButton: false,
             }).then(() => {
-              // Refresh ទិន្នន័យ Dashboard ឡើងវិញ ដើម្បីឱ្យសារនោះបាត់ (ព្រោះវាถูก Mark as Read ហើយ)
               loadDashboardData(false);
             });
           } else {
@@ -1890,12 +1890,11 @@
       }
 
       // ==========================================
-      // 💳 ABA STYLE BOTTOM SHEET LOGIC
+      // ១៥. ការបង្ហាញព័ត៌មានគណនីលម្អិត (BOTTOM SHEET LOGIC)
       // ==========================================
       let currentViewingCurrency = null;
 
       function openAccountDetails(currency, accNum) {
-        // រកមើលកុងដែលគេចុច (ឆែកក្នុងកុង Main ឬ Sub)
         const account = findAccountByNumber(user, accNum);
 
         const modal = document.getElementById("accountBottomSheet");
@@ -1912,13 +1911,12 @@
           document.getElementById("sheetAccNum").innerText =
             account.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
 
-          renderTransactionsInModal(user, currency, accNum); // កែដើម្បីហៅ Transaction តាមលេខកុង
+          renderTransactionsInModal(user, currency, accNum);
           overlay.classList.add("active");
           modal.classList.add("active");
         }
       }
 
-      // មុខងារស្វែងរក Account តាមលេខកុង
       function findAccountByNumber(user, accNum) {
         if (user.accountNumber === accNum || user.accountNumberKHR === accNum)
           return {
@@ -1937,9 +1935,6 @@
         if (overlay) overlay.classList.remove("active");
       }
 
-      // =========================================
-      // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Modal (Dashboard)
-      // =========================================
       function renderTransactionsInModal(currentUser, currency, accNum) {
         const list = document.getElementById("sheetTrxList");
         if (!list) return;
@@ -1954,19 +1949,15 @@
 
         let filteredTrx = currentUser.transactions
           .filter((t) => {
-            // ១. ករណី Transaction មានលេខកុង (ទាំង Main និង Sub-Accounts)
-            const isMyAccount =
-              t.senderAcc === accNum || t.receiverAcc === accNum;
+            const matchAcc =
+              t.receiverAcc === accNum ||
+              t.senderAcc === accNum ||
+              t.receiverAccount === accNum;
 
-            // ២. ករណី Main Account (ពេលខ្លះ Database អត់ដាក់ receiverAcc ឱ្យ)
-            // យើងត្រូវឆែកថា បើកុងហ្នឹងជាកុង Main ហើយ Currency ត្រូវគ្នា គឺយក!
             const isMainAccountMatch =
-              t.currency === currency &&
-              (accNum === currentUser.accountNumber ||
-                accNum === currentUser.accountNumberKHR) &&
-              (!t.receiverAcc || t.receiverAcc === ""); // ត្រង់នេះសំខាន់៖ បើគ្មានលេខកុង គឺរាប់ថាជាកុង Main
+              t.currency === currency && !t.receiverAcc && !t.receiverAccount;
 
-            return isMyAccount || isMainAccountMatch;
+            return matchAcc || isMainAccountMatch;
           })
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 30);
@@ -1980,7 +1971,6 @@
         let lastDateLabel = "";
 
         filteredTrx.forEach((t) => {
-          // (រក្សាកូដគូរ UI ក្នុង Loop ដដែល)
           const isIncome = t.amount > 0;
           const isPending = t.status === "Pending";
           let parsedDate = parseDateString(t.date);
@@ -2007,14 +1997,12 @@
               ? "text-orange"
               : "text-red";
 
-          // 🔥 ឆែករកមើល Merchant
           let isMerchantTrx =
             t.type === "Merchant Payment" ||
             t.trxMethod === "Merchant Payment" ||
             t.merchantId ||
             t.receiverType === "Merchant";
 
-          // 🌟 ប្តូរទៅជា Logo ហាង
           if (isMerchantTrx) {
             iconClass = "fa-store";
             bgClass = isIncome
@@ -2027,16 +2015,11 @@
               : isPending
                 ? "text-orange"
                 : "text-red";
-          }
-          // 🎯 ប្តូរ Icon សម្រាប់ប្រតិបត្តិការ U-Fund ទាំងអស់ ទៅជារូបកូនជ្រូក
-          else if (t.type && t.type.includes("U-Fund")) {
+          } else if (t.type && t.type.includes("U-Fund")) {
             iconClass = "fa-piggy-bank";
-          }
-          // 🎁 កំណត់ Icon សម្រាប់ E-Gift, Fee និង Promo Code
-          else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
+          } else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             iconClass = "fa-gift";
           } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
-            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee)
             iconClass = "fa-file-invoice-dollar";
             bgClass = "bg-orange";
             textClass = "text-orange";
@@ -2045,11 +2028,17 @@
             bgClass = isIncome ? "bg-green" : "bg-red";
             textClass = isIncome ? "text-green" : "text-red";
           } else if (
+            t.type === "Cashback Reward" ||
+            t.type === "Cashback Payout"
+          ) {
+            iconClass = "fa-sack-dollar";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
+          } else if (
             t.type === "Cash Deposit" ||
             t.type === "Cash Withdrawal" ||
             t.type.includes("System")
           ) {
-            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal
             iconClass = "fa-money-bill-transfer";
             bgClass = isIncome ? "bg-green" : "bg-red";
             textClass = isIncome ? "text-green" : "text-red";
@@ -2057,7 +2046,6 @@
 
           let title = t.type;
 
-          // 🎁 កំណត់ឈ្មោះ
           if (t.type === "E-Gift Received") {
             title = "Received E-Gift";
           } else if (t.type === "E-Gift Sent") {
@@ -2141,7 +2129,7 @@
       }
 
       // ==========================================
-      // 🎁 មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code)
+      // ១៦. មុខងារពិសេសផ្សេងៗ (PROMO & E-GIFT)
       // ==========================================
       async function claimPromoPopup() {
         const { value: code } = await Swal.fire({
@@ -2163,7 +2151,7 @@
           try {
             const res = await fetch("/api/claim-promo", {
               method: "POST",
-              headers: authHeaders, // ប្រើ authHeaders ដែលបងមានស្រាប់
+              headers: authHeaders,
               body: JSON.stringify({
                 username: user.username,
                 code: code,
@@ -2173,7 +2161,6 @@
 
             if (data.success) {
               Swal.fire("អបអរសាទរ! 🎉", data.message, "success");
-              // លោតលុយថ្មីចូល App ភ្លាមៗមិនបាច់ Refresh
               user.balance = data.newBalance;
               sessionStorage.setItem("user", JSON.stringify(user));
               updateUI(user);
@@ -2191,25 +2178,19 @@
         }
       }
 
-      // ==========================================
-      // 🎁 មុខងារបើកអាំងប៉ាវអនឡាញ (E-Gift)
-      // ==========================================
-
-      // រក្សាទុកកាដូដែលកំពុងបើកក្នុង Variable បណ្តោះអាសន្ន
       let currentGiftData = null;
-      let currentNotifId = null; // 🔥 ត្រូវការ ID នេះដើម្បីប្រាប់ Server ថាបានអានរួចហើយ
+      let currentNotifId = null;
 
       function checkEgiftNotification(currentUser) {
         if (!currentUser.notifications) return;
 
-        // ស្វែងរកសារអាំងប៉ាវដែលមិនទាន់អាន
         const gift = currentUser.notifications.find(
           (n) => n.type === "egift_receive" && !n.isRead,
         );
 
         if (gift) {
-          currentGiftData = gift.egiftData; // ទាញយកទិន្នន័យកាដូទុក
-          currentNotifId = gift._id || gift.id; // 🔥 រក្សាទុក ID របស់សារ
+          currentGiftData = gift.egiftData;
+          currentNotifId = gift._id || gift.id;
 
           const modal = document.getElementById("egiftModal");
           if (modal) modal.style.display = "flex";
@@ -2220,22 +2201,18 @@
         if (!currentGiftData) return;
 
         const envelope = document.getElementById("envelope");
-        if (envelope) envelope.style.transform = "scale(0) rotate(720deg)"; // វិល 2 ជុំ
+        if (envelope) envelope.style.transform = "scale(0) rotate(720deg)";
 
         setTimeout(async () => {
-          // ១. បាញ់ព្រិល
           if (typeof confetti === "function") {
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
           }
 
-          // រៀបចំទម្រង់លុយ
           const curSym = currentGiftData.currency === "USD" ? "$" : "៛";
           const displayAmt =
             currentGiftData.currency === "USD"
               ? Number(currentGiftData.amount).toFixed(2)
               : Number(currentGiftData.amount).toLocaleString();
-          // 🔥 ដាក់កូដនេះឱ្យវាបាញ់ក្រដាសមាស
-          // បាញ់ក្រដាសមាស ៣ ដងបន្តគ្នា
           var count = 200;
           var defaults = { origin: { y: 0.7 } };
 
@@ -2257,7 +2234,6 @@
             scalar: 1.2,
           });
           fire(0.1, { spread: 120, startVelocity: 45 });
-          // ២. បង្ហាញផ្ទាំង Surprise
           Swal.fire({
             html: `
                 <div style="padding:20px; text-align:center;">
@@ -2272,46 +2248,41 @@
             confirmButtonColor: "#004d40",
             customClass: { popup: "modal-radius" },
           }).then(() => {
-            // ៤. ពេលចុច "ឡូយកប់!" អោយវា Refresh ទិន្នន័យដើម្បីបាត់ Notification នេះចេញពី UI
             if (typeof loadDashboardData === "function") {
               loadDashboardData(false);
             }
           });
 
-          // បិទផ្ទាំងស្រោមសំបុត្រខ្មៅ
           const modal = document.getElementById("egiftModal");
           if (modal) modal.style.display = "none";
 
-          // ៣. 🔥 ហៅ API ដើម្បី Update ក្នុង DB ថាអានហើយ & ប្រាប់អ្នកផ្ញើវិញ
           try {
             await fetch("/api/egift/opened", {
               method: "POST",
-              headers: authHeaders, // យកពី Variable បងដែលមានស្រាប់
+              headers: authHeaders,
               body: JSON.stringify({
                 receiverName: user.fullName || user.username,
-                senderUsername: currentGiftData.senderUsername, // បាញ់ទៅអ្នកផ្ញើវិញ
-                notifId: currentNotifId, // ID ដើម្បីលុប Notification នេះចោល
+                senderUsername: currentGiftData.senderUsername,
+                notifId: currentNotifId,
               }),
             });
           } catch (e) {
             console.error("មិនអាច Mark អាំងប៉ាវនេះជាអានហើយបានទេ:", e);
           }
-        }, 500); // រង់ចាំ 0.5 វិនាទី អោយវិលចប់សិន
+        }, 500);
       }
 
       // ==========================================
-      // 🚀 មុខងារលាត Menu បែបទំនើប (Click & Swipe)
+      // ១៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE)
       // ==========================================
       function toggleMenuExpansion() {
         const grid = document.getElementById("sortableMenu");
         const btn = document.getElementById("menuToggleBtn");
 
-        // បិទបើក Class 'expanded' ដើម្បើឲ្យ CSS ធ្វើការលាតចុះលាតឡើង
         grid.classList.toggle("expanded");
         btn.classList.toggle("expanded");
       }
 
-      // មុខងារចាប់សញ្ញាពេលអតិថិជនយកដៃអូសទាញចុះ ឬរុញឡើងលើ
       let touchStartY = 0;
       let touchEndY = 0;
       const menuGridEl = document.getElementById("sortableMenu");
@@ -2337,23 +2308,19 @@
         const swipeDistance = touchStartY - touchEndY;
         const isExpanded = menuGridEl.classList.contains("expanded");
 
-        // បើទាញចុះក្រោម (Swipe Down) ខ្លាំងល្មម ហើយវាមិនទាន់លាត -> លាតវាចេញ
         if (swipeDistance < -30 && !isExpanded) {
           toggleMenuExpansion();
-        }
-        // បើរុញឡើងលើ (Swipe Up) ខ្លាំងល្មម ហើយវាកំពុងលាត -> បិទវាវិញ
-        else if (swipeDistance > 30 && isExpanded) {
+        } else if (swipeDistance > 30 && isExpanded) {
           toggleMenuExpansion();
         }
       }
 
       // ==========================================
-      // ⚙️ INITIALIZATION (ចាប់ផ្តើមដំណើរការ)
+      // ១៨. ការចាប់ផ្តើមដំណើរការ (INITIALIZATION)
       // ==========================================
       updateUI(user);
-      loadDashboardData(false); // ទាញលើកទី១ពេលបើក App
+      loadDashboardData(false);
 
-      // ជំនួសអោយ Interval ២ដើរជាន់គ្នា យើងប្រើតែ ១ នេះទេ (រៀងរាល់ ៤វិនាទី)
       setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>
