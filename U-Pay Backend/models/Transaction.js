@@ -9,6 +9,8 @@ const transactionSchema = new mongoose.Schema(
     amount: { type: Number },
     currency: { type: String },
     senderName: { type: String },
+    senderAcc: { type: String }, // ត្រូវមានមួយនេះ
+    receiverAcc: { type: String }, // និងមួយនេះ
     receiverName: { type: String },
     receiverAcc: { type: String },
     trxMethod: { type: String },
