@@ -249,6 +249,48 @@
       .btn-primary:active {
         transform: scale(0.98);
       }
+      /* --- លេខណែនាំ (SUGGESTED NUMBERS) --- */
+      .suggested-section-title {
+        font-size: 0.95rem;
+        color: #1e293b;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+      }
+      .suggested-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .suggested-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 15px 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      }
+      .suggested-card:active {
+        transform: scale(0.95);
+        background: #f8fafc;
+      }
+      .suggested-num {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0284c7;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+        font-family: "Courier New", monospace;
+      }
+      .suggested-price {
+        font-size: 0.85rem;
+        color: #ef4444;
+        font-weight: 600;
+      }
 
       /* ==========================================
          🌙 DARK MODE
@@ -284,6 +326,20 @@
       body.dark-mode .info-box {
         background: #00251f;
         border-color: #004d40;
+      }
+      /* Dark Mode សម្រាប់កាតលេខណែនាំ */
+      body.dark-mode .suggested-section-title {
+        color: #f1f5f9;
+      }
+      body.dark-mode .suggested-card {
+        background: #1e1e1e;
+        border-color: #333;
+      }
+      body.dark-mode .suggested-card:active {
+        background: #2a2a2a;
+      }
+      body.dark-mode .suggested-num {
+        color: #38bdf8;
       }
     </style>
   </head>
@@ -364,9 +420,37 @@
               placeholder="ឧ. 88888888"
             />
           </div>
-          <p style="font-size: 0.85rem; color: #64748b; text-align: center">
+          <p
+            style="
+              font-size: 0.85rem;
+              color: #64748b;
+              text-align: center;
+              margin-bottom: 30px;
+            "
+          >
             ប្រព័ន្ធនឹងឆែកភាពទំនេរ និងគណនាតម្លៃដោយស្វ័យប្រវត្តិ។
           </p>
+
+          <!-- ផ្នែកបង្ហាញលេខណែនាំពី Backend -->
+          <div class="suggested-section">
+            <div class="suggested-section-title">
+              <span
+                >លេខណែនាំពិសេស
+                <i
+                  class="fa-solid fa-fire"
+                  style="color: #ef4444; margin-left: 5px"
+                ></i
+              ></span>
+              <i
+                class="fa-solid fa-rotate-right"
+                style="color: #94a3b8; font-size: 0.85rem; cursor: pointer"
+                onclick="fetchSuggestedNumbers()"
+              ></i>
+            </div>
+            <div id="suggested-numbers-list" class="suggested-grid">
+              <!-- ទិន្នន័យលេខនឹងត្រូវ Render ចូលទីនេះដោយ JS -->
+            </div>
+          </div>
         </div>
         <div class="fixed-bottom-bar">
           <button class="btn-primary" onclick="processSearch()">
@@ -739,6 +823,59 @@
           }
         } catch (error) {
           Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
+        }
+      }
+
+      // មុខងារទាញយកលេខណែនាំពី Backend
+      async function fetchSuggestedNumbers() {
+        const container = document.getElementById("suggested-numbers-list");
+        container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #64748b; font-size: 0.85rem; padding: 20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</div>`;
+
+        try {
+          // 🔥 ហៅ API ពិតពី Backend
+          const res = await fetch("/api/account/suggested-numbers", {
+            method: "GET",
+            headers: window.authHeaders, // ប្រើ Header របស់ U-Pay Core
+          });
+
+          const result = await res.json();
+
+          if (result.success && result.data.length > 0) {
+            container.innerHTML = "";
+            result.data.forEach((item) => {
+              const priceDisplay = item.price === 0 ? "FREE" : `$${item.price}`;
+              container.innerHTML += `
+                <div class="suggested-card" onclick="selectSuggestedNumber('${item.number}')">
+                  <div class="suggested-num">${item.number}</div>
+                  <div class="suggested-price">${priceDisplay}</div>
+                </div>
+              `;
+            });
+          } else {
+            container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #94a3b8; font-size: 0.85rem; padding: 20px 0;">មិនមានលេខណែនាំទេពេលនេះ</div>`;
+          }
+        } catch (e) {
+          container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #ef4444; font-size: 0.85rem; padding: 20px 0;">មានបញ្ហាភ្ជាប់ទៅកាន់ Server!</div>`;
+        }
+      }
+
+      // ពេលចុចលើកាតលេខណែនាំ ឱ្យវាលោតចូលប្រអប់ ហើយឆែកអូតូតែម្តង
+      function selectSuggestedNumber(num) {
+        document.getElementById("input-search-num").value = num;
+        processSearch(); // ហៅមុខងារឆែកលេខដោយស្វ័យប្រវត្តិ
+      }
+
+      // 🛠️ ត្រូវ Update មុខងារ switchScreen ដើមបន្តិច ដើម្បីឱ្យវាហៅ API ពេលបើកផ្ទាំងនេះ
+      function switchScreen(screenId) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(screenId).classList.add("active");
+        window.scrollTo(0, 0);
+
+        // បើកផ្ទាំងស្វែងរកភ្លាម ឱ្យវាទាញយកលេខណែនាំភ្លាម
+        if (screenId === "screen-search") {
+          fetchSuggestedNumbers();
         }
       }
     </script>

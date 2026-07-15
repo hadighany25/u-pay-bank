@@ -165,3 +165,70 @@ exports.createPremiumAccount = async (req, res) => {
     res.json({ success: false, message: "បរាជ័យក្នុងការបង្កើតគណនី!" });
   }
 };
+
+const generateRandomDigits = (length) => {
+  return Math.floor(
+    Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1),
+  ).toString();
+};
+
+// 🌟 API: ទាញយកលេខណែនាំពិសេសៗ (Suggested Numbers)
+exports.getSuggestedNumbers = async (req, res) => {
+  try {
+    // ១. បង្កើតទម្រង់លេខស្អាតៗ (Patterns)
+    let generatedNumbers = [
+      "168" + generateRandomDigits(3), // លេខហុងស៊ុយ 168xxx
+      "8888" + generateRandomDigits(4), // លេខ 8888xxxx
+      "9999" + generateRandomDigits(4), // លេខ 9999xxxx
+      generateRandomDigits(2).repeat(3), // លេខគូ ៣ដង (ឧ. 454545)
+      generateRandomDigits(1).repeat(6), // លេខដូចគ្នា ៦ខ្ទង់ (ឧ. 777777)
+      "168168", // លេខពិសេសខ្លាំង
+    ];
+
+    // ២. ឆែកក្នុង Database ថាតើលេខទាំងនេះមានអ្នកយកហើយឬនៅ?
+    // ឆែកទាំងក្នុងគណនី Main និង Sub-Accounts របស់ User ទាំងអស់
+    const existingUsers = await User.find({
+      $or: [
+        { accountNumber: { $in: generatedNumbers } },
+        { accountNumberKHR: { $in: generatedNumbers } },
+        { "subAccounts.accountNumber": { $in: generatedNumbers } },
+      ],
+    });
+
+    // ប្រមូលលេខដែលត្រូវគេយកបាត់ហើយដាក់ចូល Array មួយ
+    const takenNumbers = [];
+    existingUsers.forEach((user) => {
+      if (generatedNumbers.includes(user.accountNumber))
+        takenNumbers.push(user.accountNumber);
+      if (generatedNumbers.includes(user.accountNumberKHR))
+        takenNumbers.push(user.accountNumberKHR);
+      user.subAccounts.forEach((sub) => {
+        if (generatedNumbers.includes(sub.accountNumber))
+          takenNumbers.push(sub.accountNumber);
+      });
+    });
+
+    // ៣. ចម្រាញ់យកតែលេខណាដែល "ទំនេរ"
+    const availableNumbers = generatedNumbers.filter(
+      (num) => !takenNumbers.includes(num),
+    );
+
+    // ៤. គណនាតម្លៃសម្រាប់លេខទំនេរនីមួយៗ ហើយរៀបចំទិន្នន័យបញ្ជូនទៅ Frontend
+    const suggestedList = availableNumbers.slice(0, 4).map((num) => {
+      // យកតែ ៤ លេខបានហើយ
+      return {
+        number: num,
+        price: calculatePremiumPrice(num), // ហៅរូបមន្តគណនាតម្លៃដែលយើងបានសរសេរ
+      };
+    });
+
+    // ៥. បោះទិន្នន័យទៅឱ្យ Frontend
+    res.json({
+      success: true,
+      data: suggestedList,
+    });
+  } catch (error) {
+    console.error("Get Suggested Numbers Error:", error);
+    res.json({ success: false, message: "មិនអាចទាញយកលេខណែនាំបានទេ!" });
+  }
+};
