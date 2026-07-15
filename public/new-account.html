@@ -291,6 +291,68 @@
         color: #ef4444;
         font-weight: 600;
       }
+      /* --- លេខណែនាំ (GRID 10-12 ITEMS) --- */
+      .suggested-section-title {
+        font-size: 0.95rem;
+        color: #1e293b;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+      }
+      .suggested-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .suggested-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .suggested-card:active {
+        transform: scale(0.95);
+        background: #f8fafc;
+      }
+      .suggested-num {
+        font-size: 0.95rem;
+        font-weight: bold;
+        color: #004d40;
+        margin-bottom: 4px;
+        font-family: "Courier New", monospace;
+      }
+      .suggested-price {
+        font-size: 0.8rem;
+        color: #ef4444;
+        font-weight: 600;
+      }
+
+      /* ការកំណត់ Currency Selector */
+      .currency-toggle {
+        display: flex;
+        background: #e2e8f0;
+        border-radius: 8px;
+        padding: 4px;
+        margin-bottom: 20px;
+      }
+      .currency-btn {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .currency-btn.active {
+        background: #004d40;
+        color: white;
+      }
 
       /* ==========================================
          🌙 DARK MODE
@@ -408,54 +470,56 @@
             class="fa-solid fa-arrow-left"
             onclick="switchScreen('screen-menu')"
           ></i>
-          <span>ស្វែងរកលេខពិសេស</span>
+          <span>ស្វែងរកលេខគណនី</span>
         </div>
         <div class="content-body">
           <div class="form-group">
-            <label class="form-label">បញ្ចូលលេខគណនី (យ៉ាងហោច ៦ ខ្ទង់)</label>
+            <label class="form-label">បញ្ចូលលេខគណនី (៦ - ៨ ខ្ទង់)</label>
             <input
               type="number"
               id="input-search-num"
               class="native-input center"
               placeholder="ឧ. 88888888"
+              oninput="handleLiveSearch()"
             />
           </div>
-          <p
-            style="
-              font-size: 0.85rem;
-              color: #64748b;
-              text-align: center;
-              margin-bottom: 30px;
-            "
-          >
-            ប្រព័ន្ធនឹងឆែកភាពទំនេរ និងគណនាតម្លៃដោយស្វ័យប្រវត្តិ។
-          </p>
 
-          <!-- ផ្នែកបង្ហាញលេខណែនាំពី Backend -->
+          <!-- Currency Selection -->
+          <div class="currency-toggle">
+            <button
+              class="currency-btn active"
+              id="btn-usd"
+              onclick="setCurrency('USD')"
+            >
+              USD ($)
+            </button>
+            <button
+              class="currency-btn"
+              id="btn-khr"
+              onclick="setCurrency('KHR')"
+            >
+              KHR (៛)
+            </button>
+          </div>
+
           <div class="suggested-section">
             <div class="suggested-section-title">
-              <span
-                >លេខណែនាំពិសេស
+              <span>លេខណែនាំពិសេស</span>
+              <div>
                 <i
-                  class="fa-solid fa-fire"
-                  style="color: #ef4444; margin-left: 5px"
-                ></i
-              ></span>
-              <i
-                class="fa-solid fa-rotate-right"
-                style="color: #94a3b8; font-size: 0.85rem; cursor: pointer"
-                onclick="fetchSuggestedNumbers()"
-              ></i>
+                  class="fa-solid fa-filter"
+                  onclick="toggleSort()"
+                  style="cursor: pointer; margin-right: 15px"
+                ></i>
+                <i
+                  class="fa-solid fa-rotate-right"
+                  onclick="fetchSuggestedNumbers()"
+                  style="cursor: pointer"
+                ></i>
+              </div>
             </div>
-            <div id="suggested-numbers-list" class="suggested-grid">
-              <!-- ទិន្នន័យលេខនឹងត្រូវ Render ចូលទីនេះដោយ JS -->
-            </div>
+            <div id="suggested-numbers-list" class="suggested-grid"></div>
           </div>
-        </div>
-        <div class="fixed-bottom-bar">
-          <button class="btn-primary" onclick="processSearch()">
-            <i class="fa-solid fa-magnifying-glass"></i> ឆែកមើលឥឡូវនេះ
-          </button>
         </div>
       </div>
 
@@ -726,33 +790,65 @@
       }
 
       // Action 1: ឆែកលេខ
-      function processSearch() {
-        const num = document.getElementById("input-search-num").value;
-        if (!num || num.length < 6) {
-          showToast("សូមបញ្ចូលយ៉ាងហោច ៦ ខ្ទង់!", "error");
+      let currentCurrency = "USD";
+      let sortOrder = "asc"; // 'asc' = ថ្លៃទៅថោក, 'desc' = ថោកទៅថ្លៃ
+      let allNumbers = []; // លេខដែលទាញបានពី Backend
+
+      // 1. Live Search
+      async function handleLiveSearch() {
+        const query = document.getElementById("input-search-num").value;
+        if (query.length === 0) {
+          fetchSuggestedNumbers(); // បើលុបអស់ បង្ហាញលេខណែនាំវិញ
+          return;
+        }
+        if (query.length > 8) {
+          document.getElementById("suggested-numbers-list").innerHTML =
+            "<p>សូមអភ័យទោស លេខមិនអាចលើសពី 8 ខ្ទង់ទេ</p>";
           return;
         }
 
-        // បង្ហាញ Loading (យើងប្រើ SweetAlert ត្រឹមតែជា Loading Overlay ស្រដៀង Native Loader)
-        Swal.fire({
-          title: "កំពុងត្រួតពិនិត្យ...",
-          didOpen: () => Swal.showLoading(),
-          allowOutsideClick: false,
+        //ហៅ API ឆែកលេខ (ត្រូវមាន Backend គាំទ្រ)
+        searchNumbersInBackend(query);
+      }
+
+      // 2. តម្រៀបតម្លៃ (Sort)
+      function toggleSort() {
+        sortOrder = sortOrder === "asc" ? "desc" : "asc";
+        renderNumberList(allNumbers);
+      }
+
+      function renderNumberList(list) {
+        const container = document.getElementById("suggested-numbers-list");
+        container.innerHTML = "";
+
+        // Sort logic
+        let sorted = [...list].sort((a, b) =>
+          sortOrder === "asc" ? a.price - b.price : b.price - a.price,
+        );
+
+        sorted.forEach((item) => {
+          let formattedNum = formatAccountNumber(item.number);
+          container.innerHTML += `
+            <div class="suggested-card" onclick="selectSuggestedNumber('${item.number}')">
+              <div class="suggested-num">${formattedNum}</div>
+              <div class="suggested-price">${item.price === 0 ? "FREE" : "$" + item.price}</div>
+            </div>
+          `;
         });
+      }
 
-        // សន្មតថា Backend ឆ្លើយតបមកថាទំនេរ (Simulate API delay)
-        setTimeout(() => {
-          Swal.close();
-          state.number = num;
-          state.price = calculatePremiumPrice(num);
+      function formatAccountNumber(num) {
+        // បំពេញលេខឱ្យគ្រប់ 9 ខ្ទង់ (ឧ. 123 -> 000 000 123)
+        let s = num.padStart(9, "0");
+        return s.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+      }
 
-          // រៀបចំទិន្នន័យលើអេក្រង់ទី ៣
-          document.getElementById("display-num").innerText = state.number;
-          document.getElementById("display-price").innerText =
-            state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
-
-          switchScreen("screen-details");
-        }, 800);
+      // 3. API ហៅទៅ Backend (ត្រូវកែប្រែ Controller បន្តិច)
+      async function fetchSuggestedNumbers() {
+        const res = await fetch("/api/account/get-all-available"); // API នេះត្រូវសរសេរត្រលប់មកវិញនូវលេខ 10-12 លេខ
+        const data = await res.json();
+        allNumbers = data.data;
+        renderNumberList(allNumbers);
       }
 
       // Action 2: បញ្ជាក់ឈ្មោះ និង T&C

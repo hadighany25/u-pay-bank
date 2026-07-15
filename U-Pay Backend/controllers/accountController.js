@@ -232,3 +232,19 @@ exports.getSuggestedNumbers = async (req, res) => {
     res.json({ success: false, message: "មិនអាចទាញយកលេខណែនាំបានទេ!" });
   }
 };
+
+// API ឆែកភាពទំនេរ (Backend)
+exports.checkAvailability = async (req, res) => {
+  const { number } = req.body;
+  // រកក្នុង User (accountNumber + KHR) និង SubAccounts
+  const user = await User.findOne({
+    $or: [
+      { accountNumber: number },
+      { accountNumberKHR: number },
+      { "subAccounts.accountNumber": number },
+    ],
+  });
+
+  if (user) return res.json({ available: false });
+  return res.json({ available: true });
+};
