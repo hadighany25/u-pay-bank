@@ -1940,7 +1940,7 @@
       // =========================================
       // 💳 បង្ហាញប្រតិបត្តិការទាំងអស់ក្នុង Modal (Dashboard)
       // =========================================
-      function renderTransactionsInModal(currentUser, currency) {
+      function renderTransactionsInModal(currentUser, currency, accNum) {
         const list = document.getElementById("sheetTrxList");
         if (!list) return;
 
@@ -1948,23 +1948,29 @@
           !currentUser.transactions ||
           currentUser.transactions.length === 0
         ) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
           return;
         }
 
-        // 🔥 ដោះស្រាយបញ្ហាបាត់ Transaction ថ្មី: យើង Reverse វាឱ្យអាថ្មីមកលើគេសិន រួចចាំយក ៣០
+        // 🔥 កែការ Filter៖ យក Transaction ណាដែលមាន receiverAcc ស្មើនឹង accNum
+        // ឬ ករណីកុង Main (ដែលពេលខ្លះមិនមាន receiverAcc ជាប់ជាមួយ) យើងអាច Filter តាមកុងលុយ
         let filteredTrx = currentUser.transactions
-          .filter(
-            (t) =>
-              (t.currency === currency ||
-                (!t.currency && currency === "USD")) &&
-              t.status !== "Refunded",
-          )
-          .sort((a, b) => new Date(b.date) - new Date(a.date)) // 🔥 តម្រៀបយកអាថ្មីបំផុតមកលើគេបង្អស់
+          .filter((t) => {
+            // ឆែកមើលថាតើវាជា Transaction របស់កុងនេះមែនឬអត់
+            const isMyAccount =
+              t.senderAcc === accNum || t.receiverAcc === accNum;
+
+            // ករណីកុង Main (ពេលខ្លះអត់មានលេខកុងក្នុង Trx) យើងឆែកតាម Currency
+            const isMainAccountMatch =
+              t.currency === currency && !t.receiverAcc;
+
+            return isMyAccount || isMainAccountMatch;
+          })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 30);
 
         if (filteredTrx.length === 0) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការ ${currency} ទេ</p></div>`;
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការសម្រាប់គណនីនេះទេ</p></div>`;
           return;
         }
 
@@ -1972,6 +1978,7 @@
         let lastDateLabel = "";
 
         filteredTrx.forEach((t) => {
+          // (រក្សាកូដគូរ UI ក្នុង Loop ដដែល)
           const isIncome = t.amount > 0;
           const isPending = t.status === "Pending";
           let parsedDate = parseDateString(t.date);
