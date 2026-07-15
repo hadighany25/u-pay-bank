@@ -1952,17 +1952,19 @@
           return;
         }
 
-        // 🔥 កែការ Filter៖ យក Transaction ណាដែលមាន receiverAcc ស្មើនឹង accNum
-        // ឬ ករណីកុង Main (ដែលពេលខ្លះមិនមាន receiverAcc ជាប់ជាមួយ) យើងអាច Filter តាមកុងលុយ
         let filteredTrx = currentUser.transactions
           .filter((t) => {
-            // ឆែកមើលថាតើវាជា Transaction របស់កុងនេះមែនឬអត់
+            // ១. ករណី Transaction មានលេខកុង (ទាំង Main និង Sub-Accounts)
             const isMyAccount =
               t.senderAcc === accNum || t.receiverAcc === accNum;
 
-            // ករណីកុង Main (ពេលខ្លះអត់មានលេខកុងក្នុង Trx) យើងឆែកតាម Currency
+            // ២. ករណី Main Account (ពេលខ្លះ Database អត់ដាក់ receiverAcc ឱ្យ)
+            // យើងត្រូវឆែកថា បើកុងហ្នឹងជាកុង Main ហើយ Currency ត្រូវគ្នា គឺយក!
             const isMainAccountMatch =
-              t.currency === currency && !t.receiverAcc;
+              t.currency === currency &&
+              (accNum === currentUser.accountNumber ||
+                accNum === currentUser.accountNumberKHR) &&
+              (!t.receiverAcc || t.receiverAcc === ""); // ត្រង់នេះសំខាន់៖ បើគ្មានលេខកុង គឺរាប់ថាជាកុង Main
 
             return isMyAccount || isMainAccountMatch;
           })
