@@ -262,6 +262,22 @@ const transfer = async (req, res) => {
           receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
       }
+      // 🔥 ថែមកូដបង្កើត Notification ត្រង់នេះ
+      const currencySymbol = isReceiverKHR ? "៛" : "$";
+      const transferNotification = {
+        title: "ប្រាក់ចូលគណនី! 💸",
+        message: `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
+        type: "transfer_receive",
+        date: new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Phnom_Penh",
+          hour12: true,
+        }),
+        isRead: false,
+      };
+      if (!receiver.notifications) receiver.notifications = [];
+      receiver.notifications.push(transferNotification);
+
+      // រួចទើប Save
       await receiver.save();
     }
 

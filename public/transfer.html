@@ -177,6 +177,7 @@
         color: #004d40;
         font-size: 1.5rem;
         transition: 0.3s;
+        overflow: hidden; /* For images */
       }
       .input-group {
         margin-bottom: 20px;
@@ -210,6 +211,9 @@
       }
       .status-err {
         color: #e74c3c;
+      }
+      .status-loading {
+        color: #f59e0b;
       }
 
       .confirm-btn {
@@ -285,53 +289,25 @@
         justify-content: center;
         flex-direction: column;
       }
-      /* Virtual PIN Pad Styles */
-      .key-btn {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        font-size: 1.5rem;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #1e293b;
-        transition: background-color 0.2s;
-      }
-      .key-btn:active {
-        background: #e2e8f0;
-      }
-      .key-btn.empty {
-        background: transparent;
-        border: none;
-        pointer-events: auto;
-      }
-      .pin-dot {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 2px solid #ccc;
-        transition: all 0.2s;
-      }
-      .pin-dot.filled {
-        background: #004d40;
-        border-color: #004d40;
-      }
 
-      body.dark-mode .key-btn {
-        background: #1e1e1e !important;
-        color: #f8fafc !important;
-        border-color: #333;
+      /* Native PIN Pad Style */
+      .native-pin-input {
+        width: 150px;
+        text-align: center;
+        font-size: 2.5rem;
+        letter-spacing: 15px;
+        padding: 10px;
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        outline: none;
+        background: #f8fafc;
+        color: #1e293b;
+        font-family: monospace;
+        transition: border-color 0.3s;
       }
-      body.dark-mode .key-btn:active {
-        background: #333 !important;
-      }
-      body.dark-mode .pin-dot.filled {
-        background: #00b894 !important;
-        border-color: #00b894 !important;
+      .native-pin-input:focus {
+        border-color: #004d40;
+        background: #fff;
       }
 
       /* Slip Container */
@@ -572,6 +548,11 @@
         color: white !important;
         border-color: #444;
       }
+      body.dark-mode .native-pin-input {
+        background: #1e1e1e !important;
+        color: white !important;
+        border-color: #444;
+      }
       body.dark-mode .input-group label {
         color: #cbd5e1;
       }
@@ -592,7 +573,7 @@
         color: #a7f3d0;
       }
 
-      /* រក្សា Slip អោយសជានិច្ច ដើម្បីការពារការបាត់អក្សរ */
+      /* Slip Dark Mode Fix */
       body.dark-mode .slip-container {
         background: #fff !important;
       }
@@ -663,11 +644,14 @@
 
         <div class="input-group">
           <label data-lang="receiver_acc">Receiver Account</label>
+          <!-- 🔥 បន្ថែម oninput ដើម្បីហៅ Debounce រកឈ្មោះអូតូ -->
           <input
             type="text"
             id="receiverAcc"
+            class="main-input"
             placeholder="Enter account number"
             style="text-transform: uppercase"
+            oninput="debounceCheckName()"
           />
           <span id="nameCheck" class="check-status"></span>
         </div>
@@ -714,6 +698,7 @@
       </div>
     </div>
 
+    <!-- 🔥 Native PIN Modal ថ្មី -->
     <div id="pinModal" class="modal-overlay" style="z-index: 9999">
       <div
         style="
@@ -724,67 +709,33 @@
           width: 300px;
         "
       >
-        <h3 style="color: #004d40; margin-bottom: 10px" data-lang="enter_pin">
+        <div style="font-size: 3rem; color: #004d40; margin-bottom: 10px">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 style="color: #1e293b; margin: 0 0 10px 0" data-lang="enter_pin">
           បញ្ចូលលេខកូដ PIN
         </h3>
-        <div
-          class="pin-dots"
-          style="
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-          "
-        >
-          <div class="pin-dot" id="dot1"></div>
-          <div class="pin-dot" id="dot2"></div>
-          <div class="pin-dot" id="dot3"></div>
-          <div class="pin-dot" id="dot4"></div>
-        </div>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px">
+          សូមវាយលេខ PIN ៤ ខ្ទង់របស់អ្នក
+        </p>
 
         <input
-          type="number"
-          id="hiddenPin"
-          style="opacity: 0; position: absolute; z-index: -1"
-          oninput="handlePinInput(this.value)"
+          type="password"
+          id="nativePinInput"
+          class="native-pin-input"
+          maxlength="4"
           pattern="[0-9]*"
           inputmode="numeric"
+          oninput="handleNativePin(this.value)"
         />
 
         <button
-          id="btnShowKeypad"
           class="confirm-btn"
-          onclick="toggleVirtualKeypad()"
+          onclick="closeModal('pinModal')"
+          style="background: #ef4444; margin-top: 20px"
         >
-          ចុចបញ្ចូលលេខកូដ
+          បោះបង់
         </button>
-
-        <div
-          id="virtualKeypad"
-          style="
-            display: none;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 20px;
-          "
-        >
-          <button class="key-btn" onclick="pressPin('1')">1</button
-          ><button class="key-btn" onclick="pressPin('2')">2</button
-          ><button class="key-btn" onclick="pressPin('3')">3</button>
-          <button class="key-btn" onclick="pressPin('4')">4</button
-          ><button class="key-btn" onclick="pressPin('5')">5</button
-          ><button class="key-btn" onclick="pressPin('6')">6</button>
-          <button class="key-btn" onclick="pressPin('7')">7</button
-          ><button class="key-btn" onclick="pressPin('8')">8</button
-          ><button class="key-btn" onclick="pressPin('9')">9</button>
-          <button class="key-btn empty" onclick="closeModal('pinModal')">
-            <i class="fa-solid fa-xmark" style="color: #ef4444"></i>
-          </button>
-          <button class="key-btn" onclick="pressPin('0')">0</button>
-          <button class="key-btn" onclick="pressPin('del')">
-            <i class="fa-solid fa-delete-left"></i>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -919,13 +870,12 @@
     <script>
       // Authentication Check & Variables Setup
       const uPayUserString = sessionStorage.getItem("user");
-      const token = sessionStorage.getItem("userToken"); // 🔥 ថែមប្រព័ន្ធ Token ចូល
+      const token = sessionStorage.getItem("userToken");
       if (!uPayUserString || !token) {
         window.location.href = "index.html" + window.location.search;
       }
       const user = JSON.parse(uPayUserString);
 
-      // 🔥 បង្កើត Headers សម្រាប់ភ្ជាប់ជាមួយ API
       const authHeaders = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -991,7 +941,6 @@
 
         // Setup Initials
         try {
-          // 🔥 ភ្ជាប់ Token ពេលទាញ FX Rates
           const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
           if (fxData.success) currentFXRates = fxData.rates;
@@ -1035,7 +984,6 @@
         updateBalanceDisplay();
       });
 
-      // Dark Mode Logic
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
         const isDark =
@@ -1045,7 +993,6 @@
         else document.body.classList.remove("dark-mode");
       }
 
-      // Variables
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get("orderId");
       const callbackUrl = urlParams.get("callback");
@@ -1130,6 +1077,25 @@
         }
       }
 
+      // 🔥 មុខងារ Debounce សម្រាប់ Auto-fetch Name
+      let typingTimer;
+      const doneTypingInterval = 500; // វាយចប់កន្លះវិនាទី ទើបហៅ API
+      function debounceCheckName() {
+        clearTimeout(typingTimer);
+        const accInput = document.getElementById("receiverAcc").value;
+        const status = document.getElementById("nameCheck");
+        const nameDisplay = document.getElementById("displayReceiverName");
+
+        if (accInput.length >= 6) {
+          nameDisplay.innerText = "កំពុងស្វែងរក...";
+          status.innerText = "↻";
+          status.className = "check-status status-loading";
+          typingTimer = setTimeout(checkName, doneTypingInterval);
+        } else {
+          resetCheck();
+        }
+      }
+
       async function checkName() {
         const acc = document.getElementById("receiverAcc").value;
         const nameDisplay = document.getElementById("displayReceiverName");
@@ -1137,34 +1103,23 @@
         const boxUI = document.getElementById("receiverBoxUI");
         const iconUI = document.getElementById("receiverIconUI");
 
-        // 🔥 ១. ថែមការចាប់យក QR របស់ U-Fund នៅត្រង់នេះ
         if (acc.startsWith("UFND-")) {
-          nameDisplay.innerText = "U-Fund (Scan Pay)"; // បង្ហាញឈ្មោះជា U-Fund
+          nameDisplay.innerText = "U-Fund (Scan Pay)";
           status.innerText = "✔";
           status.className = "check-status status-ok";
           boxUI.style.borderColor = "#10b981";
           boxUI.style.background = "#ecfdf5";
           iconUI.style.background = "#10b981";
           iconUI.style.color = "white";
-          targetUserIsKHR = false; // U-Fund ប្រើតែដុល្លារ
+          iconUI.innerHTML = '<i class="fa-solid fa-qrcode"></i>'; // QR Icon
+          targetUserIsKHR = false;
           calculateExchangePreview();
-          return true; // បញ្ឈប់កុំឱ្យវាទៅឆែក API ធម្មតា
+          return true;
         }
 
-        if (acc.length < 8) {
-          nameDisplay.innerText = "...";
-          status.innerText = "";
-          boxUI.style.borderColor = "#ccc";
-          boxUI.style.background = "#f8f9fa";
-          iconUI.style.background = "#e0f2f1";
-          iconUI.style.color = "#004d40";
-          targetUserIsKHR = null;
-          calculateExchangePreview();
-          return false;
-        }
+        if (acc.length < 6) return false;
 
         try {
-          // 🔥 ភ្ជាប់ Token ទៅឲ្យ API ឆែកឈ្មោះ
           const res = await fetch("/api/check-account", {
             method: "POST",
             headers: authHeaders,
@@ -1180,6 +1135,20 @@
             iconUI.style.background = "#10b981";
             iconUI.style.color = "white";
 
+            // 🔥 ប្តូរ Icon ឆ្លាតវៃតាមប្រភេទ Account
+            if (data.isMerchant) {
+              iconUI.innerHTML = '<i class="fa-solid fa-store"></i>'; // រូបហាង
+            } else if (data.profileImage && data.profileImage !== "") {
+              iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`; // រូប Profile
+            } else if (
+              acc.includes("SAV") ||
+              data.username.toLowerCase().includes("saving")
+            ) {
+              iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>'; // រូបកូនជ្រូក (សន្សំ)
+            } else {
+              iconUI.innerHTML = '<i class="fa-solid fa-user"></i>'; // រូបធម្មតា
+            }
+
             targetUserIsKHR = data.isReceiverKHR;
             if (data.fxRates) currentFXRates = data.fxRates;
             calculateExchangePreview();
@@ -1192,6 +1161,7 @@
             boxUI.style.background = "#fef2f2";
             iconUI.style.background = "#ef4444";
             iconUI.style.color = "white";
+            iconUI.innerHTML = '<i class="fa-solid fa-user-xmark"></i>';
             targetUserIsKHR = null;
             calculateExchangePreview();
             return false;
@@ -1210,6 +1180,7 @@
         boxUI.style.background = "#f8f9fa";
         iconUI.style.background = "#e0f2f1";
         iconUI.style.color = "#004d40";
+        iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
         targetUserIsKHR = null;
         calculateExchangePreview();
       }
@@ -1318,59 +1289,23 @@
             return Swal.fire("Error", "Receiver Not Found", "error");
         }
 
+        // បើកផ្ទាំង PIN កែសម្រួលថ្មីដោយប្រើ Native Keyboard
         document.getElementById("pinModal").style.display = "flex";
-
-        const vKeypad = document.getElementById("virtualKeypad");
-        const btnShow = document.getElementById("btnShowKeypad");
-        const hiddenPin = document.getElementById("hiddenPin");
-
-        if (vKeypad) vKeypad.style.display = "none";
-        if (btnShow) btnShow.style.display = "block";
-
-        enteredPin = "";
-        if (hiddenPin) hiddenPin.value = "";
-        updatePinDots();
-
-        setTimeout(() => {
-          if (hiddenPin) hiddenPin.focus();
-        }, 100);
-      }
-
-      function toggleVirtualKeypad() {
-        document.getElementById("virtualKeypad").style.display = "grid";
-        document.getElementById("btnShowKeypad").style.display = "none";
-        document.getElementById("hiddenPin").focus();
-      }
-
-      function handlePinInput(val) {
-        if (val.length > 4) val = val.substring(0, 4);
-        enteredPin = val;
-        updatePinDots();
-        if (enteredPin.length === 4) setTimeout(submitPin, 300);
-      }
-
-      function pressPin(val) {
-        let input = document.getElementById("hiddenPin");
-        if (val === "del") enteredPin = enteredPin.slice(0, -1);
-        else if (enteredPin.length < 4) enteredPin += val;
-
-        if (input) input.value = enteredPin;
-        updatePinDots();
-        if (enteredPin.length === 4) setTimeout(submitPin, 300);
-      }
-
-      function updatePinDots() {
-        for (let i = 1; i <= 4; i++) {
-          const dot = document.getElementById("dot" + i);
-          if (dot) {
-            if (i <= enteredPin.length) dot.classList.add("filled");
-            else dot.classList.remove("filled");
-          }
-        }
+        const pinInput = document.getElementById("nativePinInput");
+        pinInput.value = "";
+        setTimeout(() => pinInput.focus(), 100);
       }
 
       function closeModal(id) {
         document.getElementById(id).style.display = "none";
+      }
+
+      // 🔥 មុខងារចាប់យកលេខដែលវាយលើ Native Keyboard
+      function handleNativePin(val) {
+        if (val.length >= 4) {
+          enteredPin = val.substring(0, 4);
+          submitPin(); // បញ្ជូនអូតូពេលគ្រប់ ៤ខ្ទង់
+        }
       }
 
       async function submitPin() {
@@ -1379,8 +1314,6 @@
           urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
         const amount = document.getElementById("amount").value;
         const fromAccountType = document.getElementById("fromAccount").value;
-
-        // 🔥 ទាញយកលេខគណនី / QR
         const receiverAcc = document.getElementById("receiverAcc").value;
 
         if (pin.length === 4) {
@@ -1390,7 +1323,6 @@
             didOpen: () => Swal.showLoading(),
           });
 
-          // 🔥 ១. រៀបចំ API និងទិន្នន័យ ទៅតាមប្រភេទការទូទាត់ (ធម្មតា ឬ U-Fund)
           let apiUrl = "/api/transfer";
           let requestBody = {
             senderUsername: user.username,
@@ -1402,28 +1334,26 @@
             currency: fromAccountType,
           };
 
-          // បើសិនជា QR របស់ U-Fund គឺត្រូវប្តូរ API ទៅកាន់ ufundController
           if (receiverAcc.startsWith("UFND-")) {
             apiUrl = "/api/ufund/scan-pay";
             requestBody = {
               username: user.username,
               qrString: receiverAcc,
               amount: amount,
-              pin: pin, // ផ្ញើ PIN ទៅក្រែងលោ Backend បងចង់ឆែកសុវត្ថិភាព
+              pin: pin,
             };
           }
 
           try {
             const res = await fetch(apiUrl, {
               method: "POST",
-              headers: authHeaders, // ប្រើ authHeaders ដែលមាន Token ស្រាប់
+              headers: authHeaders,
               body: JSON.stringify(requestBody),
             });
             const data = await res.json();
             Swal.close();
 
             if (data.success) {
-              // 🔥 ២. បើជា U-Fund Scan Pay លោតជោគជ័យរួចបញ្ជូនទៅ U-Fund វិញ
               if (receiverAcc.startsWith("UFND-")) {
                 new Audio(
                   "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
@@ -1436,10 +1366,9 @@
                 }).then(() => {
                   window.location.href = "ufund.html";
                 });
-                return; // បញ្ឈប់កុំឱ្យវាលោតទៅកងវិលផ្សងសំណាងខាងក្រោម
+                return;
               }
 
-              // --- ៣. កូដចាស់ៗ សម្រាប់វេរលុយធម្មតា (P2P/Merchant) ---
               if (fromAccountType === "USD") user.balance = data.newBalance;
               else user.balanceKHR = data.newBalance;
 
@@ -1519,7 +1448,6 @@
         setTimeout(() => {
           const wonAmount = prizeValues[targetIndex];
           if (wonAmount > 0) {
-            // 🔥 ភ្ជាប់ Token ទៅអោយ API ចែករង្វាន់
             fetch("/api/reward/cashback", {
               method: "POST",
               headers: authHeaders,
@@ -1540,7 +1468,6 @@
                     .play()
                     .catch((e) => {});
 
-                  // 🔥 បើកសារ Global Toast បើឈ្នះ Cashback
                   if (typeof showAppNotification === "function") {
                     showAppNotification(
                       lang === "kh" ? "អបអរសាទរ!" : "Congratulations!",
