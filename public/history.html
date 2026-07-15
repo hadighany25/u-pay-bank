@@ -6,7 +6,9 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Transaction History - U-Pay</title>
 
-    <!-- Fonts & Icons -->
+    <!-- ==========================================
+         ១. ការភ្ជាប់ឯកសារ (FONTS & SCRIPTS)
+         ========================================== -->
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
@@ -30,6 +32,9 @@
     <script src="/js/slip.js"></script>
 
     <style>
+      /* ==========================================
+         ២. ការរចនាទូទៅ (GLOBAL STYLES)
+         ========================================== */
       body {
         background-color: #f2f4f6;
         margin: 0;
@@ -49,6 +54,8 @@
         padding-bottom: 90px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
       }
+
+      /* ផ្នែកក្បាលខាងលើ */
       .nav-header {
         padding: 20px;
         background: #004d40;
@@ -65,6 +72,8 @@
         color: white;
         text-decoration: none;
       }
+
+      /* របារឧបករណ៍ និងការស្វែងរក */
       .tool-bar {
         padding: 15px 20px;
         background: #f8fafc;
@@ -120,6 +129,8 @@
       .export-btn:active {
         transform: scale(0.98);
       }
+
+      /* របារបែងចែកចំណូល/ចំណាយ */
       .filter-bar {
         display: flex;
         padding: 0 20px 10px 20px;
@@ -145,11 +156,17 @@
         border-color: #004d40;
         box-shadow: 0 4px 6px rgba(0, 77, 64, 0.2);
       }
+
+      /* ==========================================
+         ៣. ការរចនាបញ្ជីប្រវត្តិ និងសារ (LISTS & CARDS)
+         ========================================== */
       .history-list {
         padding: 10px 20px;
         flex: 1;
         overflow-y: auto;
       }
+
+      /* កាតប្រតិបត្តិការនីមួយៗ */
       .trx-item {
         display: flex;
         align-items: center;
@@ -196,7 +213,7 @@
         font-size: 1rem;
       }
 
-      /* Message Card Styling */
+      /* កាតសារជូនដំណឹងនីមួយៗ (Message Card) */
       .msg-card {
         background: white;
         border-radius: 16px;
@@ -248,6 +265,7 @@
         display: flex;
         align-items: center;
         gap: 4px;
+        margin-top: 5px;
       }
       .msg-del-btn {
         position: absolute;
@@ -273,6 +291,7 @@
         transform: scale(0.95);
       }
 
+      /* ការកំណត់ពណ៌ចំណូល ចំណាយ */
       .text-green {
         color: #059669;
       }
@@ -288,6 +307,9 @@
         color: #dc2626;
       }
 
+      /* ==========================================
+         ៤. ម៉ឺនុយខាងក្រោម (BOTTOM NAV)
+         ========================================== */
       .bottom-nav {
         position: fixed;
         bottom: 0;
@@ -321,7 +343,9 @@
         font-weight: 700;
       }
 
-      /* Dark Mode Adjustments */
+      /* ==========================================
+         ៥. ពណ៌ងងឹត (DARK MODE)
+         ========================================== */
       body.dark-mode {
         background: #000;
       }
@@ -381,6 +405,7 @@
   </head>
   <body>
     <div class="app-container">
+      <!-- ក្បាលទំព័រ (Header) -->
       <div class="nav-header">
         <div style="display: flex; align-items: center; gap: 15px">
           <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
@@ -388,6 +413,7 @@
         </div>
       </div>
 
+      <!-- របារជ្រើសរើស និងទាញយក (Tool Bar) -->
       <div class="tool-bar">
         <div class="account-select">
           <select id="exportCurrency" onchange="renderTransactions()">
@@ -406,6 +432,7 @@
         </button>
       </div>
 
+      <!-- ប៊ូតុងប្តូររវាង ប្រវត្តិ និង សារ (Tabs) -->
       <div
         style="
           display: flex;
@@ -454,6 +481,7 @@
         </button>
       </div>
 
+      <!-- របារ Filter សម្រាប់ប្រតិបត្តិការ -->
       <div class="filter-bar" id="trxFilterBar">
         <button class="filter-btn active" onclick="filterHistory('all', this)">
           All
@@ -466,17 +494,20 @@
         </button>
       </div>
 
+      <!-- ផ្ទៃបង្ហាញសារ (Messages Container) -->
       <div
         id="messagesContainer"
         style="display: none; padding: 10px 20px; flex: 1; overflow-y: auto"
       ></div>
 
+      <!-- ផ្ទៃបង្ហាញប្រវត្តិប្រតិបត្តិការ (Transactions List) -->
       <div class="history-list" id="historyList">
         <p style="text-align: center; color: #94a3b8; margin-top: 50px">
           Loading...
         </p>
       </div>
 
+      <!-- ម៉ឺនុយខាងក្រោម (Bottom Navigation) -->
       <div class="bottom-nav">
         <a href="dashboard.html" class="nav-item">
           <i class="fa-solid fa-house"></i>
@@ -497,9 +528,11 @@
       </div>
     </div>
 
-    នៅតែមិនបង្ហាញ
-
+    <!-- ==========================================
+         ៦. ផ្នែក JAVASCRIPT (LOGIC)
+         ========================================== -->
     <script>
+      // ៦.១ ការកំណត់អថេរទូទៅ (Global Variables)
       const sessionUser = JSON.parse(sessionStorage.getItem("user"));
       const sessionToken = sessionStorage.getItem("userToken");
 
@@ -518,6 +551,7 @@
           localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
         ) || [];
 
+      // ៦.២ ការកំណត់ពណ៌ងងឹត (Dark Mode Setup)
       function applyThemeHistory() {
         const userThemeKey = "darkMode_" + sessionUser.username;
         const isDark =
@@ -534,6 +568,7 @@
         if (typeof applyLanguage === "function") applyLanguage();
       });
 
+      // ៦.៣ កំណត់ថ្ងៃខែក្នុងប្រអប់ Input (Date Inputs Setup)
       const today = new Date();
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
       document.getElementById("startDate").value = firstDay
@@ -543,6 +578,10 @@
         .toISOString()
         .split("T")[0];
 
+      // ==========================================
+      // ៧. មុខងារជំនួយ (HELPER FUNCTIONS)
+      // ==========================================
+
       function formatMoney(amount, isKHR = false) {
         return Math.abs(amount).toLocaleString("en-US", {
           minimumFractionDigits: isKHR ? 0 : 2,
@@ -550,6 +589,32 @@
         });
       }
 
+      // 🔥 មុខងារកំណត់ថ្ងៃ έξាត (Smart Date Label ដូច Dashboard)
+      function getSmartDateLabel(d) {
+        let t = new Date();
+        t.setHours(0, 0, 0, 0);
+        let y = new Date();
+        y.setDate(t.getDate() - 1);
+        y.setHours(0, 0, 0, 0);
+        let c = new Date(d);
+        c.setHours(0, 0, 0, 0);
+        let l = localStorage.getItem("lang") || "en";
+
+        if (c.getTime() === t.getTime())
+          return l === "kh" ? "ថ្ងៃនេះ" : "Today";
+        if (c.getTime() === y.getTime())
+          return l === "kh" ? "ម្សិលមិញ" : "Yesterday";
+
+        return c.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        });
+      }
+
+      // ==========================================
+      // ៨. មុខងារទាញទិន្នន័យពី Server (SYNC DATA)
+      // ==========================================
       async function syncAllData() {
         try {
           const res = await fetch("/api/users", { headers: authHeadersFetch });
@@ -565,6 +630,8 @@
               sessionUser.accountNumber = serverUser.accountNumber;
               sessionUser.accountNumberKHR = serverUser.accountNumberKHR;
               sessionStorage.setItem("user", JSON.stringify(sessionUser));
+
+              // គូរ UI ឡើងវិញបន្ទាប់ពីបានទិន្នន័យ
               renderMessages(sessionUser.notifications);
               renderTransactions();
             }
@@ -576,22 +643,28 @@
 
       syncAllData();
       setInterval(syncAllData, 3000);
+
+      // ==========================================
+      // ៩. មុខងារបង្ហាញប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS)
+      // ==========================================
       function renderTransactions() {
         const list = document.getElementById("historyList");
         const selectedCurrency =
           document.getElementById("exportCurrency").value;
 
+        // ចម្រាញ់តាមរូបិយប័ណ្ណ
         let filtered = fullUserTransactions.filter((t) => {
           if (selectedCurrency === "KHR") return t.currency === "KHR";
           return !t.currency || t.currency === "USD";
         });
 
+        // ចម្រាញ់តាមប្រភេទការ Filter (ចំណូល/ចំណាយ)
         if (currentFilterType === "in")
           filtered = filtered.filter((t) => t.amount > 0);
         if (currentFilterType === "out")
           filtered = filtered.filter((t) => t.amount < 0);
 
-        // 🔥 រៀបចំទិន្នន័យតាមថ្ងៃ (ពីថ្មីមកចាស់)
+        // រៀបចំទិន្នន័យតាមថ្ងៃ (ពីថ្មីមកចាស់)
         currentTransactions = filtered.sort(
           (a, b) => new Date(b.date) - new Date(a.date),
         );
@@ -613,7 +686,7 @@
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // 🔥 បង្កើតអថេរឆែកមើលថាវាជាប្រតិបត្តិការទូទាត់ហាងឬអត់ (Merchant)
+          // ឆែកមើលថាវាជាប្រតិបត្តិការទូទាត់ហាងឬអត់ (Merchant)
           let isMerchantTrx =
             t.type === "Merchant Payment" ||
             t.trxMethod === "Merchant Payment" ||
@@ -630,24 +703,38 @@
           else if (t.type && t.type.includes("U-Fund")) {
             icon = "fa-piggy-bank";
           }
-          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift, Fee និង Promo Code
+          // 🎁 ដូរ Icon និងពណ៌សម្រាប់ E-Gift
           else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
             icon = "fa-gift";
-          } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
-            // 🔥 ប្តូរ Icon និងពណ៌សម្រាប់ថ្លៃសេវា (Fee) ក្នុង History
+          }
+          // 💰 ប្តូរ Icon សម្រាប់រង្វាន់ Cashback
+          else if (
+            t.type === "Cashback Reward" ||
+            t.type === "Cashback Payout" ||
+            t.title?.includes("Cashback")
+          ) {
+            icon = "fa-sack-dollar";
+            color = isIncome ? "text-green" : "text-red";
+            bg = isIncome ? "bg-green" : "bg-red";
+          }
+          // 📋 ប្តូរ Icon សម្រាប់ថ្លៃសេវា
+          else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
             icon = "fa-file-invoice-dollar";
             color = "text-orange";
             bg = "bg-orange";
-          } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
+          }
+          // 🎟️ ប្តូរ Icon ប្រូម៉ូសិនកូដ
+          else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
             icon = "fa-tag";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";
-          } else if (
+          }
+          // 💸 បន្ថែម Icon សម្រាប់ Cash Deposit & Withdrawal
+          else if (
             t.type === "Cash Deposit" ||
             t.type === "Cash Withdrawal" ||
             t.type.includes("System")
           ) {
-            // 🔥 បន្ថែម Icon និងពណ៌សម្រាប់ Cash Deposit & Withdrawal ក្នុង History
             icon = "fa-money-bill-transfer";
             color = isIncome ? "text-green" : "text-red";
             bg = isIncome ? "bg-green" : "bg-red";
@@ -659,13 +746,8 @@
           }
           if (isNaN(dateObj.getTime())) dateObj = new Date();
 
-          let dateStr = dateObj
-            .toLocaleDateString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            })
-            .toUpperCase();
+          // 🔥 ហៅមុខងារកំណត់ថ្ងៃ "ថ្ងៃនេះ/ម្សិលមិញ"
+          let dateStr = getSmartDateLabel(dateObj).toUpperCase();
 
           if (dateStr !== lastDateLabel) {
             const dateHeader = document.createElement("div");
@@ -676,7 +758,7 @@
             lastDateLabel = dateStr;
           }
 
-          // 🔥 Smart Naming System ឱ្យត្រូវជាមួយអាំងប៉ាវ
+          // 🔥 ប្រព័ន្ធកំណត់ឈ្មោះវៃឆ្លាត (Smart Naming System)
           let name = "";
           if (t.type === "E-Gift Received") {
             name = "Received E-Gift";
@@ -703,6 +785,7 @@
             minute: "2-digit",
           });
 
+          // បង្កើតកាត
           const item = document.createElement("div");
           item.className = "trx-item";
           item.onclick = () => showSlip(index);
@@ -721,15 +804,15 @@
       }
 
       // ==========================================
-      // ១. មុខងារគូរសារ (Render Messages)
+      // ១០. មុខងារបង្ហាញសារ (RENDER MESSAGES)
       // ==========================================
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
 
-        // 🔥 កែត្រង់នេះ៖ ប្រើ .sort() ដើម្បីតម្រៀបម៉ោងថ្មីបំផុតឱ្យនៅលើគេ
+        // ប្រើ .sort() ដើម្បីតម្រៀបម៉ោងថ្មីបំផុតឱ្យនៅលើគេ
         const activeMsgs = (messages || [])
           .filter((m) => !deletedMessages.includes(m.date + m.title))
-          .sort((a, b) => new Date(b.date) - new Date(a.date)); // 👈 កូដនេះជាអ្នករៀបតាមម៉ោង
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (activeMsgs.length === 0) {
           containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ / No New Messages</p></div>`;
@@ -739,22 +822,48 @@
         containerMsg.innerHTML = activeMsgs
           .map((m) => {
             let displayMsg = m.message;
-            let iconClass = "fa-regular fa-bell";
+            let iconClass = "fa-bullhorn";
             let iconBg = "#e0f2fe";
             let iconColor = "#0284c7";
             let clickAction = "";
             let cursorStyle = "";
             let actionBtns = "";
 
-            // 🎁 សារអាំងប៉ាវ
+            // 💵 សារចំណូលធម្មតា
+            if (m.title.includes("Received") && m.type !== "egift_receive") {
+              iconClass = "fa-hand-holding-dollar";
+              iconBg = "#ecfdf5";
+              iconColor = "#10b981";
+            }
+            // 🛒 សារទូទាត់ប្រាក់ (Payment Request)
+            else if (
+              m.title.includes("សំណើទូទាត់ប្រាក់") ||
+              m.type === "payment_request"
+            ) {
+              iconClass = "fa-cart-shopping";
+              iconBg = "#fff7ed";
+              iconColor = "#ea580c";
+            }
+            // 🎁 សារឈ្នះ Cashback
+            else if (
+              m.title.includes("Cashback") ||
+              m.type === "cashback_reward" ||
+              m.title.includes("ឈ្នះបាន")
+            ) {
+              iconClass = "fa-sack-dollar";
+              iconBg = "#dcfce7";
+              iconColor = "#059669";
+            }
+
+            // 🧧 សារអាំងប៉ាវ
             if (m.type === "egift_receive") {
               iconClass = "fa-solid fa-gift";
               if (!m.isRead) {
                 displayMsg =
-                  "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចទីនេះដើម្បីបើកមើលកាដូរបស់អ្នក...";
+                  "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចខាងក្រោមដើម្បីបើកមើលកាដូរបស់អ្នក...";
                 iconBg = "#fee2e2";
                 iconColor = "#dc2626";
-                cursorStyle = "cursor: pointer;";
+
                 const amt = m.egiftData?.amount || 0;
                 const cur = m.egiftData?.currency || "USD";
                 const sender =
@@ -762,7 +871,15 @@
                 const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
                 const notifId = m._id || m.id || "";
                 const senderUsername = m.egiftData?.senderUsername || "";
-                clickAction = `onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}', '${notifId}', '${senderUsername}')"`;
+
+                // 🔥 បន្ថែមប៊ូតុងចុចទទួលកាដូដូច Dashboard
+                actionBtns = `
+                  <div style="margin-top: 10px;">
+                    <button onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                      <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
+                    </button>
+                  </div>
+                `;
               } else {
                 displayMsg = "✅ អ្នកបានបើកអាំងប៉ាវនេះរួចរាល់ហើយ។";
                 iconBg = "#d1fae5";
@@ -779,6 +896,8 @@
               if (!m.isRead) {
                 iconBg = "#ecfeff";
                 iconColor = "#0891b2";
+
+                // ប៊ូតុង យល់ព្រម / បដិសេធ ដូច Dashboard
                 actionBtns = `
                   <div style="margin-top: 10px; display: flex; gap: 10px;">
                     <button onclick="event.stopPropagation(); respondUFundInvite('${m.fundId}', '${m._id || m.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
@@ -811,26 +930,28 @@
             }
 
             return `
-          <div class="msg-card" ${clickAction} style="${cursorStyle}">
-            <div class="msg-icon" style="background:${iconBg}; color:${iconColor};"><i class="${iconClass}"></i></div>
-            <div class="msg-content">
-              <h4>${m.title}</h4>
-              <p>${displayMsg}</p>
-              ${actionBtns}
-              <span class="msg-date"><i class="fa-regular fa-clock"></i> ${m.date}</span>
-            </div>
-            <button class="msg-del-btn" onclick="event.stopPropagation(); deleteMessage('${m.title}', '${m.date}')">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </div>
-          `;
+              <div class="msg-card" ${clickAction} style="${cursorStyle}">
+                <div class="msg-icon" style="background:${iconBg}; color:${iconColor};"><i class="${iconClass}"></i></div>
+                <div class="msg-content">
+                  <h4>${m.title}</h4>
+                  <p>${displayMsg}</p>
+                  ${actionBtns}
+                  <span class="msg-date"><i class="fa-regular fa-clock"></i> ${m.date}</span>
+                </div>
+                <button class="msg-del-btn" onclick="event.stopPropagation(); deleteMessage('${m.title}', '${m.date}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            `;
           })
           .join("");
       }
 
       // ==========================================
-      // ២. មុខងារឆ្លើយតប U-Fund (សម្រាប់ History.html)
+      // ១១. មុខងារបន្ថែមសម្រាប់សារ (MESSAGE ACTIONS)
       // ==========================================
+
+      // មុខងារឆ្លើយតប U-Fund
       async function respondUFundInvite(fundId, notifId, response) {
         try {
           Swal.fire({
@@ -840,12 +961,12 @@
 
           const res = await fetch("/api/ufund/respond-invite", {
             method: "POST",
-            headers: authHeadersFetch, // ប្រើអថេរ header របស់ History.html
+            headers: authHeadersFetch,
             body: JSON.stringify({
-              username: sessionUser.username, // ប្រើអថេរ User របស់ History.html
+              username: sessionUser.username,
               fundId: fundId,
               notifId: notifId,
-              response: response, // 'accept' ឬ 'decline'
+              response: response,
             }),
           });
 
@@ -859,7 +980,6 @@
               timer: 2000,
               showConfirmButton: false,
             }).then(() => {
-              // ពេលចុចជោគជ័យ ឱ្យវា Refresh Page ដើម្បី Update ទិន្នន័យ
               window.location.reload();
             });
           } else {
@@ -871,7 +991,7 @@
         }
       }
 
-      // 🔥 មុខងារថ្មី៖ បើកអាំងប៉ាវ (Surprise Popup) រួចបាញ់ API
+      // មុខងារបើកអាំងប៉ាវ (Surprise Popup)
       async function handleOpenGift(
         amount,
         currency,
@@ -880,7 +1000,7 @@
         notifId,
         senderUsername,
       ) {
-        // បាញ់ព្រិល (ត្រូវប្រាកដថាបានដាក់ script canvas-confetti ក្នុង <head>)
+        // បាញ់ព្រិល
         if (typeof confetti === "function") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -891,8 +1011,6 @@
             ? Number(amount).toFixed(2)
             : Number(amount).toLocaleString();
 
-        // 🔥 ដាក់កូដនេះឱ្យវាបាញ់ក្រដាសមាស
-        // បាញ់ក្រដាសមាស ៣ ដងបន្តគ្នា
         var count = 200;
         var defaults = { origin: { y: 0.7 } };
 
@@ -909,6 +1027,7 @@
         fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
         fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
         fire(0.1, { spread: 120, startVelocity: 45 });
+
         Swal.fire({
           html: `
                   <div style="padding:20px; text-align:center;">
@@ -923,11 +1042,9 @@
           confirmButtonColor: "#004d40",
           customClass: { popup: "modal-radius" },
         }).then(() => {
-          // Refresh ឱ្យបាត់ប៊ូតុងពណ៌ក្រហម (ដូរទៅពណ៌បៃតង)
           if (typeof syncAllData === "function") syncAllData();
         });
 
-        // បាញ់ API ប្រាប់ Server ថាអានហើយ & ផ្ញើដំណឹងប្រាប់ម្ចាស់លុយវិញ
         try {
           await fetch("/api/egift/opened", {
             method: "POST",
@@ -943,6 +1060,7 @@
         }
       }
 
+      // មុខងារលុបសារ (Delete Message)
       function deleteMessage(title, date) {
         Swal.fire({
           title: "លុបសារ? / Delete Message?",
@@ -966,6 +1084,9 @@
         });
       }
 
+      // ==========================================
+      // ១២. មុខងារគ្រប់គ្រង TABS និង FILTER
+      // ==========================================
       function filterHistory(type, btn) {
         currentFilterType = type;
         document
@@ -1002,6 +1123,7 @@
         }
       }
 
+      // មុខងារបង្ហាញវិក្កយបត្រនៅពេលចុចលើប្រតិបត្តិការ
       function showSlip(index) {
         const t = currentTransactions[index];
         if (typeof openGlobalSlip === "function") {
@@ -1009,7 +1131,9 @@
         }
       }
 
-      // 🔥 EXPORT STATEMENT PERFECTED
+      // ==========================================
+      // ១៣. មុខងារទាញយករបាយការណ៍ (EXPORT PDF STATEMENT)
+      // ==========================================
       async function exportStatementPDF() {
         try {
           const { jsPDF } = window.jspdf;
