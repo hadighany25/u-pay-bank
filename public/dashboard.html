@@ -1954,19 +1954,21 @@
 
         let filteredTrx = currentUser.transactions
           .filter((t) => {
-            // ១. ករណី Transaction មានលេខកុង (ទាំង Main និង Sub-Accounts)
-            const isMyAccount =
-              t.senderAcc === accNum || t.receiverAcc === accNum;
+            // ១. ឆែករកលេខកុងក្នុងប្រតិបត្តិការ (ឧ. receiverAcc ឬ receiverAccount)
+            // បងត្រូវឆែកមើលឈ្មោះ Field ក្នុង DB ឱ្យច្បាស់ (ក្នុងរូបភាពបងអត់ឃើញមាន Field លេខកុងទេ)
+            // បើអត់មានលេខកុងក្នុង Trx ទេ យើងត្រូវប្រើក្បាច់ "ឈ្មោះអ្នកទទួល"
 
-            // ២. ករណី Main Account (ពេលខ្លះ Database អត់ដាក់ receiverAcc ឱ្យ)
-            // យើងត្រូវឆែកថា បើកុងហ្នឹងជាកុង Main ហើយ Currency ត្រូវគ្នា គឺយក!
+            const matchAcc =
+              t.receiverAcc === accNum ||
+              t.senderAcc === accNum ||
+              t.receiverAccount === accNum;
+
+            // ២. ករណី Transaction គ្មានលេខកុង (តែជាកុង Main)
+            // យើងត្រូវ Filter តាមឈ្មោះគណនី ឬ Currency
             const isMainAccountMatch =
-              t.currency === currency &&
-              (accNum === currentUser.accountNumber ||
-                accNum === currentUser.accountNumberKHR) &&
-              (!t.receiverAcc || t.receiverAcc === ""); // ត្រង់នេះសំខាន់៖ បើគ្មានលេខកុង គឺរាប់ថាជាកុង Main
+              t.currency === currency && !t.receiverAcc && !t.receiverAccount;
 
-            return isMyAccount || isMainAccountMatch;
+            return matchAcc || isMainAccountMatch;
           })
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 30);
