@@ -6,35 +6,46 @@ const {
   generateHash,
 } = require("../services/helpers");
 
-// រូបមន្តគណនាតម្លៃលេខ
+// ==========================================
+// ១. រូបមន្តគណនាតម្លៃលេខ (ត្រូវឱ្យដូច Frontend ១០០%)
+// ==========================================
 function calculatePremiumPrice(numStr) {
-  let price = 0;
-  if (numStr.length < 8) price += 50;
+  if (numStr.length === 6) return 100; // លេខ 6 ខ្ទង់ ចាប់ពី 100$ ឡើង
+  if (numStr.length !== 9) return 0; // បើមិនមែន 6 ឬ 9 ខ្ទង់ទេ តម្លៃ 0 (ឬ Error)
 
-  let maxRepeat = 1;
-  let currentRepeat = 1;
-  for (let i = 1; i < numStr.length; i++) {
-    if (numStr[i] === numStr[i - 1]) {
-      currentRepeat++;
-      if (currentRepeat > maxRepeat) maxRepeat = currentRepeat;
-    } else {
-      currentRepeat = 1;
-    }
-  }
+  // លក្ខខណ្ឌសម្រាប់លេខ 9 ខ្ទង់
+  if (numStr.includes("88888") || numStr.includes("99999")) return 250;
+  if (
+    numStr.includes("8888") ||
+    numStr.includes("9999") ||
+    numStr.includes("168168")
+  )
+    return 100;
+  if (
+    numStr.includes("888") ||
+    numStr.includes("999") ||
+    numStr.includes("168")
+  )
+    return 50;
 
-  if (maxRepeat === 3) price += 10;
-  else if (maxRepeat === 4) price += 50;
-  else if (maxRepeat >= 5) price += 200;
+  // ឆែកលេខស្ទួន ៤ ខ្ទង់ (ឧ. 4444)
+  if (/(.)\1{3}/.test(numStr)) return 20;
+  // ឆែកលេខស្ទួន ៣ ខ្ទង់ (ឧ. 777)
+  if (/(.)\1{2}/.test(numStr)) return 15;
 
-  if (numStr.includes("168")) price += 88;
-  if (numStr.includes("888") && maxRepeat < 3) price += 30;
-  if (numStr.includes("999") && maxRepeat < 3) price += 30;
+  // លេខគូស្អាតចុងកន្ទុយ
+  if (numStr.endsWith("00") || numStr.endsWith("88") || numStr.endsWith("99"))
+    return 10;
 
-  return price;
+  return 5; // លេខធម្មតា គឺ 5$
 }
 
+// ==========================================
+// ២. API បង្កើតគណនី
+// ==========================================
 exports.createPremiumAccount = async (req, res) => {
-  const { username, requestedNumber, accountName, price, pin } = req.body;
+  const { username, requestedNumber, accountName, price, pin, currencyOption } =
+    req.body;
 
   try {
     const user = await User.findOne({ username });
@@ -44,7 +55,6 @@ exports.createPremiumAccount = async (req, res) => {
         message: "រកគណនីអ្នកប្រើប្រាស់មិនឃើញទេ!",
       });
 
-    // ១. ផ្ទៀងផ្ទាត់ PIN
     if (user.pin !== pin) {
       return res.json({
         success: false,
@@ -52,8 +62,7 @@ exports.createPremiumAccount = async (req, res) => {
       });
     }
 
-    // ២. ឆែកមើលថាតើលេខគណនីនេះមានអ្នកយកហើយឬនៅ?
-    // (ឆែកទាំងលេខកុង Main ទាំងលេខកុង Sub របស់ User ទាំងអស់)
+    // ឆែកមើលថាតើលេខគណនីទី១ មានអ្នកយកហើយឬនៅ?
     const existingMainAcc = await User.findOne({
       $or: [
         { accountNumber: requestedNumber },
@@ -71,16 +80,43 @@ exports.createPremiumAccount = async (req, res) => {
       });
     }
 
-    // ៣. ផ្ទៀងផ្ទាត់តម្លៃឡើងវិញ (ការពារ Hacker)
+    // Logic សម្រាប់បង្កើតលេខទី២ បើជ្រើសរើស BOTH
+    let secondNumber = null;
+    if (currencyOption === "BOTH") {
+      let lastDigit = parseInt(requestedNumber.slice(-1));
+      let baseNum = requestedNumber.slice(0, -1);
+
+      // បើលេខចុងក្រោយតូចជាង 9 យើងបូក 1, បើស្មើ 9 យើងដក 1 វិញ
+      let newLastDigit = lastDigit < 9 ? lastDigit + 1 : lastDigit - 1;
+      secondNumber = baseNum + newLastDigit;
+
+      // ឆែកមើលថាតើលេខគណនីទី២ ទំនេរឬអត់?
+      const checkSecondAcc = await User.findOne({
+        $or: [
+          { accountNumber: secondNumber },
+          { accountNumberKHR: secondNumber },
+          { "subAccounts.accountNumber": secondNumber },
+        ],
+      });
+
+      if (checkSecondAcc) {
+        return res.json({
+          success: false,
+          message: `ប្រព័ន្ធមិនអាចបង្កើតគណនីទី២ (${secondNumber}) បានទេ ដោយសារវាត្រូវបានប្រើប្រាស់ហើយ។ សូមជ្រើសរើសតែមួយគណនីសិន។`,
+        });
+      }
+    }
+
+    // ផ្ទៀងផ្ទាត់តម្លៃឡើងវិញការពារ Hacker កែពី Frontend
     const actualPrice = calculatePremiumPrice(requestedNumber);
     if (price !== actualPrice) {
       return res.json({
         success: false,
-        message: "ទិន្នន័យតម្លៃមិនត្រឹមត្រូវទេ!",
+        message: "ទិន្នន័យតម្លៃមិនត្រឹមត្រូវទេ! (Price mismatch)",
       });
     }
 
-    // ៤. ឆែកលុយក្នុងកុង
+    // ឆែកលុយក្នុងកុង
     if (actualPrice > 0 && user.balance < actualPrice) {
       return res.json({
         success: false,
@@ -88,7 +124,7 @@ exports.createPremiumAccount = async (req, res) => {
       });
     }
 
-    // ៥. កាត់លុយ និង បូកលុយ
+    // ដំណើរការកាត់លុយ
     if (actualPrice > 0) {
       const centralBank = await User.findOne({ accountNumber: "888888888" });
       if (!centralBank)
@@ -104,7 +140,6 @@ exports.createPremiumAccount = async (req, res) => {
       const refId = generateRefId();
       const hash = generateHash();
 
-      // កត់ត្រាវិក្កយបត្រ (User)
       await Transaction.create({
         username: user.username,
         refId: refId,
@@ -120,7 +155,6 @@ exports.createPremiumAccount = async (req, res) => {
         trxMethod: "Main Account",
       });
 
-      // កត់ត្រាវិក្កយបត្រ (Central Bank)
       await Transaction.create({
         username: centralBank.username,
         refId: refId,
@@ -139,26 +173,53 @@ exports.createPremiumAccount = async (req, res) => {
       await centralBank.save();
     }
 
-    // ៦. បង្កើតអនុគណនីថ្មី (Push ចូល Array របស់ User ផ្ទាល់តែម្តង)
-    const newSubAccount = {
-      accountId: Date.now().toString(),
-      accountNumber: requestedNumber,
-      accountName: accountName,
-      accountType: "premium",
-      balance: 0,
-      currency: "USD",
-      isLocked: false,
-      createdAt: new Date(),
-    };
+    // បង្កើតអនុគណនីទៅតាមរូបិយប័ណ្ណដែលបានជ្រើសរើស
+    if (currencyOption === "USD" || currencyOption === "BOTH") {
+      user.subAccounts.push({
+        accountId: Date.now().toString() + "_1",
+        accountNumber: requestedNumber,
+        accountName: accountName,
+        accountType: "premium",
+        balance: 0,
+        currency: "USD",
+        isLocked: false,
+        createdAt: new Date(),
+      });
+    }
 
-    user.subAccounts.push(newSubAccount);
-    await user.save(); // Save User ទើប Sub-Account ដើរ!
+    if (currencyOption === "KHR") {
+      user.subAccounts.push({
+        accountId: Date.now().toString() + "_1",
+        accountNumber: requestedNumber,
+        accountName: accountName,
+        accountType: "premium",
+        balance: 0,
+        currency: "KHR",
+        isLocked: false,
+        createdAt: new Date(),
+      });
+    }
 
-    // ៧. បោះទិន្នន័យ User ថ្មីទៅឱ្យ Frontend ដើម្បី Update Session ភ្លាមៗ
+    if (currencyOption === "BOTH" && secondNumber) {
+      user.subAccounts.push({
+        accountId: Date.now().toString() + "_2",
+        accountNumber: secondNumber,
+        accountName: accountName + " (KHR)",
+        accountType: "premium",
+        balance: 0,
+        currency: "KHR",
+        isLocked: false,
+        createdAt: new Date(),
+      });
+    }
+
+    await user.save();
+
     res.json({
       success: true,
       message: "បង្កើតគណនីបានជោគជ័យ!",
-      user: user, // បោះ User ចេញទៅវិញដើម្បី Frontend ងាយស្រួលប្រើ
+      user: user,
+      secondNumber: secondNumber, // បោះលេខទី២ ទៅអោយ Frontend បង្ហាញលើវិក្កយបត្រ
     });
   } catch (error) {
     console.error("Create Premium Acc Error:", error);
@@ -166,27 +227,48 @@ exports.createPremiumAccount = async (req, res) => {
   }
 };
 
-const generateRandomDigits = (length) => {
-  return Math.floor(
-    Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1),
-  ).toString();
-};
-
-// 🌟 API: ទាញយកលេខណែនាំពិសេសៗ (Suggested Numbers)
+// ==========================================
+// ៣. API ទាញយកលេខណែនាំពិសេសៗ (១២ លេខ)
+// ==========================================
 exports.getSuggestedNumbers = async (req, res) => {
   try {
-    // ១. បង្កើតទម្រង់លេខស្អាតៗ (Patterns)
-    let generatedNumbers = [
-      "168" + generateRandomDigits(3), // លេខហុងស៊ុយ 168xxx
-      "8888" + generateRandomDigits(4), // លេខ 8888xxxx
-      "9999" + generateRandomDigits(4), // លេខ 9999xxxx
-      generateRandomDigits(2).repeat(3), // លេខគូ ៣ដង (ឧ. 454545)
-      generateRandomDigits(1).repeat(6), // លេខដូចគ្នា ៦ខ្ទង់ (ឧ. 777777)
-      "168168", // លេខពិសេសខ្លាំង
+    let generatedNumbers = [];
+    const specialSuffixes = [
+      "168",
+      "888",
+      "999",
+      "000",
+      "777",
+      "168168",
+      "8888",
+      "99999",
     ];
 
-    // ២. ឆែកក្នុង Database ថាតើលេខទាំងនេះមានអ្នកយកហើយឬនៅ?
-    // ឆែកទាំងក្នុងគណនី Main និង Sub-Accounts របស់ User ទាំងអស់
+    // Generate លេខ ៩ ខ្ទង់ចំនួន ១៥ ជម្រើស (ទុកពេលខ្លះវាជាន់គ្នា)
+    for (let i = 0; i < 15; i++) {
+      let prefix = Math.floor(100 + Math.random() * 899).toString();
+      let suffix =
+        specialSuffixes[Math.floor(Math.random() * specialSuffixes.length)];
+      let middle = Math.floor(100 + Math.random() * 899).toString();
+
+      let num = prefix + middle + suffix;
+      if (num.length > 9) num = num.substring(0, 9);
+      if (num.length < 9) num = num.padEnd(9, "0"); // បំពេញឱ្យគ្រប់ ៩ខ្ទង់
+      generatedNumbers.push(num);
+    }
+
+    // បន្ថែមលេខ ៦ ខ្ទង់ពិសេសៗខ្លះ
+    generatedNumbers.push(
+      Math.floor(100000 + Math.random() * 899999).toString(),
+    );
+    generatedNumbers.push(
+      "168" + Math.floor(100 + Math.random() * 899).toString(),
+    );
+
+    // ដកលេខដែលជាន់គ្នា (Duplicates) នៅក្នុង Array
+    generatedNumbers = [...new Set(generatedNumbers)];
+
+    // ឆែកក្នុង Database ថាតើលេខទាំងនេះមានអ្នកយកហើយឬនៅ?
     const existingUsers = await User.find({
       $or: [
         { accountNumber: { $in: generatedNumbers } },
@@ -195,7 +277,6 @@ exports.getSuggestedNumbers = async (req, res) => {
       ],
     });
 
-    // ប្រមូលលេខដែលត្រូវគេយកបាត់ហើយដាក់ចូល Array មួយ
     const takenNumbers = [];
     existingUsers.forEach((user) => {
       if (generatedNumbers.includes(user.accountNumber))
@@ -208,21 +289,19 @@ exports.getSuggestedNumbers = async (req, res) => {
       });
     });
 
-    // ៣. ចម្រាញ់យកតែលេខណាដែល "ទំនេរ"
+    // ចម្រាញ់យកតែលេខណាដែល "ទំនេរ"
     const availableNumbers = generatedNumbers.filter(
       (num) => !takenNumbers.includes(num),
     );
 
-    // ៤. គណនាតម្លៃសម្រាប់លេខទំនេរនីមួយៗ ហើយរៀបចំទិន្នន័យបញ្ជូនទៅ Frontend
-    const suggestedList = availableNumbers.slice(0, 4).map((num) => {
-      // យកតែ ៤ លេខបានហើយ
+    // រៀបចំទិន្នន័យត្រឹម ១២ លេខ ដើម្បីបញ្ជូនទៅ Frontend
+    const suggestedList = availableNumbers.slice(0, 12).map((num) => {
       return {
         number: num,
-        price: calculatePremiumPrice(num), // ហៅរូបមន្តគណនាតម្លៃដែលយើងបានសរសេរ
+        price: calculatePremiumPrice(num),
       };
     });
 
-    // ៥. បោះទិន្នន័យទៅឱ្យ Frontend
     res.json({
       success: true,
       data: suggestedList,
@@ -233,10 +312,11 @@ exports.getSuggestedNumbers = async (req, res) => {
   }
 };
 
-// API ឆែកភាពទំនេរ (Backend)
+// ==========================================
+// ៤. API ឆែកភាពទំនេរ (Backend - សម្រាប់ Live Search ថ្ងៃក្រោយបើត្រូវការ)
+// ==========================================
 exports.checkAvailability = async (req, res) => {
   const { number } = req.body;
-  // រកក្នុង User (accountNumber + KHR) និង SubAccounts
   const user = await User.findOne({
     $or: [
       { accountNumber: number },

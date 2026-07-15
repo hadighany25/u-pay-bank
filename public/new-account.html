@@ -300,58 +300,87 @@
         justify-content: space-between;
         align-items: center;
         font-weight: 700;
+        position: relative;
       }
       .suggested-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         margin-bottom: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-bottom: 15px;
       }
+      /* លាក់ Scrollbar ឱ្យមើលទៅស្អាត */
+      .suggested-grid::-webkit-scrollbar {
+        display: none;
+      }
+
       .suggested-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
-        padding: 12px;
+        padding: 15px 10px;
         text-align: center;
         cursor: pointer;
         transition: 0.2s;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
       }
       .suggested-card:active {
         transform: scale(0.95);
         background: #f8fafc;
       }
       .suggested-num {
-        font-size: 0.95rem;
+        font-size: 1.05rem;
         font-weight: bold;
         color: #004d40;
-        margin-bottom: 4px;
+        margin-bottom: 5px;
         font-family: "Courier New", monospace;
+        letter-spacing: 1px;
       }
       .suggested-price {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         color: #ef4444;
-        font-weight: 600;
+        font-weight: 700;
       }
 
-      /* ការកំណត់ Currency Selector */
-      .currency-toggle {
+      /* --- FILTER DROPDOWN MENU --- */
+      .filter-menu {
+        position: absolute;
+        right: 35px;
+        top: 25px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        width: 150px;
+        display: none;
+        flex-direction: column;
+        z-index: 100;
+        overflow: hidden;
+      }
+      .filter-menu.show {
         display: flex;
-        background: #e2e8f0;
-        border-radius: 8px;
-        padding: 4px;
-        margin-bottom: 20px;
+        animation: fadeIn 0.2s ease;
       }
-      .currency-btn {
-        flex: 1;
-        padding: 8px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
+      .filter-item {
+        padding: 12px 15px;
+        font-size: 0.85rem;
+        color: #475569;
         cursor: pointer;
+        border-bottom: 1px solid #f1f5f9;
       }
-      .currency-btn.active {
-        background: #004d40;
-        color: white;
+      .filter-item:last-child {
+        border-bottom: none;
+      }
+      .filter-item:hover,
+      .filter-item:active {
+        background: #f8fafc;
+        color: #004d40;
+        font-weight: bold;
+      }
+      .filter-item i {
+        margin-right: 8px;
       }
 
       /* ==========================================
@@ -402,6 +431,27 @@
       }
       body.dark-mode .suggested-num {
         color: #38bdf8;
+      }
+      body.dark-mode .suggested-card {
+        background: #1e1e1e;
+        border-color: #333;
+      }
+      body.dark-mode .suggested-num {
+        color: #10b981;
+      }
+      body.dark-mode .filter-menu {
+        background: #1e1e1e;
+        border-color: #333;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode .filter-item {
+        color: #cbd5e1;
+        border-color: #2d2d2d;
+      }
+      body.dark-mode .filter-item:hover,
+      body.dark-mode .filter-item:active {
+        background: #2a2a2a;
+        color: #10b981;
       }
     </style>
   </head>
@@ -472,52 +522,54 @@
           ></i>
           <span>ស្វែងរកលេខគណនី</span>
         </div>
-        <div class="content-body">
-          <div class="form-group">
-            <label class="form-label">បញ្ចូលលេខគណនី (៦ - ៨ ខ្ទង់)</label>
+        <div class="content-body" style="padding-bottom: 20px">
+          <div class="form-group" style="margin-bottom: 15px">
             <input
               type="number"
               id="input-search-num"
               class="native-input center"
-              placeholder="ឧ. 88888888"
+              placeholder="វាយលេខទីនេះ (៦ ឬ ៩ ខ្ទង់)"
               oninput="handleLiveSearch()"
+              style="letter-spacing: 3px"
             />
-          </div>
-
-          <!-- Currency Selection -->
-          <div class="currency-toggle">
-            <button
-              class="currency-btn active"
-              id="btn-usd"
-              onclick="setCurrency('USD')"
-            >
-              USD ($)
-            </button>
-            <button
-              class="currency-btn"
-              id="btn-khr"
-              onclick="setCurrency('KHR')"
-            >
-              KHR (៛)
-            </button>
           </div>
 
           <div class="suggested-section">
             <div class="suggested-section-title">
-              <span>លេខណែនាំពិសេស</span>
-              <div>
+              <span
+                >លេខពិសេស
                 <i
-                  class="fa-solid fa-filter"
-                  onclick="toggleSort()"
-                  style="cursor: pointer; margin-right: 15px"
+                  class="fa-solid fa-fire"
+                  style="color: #ef4444; margin-left: 5px"
+                ></i
+              ></span>
+
+              <!-- ឧបករណ៍ Filter និង Refresh -->
+              <div style="display: flex; gap: 15px; align-items: center">
+                <i
+                  class="fa-solid fa-arrow-down-wide-short"
+                  onclick="toggleFilter()"
+                  style="cursor: pointer; color: #64748b; font-size: 1.1rem"
                 ></i>
                 <i
                   class="fa-solid fa-rotate-right"
-                  onclick="fetchSuggestedNumbers()"
-                  style="cursor: pointer"
+                  onclick="generateRandomList()"
+                  style="cursor: pointer; color: #004d40; font-size: 1.1rem"
                 ></i>
+
+                <!-- Dropdown Menu -->
+                <div id="sort-dropdown" class="filter-menu">
+                  <div class="filter-item" onclick="setSortOrder('desc')">
+                    <i class="fa-solid fa-arrow-down-9-1"></i> តម្លៃ ខ្ពស់-ទាប
+                  </div>
+                  <div class="filter-item" onclick="setSortOrder('asc')">
+                    <i class="fa-solid fa-arrow-down-1-9"></i> តម្លៃ ទាប-ខ្ពស់
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- កន្លែងបង្ហាញប្រអប់លេខ (10-12 ប្រអប់) -->
             <div id="suggested-numbers-list" class="suggested-grid"></div>
           </div>
         </div>
@@ -567,6 +619,46 @@
               <b id="display-price" style="color: #ef4444; font-size: 1.5rem"
                 >$100</b
               >
+            </p>
+          </div>
+
+          <!-- ផ្នែកជ្រើសរើសរូបិយប័ណ្ណ -->
+          <div class="form-group">
+            <label class="form-label">ជ្រើសរើសរូបិយប័ណ្ណ (Currency)</label>
+            <div style="display: flex; gap: 8px">
+              <button
+                class="currency-btn active"
+                id="btn-curr-usd"
+                onclick="selectCurrencyOption('USD')"
+              >
+                USD ($)
+              </button>
+              <button
+                class="currency-btn"
+                id="btn-curr-khr"
+                onclick="selectCurrencyOption('KHR')"
+              >
+                KHR (៛)
+              </button>
+              <button
+                class="currency-btn"
+                id="btn-curr-both"
+                onclick="selectCurrencyOption('BOTH')"
+                style="flex: 1.5"
+              >
+                យកទាំង ២គណនី
+              </button>
+            </div>
+            <p
+              id="curr-note"
+              style="
+                font-size: 0.75rem;
+                color: #64748b;
+                margin-top: 8px;
+                display: none;
+              "
+            >
+              * គណនីទី២ នឹងប្រើលេខបូកថែម ឬដក១ ខ្ទង់ចុងក្រោយដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
 
@@ -758,6 +850,13 @@
 
       // Object ទុកទិន្នន័យបណ្តោះអាសន្នពេលឆ្លងកាត់ Screen ម្តងៗ
       let state = { number: "", price: 0, name: "", pin: "" };
+      let allNumbers = [];
+      let currentSortOrder = "desc"; // លំនាំដើម: ថ្លៃទៅទាប
+      let selectedAccountCurrency = "USD"; // លំនាំដើម: រូបិយប័ណ្ណ
+
+      // ==========================================
+      // ១. មុខងារបញ្ជាទូទៅ (Global Logic)
+      // ==========================================
 
       // មុខងារប្តូរផ្ទាំង (Screen Router)
       function switchScreen(screenId) {
@@ -765,93 +864,234 @@
           .querySelectorAll(".screen")
           .forEach((s) => s.classList.remove("active"));
         document.getElementById(screenId).classList.add("active");
-        window.scrollTo(0, 0); // ទាញអូសឡើងលើវិញ
-      }
+        window.scrollTo(0, 0);
 
-      // រូបមន្តគណនាតម្លៃ
-      function calculatePremiumPrice(numStr) {
-        let price = 0;
-        if (numStr.length < 8) price += 50;
-        let maxRep = 1,
-          curRep = 1;
-        for (let i = 1; i < numStr.length; i++) {
-          if (numStr[i] === numStr[i - 1]) {
-            curRep++;
-            if (curRep > maxRep) maxRep = curRep;
-          } else curRep = 1;
+        if (screenId === "screen-search") {
+          // Clear input រួចទាញយកលេខពី Backend លោតមកស្រាប់
+          document.getElementById("input-search-num").value = "";
+          fetchSuggestedNumbers();
         }
-        if (maxRep === 3) price += 10;
-        else if (maxRep === 4) price += 50;
-        else if (maxRep >= 5) price += 200;
-        if (numStr.includes("168")) price += 88;
-        if (numStr.includes("888") && maxRep < 3) price += 30;
-        if (numStr.includes("999") && maxRep < 3) price += 30;
-        return price;
       }
 
-      // Action 1: ឆែកលេខ
-      let currentCurrency = "USD";
-      let sortOrder = "asc"; // 'asc' = ថ្លៃទៅថោក, 'desc' = ថោកទៅថ្លៃ
-      let allNumbers = []; // លេខដែលទាញបានពី Backend
+      // រូបមន្តគណនាតម្លៃ (តាមលក្ខខណ្ឌ 5$, 10$, 15$, 20$, 50$, 100$, 250$)
+      function calculateAppPrice(numStr) {
+        if (numStr.length === 6) return 100; // លេខ 6 ខ្ទង់ ចាប់ពី 100$ ឡើង
+        if (numStr.length !== 9) return 0;
 
-      // 1. Live Search
-      async function handleLiveSearch() {
+        if (numStr.includes("88888") || numStr.includes("99999")) return 250;
+        if (
+          numStr.includes("8888") ||
+          numStr.includes("9999") ||
+          numStr.includes("168168")
+        )
+          return 100;
+        if (
+          numStr.includes("888") ||
+          numStr.includes("999") ||
+          numStr.includes("168")
+        )
+          return 50;
+
+        // ឆែកលេខស្ទួន ៤ ខ្ទង់ និង ៣ ខ្ទង់
+        if (/(.)\1{3}/.test(numStr)) return 20;
+        if (/(.)\1{2}/.test(numStr)) return 15;
+
+        // លេខគូស្អាតចុងកន្ទុយ
+        if (
+          numStr.endsWith("00") ||
+          numStr.endsWith("88") ||
+          numStr.endsWith("99")
+        )
+          return 10;
+
+        return 5; // លេខធម្មតា គឺ 5$
+      }
+
+      // ធ្វើទ្រង់ទ្រាយលេខ (Format: 3ខ្ទង់ ដកឃ្លា 1)
+      function formatAccountNumber(num) {
+        if (num.length === 6) return num.replace(/(\d{3})(?=\d)/g, "$1 ");
+        return num.replace(/(\d{3})(?=\d)/g, "$1 ");
+      }
+
+      // មុខងារប្តូររូបិយប័ណ្ណ
+      function selectCurrencyOption(currencyType) {
+        selectedAccountCurrency = currencyType;
+
+        document.getElementById("btn-curr-usd")?.classList.remove("active");
+        document.getElementById("btn-curr-khr")?.classList.remove("active");
+        document.getElementById("btn-curr-both")?.classList.remove("active");
+
+        if (currencyType === "USD")
+          document.getElementById("btn-curr-usd")?.classList.add("active");
+        if (currencyType === "KHR")
+          document.getElementById("btn-curr-khr")?.classList.add("active");
+        if (currencyType === "BOTH")
+          document.getElementById("btn-curr-both")?.classList.add("active");
+
+        // បង្ហាញ Text Note បើរើសយក ២ គណនី
+        const note = document.getElementById("curr-note");
+        if (note)
+          note.style.display = currencyType === "BOTH" ? "block" : "none";
+      }
+
+      // ==========================================
+      // ២. អេក្រង់ទី ២: ស្វែងរកលេខ (SEARCH SCREEN)
+      // ==========================================
+
+      // បិទ/បើក Filter Menu
+      function toggleFilter() {
+        document.getElementById("sort-dropdown").classList.toggle("show");
+      }
+      function setSortOrder(order) {
+        currentSortOrder = order;
+        toggleFilter();
+        renderNumberList();
+      }
+
+      // Live Search Logic (វាយភ្លាមលោតលេខភ្លាម)
+      function handleLiveSearch() {
         const query = document.getElementById("input-search-num").value;
+        const listContainer = document.getElementById("suggested-numbers-list");
+
+        if (query.length > 9) {
+          listContainer.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #ef4444; padding: 20px; font-size: 0.9rem;">មិនមានលេខនេះទេ (លេខលើសពី ៩ ខ្ទង់)</div>`;
+          return;
+        }
+
         if (query.length === 0) {
-          fetchSuggestedNumbers(); // បើលុបអស់ បង្ហាញលេខណែនាំវិញ
-          return;
-        }
-        if (query.length > 8) {
-          document.getElementById("suggested-numbers-list").innerHTML =
-            "<p>សូមអភ័យទោស លេខមិនអាចលើសពី 8 ខ្ទង់ទេ</p>";
+          fetchSuggestedNumbers(); // បើលុបអស់ ហៅលេខ Backend មកវិញ
           return;
         }
 
-        //ហៅ API ឆែកលេខ (ត្រូវមាន Backend គាំទ្រ)
-        searchNumbersInBackend(query);
+        allNumbers = []; // Clear list ចាស់
+
+        // ក. បើវាយលេខ ៦ ខ្ទង់ ឬ ៩ ខ្ទង់ ពេញ
+        if (query.length === 6 || query.length === 9) {
+          allNumbers.push({ number: query, price: calculateAppPrice(query) });
+        }
+
+        // ខ. បើវាយចន្លោះ 1 ទៅ 8 ខ្ទង់ ត្រូវ Generate បំពេញអោយគ្រប់ 9 ខ្ទង់
+        if (query.length > 0 && query.length < 9 && query.length !== 6) {
+          const neededLength = 9 - query.length;
+          // បង្កើតលេខប្រហែល ១២ ជម្រើសបន្ថែម
+          for (let i = 0; i < 12; i++) {
+            let suffix = "";
+            for (let j = 0; j < neededLength; j++) {
+              suffix += Math.floor(Math.random() * 10);
+            }
+            let generatedNum = query + suffix;
+
+            // ដាក់លេខហុងស៊ុយខ្លះ ដើម្បីអោយលោតតម្លៃថ្លៃៗ
+            if (i === 0) generatedNum = query + "888".slice(0, neededLength);
+            if (i === 1) generatedNum = query + "168".slice(0, neededLength);
+            if (i === 2) generatedNum = query + "999".slice(0, neededLength);
+
+            allNumbers.push({
+              number: generatedNum,
+              price: calculateAppPrice(generatedNum),
+            });
+          }
+        }
+
+        renderNumberList();
       }
 
-      // 2. តម្រៀបតម្លៃ (Sort)
-      function toggleSort() {
-        sortOrder = sortOrder === "asc" ? "desc" : "asc";
-        renderNumberList(allNumbers);
+      // ហៅ API ទាញយកលេខណែនាំពី Backend
+      async function fetchSuggestedNumbers() {
+        const container = document.getElementById("suggested-numbers-list");
+        container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #64748b; font-size: 0.85rem; padding: 20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកលេខពិសេសៗ...</div>`;
+
+        try {
+          // ហៅ API ពិតពី Backend
+          const res = await fetch("/api/account/suggested-numbers", {
+            method: "GET",
+            headers: window.authHeaders,
+          });
+          const result = await res.json();
+
+          if (result.success && result.data.length > 0) {
+            allNumbers = result.data;
+            renderNumberList();
+          } else {
+            generateRandomList(); // បើ Backend អត់មានលេខ ហៅអូតូមកបង្ហាញសិន
+          }
+        } catch (e) {
+          generateRandomList(); // បើដាច់អ៉ីនធឺណិត ហៅអូតូមកបង្ហាញសិន
+        }
       }
 
-      function renderNumberList(list) {
+      // គូរ List បញ្ចូលទៅក្នុង HTML
+      function renderNumberList() {
         const container = document.getElementById("suggested-numbers-list");
         container.innerHTML = "";
 
-        // Sort logic
-        let sorted = [...list].sort((a, b) =>
-          sortOrder === "asc" ? a.price - b.price : b.price - a.price,
-        );
+        // តម្រៀបតម្លៃ
+        let sorted = [...allNumbers].sort((a, b) => {
+          return currentSortOrder === "asc"
+            ? a.price - b.price
+            : b.price - a.price;
+        });
 
         sorted.forEach((item) => {
           let formattedNum = formatAccountNumber(item.number);
+          let priceTag = item.price === 0 ? "FREE" : `$${item.price}`;
+
           container.innerHTML += `
-            <div class="suggested-card" onclick="selectSuggestedNumber('${item.number}')">
+            <div class="suggested-card" onclick="goToDetails('${item.number}', ${item.price})">
               <div class="suggested-num">${formattedNum}</div>
-              <div class="suggested-price">${item.price === 0 ? "FREE" : "$" + item.price}</div>
+              <div class="suggested-price">${priceTag}</div>
             </div>
           `;
         });
       }
 
-      function formatAccountNumber(num) {
-        // បំពេញលេខឱ្យគ្រប់ 9 ខ្ទង់ (ឧ. 123 -> 000 000 123)
-        let s = num.padStart(9, "0");
-        return s.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+      // Generate លេខ Default ក្នុងករណី Backend គាំង
+      function generateRandomList() {
+        allNumbers = [];
+        const specialSuffixes = ["168", "888", "999", "000", "777", "168168"];
+
+        for (let i = 0; i < 12; i++) {
+          let prefix = Math.floor(100 + Math.random() * 899).toString();
+          let suffix =
+            specialSuffixes[Math.floor(Math.random() * specialSuffixes.length)];
+          let middle = Math.floor(100 + Math.random() * 899).toString();
+
+          let num = prefix + middle + suffix;
+          if (num.length > 9) num = num.substring(0, 9);
+
+          allNumbers.push({ number: num, price: calculateAppPrice(num) });
+        }
+        renderNumberList();
       }
 
-      // 3. API ហៅទៅ Backend (ត្រូវកែប្រែ Controller បន្តិច)
-      async function fetchSuggestedNumbers() {
-        const res = await fetch("/api/account/get-all-available"); // API នេះត្រូវសរសេរត្រលប់មកវិញនូវលេខ 10-12 លេខ
-        const data = await res.json();
-        allNumbers = data.data;
-        renderNumberList(allNumbers);
+      // បិទ Filter ពេលចុចកន្លែងផ្សេង
+      window.onclick = function (event) {
+        if (!event.target.matches(".fa-arrow-down-wide-short")) {
+          let dropdowns = document.getElementsByClassName("filter-menu");
+          for (let i = 0; i < dropdowns.length; i++) {
+            let openDropdown = dropdowns[i];
+            if (openDropdown.classList.contains("show"))
+              openDropdown.classList.remove("show");
+          }
+        }
+      };
+
+      // ពេលចុចលើកាត ឱ្យវាលោតទៅអេក្រង់ទី ៣
+      function goToDetails(num, price) {
+        state.number = num;
+        state.price = price;
+
+        document.getElementById("display-num").innerText =
+          formatAccountNumber(num);
+        document.getElementById("display-price").innerText =
+          price === 0 ? "FREE" : `$${price}`;
+
+        switchScreen("screen-details");
       }
 
-      // Action 2: បញ្ជាក់ឈ្មោះ និង T&C
+      // ==========================================
+      // ៣. អេក្រង់ទី ៣: បញ្ជាក់ព័ត៌មាន (DETAILS SCREEN)
+      // ==========================================
       function processDetails() {
         const name = document.getElementById("input-acc-name").value;
         const tnc = document.getElementById("input-tnc").checked;
@@ -860,21 +1100,21 @@
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌ!", "error");
 
         state.name = name;
-
-        // រៀបចំទិន្នន័យលើអេក្រង់ទី ៤
         document.getElementById("display-total").innerText =
           state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
+
         switchScreen("screen-pin");
       }
 
-      // Action 3: បញ្ចូល PIN និង បាញ់ API
+      // ==========================================
+      // ៤. អេក្រង់ទី ៤: បញ្ចូល PIN (PIN SCREEN)
+      // ==========================================
       async function submitCreation() {
         const pin = document.getElementById("input-pin").value;
         if (!pin || pin.length !== 4)
           return showToast("PIN ត្រូវមាន ៤ ខ្ទង់!", "error");
 
         state.pin = pin;
-
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
@@ -882,7 +1122,7 @@
         });
 
         try {
-          // បាញ់ API ទៅ Backend របស់អ្នក
+          // បាញ់ API ទៅ Backend ដោយភ្ជាប់ជម្រើសរូបិយប័ណ្ណ
           const res = await fetch("/api/account/create-premium", {
             method: "POST",
             headers: window.authHeaders,
@@ -892,6 +1132,7 @@
               accountName: state.name,
               price: state.price,
               pin: state.pin,
+              currencyOption: selectedAccountCurrency, // បញ្ជូនជម្រើសរូបិយប័ណ្ណទៅ
             }),
           });
           const data = await res.json();
@@ -907,8 +1148,14 @@
             // Update Session Data
             sessionStorage.setItem("user", JSON.stringify(data.user || user));
 
-            // រៀបចំវិក្កយបត្រលើអេក្រង់ទី ៥
-            document.getElementById("receipt-num").innerText = state.number;
+            // រៀបចំវិក្កយបត្រ (បញ្ជាក់បើមាន ២ គណនី)
+            let createdNumbersDisplay = formatAccountNumber(state.number);
+            if (data.secondNumber) {
+              createdNumbersDisplay += `<br><span style="color:#10b981; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
+            }
+
+            document.getElementById("receipt-num").innerHTML =
+              createdNumbersDisplay;
             document.getElementById("receipt-name").innerText = state.name;
             document.getElementById("receipt-price").innerText =
               state.price === 0 ? "FREE" : `$${state.price}`;
@@ -919,59 +1166,6 @@
           }
         } catch (error) {
           Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
-        }
-      }
-
-      // មុខងារទាញយកលេខណែនាំពី Backend
-      async function fetchSuggestedNumbers() {
-        const container = document.getElementById("suggested-numbers-list");
-        container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #64748b; font-size: 0.85rem; padding: 20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</div>`;
-
-        try {
-          // 🔥 ហៅ API ពិតពី Backend
-          const res = await fetch("/api/account/suggested-numbers", {
-            method: "GET",
-            headers: window.authHeaders, // ប្រើ Header របស់ U-Pay Core
-          });
-
-          const result = await res.json();
-
-          if (result.success && result.data.length > 0) {
-            container.innerHTML = "";
-            result.data.forEach((item) => {
-              const priceDisplay = item.price === 0 ? "FREE" : `$${item.price}`;
-              container.innerHTML += `
-                <div class="suggested-card" onclick="selectSuggestedNumber('${item.number}')">
-                  <div class="suggested-num">${item.number}</div>
-                  <div class="suggested-price">${priceDisplay}</div>
-                </div>
-              `;
-            });
-          } else {
-            container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #94a3b8; font-size: 0.85rem; padding: 20px 0;">មិនមានលេខណែនាំទេពេលនេះ</div>`;
-          }
-        } catch (e) {
-          container.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #ef4444; font-size: 0.85rem; padding: 20px 0;">មានបញ្ហាភ្ជាប់ទៅកាន់ Server!</div>`;
-        }
-      }
-
-      // ពេលចុចលើកាតលេខណែនាំ ឱ្យវាលោតចូលប្រអប់ ហើយឆែកអូតូតែម្តង
-      function selectSuggestedNumber(num) {
-        document.getElementById("input-search-num").value = num;
-        processSearch(); // ហៅមុខងារឆែកលេខដោយស្វ័យប្រវត្តិ
-      }
-
-      // 🛠️ ត្រូវ Update មុខងារ switchScreen ដើមបន្តិច ដើម្បីឱ្យវាហៅ API ពេលបើកផ្ទាំងនេះ
-      function switchScreen(screenId) {
-        document
-          .querySelectorAll(".screen")
-          .forEach((s) => s.classList.remove("active"));
-        document.getElementById(screenId).classList.add("active");
-        window.scrollTo(0, 0);
-
-        // បើកផ្ទាំងស្វែងរកភ្លាម ឱ្យវាទាញយកលេខណែនាំភ្លាម
-        if (screenId === "screen-search") {
-          fetchSuggestedNumbers();
         }
       }
     </script>
