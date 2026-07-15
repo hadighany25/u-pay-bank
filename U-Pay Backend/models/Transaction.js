@@ -10,6 +10,7 @@ const transactionSchema = new mongoose.Schema(
     currency: { type: String },
     senderName: { type: String },
     receiverName: { type: String },
+    receiverAcc: { type: String },
     trxMethod: { type: String },
     date: { type: String },
     remark: { type: String },
