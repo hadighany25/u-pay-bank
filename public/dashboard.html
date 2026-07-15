@@ -1558,17 +1558,13 @@
 
             // ធ្វើអោយ UI ថ្មី
             updateUI(user);
-            if (currentViewingCurrency) {
-              // ត្រូវផ្តល់ accNum ទៅអោយ renderTransactionsInModal បើមិនអញ្ចឹងវានឹង undefined
-              // ដោយសារយើងមិនដឹង accNum ជាក់លាក់ពី currentViewingCurrency, យើងអាចបណ្តោះអាសន្នយកកុង Main មកប្រើ
-              let tempAccNum =
-                currentViewingCurrency === "USD"
-                  ? user.accountNumber
-                  : user.accountNumberKHR;
+
+            // 🔥 បើកំពុងបើកមើលកុងណាមួយ គឺយកលេខកុងនោះមក Refresh តែម្តង! (លែងប្រើ tempAccNum)
+            if (currentViewingCurrency && currentViewingAccountNum) {
               renderTransactionsInModal(
                 user,
                 currentViewingCurrency,
-                tempAccNum,
+                currentViewingAccountNum,
               );
             }
 
@@ -1938,8 +1934,12 @@
       // ១៥. ការបង្ហាញព័ត៌មានគណនីលម្អិត (BOTTOM SHEET LOGIC)
       // ==========================================
       let currentViewingCurrency = null;
+      let currentViewingAccountNum = null; // 🔥 បន្ថែមអថេរនេះដើម្បីចំណាំលេខកុងដែលកំពុងបើក!
 
       function openAccountDetails(currency, accNum) {
+        currentViewingCurrency = currency;
+        currentViewingAccountNum = accNum; // 🔥 ចំណាំលេខកុងទុកពេលចុចបើក ដើម្បីកុំឱ្យ Refresh ខុស
+
         const account = findAccountByNumber(user, accNum);
 
         const modal = document.getElementById("accountBottomSheet");
@@ -1974,6 +1974,8 @@
 
       function closeAccountDetails() {
         currentViewingCurrency = null;
+        currentViewingAccountNum = null; // 🔥 លុបការចំណាំចោលវិញពេលបិទ Modal
+
         const modal = document.getElementById("accountBottomSheet");
         const overlay = document.getElementById("accountModalOverlay");
         if (modal) modal.classList.remove("active");
@@ -1994,13 +1996,19 @@
 
         let filteredTrx = currentUser.transactions
           .filter((t) => {
+            // ១. ឆែកមើលថាតើវាមានលេខកុងស្មើនឹងកុងកំពុងបើកដែរឬទេ (ទាំង receiverAcc និង receiverAccount)
             const matchAcc =
               t.receiverAcc === accNum ||
               t.senderAcc === accNum ||
               t.receiverAccount === accNum;
 
+            // ២. ករណីកុង Main Account (ពេលខ្លះ DB អត់ដាក់ receiverAcc ទេ)
             const isMainAccountMatch =
-              t.currency === currency && !t.receiverAcc && !t.receiverAccount;
+              t.currency === currency &&
+              (accNum === currentUser.accountNumber ||
+                accNum === currentUser.accountNumberKHR) &&
+              !t.receiverAcc &&
+              !t.receiverAccount;
 
             return matchAcc || isMainAccountMatch;
           })
