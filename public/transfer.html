@@ -1103,19 +1103,30 @@
         const boxUI = document.getElementById("receiverBoxUI");
         const iconUI = document.getElementById("receiverIconUI");
 
-        // 🔥 បន្ថែម Logic កែប្រែ icon កូនជ្រូក និងបង្ហាញឈ្មោះគម្រោង U-Fund
         if (acc.startsWith("UFND-")) {
-          const parts = acc.split("-");
-          const projectName = parts.length > 2 ? parts[2] : "Scan Pay";
+          // ហៅ API ដើម្បីរកឈ្មោះគម្រោងពិតប្រាកដតាមរយៈ QR String
+          fetch("/api/ufund/get-name", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ qrString: acc }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                nameDisplay.innerHTML = `U-Fund (${data.projectName})`; // បង្ហាញឈ្មោះគម្រោងដែលទាញបានពី DB
+              } else {
+                nameDisplay.innerHTML = "U-Fund (Scan Pay)";
+              }
+            })
+            .catch(() => (nameDisplay.innerHTML = "U-Fund (Scan Pay)"));
 
-          nameDisplay.innerHTML = `U-Fund (${projectName})`; // បង្ហាញឈ្មោះគម្រោង
           status.innerText = "✔";
           status.className = "check-status status-ok";
           boxUI.style.borderColor = "#10b981";
           boxUI.style.background = "#ecfdf5";
           iconUI.style.background = "#10b981";
           iconUI.style.color = "white";
-          iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>'; // ប្តូរជាកូនជ្រូក
+          iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>'; // Icon កូនជ្រូក
           targetUserIsKHR = false;
           calculateExchangePreview();
           return true;

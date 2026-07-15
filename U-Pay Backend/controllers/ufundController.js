@@ -635,3 +635,19 @@ exports.scanDepositFund = async (req, res) => {
     res.json({ success: false, message: "បរាជ័យក្នុងការ Scan ដាក់ប្រាក់" });
   }
 };
+
+exports.getUFundName = async (req, res) => {
+  const { qrString } = req.body;
+  try {
+    const UFund = require("../models/UFund"); // Import Model របស់ U-Fund
+    const fund = await UFund.findOne({ qrCodeString: qrString });
+
+    if (fund) {
+      res.json({ success: true, projectName: fund.name }); // ត្រលប់ទៅវិញនូវឈ្មោះ "តើក" (ក្នុងរូបភាពទី១)
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.json({ success: false });
+  }
+};

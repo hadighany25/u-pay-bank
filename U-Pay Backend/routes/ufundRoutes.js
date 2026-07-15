@@ -19,5 +19,6 @@ router.post("/edit", ufundController.editFund);
 router.post("/close", ufundController.closeOrCancelFund);
 // បន្ថែមនៅពីក្រោម Route ចាស់ៗរបស់បង
 router.post("/scan-pay", ufundController.scanDepositFund);
+router.post("/get-name", ufundController.getUFundName);
 
 module.exports = router;
