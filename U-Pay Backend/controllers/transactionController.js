@@ -16,28 +16,28 @@ const {
   payBillToPayHub,
   getCompanyDetails,
 } = require("../services/payhubService");
-
-// 🔥 ទាញយកមុខងារអាន FX Rate
 const { readFXRates } = require("../services/systemService");
 
 // ==========================================
-// ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ (បន្ថែមការបញ្ជូនតារាង Fee ទៅអោយ Frontend)
+// ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ (ស្គាល់ Sub-Accounts)
 // ==========================================
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
-    // ១. ឆែករកក្នុង User សិន
+    // ឆែករកក្នុង User ទាំង Main Account និង Sub-Accounts
     let target = await User.findOne({
       $or: [
         { accountNumber: accountNumber },
         { accountNumberKHR: accountNumber },
+        { "subAccounts.accountNumber": accountNumber }, // 🔥 ស្គាល់លេខគណនីពិសេស (Sub-Accounts)
       ],
     });
 
     let isMerchant = false;
     let targetName = "";
+    let isReceiverKHR = false;
 
-    // ២. បើមិនឃើញក្នុង User, ឆែករកក្នុង Merchant បន្ត
+    // បើមិនឃើញក្នុង User, ឆែករកក្នុង Merchant
     if (!target) {
       target = await Merchant.findOne({
         $or: [
@@ -47,27 +47,37 @@ const checkAccount = async (req, res) => {
       });
 
       if (target) {
-        isMerchant = true; // ប្រាប់ថាវាជាហាង
-        targetName = target.name; // យកឈ្មោះហាង
+        isMerchant = true;
+        targetName = target.name;
+        isReceiverKHR = target.accountNumbers.KHR === accountNumber;
       }
     } else {
       targetName = target.fullName || target.username;
+
+      // ឆែកថាតើលេខដែលវាយបញ្ចូលនោះ ជារបស់កុងរៀល ឬកុងដុល្លារ?
+      if (target.accountNumberKHR === accountNumber) {
+        isReceiverKHR = true;
+      } else {
+        // បើជារបស់ Sub-Account ត្រូវឆែកមើល Currency របស់វា
+        const subAcc = target.subAccounts.find(
+          (acc) => acc.accountNumber === accountNumber,
+        );
+        if (subAcc && subAcc.currency === "KHR") {
+          isReceiverKHR = true;
+          targetName = targetName + " (" + subAcc.accountName + ")"; // បង្ហាញឈ្មោះហោប៉ៅបន្ថែម (Option)
+        }
+      }
     }
 
-    // ៣. បើរកឃើញទិន្នន័យ (មិនថា User ឬ Merchant)
     if (target) {
-      const isReceiverKHR =
-        target.accountNumberKHR === accountNumber ||
-        (target.accountNumbers && target.accountNumbers.KHR === accountNumber);
-
       const currentFXRates = readFXRates();
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
 
       res.json({
         success: true,
-        username: targetName, // បញ្ជូនឈ្មោះទៅវិញ
+        username: targetName,
         isReceiverKHR: isReceiverKHR,
-        isMerchant: isMerchant, // ផ្ញើទៅ Frontend ឱ្យដឹងថាជាហាង
+        isMerchant: isMerchant,
         fxRates: currentFXRates,
         feeTiers: sys ? sys.feeTiers : [],
       });
@@ -81,7 +91,7 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// ២. មុខងារវេរលុយ (Transfer) + ប្រព័ន្ធកាត់សេវាដែលបានជួសជុលរួច
+// ២. មុខងារវេរលុយ (Transfer) + ស្គាល់គណនី Premium
 // ==========================================
 const transfer = async (req, res) => {
   const {
@@ -95,10 +105,9 @@ const transfer = async (req, res) => {
   } = req.body;
 
   if (req.user.username !== senderUsername) {
-    return res.status(403).json({
-      success: false,
-      message: "បម្រាមសុវត្ថិភាព៖ អ្នកមិនអាចវេរប្រាក់ចេញពីគណនីអ្នកដទៃបានទេ! 🚨",
-    });
+    return res
+      .status(403)
+      .json({ success: false, message: "បម្រាមសុវត្ថិភាព! 🚨" });
   }
 
   try {
@@ -107,11 +116,12 @@ const transfer = async (req, res) => {
     if (sender.isFrozen)
       return res.json({ success: false, message: "Account Frozen" });
 
-    // ១. រកអ្នកទទួល (ឆែកទាំង User និង Merchant)
+    // ១. រកអ្នកទទួល (ឆែកទាំង Main និង Sub-Accounts)
     let receiver = await User.findOne({
       $or: [
         { accountNumber: receiverAccount },
         { accountNumberKHR: receiverAccount },
+        { "subAccounts.accountNumber": receiverAccount }, // 🔥 ស្គាល់លេខគណនីពិសេស
       ],
     });
 
@@ -131,7 +141,7 @@ const transfer = async (req, res) => {
     if (!receiver && !receiverMerchant)
       return res.json({ success: false, message: "Receiver not found" });
 
-    // ២. ឆែក PIN
+    // ២. ឆែក PIN (រក្សាកូដចាស់)
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -150,19 +160,18 @@ const transfer = async (req, res) => {
     }
     sender.pinAttempts = 0;
 
-    // ៣. គណនីដែនកំណត់ និង Fee
+    // ៣. គណនា Fee និងដែនកំណត់ (រក្សាកូដចាស់)
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-    const transferLimit = sys ? parseFloat(sys.transferLimit) : 5000;
-    const feeTiers = sys ? sys.feeTiers : [];
-
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
     const currentFXRates = readFXRates();
+
     let transferUsdAmount = isSenderKHR
       ? transferAmount / currentFXRates.usdToKhrSell
       : transferAmount;
 
     let appliedFeeUsd = 0;
+    const feeTiers = sys ? sys.feeTiers : [];
     for (let tier of feeTiers) {
       if (
         transferUsdAmount >= parseFloat(tier.min) &&
@@ -172,6 +181,7 @@ const transfer = async (req, res) => {
         break;
       }
     }
+
     let appliedFee = isSenderKHR
       ? appliedFeeUsd * currentFXRates.usdToKhrSell
       : appliedFeeUsd;
@@ -182,25 +192,22 @@ const transfer = async (req, res) => {
     if (!isSenderKHR && sender.balance < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
-    // ៤. ដំណើរការវេរលុយ
+    // ៤. ដំណើរការវេរលុយ (Merchant និង User)
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
 
     if (isMerchant) {
+      // (រក្សាកូដ Merchant ចាស់របស់បង)
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
-
-      // 🔥 ជួសជុលទី១: បម្លែងអត្រាប្រាក់មុននឹងបូកបញ្ចូល Ledger របស់ហាង
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-      // ក. ចូល Ledger របស់ Merchant (ប្រើ receiverAmount)
       if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
-      // ខ. Auto-Sweep: ស្វែងរកម្ចាស់ហាងឱ្យទូលំទូលាយជាងមុន
       const owner = await User.findOne({
         $or: [
           { username: receiverMerchant.userId },
@@ -214,47 +221,64 @@ const transfer = async (req, res) => {
           owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
         else owner.balance = (owner.balance || 0) + receiverAmount;
         await owner.save();
-        receiver = owner; // ប្រើ owner ជា receiver ដើម្បីបន្តធ្វើ Transaction
+        receiver = owner;
       } else {
-        // 🔥 ជួសជុលទី២ និង ទី៣: ការពារការគាំងប្រព័ន្ធ (Crash) ប្រសិនបើររកម្ចាស់ហាងមិនឃើញ
-        console.error(
-          "Auto-Sweep Error: Owner not found for userId:",
-          receiverMerchant.userId,
-        );
         return res.json({
           success: false,
           message: "ប្រព័ន្ធមានបញ្ហា៖ រកគណនីម្ចាស់ហាងមិនឃើញ",
         });
       }
     } else {
-      isReceiverKHR = receiver.accountNumberKHR === receiverAccount;
+      // 🔥 ជួសជុល: ដំណើរការវេរលុយចូល User ធម្មតា និង Sub-Accounts
+      let isSubAccount = false;
+      let targetSubAccIndex = -1;
+
+      // ឆែកមើលថាតើវេរចូលកុង Main ឬ កុង Sub?
+      if (receiver.accountNumberKHR === receiverAccount) {
+        isReceiverKHR = true;
+      } else if (receiver.accountNumber !== receiverAccount) {
+        // បើមិនមែនកុង Main ទាំងពីរ នោះវាជាកុង Sub (គណនីពិសេស)
+        targetSubAccIndex = receiver.subAccounts.findIndex(
+          (acc) => acc.accountNumber === receiverAccount,
+        );
+        if (targetSubAccIndex !== -1) {
+          isSubAccount = true;
+          isReceiverKHR =
+            receiver.subAccounts[targetSubAccIndex].currency === "KHR";
+        }
+      }
+
+      // បម្លែងប្រាក់បើខុស Currency
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-      if (isReceiverKHR)
-        receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
-      else receiver.balance = (receiver.balance || 0) + receiverAmount;
+      // បូកលុយ
+      if (isSubAccount) {
+        receiver.subAccounts[targetSubAccIndex].balance += receiverAmount;
+      } else {
+        if (isReceiverKHR)
+          receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
+        else receiver.balance = (receiver.balance || 0) + receiverAmount;
+      }
       await receiver.save();
     }
 
-    // ៥. កាត់លុយ sender និងបង្កើត Transaction
+    // ៥. កាត់លុយពីអ្នកផ្ញើ
     if (isSenderKHR) sender.balanceKHR -= totalDeduction;
     else sender.balance -= totalDeduction;
 
+    // ... (កូដបង្កើត Transaction ចាស់របស់បងរក្សាទុកដដែល) ...
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
     const refId = generateRefId();
-
-    // កំណត់ប្រភេទ Payment Method
     const currentMethod = isMerchant
       ? "Merchant Payment"
       : trxMethod || "Account Transfer";
 
-    // វិក្កយបត្រ (Slip) សម្រាប់អ្នកវេរប្រាក់ចេញ (Sender)
     const senderTrx = {
       refId,
       hash: generateHash(),
@@ -266,14 +290,14 @@ const transfer = async (req, res) => {
       senderName: sender.fullName || sender.username,
       receiverName: isMerchant
         ? receiverMerchant.name
-        : receiver.fullName || receiver.username, // លោតឈ្មោះហាង បើវេរចូលហាង
+        : receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: currentMethod,
       remark: remark || "General",
       status: "Success",
+      username: sender.username,
     };
 
-    // វិក្កយបត្រ (Slip) សម្រាប់គណនីមេដែលទទួលប្រាក់ (Receiver)
     const receiverTrx = {
       refId,
       hash: generateHash(),
@@ -282,33 +306,28 @@ const transfer = async (req, res) => {
       amount: receiverAmount,
       currency: isReceiverKHR ? "KHR" : "USD",
       fee: 0,
-      senderName: sender.fullName || sender.username, // ឃើញឈ្មោះអ្នកបាញ់ (From)
+      senderName: sender.fullName || sender.username,
       receiverName: isMerchant
         ? receiverMerchant.name
-        : receiver.fullName || receiver.username, // ឃើញឈ្មោះហាង (To)
+        : receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
-      trxMethod: currentMethod, // លោតប្រភេទ Merchant Payment
+      trxMethod: currentMethod,
       remark: isMerchant
         ? `Payment via ${receiverMerchant.name}`
         : remark || "General",
       status: "Success",
+      username: receiver.username,
     };
 
-    // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
-    senderTrx.username = sender.username;
-    receiverTrx.username = receiver.username;
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
-
-    // បញ្ជាក់ការ Save ម្តងទៀត ដើម្បីធានាថា Transaction ចូល (Save តែ User ដើម្បីអាប់ដេតលុយ)
     await sender.save();
-    await receiver.save();
 
     const io = req.app.get("io");
     if (io)
       io.to(receiver.username).emit("paymentReceived", {
         amount: receiverAmount,
-        senderName: sender.fullName || sender.username, // អោយលោតឈ្មោះអ្នកបាញ់នៅលើ Notification
+        senderName: sender.fullName || sender.username,
       });
 
     res.json({
