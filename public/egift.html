@@ -75,7 +75,6 @@
         position: sticky;
         top: 0;
         z-index: 10;
-        transition: 0.3s;
       }
 
       .back-btn {
@@ -116,7 +115,6 @@
         margin-bottom: 8px;
       }
       .input-group input,
-      .input-group select,
       .input-group textarea {
         width: 100%;
         border: none;
@@ -266,14 +264,6 @@
         --text-main: #ffffff;
         --border-color: #333;
       }
-      body.dark-mode .input-group select {
-        background: #1e1e1e;
-        color: white;
-      }
-      body.dark-mode .input-group select option {
-        background: #1e1e1e;
-        color: white;
-      }
     </style>
   </head>
   <body>
@@ -282,7 +272,7 @@
         <button class="back-btn" onclick="window.history.back()">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <h2 class="header-title kh-text" data-lang="egift_title">
+        <h2 class="header-title kh-text" data-i18n="egift_title">
           ផ្ញើកាដូ / អាំងប៉ាវ
         </h2>
         <div style="width: 24px"></div>
@@ -292,7 +282,6 @@
         <label
           class="kh-text"
           style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem"
-          data-lang="select_theme"
           >ជ្រើសរើសស្រោមអាំងប៉ាវ</label
         >
         <div class="theme-selector">
@@ -301,53 +290,44 @@
             onclick="selectTheme(this, 'lunar')"
           >
             <i class="fa-solid fa-envelope-open-text theme-icon"></i>
-            <span class="theme-name kh-text" data-lang="theme_lunar"
-              >ហេង ហេង</span
-            >
+            <span class="theme-name kh-text">ហេង ហេង</span>
           </div>
           <div
             class="theme-card theme-bd"
             onclick="selectTheme(this, 'birthday')"
           >
             <i class="fa-solid fa-cake-candles theme-icon"></i>
-            <span class="theme-name kh-text" data-lang="theme_bd"
-              >ថ្ងៃកំណើត</span
-            >
+            <span class="theme-name kh-text">ថ្ងៃកំណើត</span>
           </div>
           <div
             class="theme-card theme-wedding"
             onclick="selectTheme(this, 'wedding')"
           >
             <i class="fa-solid fa-heart theme-icon"></i>
-            <span class="theme-name kh-text" data-lang="theme_wedding"
-              >មង្គលការ</span
-            >
+            <span class="theme-name kh-text">មង្គលការ</span>
           </div>
           <div
             class="theme-card theme-classic"
             onclick="selectTheme(this, 'classic')"
           >
             <i class="fa-solid fa-gift theme-icon"></i>
-            <span class="theme-name kh-text" data-lang="theme_classic"
-              >កាដូពិសេស</span
-            >
+            <span class="theme-name kh-text">កាដូពិសេស</span>
           </div>
         </div>
-
-        <!-- 🔥 ថែម Dropdown ជ្រើសរើសគណនីប្រភព -->
+        <!-- 🔥 ថែម Dropdown ជ្រើសរើសគណនី -->
         <div class="input-group">
-          <label class="kh-text" data-lang="source_account">គណនីប្រភព</label>
+          <label class="kh-text">គណនីប្រភព</label>
           <select
             id="sourceAccountSelect"
-            class="kh-text"
+            class="main-input"
             onchange="updateAccountBalance()"
-            style="font-weight: 600; padding: 5px 0"
+            style="border: none; background: transparent; font-size: 1rem"
           ></select>
         </div>
 
-        <!-- កែ Input អ្នកទទួល ឱ្យដាក់ចំណងជើងច្បាស់ (លេខទូរស័ព្ទ / ឈ្មោះ / លេខគណនី) -->
+        <!-- កែ Input អ្នកទទួល ឱ្យដាក់ចំណងជើងច្បាស់ -->
         <div class="input-group">
-          <label class="kh-text" data-lang="egift_receiver"
+          <label class="kh-text"
             >ផ្ញើទៅកាន់ (លេខទូរស័ព្ទ / ឈ្មោះ / លេខគណនី)</label
           >
           <div style="display: flex; align-items: center; gap: 10px">
@@ -359,7 +339,7 @@
               type="text"
               id="receiverInput"
               class="kh-text"
-              placeholder="..."
+              placeholder="វាយបញ្ចូល..."
               autocomplete="off"
             />
           </div>
@@ -373,7 +353,7 @@
               align-items: center;
             "
           >
-            <label class="kh-text" data-lang="amount">ចំនួនទឹកប្រាក់កាដូ</label>
+            <label class="kh-text" data-i18n="amount">ចំនួនទឹកប្រាក់</label>
             <div class="currency-toggle">
               <button
                 id="btnCurUSD"
@@ -395,37 +375,13 @@
               "
               >$</span
             >
-            <input
-              type="number"
-              id="amountInput"
-              placeholder="0.00"
-              oninput="calculateExchangePreview()"
-            />
+            <input type="number" id="amountInput" placeholder="0.00" />
           </div>
-
-          <!-- បង្ហាញអត្រាប្តូរប្រាក់បើផ្ញើខ្វែង Currency -->
-          <div
-            id="exchangePreview"
-            class="kh-text"
-            style="
-              display: none;
-              font-size: 0.8rem;
-              color: var(--danger);
-              margin-top: 10px;
-              padding: 8px;
-              background: #fff1f2;
-              border-radius: 8px;
-              border: 1px dashed #fecdd3;
-            "
-          >
-            <i class="fa-solid fa-circle-info"></i> <span id="fxText">...</span>
-          </div>
-
           <div
             id="balanceAvail"
             class="kh-text"
             style="
-              font-size: 0.85rem;
+              font-size: 0.8rem;
               color: var(--text-muted);
               margin-top: 10px;
               text-align: right;
@@ -439,7 +395,7 @@
         </div>
 
         <div class="input-group">
-          <label class="kh-text" data-lang="egift_msg"
+          <label class="kh-text" data-i18n="egift_msg"
             >សារជូនពរ (ជាជម្រើស)</label
           >
           <textarea
@@ -452,122 +408,28 @@
 
       <div class="bottom-action">
         <button class="btn-send kh-text" onclick="processEgift()">
-          <i class="fa-solid fa-paper-plane"></i>
-          <span data-lang="btn_send">ផ្ញើអាំងប៉ាវឥឡូវនេះ</span>
+          <i class="fa-solid fa-paper-plane"></i> ផ្ញើអាំងប៉ាវឥឡូវនេះ
         </button>
       </div>
     </div>
 
     <script>
-      let selectedCurrency = "USD"; // រូបិយប័ណ្ណនៃកាដូ
+      let selectedCurrency = "USD";
       let selectedTheme = "lunar";
       let currentUser = null;
-      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 }; // Default ទុកការពារ
 
-      // វចនានុក្រមបកប្រែ (Translations)
-      const translations = {
-        en: {
-          egift_title: "Send E-Gift",
-          select_theme: "Select Theme",
-          theme_lunar: "Lunar",
-          theme_bd: "Birthday",
-          theme_wedding: "Wedding",
-          theme_classic: "Classic",
-          source_account: "Source Account",
-          egift_receiver: "Send To (Phone / Name / Account)",
-          amount: "Gift Amount",
-          egift_msg: "Message (Optional)",
-          btn_send: "Send E-Gift Now",
-          avail_bal: "Available: ",
-        },
-        kh: {
-          egift_title: "ផ្ញើកាដូ / អាំងប៉ាវ",
-          select_theme: "ជ្រើសរើសស្រោមអាំងប៉ាវ",
-          theme_lunar: "ហេង ហេង",
-          theme_bd: "ថ្ងៃកំណើត",
-          theme_wedding: "មង្គលការ",
-          theme_classic: "កាដូពិសេស",
-          source_account: "គណនីប្រភព",
-          egift_receiver: "ផ្ញើទៅកាន់ (លេខទូរស័ព្ទ / ឈ្មោះ / លេខគណនី)",
-          amount: "ចំនួនទឹកប្រាក់កាដូ",
-          egift_msg: "សារជូនពរ (ជាជម្រើស)",
-          btn_send: "ផ្ញើអាំងប៉ាវឥឡូវនេះ",
-          avail_bal: "សមតុល្យ: ",
-        },
-      };
-
-      function applyTranslations() {
-        let currentLang = localStorage.getItem("lang") || "en";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key]) {
-            if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-              el.placeholder = translations[currentLang][key];
-            } else {
-              el.innerText = translations[currentLang][key];
-            }
-          }
-        });
-      }
-
-      document.addEventListener("DOMContentLoaded", async () => {
-        // បកប្រែភាសា
-        applyTranslations();
-
-        // ទាញយក User Session
+      document.addEventListener("DOMContentLoaded", () => {
+        // ទាញយក User Session ពី u-pay-core.js (បើមាន)
         const sessionUser = sessionStorage.getItem("user");
-        const token = sessionStorage.getItem("userToken");
-
-        if (!sessionUser || !token) {
-          window.location.href = "index.html";
-          return;
-        }
-
-        currentUser = JSON.parse(sessionUser);
-
-        // ទាញយក FX Rates ពិតប្រាកដពី Server
-        try {
-          const fxRes = await fetch("/api/fx/rates", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const fxData = await fxRes.json();
-          if (fxData.success) currentFXRates = fxData.rates;
-        } catch (e) {}
-
-        populateSourceAccounts();
-
-        // Dark Mode Check
-        const userThemeKey = "darkMode_" + currentUser.username;
-        if (
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true"
-        ) {
-          document.body.classList.add("dark-mode");
+        if (sessionUser) {
+          currentUser = JSON.parse(sessionUser);
+          updateBalanceDisplay();
+        } else {
+          // តេស្ត UI បើគ្មាន Session
+          currentUser = { balance: 500.5, balanceKHR: 1500000 };
+          updateBalanceDisplay();
         }
       });
-
-      // បញ្ចូលគណនីទាំងអស់ទៅក្នុង Dropdown
-      function populateSourceAccounts() {
-        const select = document.getElementById("sourceAccountSelect");
-        select.innerHTML = "";
-        let lang = localStorage.getItem("lang") || "en";
-
-        // Main USD
-        select.innerHTML += `<option value="MAIN_USD" data-currency="USD" data-bal="${currentUser.balance || 0}">${lang === "kh" ? "គណនី Main ($)" : "Main Account ($)"} - ${currentUser.accountNumber}</option>`;
-
-        // Main KHR
-        select.innerHTML += `<option value="MAIN_KHR" data-currency="KHR" data-bal="${currentUser.balanceKHR || 0}">${lang === "kh" ? "គណនី Main (៛)" : "Main Account (៛)"} - ${currentUser.accountNumberKHR || "N/A"}</option>`;
-
-        // Sub-Accounts
-        if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
-          currentUser.subAccounts.forEach((sub) => {
-            const sym = sub.currency === "USD" ? "$" : "៛";
-            select.innerHTML += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-bal="${sub.balance}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
-          });
-        }
-
-        updateAccountBalance();
-      }
 
       // ដូរ Theme ពណ៌ស្រោមអាំងប៉ាវ
       function selectTheme(element, theme) {
@@ -577,6 +439,7 @@
         element.classList.add("active");
         selectedTheme = theme;
 
+        // ដូរពណ៌ Header តាម Theme ឱ្យមើលទៅទំនង
         const header = document.querySelector(".header-bar");
         const btnSend = document.querySelector(".btn-send");
         if (theme === "lunar") {
@@ -594,7 +457,7 @@
         }
       }
 
-      // ដូររូបិយប័ណ្ណកាដូ
+      // ដូររូបិយប័ណ្ណ
       function setCurrency(cur) {
         selectedCurrency = cur;
         document
@@ -607,58 +470,19 @@
           cur === "USD" ? "$" : "៛";
         document.getElementById("amountInput").placeholder =
           cur === "USD" ? "0.00" : "0";
-        calculateExchangePreview();
+        updateBalanceDisplay();
       }
 
-      // អាប់ដេត UI សមតុល្យនៅពេលរើសកុង
-      function updateAccountBalance() {
-        const select = document.getElementById("sourceAccountSelect");
-        const option = select.options[select.selectedIndex];
-        const bal = parseFloat(option.dataset.bal);
-        const sourceCur = option.dataset.currency;
-
-        let lang = localStorage.getItem("lang") || "en";
-        let balText = translations[lang].avail_bal;
-        let displayBal =
-          sourceCur === "USD"
+      function updateBalanceDisplay() {
+        if (!currentUser) return;
+        const bal =
+          selectedCurrency === "USD"
+            ? currentUser.balance
+            : currentUser.balanceKHR || 0;
+        document.getElementById("showBal").innerText =
+          selectedCurrency === "USD"
             ? `$${bal.toFixed(2)}`
             : `៛${bal.toLocaleString()}`;
-
-        document.getElementById("showBal").innerText = displayBal;
-        calculateExchangePreview();
-      }
-
-      // គណនាការកាត់លុយខ្វែងរូបិយប័ណ្ណ (Exchange Preview)
-      function calculateExchangePreview() {
-        const amount = parseFloat(document.getElementById("amountInput").value);
-        const select = document.getElementById("sourceAccountSelect");
-        if (select.options.length === 0) return;
-        const sourceCur = select.options[select.selectedIndex].dataset.currency;
-        const previewBox = document.getElementById("exchangePreview");
-        const fxText = document.getElementById("fxText");
-        let lang = localStorage.getItem("lang") || "en";
-
-        if (!amount || amount <= 0 || sourceCur === selectedCurrency) {
-          previewBox.style.display = "none";
-          return;
-        }
-
-        previewBox.style.display = "block";
-        let requiredDeduction = amount;
-
-        if (sourceCur === "USD" && selectedCurrency === "KHR") {
-          requiredDeduction = amount / currentFXRates.usdToKhrSell;
-          fxText.innerText =
-            lang === "kh"
-              ? `គណនីនឹងត្រូវកាត់ប្រមាណ $${requiredDeduction.toFixed(2)} (អត្រា $1=${currentFXRates.usdToKhrSell}៛)`
-              : `Account will be deducted ~$${requiredDeduction.toFixed(2)} (Rate $1=${currentFXRates.usdToKhrSell}៛)`;
-        } else if (sourceCur === "KHR" && selectedCurrency === "USD") {
-          requiredDeduction = amount * currentFXRates.usdToKhrBuy;
-          fxText.innerText =
-            lang === "kh"
-              ? `គណនីនឹងត្រូវកាត់ប្រមាណ ៛${requiredDeduction.toLocaleString()} (អត្រា $1=${currentFXRates.usdToKhrBuy}៛)`
-              : `Account will be deducted ~៛${requiredDeduction.toLocaleString()} (Rate $1=${currentFXRates.usdToKhrBuy}៛)`;
-        }
       }
 
       // ដំណើរការផ្ញើ
@@ -669,31 +493,17 @@
           document.getElementById("messageInput").value.trim() ||
           "ជូនពរឱ្យមានសុភមង្គល និងជោគជ័យគ្រប់ភារកិច្ច! 🎉";
 
-        const select = document.getElementById("sourceAccountSelect");
-        const senderAccount = select.value;
-        const sourceCur = select.options[select.selectedIndex].dataset.currency;
-        const availableBal = parseFloat(
-          select.options[select.selectedIndex].dataset.bal,
-        );
-
         if (!receiver) return showToast("សូមបញ្ចូលអ្នកទទួល!", "error");
         if (!amount || amount <= 0)
           return showToast("សូមបញ្ចូលទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!", "error");
 
-        // គណនាលុយដែលត្រូវកាត់ពិតប្រាកដ
-        let requiredBal = amount;
-        if (sourceCur !== selectedCurrency) {
-          if (sourceCur === "USD" && selectedCurrency === "KHR")
-            requiredBal = amount / currentFXRates.usdToKhrSell;
-          if (sourceCur === "KHR" && selectedCurrency === "USD")
-            requiredBal = amount * currentFXRates.usdToKhrBuy;
-        }
-
-        if (requiredBal > availableBal)
-          return showToast(
-            "សមតុល្យគណនីប្រភពរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
-            "error",
-          );
+        // ឆែកលុយក្នុងកុង
+        const availableBal =
+          selectedCurrency === "USD"
+            ? currentUser.balance
+            : currentUser.balanceKHR || 0;
+        if (amount > availableBal)
+          return showToast("សមតុល្យរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!", "error");
 
         // សុំ PIN Code កាត់លុយ
         const { value: pin } = await Swal.fire({
@@ -719,18 +529,18 @@
           });
 
           try {
+            // ហៅ API ពិតប្រាកដ
             const response = await fetch("/api/egift/send", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`, // ឬប្រើ window.authHeaders បើមានក្នុង u-pay-core.js
               },
               body: JSON.stringify({
                 senderUsername: currentUser.username,
-                senderAccount: senderAccount, // បាញ់លេខគណនីប្រភពទៅ Backend
-                receiverInput: receiver, // ស្គាល់ទាំងឈ្មោះ ទូរស័ព្ទ លេខកុង
+                receiverInput: receiver,
                 amount: amount,
-                currency: selectedCurrency, // រូបិយប័ណ្ណរបស់អាំងប៉ាវ
+                currency: selectedCurrency,
                 theme: selectedTheme,
                 message: message,
                 pin: pin,
@@ -740,18 +550,9 @@
             const data = await response.json();
 
             if (data.success) {
-              // ធ្វើបច្ចុប្បន្នភាពសមតុល្យ RAM បណ្តោះអាសន្ន
-              if (senderAccount === "MAIN_USD")
-                currentUser.balance = data.newBalance;
-              else if (senderAccount === "MAIN_KHR")
-                currentUser.balanceKHR = data.newBalance;
-              else {
-                let subIdx = currentUser.subAccounts.findIndex(
-                  (a) => a.accountNumber === senderAccount,
-                );
-                if (subIdx !== -1)
-                  currentUser.subAccounts[subIdx].balance = data.newBalance;
-              }
+              // កាត់លុយក្នុង RAM បណ្តោះអាសន្ន ដើម្បីកុំឱ្យបាត់ Balance លឿនពេក
+              if (selectedCurrency === "USD") currentUser.balance -= amount;
+              else currentUser.balanceKHR -= amount;
               sessionStorage.setItem("user", JSON.stringify(currentUser));
 
               showSuccessAnimation(receiver, amount, message);
@@ -766,6 +567,7 @@
 
       // Animation ជោគជ័យពេលផ្ញើចេញ
       function showSuccessAnimation(receiver, amount, message) {
+        // បាញ់ព្រិលអបអរសាទរ (Confetti)
         var duration = 3 * 1000;
         var end = Date.now() + duration;
         (function frame() {
@@ -783,7 +585,9 @@
             origin: { x: 1 },
             colors: ["#ff0000", "#ffd700"],
           });
-          if (Date.now() < end) requestAnimationFrame(frame);
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
         })();
 
         let curSym = selectedCurrency === "USD" ? "$" : "៛";
