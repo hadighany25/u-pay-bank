@@ -329,19 +329,20 @@ const transfer = async (req, res) => {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
+
+    // 🔥 កន្លែងនេះគឺសម្រាប់បង្កើត Transaction Record ទាំងអ្នកផ្ញើ និងអ្នកទទួល
     const refId = generateRefId();
+    const date = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
     const currentMethod = isMerchant
       ? "Merchant Payment"
       : trxMethod || "Account Transfer";
 
-    // ថែម senderAcc ចូលក្នុង Transaction
-    const actualSenderAccNum = isSenderSubAccount
-      ? senderAccount
-      : isSenderKHR
-        ? sender.accountNumberKHR
-        : sender.accountNumber;
-
+    // ១. កត់ត្រាសម្រាប់អ្នកផ្ញើ (Sender)
     const senderTrx = {
+      username: sender.username,
       refId,
       hash: generateHash(),
       date,
@@ -353,15 +354,16 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      receiverAcc: receiverAccount,
-      senderAcc: actualSenderAccNum,
+      receiverAcc: receiverAccount, // លេខកុងដែលគេ Scan/វាយបញ្ចូល
+      senderAcc: actualSenderAccNum, // លេខកុងដែលគេរើស (Main ឬ Sub)
       trxMethod: currentMethod,
       remark: remark || "General",
       status: "Success",
-      username: sender.username,
     };
 
+    // ២. កត់ត្រាសម្រាប់អ្នកទទួល (Receiver) - 🔥 កន្លែងនេះដែលបងបាត់!
     const receiverTrx = {
+      username: isMerchant ? receiverMerchant.userId : receiver.username, // ប្រើ username ម្ចាស់ហាង
       refId,
       hash: generateHash(),
       date,
@@ -380,9 +382,10 @@ const transfer = async (req, res) => {
         ? `Payment via ${receiverMerchant.name}`
         : remark || "General",
       status: "Success",
-      username: receiver.username,
+      merchantId: isMerchant ? receiverMerchant.merchantId : null, // 🔥 ថែម merchantId សម្រាប់ហាង
     };
 
+    // ៣. បញ្ចូលទៅ Database
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
     await sender.save();
