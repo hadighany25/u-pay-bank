@@ -54,7 +54,6 @@
         color: var(--text-main);
         -webkit-font-smoothing: antialiased;
 
-        /* ➕ បន្ថែម ៣ បន្ទាត់នេះ */
         visibility: hidden;
         opacity: 0;
         transition:
@@ -62,7 +61,6 @@
           opacity 0.4s ease;
       }
 
-      /* ➕ បន្ថែម Class នេះនៅពីក្រោម body */
       body.loaded {
         visibility: visible;
         opacity: 1;
@@ -72,7 +70,6 @@
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
 
-      /* 📱 Fix Desktop Spillage - Container Strategy */
       .app-container {
         width: 100%;
         max-width: 480px;
@@ -304,7 +301,8 @@
         box-sizing: border-box;
         font-family: inherit;
       }
-      .input-group input:focus {
+      .input-group input:focus,
+      .input-group select:focus {
         outline: 2px solid var(--primary);
       }
 
@@ -460,7 +458,7 @@
       }
 
       /* ==========================================
-       📱 QR MODAL (EXACTLY FROM SCAN.HTML)
+       📱 QR MODAL
        ========================================== */
       .qr-modal {
         display: none;
@@ -555,7 +553,9 @@
         background: #ffffff;
         padding: 15px;
         border-radius: 20px;
-        display: inline-block;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         margin-bottom: 25px;
         border: 1px solid #e2e8f0;
         box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
@@ -645,24 +645,17 @@
       .close-qr-btn:active {
         transform: scale(0.9);
       }
-      /* ធ្វើឱ្យលេខគណនីនៅក្រោម QR ស្អាត */
       #qrAccountNum {
-        margin-top: 15px !important; /* បន្ថែមគម្លាតពី QR */
-        order: 2; /* ឱ្យវានៅទីតាំងទី២ ក្រោម QR */
+        margin-top: 15px !important;
+        order: 2;
         font-family: "JetBrains Mono", monospace;
         font-weight: bold;
         color: #004d40;
-        display: block; /* ធានាថាវានៅដាច់ដោយឡែកមួយបន្ទាត់ */
+        display: block;
       }
 
-      /* ធានាថា QR នៅទីតាំងទីមួយ */
-      .qr-img-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
       /* ==========================================
-       ☰ SIDEBAR MENU (FIXED TO CONTAINER)
+       ☰ SIDEBAR MENU
        ========================================== */
       .sidebar-overlay {
         position: absolute;
@@ -720,9 +713,10 @@
       .sidebar-menu {
         padding: 20px 0;
         overflow-y: auto;
+        flex-grow: 1;
       }
       .sidebar-item {
-        padding: 15px 25px;
+        padding: 18px 25px !important;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -730,30 +724,16 @@
         text-decoration: none;
         font-size: 1.05rem;
         cursor: pointer;
-      }
-      .sidebar-item:active {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .sidebar {
-        display: flex;
-        flex-direction: column; /* ធានាថា Logo នៅខាងក្រោម */
-      }
-
-      .sidebar-menu {
-        flex-grow: 1; /* ឱ្យ Menu រុញ Logo ទៅក្រោម */
-      }
-
-      .sidebar-item {
         transition: background 0.2s;
-        padding: 18px 25px !important;
       }
-
+      .sidebar-item:active,
       .sidebar-item:hover {
         background: rgba(255, 255, 255, 0.15);
       }
+
       /* ==========================================
-         🎚️ ACCOUNT TOGGLE ANIMATION
-         ========================================== */
+       🎚️ ACCOUNT TOGGLE ANIMATION
+       ========================================== */
       .acc-toggle {
         position: relative;
         display: flex;
@@ -772,11 +752,11 @@
         background: white;
         border-radius: 16px;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        transform: translateX(100%); /* ចាប់ផ្តើមនៅខាងស្តាំ (Merchant) */
+        transform: translateX(100%);
         z-index: 1;
       }
       .acc-slider.move-left {
-        transform: translateX(0); /* រំកិលមកឆ្វេង (Personal) */
+        transform: translateX(0);
       }
       .acc-option {
         flex: 1;
@@ -798,10 +778,10 @@
        ========================================== */
       .pin-modal {
         display: none;
-        position: fixed; /* ដូរពី absolute មក fixed */
+        position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.8);
-        z-index: 99999; /* ដាក់ឱ្យខ្ពស់បំផុត */
+        z-index: 99999;
         align-items: center;
         justify-content: center;
       }
@@ -825,10 +805,6 @@
         border-radius: 50%;
         border: 2px solid var(--text-muted);
       }
-      .dot.filled {
-        background: var(--primary);
-        border-color: var(--primary);
-      }
 
       /* ==========================================
        🖨️ PRINT & PDF STYLES (Professional A4)
@@ -843,8 +819,6 @@
           margin: 0;
           padding: 0;
         }
-
-        /* 1. លាក់ផ្ទាំង App ធម្មតាទាំងអស់កុំឱ្យជាប់ក្នុង PDF */
         .view-state,
         .qr-modal,
         .sidebar-overlay,
@@ -853,8 +827,6 @@
         .fab-add {
           display: none !important;
         }
-
-        /* 2. បើក App Container ឱ្យបង្ហាញ ដើម្បីកុំឱ្យវាបិទ Template ខាងក្នុង */
         .app-container {
           display: block !important;
           width: 100% !important;
@@ -863,8 +835,6 @@
           box-shadow: none !important;
           overflow: visible !important;
         }
-
-        /* 3. បង្ហាញតែក្រដាស Report មួយគត់ */
         #pdf-template {
           display: block !important;
           width: 100% !important;
@@ -876,8 +846,6 @@
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
-
-        /* ការរចនាភាពស្អាតរបស់ PDF */
         .pdf-header {
           text-align: center;
           border-bottom: 3px solid var(--primary);
@@ -900,7 +868,6 @@
           font-size: 1rem;
           color: #475569;
         }
-
         .pdf-table {
           width: 100%;
           border-collapse: collapse;
@@ -924,7 +891,6 @@
           text-align: right;
           font-family: "JetBrains Mono", monospace;
         }
-
         .pdf-sign-area {
           display: flex;
           justify-content: space-between;
@@ -939,12 +905,12 @@
           margin-top: 60px;
           margin-bottom: 10px;
         }
-
         @page {
           size: A4;
           margin: 15mm;
         }
       }
+
       /* ==========================================
          🌙 FULL DARK MODE FOR MERCHANT DASHBOARD
          ========================================== */
@@ -994,6 +960,9 @@
   </head>
   <body>
     <div class="app-container">
+      <!-- ==========================================
+           🏬 STATE 1: MERCHANT LIST
+           ========================================== -->
       <div id="state-list" class="view-state active">
         <div class="header-bar">
           <button
@@ -1020,7 +989,6 @@
           </div>
         </div>
 
-        <!-- បន្ថែម onclick លើ Tab នីមួយៗ -->
         <div class="tab-header kh-text">
           <div
             class="tab-item active"
@@ -1047,12 +1015,14 @@
 
         <div id="merchantListContainer" style="padding: 0 20px"></div>
 
-        <button class="fab-add" onclick="switchState('state-create')">
+        <button class="fab-add" onclick="openCreateMerchantState()">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
 
-      <!-- បង្កើតសាខា -->
+      <!-- ==========================================
+           📝 STATE 2: CREATE MERCHANT (NEW LOGIC)
+           ========================================== -->
       <div id="state-create" class="view-state">
         <div class="header-bar">
           <button class="back-btn" onclick="switchState('state-list')">
@@ -1095,7 +1065,6 @@
                 កំពង់ស្ពឺ
               </option>
               <option value="Kandal" data-i18n="city_kd">កណ្តាល</option>
-              <option value="Siem Reap" data-i18n="city_sr">សៀមរាប</option>
               <option value="Prey Veng" data-i18n="city_pv">ព្រៃវែង</option>
             </select>
           </div>
@@ -1116,15 +1085,29 @@
               <option value="Others">ផ្សេងៗ</option>
             </select>
           </div>
+
+          <!-- 🔥 កន្លែងរើសគណនីភ្ជាប់ថ្មី (USD មួយ KHR មួយ) -->
           <div class="input-group">
-            <label class="kh-text" data-i18n="merch_link_acc"
-              >ភ្ជាប់ទៅកាន់គណនី</label
-            >
-            <select id="storeLinkedAcc" class="kh-text">
-              <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
-              <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
+            <label class="kh-text">ភ្ជាប់គណនីប្រាក់ដុល្លារ (USD)</label>
+            <select id="storeLinkedAccUSD" class="kh-text">
+              <option value="">-- មិនភ្ជាប់ (None) --</option>
+              <!-- បំពេញតាមរយៈ JS -->
             </select>
           </div>
+          <div class="input-group">
+            <label class="kh-text">ភ្ជាប់គណនីប្រាក់រៀល (KHR)</label>
+            <select id="storeLinkedAccKHR" class="kh-text">
+              <option value="">-- មិនភ្ជាប់ (None) --</option>
+              <!-- បំពេញតាមរយៈ JS -->
+            </select>
+            <p
+              style="font-size: 0.8rem; color: var(--danger); margin-top: 5px"
+              class="kh-text"
+            >
+              បញ្ជាក់៖ លោកអ្នកត្រូវភ្ជាប់គណនីយ៉ាងហោចណាស់មួយ
+            </p>
+          </div>
+
           <button
             class="btn-primary kh-text"
             onclick="showPinModal()"
@@ -1134,7 +1117,10 @@
           </button>
         </div>
       </div>
-      <!-- ផ្នែកផ្ទាល់ (Dashboard) -->
+
+      <!-- ==========================================
+           📊 STATE 3: DASHBOARD
+           ========================================== -->
       <div id="state-dashboard" class="view-state">
         <div class="dash-top">
           <div class="dash-top-nav">
@@ -1156,7 +1142,6 @@
             <i class="fa-regular fa-bell" style="font-size: 1.3rem"></i>
           </div>
 
-          <!-- 🎚️ កន្លែងប៊ូតុងចុចប្តូរគណនី (មាន Animation) -->
           <div class="acc-toggle">
             <div class="acc-slider" id="accSlider"></div>
             <div
@@ -1234,7 +1219,6 @@
             </div>
           </div>
 
-          <!-- 💰 ឥឡូវនេះលុយទាំង ២ មានទំហំ និងពណ៌ធំស្មើគ្នា ១០០% -->
           <div
             style="
               display: flex;
@@ -1298,7 +1282,6 @@
           </div>
         </div>
 
-        <!-- ប្រតិបត្តិការ -->
         <div class="action-grid">
           <div class="dash-btn" onclick="switchState('state-receive')">
             <i
@@ -1309,8 +1292,6 @@
               >ទូទាត់ប្រាក់ពីភ្ញៀវ</span
             >
           </div>
-
-          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick ឱ្យទៅបើកផ្ទាំង Report និងទាញទិន្នន័យ -->
           <div
             class="dash-btn"
             onclick="
@@ -1323,14 +1304,10 @@
               >ប្រវត្តិប្រតិបត្តិការ</span
             >
           </div>
-
           <div class="dash-btn" onclick="openQRModal(null)">
             <i class="fa-solid fa-qrcode" style="color: #8b5cf6"></i>
             <span class="kh-text" data-i18n="merch_stand_qr">ស្កេនកូដ QR</span>
           </div>
-
-          <!-- 🔥 កែត្រង់នេះ៖ បន្ថែម onclick បង្ហាញសារជូនដំណឹងសម្រាប់ Sales Report -->
-          <!-- កែប៊ូតុង Sales Report -->
           <div class="dash-btn" onclick="openSalesReport()">
             <i class="fa-solid fa-chart-pie" style="color: #f59e0b"></i>
             <span class="kh-text" data-i18n="merch_report">របាយការណ៍លក់</span>
@@ -1338,7 +1315,9 @@
         </div>
       </div>
 
-      <!--​ ប្រតិបត្តិការ -->
+      <!-- ==========================================
+           🗂 STATE REPORTS
+           ========================================== -->
       <div id="state-reports" class="view-state">
         <div class="header-bar">
           <button class="back-btn" onclick="switchState('state-dashboard')">
@@ -1349,7 +1328,6 @@
         </div>
 
         <div style="padding: 20px">
-          <!-- ផ្នែក Filter ស្អាតៗ -->
           <div
             style="
               display: flex;
@@ -1401,12 +1379,13 @@
               onchange="loadTransactions()"
             />
           </div>
-
           <div id="transactionList" style="margin-top: 10px"></div>
         </div>
       </div>
 
-      <!-- របាយការណ៍លក់ -->
+      <!-- ==========================================
+           📈 STATE SALES REPORT
+           ========================================== -->
       <div id="state-sales-report" class="view-state">
         <div class="header-bar">
           <button class="back-btn" onclick="switchState('state-dashboard')">
@@ -1417,7 +1396,6 @@
         </div>
 
         <div style="padding: 20px">
-          <!-- Filter Bar -->
           <div style="display: flex; gap: 10px; margin-bottom: 20px">
             <select
               id="salesFilter"
@@ -1451,8 +1429,6 @@
             >
               $0.00
             </h1>
-
-            <!-- Export Buttons -->
             <div style="display: flex; gap: 10px; margin-top: 15px">
               <button
                 onclick="exportToExcel()"
@@ -1478,106 +1454,9 @@
         </div>
       </div>
 
-      <!-- 📄 PDF Report Template (Professional A4) -->
-      <div id="pdf-template">
-        <div class="pdf-header">
-          <img
-            src="images/logo-nobg.png"
-            alt="U-Pay Logo"
-            onerror="this.src = 'https://upay.com/logo.png'"
-          />
-          <h1 class="pdf-title kh-text">របាយការណ៍លក់ប្រចាំហាង</h1>
-          <p style="margin: 0; font-size: 1.1rem; color: #64748b">
-            សេចក្តីសង្ខេបប្រតិបត្តិការអាជីវកម្ម
-          </p>
-        </div>
-
-        <div class="pdf-meta kh-text">
-          <div>
-            <p style="margin: 5px 0">
-              <strong>ឈ្មោះហាង៖</strong>
-              <span
-                id="pdf-merch-name"
-                style="color: var(--primary); font-weight: bold"
-                >...</span
-              >
-            </p>
-            <p style="margin: 5px 0">
-              <strong>Merchant ID៖</strong>
-              <span
-                id="pdf-merch-id"
-                style="font-family: &quot;JetBrains Mono&quot;, monospace"
-                >...</span
-              >
-            </p>
-          </div>
-          <div style="text-align: right">
-            <p style="margin: 5px 0">
-              <strong>កាលបរិច្ឆេទចេញ៖</strong>
-              <span id="pdf-gen-date">...</span>
-            </p>
-            <p style="margin: 5px 0">
-              <strong>រយៈពេល៖</strong> <span id="pdf-date-range">...</span>
-            </p>
-          </div>
-        </div>
-
-        <table class="pdf-table kh-text">
-          <thead>
-            <tr>
-              <th>បរិយាយ (Description)</th>
-              <th style="text-align: right">ទិន្នន័យ (Data)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>ចំណូលសរុបប្រាក់ដុល្លារ (USD)</td>
-              <td class="val" id="pdf-total-usd" style="color: var(--primary)">
-                $0.00
-              </td>
-            </tr>
-            <tr>
-              <td>ចំណូលសរុបប្រាក់រៀល (KHR)</td>
-              <td class="val" id="pdf-total-khr" style="color: var(--primary)">
-                ៛0
-              </td>
-            </tr>
-            <tr style="background: #f8fafc">
-              <td>ប្រតិបត្តិការប្រាក់ដុល្លារសរុប (USD Count)</td>
-              <td class="val" id="pdf-count-usd">0</td>
-            </tr>
-            <tr style="background: #f8fafc">
-              <td>ប្រតិបត្តិការប្រាក់រៀលសរុប (KHR Count)</td>
-              <td class="val" id="pdf-count-khr">0</td>
-            </tr>
-            <tr>
-              <td style="font-weight: 700">
-                ចំនួនប្រតិបត្តិការសរុបរួម (Total Trx)
-              </td>
-              <td class="val" id="pdf-count-total" style="font-weight: 700">
-                0
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="pdf-sign-area kh-text">
-          <div class="pdf-sign-box">
-            <p style="font-weight: 600; color: #475569">រៀបចំដោយ</p>
-            <div class="pdf-line"></div>
-            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
-          </div>
-          <div class="pdf-sign-box">
-            <p style="font-weight: 600; color: #475569">
-              អនុម័តដោយ (ម្ចាស់ហាង)
-            </p>
-            <div class="pdf-line"></div>
-            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ទទួលប្រាក់ -->
+      <!-- ==========================================
+           🧮 STATE RECEIVE (CALCULATOR)
+           ========================================== -->
       <div id="state-receive" class="view-state">
         <div class="header-bar" style="background: var(--primary)">
           <button class="back-btn" onclick="switchState('state-dashboard')">
@@ -1656,7 +1535,9 @@
         </div>
       </div>
 
-      <!-- QR Modal -->
+      <!-- ==========================================
+           📱 QR MODAL
+           ========================================== -->
       <div id="qrModal" class="qr-modal">
         <div class="close-qr-btn" onclick="closeQRModal()">
           <i class="fa-solid fa-xmark"></i>
@@ -1679,14 +1560,12 @@
                 KHR (៛)
               </div>
             </div>
-
             <img
               src="images/logo-nobg.png"
               class="qr-logo-top"
               alt="U-Pay"
               onerror="this.style.display = 'none'"
             />
-
             <h3
               id="qrUserName"
               class="qr-user-name"
@@ -1694,14 +1573,10 @@
             >
               ...
             </h3>
-
-            <!-- លេខ Merchant ID -->
             <p
               id="qrMerchantID"
               style="color: #64748b; font-size: 0.9rem; margin: 5px 0"
             ></p>
-
-            <!-- 🔥 នេះគឺជា ID qrUserAcc ដែលបងបាត់ ខ្ញុំបានដាក់ចូលវិញហើយ វានឹងបង្ហាញលេខកុងខាងលើ QR យ៉ាងស្អាត -->
             <p
               id="qrUserAcc"
               class="qr-user-acc"
@@ -1718,8 +1593,6 @@
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
-
-            <!-- លេខគណនីខាងក្រោម QR -->
             <p
               id="qrAccountNum"
               style="
@@ -1756,7 +1629,9 @@
         </button>
       </div>
 
-      <!-- Sidebar Overlay -->
+      <!-- ==========================================
+           ☰ SIDEBAR MENU & OTHERS
+           ========================================== -->
       <div
         class="sidebar-overlay"
         id="sidebarOverlay"
@@ -1790,9 +1665,7 @@
             </p>
           </div>
         </div>
-        <!-- Sidebar Menu -->
         <div class="sidebar-menu">
-          <!-- ប្រវត្តិប្រតិបត្តិការ -->
           <a
             class="sidebar-item kh-text"
             onclick="
@@ -1800,80 +1673,63 @@
               loadTransactions();
               toggleSidebar();
             "
+            ><i class="fa-solid fa-file-invoice"></i
+            ><span data-i18n="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span></a
           >
-            <i class="fa-solid fa-file-invoice"></i>
-            <span data-i18n="merch_trx">ប្រវត្តិប្រតិបត្តិការ</span>
-          </a>
-          <!-- ទិន្នន័យវិភាគ -->
           <a
             class="sidebar-item kh-text"
             onclick="
               openSalesReport();
               toggleSidebar();
             "
+            ><i class="fa-solid fa-chart-pie"></i
+            ><span data-i18n="merch_report">ទិន្នន័យវិភាគ</span></a
           >
-            <i class="fa-solid fa-chart-pie"></i>
-            <span data-i18n="merch_report">ទិន្នន័យវិភាគ</span>
-          </a>
-          <!-- គ្រប់គ្រងអាជីវកម្ម -->
           <a
             class="sidebar-item kh-text"
             onclick="
               switchState('state-list');
               toggleSidebar();
             "
+            ><i class="fa-solid fa-briefcase"></i
+            ><span data-i18n="merch_title">គ្រប់គ្រងអាជីវកម្ម</span></a
           >
-            <i class="fa-solid fa-briefcase"></i>
-            <span data-i18n="merch_title">គ្រប់គ្រងអាជីវកម្ម</span>
-          </a>
-          <!-- ស្កេនកូដ QR -->
           <a
             class="sidebar-item kh-text"
             onclick="
               openQRModal(null);
               toggleSidebar();
             "
+            ><i class="fa-solid fa-qrcode"></i
+            ><span data-i18n="merch_stand_qr">ស្កេនកូដ QR</span></a
           >
-            <i class="fa-solid fa-qrcode"></i>
-            <span data-i18n="merch_stand_qr">ស្កេនកូដ QR</span>
-          </a>
-          <!-- ការណែនាំ -->
           <a
             class="sidebar-item kh-text"
             onclick="
               showComingSoon();
               toggleSidebar();
             "
+            ><i class="fa-solid fa-book"></i
+            ><span data-i18n="merch_guide">ការណែនាំ</span></a
           >
-            <i class="fa-solid fa-book"></i>
-            <span data-i18n="merch_guide">ការណែនាំ</span>
-          </a>
-
-          <!-- ជំនួយ & មតិ -->
           <a
             class="sidebar-item kh-text"
             onclick="
               showComingSoon();
               toggleSidebar();
             "
+            ><i class="fa-solid fa-circle-question"></i
+            ><span data-i18n="merch_help">ជំនួយ & មតិ</span></a
           >
-            <i class="fa-solid fa-circle-question"></i>
-            <span data-i18n="merch_help">ជំនួយ & មតិ</span>
-          </a>
-
-          <!-- ការកំណត់ -->
           <a
             class="sidebar-item kh-text"
             onclick="
               showComingSoon();
               toggleSidebar();
             "
+            ><i class="fa-solid fa-gear"></i
+            ><span data-i18n="merch_settings">ការកំណត់</span></a
           >
-            <i class="fa-solid fa-gear"></i>
-            <span data-i18n="merch_settings">ការកំណត់</span>
-          </a>
-
-          <!-- ចាកចេញ -->
           <a
             class="sidebar-item kh-text"
             onclick="window.location.href = 'dashboard.html'"
@@ -1882,13 +1738,10 @@
               margin-top: 10px;
               border-top: 1px solid rgba(255, 255, 255, 0.1);
             "
+            ><i class="fa-solid fa-arrow-right-from-bracket"></i
+            ><span data-i18n="merch_exit">ចាកចេញ</span></a
           >
-            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span data-i18n="merch_exit">ចាកចេញ</span>
-          </a>
         </div>
-
-        <!-- Logo នៅខាងក្រោម -->
         <div
           style="
             margin-top: auto;
@@ -1905,93 +1758,149 @@
             style="width: 80px; filter: brightness(0) invert(1)"
           />
         </div>
+      </div>
 
-        <!-- PIN Modal -->
-        <div class="pin-modal" id="pinModal">
-          <div
-            class="card-box"
-            style="width: 80%; max-width: 300px; text-align: center"
+      <!-- PIN Modal -->
+      <div class="pin-modal" id="pinModal">
+        <div
+          class="card-box"
+          style="width: 80%; max-width: 300px; text-align: center"
+        >
+          <h3 style="margin-top: 0" class="kh-text" data-i18n="merch_pin_title">
+            បញ្ជាក់លេខកូដ
+          </h3>
+          <p
+            style="font-size: 0.85rem; color: var(--text-muted)"
+            class="kh-text"
+            data-i18n="merch_pin_desc"
           >
-            <h3
-              style="margin-top: 0"
-              class="kh-text"
-              data-i18n="merch_pin_title"
-            >
-              បញ្ជាក់លេខកូដ
-            </h3>
-            <p
-              style="font-size: 0.85rem; color: var(--text-muted)"
-              class="kh-text"
-              data-i18n="merch_pin_desc"
-            >
-              សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។
+            សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។
+          </p>
+          <div
+            class="pin-dots"
+            style="
+              display: flex;
+              justify-content: center;
+              gap: 15px;
+              margin: 20px 0;
+            "
+          >
+            <div class="dot" id="dot1"></div>
+            <div class="dot" id="dot2"></div>
+            <div class="dot" id="dot3"></div>
+            <div class="dot" id="dot4"></div>
+          </div>
+          <input
+            type="number"
+            id="hiddenPin"
+            style="opacity: 0; position: absolute; z-index: -1"
+            oninput="handlePinInput(this.value)"
+            pattern="[0-9]*"
+            inputmode="numeric"
+          />
+          <button
+            class="btn-primary kh-text"
+            style="background: var(--bg-main); color: var(--text-main)"
+            onclick="document.getElementById('hiddenPin').focus()"
+            data-i18n="merch_btn_pin"
+          >
+            ចុចបញ្ចូលលេខកូដ
+          </button>
+        </div>
+      </div>
+
+      <!-- PDF Template -->
+      <div id="pdf-template">
+        <div class="pdf-header">
+          <img
+            src="images/logo-nobg.png"
+            alt="U-Pay Logo"
+            onerror="this.src = 'https://upay.com/logo.png'"
+          />
+          <h1 class="pdf-title kh-text">របាយការណ៍លក់ប្រចាំហាង</h1>
+          <p style="margin: 0; font-size: 1.1rem; color: #64748b">
+            សេចក្តីសង្ខេបប្រតិបត្តិការអាជីវកម្ម
+          </p>
+        </div>
+        <div class="pdf-meta kh-text">
+          <div>
+            <p style="margin: 5px 0">
+              <strong>ឈ្មោះហាង៖</strong>
+              <span
+                id="pdf-merch-name"
+                style="color: var(--primary); font-weight: bold"
+                >...</span
+              >
             </p>
-            <div
-              class="pin-dots"
-              style="
-                display: flex;
-                justify-content: center;
-                gap: 15px;
-                margin: 20px 0;
-              "
-            >
-              <div
-                class="dot"
-                id="dot1"
-                style="
-                  width: 15px;
-                  height: 15px;
-                  border-radius: 50%;
-                  border: 2px solid var(--text-muted);
-                "
-              ></div>
-              <div
-                class="dot"
-                id="dot2"
-                style="
-                  width: 15px;
-                  height: 15px;
-                  border-radius: 50%;
-                  border: 2px solid var(--text-muted);
-                "
-              ></div>
-              <div
-                class="dot"
-                id="dot3"
-                style="
-                  width: 15px;
-                  height: 15px;
-                  border-radius: 50%;
-                  border: 2px solid var(--text-muted);
-                "
-              ></div>
-              <div
-                class="dot"
-                id="dot4"
-                style="
-                  width: 15px;
-                  height: 15px;
-                  border-radius: 50%;
-                  border: 2px solid var(--text-muted);
-                "
-              ></div>
-            </div>
-            <input
-              type="number"
-              id="hiddenPin"
-              style="opacity: 0; position: absolute; z-index: -1"
-              oninput="handlePinInput(this.value)"
-              pattern="[0-9]*"
-              inputmode="numeric"
-            />
-            <button
-              class="btn-primary kh-text"
-              style="background: var(--bg-main); color: var(--text-main)"
-              onclick="document.getElementById('hiddenPin').focus()"
-              data-i18n="merch_btn_pin"
-            >
-              ចុចបញ្ចូលលេខកូដ
-            </button>
+            <p style="margin: 5px 0">
+              <strong>Merchant ID៖</strong>
+              <span
+                id="pdf-merch-id"
+                style="font-family: &quot;JetBrains Mono&quot;, monospace"
+                >...</span
+              >
+            </p>
+          </div>
+          <div style="text-align: right">
+            <p style="margin: 5px 0">
+              <strong>កាលបរិច្ឆេទចេញ៖</strong>
+              <span id="pdf-gen-date">...</span>
+            </p>
+            <p style="margin: 5px 0">
+              <strong>រយៈពេល៖</strong> <span id="pdf-date-range">...</span>
+            </p>
+          </div>
+        </div>
+        <table class="pdf-table kh-text">
+          <thead>
+            <tr>
+              <th>បរិយាយ (Description)</th>
+              <th style="text-align: right">ទិន្នន័យ (Data)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ចំណូលសរុបប្រាក់ដុល្លារ (USD)</td>
+              <td class="val" id="pdf-total-usd" style="color: var(--primary)">
+                $0.00
+              </td>
+            </tr>
+            <tr>
+              <td>ចំណូលសរុបប្រាក់រៀល (KHR)</td>
+              <td class="val" id="pdf-total-khr" style="color: var(--primary)">
+                ៛0
+              </td>
+            </tr>
+            <tr style="background: #f8fafc">
+              <td>ប្រតិបត្តិការប្រាក់ដុល្លារសរុប (USD Count)</td>
+              <td class="val" id="pdf-count-usd">0</td>
+            </tr>
+            <tr style="background: #f8fafc">
+              <td>ប្រតិបត្តិការប្រាក់រៀលសរុប (KHR Count)</td>
+              <td class="val" id="pdf-count-khr">0</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700">
+                ចំនួនប្រតិបត្តិការសរុបរួម (Total Trx)
+              </td>
+              <td class="val" id="pdf-count-total" style="font-weight: 700">
+                0
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="pdf-sign-area kh-text">
+          <div class="pdf-sign-box">
+            <p style="font-weight: 600; color: #475569">រៀបចំដោយ</p>
+            <div class="pdf-line"></div>
+            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
+          </div>
+          <div class="pdf-sign-box">
+            <p style="font-weight: 600; color: #475569">
+              អនុម័តដោយ (ម្ចាស់ហាង)
+            </p>
+            <div class="pdf-line"></div>
+            <p style="font-size: 0.9rem; color: #64748b">ហត្ថលេខា និង ឈ្មោះ</p>
           </div>
         </div>
       </div>
@@ -2006,15 +1915,11 @@
         let qrCurrency = "USD";
         let currentTransactions = [];
 
-        // ២. បញ្ចូលកូដជួសជុលនេះជំនួសកន្លែងដែលខុស៖
         document.addEventListener("DOMContentLoaded", () => {
-          // ឆែកមើលថាតើ window.currentUser មានទិន្នន័យឬអត់ មុននឹងប្រើ
           if (window.currentUser) {
             if (!window.currentUser.merchantProfile) {
               window.currentUser.merchantProfile = { merchants: [] };
             }
-
-            // កែពាក្យ gettlement ទៅជា getElement វិញ
             const introNameEl = document.getElementById("introName");
             if (introNameEl) {
               introNameEl.innerText =
@@ -2025,29 +1930,24 @@
         });
 
         function switchState(stateId) {
-          // កែពាក្យ gettlement ទៅជា getElement វិញ
           document
             .querySelectorAll(".view-state")
             .forEach((el) => el.classList.remove("active"));
           const targetEl = document.getElementById(stateId);
-          if (targetEl) {
-            targetEl.classList.add("active");
-          }
+          if (targetEl) targetEl.classList.add("active");
         }
 
         // ==========================================
-        // 🚀 SOCKET.IO: ទទួលប្រាក់ (MERCHANT)
+        // 🚀 SOCKET.IO
         // ==========================================
         const socket = io("https://u-pay-bank.fly.dev");
         socket.emit("joinRoom", window.currentUser.username);
-
         socket.on("paymentReceived", (data) => {
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
           )
             .play()
             .catch(() => {});
-
           if (typeof window.showAppNotification === "function") {
             window.showAppNotification(
               window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
@@ -2064,20 +1964,14 @@
           }
         });
 
-        // ==========================================
-        // មុខងារហៅទិន្នន័យពេលបើក App លើកដំបូង
-        // ==========================================
         async function initApp() {
           switchState("state-list");
-
           try {
             const response = await fetch("/api/merchants/my-merchants", {
               method: "GET",
-              headers: window.authHeaders, // 👈 ប្រើពី u-pay-core.js
+              headers: window.authHeaders,
             });
-
             const data = await response.json();
-
             if (response.ok && data.success) {
               window.currentUser.merchantProfile.merchants = data.merchants.map(
                 (m) => ({
@@ -2096,10 +1990,7 @@
                 JSON.stringify(window.currentUser),
               );
             }
-          } catch (error) {
-            console.error("Error fetching merchants:", error);
-          }
-
+          } catch (error) {}
           renderMerchantList();
         }
 
@@ -2109,24 +2000,19 @@
         function renderMerchantList() {
           const container = document.getElementById("merchantListContainer");
           container.innerHTML = "";
-
           if (window.currentUser.merchantProfile.merchants.length === 0) {
-            const langText =
-              typeof translations !== "undefined" &&
-              translations[window.currentLang]
-                ? translations[window.currentLang]
-                : {};
             let noShopTxt =
-              langText.merch_no_shop || "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ";
+              window.currentLang === "kh"
+                ? "មិនមានអ្នកគិតលុយ ឬ ហាងនៅឡើយទេ"
+                : "No shops yet";
             container.innerHTML = `
             <div style="text-align:center; margin-top:50px; opacity:0.7;">
               <i class="fa-solid fa-store-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
-              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text" data-i18n="merch_no_shop">${noShopTxt}</p>
+              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text">${noShopTxt}</p>
               <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) ដើម្បីបន្ថែមសាខាថ្មី</p>
             </div>`;
             return;
           }
-
           window.currentUser.merchantProfile.merchants.forEach((m) => {
             const div = document.createElement("div");
             div.className = "merchant-item";
@@ -2143,15 +2029,11 @@
           });
         }
 
-        // ==========================================
-        // មុខងារកែប្រែ និង លុបហាង
-        // ==========================================
         function showMerchantOptions(id) {
           const m = window.currentUser.merchantProfile.merchants.find(
             (x) => x.id === id,
           );
           let isKh = window.currentLang === "kh";
-
           Swal.fire({
             title: isKh ? "ជម្រើសហាង" : "Shop Options",
             html: `<b style="font-family: 'Inter', sans-serif;">${m.name}</b>`,
@@ -2169,15 +2051,11 @@
           });
         }
 
-        // ==========================================
-        // មុខងារកែប្រែឈ្មោះហាង (EDIT)
-        // ==========================================
         async function editMerchant(id) {
           const m = window.currentUser.merchantProfile.merchants.find(
             (x) => x.id === id,
           );
           let isKh = window.currentLang === "kh";
-
           const { value: newName } = await Swal.fire({
             title: isKh ? "កែប្រែឈ្មោះហាង" : "Edit Shop Name",
             input: "text",
@@ -2189,19 +2067,16 @@
                 return isKh ? "សូមបញ្ចូលឈ្មោះហាង!" : "Please enter a name!";
             },
           });
-
           if (newName && newName !== m.name) {
             try {
-              // ហៅ API ដើម្បី Update នៅលើ Server
               const response = await fetch(`/api/merchants/update/${id}`, {
                 method: "PUT",
                 headers: window.authHeaders,
                 body: JSON.stringify({ name: newName }),
               });
-
               const data = await response.json();
               if (data.success) {
-                m.name = newName; // Update ក្នុង Browser
+                m.name = newName;
                 sessionStorage.setItem(
                   "user",
                   JSON.stringify(window.currentUser),
@@ -2213,9 +2088,7 @@
                   timer: 1500,
                   showConfirmButton: false,
                 });
-              } else {
-                throw new Error(data.message);
-              }
+              } else throw new Error(data.message);
             } catch (err) {
               Swal.fire(
                 "Error",
@@ -2226,9 +2099,6 @@
           }
         }
 
-        // ==========================================
-        // មុខងារលុបហាង (DELETE)
-        // ==========================================
         function deleteMerchant(id) {
           let isKh = window.currentLang === "kh";
           Swal.fire({
@@ -2245,12 +2115,10 @@
           }).then(async (result) => {
             if (result.isConfirmed) {
               try {
-                // ហៅ API ដើម្បីលុបនៅលើ Server
                 const response = await fetch(`/api/merchants/delete/${id}`, {
                   method: "DELETE",
                   headers: window.authHeaders,
                 });
-
                 const data = await response.json();
                 if (data.success) {
                   window.currentUser.merchantProfile.merchants =
@@ -2268,9 +2136,7 @@
                     timer: 1500,
                     showConfirmButton: false,
                   });
-                } else {
-                  throw new Error(data.message);
-                }
+                } else throw new Error(data.message);
               } catch (err) {
                 Swal.fire(
                   "Error",
@@ -2283,28 +2149,72 @@
         }
 
         // ==========================================
-        // មុខងារបង្កើតហាងថ្មី (CREATE MERCHANT)
+        // 🌟 មុខងារបង្កើតហាងថ្មី (LINK 2 ACCOUNTS)
         // ==========================================
+        function openCreateMerchantState() {
+          populateLinkedAccounts(); // បញ្ចូលទិន្នន័យគណនីចូល Dropdown ពេលចូលផ្ទាំងនេះ
+          switchState("state-create");
+        }
+
+        function populateLinkedAccounts() {
+          const usdSelect = document.getElementById("storeLinkedAccUSD");
+          const khrSelect = document.getElementById("storeLinkedAccKHR");
+          usdSelect.innerHTML =
+            '<option value="">-- មិនភ្ជាប់ (None) --</option>';
+          khrSelect.innerHTML =
+            '<option value="">-- មិនភ្ជាប់ (None) --</option>';
+
+          // Main Accounts
+          usdSelect.innerHTML += `<option value="${window.currentUser.accountNumber}">Main Account ($) - ${window.currentUser.accountNumber}</option>`;
+          if (window.currentUser.accountNumberKHR) {
+            khrSelect.innerHTML += `<option value="${window.currentUser.accountNumberKHR}">Main Account (៛) - ${window.currentUser.accountNumberKHR}</option>`;
+          }
+
+          // Sub Accounts
+          if (
+            window.currentUser.subAccounts &&
+            window.currentUser.subAccounts.length > 0
+          ) {
+            window.currentUser.subAccounts.forEach((sub) => {
+              if (sub.currency === "USD") {
+                usdSelect.innerHTML += `<option value="${sub.accountNumber}">${sub.accountName} ($) - ${sub.accountNumber}</option>`;
+              } else if (sub.currency === "KHR") {
+                khrSelect.innerHTML += `<option value="${sub.accountNumber}">${sub.accountName} (៛) - ${sub.accountNumber}</option>`;
+              }
+            });
+          }
+        }
+
         function showPinModal() {
           const name = document.getElementById("storeName").value;
+          const linkedAccUSD =
+            document.getElementById("storeLinkedAccUSD").value;
+          const linkedAccKHR =
+            document.getElementById("storeLinkedAccKHR").value;
+
           if (!name) {
             Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
             return;
           }
+          if (!linkedAccUSD && !linkedAccKHR) {
+            let isKh = window.currentLang === "kh";
+            Swal.fire(
+              "បញ្ជាក់",
+              isKh
+                ? "សូមភ្ជាប់គណនីយ៉ាងហោចណាស់មួយ (USD ឬ KHR)!"
+                : "Please link at least one account!",
+              "warning",
+            );
+            return;
+          }
 
-          // ដាក់ Modal ឱ្យលោតចេញ
           const modal = document.getElementById("pinModal");
           modal.style.display = "flex";
-
-          // Reset input
           const hiddenInput = document.getElementById("hiddenPin");
           hiddenInput.value = "";
           updatePinDots(0);
-
-          // 🔥 បញ្ហាធំបំផុត៖ ត្រូវ focus ឱ្យត្រូវ Input
           setTimeout(() => {
             hiddenInput.focus();
-            // បើនៅលើទូរស័ព្ទ បន្ថែមនេះដើម្បីបើក Keypad
             hiddenInput.click();
           }, 200);
         }
@@ -2340,8 +2250,11 @@
         async function saveNewMerchant(enteredPin) {
           const name = document.getElementById("storeName").value;
           const city = document.getElementById("storeCity").value;
-          const category = document.getElementById("storeCategory").value; // 🔥 បន្ថែមបន្ទាត់នេះ
-          const linkedAcc = document.getElementById("storeLinkedAcc").value;
+          const category = document.getElementById("storeCategory").value;
+          const linkedAccUSD =
+            document.getElementById("storeLinkedAccUSD").value;
+          const linkedAccKHR =
+            document.getElementById("storeLinkedAccKHR").value;
           let isKh = window.currentLang === "kh";
 
           Swal.fire({
@@ -2351,41 +2264,38 @@
           });
 
           try {
+            // 🔥 បាញ់ទៅ Backend ជាមួយ Field ថ្មី២ ជំនួស linkedAccount ចាស់
             const response = await fetch("/api/merchants/create", {
               method: "POST",
               headers: window.authHeaders,
               body: JSON.stringify({
                 name: name,
                 city: city,
-                category: category, // 🔥 បញ្ជូនទៅ Backend
-                linkedAccount: linkedAcc,
+                category: category,
+                linkedAccUSD: linkedAccUSD,
+                linkedAccKHR: linkedAccKHR,
                 pin: enteredPin,
               }),
             });
-
             const data = await response.json();
 
             if (response.ok && data.success) {
               const newMerchant = {
                 id: data.merchant._id || data.merchant.id,
                 merchantId: data.merchant.merchantId,
-                accountNumbers: data.merchant.accountNumbers || [],
+                accountNumbers: data.merchant.accountNumbers || {},
                 name: data.merchant.name,
                 city: city,
-                category: category, // 🔥 រក្សាទុកក្នុង Session បន្ទាប់ពីបង្កើតជោគជ័យ
-                linkedAccount: linkedAcc,
+                category: category,
                 balance: data.merchant.balance || 0,
                 apiKey: data.merchant.apiKey,
                 apiSecret: data.merchant.apiSecret,
               };
-
               window.currentUser.merchantProfile.merchants.push(newMerchant);
               sessionStorage.setItem(
                 "user",
                 JSON.stringify(window.currentUser),
               );
-
-              // សម្អាតទម្រង់
               document.getElementById("storeName").value = "";
 
               Swal.fire({
@@ -2402,13 +2312,12 @@
                   .classList.remove("active");
                 openMerchant(newMerchant.id);
               });
-            } else {
+            } else
               Swal.fire(
                 isKh ? "បរាជ័យ" : "Error",
                 data.message || "Failed to create merchant",
                 "error",
               );
-            }
           } catch (error) {
             Swal.fire(
               window.currentLang === "kh" ? "បរាជ័យ" : "Error",
@@ -2426,7 +2335,6 @@
             (m) => m.id === id,
           );
           if (!currentMerchant) return;
-
           document.getElementById("dashStoreName").innerText =
             currentMerchant.name;
           document.getElementById("recvStoreName").innerText =
@@ -2436,16 +2344,13 @@
           document.getElementById("sbName").innerText = currentMerchant.name;
           document.getElementById("sbId").innerText =
             currentMerchant.merchantId;
-
           const avatarEl = document.getElementById("sbAvatar");
           if (avatarEl)
             avatarEl.innerText = currentMerchant.name
               .substring(0, 1)
               .toUpperCase();
-
           document.getElementById("dashBalUSD").innerText = "$0.00";
           document.getElementById("dashBalKHR").innerText = "៛0";
-
           fetchMerchantRevenue();
           switchState("state-dashboard");
         }
@@ -2455,25 +2360,19 @@
           document.getElementById("sidebarOverlay").classList.toggle("active");
         }
 
-        // ==========================================
-        // មុខងារទាញយកចំណូល (REVENUE)
-        // ==========================================
         async function fetchMerchantRevenue() {
           if (!currentMerchant) return;
           const filter = document.getElementById("revenueFilter").value;
           const customDateVal =
             document.getElementById("revenueCustomDate").value;
-
           if (currentTransactions.length === 0) await loadTransactions();
 
           let totalUSD = 0,
             totalKHR = 0;
           const now = new Date();
-
           currentTransactions.forEach((t) => {
             const tDate = new Date(t.date);
             let isMatch = false;
-
             if (filter === "today")
               isMatch = tDate.toDateString() === now.toDateString();
             else if (filter === "week") {
@@ -2494,22 +2393,17 @@
               if (t.currency === "KHR") totalKHR += t.amount;
             }
           });
-
           document.getElementById("dashBalUSD").innerText =
             `$${totalUSD.toFixed(2)}`;
           document.getElementById("dashBalKHR").innerText =
             `៛${totalKHR.toLocaleString()}`;
         }
 
-        // ==========================================
-        // 🔄 TAB SWITCHING
-        // ==========================================
         function switchMerchantTab(element, tabName) {
           document
             .querySelectorAll(".tab-item")
             .forEach((tab) => tab.classList.remove("active"));
           element.classList.add("active");
-
           const container = document.getElementById("merchantListContainer");
           const fabBtn = document.querySelector(".fab-add");
           let isKh = window.currentLang === "kh";
@@ -2590,7 +2484,7 @@
         }
 
         // ==========================================
-        // 📱 QR MODAL
+        // 📱 QR MODAL (UPDATED FOR 2 ACCOUNTS)
         // ==========================================
         function openQRModal(amount, currency = null) {
           const modal = document.getElementById("qrModal");
@@ -2599,7 +2493,27 @@
           document.getElementById("qrMerchantID").textContent =
             "MID: " + currentMerchant.merchantId;
 
-          let targetCur = currency ? currency : currentMerchant.linkedAccount;
+          const btnUSD = document.getElementById("btnQRUSD");
+          const btnKHR = document.getElementById("btnQRKHR");
+
+          const hasUSD = !!currentMerchant.accountNumbers?.USD;
+          const hasKHR = !!currentMerchant.accountNumbers?.KHR;
+
+          btnUSD.style.display = hasUSD ? "block" : "none";
+          btnKHR.style.display = hasKHR ? "block" : "none";
+
+          let targetCur = currency;
+          if (!targetCur) {
+            targetCur = hasUSD ? "USD" : "KHR";
+          }
+
+          if (
+            (targetCur === "USD" && !hasUSD) ||
+            (targetCur === "KHR" && !hasKHR)
+          ) {
+            targetCur = hasUSD ? "USD" : "KHR";
+          }
+
           switchQRCurrency(targetCur);
 
           if (amount) document.getElementById("qrSetAmount").value = amount;
@@ -2615,9 +2529,8 @@
             document
               .getElementById("state-receive")
               .classList.contains("active")
-          ) {
+          )
             switchState("state-dashboard");
-          }
         }
 
         function switchQRCurrency(currency) {
@@ -2635,21 +2548,24 @@
             document.getElementById("qrCurrencySymbol").innerText = "៛";
           }
 
-          const targetAcc = currentMerchant.accountNumbers[currency];
-          document.getElementById("qrUserAcc").textContent = targetAcc;
-          document.getElementById("qrAccountNum").textContent = targetAcc;
-
+          const targetAcc = currentMerchant.accountNumbers
+            ? currentMerchant.accountNumbers[currency]
+            : null;
+          document.getElementById("qrUserAcc").textContent = targetAcc || "N/A";
+          document.getElementById("qrAccountNum").textContent =
+            targetAcc || "N/A";
           updateMyQR();
         }
 
         function updateMyQR() {
           const amount = document.getElementById("qrSetAmount").value;
-          const targetAcc = currentMerchant.accountNumbers[qrCurrency];
+          const targetAcc = currentMerchant.accountNumbers
+            ? currentMerchant.accountNumbers[qrCurrency]
+            : null;
 
           document.getElementById("qrCurrencySymbol").innerText =
             qrCurrency === "USD" ? "$" : "៛";
-
-          let qrData = targetAcc;
+          let qrData = targetAcc || "";
           if (amount && parseFloat(amount) > 0)
             qrData = `${targetAcc}:${amount}`;
 
@@ -2662,11 +2578,9 @@
           const btnSave = document.getElementById("btnSaveQR");
           const btnClose = document.querySelector(".close-qr-btn");
           const toggleBar = document.getElementById("qrToggleBar");
-
           btnSave.style.display = "none";
           btnClose.style.display = "none";
           toggleBar.style.display = "none";
-
           html2canvas(document.getElementById("myQRContent"), {
             backgroundColor: document.body.classList.contains("dark-mode")
               ? "#1e1e1e"
@@ -2677,7 +2591,6 @@
             link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
             link.href = canvas.toDataURL();
             link.click();
-
             btnSave.style.display = "block";
             btnClose.style.display = "flex";
             toggleBar.style.display = "flex";
@@ -2691,18 +2604,14 @@
           const filter = document.getElementById("reportFilter").value;
           const customDate = document.getElementById("reportCustomDate").value;
           const list = document.getElementById("transactionList");
-
           list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">កំពុងផ្ទុក...</div>`;
 
           try {
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
-              {
-                headers: window.authHeaders,
-              },
+              { headers: window.authHeaders },
             );
             const data = await response.json();
-
             if (data.success && data.transactions.length > 0) {
               const now = new Date();
               const filteredData = data.transactions.filter((t) => {
@@ -2727,7 +2636,6 @@
               });
 
               currentTransactions = filteredData;
-
               if (filteredData.length > 0) {
                 list.innerHTML = filteredData
                   .map((t) => {
@@ -2738,23 +2646,15 @@
                     const sign = isReceived ? "+" : "-";
                     return `
                   <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
-                    <div>
-                      <h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4>
-                      <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p>
-                    </div>
-                    <div style="text-align:right;">
-                      <h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">${sign}${t.amount.toFixed(2)} ${t.currency}</h4>
-                      <p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p>
-                    </div>
+                    <div><h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4><p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p></div>
+                    <div style="text-align:right;"><h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">${sign}${t.amount.toFixed(2)} ${t.currency}</h4><p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p></div>
                   </div>`;
                   })
                   .join("");
-              } else {
+              } else
                 list.innerHTML = `<div style="text-align:center; padding: 40px 20px;"><p class="kh-text">មិនមានប្រតិបត្តិការសម្រាប់ជម្រើសនេះ</p></div>`;
-              }
-            } else {
+            } else
               list.innerHTML = `<div style="text-align:center; padding: 40px 20px;"><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
-            }
           } catch (error) {
             list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
           }
@@ -2765,11 +2665,9 @@
             Swal.fire("បញ្ជាក់", "មិនមានទិន្នន័យសម្រាប់ Export ទេ!", "warning");
             return;
           }
-
           let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
           csvContent +=
             "កាលបរិច្ឆេទ,លេខប្រតិបត្តិការ (Ref ID),អ្នកវេរ,ប្រភេទ,ចំនួនប្រាក់,រូបិយប័ណ្ណ,ស្ថានភាព,ចំណាំ\n";
-
           currentTransactions.forEach((t) => {
             const row = [
               `"${t.date}"`,
@@ -2783,7 +2681,6 @@
             ].join(",");
             csvContent += row + "\n";
           });
-
           const encodedUri = encodeURI(csvContent);
           const link = document.createElement("a");
           link.setAttribute("href", encodedUri);
@@ -2791,7 +2688,6 @@
             "download",
             `Report_${currentMerchant.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.csv`,
           );
-
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -2801,21 +2697,16 @@
           switchState("state-sales-report");
           document.getElementById("totalSalesAmount").innerHTML =
             `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
-
           try {
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
-              {
-                headers: window.authHeaders,
-              },
+              { headers: window.authHeaders },
             );
             const data = await response.json();
-
             let totalUSD = 0,
               totalKHR = 0,
               countUSD = 0,
               countKHR = 0;
-
             if (data.success && data.transactions) {
               data.transactions.forEach((t) => {
                 if (t.type === "Received" || t.amount > 0) {
@@ -2829,7 +2720,6 @@
                 }
               });
             }
-
             document.getElementById("totalSalesAmount").innerHTML =
               `<span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span><span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>`;
             document.getElementById("salesStats").innerHTML = `
@@ -2846,29 +2736,24 @@
           const filter = document.getElementById("salesFilter").value;
           const customDateVal =
             document.getElementById("salesCustomDate").value;
-
           document.getElementById("totalSalesAmount").innerHTML =
             `<span style="font-size: 1.2rem;">កំពុងគណនា...</span>`;
-
           try {
             const response = await fetch(
               `/api/merchants/transactions/${currentMerchant.id}`,
               { headers: window.authHeaders },
             );
             const data = await response.json();
-
             let totalUSD = 0,
               totalKHR = 0,
               countUSD = 0,
               countKHR = 0,
               totalTx = 0;
-
             if (data.success && data.transactions) {
               const now = new Date();
               data.transactions.forEach((t) => {
                 const tDate = new Date(t.date);
                 let isMatch = false;
-
                 if (filter === "today")
                   isMatch = tDate.toDateString() === now.toDateString();
                 else if (filter === "week") {
@@ -2897,7 +2782,6 @@
                 }
               });
             }
-
             document.getElementById("totalSalesAmount").innerHTML =
               `<span style="color: var(--primary); font-size: 2rem; font-weight: 700;">$${totalUSD.toFixed(2)}</span><span style="color: var(--primary); font-size: 1.5rem; margin-left: 10px; font-weight: 600;">/ ៛${totalKHR.toLocaleString()}</span>`;
             document.getElementById("salesStats").innerHTML = `

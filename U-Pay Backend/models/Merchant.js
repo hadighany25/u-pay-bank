@@ -15,25 +15,25 @@ const merchantSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // 🔥 បន្ថែម Field នេះចូល៖
     category: {
       type: String,
-      required: true, // ដាក់ true ប្រសិនបើបងចង់ឱ្យគ្រប់ហាងត្រូវតែមាន Category
-      default: "Other", // ដាក់តម្លៃ Default ទុកជាមុន
-    },
-    linkedAccount: {
-      type: String,
-      enum: ["USD", "KHR"],
       required: true,
+      default: "Other",
+    },
+    // 🔥 កែត្រង់នេះ៖ ជំនួស linkedAccount ចាស់ដោយ linkedAccounts ថ្មី
+    linkedAccounts: {
+      USD: { type: String, default: null }, // លេខគណនីប្រាក់ដុល្លារដែលម្ចាស់ហាងរើសយកមកភ្ជាប់
+      KHR: { type: String, default: null }, // លេខគណនីប្រាក់រៀលដែលម្ចាស់ហាងរើសយកមកភ្ជាប់
     },
     merchantId: {
       type: String,
       required: true,
       unique: true,
     },
+    // លេខកុង QR របស់ហាងផ្ទាល់ (បង្កើតអូតូ សម្រាប់ឱ្យគេ Scan)
     accountNumbers: {
-      USD: { type: String, required: true },
-      KHR: { type: String, required: true },
+      USD: { type: String, default: null },
+      KHR: { type: String, default: null },
     },
     collected: {
       USD: { type: Number, default: 0.0 },

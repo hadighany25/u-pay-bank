@@ -1,13 +1,11 @@
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
 const User = require("../models/User");
-// 🔥 ត្រូវ Import Transaction Model ចូល ព្រោះយើងបានផ្តាច់វាចេញពី User
 const Transaction = require("../models/Transaction");
 
 // ========================================================
 // Function ជំនួយ (Helpers)
 // ========================================================
-// ជំនួយសម្រាប់បង្កើតលេខ Random តាមចំនួនខ្ទង់ដែលចង់បាន
 const generateRandomNumber = (length) => {
   let result = "";
   for (let i = 0; i < length; i++) {
@@ -23,41 +21,55 @@ const generateRandomNumber = (length) => {
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
 exports.createMerchant = async (req, res) => {
   try {
-    // ទទួលយកទិន្នន័យពី Frontend
-    const {
-      name,
-      city,
-      category,
-      linkedAccount,
-      userId: bodyUserId,
-    } = req.body;
+    const { name, city, category, linkedAccUSD, linkedAccKHR, pin } = req.body;
+    const userId = req.user.username;
 
-    const userId =
-      req.user.username || bodyUserId || req.user.id || req.user._id;
+    // ឆែកមើលថាមាន User ដែរឬទេ និង ផ្ទៀងផ្ទាត់ PIN
+    const owner = await User.findOne({ username: userId });
+    if (!owner)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ" });
+    if (owner.pin !== pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខកូដ PIN មិនត្រឹមត្រូវទេ" });
+
+    // ត្រូវមានយ៉ាងហោចណាស់គណនីមួយដែលបានភ្ជាប់
+    if (!linkedAccUSD && !linkedAccKHR) {
+      return res
+        .status(400)
+        .json({ success: false, message: "សូមភ្ជាប់គណនីយ៉ាងហោចណាស់មួយ!" });
+    }
 
     const merchantId = "500" + generateRandomNumber(12);
-    const accountNumberUSD = "888" + generateRandomNumber(9);
-    const accountNumberKHR = "999" + generateRandomNumber(9);
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
+
+    // 🔥 បង្កើតលេខគណនី QR របស់ហាង ដោយផ្អែកលើគណនីដែលគេភ្ជាប់
+    let accountNumbers = { USD: null, KHR: null };
+    let linkedAccounts = { USD: null, KHR: null };
+
+    if (linkedAccUSD) {
+      accountNumbers.USD = "888" + generateRandomNumber(9);
+      linkedAccounts.USD = linkedAccUSD;
+    }
+    if (linkedAccKHR) {
+      accountNumbers.KHR = "999" + generateRandomNumber(9);
+      linkedAccounts.KHR = linkedAccKHR;
+    }
 
     const newMerchant = new Merchant({
       userId,
       name,
       city,
-      category, // Save category ចូល Database
-      linkedAccount,
+      category,
       merchantId,
-      accountNumbers: {
-        USD: accountNumberUSD,
-        KHR: accountNumberKHR,
-      },
       apiKey,
       apiSecret,
-      collected: {
-        USD: 0.0,
-        KHR: 0,
-      },
+      linkedAccounts: linkedAccounts, // គណនីគោលដែលភ្ជាប់
+      accountNumbers: accountNumbers, // លេខកុង QR របស់ហាង
+      collected: { USD: 0.0, KHR: 0 },
     });
 
     const savedMerchant = await newMerchant.save();
@@ -68,55 +80,48 @@ exports.createMerchant = async (req, res) => {
         id: savedMerchant._id.toString(),
         merchantId: savedMerchant.merchantId,
         name: savedMerchant.name,
-        category: savedMerchant.category, // ត្រឡប់ទៅឱ្យ Frontend វិញ
+        category: savedMerchant.category,
+        linkedAccounts: savedMerchant.linkedAccounts,
         accountNumbers: savedMerchant.accountNumbers,
         apiKey: savedMerchant.apiKey,
         apiSecret: savedMerchant.apiSecret,
       },
     });
   } catch (error) {
-    console.error("DEBUG ERROR (CREATE):", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("CREATE MERCHANT ERROR:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server" });
   }
 };
 
-// ២. មុខងារទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
+// ២. ទាញយកហាងទាំងអស់របស់អ្នកប្រើប្រាស់ (Get Merchants)
 exports.getMyMerchants = async (req, res) => {
   try {
-    // យក username ពី req.user ដែលបានមកពី Auth Middleware
     const username = req.user.username;
-    console.log("Fetching merchants for username:", username);
-
-    // ស្វែងរកហាងតាម userId ដែលយើងបាន Save ជា username
     const merchants = await Merchant.find({ userId: username }).select(
       "-apiSecret",
     );
-
-    console.log("Found merchants:", merchants);
-
     res.status(200).json({ success: true, merchants });
   } catch (error) {
-    console.error("ERROR IN getMyMerchants:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ៣. មុខងារលុបហាង (Delete Merchant)
+// ៣. លុបហាង (Delete Merchant)
 exports.deleteMerchant = async (req, res) => {
   try {
     const { merchantId } = req.params;
-    const userId = req.user.username || req.user.id || req.user._id;
+    const userId = req.user.username;
 
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
       userId: userId,
     });
-
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "Merchant not found" });
-    }
 
     res
       .status(200)
@@ -126,35 +131,33 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
-// ៤. មុខងារកែប្រែឈ្មោះហាង (Update Merchant)
+// ៤. កែប្រែឈ្មោះហាង (Update Merchant)
 exports.updateMerchant = async (req, res) => {
   try {
     const { name } = req.body;
-    const userId = req.user.username || req.user.id || req.user._id;
+    const userId = req.user.username;
 
     const merchant = await Merchant.findOneAndUpdate(
       { _id: req.params.merchantId, userId: userId },
       { name },
-      { new: true }, // ត្រឡប់ទិន្នន័យថ្មីបន្ទាប់ពី Update រួច
+      { new: true },
     );
 
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "Merchant not found" });
-    }
-
     res.json({ success: true, merchant });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ៥. មុខងារទាញយកប្រវត្តិប្រតិបត្តិការហាង (Get Transactions)
+// ៥. ទាញយកប្រវត្តិប្រតិបត្តិការហាង (Get Transactions)
 exports.getMerchantTransactions = async (req, res) => {
   try {
     const { merchantId } = req.params;
-    const { filter } = req.query; // ទទួលយក filter: today, week, month, total
+    const { filter } = req.query;
 
     const merchant = await Merchant.findById(merchantId);
     if (!merchant)
@@ -162,15 +165,21 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះ៖ ថែម amount: { $gt: 0 } ដើម្បីទាញយកតែ Record លុយចូល (បំបាត់អាលោតត្រួតគ្នា)
+    // 🔥 ស្វែងរក Transaction តាមលក្ខខណ្ឌថ្មី
+    let searchConditions = [
+      { receiverName: merchant.name },
+      { merchantId: merchant.merchantId },
+    ];
+
+    // បន្ថែមលក្ខខណ្ឌបើមាន QR
+    if (merchant.accountNumbers.USD)
+      searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
+    if (merchant.accountNumbers.KHR)
+      searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
+
     let transactions = await Transaction.find({
-      $or: [
-        { receiverName: merchant.name },
-        { merchantId: merchant.merchantId },
-        { receiverAcc: merchant.accountNumbers.USD },
-        { receiverAcc: merchant.accountNumbers.KHR },
-      ],
-      amount: { $gt: 0 }, // <--- បញ្ជាឱ្យយកតែលុយដែល + ធំជាង ០
+      $or: searchConditions,
+      amount: { $gt: 0 },
     }).sort({ _id: -1 });
 
     const currentUTC = new Date();
@@ -180,23 +189,21 @@ exports.getMerchantTransactions = async (req, res) => {
       const trxUTC = new Date(t.date);
       const trxKhmerTime = new Date(trxUTC.getTime() + 7 * 60 * 60 * 1000);
 
-      if (filter === "today") {
+      if (filter === "today")
         return (
           trxKhmerTime.toISOString().split("T")[0] ===
           nowKhmerTime.toISOString().split("T")[0]
         );
-      }
       if (filter === "week") {
         const lastWeek = new Date(nowKhmerTime);
         lastWeek.setDate(lastWeek.getDate() - 7);
         return trxKhmerTime >= lastWeek;
       }
-      if (filter === "month") {
+      if (filter === "month")
         return (
           trxKhmerTime.getMonth() === nowKhmerTime.getMonth() &&
           trxKhmerTime.getFullYear() === nowKhmerTime.getFullYear()
         );
-      }
       return true;
     });
 
@@ -206,7 +213,7 @@ exports.getMerchantTransactions = async (req, res) => {
   }
 };
 
-// ៦. មុខងារទាញយកចំណូលហាង (Revenue)
+// ៦. ទាញយកចំណូលហាង (Revenue)
 exports.getMerchantRevenue = async (req, res) => {
   try {
     const { merchantId } = req.params;
@@ -216,37 +223,15 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះដូចគ្នា៖ ថែម amount: { $gt: 0 } ដើម្បីកុំឱ្យវាបូកលុយទ្វេដង
-    const transactions = await Transaction.find({
-      $or: [
-        { receiverName: merchant.name },
-        { merchantId: merchant.merchantId },
-        { receiverAcc: merchant.accountNumbers.USD },
-        { receiverAcc: merchant.accountNumbers.KHR },
-      ],
-      status: "Success",
-      amount: { $gt: 0 }, // <--- បញ្ជាឱ្យយកតែលុយចូលមកបូកបញ្ចូលគ្នា
-    });
-
-    let revenue = 0;
-
-    transactions.forEach((t) => {
-      if (t.currency === merchant.linkedAccount) {
-        revenue += t.amount; // លែងប្រើ Math.abs() ព្រោះយើងយកតែលុយវិជ្ជមានមកបូកហើយ
-      }
-    });
-
-    res.status(200).json({ success: true, revenue });
+    res.status(200).json({ success: true, revenue: merchant.collected });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // ========================================================
-// Admin Merchant/Business Management APIs (សម្រាប់ Admin)
+// Admin Business Management APIs
 // ========================================================
-
-// ១. មុខងារ Admin ផ្អាកឬបើកដំណើរការហាង (Toggle Freeze)
 exports.adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
@@ -258,23 +243,19 @@ exports.adminToggleMerchantFreeze = async (req, res) => {
   }
 };
 
-// ២. មុខងារ Admin លុបហាងចោល (Delete Merchant)
 exports.adminDeleteMerchant = async (req, res) => {
   try {
-    const { id } = req.params;
-    await Merchant.findByIdAndDelete(id);
+    await Merchant.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Merchant deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ៣. មុខងារ Admin កែប្រែព័ត៌មានហាង (Edit Merchant)
 exports.adminEditMerchant = async (req, res) => {
   try {
-    const { id, name, merchantId, linkedAccount, category } = req.body;
+    const { id, name, merchantId, category } = req.body;
 
-    // ឆែកមើលថា Merchant ID ថ្មីមានជាន់គេទេ (លើកលែងតែម្ចាស់ខ្លួនឯង)
     const existing = await Merchant.findOne({
       merchantId: merchantId,
       _id: { $ne: id },
@@ -285,12 +266,7 @@ exports.adminEditMerchant = async (req, res) => {
         message: "Merchant ID នេះមានអ្នកប្រើហើយ!",
       });
 
-    await Merchant.findByIdAndUpdate(id, {
-      name,
-      merchantId,
-      linkedAccount,
-      category,
-    });
+    await Merchant.findByIdAndUpdate(id, { name, merchantId, category });
     res.json({ success: true, message: "កែប្រែជោគជ័យ" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
