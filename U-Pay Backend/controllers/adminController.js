@@ -131,16 +131,33 @@ const updateFX = async (req, res) => {
 };
 
 const toggleFreeze = async (req, res) => {
+  // 1. ឆែកសិទ្ធិ (រក្សាទុកដដែល)
   const access = await checkAdminAccess(req.admin, "freezeUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
+  // 2. ទទួលទិន្នន័យ
   const { id, isFrozen } = req.body;
+
+  // បន្ថែមការ Log ត្រង់នេះដើម្បីមើលក្នុង Terminal ថាបានទទួល ID អី
+  console.log("DEBUG TOGGLE FREEZE - ID:", id, "Action:", isFrozen);
+
   try {
-    if (!id) return res.json({ success: false });
-    let query = [{ id: id }, { username: id }];
-    if (mongoose.isValidObjectId(id)) query.push({ _id: id });
-    const u = await User.findOne({ $or: query });
+    if (!id)
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing User ID" });
+
+    // 3. កែលម្អការ Query៖ ជួនកាលការប្រើ $or ជាមួយ ObjectId អាចមានបញ្ហា
+    let u;
+    if (mongoose.isValidObjectId(id)) {
+      u = await User.findById(id);
+    } else {
+      u = await User.findOne({
+        $or: [{ username: id }, { accountNumber: id }],
+      });
+    }
+
     if (u) {
       u.isFrozen = isFrozen;
       if (!isFrozen) u.pinAttempts = 0;
@@ -152,10 +169,17 @@ const toggleFreeze = async (req, res) => {
         u.username,
         `Status changed to ${isFrozen ? "FROZEN" : "UNFROZEN"}`,
       );
-      res.json({ success: true });
-    } else res.json({ success: false });
+      return res.json({ success: true, message: "Updated successfully" });
+    } else {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("TOGGLE FREEZE ERROR:", err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Server Error" });
   }
 };
 
