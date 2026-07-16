@@ -165,16 +165,15 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 ស្វែងរក Transaction តាមលក្ខខណ្ឌថ្មី
+    // 🔥 កែត្រង់នេះ៖ លុបការស្វែងរកតាម { receiverName: merchant.name } ចេញ!
     let searchConditions = [
-      { receiverName: merchant.name },
-      { merchantId: merchant.merchantId },
+      { merchantId: merchant.merchantId }, // ចាប់យកតាម ID របស់ហាងតែមួយគត់
     ];
 
-    // បន្ថែមលក្ខខណ្ឌបើមាន QR
-    if (merchant.accountNumbers.USD)
+    // បន្ថែមលក្ខខណ្ឌបើហាងមានលេខ QR (USD ឬ KHR)
+    if (merchant.accountNumbers && merchant.accountNumbers.USD)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
-    if (merchant.accountNumbers.KHR)
+    if (merchant.accountNumbers && merchant.accountNumbers.KHR)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
 
     let transactions = await Transaction.find({
@@ -223,6 +222,7 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
+    // 🔥 ប្រើប្រាស់ merchant.collected តែម្តង លឿន និងមិនជាន់ជាមួយទិន្នន័យចាស់ៗទេ
     res.status(200).json({ success: true, revenue: merchant.collected });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
