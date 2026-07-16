@@ -3,7 +3,7 @@
 // ========================================================================
 
 // =======================================================
-// ១. មុខងារគូរតារាង (បង្ហាញទាំងអស់ គ្មាន Limit)
+// ១. មុខងារគូរតារាង (បង្ហាញទាំងអស់រួមទាំង Sub-accounts)
 // =======================================================
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
@@ -27,23 +27,52 @@ function renderUsersTable(users) {
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
-  // បង្កើត HTML ជាដុំធំតែមួយ ដើម្បីឱ្យ Browser គូរបានលឿនបំផុត ទោះមានរាប់ពាន់ជួរក៏ដោយ
   const rowsHtml = users
     .map((u) => {
       const uid = u._id || u.id;
       const isCentralBank = u.accountNumber === "888888888";
 
-      const accountsHtml = `
+      // 🔥 រៀបចំ HTML សម្រាប់ Main Accounts មុន
+      let accountsHtml = `
         <div class="acc-stack">
-            <div class="acc-badge usd"><span>$</span> ${u.accountNumber || "N/A"}</div>
-            ${u.accountNumberKHR ? `<div class="acc-badge khr"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
-        </div>`;
+            <div class="acc-badge usd" title="Main USD"><span>$</span> ${u.accountNumber || "N/A"}</div>
+            ${u.accountNumberKHR ? `<div class="acc-badge khr" title="Main KHR"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
+      `;
 
-      const balanceHtml = `
+      let balanceHtml = `
         <div class="acc-stack">
-            <div style="color: #0369a1; font-weight: bold;">$${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-            <div style="color: #047857; font-weight: bold;">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
-        </div>`;
+            <div style="color: #0369a1; font-weight: bold;" title="Main USD">$${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+            <div style="color: #047857; font-weight: bold;" title="Main KHR">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
+      `;
+
+      // 🔥 ឆែកមើលបើ User មាន Sub-accounts ឱ្យគូរវាបន្ថែមពីក្រោម Main Account
+      if (u.subAccounts && u.subAccounts.length > 0) {
+        u.subAccounts.forEach((sub) => {
+          const sym = sub.currency === "USD" ? "$" : "៛";
+          const colorClass = sub.currency === "USD" ? "usd" : "khr";
+          const valColor = sub.currency === "USD" ? "#0369a1" : "#047857";
+          const formattedBal =
+            sub.currency === "USD"
+              ? (sub.balance || 0).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })
+              : (sub.balance || 0).toLocaleString("en-US");
+
+          accountsHtml += `
+            <div class="acc-badge ${colorClass}" style="opacity: 0.85; margin-top: 4px;" title="${sub.accountName}">
+                <span>${sym}</span> ${sub.accountNumber} <span style="font-size:0.65rem; color:#64748b; margin-left: 5px;">(${sub.accountName})</span>
+            </div>`;
+
+          balanceHtml += `
+            <div style="color: ${valColor}; font-weight: bold; opacity: 0.85; margin-top: 4px;" title="${sub.accountName}">
+                ${sub.currency === "USD" ? "$" : ""}${formattedBal}${sub.currency === "KHR" ? " ៛" : ""}
+            </div>`;
+        });
+      }
+
+      // បិទ Tag ដែលបើកខាងលើ
+      accountsHtml += `</div>`;
+      balanceHtml += `</div>`;
 
       let actionButtonsHtml = "";
       if (isCentralBank) {
@@ -73,7 +102,7 @@ function renderUsersTable(users) {
 
       return `
       <tr style="${bgStyle}">
-        <td>
+        <td style="vertical-align: top; padding-top: 15px;">
             <div style="display: flex; align-items: center; gap: 10px">
                 <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='images/default-avatar.png'" />
                 <div>
@@ -82,10 +111,10 @@ function renderUsersTable(users) {
                 </div>
             </div>
         </td>
-        <td>${accountsHtml}</td>
-        <td>${balanceHtml}</td>
-        <td>${freezeHtml}</td>
-        <td><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
+        <td style="vertical-align: top; padding-top: 15px;">${accountsHtml}</td>
+        <td style="vertical-align: top; padding-top: 15px;">${balanceHtml}</td>
+        <td style="vertical-align: top; padding-top: 15px;">${freezeHtml}</td>
+        <td style="vertical-align: top; padding-top: 15px;"><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
       </tr>`;
     })
     .join("");
@@ -111,11 +140,20 @@ function filterUsers() {
     const accUSD = (u.accountNumber || "").toString();
     const accKHR = (u.accountNumberKHR || "").toString();
 
+    // ឆែកមើលក្រែងលោតលេខកុង Sub-account ត្រូវគ្នានឹងការស្វែងរក
+    let subMatch = false;
+    if (u.subAccounts && u.subAccounts.length > 0) {
+      subMatch = u.subAccounts.some((sub) =>
+        (sub.accountNumber || "").toString().includes(term),
+      );
+    }
+
     return (
       uname.includes(term) ||
       fname.includes(term) ||
       accUSD.includes(term) ||
-      accKHR.includes(term)
+      accKHR.includes(term) ||
+      subMatch
     );
   });
 
@@ -258,6 +296,7 @@ async function saveUserEdit() {
   }
 }
 
+// 🔥 កែប្រែដើម្បីអោយអាចរើសគណនី (Main / Sub) ដើម្បីដាក់ដកប្រាក់
 function openAdjustBalance(username, type) {
   const isAdd = type === "add";
   const title = isAdd
@@ -265,6 +304,22 @@ function openAdjustBalance(username, type) {
     : "ដកប្រាក់ (Cash Withdrawal)";
   const confirmBtnColor = isAdd ? "#10b981" : "#ef4444";
   const icon = isAdd ? "circle-down" : "circle-up";
+
+  // ស្វែងរក User ដើម្បីទាញយកគណនីទាំងអស់របស់គាត់
+  const user = globalUsersData.find((u) => u.username === username);
+  if (!user) return;
+
+  // បង្កើត Options សម្រាប់ Dropdown រើសគណនី
+  let optionsHtml = `<option value="MAIN_USD" data-cur="USD">គណនី Main USD ($) - ${user.accountNumber}</option>`;
+  if (user.accountNumberKHR) {
+    optionsHtml += `<option value="MAIN_KHR" data-cur="KHR">គណនី Main KHR (៛) - ${user.accountNumberKHR}</option>`;
+  }
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    user.subAccounts.forEach((sub) => {
+      const sym = sub.currency === "USD" ? "$" : "៛";
+      optionsHtml += `<option value="${sub.accountNumber}" data-cur="${sub.currency}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
+    });
+  }
 
   const formHtml = `
     <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
@@ -277,12 +332,11 @@ function openAdjustBalance(username, type) {
             </div>
         </div>
 
-        <!-- ជ្រើសរើសប្រភេទគណនី -->
+        <!-- ជ្រើសរើសប្រភេទគណនី (បូករួម Sub-accounts) -->
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ប្រភេទគណនី (Account Type)</label>
-            <select id="adjCurrency" class="custom-swal-input">
-                <option value="USD">គណនី USD ($)</option>
-                <option value="KHR">គណនី KHR (៛)</option>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ប្រភេទគណនី (Target Account)</label>
+            <select id="adjTargetAccount" class="custom-swal-input">
+                ${optionsHtml}
             </select>
         </div>
 
@@ -330,14 +384,18 @@ function openAdjustBalance(username, type) {
     confirmButtonText: "បញ្ជាក់ (Confirm)",
     cancelButtonText: "បោះបង់",
     preConfirm: () => {
-      const currency = document.getElementById("adjCurrency").value;
+      // ទាញយកទិន្នន័យពី Form ថ្មី
+      const select = document.getElementById("adjTargetAccount");
+      const targetAccount = select.value;
+      const currency =
+        select.options[select.selectedIndex].getAttribute("data-cur");
       const amount = document.getElementById("adjAmount").value;
       const remark = document.getElementById("adjRemark").value.trim();
 
       if (!amount || amount <= 0) {
         Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!");
       }
-      return { currency, amount, remark }; // បញ្ជូន Remark ទៅឱ្យ then()
+      return { targetAccount, currency, amount, remark };
     },
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -349,13 +407,14 @@ function openAdjustBalance(username, type) {
       try {
         const res = await fetch("/api/admin/adjust-balance", {
           method: "POST",
-          headers: getAuthHeaders(), // ✅ ប្រើ Headers របស់បងវិញទើបដើរ
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             username,
+            targetAccount: result.value.targetAccount, // បញ្ជូនគណនីដែលត្រូវដាក់ប្រាក់ចូល
             amount: result.value.amount,
             currency: result.value.currency,
             type,
-            remark: result.value.remark, // ✅ បញ្ជូន Remark ចូលទៅ Backend
+            remark: result.value.remark,
           }),
         });
         const data = await res.json();

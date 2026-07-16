@@ -286,7 +286,7 @@ const transfer = async (req, res) => {
 
       const currencySymbol = isReceiverKHR ? "៛" : "$";
       const transferNotification = {
-        title: "ប្រាក់ចូលគណនី! 💸",
+        title: "ទទួលបានទឹកប្រាក់! 💸",
         message: `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
         type: "transfer_receive",
         date: new Date().toLocaleString("en-US", {
