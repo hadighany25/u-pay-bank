@@ -458,24 +458,18 @@
       let selectedCurrency = "USD";
       let selectedTheme = "lunar";
       let currentUser = null;
-      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 }; // Backup Rates
+      // 🔥 បង្កើតអថេរទុកអត្រាប្តូរប្រាក់ដែលទាញបានពី Database
+      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
 
       document.addEventListener("DOMContentLoaded", async () => {
-        // ទាញយក User Session
         const sessionUser = sessionStorage.getItem("user");
         const token = sessionStorage.getItem("userToken");
 
         if (sessionUser && token) {
           currentUser = JSON.parse(sessionUser);
 
-          // ទាញយក FX Rates ពិតប្រាកដពី Server
-          try {
-            const fxRes = await fetch("/api/fx/rates", {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const fxData = await fxRes.json();
-            if (fxData.success) currentFXRates = fxData.rates;
-          } catch (e) {}
+          // 🔥 ទាញយក FX Rates ពិតប្រាកដពី Server (ដូច Transfer)
+          await fetchFXRates();
 
           populateSourceAccounts();
         } else {
@@ -492,10 +486,7 @@
           document.body.classList.add("dark-mode");
         }
 
-        // មុខងារនេះអាចហៅ Data-i18n របស់បងបានធម្មតា (ប្រសិនបើមាន)
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
-        }
+        if (typeof applyLanguage === "function") applyLanguage();
       });
 
       // បញ្ចូលគណនីទាំងអស់ទៅក្នុង Dropdown
@@ -582,7 +573,27 @@
         calculateExchangePreview();
       }
 
-      // គណនាលុយខ្វែងរូបិយប័ណ្ណ
+      // 🔥 មុខងារទាញអត្រាប្តូរប្រាក់ពី Database (ដូច Transfer)
+      async function fetchFXRates() {
+        try {
+          const res = await fetch("/api/fx/rates", {
+            headers: {
+              Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+            },
+          });
+          const data = await res.json();
+          if (data.success) {
+            currentFXRates = data.rates;
+            console.log("FX Rates Loaded:", currentFXRates);
+            // គណនាឡើងវិញក្រោយពេលទាញបានអត្រាពី DB
+            calculateExchangePreview();
+          }
+        } catch (e) {
+          console.error("Error fetching FX:", e);
+        }
+      }
+
+      // 🔥 កែសម្រួលមុខងារគណនាអត្រាប្តូរប្រាក់ឱ្យដើរដូច Transfer
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amountInput").value);
         const select = document.getElementById("sourceAccountSelect");
@@ -593,27 +604,29 @@
         const fxText = document.getElementById("fxText");
         let lang = localStorage.getItem("lang") || "en";
 
+        // បើមិនមាន amount ឬ Currency ដូចគ្នា គឺមិនបង្ហាញ
         if (!amount || amount <= 0 || sourceCur === selectedCurrency) {
           previewBox.style.display = "none";
           return;
         }
 
         previewBox.style.display = "block";
-        let requiredDeduction = amount;
+        let result = 0;
+        let rateDisplay = "";
 
+        // គណនាតាមអត្រាដែលទាញបានពី DB (currentFXRates)
         if (sourceCur === "USD" && selectedCurrency === "KHR") {
-          requiredDeduction = amount / currentFXRates.usdToKhrSell;
-          fxText.innerText =
-            lang === "kh"
-              ? `គណនីនឹងត្រូវកាត់ប្រមាណ $${requiredDeduction.toFixed(2)} (អត្រា $1=${currentFXRates.usdToKhrSell}៛)`
-              : `Account deducted ~$${requiredDeduction.toFixed(2)} (Rate $1=${currentFXRates.usdToKhrSell}៛)`;
+          result = amount * currentFXRates.usdToKhrBuy;
+          rateDisplay = `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
         } else if (sourceCur === "KHR" && selectedCurrency === "USD") {
-          requiredDeduction = amount * currentFXRates.usdToKhrBuy;
-          fxText.innerText =
-            lang === "kh"
-              ? `គណនីនឹងត្រូវកាត់ប្រមាណ ៛${requiredDeduction.toLocaleString("en-US")} (អត្រា $1=${currentFXRates.usdToKhrBuy}៛)`
-              : `Account deducted ~៛${requiredDeduction.toLocaleString("en-US")} (Rate $1=${currentFXRates.usdToKhrBuy}៛)`;
+          result = amount / currentFXRates.usdToKhrSell;
+          rateDisplay = `$1 = ${currentFXRates.usdToKhrSell} ៛`;
         }
+
+        fxText.innerText =
+          lang === "kh"
+            ? `អត្រាប្តូរប្រាក់: ${rateDisplay} | ទឹកប្រាក់នឹងត្រូវកាត់: ${result.toLocaleString("en-US")}`
+            : `Rate: ${rateDisplay} | Deducted Amount: ${result.toLocaleString("en-US")}`;
       }
 
       // ដំណើរការផ្ញើ
