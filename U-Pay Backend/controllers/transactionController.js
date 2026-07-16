@@ -218,7 +218,6 @@ const transfer = async (req, res) => {
     // ឆែកសមតុល្យតាមគណនីជាក់លាក់
     if (senderAvailableBal < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
-
     // ៥. ដំណើរការវេរលុយចូល (Receiver side)
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
@@ -230,22 +229,38 @@ const transfer = async (req, res) => {
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
+      // បូកចូលការកត់ត្រារបស់ហាង (Collected)
       if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
-      const owner = await User.findOne({
-        $or: [
-          { username: receiverMerchant.userId },
-          { accountNumber: receiverMerchant.userId },
-          { accountNumberKHR: receiverMerchant.userId },
-        ],
-      });
+      const owner = await User.findOne({ username: receiverMerchant.userId });
 
       if (owner) {
-        if (isReceiverKHR)
-          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
-        else owner.balance = (owner.balance || 0) + receiverAmount;
+        // 🔥 កែត្រង់នេះ៖ ស្វែងរកលេខកុងដែលបានភ្ជាប់ (Linked Account)
+        const targetAccNum = isReceiverKHR
+          ? receiverMerchant.linkedAccounts.KHR
+          : receiverMerchant.linkedAccounts.USD;
+
+        // ឆែកមើលថាវាជា Main ឬ Sub-account
+        if (targetAccNum === owner.accountNumber) {
+          owner.balance += receiverAmount; // Main USD
+        } else if (targetAccNum === owner.accountNumberKHR) {
+          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount; // Main KHR
+        } else {
+          // គឺជា Sub-account (កាត់កងកុងរង)
+          const sub = owner.subAccounts.find(
+            (s) => s.accountNumber === targetAccNum,
+          );
+          if (sub) {
+            sub.balance += receiverAmount;
+          } else {
+            // ប្រសិនបើរកមិនឃើញ (ការពារកុំឱ្យបាត់លុយ) ដាក់ចូល Main
+            if (isReceiverKHR)
+              owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
+            else owner.balance += receiverAmount;
+          }
+        }
         await owner.save();
         receiver = owner;
       } else {
@@ -255,20 +270,21 @@ const transfer = async (req, res) => {
         });
       }
     } else {
+      // ផ្នែកសម្រាប់ User ផ្ញើទៅ User (រក្សាកូដចាស់របស់បងដដែល)
       let isReceiverSubAccount = false;
-      let targetSubAccIndex = -1;
+      let targetSubAccIndex = receiver.subAccounts.findIndex(
+        (acc) => acc.accountNumber === receiverAccount,
+      );
 
       if (receiver.accountNumberKHR === receiverAccount) {
         isReceiverKHR = true;
-      } else if (receiver.accountNumber !== receiverAccount) {
-        targetSubAccIndex = receiver.subAccounts.findIndex(
-          (acc) => acc.accountNumber === receiverAccount,
-        );
-        if (targetSubAccIndex !== -1) {
-          isReceiverSubAccount = true;
-          isReceiverKHR =
-            receiver.subAccounts[targetSubAccIndex].currency === "KHR";
-        }
+      } else if (
+        receiver.accountNumber !== receiverAccount &&
+        targetSubAccIndex !== -1
+      ) {
+        isReceiverSubAccount = true;
+        isReceiverKHR =
+          receiver.subAccounts[targetSubAccIndex].currency === "KHR";
       }
 
       if (!isSenderKHR && isReceiverKHR)
