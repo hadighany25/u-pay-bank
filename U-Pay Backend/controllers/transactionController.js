@@ -330,21 +330,26 @@ const transfer = async (req, res) => {
       hour12: true,
     });
 
-    // 🔥 កន្លែងនេះគឺសម្រាប់បង្កើត Transaction Record ទាំងអ្នកផ្ញើ និងអ្នកទទួល
+    // បង្កើត refId និង hash តែម្តងគត់ ដើម្បីប្រើរួមគ្នា
     const refId = generateRefId();
-    const date = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Phnom_Penh",
-      hour12: true,
-    });
+    const trxHash = generateHash();
+
     const currentMethod = isMerchant
       ? "Merchant Payment"
       : trxMethod || "Account Transfer";
 
-    // ១. កត់ត្រាសម្រាប់អ្នកផ្ញើ (Sender)
+    // ថែម senderAcc ចូលក្នុង Transaction
+    const actualSenderAccNum = isSenderSubAccount
+      ? senderAccount
+      : isSenderKHR
+        ? sender.accountNumberKHR
+        : sender.accountNumber;
+
+    // 🌟 កត់ត្រាសម្រាប់អ្នកផ្ញើ (Sender)
     const senderTrx = {
       username: sender.username,
       refId,
-      hash: generateHash(),
+      hash: trxHash, // ប្រើ hash ដែលបង្កើតខាងលើ
       date,
       type: "Transfer",
       amount: -totalDeduction,
@@ -354,18 +359,18 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      receiverAcc: receiverAccount, // លេខកុងដែលគេ Scan/វាយបញ្ចូល
-      senderAcc: actualSenderAccNum, // លេខកុងដែលគេរើស (Main ឬ Sub)
+      receiverAcc: receiverAccount,
+      senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
       remark: remark || "General",
       status: "Success",
     };
 
-    // ២. កត់ត្រាសម្រាប់អ្នកទទួល (Receiver) - 🔥 កន្លែងនេះដែលបងបាត់!
+    // 🌟 កត់ត្រាសម្រាប់អ្នកទទួល (Receiver)
     const receiverTrx = {
-      username: isMerchant ? receiverMerchant.userId : receiver.username, // ប្រើ username ម្ចាស់ហាង
-      refId,
-      hash: generateHash(),
+      username: isMerchant ? receiverMerchant.userId : receiver.username,
+      refId, // ប្រើ refId ដែលបង្កើតខាងលើ
+      hash: trxHash, // ប្រើ hash ដែលបង្កើតខាងលើ
       date,
       type: "Receive",
       amount: receiverAmount,
@@ -382,20 +387,27 @@ const transfer = async (req, res) => {
         ? `Payment via ${receiverMerchant.name}`
         : remark || "General",
       status: "Success",
-      merchantId: isMerchant ? receiverMerchant.merchantId : null, // 🔥 ថែម merchantId សម្រាប់ហាង
+      // 🔥 សំខាន់៖ ត្រូវបន្ថែម merchantId នៅទីនេះ ទើបក្នុង Dashboard ហាងវាបង្ហាញ!
+      merchantId: isMerchant ? receiverMerchant.merchantId : null,
     };
 
-    // ៣. បញ្ចូលទៅ Database
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
     await sender.save();
 
+    // បញ្ជូន Socket ទៅអ្នកទទួល
     const io = req.app.get("io");
-    if (io)
-      io.to(receiver.username).emit("paymentReceived", {
+    if (io) {
+      // បើជាហាង ផ្ញើទៅម្ចាស់ហាង (តាមរយៈ username ម្ចាស់ហាង)
+      const targetSocket = isMerchant
+        ? receiverMerchant.userId
+        : receiver.username;
+      io.to(targetSocket).emit("paymentReceived", {
         amount: receiverAmount,
+        currency: isReceiverKHR ? "KHR" : "USD",
         senderName: sender.fullName || sender.username,
       });
+    }
 
     // 🔥 បញ្ជូនទឹកប្រាក់ដែលនៅសល់ទៅកាន់ Frontend វិញឱ្យចំកុង
     res.json({
