@@ -3,7 +3,7 @@
 // ========================================================================
 
 // =======================================================
-// ១. មុខងារគូរតារាង (បង្ហាញទាំងអស់រួមទាំង Sub-accounts)
+// ១. មុខងារគូរតារាង (UI ត្រង់ជួរស្អាត និងនៅកណ្តាល)
 // =======================================================
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
@@ -32,20 +32,33 @@ function renderUsersTable(users) {
       const uid = u._id || u.id;
       const isCentralBank = u.accountNumber === "888888888";
 
-      // 🔥 រៀបចំ HTML សម្រាប់ Main Accounts មុន
-      let accountsHtml = `
-        <div class="acc-stack">
-            <div class="acc-badge usd" title="Main USD"><span>$</span> ${u.accountNumber || "N/A"}</div>
-            ${u.accountNumberKHR ? `<div class="acc-badge khr" title="Main KHR"><span>៛</span> ${u.accountNumberKHR}</div>` : ""}
-      `;
+      // 🔥 រៀបចំ HTML ដោយប្រើ Flexbox និងកំណត់កម្ពស់ (Height) ឱ្យស្មើគ្នាដើម្បីឱ្យវាត្រង់ជួរ
+      let accountsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
+      let balanceHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
 
-      let balanceHtml = `
-        <div class="acc-stack">
-            <div style="color: #0369a1; font-weight: bold;" title="Main USD">$${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-            <div style="color: #047857; font-weight: bold;" title="Main KHR">${(u.balanceKHR || 0).toLocaleString("en-US")} ៛</div>
-      `;
+      // 1. គណនី Main USD
+      accountsHtml += `
+        <div class="acc-badge usd" style="height: 28px; display: flex; align-items: center;" title="Main USD">
+            <span>$</span> ${u.accountNumber || "N/A"}
+        </div>`;
+      balanceHtml += `
+        <div style="height: 28px; display: flex; align-items: center; color: #0369a1; font-weight: bold;" title="Main USD">
+            $${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+        </div>`;
 
-      // 🔥 ឆែកមើលបើ User មាន Sub-accounts ឱ្យគូរវាបន្ថែមពីក្រោម Main Account
+      // 2. គណនី Main KHR
+      if (u.accountNumberKHR) {
+        accountsHtml += `
+            <div class="acc-badge khr" style="height: 28px; display: flex; align-items: center;" title="Main KHR">
+                <span>៛</span> ${u.accountNumberKHR}
+            </div>`;
+        balanceHtml += `
+            <div style="height: 28px; display: flex; align-items: center; color: #047857; font-weight: bold;" title="Main KHR">
+                ${(u.balanceKHR || 0).toLocaleString("en-US")} ៛
+            </div>`;
+      }
+
+      // 3. គណនី Sub-accounts បន្ថែមពីក្រោម (បើមាន)
       if (u.subAccounts && u.subAccounts.length > 0) {
         u.subAccounts.forEach((sub) => {
           const sym = sub.currency === "USD" ? "$" : "៛";
@@ -59,18 +72,17 @@ function renderUsersTable(users) {
               : (sub.balance || 0).toLocaleString("en-US");
 
           accountsHtml += `
-            <div class="acc-badge ${colorClass}" style="opacity: 0.85; margin-top: 4px;" title="${sub.accountName}">
+            <div class="acc-badge ${colorClass}" style="height: 28px; display: flex; align-items: center; opacity: 0.85;" title="${sub.accountName}">
                 <span>${sym}</span> ${sub.accountNumber} <span style="font-size:0.65rem; color:#64748b; margin-left: 5px;">(${sub.accountName})</span>
             </div>`;
 
           balanceHtml += `
-            <div style="color: ${valColor}; font-weight: bold; opacity: 0.85; margin-top: 4px;" title="${sub.accountName}">
+            <div style="height: 28px; display: flex; align-items: center; color: ${valColor}; font-weight: bold; opacity: 0.85;" title="${sub.accountName}">
                 ${sub.currency === "USD" ? "$" : ""}${formattedBal}${sub.currency === "KHR" ? " ៛" : ""}
             </div>`;
         });
       }
 
-      // បិទ Tag ដែលបើកខាងលើ
       accountsHtml += `</div>`;
       balanceHtml += `</div>`;
 
@@ -92,7 +104,7 @@ function renderUsersTable(users) {
       const freezeHtml = isCentralBank
         ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
         : canFreeze
-          ? `<label class="switch"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
+          ? `<label class="switch" style="margin: 0 auto;"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
           : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
 
       const bgStyle = isCentralBank ? "background-color: #fef9c3;" : "";
@@ -102,7 +114,7 @@ function renderUsersTable(users) {
 
       return `
       <tr style="${bgStyle}">
-        <td style="vertical-align: top; padding-top: 15px;">
+        <td style="vertical-align: middle;">
             <div style="display: flex; align-items: center; gap: 10px">
                 <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='images/default-avatar.png'" />
                 <div>
@@ -111,10 +123,12 @@ function renderUsersTable(users) {
                 </div>
             </div>
         </td>
-        <td style="vertical-align: top; padding-top: 15px;">${accountsHtml}</td>
-        <td style="vertical-align: top; padding-top: 15px;">${balanceHtml}</td>
-        <td style="vertical-align: top; padding-top: 15px;">${freezeHtml}</td>
-        <td style="vertical-align: top; padding-top: 15px;"><div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div></td>
+        <td style="vertical-align: middle;">${accountsHtml}</td>
+        <td style="vertical-align: middle;">${balanceHtml}</td>
+        <td style="vertical-align: middle; text-align: center;">${freezeHtml}</td>
+        <td style="vertical-align: middle; text-align: center;">
+            <div style="display: flex; gap: 8px; justify-content: center;">${actionButtonsHtml}</div>
+        </td>
       </tr>`;
     })
     .join("");
@@ -133,14 +147,12 @@ function filterUsers() {
     return;
   }
 
-  // រកភ្លាមៗនៅក្នុង RAM (Instant Filter)
   const filteredData = globalUsersData.filter((u) => {
     const uname = (u.username || "").toLowerCase();
     const fname = (u.fullName || "").toLowerCase();
     const accUSD = (u.accountNumber || "").toString();
     const accKHR = (u.accountNumberKHR || "").toString();
 
-    // ឆែកមើលក្រែងលោតលេខកុង Sub-account ត្រូវគ្នានឹងការស្វែងរក
     let subMatch = false;
     if (u.subAccounts && u.subAccounts.length > 0) {
       subMatch = u.subAccounts.some((sub) =>
@@ -296,7 +308,7 @@ async function saveUserEdit() {
   }
 }
 
-// 🔥 កែប្រែដើម្បីអោយអាចរើសគណនី (Main / Sub) ដើម្បីដាក់ដកប្រាក់
+// មុខងារដាក់ដកប្រាក់
 function openAdjustBalance(username, type) {
   const isAdd = type === "add";
   const title = isAdd
@@ -305,11 +317,9 @@ function openAdjustBalance(username, type) {
   const confirmBtnColor = isAdd ? "#10b981" : "#ef4444";
   const icon = isAdd ? "circle-down" : "circle-up";
 
-  // ស្វែងរក User ដើម្បីទាញយកគណនីទាំងអស់របស់គាត់
   const user = globalUsersData.find((u) => u.username === username);
   if (!user) return;
 
-  // បង្កើត Options សម្រាប់ Dropdown រើសគណនី
   let optionsHtml = `<option value="MAIN_USD" data-cur="USD">គណនី Main USD ($) - ${user.accountNumber}</option>`;
   if (user.accountNumberKHR) {
     optionsHtml += `<option value="MAIN_KHR" data-cur="KHR">គណនី Main KHR (៛) - ${user.accountNumberKHR}</option>`;
@@ -323,7 +333,6 @@ function openAdjustBalance(username, type) {
 
   const formHtml = `
     <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
-        <!-- ប្រអប់បង្ហាញឈ្មោះអតិថិជន -->
         <div style="background: #f8fafc; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
             <i class="fa-solid fa-user-circle" style="color: #94a3b8; font-size: 1.5rem;"></i>
             <div>
@@ -331,46 +340,27 @@ function openAdjustBalance(username, type) {
                 <div style="color: #0f172a; font-size: 1.05rem; font-weight: bold;">@${username}</div>
             </div>
         </div>
-
-        <!-- ជ្រើសរើសប្រភេទគណនី (បូករួម Sub-accounts) -->
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ប្រភេទគណនី (Target Account)</label>
             <select id="adjTargetAccount" class="custom-swal-input">
                 ${optionsHtml}
             </select>
         </div>
-
-        <!-- បញ្ចូលចំនួនទឹកប្រាក់ -->
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំនួនទឹកប្រាក់ (Amount)</label>
             <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000">
         </div>
-
-        <!-- 🌟 ប្រអប់ចំណាំ (Remark) -->
         <div style="margin-bottom: 5px;">
             <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំណាំ (Remark)</label>
             <input id="adjRemark" type="text" class="custom-swal-input" placeholder="បញ្ជាក់មូលហេតុ... (ជម្រើស)">
         </div>
-
-        <!-- CSS សម្រាប់ Input ឱ្យស្អាត -->
         <style>
             .custom-swal-input {
-                width: 100%;
-                box-sizing: border-box;
-                height: 45px;
-                padding: 0 15px;
-                font-size: 0.95rem;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
-                color: #1e293b;
-                transition: all 0.2s ease-in-out;
-                font-family: inherit;
+                width: 100%; box-sizing: border-box; height: 45px; padding: 0 15px;
+                font-size: 0.95rem; border: 1px solid #cbd5e1; border-radius: 8px;
+                color: #1e293b; transition: all 0.2s ease-in-out; font-family: inherit;
             }
-            .custom-swal-input:focus {
-                border-color: ${confirmBtnColor};
-                box-shadow: 0 0 0 3px ${confirmBtnColor}20;
-                outline: none;
-            }
+            .custom-swal-input:focus { border-color: ${confirmBtnColor}; box-shadow: 0 0 0 3px ${confirmBtnColor}20; outline: none; }
         </style>
     </div>
   `;
@@ -384,7 +374,6 @@ function openAdjustBalance(username, type) {
     confirmButtonText: "បញ្ជាក់ (Confirm)",
     cancelButtonText: "បោះបង់",
     preConfirm: () => {
-      // ទាញយកទិន្នន័យពី Form ថ្មី
       const select = document.getElementById("adjTargetAccount");
       const targetAccount = select.value;
       const currency =
@@ -410,7 +399,7 @@ function openAdjustBalance(username, type) {
           headers: getAuthHeaders(),
           body: JSON.stringify({
             username,
-            targetAccount: result.value.targetAccount, // បញ្ជូនគណនីដែលត្រូវដាក់ប្រាក់ចូល
+            targetAccount: result.value.targetAccount,
             amount: result.value.amount,
             currency: result.value.currency,
             type,
@@ -418,7 +407,6 @@ function openAdjustBalance(username, type) {
           }),
         });
         const data = await res.json();
-
         if (data.success) {
           Swal.fire(
             "ជោគជ័យ!",
@@ -436,23 +424,66 @@ function openAdjustBalance(username, type) {
   });
 }
 
+// 🔥 មុខងារលុបដែលបានកែប្រែថ្មី (មានជម្រើសលុបគណនីរង ឬអាខោនទាំងមូល និងទាមទារមូលហេតុ)
 function deleteUser(id) {
+  const user = globalUsersData.find((u) => (u._id || u.id) === id);
+  if (!user) return;
+
+  // រៀបចំ Dropdown Option
+  let optionsHtml = `<option value="ALL">លុបគណនីអ្នកប្រើប្រាស់ទាំងមូល (Delete Entire User)</option>`;
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    user.subAccounts.forEach((sub) => {
+      optionsHtml += `<option value="${sub.accountNumber}">លុបតែគណនីរង: ${sub.accountNumber} (${sub.accountName})</option>`;
+    });
+  }
+
+  const formHtml = `
+    <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ជ្រើសរើសទិន្នន័យដែលត្រូវលុប</label>
+            <select id="delTarget" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
+                ${optionsHtml}
+            </select>
+        </div>
+        <div style="margin-bottom: 5px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">មូលហេតុ (Reason - ចាំបាច់)</label>
+            <input id="delReason" type="text" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;" placeholder="បញ្ជាក់មូលហេតុនៃការលុប...">
+        </div>
+    </div>
+  `;
+
   Swal.fire({
-    title: "តើអ្នកប្រាកដទេ?",
-    text: "ទិន្នន័យគណនីនេះនឹងត្រូវលុបចោលទាំងស្រុងពីប្រព័ន្ធ។",
-    icon: "warning",
+    title: `<div style="color: #ef4444; font-size: 1.4rem;"><i class="fa-solid fa-triangle-exclamation"></i> បញ្ជាក់ការលុបទិន្នន័យ</div>`,
+    html: formHtml,
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#64748b",
     confirmButtonText: "បាទ/ចាស, លុប!",
     cancelButtonText: "បោះបង់",
+    preConfirm: () => {
+      const targetAccount = document.getElementById("delTarget").value;
+      const reason = document.getElementById("delReason").value.trim();
+      if (!reason) {
+        Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុនៃការលុបឱ្យបានច្បាស់លាស់!");
+      }
+      return { targetAccount, reason };
+    },
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
+        Swal.fire({
+          title: "កំពុងដំណើរការ...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
         const res = await fetch("/api/admin/delete-user", {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ id }),
+          body: JSON.stringify({
+            id: id,
+            targetAccount: result.value.targetAccount,
+            reason: result.value.reason,
+          }),
         });
         const data = await res.json();
         if (data.success) {
@@ -466,7 +497,7 @@ function deleteUser(id) {
           });
           if (typeof loadData === "function") loadData();
         } else {
-          Swal.fire("Error", data.message || "មិនអាចលុបគណនីបានទេ", "error");
+          Swal.fire("Error", data.message || "មិនអាចលុបទិន្នន័យបានទេ", "error");
         }
       } catch (e) {
         Swal.fire("Error", "បញ្ហាការតភ្ជាប់", "error");

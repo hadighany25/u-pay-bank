@@ -159,6 +159,7 @@ const toggleFreeze = async (req, res) => {
   }
 };
 
+// ១. មុខងារ Edit User (រក្សាទម្រង់ដើម តែថែមសមត្ថភាពការពារកុំឱ្យជាន់គណនី)
 const editUser = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "editUser");
   if (!access.allowed)
@@ -176,76 +177,104 @@ const editUser = async (req, res) => {
   try {
     if (!id) return res.json({ success: false, message: "Invalid ID" });
 
-    let query = [{ id: id }, { username: id }];
+    let query = [{ username: id }];
     if (mongoose.isValidObjectId(id)) query.push({ _id: id });
 
     const u = await User.findOne({ $or: query });
-    if (u) {
-      const checkUSD = accountNumber || u.accountNumber;
-      const checkKHR = accountNumberKHR || u.accountNumberKHR;
-      if (checkUSD === checkKHR)
-        return res.json({
-          success: false,
-          message: "បរាជ័យ! លេខគណនី USD និង KHR មិនអាចដូចគ្នាបានទេ។",
-        });
+    if (!u)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដើម្បីកែប្រែទេ។",
+      });
 
-      if (accountNumber && accountNumber !== u.accountNumber)
-        u.accountNumber = accountNumber;
-      if (accountNumberKHR && accountNumberKHR !== u.accountNumberKHR)
-        u.accountNumberKHR = accountNumberKHR;
-      if (username) u.username = username;
-      if (pin) u.pin = pin;
-      if (profileImage !== undefined) u.profileImage = profileImage;
-      if (password && password.trim() !== "") u.password = password;
+    // ឆែកលេខកុង Main មិនឱ្យជាន់គ្នា
+    const checkUSD = accountNumber || u.accountNumber;
+    const checkKHR = accountNumberKHR || u.accountNumberKHR;
+    if (checkUSD === checkKHR)
+      return res.json({
+        success: false,
+        message: "បរាជ័យ! លេខគណនី USD និង KHR មិនអាចដូចគ្នាបានទេ។",
+      });
 
-      await u.save();
+    if (accountNumber) u.accountNumber = accountNumber;
+    if (accountNumberKHR) u.accountNumberKHR = accountNumberKHR;
+    if (username) u.username = username;
+    if (pin) u.pin = pin;
+    if (profileImage !== undefined) u.profileImage = profileImage;
+    if (password && password.trim() !== "") u.password = password;
 
-      await logAdminAction(
-        req.admin.username,
-        "Edit User",
-        u.username,
-        `Updated user profile/credentials`,
-      );
-      res.json({ success: true });
-    } else res.json({ success: false, message: "រកមិនឃើញគណនីដើម្បីកែប្រែទេ។" });
+    await u.save();
+
+    await logAdminAction(
+      req.admin.username,
+      "Edit User",
+      u.username,
+      `Updated user profile/credentials`,
+    );
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+// ២. មុខងារ Delete User (គាំទ្រលុបតែមួយកុង ឬលុបទាំង User)
 const deleteUser = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "deleteUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  const { id } = req.body;
+  // 🔥 ទទួលយក targetAccount និង reason ពី Frontend
+  const { id, targetAccount, reason } = req.body;
+
   try {
-    if (!id) return res.json({ success: false });
-    let query = [{ id: id }, { username: id }];
+    if (!id) return res.json({ success: false, message: "Invalid ID" });
+
+    let query = [{ username: id }];
     if (mongoose.isValidObjectId(id)) query.push({ _id: id });
 
-    const userToDelete = await User.findOne({ $or: query });
-    if (userToDelete) {
+    const user = await User.findOne({ $or: query });
+    if (!user) return res.json({ success: false, message: "User not found" });
+
+    let logDetail = "";
+
+    // ករណីទី១៖ លុបតែគណនីរង (Sub-account)
+    if (targetAccount && targetAccount !== "ALL") {
+      const subIndex = user.subAccounts.findIndex(
+        (s) => s.accountNumber === targetAccount,
+      );
+      if (subIndex === -1)
+        return res.json({ success: false, message: "Sub-account not found" });
+
+      user.subAccounts.splice(subIndex, 1);
+      await user.save();
+      logDetail = `Deleted Sub-account: ${targetAccount}. Reason: ${reason}`;
+    }
+    // ករណីទី២៖ លុប User ទាំងមូល
+    else {
       await Chat.deleteMany({
         $or: [
-          { senderAcc: userToDelete.accountNumber },
-          { receiverAcc: userToDelete.accountNumber },
-          { senderAcc: userToDelete.accountNumberKHR },
-          { receiverAcc: userToDelete.accountNumberKHR },
+          { senderAcc: user.accountNumber },
+          { receiverAcc: user.accountNumber },
+          { senderAcc: user.accountNumberKHR },
+          { receiverAcc: user.accountNumberKHR },
         ],
       });
-      await User.deleteOne({ _id: userToDelete._id });
+      await User.deleteOne({ _id: user._id });
+      logDetail = `Deleted account completely. Reason: ${reason}`;
+    }
 
-      await logAdminAction(
-        req.admin.username,
-        "Delete User",
-        userToDelete.username,
-        `Deleted account completely`,
-      );
-      res.json({ success: true });
-    } else res.json({ success: false, message: "User not found" });
+    // 🔥 កត់ត្រាចូល Admin Log ជាមួយមូលហេតុ (Reason)
+    await logAdminAction(
+      req.admin.username,
+      "Delete User/Account",
+      user.username,
+      logDetail,
+    );
+
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
