@@ -218,9 +218,14 @@ const transfer = async (req, res) => {
     // ឆែកសមតុល្យតាមគណនីជាក់លាក់
     if (senderAvailableBal < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
+
+    aScript;
     // ៥. ដំណើរការវេរលុយចូល (Receiver side)
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
+
+    // 🔥 បន្ថែមអថេរនេះ ដើម្បីចាប់យកលេខកុងពិតប្រាកដ
+    let actualReceiverAccNum = receiverAccount;
 
     if (isMerchant) {
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
@@ -229,7 +234,6 @@ const transfer = async (req, res) => {
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-      // បូកចូលការកត់ត្រារបស់ហាង (Collected)
       if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
@@ -237,28 +241,29 @@ const transfer = async (req, res) => {
       const owner = await User.findOne({ username: receiverMerchant.userId });
 
       if (owner) {
-        // 🔥 កែត្រង់នេះ៖ ស្វែងរកលេខកុងដែលបានភ្ជាប់ (Linked Account)
-        const targetAccNum = isReceiverKHR
+        // 🔥 ចាប់យកលេខគណនីដែលម្ចាស់ហាងបានភ្ជាប់ (Linked Account)
+        actualReceiverAccNum = isReceiverKHR
           ? receiverMerchant.linkedAccounts.KHR
           : receiverMerchant.linkedAccounts.USD;
 
-        // ឆែកមើលថាវាជា Main ឬ Sub-account
-        if (targetAccNum === owner.accountNumber) {
-          owner.balance += receiverAmount; // Main USD
-        } else if (targetAccNum === owner.accountNumberKHR) {
-          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount; // Main KHR
+        if (actualReceiverAccNum === owner.accountNumber) {
+          owner.balance += receiverAmount;
+        } else if (actualReceiverAccNum === owner.accountNumberKHR) {
+          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
         } else {
-          // គឺជា Sub-account (កាត់កងកុងរង)
           const sub = owner.subAccounts.find(
-            (s) => s.accountNumber === targetAccNum,
+            (s) => s.accountNumber === actualReceiverAccNum,
           );
           if (sub) {
             sub.balance += receiverAmount;
           } else {
-            // ប្រសិនបើរកមិនឃើញ (ការពារកុំឱ្យបាត់លុយ) ដាក់ចូល Main
             if (isReceiverKHR)
               owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
             else owner.balance += receiverAmount;
+            // Fallback ការពារកុំឱ្យខុស
+            actualReceiverAccNum = isReceiverKHR
+              ? owner.accountNumberKHR
+              : owner.accountNumber;
           }
         }
         await owner.save();
@@ -347,7 +352,7 @@ const transfer = async (req, res) => {
 
     const senderTrx = {
       refId: refId,
-      hash: sharedHash, // ប្រើ Hash តែមួយរួមគ្នា
+      hash: sharedHash,
       date,
       type: "Transfer",
       amount: -totalDeduction,
@@ -357,7 +362,8 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      receiverAcc: receiverAccount,
+      // 🔥 ដូរមកប្រើលេខកុងពិតប្រាកដ
+      receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
       remark: remark || "General",
@@ -367,7 +373,7 @@ const transfer = async (req, res) => {
 
     const receiverTrx = {
       refId: refId,
-      hash: sharedHash, // ប្រើ Hash តែមួយរួមគ្នា
+      hash: sharedHash,
       date,
       type: "Receive",
       amount: receiverAmount,
@@ -377,16 +383,15 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      receiverAcc: receiverAccount,
+      // 🔥 ដូរមកប្រើលេខកុងពិតប្រាកដ
+      receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
       remark: isMerchant
         ? `Payment via ${receiverMerchant.name}`
         : remark || "General",
       status: "Success",
-      // 🔥 ត្រូវប្រាកដថា username ជារបស់ម្ចាស់ហាងពេល isMerchant = true
       username: isMerchant ? receiverMerchant.userId : receiver.username,
-      // 🔥 សំខាន់បំផុត៖ ត្រូវបញ្ជូន merchantId ចូលដើម្បីឱ្យលោតក្នុង Merchant Dashboard
       merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
     };
 
