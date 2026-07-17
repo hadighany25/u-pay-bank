@@ -1636,28 +1636,97 @@ const processCashierTransaction = async (req, res) => {
     }
 
     // ---------------------------------------------------
+    // 🔥 មុខងារសម្រាប់ Update លុយគណនីរួមឱ្យស្មើគ្នា (ប្រើដោយ Admin)
+    // ---------------------------------------------------
+    const syncJointBalance = async (accountId, amountChange) => {
+      try {
+        const User = require("../models/User");
+        const owner = await User.findOne({
+          "subAccounts.accountId": accountId,
+        });
+        if (!owner) return [];
+
+        const acc = owner.subAccounts.find((a) => a.accountId === accountId);
+        if (!acc || acc.accountType !== "joint") return [];
+
+        let allMembers = [owner.username]; // រក្សាទុកឈ្មោះអ្នកដែលត្រូវលោត Transaction
+
+        // Update កុង Owner បើគាត់មិនមែនជា targetUser បច្ចុប្បន្ន (ការពារកុំឱ្យ Save ជាន់គ្នា)
+        if (owner.username !== targetUser.username) {
+          let ownerAccIndex = owner.subAccounts.findIndex(
+            (a) => a.accountId === accountId,
+          );
+          if (ownerAccIndex !== -1) {
+            owner.subAccounts[ownerAccIndex].balance += amountChange;
+            await owner.save();
+          }
+        }
+
+        // Update កុង Partner
+        for (let member of acc.members) {
+          if (member.status === "active") {
+            allMembers.push(member.username);
+            if (member.username !== targetUser.username) {
+              const partner = await User.findOne({ username: member.username });
+              if (partner) {
+                let pIdx = partner.subAccounts.findIndex(
+                  (a) => a.accountId === accountId,
+                );
+                if (pIdx !== -1) {
+                  partner.subAccounts[pIdx].balance += amountChange;
+                  await partner.save();
+                }
+              }
+            }
+          }
+        }
+        return allMembers; // ត្រលប់ឈ្មោះសមាជិកទាំងអស់ ដើម្បីយកទៅកត់ Transaction ខាងក្រោម
+      } catch (err) {
+        console.error("Admin Sync Joint Balance Error:", err);
+        return [];
+      }
+    };
+
+    // ---------------------------------------------------
     // 🔥 ២. បូកប្រាក់ចូលគណនីអតិថិជន (Main ឬ Sub-account)
     // ---------------------------------------------------
     let actualReceiverAcc = targetAccount;
     let isReceiverSubAccount = false;
     let subIndex = -1;
+    let isJointAccount = false;
+    let jointMembersList = [];
+    let accountName = targetUser.fullName || targetUser.username;
 
     if (targetAccount === targetUser.accountNumber) {
-      // បូកចូល Main USD
       targetUser.balance = (targetUser.balance || 0) + cashAmount;
     } else if (targetAccount === targetUser.accountNumberKHR) {
-      // បូកចូល Main KHR
       targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
     } else {
-      // ករណី Sub-account
       subIndex = targetUser.subAccounts.findIndex(
         (s) => s.accountNumber === targetAccount,
       );
+
       if (subIndex !== -1) {
-        targetUser.subAccounts[subIndex].balance += cashAmount;
         isReceiverSubAccount = true;
+        const targetSub = targetUser.subAccounts[subIndex];
+
+        // បូកលុយចូលកុង targetUser ជាមុនសិន
+        targetSub.balance += cashAmount;
+        accountName = targetSub.accountName; // យកឈ្មោះហោប៉ៅមកប្រើ
+
+        // ឆែកមើលថាបើជាគណនីរួម ត្រូវហៅមុខងារ Sync ទៅអោយដៃគូ
+        if (
+          targetSub.accountType === "joint" ||
+          targetSub.accountType === "joint_member"
+        ) {
+          isJointAccount = true;
+          jointMembersList = await syncJointBalance(
+            targetSub.accountId,
+            cashAmount,
+          );
+        }
       } else {
-        // បើរកគណនីរងមិនឃើញសោះ ការពារកុំឱ្យបាត់ប្រាក់អតិថិជន គឺទម្លាក់ចូល Main ទៅតាមរូបិយប័ណ្ណដែលរើស
+        // Fallback បើរកមិនឃើញ
         if (isKHR) {
           targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
           actualReceiverAcc = targetUser.accountNumberKHR;
@@ -1673,7 +1742,6 @@ const processCashierTransaction = async (req, res) => {
       hour12: true,
     });
 
-    // 🔥 កែលេខឱ្យខ្លី៖ ឧ. DEP-638190 និង HSH16AF1C
     const refId = "DEP-" + Math.floor(100000 + Math.random() * 900000);
     const trxHash =
       "HSH" + Math.random().toString(16).substring(2, 9).toUpperCase();
@@ -1692,12 +1760,11 @@ const processCashierTransaction = async (req, res) => {
       fee: 0,
       senderName: "Cash Deposit",
       senderAcc: "CASH-DESK",
-      receiverName: targetUser.fullName || targetUser.username,
-      receiverAcc: actualReceiverAcc, // 🔥 ប្រើលេខគណនីពិតដែលទទួលបានប្រាក់
+      receiverName: accountName,
+      receiverAcc: actualReceiverAcc,
       remark: remark,
       status: "Success",
       trxMethod: "U-PAY System",
-      // ចាប់យកឈ្មោះ និងលេខគណនីអ្នកដាក់ពិតប្រាកដ
       depositorName:
         depositorType === "self"
           ? targetUser.fullName || targetUser.username
@@ -1719,24 +1786,57 @@ const processCashierTransaction = async (req, res) => {
       type: "Fund Disbursement",
     };
 
-    await Transaction.create(targetTrx);
     await Transaction.create(bankTrx);
+
+    // 🔥 បើជាគណនីរួម ត្រូវកត់ត្រាអោយគ្រប់សមាជិក (Owner + Partner)
+    if (isJointAccount && jointMembersList.length > 0) {
+      for (let memberUsername of jointMembersList) {
+        await Transaction.create({ ...targetTrx, username: memberUsername });
+      }
+    } else {
+      // គណនីធម្មតា
+      await Transaction.create(targetTrx);
+    }
 
     // ---------------------------------------------------
     // 🔥 ៤. លោត Notification ជូនដំណឹងដល់អតិថិជន
     // ---------------------------------------------------
+    const notifMessage = `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នក។ ចំណាំ៖ ${remark}`;
+
+    if (isJointAccount && jointMembersList.length > 0) {
+      // លោតសារអោយសមាជិកគណនីរួមទាំងអស់
+      const User = require("../models/User");
+      for (let memberUsername of jointMembersList) {
+        if (memberUsername !== targetUser.username) {
+          const partnerDoc = await User.findOne({ username: memberUsername });
+          if (partnerDoc) {
+            if (!partnerDoc.notifications) partnerDoc.notifications = [];
+            partnerDoc.notifications.unshift({
+              id: "NOTIF-" + Date.now() + Math.random(),
+              title: "ទទួលបានប្រាក់ (គណនីរួម)",
+              message: notifMessage,
+              date: dateStr,
+              isRead: false,
+            });
+            await partnerDoc.save();
+          }
+        }
+      }
+    }
+
+    // លោតសារអោយអ្នកទទួលគោល (targetUser)
     if (!targetUser.notifications) targetUser.notifications = [];
     targetUser.notifications.unshift({
       id: "NOTIF-" + Date.now(),
       title: "ទទួលបានប្រាក់ (Cash Deposit)",
-      // 🔥 បញ្ជាក់លេខគណនីនៅក្នុងការជូនដំណឹងឱ្យអតិថិជនដឹងច្បាស់
-      message: `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នក។ ចំណាំ៖ ${remark}`,
+      message: notifMessage,
       date: dateStr,
       isRead: false,
     });
     targetUser.markModified("notifications");
     await targetUser.save();
 
+    // លោតសារអោយអ្នកដាក់លុយជំនួស (តំណាង)
     if (depositorType === "other" && depUser) {
       if (!depUser.notifications) depUser.notifications = [];
       depUser.notifications.unshift({
