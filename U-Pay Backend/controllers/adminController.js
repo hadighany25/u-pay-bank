@@ -241,13 +241,15 @@ const editUser = async (req, res) => {
   }
 };
 
-// ២. មុខងារ Delete User (គាំទ្រលុបតែមួយកុង ឬលុបទាំង User)
+// ==========================================
+// មុខងារ Delete User (គាំទ្រការផ្ទេរប្រាក់ស្វ័យប្រវត្តិមុនពេលលុប)
+// ==========================================
 const deleteUser = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "deleteUser");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  // 🔥 ទទួលយក targetAccount និង reason ពី Frontend
+  // ទទួលយកទិន្នន័យពី Frontend
   const { id, targetAccount, reason } = req.body;
 
   try {
@@ -256,12 +258,24 @@ const deleteUser = async (req, res) => {
     let query = [{ username: id }];
     if (mongoose.isValidObjectId(id)) query.push({ _id: id });
 
+    // ស្វែងរកអតិថិជន
     const user = await User.findOne({ $or: query });
     if (!user) return res.json({ success: false, message: "User not found" });
 
-    let logDetail = "";
+    // ស្វែងរកធនាគារកណ្តាល (Central Bank)
+    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    if (!centralBank)
+      return res.json({ success: false, message: "Central Bank not found" });
 
+    let logDetail = "";
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    // ==========================================
     // ករណីទី១៖ លុបតែគណនីរង (Sub-account)
+    // ==========================================
     if (targetAccount && targetAccount !== "ALL") {
       const subIndex = user.subAccounts.findIndex(
         (s) => s.accountNumber === targetAccount,
@@ -269,12 +283,103 @@ const deleteUser = async (req, res) => {
       if (subIndex === -1)
         return res.json({ success: false, message: "Sub-account not found" });
 
+      const subAcc = user.subAccounts[subIndex];
+      const subBalance = subAcc.balance;
+      const subCurrency = subAcc.currency;
+
+      // បើមានលុយសេសសល់ ត្រូវផ្ទេរចូលកុង Main វិញស្វ័យប្រវត្តិ
+      if (subBalance > 0) {
+        if (subCurrency === "USD") {
+          user.balance += subBalance;
+        } else {
+          user.balanceKHR = (user.balanceKHR || 0) + subBalance;
+        }
+
+        // កត់ត្រាប្រវត្តិផ្ទេរលុយចូល Main (អោយ User ដឹងថាបានប្តូរលុយចូលកុងធំ)
+        const refId = "MOV-" + Date.now().toString().slice(-6);
+        const hash = Math.random().toString(36).substring(2, 11).toUpperCase();
+
+        await Transaction.create({
+          username: user.username,
+          refId,
+          hash,
+          date: dateStr,
+          type: "Internal Transfer",
+          amount: subBalance,
+          currency: subCurrency,
+          senderName: subAcc.accountName,
+          receiverName: "Main Account",
+          senderAcc: targetAccount,
+          receiverAcc:
+            subCurrency === "USD" ? user.accountNumber : user.accountNumberKHR,
+          remark: "System Auto-Transfer (Sub-Account Closed)",
+          status: "Success",
+        });
+      }
+
+      // លុបកុងរងនោះចោល
       user.subAccounts.splice(subIndex, 1);
       await user.save();
-      logDetail = `Deleted Sub-account: ${targetAccount}. Reason: ${reason}`;
+      logDetail = `Deleted Sub-account: ${targetAccount}. Auto-Transferred: ${subBalance} ${subCurrency} to Main. Reason: ${reason}`;
     }
-    // ករណីទី២៖ លុប User ទាំងមូល
+    // ==========================================
+    // ករណីទី២៖ លុប User ទាំងមូល (ផ្ទេរលុយចូល Central Bank)
+    // ==========================================
     else {
+      // បូកសរុបលុយទាំងអស់របស់ User (ទាំង Main និងគ្រប់កុង Sub)
+      let totalUSD = user.balance || 0;
+      let totalKHR = user.balanceKHR || 0;
+
+      if (user.subAccounts && user.subAccounts.length > 0) {
+        user.subAccounts.forEach((sub) => {
+          if (sub.currency === "USD") totalUSD += sub.balance;
+          if (sub.currency === "KHR") totalKHR += sub.balance;
+        });
+      }
+
+      // ផ្ទេរលុយទាំងអស់ទៅ Central Bank វិញ
+      if (totalUSD > 0 || totalKHR > 0) {
+        centralBank.balance += totalUSD;
+        centralBank.balanceKHR = (centralBank.balanceKHR || 0) + totalKHR;
+        await centralBank.save();
+
+        const refId = "REC-" + Date.now().toString().slice(-6);
+        const hash = Math.random().toString(36).substring(2, 11).toUpperCase();
+
+        // កត់ត្រាប្រវត្តិឱ្យ Central Bank ថាបានប្រមូលលុយមកវិញ
+        if (totalUSD > 0) {
+          await Transaction.create({
+            username: centralBank.username,
+            refId,
+            hash,
+            date: dateStr,
+            type: "Fund Recovery",
+            amount: totalUSD,
+            currency: "USD",
+            senderName: user.username,
+            receiverName: "Central Bank",
+            remark: `Account Deleted. Recovered funds from ${user.username}`,
+            status: "Success",
+          });
+        }
+        if (totalKHR > 0) {
+          await Transaction.create({
+            username: centralBank.username,
+            refId,
+            hash,
+            date: dateStr,
+            type: "Fund Recovery",
+            amount: totalKHR,
+            currency: "KHR",
+            senderName: user.username,
+            receiverName: "Central Bank",
+            remark: `Account Deleted. Recovered funds from ${user.username}`,
+            status: "Success",
+          });
+        }
+      }
+
+      // លុបប្រវត្តិ Chat និងលុប User ទាំងស្រុង
       await Chat.deleteMany({
         $or: [
           { senderAcc: user.accountNumber },
@@ -284,14 +389,16 @@ const deleteUser = async (req, res) => {
         ],
       });
       await User.deleteOne({ _id: user._id });
-      logDetail = `Deleted account completely. Reason: ${reason}`;
+      logDetail = `Deleted account completely. Recovered ${totalUSD} USD & ${totalKHR} KHR. Reason: ${reason}`;
     }
 
-    // 🔥 កត់ត្រាចូល Admin Log ជាមួយមូលហេតុ (Reason)
+    // ==========================================
+    // 📝 កត់ត្រាចូល Admin Action Log
+    // ==========================================
     await logAdminAction(
       req.admin.username,
       "Delete User/Account",
-      user.username,
+      user ? user.username : id,
       logDetail,
     );
 
@@ -301,7 +408,6 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 const adjustBalance = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "adjustBal");
   if (!access.allowed)
