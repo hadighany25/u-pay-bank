@@ -1786,6 +1786,28 @@
                   `;
                 }
 
+                // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
+                if (n.metadata && n.metadata.type === "joint_invite") {
+                  icon = "fa-users";
+                  bg = "#e0e7ff";
+                  col = "#4f46e5";
+
+                  actionBtn = `
+                    <div style="margin-top: 10px; display: flex; gap: 10px;">
+                      <button 
+                        onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${n.id}')" 
+                        style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                        <i class="fa-solid fa-check"></i> យល់ព្រម
+                      </button>
+                      <button 
+                        onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${n.id}')" 
+                        style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                        <i class="fa-solid fa-xmark"></i> បដិសេធ
+                      </button>
+                    </div>
+                  `;
+                }
+
                 // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
                 return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
                           <div style="display:flex; gap:12px;">
@@ -1809,6 +1831,71 @@
       function readNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "flex";
+      }
+
+      // ==========================================
+      // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
+      // ==========================================
+      async function handleJointInvite(
+        ownerUsername,
+        accountNumber,
+        action,
+        notifId,
+      ) {
+        const actionText = action === "accept" ? "យល់ព្រមចូលរួម" : "បដិសេធ";
+        const actionColor = action === "accept" ? "#10b981" : "#ef4444";
+
+        Swal.fire({
+          title: `តើអ្នកចង់${actionText}ឬទេ?`,
+          text: `គណនីរួមលេខ: ${accountNumber}`,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonColor: actionColor,
+          cancelButtonColor: "#64748b",
+          confirmButtonText:
+            action === "accept" ? "បាទ/ចាស យល់ព្រម" : "បាទ/ចាស បដិសេធ",
+          cancelButtonText: "ត្រឡប់ក្រោយ",
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "កំពុងដំណើរការ...",
+              didOpen: () => Swal.showLoading(),
+              allowOutsideClick: false,
+            });
+
+            try {
+              const res = await fetch("/api/account/respond-joint-invite", {
+                method: "POST",
+                headers: window.authHeaders, // យកមកពី u-pay-core.js
+                body: JSON.stringify({
+                  inviteeUsername: window.currentUser.username,
+                  ownerUsername: ownerUsername,
+                  accountNumber: accountNumber,
+                  action: action,
+                }),
+              });
+
+              const data = await res.json();
+
+              if (data.success) {
+                // មុននឹង Reload យើងគួរ clear Notification នេះចោលសិន ដើម្បីកុំអោយវាលោតសារនេះទៀត
+                await fetch(`/api/user/notifications/read/${notifId}`, {
+                  method: "POST",
+                  headers: window.authHeaders,
+                }).catch(() => console.log("Failed to clear notif"));
+
+                Swal.fire("ជោគជ័យ!", data.message, "success").then(() => {
+                  window.location.reload();
+                });
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
+              }
+            } catch (error) {
+              console.error("Error responding to invite:", error);
+              Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+            }
+          }
+        });
       }
 
       // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
