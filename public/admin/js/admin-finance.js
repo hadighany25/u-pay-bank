@@ -427,7 +427,9 @@ async function verifyDepositor() {
       const result = await res.json();
 
       if (result.success) {
-        currentDepositorUser = result.data;
+        // 🔥 កែត្រង់នេះ៖ ដូរពី result.data ទៅជា result.user វិញ
+        currentDepositorUser = result.user;
+
         nameText.innerText = `${currentDepositorUser.fullName} (@${currentDepositorUser.username})`;
         nameText.style.color = "#16a34a"; // ពណ៌បៃតងពេលរកឃើញ
       } else {
@@ -436,7 +438,9 @@ async function verifyDepositor() {
         nameText.style.color = "#ef4444"; // ពណ៌ក្រហមពេលរកមិនឃើញ
       }
     } catch (error) {
-      nameText.innerText = "Error Network";
+      console.error("Depositor Search Error:", error);
+      nameText.innerText = "មានបញ្ហាតភ្ជាប់ (Error Network)";
+      nameText.style.color = "#ef4444";
     }
   } else {
     document.getElementById("depositorName").style.display = "none";
