@@ -675,6 +675,7 @@ exports.respondToJointInvite = async (req, res) => {
     // ---------------------------------------------------------------------
     // ករណីយល់ព្រម (Accept) -> យល់ព្រមអូតូទាំង ២កុង (បើគាត់បង្កើតទាំង២)
     // ---------------------------------------------------------------------
+    // ករណីយល់ព្រម (Accept)
     if (action === "accept") {
       linkedAccs.forEach((la) => {
         let idx = owner.subAccounts.findIndex(
@@ -688,14 +689,14 @@ exports.respondToJointInvite = async (req, res) => {
           if (mIdx !== -1)
             owner.subAccounts[idx].members[mIdx].status = "active";
 
-          // Copy ញាត់ចូលទៅកុងដៃគូ (ដើម្បីអោយលោតចូល Dropdown អូតូ)
+          // 🔥 កែត្រង់នេះ៖ ប្រើ la (គណនីនីមួយៗក្នុង Loop) ជំនួសឱ្យ jointAcc
           invitee.subAccounts.push({
-            accountId: la.accountId,
+            accountId: la.accountId, // ប្រើ ID របស់កុងនីមួយៗ
             accountNumber: la.accountNumber,
             accountName: la.accountName,
             accountType: "joint_member",
-            balance: la.balance,
-            currency: la.currency,
+            balance: la.balance, // ទាញ Balance របស់កុងនីមួយៗ
+            currency: la.currency, // ទាញ Currency របស់កុងនីមួយៗ
             metadata: { owner: ownerUsername },
           });
         }
