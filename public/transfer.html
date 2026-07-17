@@ -1181,6 +1181,26 @@
           return false;
         }
       }
+      // ពេលវេរលុយចូលគណនីរួម
+      async function depositToJoint(accountId, amount) {
+        // 1. Update ក្នុងកុង Owner
+        const owner = await User.findOne({
+          "subAccounts.accountId": accountId,
+        });
+        let acc = owner.subAccounts.find((a) => a.accountId === accountId);
+        acc.balance += amount;
+        await owner.save();
+
+        // 2. Update ក្នុងកុង Partner ដែលកំពុងកាន់កុងនេះ
+        await User.updateMany(
+          {
+            "subAccounts.accountId": accountId,
+            username: { $ne: owner.username },
+          },
+          { $inc: { "subAccounts.$[elem].balance": amount } },
+          { arrayFilters: [{ "elem.accountId": accountId }] },
+        );
+      }
 
       function resetCheck() {
         document.getElementById("displayReceiverName").innerText = "...";
