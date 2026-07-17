@@ -513,6 +513,12 @@ async function toggleFreeze(id, isFrozen) {
       headers: getAuthHeaders(),
       body: JSON.stringify({ id, isFrozen }),
     });
+
+    // បន្ថែមការឆែក Status ត្រង់នេះ
+    if (!res.ok) {
+      throw new Error(`Serverឆ្លើយតបខុសប្រក្រតី (Status: ${res.status})`);
+    }
+
     const data = await res.json();
     if (data.success) {
       Swal.fire({
@@ -530,7 +536,9 @@ async function toggleFreeze(id, isFrozen) {
       if (typeof loadData === "function") loadData();
     }
   } catch (e) {
-    Swal.fire("Error", "បញ្ហាតភ្ជាប់", "error");
+    // កែត្រង់នេះដើម្បីមើល Error ពិតប្រាកដក្នុង Console
+    console.error("TOGGLE FREEZE FRONTEND ERROR:", e);
+    Swal.fire("Error", "បញ្ហាតភ្ជាប់: " + e.message, "error");
     if (typeof loadData === "function") loadData();
   }
 }
