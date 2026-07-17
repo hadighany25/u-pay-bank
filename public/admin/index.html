@@ -828,38 +828,77 @@
           max-width: 1400px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 20px 15px;
         "
       >
-        <div class="cashier-container">
-          <div class="cashier-title">
+        <!-- 🔥 បន្ថែម style ទីនេះដើម្បីពង្រីកកាតអោយធំ (max-width: 900px) និងនៅកណ្តាល -->
+        <div
+          class="cashier-container"
+          style="
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+          "
+        >
+          <div
+            class="cashier-title"
+            style="
+              font-size: 1.5rem;
+              margin-bottom: 25px;
+              padding-bottom: 15px;
+              border-bottom: 1px solid #e2e8f0;
+            "
+          >
             <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
           </div>
 
           <!-- ១. ផ្នែកស្វែងរកអ្នកទទួល -->
-          <div class="input-group">
+          <div class="input-group" style="margin-bottom: 25px">
             <label class="input-label"
               >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
             >
             <div style="display: flex; gap: 10px">
+              <!-- 🔥 បន្ថែម onkeypress សម្រាប់ចុច Enter -->
               <input
                 type="text"
                 id="targetUserSearch"
                 class="custom-input"
                 placeholder="ឧ. dara123 ឬ 012345678"
+                onkeypress="if (event.key === 'Enter') searchTargetUser();"
               />
+              <!-- 🔥 បន្ថែម flex ដើម្បីអោយអក្សរនៅកណ្តាលប៊ូតុង -->
               <button
                 class="btn-primary"
-                style="width: 120px"
+                style="
+                  width: 130px;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  gap: 8px;
+                "
                 onclick="searchTargetUser()"
               >
-                ស្វែងរក
+                <i class="fa-solid fa-search"></i> ស្វែងរក
               </button>
             </div>
           </div>
 
           <!-- ២. កាតព័ត៌មានអ្នកទទួល (លាក់សិន) -->
-          <div id="targetUserCard" class="user-card" style="display: none">
+          <div
+            id="targetUserCard"
+            class="user-card"
+            style="
+              display: none;
+              border: 1px solid #e2e8f0;
+              padding: 20px;
+              border-radius: 10px;
+              margin-bottom: 25px;
+            "
+          >
             <img
               src="https://via.placeholder.com/60"
               id="cardAvatar"
@@ -884,7 +923,11 @@
               </div>
             </div>
             <div>
-              <button class="kyc-btn" onclick="viewKYC()">
+              <button
+                class="kyc-btn"
+                style="display: flex; align-items: center; gap: 5px"
+                onclick="viewKYC()"
+              >
                 <i class="fa-solid fa-id-card"></i> មើល KYC
               </button>
             </div>
@@ -892,7 +935,23 @@
 
           <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
           <div id="transactionForm" style="display: none">
-            <div class="input-group">
+            <!-- 🔥 ថែម Dropdown ជ្រើសរើសគណនី (កុង Main ឬ Sub) នៅទីនេះ -->
+            <div class="input-group" style="margin-bottom: 20px">
+              <label
+                class="input-label"
+                style="font-weight: bold; color: #0369a1"
+                >ជ្រើសរើសគណនីទទួលប្រាក់ <span style="color: red">*</span></label
+              >
+              <select
+                id="targetAccountSelect"
+                class="custom-input"
+                style="border-color: #7dd3fc; background-color: #f0f9ff"
+              >
+                <option value="">-- សូមស្វែងរកអ្នកទទួលសិន --</option>
+              </select>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 20px">
               <label class="input-label">តើនរណាជាអ្នកយកប្រាក់មកដាក់?</label>
               <div class="radio-group">
                 <label class="radio-option">
@@ -917,7 +976,10 @@
               </div>
             </div>
 
-            <div id="otherDepositorDiv" style="display: none">
+            <div
+              id="otherDepositorDiv"
+              style="display: none; margin-bottom: 20px"
+            >
               <label class="input-label"
                 >លេខគណនី ឬ Username (អ្នកយកលុយមកដាក់)</label
               >
@@ -934,12 +996,12 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 15px">
+            <div style="display: flex; gap: 15px; margin-bottom: 20px">
               <div class="input-group" style="width: 40%">
-                <label class="input-label">ប្រភេទគណនី</label>
+                <label class="input-label">រូបិយប័ណ្ណ (Currency)</label>
                 <select id="cashCurrency" class="custom-input">
-                  <option value="USD">គណនី USD ($)</option>
-                  <option value="KHR">គណនី KHR (៛)</option>
+                  <option value="USD">ដុល្លារ (USD)</option>
+                  <option value="KHR">រៀល (KHR)</option>
                 </select>
               </div>
               <div class="input-group" style="width: 60%">
@@ -953,7 +1015,7 @@
               </div>
             </div>
 
-            <div class="input-group">
+            <div class="input-group" style="margin-bottom: 25px">
               <label class="input-label">ចំណាំ (Remark)</label>
               <input
                 type="text"
@@ -963,8 +1025,18 @@
               />
             </div>
 
+            <!-- 🔥 បន្ថែម flex ដើម្បីអោយអក្សរនៅកណ្តាលប៊ូតុង -->
             <button
               class="btn-primary btn-success"
+              style="
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+                font-size: 1.1rem;
+                padding: 12px;
+              "
               onclick="processCashTransaction()"
             >
               <i class="fa-solid fa-check-circle"></i> បញ្ជាក់ការដាក់ប្រាក់
