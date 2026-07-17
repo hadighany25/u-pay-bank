@@ -1835,7 +1835,7 @@
 
       // ==========================================
       // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
-      // [កែថ្មី: ចុចដើរហ្មង អត់មានលោតសួរទៀតទេ 1-Click Action]
+      // [កែថ្មី: លុបផ្ទាំងសួរបញ្ជាក់ចេញ ចុចភ្លាមដើរភ្លាម]
       // ==========================================
       async function handleJointInvite(
         ownerUsername,
@@ -1843,7 +1843,7 @@
         action,
         notifId,
       ) {
-        // លោត Loading ភ្លាមៗ (មិនបាច់សួរ Confirm ទេ)
+        // ១. បង្ហាញត្រឹមតែការផ្ទុក (Loading) ភ្លាមៗតែម្តង
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
@@ -1851,12 +1851,12 @@
         });
 
         try {
-          // 🔥 ធានាថាយើងចាប់យក Username អ្នកកំពុងលេងបានត្រឹមត្រូវ ១០០%
+          // ចាប់យកទិន្នន័យ User ដែលកំពុងប្រើប្រាស់
           let currentUsr =
             window.currentUser || JSON.parse(sessionStorage.getItem("user"));
           if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
 
-          // បាញ់ API ទៅកាន់ Backend
+          // ២. បាញ់ API ទៅកាន់ Backend យកតែម្តង
           const res = await fetch("/api/account/respond-joint-invite", {
             method: "POST",
             headers: window.authHeaders || {
@@ -1874,7 +1874,7 @@
           const data = await res.json();
 
           if (data.success) {
-            // លុបសារ Notification នេះចោលភ្លាមៗពីប្រព័ន្ធ
+            // ៣. លុបសារ Notification នេះចោលពីប្រព័ន្ធ
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
               headers: window.authHeaders || {
@@ -1883,7 +1883,7 @@
               },
             }).catch(() => console.log("Failed to clear notif"));
 
-            // លោតប្រាប់ថាជោគជ័យ ហើយ Refresh Page
+            // ៤. លោតប្រាប់ថាជោគជ័យ ២វិនាទី រួច Refresh យកកុងថ្មីមកបង្ហាញ
             Swal.fire({
               title: "ជោគជ័យ!",
               text: data.message,
