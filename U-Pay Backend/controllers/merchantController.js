@@ -4,7 +4,7 @@ const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 
 // ========================================================
-// Function ជំនួយ (Helpers)
+// 🛠️ Function ជំនួយ (Helpers)
 // ========================================================
 const generateRandomNumber = (length) => {
   let result = "";
@@ -15,7 +15,7 @@ const generateRandomNumber = (length) => {
 };
 
 // ========================================================
-// Merchant End-User APIs (សម្រាប់ម្ចាស់ហាង)
+// 🏪 Merchant End-User APIs (សម្រាប់អតិថិជនជាម្ចាស់ហាង)
 // ========================================================
 
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
@@ -35,7 +35,7 @@ exports.createMerchant = async (req, res) => {
         .status(400)
         .json({ success: false, message: "លេខកូដ PIN មិនត្រឹមត្រូវទេ" });
 
-    // ត្រូវមានយ៉ាងហោចណាស់គណនីមួយដែលបានភ្ជាប់
+    // ត្រូវមានយ៉ាងហោចណាស់គណនីមួយដែលបានភ្ជាប់ (ដើម្បីទទួលប្រាក់)
     if (!linkedAccUSD && !linkedAccKHR) {
       return res
         .status(400)
@@ -52,7 +52,7 @@ exports.createMerchant = async (req, res) => {
 
     if (linkedAccUSD) {
       accountNumbers.USD = "888" + generateRandomNumber(9);
-      linkedAccounts.USD = linkedAccUSD;
+      linkedAccounts.USD = linkedAccUSD; // រក្សាទុកកុងពិតប្រាកដដែលម្ចាស់ហាងចង់បាន
     }
     if (linkedAccKHR) {
       accountNumbers.KHR = "999" + generateRandomNumber(9);
@@ -67,8 +67,8 @@ exports.createMerchant = async (req, res) => {
       merchantId,
       apiKey,
       apiSecret,
-      linkedAccounts: linkedAccounts, // គណនីគោលដែលភ្ជាប់
-      accountNumbers: accountNumbers, // លេខកុង QR របស់ហាង
+      linkedAccounts: linkedAccounts,
+      accountNumbers: accountNumbers,
       collected: { USD: 0.0, KHR: 0 },
     });
 
@@ -99,6 +99,7 @@ exports.createMerchant = async (req, res) => {
 exports.getMyMerchants = async (req, res) => {
   try {
     const username = req.user.username;
+    // ទាញយកហាងរបស់គាត់ តែលាក់ API Secret ដើម្បីសុវត្ថិភាព
     const merchants = await Merchant.find({ userId: username }).select(
       "-apiSecret",
     );
@@ -108,12 +109,13 @@ exports.getMyMerchants = async (req, res) => {
   }
 };
 
-// ៣. លុបហាង (Delete Merchant)
+// ៣. លុបហាង (Delete Merchant by Owner)
 exports.deleteMerchant = async (req, res) => {
   try {
     const { merchantId } = req.params;
     const userId = req.user.username;
 
+    // អនុញ្ញាតអោយលុបបានតែហាងជារបស់ខ្លួនឯងប៉ុណ្ណោះ
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
       userId: userId,
@@ -131,7 +133,7 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
-// ៤. កែប្រែឈ្មោះហាង (Update Merchant)
+// ៤. កែប្រែឈ្មោះហាង (Update Merchant Info by Owner)
 exports.updateMerchant = async (req, res) => {
   try {
     const { name } = req.body;
@@ -165,14 +167,16 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះ៖ លុបការស្វែងរកតាម { receiverName: merchant.name } ចេញ!
+    // 🔥 កែត្រង់នេះ៖ លុបការស្វែងរកតាមឈ្មោះហាងចោល ដើម្បីកុំអោយវាទាញទិន្នន័យពីហាងផ្សេងដែលឈ្មោះដូចគ្នា
     let searchConditions = [
-      { merchantId: merchant.merchantId },
-      { receiverName: merchant.name, trxMethod: "Merchant Payment" }, // 🔥 ចាប់បានទាំង Transaction ថ្មីៗដែលរត់ចូលកុងរង
-      // ទុកលក្ខខណ្ឌចាស់ ការពារកុំឱ្យបាត់ប្រវត្តិ Transaction ចាស់ៗ
-      { receiverAcc: merchant.accountNumbers.USD },
-      { receiverAcc: merchant.accountNumbers.KHR },
+      { merchantId: merchant.merchantId }, // ១. ចាប់យកតាម ID ហាងតែមួយគត់ដែលយើងបានភ្ជាប់ពេលវេរលុយ
     ];
+
+    // ២. ទុកលក្ខខណ្ឌចាស់ ដើម្បីកុំអោយបាត់ប្រវត្តិហាងចាស់ៗដែលមិនមាន merchantId កាលពីមុន
+    if (merchant.accountNumbers && merchant.accountNumbers.USD)
+      searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
+    if (merchant.accountNumbers && merchant.accountNumbers.KHR)
+      searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
 
     let transactions = await Transaction.find({
       $or: searchConditions,
@@ -180,8 +184,10 @@ exports.getMerchantTransactions = async (req, res) => {
     }).sort({ _id: -1 });
 
     const currentUTC = new Date();
+    // បំប្លែងម៉ោងទៅជាម៉ោងស្រុកខ្មែរ (UTC+7)
     const nowKhmerTime = new Date(currentUTC.getTime() + 7 * 60 * 60 * 1000);
 
+    // តម្រង (Filter) តាមថ្ងៃ, សប្តាហ៍, និងខែ
     transactions = transactions.filter((t) => {
       const trxUTC = new Date(t.date);
       const trxKhmerTime = new Date(trxUTC.getTime() + 7 * 60 * 60 * 1000);
@@ -210,7 +216,7 @@ exports.getMerchantTransactions = async (req, res) => {
   }
 };
 
-// ៦. ទាញយកចំណូលហាង (Revenue)
+// ៦. ទាញយកចំណូលហាងសរុប (Revenue)
 exports.getMerchantRevenue = async (req, res) => {
   try {
     const { merchantId } = req.params;
@@ -220,7 +226,7 @@ exports.getMerchantRevenue = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 ប្រើប្រាស់ merchant.collected តែម្តង លឿន និងមិនជាន់ជាមួយទិន្នន័យចាស់ៗទេ
+    // ប្រើប្រាស់ merchant.collected តែម្តង ដើម្បីបង្ហាញលុយពិតប្រាកដដែលហាងទទួលបាន
     res.status(200).json({ success: true, revenue: merchant.collected });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -228,8 +234,10 @@ exports.getMerchantRevenue = async (req, res) => {
 };
 
 // ========================================================
-// Admin Business Management APIs
+// 👑 Admin Business Management APIs (សម្រាប់តែ Admin ប៉ុណ្ណោះ)
 // ========================================================
+
+// ផ្អាក ឬបើកដំណើរការហាង (Freeze/Unfreeze)
 exports.adminToggleMerchantFreeze = async (req, res) => {
   try {
     const { id, isFrozen } = req.body;
@@ -241,6 +249,7 @@ exports.adminToggleMerchantFreeze = async (req, res) => {
   }
 };
 
+// Admin លុបហាងចោលពីប្រព័ន្ធ
 exports.adminDeleteMerchant = async (req, res) => {
   try {
     await Merchant.findByIdAndDelete(req.params.id);
@@ -250,10 +259,12 @@ exports.adminDeleteMerchant = async (req, res) => {
   }
 };
 
+// Admin កែប្រែព័ត៌មានហាង
 exports.adminEditMerchant = async (req, res) => {
   try {
     const { id, name, merchantId, category } = req.body;
 
+    // ឆែកមើលក្រែងលោមានហាងផ្សេងកំពុងប្រើ ID នេះ
     const existing = await Merchant.findOne({
       merchantId: merchantId,
       _id: { $ne: id },
