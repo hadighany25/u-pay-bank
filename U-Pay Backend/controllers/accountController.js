@@ -461,6 +461,25 @@ exports.createJointAccount = async (req, res) => {
       await centralBank.save();
     }
 
+    // បន្ថែមក្នុង accountController.js
+    exports.searchUserForJoint = async (req, res) => {
+      try {
+        const { identifier } = req.params;
+        const user = await User.findOne({
+          $or: [
+            { username: identifier },
+            { accountNumber: identifier },
+            { phone: identifier },
+          ],
+        }).select("username fullName");
+
+        if (!user) return res.json({ success: false, message: "រកមិនឃើញទេ!" });
+        res.json({ success: true, user });
+      } catch (err) {
+        res.json({ success: false, message: "Error" });
+      }
+    };
+
     // បង្កើតឈ្មោះគណនីរួម (ឧ. SOK DARA AND TORANY ALHADI)
     const ownerName = user.fullName || user.username;
     const partnerName = partner.fullName || partner.username;

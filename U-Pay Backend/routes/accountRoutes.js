@@ -17,4 +17,7 @@ router.post("/create-joint", accountController.createJointAccount);
 // 🔥 API ថ្មី: សម្រាប់យល់ព្រម ឬ បដិសេធការអញ្ជើញចូលគណនីរួម
 router.post("/respond-joint-invite", accountController.respondToJointInvite);
 
+//
+router.get("/search-user/:identifier", accountController.searchUserForJoint);
+
 module.exports = router;
