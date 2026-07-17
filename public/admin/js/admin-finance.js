@@ -304,7 +304,6 @@ function toggleDepositorType() {
   }
 }
 
-// ២. ស្វែងរកអ្នកទទួលប្រាក់ (ហៅ API)
 // ១. មុខងារស្វែងរកអ្នកទទួលប្រាក់ (Admin Cashier)
 async function searchTargetUser() {
   const searchVal = document.getElementById("targetUserSearch").value.trim();
@@ -317,13 +316,13 @@ async function searchTargetUser() {
 
   try {
     const res = await fetch(`/api/admin/cashier/search/${searchVal}`, {
-      headers: getAuthHeaders(), // ត្រូវប្រាកដថាបងមានមុខងារនេះ
+      headers: getAuthHeaders(),
     });
     const data = await res.json();
 
     if (data.success) {
       Swal.close();
-      currentTargetUser = data.user;
+      currentTargetUser = data.user; // ទិន្នន័យ User ដែលបានមកពី Backend
 
       // បង្ហាញកាតព័ត៌មានអតិថិជន
       document.getElementById("targetUserCard").style.display = "flex";
@@ -331,7 +330,7 @@ async function searchTargetUser() {
       document.getElementById("cardName").textContent =
         `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
 
-      // បង្ហាញលុយ
+      // បង្ហាញលុយសរុប (Main Accounts)
       const balUSD = currentTargetUser.balance || 0;
       const balKHR = currentTargetUser.balanceKHR || 0;
       document.getElementById("cardBalUSD").textContent =
@@ -340,13 +339,15 @@ async function searchTargetUser() {
         `KHR: ៛${balKHR.toLocaleString()}`;
 
       // ==========================================
-      // 🔥 កូដថ្មី៖ បញ្ចូលគណនីទាំងអស់ទៅក្នុង Dropdown
+      // 🔥 កូដបញ្ញូលគណនីទាំងអស់ទៅក្នុង Dropdown
       // ==========================================
       const accountSelect = document.getElementById("targetAccountSelect");
-      accountSelect.innerHTML = ""; // លុបទិន្នន័យចាស់ចោលសិន
+      let optionHTML = ""; // ចាប់ផ្តើមដោយ String ទទេ
 
       // ក. បញ្ចូលគណនី Main USD
-      let optionHTML = `<option value="${currentTargetUser.accountNumber}">Main USD: ${currentTargetUser.accountNumber}</option>`;
+      if (currentTargetUser.accountNumber) {
+        optionHTML += `<option value="${currentTargetUser.accountNumber}">Main USD: ${currentTargetUser.accountNumber}</option>`;
+      }
 
       // ខ. បញ្ចូលគណនី Main KHR
       if (currentTargetUser.accountNumberKHR) {
@@ -363,36 +364,41 @@ async function searchTargetUser() {
         });
       }
 
+      // បញ្ចូលជម្រើសទៅក្នុង Dropdown
       accountSelect.innerHTML = optionHTML;
 
       // ==========================================
-      // 🔥 កូដឆ្លាតវៃ៖ បើ Admin វាយលេខកុងស្វែងរក, អោយវា Auto-Select ចំកុងនោះតែម្តង!
+      // 🔥 កូដឆ្លាតវៃ៖ អោយវា Auto-Select ចំកុងដែលគេវាយស្វែងរក
       // ==========================================
-      if (searchVal.length >= 8) {
-        const options = accountSelect.options;
-        for (let i = 0; i < options.length; i++) {
-          if (options[i].value === searchVal) {
-            accountSelect.selectedIndex = i; // ជ្រើសរើសដោយស្វ័យប្រវត្តិ
+      let foundExactMatch = false;
+      for (let i = 0; i < accountSelect.options.length; i++) {
+        if (accountSelect.options[i].value === searchVal) {
+          accountSelect.selectedIndex = i; // ជ្រើសរើសស្វ័យប្រវត្តិ
+          foundExactMatch = true;
 
-            // Auto ប្តូររូបិយប័ណ្ណ (Currency) ទៅតាមកុងដែលបានរើស
-            const cashCurrency = document.getElementById("cashCurrency");
-            const selectedSub = currentTargetUser.subAccounts?.find(
-              (s) => s.accountNumber === searchVal,
-            );
+          // Auto ប្តូររូបិយប័ណ្ណ (Currency)
+          const cashCurrency = document.getElementById("cashCurrency");
+          const selectedSub = currentTargetUser.subAccounts?.find(
+            (s) => s.accountNumber === searchVal,
+          );
 
-            if (selectedSub) {
-              cashCurrency.value = selectedSub.currency;
-            } else if (searchVal === currentTargetUser.accountNumberKHR) {
-              cashCurrency.value = "KHR";
-            } else {
-              cashCurrency.value = "USD";
-            }
-            break;
+          if (selectedSub) {
+            cashCurrency.value = selectedSub.currency;
+          } else if (searchVal === currentTargetUser.accountNumberKHR) {
+            cashCurrency.value = "KHR";
+          } else {
+            cashCurrency.value = "USD";
           }
+          break;
         }
       }
+
+      // ប្រសិនបើស្វែងរកតាម Username វានឹងឈរលើ Main USD ដោយ default
+      if (!foundExactMatch) {
+        document.getElementById("cashCurrency").value = "USD";
+      }
     } else {
-      Swal.fire("បរាជ័យ", "រកមិនឃើញគណនីនេះទេ!", "error");
+      Swal.fire("បរាជ័យ", data.message || "រកមិនឃើញគណនីនេះទេ!", "error");
       document.getElementById("targetUserCard").style.display = "none";
       document.getElementById("transactionForm").style.display = "none";
       currentTargetUser = null;

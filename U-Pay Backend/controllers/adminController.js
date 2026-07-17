@@ -1553,37 +1553,31 @@ const adminCreateMerchant = async (req, res) => {
   }
 };
 
-// 🔍 ១. ស្វែងរកអ្នកប្រើប្រាស់ (តាមរយៈ Username ឬ លេខគណនី)
-const searchCashierUser = async (req, res) => {
+// ==========================================
+// មុខងារស្វែងរកអ្នកទទួលប្រាក់សម្រាប់ Cashier
+// ==========================================
+exports.searchCashierUser = async (req, res) => {
   try {
     const { identifier } = req.params;
 
-    // ស្វែងរកតាម username ឬ លេខគណនី (USD / KHR)
+    // 🔥 ស្វែងរកតាម Username, លេខកុង Main, ឬ លេខកុង Sub-accounts
     const user = await User.findOne({
       $or: [
         { username: identifier },
         { accountNumber: identifier },
         { accountNumberKHR: identifier },
+        { "subAccounts.accountNumber": identifier }, // អនុញ្ញាតអោយស្វែងរកតាមលេខកុងរង
       ],
-    });
+    }).select("-password -pin"); // លាក់លេខសម្ងាត់ដើម្បីសុវត្ថិភាព
 
     if (!user) {
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
     }
 
-    // បញ្ជូនតែទិន្នន័យចាំបាច់ទៅ Frontend
-    res.json({
-      success: true,
-      data: {
-        username: user.username,
-        fullName: user.fullName || "មិនទាន់កំណត់ឈ្មោះ",
-        balanceUSD: user.balance || 0,
-        balanceKHR: user.balanceKHR || 0,
-        kycImage: user.idCardImage || null, // ដូរឈ្មោះ Field តាម Database របស់បង
-      },
-    });
+    // បោះទិន្នន័យត្រលប់ទៅកាន់ Frontend វិញ
+    res.json({ success: true, user });
   } catch (error) {
-    console.error("SEARCH CASHIER ERROR:", error);
+    console.error("Cashier Search Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
