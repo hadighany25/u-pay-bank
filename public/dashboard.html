@@ -1436,1037 +1436,1039 @@
     <script src="/js/slip.js"></script>
 
     <script>
-            // ==========================================
-            // ១១. សុវត្ថិភាព និងការគ្រប់គ្រងសម័យ (JWT SECURITY & SESSION MANAGEMENT)
-            // ==========================================
-            let user = JSON.parse(sessionStorage.getItem("user"));
-            let token = sessionStorage.getItem("userToken");
+      // ==========================================
+      // ១១. សុវត្ថិភាព និងការគ្រប់គ្រងសម័យ (JWT SECURITY & SESSION MANAGEMENT)
+      // ==========================================
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      let token = sessionStorage.getItem("userToken");
 
-            // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
-            if (!user) window.location.href = "index.html";
+      // បើគ្មាន User ឬ Token ទាត់ទៅខាងក្រៅវិញ
+      if (!user) window.location.href = "index.html";
 
-            const authHeaders = {
-              "Content-Type": "application/json",
-              Authorization: token ? `Bearer ${token}` : "",
-            };
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      };
 
-            let lastBalance = user.balance;
-
-            // ==========================================
-            // ១២. រៀបចំម៉ឺនុយដែលអាចអូសបាន (DRAG & DROP MENU)
-            // ==========================================
-            document.addEventListener("DOMContentLoaded", () => {
-              // ឆែក Dark Mode តាម Account
-              const userThemeKey = "darkMode_" + user.username;
-              const isDark = localStorage.getItem(userThemeKey) === "true";
-
-              if (isDark) {
-                document.body.classList.add("dark-mode");
-              }
-
-              // បង្ហាញ Body វិញ
-              document.body.classList.add("loaded");
-
-              // រៀបចំ Menu Sortable
-              const grid = document.getElementById("sortableMenu");
-              const userMenuKey = "menuOrder_" + user.username;
-              const savedOrder = localStorage.getItem(userMenuKey);
-
-              if (savedOrder) {
-                const orderArray = JSON.parse(savedOrder);
-                orderArray.forEach((id) => {
-                  const el = document.getElementById(id);
-                  if (el) grid.appendChild(el);
-                });
-              }
-
-              new Sortable(grid, {
-                animation: 250,
-                delay: 200,
-                delayOnTouchOnly: true,
-                ghostClass: "sortable-ghost",
-                onEnd: function () {
-                  const items = grid.querySelectorAll(".menu-item");
-                  const newOrder = Array.from(items).map((item) => item.id);
-                  localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
-                },
-              });
-
-              // ហៅមុខងារផ្សេងទៀត
-              updateUI(user);
-              loadDashboardData(false);
-            });
-
-            function applyTheme() {
-              const userThemeKey = "darkMode_" + user.username;
-              const userThemeValue = localStorage.getItem(userThemeKey);
-              let isDark = false;
-
-              if (userThemeValue !== null) {
-                isDark = userThemeValue === "true";
-              } else {
-                isDark =
-                  localStorage.getItem("theme") === "dark" ||
-                  localStorage.getItem("darkMode") === "true";
-              }
-
-              if (isDark) {
-                document.body.classList.add("dark-mode");
-              } else {
-                document.body.classList.remove("dark-mode");
-              }
-            }
-
-            document.addEventListener("DOMContentLoaded", () => {
-              applyTheme();
-            });
-
-            // ==========================================
-            // ១៣. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD)
-            // ==========================================
-            async function loadDashboardData(isAuto = true) {
-              try {
-                const res = await fetch("/api/users", { headers: authHeaders });
-                const users = await res.json();
-                const serverUser = users.find((u) => u.username === user.username);
-
-                if (serverUser) {
-                  // ការពារមិនឱ្យ Update ពេលកំពុង Pending KYC
-                  if (
-                    serverUser.kycStatus === "pending" &&
-                    user.kycStatus === "pending"
-                  ) {
-                    // រក្សាស្ថានភាព
-                  } else {
-                    user = serverUser;
-                    sessionStorage.setItem("user", JSON.stringify(serverUser));
-                  }
-
-                  // ឆែកលុយចូល
-                  if (isAuto && serverUser.balance > lastBalance) {
-                    Swal.fire({
-                      toast: true,
-                      position: "top-end",
-                      showConfirmButton: false,
-                      timer: 4000,
-                      icon: "success",
-                      title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
-                      customClass: { popup: "premium-swal" },
-                    });
-                  }
-                  lastBalance = serverUser.balance;
-
-                  // ធ្វើអោយ UI ថ្មី
-                  updateUI(user);
-
-                  // 🔥 បើកំពុងបើកមើលកុងណាមួយ គឺយកលេខកុងនោះមក Refresh តែម្តង! (លែងប្រើ tempAccNum)
-                  if (currentViewingCurrency && currentViewingAccountNum) {
-                    renderTransactionsInModal(
-                      user,
-                      currentViewingCurrency,
-                      currentViewingAccountNum,
-                    );
-                  }
-
-                  // បាញ់សារចូល UI
-                  updateNotificationsUI(user);
-                }
-              } catch (err) {
-                console.error("Turbo Load Error:", err);
-              }
-            }
-
-            // ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់អ្នកប្រើ (Update UI)
-            function updateUI(currentUser) {
-              updateGreeting();
-              const usernameEl = document.getElementById("username");
-              if (usernameEl)
-                usernameEl.innerText = currentUser.fullName || currentUser.username;
-
-              // គូរ Cards ទាំងអស់មកដាក់ក្នុង Slider
-              const sliderWrapper = document.querySelector(".card-slider-wrapper");
-              sliderWrapper.innerHTML = "";
-
-              // ១. គូរកុង USD Main
-              sliderWrapper.appendChild(
-                createCardElement(
-                  "USD",
-                  currentUser.balance,
-                  currentUser.accountNumber,
-                  "usd-card",
-                ),
-              );
-
-              // ២. គូរកុង KHR Main
-              sliderWrapper.appendChild(
-                createCardElement(
-                  "KHR",
-                  currentUser.balanceKHR || 0,
-                  currentUser.accountNumberKHR,
-                  "khr-card",
-                ),
-              );
-
-              // ៣. បន្ថែម Sub-Accounts
-              if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
-                currentUser.subAccounts.forEach((sub) => {
-                  const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
-                  sliderWrapper.appendChild(
-                    createCardElement(
-                      sub.currency,
-                      sub.balance,
-                      sub.accountNumber,
-                      cardClass,
-                      sub.accountName,
-                    ),
-                  );
-                });
-              }
-
-              const avatarBox = document.getElementById("avatarBox");
-              if (currentUser.profileImage && avatarBox)
-                avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
-            }
-
-            // បង្កើតកាតគណនី (Create Card Element)
-            function createCardElement(
-              currency,
-              balance,
-              accNum,
-              cardClass,
-              customName = null,
-            ) {
-              const sign = currency === "USD" ? "$" : "៛";
-              const label = customName
-                ? customName
-                : currency === "USD"
-                  ? "Available Balance (USD)"
-                  : "Available Balance (KHR)";
-              const displayBal =
-                currency === "USD"
-                  ? balance.toFixed(2)
-                  : balance.toLocaleString("en-US");
-
-              const card = document.createElement("div");
-              card.className = `credit-card ${cardClass}`;
-              card.onclick = () => openAccountDetails(currency, accNum);
-
-              card.innerHTML = `
-                <div class="card-top">
-                  <span class="card-chip"></span>
-                  <img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'">
-                </div>
-                <div class="card-body">
-                  <p class="card-label">${label}</p>
-                  <h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1>
-                </div>
-                <div class="card-footer">
-                  <p class="card-number">${accNum.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
-                </div>
-              `;
-              return card;
-            }
+      let lastBalance = user.balance;
 
       // ==========================================
-            // ១៤. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
-            // ==========================================
-            let currentUnreadCount = 0;
-            function updateNotificationsUI(currentUser) {
-              const unread = (currentUser.notifications || []).filter(
-                (n) => !n.isRead,
-              );
+      // ១២. រៀបចំម៉ឺនុយដែលអាចអូសបាន (DRAG & DROP MENU)
+      // ==========================================
+      document.addEventListener("DOMContentLoaded", () => {
+        // ឆែក Dark Mode តាម Account
+        const userThemeKey = "darkMode_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "true";
 
-              // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
-              if (unread.length > currentUnreadCount) {
-                new Audio(
-                  "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
-                )
-                  .play()
-                  .catch(() => {});
-                const bell = document.getElementById("bellShake");
-                if (bell) {
-                  bell.classList.add("fa-shake");
-                  setTimeout(() => bell.classList.remove("fa-shake"), 2000);
-                }
-              }
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        }
 
-              currentUnreadCount = unread.length;
+        // បង្ហាញ Body វិញ
+        document.body.classList.add("loaded");
 
-              const badge = document.getElementById("notiBadge");
-              if (badge) {
-                badge.innerText = currentUnreadCount;
-                badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
-              }
+        // រៀបចំ Menu Sortable
+        const grid = document.getElementById("sortableMenu");
+        const userMenuKey = "menuOrder_" + user.username;
+        const savedOrder = localStorage.getItem(userMenuKey);
 
-              const list = document.getElementById("notifList");
-              if (list) {
-                if (unread.length === 0) {
-                  list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
-                } else {
-                  list.innerHTML = unread
-                    .map((n) => {
-                      // តម្លៃដើម (Default) សម្រាប់ Icon និង ពណ៌
-                      let icon = "fa-bullhorn",
-                        bg = "#e0f2fe",
-                        col = "#0284c7";
-                      let displayMsg = n.message;
-                      let actionBtn = "";
+        if (savedOrder) {
+          const orderArray = JSON.parse(savedOrder);
+          orderArray.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) grid.appendChild(el);
+          });
+        }
 
-                      // 💵 ពណ៌សម្រាប់ ការទទួលប្រាក់ធម្មតា
-                      if (
-                        n.title.includes("Received") &&
-                        n.type !== "egift_receive"
-                      ) {
-                        icon = "fa-hand-holding-dollar";
-                        bg = "#ecfdf5";
-                        col = "#10b981";
-                      }
-                      // 🛒 ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request)
-                      else if (
-                        n.title.includes("សំណើទូទាត់ប្រាក់") ||
-                        n.type === "payment_request"
-                      ) {
-                        icon = "fa-cart-shopping";
-                        bg = "#fff7ed";
-                        col = "#ea580c";
-                      }
-                      // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward ដែលទើបតែបន្ថែម
-                      else if (
-                        n.title.includes("Cashback") ||
-                        n.type === "cashback_reward" ||
-                        n.title.includes("ឈ្នះបាន")
-                      ) {
-                        icon = "fa-sack-dollar";
-                        bg = "#dcfce7";
-                        col = "#059669";
-                      }
+        new Sortable(grid, {
+          animation: 250,
+          delay: 200,
+          delayOnTouchOnly: true,
+          ghostClass: "sortable-ghost",
+          onEnd: function () {
+            const items = grid.querySelectorAll(".menu-item");
+            const newOrder = Array.from(items).map((item) => item.id);
+            localStorage.setItem(userMenuKey, JSON.stringify(newOrder));
+          },
+        });
 
-                      // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
-                      if (n.type === "egift_receive") {
-                        icon = "fa-gift";
-                        bg = "#fee2e2";
-                        col = "#dc2626";
+        // ហៅមុខងារផ្សេងទៀត
+        updateUI(user);
+        loadDashboardData(false);
+      });
 
-                        const amount = n.egiftData?.amount || 0;
-                        const currency = n.egiftData?.currency || "USD";
-                        const sender = (
-                          n.egiftData?.senderName || "មិត្តភក្តិ"
-                        ).replace(/'/g, "\\'");
-                        const msg = (n.egiftData?.message || "ជូនពរសំណាងល្អ").replace(
-                          /'/g,
-                          "\\'",
-                        );
-                        const senderUsername = n.egiftData?.senderUsername || "";
-                        const notifId = n._id || n.id;
+      function applyTheme() {
+        const userThemeKey = "darkMode_" + user.username;
+        const userThemeValue = localStorage.getItem(userThemeKey);
+        let isDark = false;
 
-                        displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
+        if (userThemeValue !== null) {
+          isDark = userThemeValue === "true";
+        } else {
+          isDark =
+            localStorage.getItem("theme") === "dark" ||
+            localStorage.getItem("darkMode") === "true";
+        }
 
-                        // 🔥 បន្ថែមប៊ូតុងចុចទទួលកាដូមកវិញ
-                        actionBtn = `
-                          <div style="margin-top: 10px;">
-                            <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                              <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
-                            </button>
-                          </div>
-                        `;
-                      }
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
 
-                      // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
-                      if (n.type === "ufund_invite") {
-                        icon = "fa-bullseye";
-                        bg = "#ecfeff";
-                        col = "#0891b2";
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+      });
 
-                        // ប៊ូតុង យល់ព្រម និង បដិសេធ សម្រាប់ U-Fund
-                        actionBtn = `
-                          <div style="margin-top: 10px; display: flex; gap: 10px;">
-                            <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
-                            <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
-                          </div>
-                        `;
-                      }
+      // ==========================================
+      // ១៣. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD)
+      // ==========================================
+      async function loadDashboardData(isAuto = true) {
+        try {
+          const res = await fetch("/api/users", { headers: authHeaders });
+          const users = await res.json();
+          const serverUser = users.find((u) => u.username === user.username);
 
-                      // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
-                      if (n.metadata && n.metadata.type === "joint_invite") {
-                        icon = "fa-users";
-                        bg = "#e0e7ff";
-                        col = "#4f46e5";
-
-                        actionBtn = `
-                          <div style="margin-top: 10px; display: flex; gap: 10px;">
-                            <button
-                              onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${n.id}')"
-                              style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                              <i class="fa-solid fa-check"></i> យល់ព្រម
-                            </button>
-                            <button
-                              onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${n.id}')"
-                              style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                              <i class="fa-solid fa-xmark"></i> បដិសេធ
-                            </button>
-                          </div>
-                        `;
-                      }
-
-                      // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
-                      return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
-                                <div style="display:flex; gap:12px;">
-                                    <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
-                                    <div>
-                                        <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4>
-                                        <p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p>
-                                        <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span>
-                                    </div>
-                                </div>
-                                ${actionBtn}
-                            </div>`;
-                    })
-                    .reverse()
-                    .join("");
-                }
-              }
-            }
-
-            // មុខងារបើកផ្ទាំងសារ (Open Notification Modal)
-            function readNotifications() {
-              const notifModal = document.getElementById("notifModal");
-              if (notifModal) notifModal.style.display = "flex";
-            }
-
-            // ==========================================
-            // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
-            // [កែថ្មី: លុបផ្ទាំងសួរបញ្ជាក់ចេញ ចុចភ្លាមដើរភ្លាម]
-            // ==========================================
-            async function handleJointInvite(
-              ownerUsername,
-              accountNumber,
-              action,
-              notifId,
+          if (serverUser) {
+            // ការពារមិនឱ្យ Update ពេលកំពុង Pending KYC
+            if (
+              serverUser.kycStatus === "pending" &&
+              user.kycStatus === "pending"
             ) {
-              // បង្ហាញត្រឹមតែការផ្ទុក (Loading) ដោយមិនមានប៊ូតុងអ្វីអោយចុចទៀតទេ
+              // រក្សាស្ថានភាព
+            } else {
+              user = serverUser;
+              sessionStorage.setItem("user", JSON.stringify(serverUser));
+            }
+
+            // ឆែកលុយចូល
+            if (isAuto && serverUser.balance > lastBalance) {
               Swal.fire({
-                title: "កំពុងដំណើរការ...",
-                allowOutsideClick: false,
-                didOpen: () => {
-                  Swal.showLoading();
-                },
-              });
-
-              try {
-                let currentUsr = window.currentUser || JSON.parse(sessionStorage.getItem("user"));
-                if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
-
-                const res = await fetch("/api/account/respond-joint-invite", {
-                  method: "POST",
-                  headers: window.authHeaders || {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token")}`,
-                  },
-                  body: JSON.stringify({
-                    inviteeUsername: currentUsr.username,
-                    ownerUsername: ownerUsername,
-                    accountNumber: accountNumber,
-                    action: action,
-                  }),
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                  await fetch(`/api/user/notifications/read/${notifId}`, {
-                    method: "POST",
-                    headers: window.authHeaders || {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
-                  }).catch(() => console.log("Failed to clear notif"));
-
-                  Swal.fire({
-                    title: "ជោគជ័យ!",
-                    text: data.message,
-                    icon: "success",
-                    timer: 2000,
-                    showConfirmButton: false, // លាក់ប៊ូតុងអោយវាបាត់ខ្លួនឯង
-                  }).then(() => {
-                    window.location.reload();
-                  });
-                } else {
-                  Swal.fire("បរាជ័យ", data.message, "error");
-                }
-              } catch (error) {
-                console.error("Error responding to invite:", error);
-                Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-              }
-            }
-
-            // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
-            async function closeNotifications() {
-              const notifModal = document.getElementById("notifModal");
-              if (notifModal) notifModal.style.display = "none";
-            }
-              // Mark as Read តែសារធម្មតា (ទុកសារ E-Gift ឲ្យនៅដដែលបើមិនទាន់បើក)
-              const badge = document.getElementById("notiBadge");
-              if (badge && parseInt(badge.innerText) > 0) {
-                try {
-                  await fetch("/api/user/read-notifications", {
-                    method: "POST",
-                    headers: authHeaders,
-                    body: JSON.stringify({ username: user.username }),
-                  });
-                  loadDashboardData(false);
-                } catch (e) {}
-              }
-
-            // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
-            async function handleOpenGiftFromDash(
-              amount,
-              currency,
-              sender,
-              msg,
-              notifId,
-              senderUsername,
-            ) {
-              // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
-              const notifModal = document.getElementById("notifModal");
-              if (notifModal) notifModal.style.display = "none";
-
-              // ២. បាញ់ព្រិល (Confetti Effect)
-              if (typeof confetti === "function") {
-                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-              }
-
-              const curSym = currency === "USD" ? "$" : "៛";
-              const displayAmt =
-                currency === "USD"
-                  ? Number(amount).toFixed(2)
-                  : Number(amount).toLocaleString();
-
-              // បង្ហាញផ្ទាំងប្រាក់រង្វាន់ (Surprise Alert)
-              Swal.fire({
-                html: `
-                        <div style="padding:20px; text-align:center;">
-                            <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
-                            <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
-                            <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
-                            <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
-                            <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
-                        </div>
-                    `,
-                confirmButtonText: "ឡូយកប់!",
-                confirmButtonColor: "#004d40",
-                customClass: { popup: "modal-radius" },
-              }).then(() => {
-                // ពេលចុច "ឡូយកប់!" យើង Update UI ដើម្បីឱ្យបាត់សារ
-                loadDashboardData(false);
-              });
-
-              // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ (Update Server)
-              try {
-                await fetch("/api/egift/opened", {
-                  method: "POST",
-                  headers: authHeaders,
-                  body: JSON.stringify({
-                    receiverName: user.fullName || user.username,
-                    senderUsername: senderUsername,
-                    notifId: notifId,
-                  }),
-                });
-              } catch (e) {
-                console.error(e);
-              }
-            }
-
-            // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
-            async function respondUFundInvite(fundId, notifId, response) {
-              try {
-                Swal.fire({
-                  title: "កំពុងដំណើរការ...",
-                  didOpen: () => Swal.showLoading(),
-                });
-
-                const res = await fetch("/api/ufund/respond-invite", {
-                  method: "POST",
-                  headers: authHeaders,
-                  body: JSON.stringify({
-                    username: user.username,
-                    fundId: fundId,
-                    notifId: notifId,
-                    response: response, // 'accept' ឬ 'decline'
-                  }),
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                  closeNotifications();
-                  Swal.fire({
-                    icon: "success",
-                    title: "ជោគជ័យ!",
-                    text: data.message,
-                    timer: 2000,
-                    showConfirmButton: false,
-                  }).then(() => {
-                    loadDashboardData(false); // Refresh ទិន្នន័យ Dashboard
-                  });
-                } else {
-                  Swal.fire("បរាជ័យ", data.message, "error");
-                }
-              } catch (error) {
-                console.error(error);
-                Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-              }
-            }
-
-            // ==========================================
-            // ១៥. ការបង្ហាញព័ត៌មានគណនីលម្អិត (BOTTOM SHEET LOGIC)
-            // ==========================================
-            let currentViewingCurrency = null;
-            let currentViewingAccountNum = null; // 🔥 បន្ថែមអថេរនេះដើម្បីចំណាំលេខកុងដែលកំពុងបើក!
-
-            function openAccountDetails(currency, accNum) {
-              currentViewingCurrency = currency;
-              currentViewingAccountNum = accNum; // 🔥 ចំណាំលេខកុងទុកពេលចុចបើក ដើម្បីកុំឱ្យ Refresh ខុស
-
-              const account = findAccountByNumber(user, accNum);
-
-              const modal = document.getElementById("accountBottomSheet");
-              const overlay = document.getElementById("accountModalOverlay");
-
-              if (modal && overlay && account) {
-                document.getElementById("sheetAccType").innerText =
-                  account.accountName ||
-                  (currency === "USD" ? "គណនីប្រាក់ដុល្លារ" : "គណនីប្រាក់រៀល");
-                document.getElementById("sheetBalance").innerText =
-                  currency === "USD"
-                    ? `$${account.balance.toFixed(2)}`
-                    : `${account.balance.toLocaleString("en-US")} ៛`;
-                document.getElementById("sheetAccNum").innerText =
-                  account.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
-
-                renderTransactionsInModal(user, currency, accNum);
-                overlay.classList.add("active");
-                modal.classList.add("active");
-              }
-            }
-
-            function findAccountByNumber(user, accNum) {
-              if (user.accountNumber === accNum || user.accountNumberKHR === accNum)
-                return {
-                  ...user,
-                  balance: user.balance,
-                  accountName: "Main Account",
-                };
-              return user.subAccounts.find((sub) => sub.accountNumber === accNum);
-            }
-
-            function closeAccountDetails() {
-              currentViewingCurrency = null;
-              currentViewingAccountNum = null; // 🔥 លុបការចំណាំចោលវិញពេលបិទ Modal
-
-              const modal = document.getElementById("accountBottomSheet");
-              const overlay = document.getElementById("accountModalOverlay");
-              if (modal) modal.classList.remove("active");
-              if (overlay) overlay.classList.remove("active");
-            }
-
-            function renderTransactionsInModal(currentUser, currency, accNum) {
-              const list = document.getElementById("sheetTrxList");
-              if (!list) return;
-
-              if (
-                !currentUser.transactions ||
-                currentUser.transactions.length === 0
-              ) {
-                list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
-                return;
-              }
-
-              let filteredTrx = currentUser.transactions
-                .filter((t) => {
-                  // ១. ឆែករកលេខគណនីក្នុងប្រតិបត្តិការ (តើប្រតិបត្តិការនេះ ជាការផ្ញើចេញ ឬទទួលចូល?)
-                  // យើងត្រូវឆែកទាំង senderAcc និង receiverAcc
-                  const matchAcc =
-                    t.senderAcc === accNum ||
-                    t.receiverAcc === accNum ||
-                    t.senderAccount === accNum || // ករណីខ្លះយើងប្រើឈ្មោះ Field នេះ
-                    t.receiverAccount === accNum;
-
-                  // ២. ករណី Main Account (ដែលជួនកាល Database មិនដាក់លេខកុងច្បាស់លាស់)
-                  // យើងប្រើការឆែក Currency និងធានាថាវាជាកុង Main
-                  const isMainAccountMatch =
-                    t.currency === currency &&
-                    (accNum === currentUser.accountNumber ||
-                      accNum === currentUser.accountNumberKHR) &&
-                    !t.senderAcc &&
-                    !t.receiverAcc &&
-                    !t.senderAccount &&
-                    !t.receiverAccount;
-
-                  return matchAcc || isMainAccountMatch;
-                })
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 30);
-
-              if (filteredTrx.length === 0) {
-                list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការសម្រាប់គណនីនេះទេ</p></div>`;
-                return;
-              }
-
-              list.innerHTML = "";
-              let lastDateLabel = "";
-
-              filteredTrx.forEach((t) => {
-                const isIncome = t.amount > 0;
-                const isPending = t.status === "Pending";
-                let parsedDate = parseDateString(t.date);
-                let dateLabel = getSmartDateLabel(parsedDate);
-
-                if (dateLabel !== lastDateLabel) {
-                  const dateHeader = document.createElement("div");
-                  dateHeader.style.cssText =
-                    "font-size: 0.85rem; font-weight: bold; color: #64748b; margin: 15px 0 10px 0; padding: 0 5px; text-transform: uppercase;";
-                  dateHeader.innerText = dateLabel;
-                  list.appendChild(dateHeader);
-                  lastDateLabel = dateLabel;
-                }
-
-                let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-                let bgClass = isIncome
-                  ? "bg-green"
-                  : isPending
-                    ? "bg-orange"
-                    : "bg-red";
-                let textClass = isIncome
-                  ? "text-green"
-                  : isPending
-                    ? "text-orange"
-                    : "text-red";
-
-                let isMerchantTrx =
-                  t.type === "Merchant Payment" ||
-                  t.trxMethod === "Merchant Payment" ||
-                  t.merchantId ||
-                  t.receiverType === "Merchant";
-
-                if (isMerchantTrx) {
-                  iconClass = "fa-store";
-                  bgClass = isIncome
-                    ? "bg-green"
-                    : isPending
-                      ? "bg-orange"
-                      : "bg-red";
-                  textClass = isIncome
-                    ? "text-green"
-                    : isPending
-                      ? "text-orange"
-                      : "text-red";
-                } else if (t.type && t.type.includes("U-Fund")) {
-                  iconClass = "fa-piggy-bank";
-                } else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
-                  iconClass = "fa-gift";
-                } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
-                  iconClass = "fa-file-invoice-dollar";
-                  bgClass = "bg-orange";
-                  textClass = "text-orange";
-                } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
-                  iconClass = "fa-tag";
-                  bgClass = isIncome ? "bg-green" : "bg-red";
-                  textClass = isIncome ? "text-green" : "text-red";
-                } else if (
-                  t.type === "Cashback Reward" ||
-                  t.type === "Cashback Payout"
-                ) {
-                  iconClass = "fa-sack-dollar";
-                  bgClass = isIncome ? "bg-green" : "bg-red";
-                  textClass = isIncome ? "text-green" : "text-red";
-                } else if (
-                  t.type === "Cash Deposit" ||
-                  t.type === "Cash Withdrawal" ||
-                  t.type.includes("System")
-                ) {
-                  iconClass = "fa-money-bill-transfer";
-                  bgClass = isIncome ? "bg-green" : "bg-red";
-                  textClass = isIncome ? "text-green" : "text-red";
-                }
-
-                let title = t.type;
-
-                if (t.type === "E-Gift Received") {
-                  title = "Received E-Gift";
-                } else if (t.type === "E-Gift Sent") {
-                  title = `Sent E-Gift to ${t.receiverName || "Someone"}`;
-                } else if (isIncome) {
-                  title = t.senderName || "Received";
-                } else {
-                  title =
-                    t.receiverName ||
-                    (t.type === "Card Payment" ? "Card Payment" : "Transfer");
-                }
-
-                if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
-                  title = t.type || t.trxMethod || title;
-                }
-
-                const displayAmt =
-                  currency === "KHR"
-                    ? Math.abs(t.amount).toLocaleString("en-US") + " ៛"
-                    : "$" + Math.abs(t.amount).toFixed(2);
-
-                const item = document.createElement("div");
-                item.className = "trx-item";
-
-                const targetUsername =
-                  currentUser.username ||
-                  (typeof user !== "undefined" ? user.username : "");
-                item.onclick = function () {
-                  if (typeof openGlobalSlip === "function")
-                    openGlobalSlip(t, targetUsername);
-                };
-
-                item.innerHTML = `
-                      <div class="trx-left">
-                          <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
-                          <div class="trx-info"><h4 style="text-transform: capitalize;">${title}</h4><p>${getTimeString(parsedDate, t.date)} • ${t.trxMethod || "U-Pay"}</p></div>
-                      </div>
-                      <div class="trx-amount ${textClass}">${isIncome ? "+" : "-"}${displayAmt}</div>`;
-                list.appendChild(item);
-              });
-            }
-
-            function parseDateString(dateStr) {
-              if (!dateStr) return new Date();
-              let d = new Date(dateStr);
-              if (isNaN(d.getTime()) && dateStr.includes(","))
-                d = new Date(dateStr.split(",")[0].trim());
-              return isNaN(d.getTime()) ? new Date() : d;
-            }
-
-            function getSmartDateLabel(d) {
-              let t = new Date();
-              t.setHours(0, 0, 0, 0);
-              let y = new Date();
-              y.setDate(t.getDate() - 1);
-              y.setHours(0, 0, 0, 0);
-              let c = new Date(d);
-              c.setHours(0, 0, 0, 0);
-              let l = localStorage.getItem("lang") || "en";
-              if (c.getTime() === t.getTime())
-                return l === "kh" ? "ថ្ងៃនេះ" : "Today";
-              if (c.getTime() === y.getTime())
-                return l === "kh" ? "ម្សិលមិញ" : "Yesterday";
-              return c.toLocaleDateString("en-US", {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-              });
-            }
-
-            function getTimeString(d, orig) {
-              return !isNaN(d.getTime())
-                ? d.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : orig.includes(",")
-                  ? orig.split(",")[1].trim()
-                  : "";
-            }
-
-            // ==========================================
-            // ១៦. មុខងារពិសេសផ្សេងៗ (PROMO & E-GIFT)
-            // ==========================================
-            async function claimPromoPopup() {
-              const { value: code } = await Swal.fire({
-                title: "🎁 បញ្ចូលកូដប្រូម៉ូសិន",
-                input: "text",
-                inputPlaceholder: "ឧទាហរណ៍៖ UPAY2026",
-                showCancelButton: true,
-                confirmButtonText: "ទទួលយកលុយរង្វាន់",
-                cancelButtonText: "បោះបង់",
-                confirmButtonColor: "#10b981",
+                toast: true,
+                position: "top-end",
+                showConfirmButton: false,
+                timer: 4000,
+                icon: "success",
+                title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
                 customClass: { popup: "premium-swal" },
               });
-
-              if (code) {
-                Swal.fire({
-                  title: "កំពុងត្រួតពិនិត្យ...",
-                  didOpen: () => Swal.showLoading(),
-                });
-                try {
-                  const res = await fetch("/api/claim-promo", {
-                    method: "POST",
-                    headers: authHeaders,
-                    body: JSON.stringify({
-                      username: user.username,
-                      code: code,
-                    }),
-                  });
-                  const data = await res.json();
-
-                  if (data.success) {
-                    Swal.fire("អបអរសាទរ! 🎉", data.message, "success");
-                    user.balance = data.newBalance;
-                    sessionStorage.setItem("user", JSON.stringify(user));
-                    updateUI(user);
-                    new Audio(
-                      "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                    )
-                      .play()
-                      .catch(() => {});
-                  } else {
-                    Swal.fire("សុំទោស!", data.message, "error");
-                  }
-                } catch (e) {
-                  Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
-                }
-              }
             }
+            lastBalance = serverUser.balance;
 
-            let currentGiftData = null;
-            let currentNotifId = null;
-
-            function checkEgiftNotification(currentUser) {
-              if (!currentUser.notifications) return;
-
-              const gift = currentUser.notifications.find(
-                (n) => n.type === "egift_receive" && !n.isRead,
-              );
-
-              if (gift) {
-                currentGiftData = gift.egiftData;
-                currentNotifId = gift._id || gift.id;
-
-                const modal = document.getElementById("egiftModal");
-                if (modal) modal.style.display = "flex";
-              }
-            }
-
-            async function openEgift() {
-              if (!currentGiftData) return;
-
-              const envelope = document.getElementById("envelope");
-              if (envelope) envelope.style.transform = "scale(0) rotate(720deg)";
-
-              setTimeout(async () => {
-                if (typeof confetti === "function") {
-                  confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-                }
-
-                const curSym = currentGiftData.currency === "USD" ? "$" : "៛";
-                const displayAmt =
-                  currentGiftData.currency === "USD"
-                    ? Number(currentGiftData.amount).toFixed(2)
-                    : Number(currentGiftData.amount).toLocaleString();
-                var count = 200;
-                var defaults = { origin: { y: 0.7 } };
-
-                function fire(particleRatio, opts) {
-                  confetti(
-                    Object.assign({}, defaults, opts, {
-                      particleCount: Math.floor(count * particleRatio),
-                    }),
-                  );
-                }
-
-                fire(0.25, { spread: 26, startVelocity: 55 });
-                fire(0.2, { spread: 60 });
-                fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-                fire(0.1, {
-                  spread: 120,
-                  startVelocity: 25,
-                  decay: 0.92,
-                  scalar: 1.2,
-                });
-                fire(0.1, { spread: 120, startVelocity: 45 });
-                Swal.fire({
-                  html: `
-                      <div style="padding:20px; text-align:center;">
-                          <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
-                          <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
-                          <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
-                          <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${currentGiftData.senderName}</b></p>
-                          <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${currentGiftData.message}"</p>
-                      </div>
-                  `,
-                  confirmButtonText: "ឡូយកប់!",
-                  confirmButtonColor: "#004d40",
-                  customClass: { popup: "modal-radius" },
-                }).then(() => {
-                  if (typeof loadDashboardData === "function") {
-                    loadDashboardData(false);
-                  }
-                });
-
-                const modal = document.getElementById("egiftModal");
-                if (modal) modal.style.display = "none";
-
-                try {
-                  await fetch("/api/egift/opened", {
-                    method: "POST",
-                    headers: authHeaders,
-                    body: JSON.stringify({
-                      receiverName: user.fullName || user.username,
-                      senderUsername: currentGiftData.senderUsername,
-                      notifId: currentNotifId,
-                    }),
-                  });
-                } catch (e) {
-                  console.error("មិនអាច Mark អាំងប៉ាវនេះជាអានហើយបានទេ:", e);
-                }
-              }, 500);
-            }
-
-            // ==========================================
-            // ១៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE)
-            // ==========================================
-            function toggleMenuExpansion() {
-              const grid = document.getElementById("sortableMenu");
-              const btn = document.getElementById("menuToggleBtn");
-
-              grid.classList.toggle("expanded");
-              btn.classList.toggle("expanded");
-            }
-
-            let touchStartY = 0;
-            let touchEndY = 0;
-            const menuGridEl = document.getElementById("sortableMenu");
-
-            menuGridEl.addEventListener(
-              "touchstart",
-              (e) => {
-                touchStartY = e.changedTouches[0].screenY;
-              },
-              { passive: true },
-            );
-
-            menuGridEl.addEventListener(
-              "touchend",
-              (e) => {
-                touchEndY = e.changedTouches[0].screenY;
-                handleMenuSwipe();
-              },
-              { passive: true },
-            );
-
-            function handleMenuSwipe() {
-              const swipeDistance = touchStartY - touchEndY;
-              const isExpanded = menuGridEl.classList.contains("expanded");
-
-              if (swipeDistance < -30 && !isExpanded) {
-                toggleMenuExpansion();
-              } else if (swipeDistance > 30 && isExpanded) {
-                toggleMenuExpansion();
-              }
-            }
-
-            // ==========================================
-            // ១៨. ការចាប់ផ្តើមដំណើរការ (INITIALIZATION)
-            // ==========================================
+            // ធ្វើអោយ UI ថ្មី
             updateUI(user);
-            loadDashboardData(false);
 
-            setInterval(() => loadDashboardData(true), 4000);
+            // 🔥 បើកំពុងបើកមើលកុងណាមួយ គឺយកលេខកុងនោះមក Refresh តែម្តង! (លែងប្រើ tempAccNum)
+            if (currentViewingCurrency && currentViewingAccountNum) {
+              renderTransactionsInModal(
+                user,
+                currentViewingCurrency,
+                currentViewingAccountNum,
+              );
+            }
+
+            // បាញ់សារចូល UI
+            updateNotificationsUI(user);
+          }
+        } catch (err) {
+          console.error("Turbo Load Error:", err);
+        }
+      }
+
+      // ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់អ្នកប្រើ (Update UI)
+      function updateUI(currentUser) {
+        updateGreeting();
+        const usernameEl = document.getElementById("username");
+        if (usernameEl)
+          usernameEl.innerText = currentUser.fullName || currentUser.username;
+
+        // គូរ Cards ទាំងអស់មកដាក់ក្នុង Slider
+        const sliderWrapper = document.querySelector(".card-slider-wrapper");
+        sliderWrapper.innerHTML = "";
+
+        // ១. គូរកុង USD Main
+        sliderWrapper.appendChild(
+          createCardElement(
+            "USD",
+            currentUser.balance,
+            currentUser.accountNumber,
+            "usd-card",
+          ),
+        );
+
+        // ២. គូរកុង KHR Main
+        sliderWrapper.appendChild(
+          createCardElement(
+            "KHR",
+            currentUser.balanceKHR || 0,
+            currentUser.accountNumberKHR,
+            "khr-card",
+          ),
+        );
+
+        // ៣. បន្ថែម Sub-Accounts
+        if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
+          currentUser.subAccounts.forEach((sub) => {
+            const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
+            sliderWrapper.appendChild(
+              createCardElement(
+                sub.currency,
+                sub.balance,
+                sub.accountNumber,
+                cardClass,
+                sub.accountName,
+              ),
+            );
+          });
+        }
+
+        const avatarBox = document.getElementById("avatarBox");
+        if (currentUser.profileImage && avatarBox)
+          avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
+      }
+
+      // បង្កើតកាតគណនី (Create Card Element)
+      function createCardElement(
+        currency,
+        balance,
+        accNum,
+        cardClass,
+        customName = null,
+      ) {
+        const sign = currency === "USD" ? "$" : "៛";
+        const label = customName
+          ? customName
+          : currency === "USD"
+            ? "Available Balance (USD)"
+            : "Available Balance (KHR)";
+        const displayBal =
+          currency === "USD"
+            ? balance.toFixed(2)
+            : balance.toLocaleString("en-US");
+
+        const card = document.createElement("div");
+        card.className = `credit-card ${cardClass}`;
+        card.onclick = () => openAccountDetails(currency, accNum);
+
+        card.innerHTML = `
+           <div class="card-top">
+             <span class="card-chip"></span>
+             <img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'">
+           </div>
+           <div class="card-body">
+             <p class="card-label">${label}</p>
+             <h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1>
+           </div>
+           <div class="card-footer">
+             <p class="card-number">${accNum.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</p>
+           </div>
+         `;
+        return card;
+      }
+
+      // ==========================================
+      // ១៤. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
+      // ==========================================
+      let currentUnreadCount = 0;
+      function updateNotificationsUI(currentUser) {
+        const unread = (currentUser.notifications || []).filter(
+          (n) => !n.isRead,
+        );
+
+        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
+        if (unread.length > currentUnreadCount) {
+          new Audio(
+            "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
+          )
+            .play()
+            .catch(() => {});
+          const bell = document.getElementById("bellShake");
+          if (bell) {
+            bell.classList.add("fa-shake");
+            setTimeout(() => bell.classList.remove("fa-shake"), 2000);
+          }
+        }
+
+        currentUnreadCount = unread.length;
+
+        const badge = document.getElementById("notiBadge");
+        if (badge) {
+          badge.innerText = currentUnreadCount;
+          badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
+        }
+
+        const list = document.getElementById("notifList");
+        if (list) {
+          if (unread.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
+          } else {
+            list.innerHTML = unread
+              .map((n) => {
+                // តម្លៃដើម (Default) សម្រាប់ Icon និង ពណ៌
+                let icon = "fa-bullhorn",
+                  bg = "#e0f2fe",
+                  col = "#0284c7";
+                let displayMsg = n.message;
+                let actionBtn = "";
+
+                // 💵 ពណ៌សម្រាប់ ការទទួលប្រាក់ធម្មតា
+                if (
+                  n.title.includes("Received") &&
+                  n.type !== "egift_receive"
+                ) {
+                  icon = "fa-hand-holding-dollar";
+                  bg = "#ecfdf5";
+                  col = "#10b981";
+                }
+                // 🛒 ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request)
+                else if (
+                  n.title.includes("សំណើទូទាត់ប្រាក់") ||
+                  n.type === "payment_request"
+                ) {
+                  icon = "fa-cart-shopping";
+                  bg = "#fff7ed";
+                  col = "#ea580c";
+                }
+                // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward ដែលទើបតែបន្ថែម
+                else if (
+                  n.title.includes("Cashback") ||
+                  n.type === "cashback_reward" ||
+                  n.title.includes("ឈ្នះបាន")
+                ) {
+                  icon = "fa-sack-dollar";
+                  bg = "#dcfce7";
+                  col = "#059669";
+                }
+
+                // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
+                if (n.type === "egift_receive") {
+                  icon = "fa-gift";
+                  bg = "#fee2e2";
+                  col = "#dc2626";
+
+                  const amount = n.egiftData?.amount || 0;
+                  const currency = n.egiftData?.currency || "USD";
+                  const sender = (
+                    n.egiftData?.senderName || "មិត្តភក្តិ"
+                  ).replace(/'/g, "\\'");
+                  const msg = (n.egiftData?.message || "ជូនពរសំណាងល្អ").replace(
+                    /'/g,
+                    "\\'",
+                  );
+                  const senderUsername = n.egiftData?.senderUsername || "";
+                  const notifId = n._id || n.id;
+
+                  displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
+
+                  // 🔥 បន្ថែមប៊ូតុងចុចទទួលកាដូមកវិញ
+                  actionBtn = `
+                     <div style="margin-top: 10px;">
+                       <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                         <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
+                       </button>
+                     </div>
+                   `;
+                }
+
+                // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
+                if (n.type === "ufund_invite") {
+                  icon = "fa-bullseye";
+                  bg = "#ecfeff";
+                  col = "#0891b2";
+
+                  // ប៊ូតុង យល់ព្រម និង បដិសេធ សម្រាប់ U-Fund
+                  actionBtn = `
+                     <div style="margin-top: 10px; display: flex; gap: 10px;">
+                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                     </div>
+                   `;
+                }
+
+                // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
+                if (n.metadata && n.metadata.type === "joint_invite") {
+                  icon = "fa-users";
+                  bg = "#e0e7ff";
+                  col = "#4f46e5";
+
+                  actionBtn = `
+                     <div style="margin-top: 10px; display: flex; gap: 10px;">
+                       <button
+                         onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${n.id}')"
+                         style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                         <i class="fa-solid fa-check"></i> យល់ព្រម
+                       </button>
+                       <button
+                         onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${n.id}')"
+                         style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                         <i class="fa-solid fa-xmark"></i> បដិសេធ
+                       </button>
+                     </div>
+                   `;
+                }
+
+                // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
+                return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
+                           <div style="display:flex; gap:12px;">
+                               <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
+                               <div>
+                                   <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4>
+                                   <p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p>
+                                   <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span>
+                               </div>
+                           </div>
+                           ${actionBtn}
+                       </div>`;
+              })
+              .reverse()
+              .join("");
+          }
+        }
+      }
+
+      // មុខងារបើកផ្ទាំងសារ (Open Notification Modal)
+      function readNotifications() {
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "flex";
+      }
+
+      // ==========================================
+      // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
+      // [កែថ្មី: លុបផ្ទាំងសួរបញ្ជាក់ចេញ ចុចភ្លាមដើរភ្លាម]
+      // ==========================================
+      async function handleJointInvite(
+        ownerUsername,
+        accountNumber,
+        action,
+        notifId,
+      ) {
+        // បង្ហាញត្រឹមតែការផ្ទុក (Loading) ដោយមិនមានប៊ូតុងអ្វីអោយចុចទៀតទេ
+        Swal.fire({
+          title: "កំពុងដំណើរការ...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        try {
+          let currentUsr =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+          if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
+
+          const res = await fetch("/api/account/respond-joint-invite", {
+            method: "POST",
+            headers: window.authHeaders || {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              inviteeUsername: currentUsr.username,
+              ownerUsername: ownerUsername,
+              accountNumber: accountNumber,
+              action: action,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            await fetch(`/api/user/notifications/read/${notifId}`, {
+              method: "POST",
+              headers: window.authHeaders || {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }).catch(() => console.log("Failed to clear notif"));
+
+            Swal.fire({
+              title: "ជោគជ័យ!",
+              text: data.message,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false, // លាក់ប៊ូតុងអោយវាបាត់ខ្លួនឯង
+            }).then(() => {
+              window.location.reload();
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error("Error responding to invite:", error);
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
+      }
+
+      // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
+      async function closeNotifications() {
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "none";
+
+        // Mark as Read តែសារធម្មតា (ទុកសារ E-Gift ឲ្យនៅដដែលបើមិនទាន់បើក)
+        const badge = document.getElementById("notiBadge");
+        if (badge && parseInt(badge.innerText) > 0) {
+          try {
+            await fetch("/api/user/read-notifications", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({ username: user.username }),
+            });
+            loadDashboardData(false);
+          } catch (e) {}
+        }
+      }
+
+      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
+      async function handleOpenGiftFromDash(
+        amount,
+        currency,
+        sender,
+        msg,
+        notifId,
+        senderUsername,
+      ) {
+        // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "none";
+
+        // ២. បាញ់ព្រិល (Confetti Effect)
+        if (typeof confetti === "function") {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        const curSym = currency === "USD" ? "$" : "៛";
+        const displayAmt =
+          currency === "USD"
+            ? Number(amount).toFixed(2)
+            : Number(amount).toLocaleString();
+
+        // បង្ហាញផ្ទាំងប្រាក់រង្វាន់ (Surprise Alert)
+        Swal.fire({
+          html: `
+                   <div style="padding:20px; text-align:center;">
+                       <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                       <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                       <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                       <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
+                       <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
+                   </div>
+               `,
+          confirmButtonText: "ឡូយកប់!",
+          confirmButtonColor: "#004d40",
+          customClass: { popup: "modal-radius" },
+        }).then(() => {
+          // ពេលចុច "ឡូយកប់!" យើង Update UI ដើម្បីឱ្យបាត់សារ
+          loadDashboardData(false);
+        });
+
+        // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ (Update Server)
+        try {
+          await fetch("/api/egift/opened", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({
+              receiverName: user.fullName || user.username,
+              senderUsername: senderUsername,
+              notifId: notifId,
+            }),
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
+      async function respondUFundInvite(fundId, notifId, response) {
+        try {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          const res = await fetch("/api/ufund/respond-invite", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({
+              username: user.username,
+              fundId: fundId,
+              notifId: notifId,
+              response: response, // 'accept' ឬ 'decline'
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            closeNotifications();
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ!",
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+            }).then(() => {
+              loadDashboardData(false); // Refresh ទិន្នន័យ Dashboard
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
+      }
+
+      // ==========================================
+      // ១៥. ការបង្ហាញព័ត៌មានគណនីលម្អិត (BOTTOM SHEET LOGIC)
+      // ==========================================
+      let currentViewingCurrency = null;
+      let currentViewingAccountNum = null; // 🔥 បន្ថែមអថេរនេះដើម្បីចំណាំលេខកុងដែលកំពុងបើក!
+
+      function openAccountDetails(currency, accNum) {
+        currentViewingCurrency = currency;
+        currentViewingAccountNum = accNum; // 🔥 ចំណាំលេខកុងទុកពេលចុចបើក ដើម្បីកុំឱ្យ Refresh ខុស
+
+        const account = findAccountByNumber(user, accNum);
+
+        const modal = document.getElementById("accountBottomSheet");
+        const overlay = document.getElementById("accountModalOverlay");
+
+        if (modal && overlay && account) {
+          document.getElementById("sheetAccType").innerText =
+            account.accountName ||
+            (currency === "USD" ? "គណនីប្រាក់ដុល្លារ" : "គណនីប្រាក់រៀល");
+          document.getElementById("sheetBalance").innerText =
+            currency === "USD"
+              ? `$${account.balance.toFixed(2)}`
+              : `${account.balance.toLocaleString("en-US")} ៛`;
+          document.getElementById("sheetAccNum").innerText =
+            account.accountNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+
+          renderTransactionsInModal(user, currency, accNum);
+          overlay.classList.add("active");
+          modal.classList.add("active");
+        }
+      }
+
+      function findAccountByNumber(user, accNum) {
+        if (user.accountNumber === accNum || user.accountNumberKHR === accNum)
+          return {
+            ...user,
+            balance: user.balance,
+            accountName: "Main Account",
+          };
+        return user.subAccounts.find((sub) => sub.accountNumber === accNum);
+      }
+
+      function closeAccountDetails() {
+        currentViewingCurrency = null;
+        currentViewingAccountNum = null; // 🔥 លុបការចំណាំចោលវិញពេលបិទ Modal
+
+        const modal = document.getElementById("accountBottomSheet");
+        const overlay = document.getElementById("accountModalOverlay");
+        if (modal) modal.classList.remove("active");
+        if (overlay) overlay.classList.remove("active");
+      }
+
+      function renderTransactionsInModal(currentUser, currency, accNum) {
+        const list = document.getElementById("sheetTrxList");
+        if (!list) return;
+
+        if (
+          !currentUser.transactions ||
+          currentUser.transactions.length === 0
+        ) {
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+          return;
+        }
+
+        let filteredTrx = currentUser.transactions
+          .filter((t) => {
+            // ១. ឆែករកលេខគណនីក្នុងប្រតិបត្តិការ (តើប្រតិបត្តិការនេះ ជាការផ្ញើចេញ ឬទទួលចូល?)
+            // យើងត្រូវឆែកទាំង senderAcc និង receiverAcc
+            const matchAcc =
+              t.senderAcc === accNum ||
+              t.receiverAcc === accNum ||
+              t.senderAccount === accNum || // ករណីខ្លះយើងប្រើឈ្មោះ Field នេះ
+              t.receiverAccount === accNum;
+
+            // ២. ករណី Main Account (ដែលជួនកាល Database មិនដាក់លេខកុងច្បាស់លាស់)
+            // យើងប្រើការឆែក Currency និងធានាថាវាជាកុង Main
+            const isMainAccountMatch =
+              t.currency === currency &&
+              (accNum === currentUser.accountNumber ||
+                accNum === currentUser.accountNumberKHR) &&
+              !t.senderAcc &&
+              !t.receiverAcc &&
+              !t.senderAccount &&
+              !t.receiverAccount;
+
+            return matchAcc || isMainAccountMatch;
+          })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 30);
+
+        if (filteredTrx.length === 0) {
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:40px;"><p>គ្មានប្រតិបត្តិការសម្រាប់គណនីនេះទេ</p></div>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        let lastDateLabel = "";
+
+        filteredTrx.forEach((t) => {
+          const isIncome = t.amount > 0;
+          const isPending = t.status === "Pending";
+          let parsedDate = parseDateString(t.date);
+          let dateLabel = getSmartDateLabel(parsedDate);
+
+          if (dateLabel !== lastDateLabel) {
+            const dateHeader = document.createElement("div");
+            dateHeader.style.cssText =
+              "font-size: 0.85rem; font-weight: bold; color: #64748b; margin: 15px 0 10px 0; padding: 0 5px; text-transform: uppercase;";
+            dateHeader.innerText = dateLabel;
+            list.appendChild(dateHeader);
+            lastDateLabel = dateLabel;
+          }
+
+          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+          let bgClass = isIncome
+            ? "bg-green"
+            : isPending
+              ? "bg-orange"
+              : "bg-red";
+          let textClass = isIncome
+            ? "text-green"
+            : isPending
+              ? "text-orange"
+              : "text-red";
+
+          let isMerchantTrx =
+            t.type === "Merchant Payment" ||
+            t.trxMethod === "Merchant Payment" ||
+            t.merchantId ||
+            t.receiverType === "Merchant";
+
+          if (isMerchantTrx) {
+            iconClass = "fa-store";
+            bgClass = isIncome
+              ? "bg-green"
+              : isPending
+                ? "bg-orange"
+                : "bg-red";
+            textClass = isIncome
+              ? "text-green"
+              : isPending
+                ? "text-orange"
+                : "text-red";
+          } else if (t.type && t.type.includes("U-Fund")) {
+            iconClass = "fa-piggy-bank";
+          } else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
+            iconClass = "fa-gift";
+          } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+            iconClass = "fa-file-invoice-dollar";
+            bgClass = "bg-orange";
+            textClass = "text-orange";
+          } else if (t.type === "Promo Reward" || t.type === "Promo Expense") {
+            iconClass = "fa-tag";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
+          } else if (
+            t.type === "Cashback Reward" ||
+            t.type === "Cashback Payout"
+          ) {
+            iconClass = "fa-sack-dollar";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
+          } else if (
+            t.type === "Cash Deposit" ||
+            t.type === "Cash Withdrawal" ||
+            t.type.includes("System")
+          ) {
+            iconClass = "fa-money-bill-transfer";
+            bgClass = isIncome ? "bg-green" : "bg-red";
+            textClass = isIncome ? "text-green" : "text-red";
+          }
+
+          let title = t.type;
+
+          if (t.type === "E-Gift Received") {
+            title = "Received E-Gift";
+          } else if (t.type === "E-Gift Sent") {
+            title = `Sent E-Gift to ${t.receiverName || "Someone"}`;
+          } else if (isIncome) {
+            title = t.senderName || "Received";
+          } else {
+            title =
+              t.receiverName ||
+              (t.type === "Card Payment" ? "Card Payment" : "Transfer");
+          }
+
+          if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
+            title = t.type || t.trxMethod || title;
+          }
+
+          const displayAmt =
+            currency === "KHR"
+              ? Math.abs(t.amount).toLocaleString("en-US") + " ៛"
+              : "$" + Math.abs(t.amount).toFixed(2);
+
+          const item = document.createElement("div");
+          item.className = "trx-item";
+
+          const targetUsername =
+            currentUser.username ||
+            (typeof user !== "undefined" ? user.username : "");
+          item.onclick = function () {
+            if (typeof openGlobalSlip === "function")
+              openGlobalSlip(t, targetUsername);
+          };
+
+          item.innerHTML = `
+                 <div class="trx-left">
+                     <div class="trx-icon ${bgClass}"><i class="fa-solid ${isPending ? "fa-clock-rotate-left" : iconClass}"></i></div>
+                     <div class="trx-info"><h4 style="text-transform: capitalize;">${title}</h4><p>${getTimeString(parsedDate, t.date)} • ${t.trxMethod || "U-Pay"}</p></div>
+                 </div>
+                 <div class="trx-amount ${textClass}">${isIncome ? "+" : "-"}${displayAmt}</div>`;
+          list.appendChild(item);
+        });
+      }
+
+      function parseDateString(dateStr) {
+        if (!dateStr) return new Date();
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime()) && dateStr.includes(","))
+          d = new Date(dateStr.split(",")[0].trim());
+        return isNaN(d.getTime()) ? new Date() : d;
+      }
+
+      function getSmartDateLabel(d) {
+        let t = new Date();
+        t.setHours(0, 0, 0, 0);
+        let y = new Date();
+        y.setDate(t.getDate() - 1);
+        y.setHours(0, 0, 0, 0);
+        let c = new Date(d);
+        c.setHours(0, 0, 0, 0);
+        let l = localStorage.getItem("lang") || "en";
+        if (c.getTime() === t.getTime())
+          return l === "kh" ? "ថ្ងៃនេះ" : "Today";
+        if (c.getTime() === y.getTime())
+          return l === "kh" ? "ម្សិលមិញ" : "Yesterday";
+        return c.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        });
+      }
+
+      function getTimeString(d, orig) {
+        return !isNaN(d.getTime())
+          ? d.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : orig.includes(",")
+            ? orig.split(",")[1].trim()
+            : "";
+      }
+
+      // ==========================================
+      // ១៦. មុខងារពិសេសផ្សេងៗ (PROMO & E-GIFT)
+      // ==========================================
+      async function claimPromoPopup() {
+        const { value: code } = await Swal.fire({
+          title: "🎁 បញ្ចូលកូដប្រូម៉ូសិន",
+          input: "text",
+          inputPlaceholder: "ឧទាហរណ៍៖ UPAY2026",
+          showCancelButton: true,
+          confirmButtonText: "ទទួលយកលុយរង្វាន់",
+          cancelButtonText: "បោះបង់",
+          confirmButtonColor: "#10b981",
+          customClass: { popup: "premium-swal" },
+        });
+
+        if (code) {
+          Swal.fire({
+            title: "កំពុងត្រួតពិនិត្យ...",
+            didOpen: () => Swal.showLoading(),
+          });
+          try {
+            const res = await fetch("/api/claim-promo", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({
+                username: user.username,
+                code: code,
+              }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              Swal.fire("អបអរសាទរ! 🎉", data.message, "success");
+              user.balance = data.newBalance;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              updateUI(user);
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch(() => {});
+            } else {
+              Swal.fire("សុំទោស!", data.message, "error");
+            }
+          } catch (e) {
+            Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
+          }
+        }
+      }
+
+      let currentGiftData = null;
+      let currentNotifId = null;
+
+      function checkEgiftNotification(currentUser) {
+        if (!currentUser.notifications) return;
+
+        const gift = currentUser.notifications.find(
+          (n) => n.type === "egift_receive" && !n.isRead,
+        );
+
+        if (gift) {
+          currentGiftData = gift.egiftData;
+          currentNotifId = gift._id || gift.id;
+
+          const modal = document.getElementById("egiftModal");
+          if (modal) modal.style.display = "flex";
+        }
+      }
+
+      async function openEgift() {
+        if (!currentGiftData) return;
+
+        const envelope = document.getElementById("envelope");
+        if (envelope) envelope.style.transform = "scale(0) rotate(720deg)";
+
+        setTimeout(async () => {
+          if (typeof confetti === "function") {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          }
+
+          const curSym = currentGiftData.currency === "USD" ? "$" : "៛";
+          const displayAmt =
+            currentGiftData.currency === "USD"
+              ? Number(currentGiftData.amount).toFixed(2)
+              : Number(currentGiftData.amount).toLocaleString();
+          var count = 200;
+          var defaults = { origin: { y: 0.7 } };
+
+          function fire(particleRatio, opts) {
+            confetti(
+              Object.assign({}, defaults, opts, {
+                particleCount: Math.floor(count * particleRatio),
+              }),
+            );
+          }
+
+          fire(0.25, { spread: 26, startVelocity: 55 });
+          fire(0.2, { spread: 60 });
+          fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+          fire(0.1, {
+            spread: 120,
+            startVelocity: 25,
+            decay: 0.92,
+            scalar: 1.2,
+          });
+          fire(0.1, { spread: 120, startVelocity: 45 });
+          Swal.fire({
+            html: `
+                 <div style="padding:20px; text-align:center;">
+                     <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                     <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                     <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                     <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${currentGiftData.senderName}</b></p>
+                     <p class="kh-text" style="background:#f1f5f9; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${currentGiftData.message}"</p>
+                 </div>
+             `,
+            confirmButtonText: "ឡូយកប់!",
+            confirmButtonColor: "#004d40",
+            customClass: { popup: "modal-radius" },
+          }).then(() => {
+            if (typeof loadDashboardData === "function") {
+              loadDashboardData(false);
+            }
+          });
+
+          const modal = document.getElementById("egiftModal");
+          if (modal) modal.style.display = "none";
+
+          try {
+            await fetch("/api/egift/opened", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({
+                receiverName: user.fullName || user.username,
+                senderUsername: currentGiftData.senderUsername,
+                notifId: currentNotifId,
+              }),
+            });
+          } catch (e) {
+            console.error("មិនអាច Mark អាំងប៉ាវនេះជាអានហើយបានទេ:", e);
+          }
+        }, 500);
+      }
+
+      // ==========================================
+      // ១៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE)
+      // ==========================================
+      function toggleMenuExpansion() {
+        const grid = document.getElementById("sortableMenu");
+        const btn = document.getElementById("menuToggleBtn");
+
+        grid.classList.toggle("expanded");
+        btn.classList.toggle("expanded");
+      }
+
+      let touchStartY = 0;
+      let touchEndY = 0;
+      const menuGridEl = document.getElementById("sortableMenu");
+
+      menuGridEl.addEventListener(
+        "touchstart",
+        (e) => {
+          touchStartY = e.changedTouches[0].screenY;
+        },
+        { passive: true },
+      );
+
+      menuGridEl.addEventListener(
+        "touchend",
+        (e) => {
+          touchEndY = e.changedTouches[0].screenY;
+          handleMenuSwipe();
+        },
+        { passive: true },
+      );
+
+      function handleMenuSwipe() {
+        const swipeDistance = touchStartY - touchEndY;
+        const isExpanded = menuGridEl.classList.contains("expanded");
+
+        if (swipeDistance < -30 && !isExpanded) {
+          toggleMenuExpansion();
+        } else if (swipeDistance > 30 && isExpanded) {
+          toggleMenuExpansion();
+        }
+      }
+
+      // ==========================================
+      // ១៨. ការចាប់ផ្តើមដំណើរការ (INITIALIZATION)
+      // ==========================================
+      updateUI(user);
+      loadDashboardData(false);
+
+      setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>
 </html>
