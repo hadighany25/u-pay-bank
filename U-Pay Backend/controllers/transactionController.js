@@ -315,7 +315,19 @@ const transfer = async (req, res) => {
 
       // បូកលុយអ្នកទទួលចំកុង
       if (isReceiverSubAccount) {
-        receiver.subAccounts[targetSubAccIndex].balance += receiverAmount;
+        // 🔥 ត្រង់នេះ បើជាកុងប្រភេទ Joint ត្រូវប្រើ Function syncJointBalance
+        if (
+          receiver.subAccounts[targetSubAccIndex].accountType === "joint" ||
+          receiver.subAccounts[targetSubAccIndex].accountType === "joint_member"
+        ) {
+          await syncJointBalance(
+            receiver.subAccounts[targetSubAccIndex].accountId,
+            receiverAmount,
+          );
+        } else {
+          receiver.subAccounts[targetSubAccIndex].balance += receiverAmount;
+          await receiver.save(); // បូកកុងធម្មតា
+        }
       } else {
         if (isReceiverKHR)
           receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
@@ -1027,6 +1039,46 @@ const egiftOpened = async (req, res) => {
   } catch (error) {
     console.error("E-Gift Opened Error:", error);
     res.status(500).json({ success: false });
+  }
+};
+
+// ==========================================
+// 🔥 ដាក់មុខងារ syncJointBalance នៅទីនេះ (នៅចន្លោះនេះ)
+// ==========================================
+const syncJointBalance = async (accountId, amountChange) => {
+  try {
+    const owner = await User.findOne({ "subAccounts.accountId": accountId });
+    if (!owner) return;
+
+    const acc = owner.subAccounts.find((a) => a.accountId === accountId);
+    if (!acc || acc.accountType !== "joint") return;
+
+    // Update ក្នុងកុងម្ចាស់ដើម (Owner)
+    let ownerAccIndex = owner.subAccounts.findIndex(
+      (a) => a.accountId === accountId,
+    );
+    if (ownerAccIndex !== -1) {
+      owner.subAccounts[ownerAccIndex].balance += amountChange;
+      await owner.save();
+    }
+
+    // Update ក្នុងកុងដៃគូ (Partner)
+    for (let member of acc.members) {
+      if (member.status === "active") {
+        const partner = await User.findOne({ username: member.username });
+        if (partner) {
+          let pIdx = partner.subAccounts.findIndex(
+            (a) => a.accountId === accountId,
+          );
+          if (pIdx !== -1) {
+            partner.subAccounts[pIdx].balance += amountChange;
+            await partner.save();
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Sync Joint Balance Error:", err);
   }
 };
 
