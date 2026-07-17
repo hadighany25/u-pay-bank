@@ -1392,7 +1392,7 @@
         try {
           // ហៅ API ដើម្បីឆែកមើល (អាចប្រើ API របស់ admin cashier បណ្តោះអាសន្ន ឬ /api/user/profile បើមាន)
           // ទីនេះខ្ញុំសន្មតថាមានការឆែកធម្មតា បើបងចង់ឱ្យវាឆែកពិតប្រាកដត្រូវហៅ API ត្រឹមត្រូវ
-          const res = await fetch(`/api/admin/cashier/search/${val}`, {
+          const res = await fetch(`/api/account/search-user/${val}`, {
             headers: window.authHeaders,
           });
           const data = await res.json();
