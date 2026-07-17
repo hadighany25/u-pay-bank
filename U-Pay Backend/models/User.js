@@ -32,11 +32,10 @@ const userSchema = new mongoose.Schema(
     joinDate: { type: String, default: "" },
     suspiciousActivities: { type: Array, default: [] },
 
-    // 🔥 កែត្រង់នេះ: សរសេរជា Object {} ដើម្បីការពារ Mongoose កុំអោយយល់ច្រឡំ
     virtualCards: [
       {
         id: { type: String },
-        type: { type: String }, // 👈 ដោះស្រាយបញ្ហាបាត់កាតនៅទីនេះ!
+        type: { type: String },
         name: { type: String },
         number: { type: String },
         cvv: { type: String },
@@ -46,20 +45,34 @@ const userSchema = new mongoose.Schema(
         dailyLimit: { type: Number },
         linkedAccount: { type: String },
         pin: { type: String },
-        lockedByAdmin: { type: Boolean, default: false }, // សោរអំណាច Admin នៅដដែល!
+        lockedByAdmin: { type: Boolean, default: false },
       },
     ],
-    // 🔥 បន្ថែមថ្មី: អនុគណនី (Sub Accounts) សម្រាប់ទុកគណនីលេខពិសេស ហោប៉ៅ និងគ្រួសារ
+
+    // 🔥 កែប្រែថ្មី: បន្ថែមរចនាសម្ព័ន្ធសម្រាប់គាំទ្រ គណនីរួម (Joint Account)
     subAccounts: [
       {
         accountId: { type: String, default: () => Date.now().toString() },
-        accountNumber: { type: String }, // លេខគណនីថ្មី (ឧ. លេខទូរស័ព្ទ លេខ VIP)
-        accountName: { type: String }, // ឈ្មោះ (ឧ. លុយអាជីវកម្ម)
-        accountType: { type: String, default: "premium" }, // premium, joint, pocket
+        accountNumber: { type: String },
+        accountName: { type: String },
+        accountType: { type: String, default: "premium" }, // premium, joint, junior
         balance: { type: Number, default: 0.0 },
         currency: { type: String, default: "USD" },
         isLocked: { type: Boolean, default: false },
-        metadata: { type: Object, default: {} }, // សម្រាប់ទុកទិន្នន័យផ្សេងៗតាមប្រភេទ
+
+        // 👥 សម្រាប់ផ្ទុកសមាជិកក្នុងគណនីរួម (បើជាគណនី premium ធម្មតា Array នេះនឹងនៅទទេ)
+        members: [
+          {
+            username: { type: String },
+            role: { type: String, default: "member" }, // ឧ. "co-owner" (ម្ចាស់រួម) ឬ "member" (សមាជិកធម្មតា)
+            dailyLimit: { type: Number, default: 0 }, // 0 មានន័យថាគ្មានដែនកំណត់
+            spentToday: { type: Number, default: 0 }, // កត់ត្រាលុយដែលបានចាយថ្ងៃនេះ
+            lastSpentDate: { type: String, default: "" }, // សម្រាប់ Reset Limit រៀងរាល់ថ្ងៃថ្មី
+            status: { type: String, default: "pending" }, // pending (រង់ចាំការយល់ព្រម), active (កំពុងប្រើ)
+          },
+        ],
+
+        metadata: { type: Object, default: {} },
         createdAt: { type: Date, default: Date.now },
       },
     ],

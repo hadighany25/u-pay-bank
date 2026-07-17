@@ -41,7 +41,7 @@ function calculatePremiumPrice(numStr) {
 }
 
 // ==========================================
-// ២. API បង្កើតគណនី
+// ២. API បង្កើតគណនី Premium
 // ==========================================
 exports.createPremiumAccount = async (req, res) => {
   const { username, requestedNumber, accountName, price, pin, currencyOption } =
@@ -219,7 +219,7 @@ exports.createPremiumAccount = async (req, res) => {
       success: true,
       message: "បង្កើតគណនីបានជោគជ័យ!",
       user: user,
-      secondNumber: secondNumber, // បោះលេខទី២ ទៅអោយ Frontend បង្ហាញលើវិក្កយបត្រ
+      secondNumber: secondNumber,
     });
   } catch (error) {
     console.error("Create Premium Acc Error:", error);
@@ -244,7 +244,6 @@ exports.getSuggestedNumbers = async (req, res) => {
       "99999",
     ];
 
-    // Generate លេខ ៩ ខ្ទង់ចំនួន ១៥ ជម្រើស (ទុកពេលខ្លះវាជាន់គ្នា)
     for (let i = 0; i < 15; i++) {
       let prefix = Math.floor(100 + Math.random() * 899).toString();
       let suffix =
@@ -253,11 +252,10 @@ exports.getSuggestedNumbers = async (req, res) => {
 
       let num = prefix + middle + suffix;
       if (num.length > 9) num = num.substring(0, 9);
-      if (num.length < 9) num = num.padEnd(9, "0"); // បំពេញឱ្យគ្រប់ ៩ខ្ទង់
+      if (num.length < 9) num = num.padEnd(9, "0");
       generatedNumbers.push(num);
     }
 
-    // បន្ថែមលេខ ៦ ខ្ទង់ពិសេសៗខ្លះ
     generatedNumbers.push(
       Math.floor(100000 + Math.random() * 899999).toString(),
     );
@@ -265,10 +263,8 @@ exports.getSuggestedNumbers = async (req, res) => {
       "168" + Math.floor(100 + Math.random() * 899).toString(),
     );
 
-    // ដកលេខដែលជាន់គ្នា (Duplicates) នៅក្នុង Array
     generatedNumbers = [...new Set(generatedNumbers)];
 
-    // ឆែកក្នុង Database ថាតើលេខទាំងនេះមានអ្នកយកហើយឬនៅ?
     const existingUsers = await User.find({
       $or: [
         { accountNumber: { $in: generatedNumbers } },
@@ -289,12 +285,10 @@ exports.getSuggestedNumbers = async (req, res) => {
       });
     });
 
-    // ចម្រាញ់យកតែលេខណាដែល "ទំនេរ"
     const availableNumbers = generatedNumbers.filter(
       (num) => !takenNumbers.includes(num),
     );
 
-    // រៀបចំទិន្នន័យត្រឹម ១២ លេខ ដើម្បីបញ្ជូនទៅ Frontend
     const suggestedList = availableNumbers.slice(0, 12).map((num) => {
       return {
         number: num,
@@ -313,7 +307,7 @@ exports.getSuggestedNumbers = async (req, res) => {
 };
 
 // ==========================================
-// ៤. API ឆែកភាពទំនេរ (Backend - សម្រាប់ Live Search ថ្ងៃក្រោយបើត្រូវការ)
+// ៤. API ឆែកភាពទំនេរ
 // ==========================================
 exports.checkAvailability = async (req, res) => {
   const { number } = req.body;
@@ -327,4 +321,312 @@ exports.checkAvailability = async (req, res) => {
 
   if (user) return res.json({ available: false });
   return res.json({ available: true });
+};
+
+// =========================================================================
+// 🌟 ៥. API បង្កើតគណនីរួម (JOINT ACCOUNT) - ថ្មីសន្លាង
+// =========================================================================
+exports.createJointAccount = async (req, res) => {
+  const {
+    username,
+    requestedNumber,
+    price,
+    pin,
+    currencyOption,
+    partnerUsername,
+    dailyLimit,
+  } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({
+        success: false,
+        message: "រកគណនីអ្នកប្រើប្រាស់មិនឃើញទេ!",
+      });
+
+    if (user.pin !== pin)
+      return res.json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
+      });
+
+    // ឆែកមើលដៃគូ (Partner)
+    const partner = await User.findOne({ username: partnerUsername });
+    if (!partner)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដៃគូ (Partner) របស់អ្នកទេ!",
+      });
+    if (partner.username === user.username)
+      return res.json({
+        success: false,
+        message: "អ្នកមិនអាចអញ្ជើញខ្លួនឯងបានទេ!",
+      });
+
+    // ឆែកលេខគណនីទំនេរ
+    const existingMainAcc = await User.findOne({
+      $or: [
+        { accountNumber: requestedNumber },
+        { accountNumberKHR: requestedNumber },
+      ],
+    });
+    const existingSubAcc = await User.findOne({
+      "subAccounts.accountNumber": requestedNumber,
+    });
+    if (existingMainAcc || existingSubAcc)
+      return res.json({
+        success: false,
+        message: "សូមអភ័យទោស លេខគណនីនេះមានអ្នកយកបាត់ហើយ!",
+      });
+
+    let secondNumber = null;
+    if (currencyOption === "BOTH") {
+      let lastDigit = parseInt(requestedNumber.slice(-1));
+      let baseNum = requestedNumber.slice(0, -1);
+      let newLastDigit = lastDigit < 9 ? lastDigit + 1 : lastDigit - 1;
+      secondNumber = baseNum + newLastDigit;
+
+      const checkSecondAcc = await User.findOne({
+        $or: [
+          { accountNumber: secondNumber },
+          { accountNumberKHR: secondNumber },
+          { "subAccounts.accountNumber": secondNumber },
+        ],
+      });
+      if (checkSecondAcc)
+        return res.json({
+          success: false,
+          message: `ប្រព័ន្ធមិនអាចបង្កើតគណនីទី២ (${secondNumber}) បានទេ!`,
+        });
+    }
+
+    const actualPrice = calculatePremiumPrice(requestedNumber);
+    if (price !== actualPrice)
+      return res.json({
+        success: false,
+        message: "ទិន្នន័យតម្លៃមិនត្រឹមត្រូវទេ! (Price mismatch)",
+      });
+    if (actualPrice > 0 && user.balance < actualPrice)
+      return res.json({
+        success: false,
+        message: "សមតុល្យទឹកប្រាក់របស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
+      });
+
+    // ដំណើរការកាត់លុយ
+    if (actualPrice > 0) {
+      const centralBank = await User.findOne({ accountNumber: "888888888" });
+      if (!centralBank)
+        return res.json({
+          success: false,
+          message: "ប្រព័ន្ធធនាគារកណ្តាលមានបញ្ហា!",
+        });
+
+      user.balance -= actualPrice;
+      centralBank.balance += actualPrice;
+
+      const dateNow = getFormattedDate();
+      const refId = generateRefId();
+      const hash = generateHash();
+
+      await Transaction.create({
+        username: user.username,
+        refId,
+        hash,
+        date: dateNow,
+        type: "Joint Account Purchase",
+        amount: -actualPrice,
+        currency: "USD",
+        senderName: user.fullName || user.username,
+        receiverName: "Buy Joint Account",
+        remark: `Bought Joint Acc No: ${requestedNumber}`,
+        status: "Success",
+        trxMethod: "Main Account",
+      });
+
+      await Transaction.create({
+        username: centralBank.username,
+        refId,
+        hash,
+        date: dateNow,
+        type: "Joint Account Revenue",
+        amount: actualPrice,
+        currency: "USD",
+        senderName: user.fullName || user.username,
+        receiverName: "Buy Joint Account",
+        remark: `Sold Joint Acc No: ${requestedNumber}`,
+        status: "Success",
+        trxMethod: "System Receipt",
+      });
+      await centralBank.save();
+    }
+
+    // បង្កើតឈ្មោះគណនីរួម (ឧ. SOK DARA AND TORANY ALHADI)
+    const ownerName = user.fullName || user.username;
+    const partnerName = partner.fullName || partner.username;
+    const jointAccountName = `${ownerName.toUpperCase()} AND ${partnerName.toUpperCase()}`;
+
+    // រៀបចំសមាជិក
+    const jointMember = {
+      username: partner.username,
+      role: "co-owner",
+      dailyLimit: dailyLimit || 0,
+      spentToday: 0,
+      status: "pending",
+    };
+
+    // បង្កើតអនុគណនី
+    if (currencyOption === "USD" || currencyOption === "BOTH") {
+      user.subAccounts.push({
+        accountId: "JNT_" + Date.now().toString() + "_1",
+        accountNumber: requestedNumber,
+        accountName: jointAccountName,
+        accountType: "joint",
+        balance: 0,
+        currency: "USD",
+        members: [jointMember],
+      });
+    }
+
+    if (currencyOption === "KHR") {
+      user.subAccounts.push({
+        accountId: "JNT_" + Date.now().toString() + "_1",
+        accountNumber: requestedNumber,
+        accountName: jointAccountName,
+        accountType: "joint",
+        balance: 0,
+        currency: "KHR",
+        members: [jointMember],
+      });
+    }
+
+    if (currencyOption === "BOTH" && secondNumber) {
+      user.subAccounts.push({
+        accountId: "JNT_" + Date.now().toString() + "_2",
+        accountNumber: secondNumber,
+        accountName: jointAccountName + " (KHR)",
+        accountType: "joint",
+        balance: 0,
+        currency: "KHR",
+        members: [jointMember],
+      });
+    }
+
+    // ផ្ញើ Notification ទៅកាន់ដៃគូ
+    if (!partner.notifications) partner.notifications = [];
+    partner.notifications.unshift({
+      id: "INV-" + Date.now(),
+      title: "ការអញ្ជើញចូលគណនីរួម (Joint Account)",
+      message: `អ្នកត្រូវបានអញ្ជើញដោយ ${ownerName} ឱ្យចូលរួមគ្រប់គ្រងគណនីរួមលេខ: ${requestedNumber}។ សូមចូលទៅកាន់ការកំណត់ដើម្បីយល់ព្រម។`,
+      date: getFormattedDate(),
+      isRead: false,
+      metadata: {
+        type: "joint_invite",
+        ownerUsername: user.username,
+        accountNumber: requestedNumber,
+      },
+    });
+
+    await partner.save();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "បង្កើតគណនីរួម និងបញ្ជូនការអញ្ជើញបានជោគជ័យ!",
+      user: user,
+      secondNumber: secondNumber,
+    });
+  } catch (error) {
+    console.error("Create Joint Acc Error:", error);
+    res.json({ success: false, message: "បរាជ័យក្នុងការបង្កើតគណនីរួម!" });
+  }
+};
+
+// =========================================================================
+// 🌟 ៦. API ឆ្លើយតបការអញ្ជើញ (Accept Joint Account)
+// =========================================================================
+exports.respondToJointInvite = async (req, res) => {
+  const { inviteeUsername, ownerUsername, accountNumber, action } = req.body; // action = 'accept' ឬ 'reject'
+
+  try {
+    const owner = await User.findOne({ username: ownerUsername });
+    const invitee = await User.findOne({ username: inviteeUsername });
+
+    if (!owner || !invitee)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    // រកមើលគណនីរួមនៅក្នុងគណនីរបស់មេ (Owner)
+    let foundSubAccountIndex = owner.subAccounts.findIndex(
+      (acc) =>
+        acc.accountNumber === accountNumber && acc.accountType === "joint",
+    );
+
+    if (foundSubAccountIndex === -1) {
+      return res.json({
+        success: false,
+        message: "រកគណនីរួមនេះមិនឃើញទេ ឬត្រូវបានលុបបាត់ហើយ!",
+      });
+    }
+
+    let jointAcc = owner.subAccounts[foundSubAccountIndex];
+    let memberIndex = jointAcc.members.findIndex(
+      (m) => m.username === inviteeUsername,
+    );
+
+    if (memberIndex === -1) {
+      return res.json({
+        success: false,
+        message: "អ្នកមិនមានសិទ្ធិក្នុងគណនីនេះទេ!",
+      });
+    }
+
+    if (action === "reject") {
+      jointAcc.members.splice(memberIndex, 1);
+      await owner.save();
+      return res.json({
+        success: true,
+        message: "អ្នកបានបដិសេធការអញ្ជើញនេះដោយជោគជ័យ។",
+      });
+    }
+
+    if (action === "accept") {
+      // កែស្ថានភាពទៅជា active
+      owner.subAccounts[foundSubAccountIndex].members[memberIndex].status =
+        "active";
+
+      // 🔥 វេទមន្តនៅទីនេះ៖ Copy គណនីរួមនោះ ញាត់ចូលទៅក្នុង subAccounts របស់ invitee ផ្ទាល់!
+      // ដាក់ type: "joint_member" ដើម្បីអោយ Dropdown ចាប់យកស្វ័យប្រវត្តិ តែដឹងថាវាជាគណនីគេអញ្ជើញ
+      invitee.subAccounts.push({
+        accountId: jointAcc.accountId, // ប្រើ ID ដូចគ្នាដើម្បីងាយស្រួល Update Balance ថ្ងៃក្រោយ
+        accountNumber: jointAcc.accountNumber,
+        accountName: jointAcc.accountName,
+        accountType: "joint_member", // សំខាន់ណាស់!
+        balance: jointAcc.balance,
+        currency: jointAcc.currency,
+        metadata: { owner: ownerUsername }, // ចំណាំថាកុងនេះជារបស់អ្នកណា
+      });
+
+      // ផ្ញើ Notification ប្រាប់ Owner វិញ
+      if (!owner.notifications) owner.notifications = [];
+      owner.notifications.unshift({
+        id: "NOTIF-" + Date.now(),
+        title: "ការអញ្ជើញត្រូវបានយល់ព្រម ✅",
+        message: `${invitee.fullName || invitee.username} បានយល់ព្រមចូលរួមគណនីរួម (${accountNumber}) របស់អ្នកហើយ។`,
+        date: getFormattedDate(),
+        isRead: false,
+      });
+
+      await owner.save();
+      await invitee.save();
+
+      return res.json({
+        success: true,
+        message:
+          "អ្នកបានចូលរួមគណនីគ្រួសារនេះដោយជោគជ័យ! លេខគណនីនេះនឹងបង្ហាញក្នុងជម្រើសរបស់អ្នក។",
+      });
+    }
+  } catch (error) {
+    console.error("Accept Joint Invite Error:", error);
+    res.json({ success: false, message: "មានបញ្ហាក្នុងការទទួលយកការអញ្ជើញ!" });
+  }
 };

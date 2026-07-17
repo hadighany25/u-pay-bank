@@ -477,41 +477,51 @@
         </div>
         <div class="content-body">
           <p class="page-desc" data-i18n="new_acc_desc">
-            ជ្រើសរើសគណនីណាមួយ ក្នុងចំណោមជម្រើសជាច្រើនរបស់យើង
-            ហើយបើកវាភ្លាមៗយ៉ាងងាយស្រួល។
+            ជ្រើសរើសគណនីណាមួយ ក្នុងចំណោមជម្រើសជាច្រើនរបស់យើង។
           </p>
 
-          <!-- កាត Premium -->
+          <!-- ១. គណនីលេខពិសេស (Premium) -->
           <div class="account-card" onclick="switchScreen('screen-search')">
             <div class="card-icon-box icon-premium">
               <i class="fa-solid fa-crown"></i>
             </div>
             <div class="card-text">
-              <h4 class="card-title" data-i18n="acc_premium_title">
-                គណនីលេខពិសេស
-              </h4>
-              <p class="card-desc" data-i18n="acc_premium_desc">
-                ស្វែងរកលេខគណនីដែលងាយចំណាំ និងមានអត្ថន័យ។
+              <h4 class="card-title">គណនីលេខពិសេស</h4>
+              <p class="card-desc">ស្វែងរកលេខគណនីដែលងាយចំណាំ និងមានអត្ថន័យ។</p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+
+          <!-- ២. គណនីរួមគ្រួសារ (Joint Account) -->
+          <div class="account-card" onclick="openJointForm()">
+            <div
+              class="card-icon-box icon-family"
+              style="background: #e0e7ff; color: #4f46e5"
+            >
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title">គណនីរួមគ្រួសារ</h4>
+              <p class="card-desc">
+                ភ្ជាប់គណនីជាមួយដៃគូ ដើម្បីគ្រប់គ្រងលុយជាមួយគ្នា។
               </p>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
 
-          <!-- កាតផ្សេងៗ (ទុកជាគំរូសិន) -->
-          <div
-            class="account-card"
-            onclick="
-              Swal.fire('Coming Soon', 'មុខងារនេះកំពុងអភិវឌ្ឍន៍!', 'info')
-            "
-          >
-            <div class="card-icon-box icon-family">
-              <i class="fa-solid fa-users"></i>
+          <!-- ៣. គណនីកុមារ (Junior Account) -->
+          <div class="account-card" onclick="openJuniorForm()">
+            <div
+              class="card-icon-box icon-pocket"
+              style="background: #fef3c7; color: #d97706"
+            >
+              <i class="fa-solid fa-child"></i>
             </div>
             <div class="card-text">
-              <h4 class="card-title" data-i18n="acc_family_title">
-                គណនីរួមគ្រួសារ
-              </h4>
-              <p class="card-desc">ភ្ជាប់គណនីជាមួយដៃគូ ឬសមាជិកគ្រួសារ។</p>
+              <h4 class="card-title">គណនីកុមារ (Junior)</h4>
+              <p class="card-desc">
+                បង្កើតគណនីឱ្យកូនៗ រៀនគ្រប់គ្រងលុយផ្ទាល់ខ្លួន។
+              </p>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
@@ -1164,6 +1174,58 @@
         } catch (error) {
           Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
         }
+      }
+
+      // ==========================================
+      // ៦. មុខងារសម្រាប់គណនីរួម និង កុមារ
+      // ==========================================
+
+      function openJointForm() {
+        Swal.fire({
+          title: "បង្កើតគណនីរួម",
+          html: `
+            <input id="partner-username" class="native-input" placeholder="Username ដៃគូ (Partner)" style="margin-bottom:10px">
+            <input id="joint-acc-name" class="native-input" placeholder="ឈ្មោះគណនី (ឧ. Family Fund)" style="margin-bottom:10px">
+            <input id="joint-limit" type="number" class="native-input" placeholder="កំណត់ដែនកំណត់ចាយប្រចាំថ្ងៃ ($)">
+        `,
+          confirmButtonText: "បង្កើត",
+          preConfirm: () => {
+            return {
+              partnerUsername:
+                document.getElementById("partner-username").value,
+              accountName: document.getElementById("joint-acc-name").value,
+              dailyLimit: document.getElementById("joint-limit").value,
+            };
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // បាញ់ទៅ API /api/account/create-joint (តាមកូដដែលយើងបានសរសេរខាងលើ)
+            console.log("Creating Joint Account...", result.value);
+            // បងអាចបន្ថែម logic បន្តនៅទីនេះ...
+          }
+        });
+      }
+
+      function openJuniorForm() {
+        Swal.fire({
+          title: "បង្កើតគណនីកុមារ",
+          html: `
+            <input id="child-name" class="native-input" placeholder="ឈ្មោះកូន" style="margin-bottom:10px">
+            <input id="child-limit" type="number" class="native-input" placeholder="កំណត់ដែនកំណត់ចាយប្រចាំថ្ងៃ ($)">
+        `,
+          confirmButtonText: "បង្កើត",
+          preConfirm: () => {
+            return {
+              childName: document.getElementById("child-name").value,
+              dailyLimit: document.getElementById("child-limit").value,
+            };
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // បាញ់ទៅ API បង្កើតគណនីកុមារ
+            showToast("មុខងារនេះកំពុងរៀបចំ!", "info");
+          }
+        });
       }
     </script>
   </body>
