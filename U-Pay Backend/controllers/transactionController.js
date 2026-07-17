@@ -330,9 +330,9 @@ const transfer = async (req, res) => {
       hour12: true,
     });
 
-    // បង្កើត refId និង hash តែម្តងគត់ ដើម្បីប្រើរួមគ្នា
+    // 🔥 កែត្រង់នេះ៖ បង្កើត RefId និង Hash តែម្តង រួចរក្សាទុកក្នុងអថេរ ដើម្បីប្រើរួមគ្នាឱ្យដូចគ្នា ១០០%
     const refId = generateRefId();
-    const trxHash = generateHash();
+    const sharedHash = generateHash();
 
     const currentMethod = isMerchant
       ? "Merchant Payment"
@@ -345,11 +345,9 @@ const transfer = async (req, res) => {
         ? sender.accountNumberKHR
         : sender.accountNumber;
 
-    // 🌟 កត់ត្រាសម្រាប់អ្នកផ្ញើ (Sender)
     const senderTrx = {
-      username: sender.username,
-      refId,
-      hash: trxHash, // ប្រើ hash ដែលបង្កើតខាងលើ
+      refId: refId,
+      hash: sharedHash, // ប្រើ Hash តែមួយរួមគ្នា
       date,
       type: "Transfer",
       amount: -totalDeduction,
@@ -364,13 +362,12 @@ const transfer = async (req, res) => {
       trxMethod: currentMethod,
       remark: remark || "General",
       status: "Success",
+      username: sender.username,
     };
 
-    // 🌟 កត់ត្រាសម្រាប់អ្នកទទួល (Receiver)
     const receiverTrx = {
-      username: isMerchant ? receiverMerchant.userId : receiver.username,
-      refId, // ប្រើ refId ដែលបង្កើតខាងលើ
-      hash: trxHash, // ប្រើ hash ដែលបង្កើតខាងលើ
+      refId: refId,
+      hash: sharedHash, // ប្រើ Hash តែមួយរួមគ្នា
       date,
       type: "Receive",
       amount: receiverAmount,
@@ -387,24 +384,25 @@ const transfer = async (req, res) => {
         ? `Payment via ${receiverMerchant.name}`
         : remark || "General",
       status: "Success",
-      // 🔥 សំខាន់៖ ត្រូវបន្ថែម merchantId នៅទីនេះ ទើបក្នុង Dashboard ហាងវាបង្ហាញ!
-      merchantId: isMerchant ? receiverMerchant.merchantId : null,
+      // 🔥 ត្រូវប្រាកដថា username ជារបស់ម្ចាស់ហាងពេល isMerchant = true
+      username: isMerchant ? receiverMerchant.userId : receiver.username,
+      // 🔥 សំខាន់បំផុត៖ ត្រូវបញ្ជូន merchantId ចូលដើម្បីឱ្យលោតក្នុង Merchant Dashboard
+      merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
     };
 
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
     await sender.save();
 
-    // បញ្ជូន Socket ទៅអ្នកទទួល
     const io = req.app.get("io");
     if (io) {
-      // បើជាហាង ផ្ញើទៅម្ចាស់ហាង (តាមរយៈ username ម្ចាស់ហាង)
-      const targetSocket = isMerchant
+      // ប្រសិនបើជាហាង យើងត្រូវបាញ់ Socket ទៅកាន់ username របស់ម្ចាស់ហាង
+      const targetSocketUser = isMerchant
         ? receiverMerchant.userId
         : receiver.username;
-      io.to(targetSocket).emit("paymentReceived", {
+      io.to(targetSocketUser).emit("paymentReceived", {
         amount: receiverAmount,
-        currency: isReceiverKHR ? "KHR" : "USD",
+        currency: isReceiverKHR ? "KHR" : "USD", // ថែម Currency ឱ្យ Socket
         senderName: sender.fullName || sender.username,
       });
     }
