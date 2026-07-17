@@ -1,3 +1,6 @@
+// ==========================================
+// 📦 នាំចូលម៉ូឌុល និងឯកសារដែលចាំបាច់ (Imports)
+// ==========================================
 const User = require("../models/User");
 const System = require("../models/System");
 const PromoCode = require("../models/PromoCode");
@@ -20,17 +23,17 @@ const {
 const { readFXRates } = require("../services/systemService");
 
 // ==========================================
-// ១. ឆែកឈ្មោះគណនីមុនពេលវេរលុយ (ស្គាល់ Sub-Accounts)
+// 🔍 ១. មុខងារឆែកឈ្មោះគណនីមុនពេលវេរលុយ (Check Account)
 // ==========================================
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
-    // ឆែករកក្នុង User ទាំង Main Account និង Sub-Accounts
+    // ឆែករកក្នុងប្រព័ន្ធ User (ស្វែងរកទាំង Main Account និង Sub-Accounts)
     let target = await User.findOne({
       $or: [
         { accountNumber: accountNumber },
         { accountNumberKHR: accountNumber },
-        { "subAccounts.accountNumber": accountNumber }, // 🔥 ស្គាល់លេខគណនីពិសេស (Sub-Accounts)
+        { "subAccounts.accountNumber": accountNumber },
       ],
     });
 
@@ -38,7 +41,7 @@ const checkAccount = async (req, res) => {
     let targetName = "";
     let isReceiverKHR = false;
 
-    // បើមិនឃើញក្នុង User, ឆែករកក្នុង Merchant
+    // ប្រសិនបើមិនឃើញក្នុង User ទេ គឺត្រូវទៅឆែករកក្នុងប្រព័ន្ធ Merchant វិញ
     if (!target) {
       target = await Merchant.findOne({
         $or: [
@@ -53,23 +56,25 @@ const checkAccount = async (req, res) => {
         isReceiverKHR = target.accountNumbers.KHR === accountNumber;
       }
     } else {
+      // ករណីរកឃើញ User ធម្មតា
       targetName = target.fullName || target.username;
 
-      // ឆែកថាតើលេខដែលវាយបញ្ចូលនោះ ជារបស់កុងរៀល ឬកុងដុល្លារ?
+      // ឆែកមើលថាតើជាកុងប្រាក់រៀល ឬដុល្លារ
       if (target.accountNumberKHR === accountNumber) {
         isReceiverKHR = true;
       } else {
-        // បើជារបស់ Sub-Account ត្រូវឆែកមើល Currency របស់វា
+        // បើវាជា Sub-Account ត្រូវឆែកមើល Currency របស់វា
         const subAcc = target.subAccounts.find(
           (acc) => acc.accountNumber === accountNumber,
         );
         if (subAcc && subAcc.currency === "KHR") {
           isReceiverKHR = true;
-          targetName = targetName + " (" + subAcc.accountName + ")"; // បង្ហាញឈ្មោះហោប៉ៅបន្ថែម (Option)
+          targetName = targetName + " (" + subAcc.accountName + ")"; // បង្ហាញឈ្មោះហោប៉ៅបន្ថែម
         }
       }
     }
 
+    // ឆ្លើយតបទិន្នន័យទៅ Frontend វិញ
     if (target) {
       const currentFXRates = readFXRates();
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
@@ -92,12 +97,12 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// ២. មុខងារវេរលុយ (Transfer) - គាំទ្រគណនីពិសេស (Sub-Accounts)
+// 💸 ២. មុខងារវេរលុយ (Transfer & Merchant Payment)
 // ==========================================
 const transfer = async (req, res) => {
   const {
     senderUsername,
-    senderAccount, // 🔥 ទទួលលេខកុងដែលគេរើសពី Dropdown
+    senderAccount, // លេខគណនីប្រភពដែលអ្នកផ្ញើបានរើស
     receiverAccount,
     amount,
     remark,
@@ -106,6 +111,7 @@ const transfer = async (req, res) => {
     currency,
   } = req.body;
 
+  // របាំងការពារសុវត្ថិភាព
   if (req.user.username !== senderUsername) {
     return res
       .status(403)
@@ -113,12 +119,13 @@ const transfer = async (req, res) => {
   }
 
   try {
+    // ស្វែងរកគណនីអ្នកផ្ញើ
     const sender = await User.findOne({ username: senderUsername });
     if (!sender) return res.json({ success: false, message: "Account Error" });
     if (sender.isFrozen)
       return res.json({ success: false, message: "Account Frozen" });
 
-    // ១. រកអ្នកទទួល (ឆែកទាំង Main និង Sub-Accounts)
+    // ស្វែងរកអ្នកទទួល (ឆែកទាំង Main និង Sub-Accounts របស់ User)
     let receiver = await User.findOne({
       $or: [
         { accountNumber: receiverAccount },
@@ -130,6 +137,7 @@ const transfer = async (req, res) => {
     let receiverMerchant = null;
     let isMerchant = false;
 
+    // បើរកមិនឃើញ User ទេ ស្វែងរកក្នុង Merchant
     if (!receiver) {
       receiverMerchant = await Merchant.findOne({
         $or: [
@@ -143,7 +151,7 @@ const transfer = async (req, res) => {
     if (!receiver && !receiverMerchant)
       return res.json({ success: false, message: "Receiver not found" });
 
-    // ២. ឆែក PIN
+    // ឆែកមើលលេខកូដសម្ងាត់ (PIN)
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -160,9 +168,9 @@ const transfer = async (req, res) => {
         message: `Wrong PIN! Attempts left: ${3 - sender.pinAttempts}`,
       });
     }
-    sender.pinAttempts = 0;
+    sender.pinAttempts = 0; // Reset PIN វិញពេលវាយត្រូវ
 
-    // ៣. គណនា Fee និងដែនកំណត់
+    // គណនាថ្លៃសេវា (Fee) ផ្អែកលើទំហំទឹកប្រាក់
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
@@ -189,7 +197,7 @@ const transfer = async (req, res) => {
       : appliedFeeUsd;
     const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
 
-    // 🔥 ៤. កំណត់ថាតើគាត់វេរចេញពីកុង Main ឬ កុង Sub? (Sender Side)
+    // កំណត់ថាតើគាត់វេរចេញពីកុង Main ឬ កុង Sub? (ផ្នែកអ្នកផ្ញើ)
     let isSenderSubAccount = false;
     let senderSubIndex = -1;
 
@@ -215,59 +223,66 @@ const transfer = async (req, res) => {
         : sender.balance || 0;
     }
 
-    // ឆែកសមតុល្យតាមគណនីជាក់លាក់
+    // ឆែកសមតុល្យតាមគណនីជាក់លាក់ ថាតើគ្រប់គ្រាន់ឬអត់
     if (senderAvailableBal < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
-    aScript;
-    // ៥. ដំណើរការវេរលុយចូល (Receiver side)
+    // ==========================================
+    // ដំណើរការបញ្ចូលលុយទៅអ្នកទទួល (Receiver Side)
+    // ==========================================
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
 
-    // 🔥 បន្ថែមអថេរនេះ ដើម្បីចាប់យកលេខកុងពិតប្រាកដ
+    // ចាប់យកលេខកុងពិតប្រាកដដែលត្រូវទទួលលុយ
     let actualReceiverAccNum = receiverAccount;
 
     if (isMerchant) {
+      // ករណីបាញ់ចូលហាង (Merchant Payment)
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
+      // បូកចំណូលក្នុង Profile របស់ហាង
       if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
+      // រកម្ចាស់ហាងពិតប្រាកដ (Owner)
       const owner = await User.findOne({ username: receiverMerchant.userId });
 
       if (owner) {
-        // 🔥 ចាប់យកលេខគណនីដែលម្ចាស់ហាងបានភ្ជាប់ (Linked Account)
+        // ចាប់យកលេខគណនីដែលម្ចាស់ហាងបានភ្ជាប់ទុក (Linked Account)
         actualReceiverAccNum = isReceiverKHR
           ? receiverMerchant.linkedAccounts.KHR
           : receiverMerchant.linkedAccounts.USD;
 
+        // ធ្វើការបូកលុយចូលគណនីដែលម្ចាស់ហាងបានរើស
         if (actualReceiverAccNum === owner.accountNumber) {
           owner.balance += receiverAmount;
         } else if (actualReceiverAccNum === owner.accountNumberKHR) {
           owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
         } else {
+          // ករណីកុងរង (Sub-account)
           const sub = owner.subAccounts.find(
             (s) => s.accountNumber === actualReceiverAccNum,
           );
           if (sub) {
             sub.balance += receiverAmount;
           } else {
+            // ការពារករណី Error គឺទម្លាក់ចូលកុង Main ធម្មតា
             if (isReceiverKHR)
               owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
             else owner.balance += receiverAmount;
-            // Fallback ការពារកុំឱ្យខុស
+
             actualReceiverAccNum = isReceiverKHR
               ? owner.accountNumberKHR
               : owner.accountNumber;
           }
         }
         await owner.save();
-        receiver = owner;
+        receiver = owner; // Assign ត្រលប់ទៅ receiver វិញដើម្បីប្រព័ន្ធស្គាល់
       } else {
         return res.json({
           success: false,
@@ -275,7 +290,7 @@ const transfer = async (req, res) => {
         });
       }
     } else {
-      // ផ្នែកសម្រាប់ User ផ្ញើទៅ User (រក្សាកូដចាស់របស់បងដដែល)
+      // ករណីវេរលុយធម្មតា (User to User Transfer)
       let isReceiverSubAccount = false;
       let targetSubAccIndex = receiver.subAccounts.findIndex(
         (acc) => acc.accountNumber === receiverAccount,
@@ -292,11 +307,13 @@ const transfer = async (req, res) => {
           receiver.subAccounts[targetSubAccIndex].currency === "KHR";
       }
 
+      // ប្តូររូបិយប័ណ្ណបើវេរឆ្លង Currency គ្នា
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
+      // បូកលុយអ្នកទទួលចំកុង
       if (isReceiverSubAccount) {
         receiver.subAccounts[targetSubAccIndex].balance += receiverAmount;
       } else {
@@ -305,6 +322,7 @@ const transfer = async (req, res) => {
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
       }
 
+      // លោត Notification អោយអ្នកទទួល
       const currencySymbol = isReceiverKHR ? "៛" : "$";
       const transferNotification = {
         title: "ទទួលបានទឹកប្រាក់! 💸",
@@ -322,7 +340,9 @@ const transfer = async (req, res) => {
       await receiver.save();
     }
 
-    // 🔥 ៦. កាត់លុយពីអ្នកផ្ញើចំកុងដែលបានរើស
+    // ==========================================
+    // ដំណើរការកាត់លុយពីអ្នកផ្ញើ (Sender Side)
+    // ==========================================
     if (isSenderSubAccount) {
       sender.subAccounts[senderSubIndex].balance -= totalDeduction;
     } else {
@@ -330,28 +350,32 @@ const transfer = async (req, res) => {
       else sender.balance -= totalDeduction;
     }
 
+    // ចាប់យកម៉ោងស្រុកខ្មែរ
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
 
-    // 🔥 កែត្រង់នេះ៖ បង្កើត RefId និង Hash តែម្តង រួចរក្សាទុកក្នុងអថេរ ដើម្បីប្រើរួមគ្នាឱ្យដូចគ្នា ១០០%
-    const refId = generateRefId();
-    const sharedHash = generateHash();
-
+    // 🔥 កំណត់អថេររួម (Shared Variables) ដើម្បីឱ្យអ្នកផ្ញើ និងអ្នកទទួលមានទិន្នន័យដូចគ្នា ១០០%
+    const sharedRefId = generateRefId(); // លេខប្រតិបត្តិការរួមគ្នា
+    const sharedHash = generateHash(); // លេខ Hash រួមគ្នា
     const currentMethod = isMerchant
       ? "Merchant Payment"
       : trxMethod || "Account Transfer";
+    const sharedRemark = isMerchant
+      ? remark || `Payment via ${receiverMerchant.name}`
+      : remark || "General";
 
-    // ថែម senderAcc ចូលក្នុង Transaction
+    // កំណត់លេខកុងអ្នកផ្ញើអោយចំ
     const actualSenderAccNum = isSenderSubAccount
       ? senderAccount
       : isSenderKHR
         ? sender.accountNumberKHR
         : sender.accountNumber;
 
+    // 📝 កត់ត្រាប្រវត្តិសម្រាប់ "អ្នកផ្ញើ"
     const senderTrx = {
-      refId: refId,
+      refId: sharedRefId,
       hash: sharedHash,
       date,
       type: "Transfer",
@@ -362,17 +386,17 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      // 🔥 ដូរមកប្រើលេខកុងពិតប្រាកដ
-      receiverAcc: actualReceiverAccNum,
+      receiverAcc: actualReceiverAccNum, // ប្រើលេខកុងពិតប្រាកដ
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
-      remark: remark || "General",
+      remark: sharedRemark, // ប្រើ Remark ដូចគ្នា
       status: "Success",
       username: sender.username,
     };
 
+    // 📝 កត់ត្រាប្រវត្តិសម្រាប់ "អ្នកទទួល"
     const receiverTrx = {
-      refId: refId,
+      refId: sharedRefId,
       hash: sharedHash,
       date,
       type: "Receive",
@@ -383,36 +407,34 @@ const transfer = async (req, res) => {
       receiverName: isMerchant
         ? receiverMerchant.name
         : receiver.fullName || receiver.username,
-      // 🔥 ដូរមកប្រើលេខកុងពិតប្រាកដ
-      receiverAcc: actualReceiverAccNum,
+      receiverAcc: actualReceiverAccNum, // ប្រើលេខកុងពិតប្រាកដ
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
-      remark: isMerchant
-        ? `Payment via ${receiverMerchant.name}`
-        : remark || "General",
+      remark: sharedRemark, // ប្រើ Remark ដូចគ្នា
       status: "Success",
-      username: isMerchant ? receiverMerchant.userId : receiver.username,
-      merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
+      username: isMerchant ? receiverMerchant.userId : receiver.username, // ប្រើ username ម្ចាស់ហាងបើជា Merchant
+      merchantId: isMerchant ? receiverMerchant.merchantId : undefined, // ភ្ជាប់ ID ហាង
     };
 
+    // បញ្ចូលទិន្នន័យទៅក្នុង Database ទាំងសងខាង
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
     await sender.save();
 
+    // 🔔 លោត Socket (Live Notification) ជូនដំណឹងដល់អ្នកទទួល
     const io = req.app.get("io");
     if (io) {
-      // ប្រសិនបើជាហាង យើងត្រូវបាញ់ Socket ទៅកាន់ username របស់ម្ចាស់ហាង
       const targetSocketUser = isMerchant
         ? receiverMerchant.userId
         : receiver.username;
       io.to(targetSocketUser).emit("paymentReceived", {
         amount: receiverAmount,
-        currency: isReceiverKHR ? "KHR" : "USD", // ថែម Currency ឱ្យ Socket
+        currency: isReceiverKHR ? "KHR" : "USD",
         senderName: sender.fullName || sender.username,
       });
     }
 
-    // 🔥 បញ្ជូនទឹកប្រាក់ដែលនៅសល់ទៅកាន់ Frontend វិញឱ្យចំកុង
+    // បញ្ជូនទឹកប្រាក់ដែលនៅសល់ទៅកាន់ Frontend វិញឱ្យចំកុង
     res.json({
       success: true,
       newBalance: isSenderSubAccount
@@ -429,19 +451,18 @@ const transfer = async (req, res) => {
 };
 
 // ==========================================
-// 🔍 មុខងារស្វែងរកវិក្កយបត្រពី PayHub
+// 🔍 ៣. មុខងារស្វែងរកវិក្កយបត្រពីប្រព័ន្ធ PayHub
 // ==========================================
 const scanBankBill = async (req, res) => {
   const { bill_id } = req.body;
   try {
-    // U-Pay Backend បាញ់សំណើទៅសួរ PayHub ផ្ទាល់
+    // បាញ់សំណើទៅសួរ PayHub ផ្ទាល់
     const response = await fetch(
       `https://payhub-kh.fly.dev/api/gateway/check-bill?query=${bill_id}`,
     );
     const data = await response.json();
 
     if (data.success) {
-      // payment.html ត្រូវការទិន្នន័យក្នុងឈ្មោះ `billData`
       res.json({ success: true, billData: data.bill });
     } else {
       res.json({
@@ -458,7 +479,7 @@ const scanBankBill = async (req, res) => {
 };
 
 // ==========================================
-// ៣. បង់វិក្កយបត្រជាមួយ PayHub
+// 💳 ៤. មុខងារបង់វិក្កយបត្រ (Pay Bill)
 // ==========================================
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
@@ -475,7 +496,7 @@ const payBankBill = async (req, res) => {
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    // 🔥 បាញ់សំណើទៅ PayHub ផ្ទាល់ ដើម្បីទូទាត់ប្រាក់
+    // បាញ់សំណើទៅ PayHub ដើម្បីទូទាត់ប្រាក់
     const currentRefId = `BP-${Date.now()}`;
     const response = await fetch("https://payhub-kh.fly.dev/api/gateway/pay", {
       method: "POST",
@@ -490,12 +511,12 @@ const payBankBill = async (req, res) => {
 
     const payhubData = await response.json();
 
-    // ឆែកមើលថាបើ PayHub ទទួលលុយជោគជ័យ ទើបកាត់លុយពីកុង U-Pay
+    // បើការទូទាត់ជោគជ័យ ទើបកាត់លុយ
     if (payhubData && payhubData.success) {
       payingUser.balance -= amount;
       const newHash = generateHash();
 
-      // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+      // 📝 កត់ត្រាប្រតិបត្តិការសម្រាប់តែអតិថិជន
       await Transaction.create({
         username: payingUser.username,
         refId: currentRefId,
@@ -513,7 +534,7 @@ const payBankBill = async (req, res) => {
 
       await payingUser.save();
 
-      // ឆ្លើយតបទៅ payment.html វិញ
+      // ឆ្លើយតបទៅអតិថិជនវិញ
       res.json({
         success: true,
         newBalance: payingUser.balance,
@@ -535,7 +556,7 @@ const payBankBill = async (req, res) => {
 };
 
 // ==========================================
-// 🎁 ៤. មុខងាររង្វាន់ និងការបង្វិលសង (Lucky Spin Cashback)
+// 🎁 ៥. មុខងាររង្វាន់ និងការបង្វិលសង (Lucky Spin Cashback)
 // ==========================================
 const rewardCashback = async (req, res) => {
   const { username, amount, refId } = req.body;
@@ -557,17 +578,20 @@ const rewardCashback = async (req, res) => {
           timeZone: "Asia/Phnom_Penh",
           hour12: true,
         });
-        const newHash = generateHash();
-        const newRef = "RWD-" + Date.now().toString().slice(-6);
+
+        // 🔥 កំណត់អថេររួម (Shared Variables) ទាំងអ្នកទទួលរង្វាន់ និងអ្នកបើករង្វាន់ (Central Bank)
+        const sharedHash = generateHash();
+        const sharedRefId = "RWD-" + Date.now().toString().slice(-6);
+        const sharedRemark = `Lucky Spin Reward (Trx: ${refId})`; // Remark ដូចគ្នា
 
         user.balance += reward;
         centralBank.balance -= reward;
 
-        // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+        // 📝 កត់ត្រាសម្រាប់អ្នកឈ្នះ (User)
         await Transaction.create({
           username: user.username,
-          refId: newRef,
-          hash: newHash,
+          refId: sharedRefId,
+          hash: sharedHash,
           date: date,
           type: "Cashback Reward",
           amount: reward,
@@ -575,16 +599,17 @@ const rewardCashback = async (req, res) => {
           fee: 0,
           senderName: "U-Pay Central Bank",
           receiverName: user.username,
-          remark: `Lucky Spin Reward (Trx: ${refId})`,
+          remark: sharedRemark, // ប្រើ Remark រួម
           status: "Success",
           device: "App",
           ip: req.ip || "127.0.0.1",
         });
 
+        // 📝 កត់ត្រាសម្រាប់ធនាគារកណ្តាល (Central Bank)
         await Transaction.create({
           username: centralBank.username,
-          refId: newRef,
-          hash: newHash,
+          refId: sharedRefId,
+          hash: sharedHash,
           date: date,
           type: "Cashback Payout",
           amount: -reward,
@@ -592,7 +617,7 @@ const rewardCashback = async (req, res) => {
           fee: 0,
           senderName: "U-Pay Central Bank",
           receiverName: user.username,
-          remark: `Paid Lucky Spin to ${user.username}`,
+          remark: sharedRemark, // ប្រើ Remark រួម
           status: "Success",
           device: "System",
           ip: "127.0.0.1",
@@ -611,12 +636,11 @@ const rewardCashback = async (req, res) => {
 };
 
 // ==========================================
-// 🚀 ៥. API សម្រាប់ឲ្យ App ផ្សេងៗហៅមកទាញលុយ (Redeem Promo API)
+// 🚀 ៦. មុខងារទាមទាររង្វាន់ប្រូម៉ូកូដ (Redeem Promo API)
 // ==========================================
 const claimPromoCode = async (req, res) => {
   const { username, code } = req.body;
 
-  // របាំងការពារ Security
   if (req.user.username !== username) {
     return res
       .status(403)
@@ -630,7 +654,7 @@ const claimPromoCode = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីអតិថិជន!" });
 
-    // ១. ស្កេនរកកូដក្នុងប្រព័ន្ធ
+    // ស្កេនរកកូដក្នុងប្រព័ន្ធ
     const promo = await PromoCode.findOne({ code: code.toUpperCase() });
     if (!promo)
       return res.json({ success: false, message: "កូដមិនត្រឹមត្រូវទេ!" });
@@ -652,7 +676,7 @@ const claimPromoCode = async (req, res) => {
         message: "អ្នកបានប្រើកូដនេះយកលុយរួចហើយ!",
       });
 
-    // ២. ទាញយកលុយចេញពីធនាគារកណ្តាល មកឲ្យអតិថិជន
+    // ទាញយកលុយចេញពីធនាគារកណ្តាល
     const centralBank = await User.findOne({ accountNumber: "888888888" });
     if (!centralBank)
       return res.json({
@@ -662,7 +686,7 @@ const claimPromoCode = async (req, res) => {
 
     const rewardAmt = promo.rewardValue;
 
-    // បូកលុយ
+    // បូកដកលុយជាក់ស្តែង
     user.balance += rewardAmt;
     centralBank.balance -= rewardAmt;
 
@@ -670,14 +694,17 @@ const claimPromoCode = async (req, res) => {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const newHash = generateHash();
-    const newRef = "PRM-" + Date.now().toString().slice(-6);
 
-    // 👈 បញ្ជូនទិន្នន័យចូល Collection ថ្មី (Transaction) ត្រង់ៗ
+    // 🔥 កំណត់អថេររួម (Shared Variables) សម្រាប់ប្រតិបត្តិការទាំងសងខាង
+    const sharedHash = generateHash();
+    const sharedRefId = "PRM-" + Date.now().toString().slice(-6);
+    const sharedRemark = `Claimed Promo Code: ${promo.code}`; // Remark ដូចគ្នា
+
+    // 📝 កត់ត្រាសម្រាប់អ្នកទាមទាររង្វាន់ (User)
     await Transaction.create({
       username: user.username,
-      refId: newRef,
-      hash: newHash,
+      refId: sharedRefId,
+      hash: sharedHash,
       date: date,
       type: "Promo Reward",
       amount: rewardAmt,
@@ -685,15 +712,16 @@ const claimPromoCode = async (req, res) => {
       fee: 0,
       senderName: "U-Pay Promos",
       receiverName: user.username,
-      remark: `Claimed Code: ${promo.code}`,
+      remark: sharedRemark, // ប្រើ Remark រួម
       status: "Success",
       trxMethod: "API Endpoint",
     });
 
+    // 📝 កត់ត្រាសម្រាប់ធនាគារកណ្តាល (Central Bank)
     await Transaction.create({
       username: centralBank.username,
-      refId: newRef,
-      hash: newHash,
+      refId: sharedRefId,
+      hash: sharedHash,
       date: date,
       type: "Promo Expense",
       amount: -rewardAmt,
@@ -701,7 +729,7 @@ const claimPromoCode = async (req, res) => {
       fee: 0,
       senderName: "U-Pay Promos",
       receiverName: user.username,
-      remark: `Paid Promo ${promo.code} to ${user.username}`,
+      remark: sharedRemark, // ប្រើ Remark រួម
       status: "Success",
       trxMethod: "API Endpoint",
     });
@@ -725,18 +753,15 @@ const claimPromoCode = async (req, res) => {
 };
 
 // ==========================================
-// 6. Egift / Scan Bank Bill API (សម្រាប់ App ផ្សេងៗហៅមកទាញលុយ)
+// 🧧 ៧. មុខងារផ្ញើអាំងប៉ាវ (Send E-Gift)
 // ==========================================
-
-// មុខងារសម្រាប់ផ្ញើ E-Gift (អាំងប៉ាវ) គាំទ្រគណនីពិសេស និងខ្វែងរូបិយប័ណ្ណ
 const sendEgift = async (req, res) => {
-  // ទទួលទិន្នន័យពី Frontend
   const {
     senderUsername,
-    senderAccount, // លេខគណនីប្រភព (MAIN_USD, MAIN_KHR ឬ លេខ Sub-Account)
-    receiverInput, // លេខទូរស័ព្ទ, ឈ្មោះ ឬ លេខគណនីអ្នកទទួល
-    amount, // ចំនួនទឹកប្រាក់កាដូ
-    currency, // រូបិយប័ណ្ណកាដូ (USD ឬ KHR)
+    senderAccount,
+    receiverInput,
+    amount,
+    currency,
     theme,
     message,
     pin,
@@ -744,13 +769,13 @@ const sendEgift = async (req, res) => {
 
   try {
     const User = require("../models/User");
-    const Transaction = require("../models/Transaction"); // ហៅ Transaction Model
+    const Transaction = require("../models/Transaction");
 
-    // 💡 កំណត់អត្រាប្តូរប្រាក់ (ប្រើអថេរ Global របស់បង ឬកំណត់តម្លៃ Default ត្រង់នេះ)
+    // កំណត់អត្រាប្តូរប្រាក់ (Fix ទុកសិន)
     const fxRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
     const giftAmount = parseFloat(amount);
 
-    // ១. ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងលេខកូដ PIN
+    // ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងលេខកូដ PIN
     const sender = await User.findOne({ username: senderUsername });
     if (!sender)
       return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ" });
@@ -760,10 +785,10 @@ const sendEgift = async (req, res) => {
         message: "លេខកូដ PIN មិនត្រឹមត្រូវទេ!",
       });
 
-    // ២. គណនាទឹកប្រាក់ត្រូវកាត់ និងកាត់ចេញពីគណនីអ្នកផ្ញើ
+    // គណនាទឹកប្រាក់ត្រូវកាត់
     let finalDeduction = giftAmount;
     let sourceCurrency = "USD";
-    let actualSenderAccNum = sender.accountNumber; // កំណត់ Default
+    let actualSenderAccNum = sender.accountNumber;
 
     if (senderAccount === "MAIN_KHR") {
       sourceCurrency = "KHR";
@@ -781,7 +806,7 @@ const sendEgift = async (req, res) => {
       actualSenderAccNum = sub.accountNumber;
     }
 
-    // គណនាអត្រាប្តូរប្រាក់ប្រសិនបើគណនីប្រភព និងរូបិយប័ណ្ណកាដូខុសគ្នា
+    // ប្តូរប្រាក់បើកាដូ និងកុងខុសរូបិយប័ណ្ណ
     if (sourceCurrency !== currency) {
       if (sourceCurrency === "USD" && currency === "KHR")
         finalDeduction = giftAmount / fxRates.usdToKhrSell;
@@ -816,7 +841,7 @@ const sendEgift = async (req, res) => {
       sender.subAccounts[subIdx].balance -= finalDeduction;
     }
 
-    // ៣. ស្វែងរកអ្នកទទួល (តាមរយៈលេខទូរស័ព្ទ, Username, ឬលេខគណនី Main/Sub)
+    // ស្វែងរកអ្នកទទួល
     const receiver = await User.findOne({
       $or: [
         { username: receiverInput },
@@ -835,21 +860,19 @@ const sendEgift = async (req, res) => {
         message: "មិនអាចផ្ញើអាំងប៉ាវឱ្យខ្លួនឯងបានទេ!",
       });
 
-    // ៤. ដំណើរការបញ្ចូលប្រាក់ទៅឱ្យអ្នកទទួល
+    // ដំណើរការបញ្ចូលប្រាក់ទៅឱ្យអ្នកទទួល
     let isReceiverSubAccount = false;
     let receiverSubIndex = receiver.subAccounts.findIndex(
       (acc) => acc.accountNumber === receiverInput,
     );
-    let actualReceiverAccNum = receiver.accountNumber; // Default Main USD
+    let actualReceiverAccNum = receiver.accountNumber;
 
     if (receiverSubIndex !== -1) {
-      // បើគេផ្ញើចូលកុង Sub-Account ផ្ទាល់
       isReceiverSubAccount = true;
       actualReceiverAccNum = receiverInput;
       let targetCur = receiver.subAccounts[receiverSubIndex].currency;
       let receiveAmt = giftAmount;
 
-      // ប្តូរប្រាក់បើកាដូ និងកុងទទួលខុសរូបិយប័ណ្ណគ្នា
       if (currency === "USD" && targetCur === "KHR")
         receiveAmt = receiveAmt * fxRates.usdToKhrBuy;
       if (currency === "KHR" && targetCur === "USD")
@@ -857,63 +880,63 @@ const sendEgift = async (req, res) => {
 
       receiver.subAccounts[receiverSubIndex].balance += receiveAmt;
     } else {
-      // បើគេផ្ញើចូលតាមឈ្មោះ/ទូរស័ព្ទ ឬ លេខកុង Main
       if (receiverInput === receiver.accountNumberKHR)
         actualReceiverAccNum = receiver.accountNumberKHR;
 
-      // Main Account ទទួលតាមប្រភេទរូបិយប័ណ្ណកាដូផ្ទាល់
       if (currency === "USD") receiver.balance += giftAmount;
       else receiver.balanceKHR = (receiver.balanceKHR || 0) + giftAmount;
     }
 
-    // ៥. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transactions) អោយត្រូវស្តង់ដារ Dashboard ថ្មី
-    const refId = "GIFT" + Date.now().toString().slice(-6);
-    const trxHash = Math.random().toString(36).substring(2, 11);
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
 
-    // 🌟 បង្កើត Trx សម្រាប់អ្នកផ្ញើ
+    // 🔥 កំណត់អថេររួម (Shared Variables) ទាំងអ្នកផ្ញើ និងអ្នកទទួលអាំងប៉ាវ
+    const sharedRefId = "GIFT" + Date.now().toString().slice(-6);
+    const sharedHash = Math.random().toString(36).substring(2, 11);
+    const sharedRemark = message || "E-Gift"; // ប្រើ Remark ដូចគ្នា
+
+    // 📝 បង្កើតប្រវត្តិសម្រាប់អ្នកផ្ញើ
     const senderTrx = {
       username: sender.username,
-      refId,
-      hash: trxHash,
+      refId: sharedRefId,
+      hash: sharedHash,
       type: "E-Gift Sent",
       amount: -finalDeduction,
-      currency: sourceCurrency, // កត់ត្រាលុយពិតដែលកាត់
-      senderName: sender.fullName || sender.username,
-      receiverName: receiver.fullName || receiver.username,
-      senderAcc: actualSenderAccNum, // 🔥 លេខកុងអ្នកផ្ញើ (ដើម្បីឱ្យចេញក្នុង History)
-      receiverAcc: actualReceiverAccNum, // 🔥 លេខកុងអ្នកទទួល
-      trxMethod: "U-Pay App",
-      date: dateStr,
-      remark: message || "E-Gift",
-      status: "Completed",
-    };
-
-    // 🌟 បង្កើត Trx សម្រាប់អ្នកទទួល (ទោះមិនទាន់បើកក៏កត់ទុកថាបានទទួលដែរ)
-    const receiverTrx = {
-      username: receiver.username,
-      refId,
-      hash: trxHash,
-      type: "E-Gift Received",
-      amount: giftAmount,
-      currency: currency, // កត់ត្រាលុយកាដូសុទ្ធ
+      currency: sourceCurrency,
       senderName: sender.fullName || sender.username,
       receiverName: receiver.fullName || receiver.username,
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
       date: dateStr,
-      remark: message || "E-Gift",
+      remark: sharedRemark, // ប្រើ Remark រួម
+      status: "Completed",
+    };
+
+    // 📝 បង្កើតប្រវត្តិសម្រាប់អ្នកទទួល
+    const receiverTrx = {
+      username: receiver.username,
+      refId: sharedRefId,
+      hash: sharedHash,
+      type: "E-Gift Received",
+      amount: giftAmount,
+      currency: currency,
+      senderName: sender.fullName || sender.username,
+      receiverName: receiver.fullName || receiver.username,
+      senderAcc: actualSenderAccNum,
+      receiverAcc: actualReceiverAccNum,
+      trxMethod: "U-Pay App",
+      date: dateStr,
+      remark: sharedRemark, // ប្រើ Remark រួម
       status: "Completed",
     };
 
     await Transaction.create(senderTrx);
     await Transaction.create(receiverTrx);
 
-    // ៦. 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (មានភ្ជាប់ Theme អាំងប៉ាវ)
+    // 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (ភ្ជាប់ទិន្នន័យអាំងប៉ាវ)
     const giftNotification = {
       title: "មានកាដូថ្មី! 🎁",
       message: `អ្នកទទួលបានអាំងប៉ាវពី ${sender.fullName || sender.username}។ ចុចដើម្បីបើកមើល!`,
@@ -926,18 +949,17 @@ const sendEgift = async (req, res) => {
         theme: theme,
         message: message,
         senderName: sender.fullName || sender.username,
-        senderUsername: sender.username, // សំខាន់ដើម្បីផ្ញើសារត្រឡប់
+        senderUsername: sender.username,
       },
     };
 
     if (!receiver.notifications) receiver.notifications = [];
     receiver.notifications.push(giftNotification);
 
-    // Save ទិន្នន័យទាំងសងខាងចូល Database
     await sender.save();
     await receiver.save();
 
-    // ត្រលប់ទឹកប្រាក់ថ្មីទៅអោយអ្នកផ្ញើវិញដើម្បី Update ក្នុង App
+    // ត្រលប់ទិន្នន័យទៅ Frontend
     let newBalanceRes = 0;
     if (senderAccount === "MAIN_USD") newBalanceRes = sender.balance;
     else if (senderAccount === "MAIN_KHR") newBalanceRes = sender.balanceKHR;
@@ -961,14 +983,16 @@ const sendEgift = async (req, res) => {
   }
 };
 
-// 🔥 មុខងារថ្មី៖ ទទួលដំណឹងពេលបើកអាំងប៉ាវ និងផ្ញើសារទៅអ្នកផ្ញើវិញ
+// ==========================================
+// 🔔 ៨. មុខងារបញ្ជាក់ការបើកអាំងប៉ាវ (E-Gift Opened Notification)
+// ==========================================
 const egiftOpened = async (req, res) => {
   const { receiverName, senderUsername, notifId } = req.body;
 
   try {
     const User = require("../models/User");
 
-    // ១. Mark អាំងប៉ាវនេះជា "បានអានហើយ" សម្រាប់អ្នកទទួល (ដើម្បីកុំឱ្យវាលោតជាប៊ូតុង "បើកអាំងប៉ាវ" ទៀត)
+    // Mark អាំងប៉ាវជា "បានអាន"
     if (notifId) {
       await User.updateOne(
         { "notifications._id": notifId },
@@ -976,7 +1000,7 @@ const egiftOpened = async (req, res) => {
       );
     }
 
-    // ២. បង្កើត Notification ជូនដំណឹងដល់អ្នកផ្ញើវិញ (Sender) ថាបានបើកហើយ
+    // បង្កើត Notification ជូនដំណឹងដល់អ្នកផ្ញើវិញ
     if (senderUsername) {
       const sender = await User.findOne({ username: senderUsername });
       if (sender) {
