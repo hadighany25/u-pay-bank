@@ -1553,7 +1553,7 @@ const adminCreateMerchant = async (req, res) => {
 // ==========================================
 // មុខងារស្វែងរកអ្នកទទួលប្រាក់សម្រាប់ Cashier
 // ==========================================
-exports.searchCashierUser = async (req, res) => {
+const searchCashierUser = async (req, res) => {
   try {
     const { identifier } = req.params;
 
