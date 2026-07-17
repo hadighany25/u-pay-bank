@@ -167,14 +167,12 @@ exports.getMerchantTransactions = async (req, res) => {
 
     // 🔥 កែត្រង់នេះ៖ លុបការស្វែងរកតាម { receiverName: merchant.name } ចេញ!
     let searchConditions = [
-      { merchantId: merchant.merchantId }, // ចាប់យកតាម ID របស់ហាងតែមួយគត់
+      { merchantId: merchant.merchantId },
+      { receiverName: merchant.name, trxMethod: "Merchant Payment" }, // 🔥 ចាប់បានទាំង Transaction ថ្មីៗដែលរត់ចូលកុងរង
+      // ទុកលក្ខខណ្ឌចាស់ ការពារកុំឱ្យបាត់ប្រវត្តិ Transaction ចាស់ៗ
+      { receiverAcc: merchant.accountNumbers.USD },
+      { receiverAcc: merchant.accountNumbers.KHR },
     ];
-
-    // បន្ថែមលក្ខខណ្ឌបើហាងមានលេខ QR (USD ឬ KHR)
-    if (merchant.accountNumbers && merchant.accountNumbers.USD)
-      searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
-    if (merchant.accountNumbers && merchant.accountNumbers.KHR)
-      searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
 
     let transactions = await Transaction.find({
       $or: searchConditions,

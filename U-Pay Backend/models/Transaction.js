@@ -14,6 +14,7 @@ const transactionSchema = new mongoose.Schema(
     receiverName: { type: String },
     receiverAcc: { type: String },
     trxMethod: { type: String },
+    merchantId: { type: String, default: null },
     date: { type: String },
     remark: { type: String },
     status: { type: String },
