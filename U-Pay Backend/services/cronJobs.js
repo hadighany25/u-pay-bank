@@ -1,11 +1,14 @@
 const User = require("../models/User");
-const UFund = require("../models/UFund"); // បន្ថែមនេះ
+const UFund = require("../models/UFund");
 const Transaction = require("../models/Transaction");
-const cron = require("node-cron"); // បន្ថែមនេះ
-const moment = require("moment-timezone"); // បន្ថែមនេះ
+const cron = require("node-cron");
+const moment = require("moment-timezone");
 const { getFormattedDate, generateHash, generateRefId } = require("./helpers");
 
 const initCronJobs = () => {
+  // ==========================================
+  // ១. មុខងារបញ្ចេញប្រាក់ដែលជាប់ Hold ស្វ័យប្រវត្តិ
+  // ==========================================
   const autoReleaseHold = async () => {
     const now = Date.now();
     try {
@@ -63,7 +66,9 @@ const initCronJobs = () => {
   // ឱ្យវាដើររៀងរាល់ ១០ វិនាទី
   setInterval(autoReleaseHold, 10000);
 
+  // ==========================================
   // ២. មុខងារថ្មីសម្រាប់ U-Fund (Auto-Deduct)
+  // ==========================================
   cron.schedule(
     "* * * * *",
     async () => {
@@ -78,28 +83,23 @@ const initCronJobs = () => {
             const auto = member.autoDeposit;
 
             if (auto.enabled && auto.time === currentTime) {
-              // 🔥 បន្ថែម Logic ឆែក Frequency (Daily/Weekly/Monthly) ត្រង់នេះប្រសិនបើបងចង់
-
               const user = await User.findOne({ username: member.username });
               const centralBank = await User.findOne({
                 accountNumber: "888888888",
               });
 
               if (user && centralBank && user.balance >= auto.amount) {
-                // ដំណើរការកាត់លុយ
                 user.balance -= auto.amount;
                 centralBank.balance += auto.amount;
                 fund.currentAmount += auto.amount;
                 member.contributedAmount += auto.amount;
                 member.status = "active";
 
-                // ត្រៀមទិន្នន័យ វិក្កយបត្រ (Transaction)
                 const dateStr = getFormattedDate();
                 const refId = generateRefId();
                 const hash = generateHash();
                 const depositorName = user.fullName || user.username;
 
-                // 🧾 ១. វិក្កយបត្រកាត់លុយ (User) ឱ្យពេញលេញដូចវេរលុយដៃ
                 await Transaction.create({
                   username: user.username,
                   refId: refId,
@@ -112,10 +112,9 @@ const initCronJobs = () => {
                   receiverName: `U-Fund: ${fund.name}`,
                   remark: "Auto Deposit Executed",
                   status: "Success",
-                  trxMethod: "System Auto", // បញ្ជាក់ថាកាត់ដោយប្រព័ន្ធ
+                  trxMethod: "System Auto",
                 });
 
-                // 🧾 ២. វិក្កយបត្រទទួលលុយ (Central Bank)
                 await Transaction.create({
                   username: centralBank.username,
                   refId: refId,
@@ -131,7 +130,6 @@ const initCronJobs = () => {
                   trxMethod: "System Auto",
                 });
 
-                // 🔔 ៣. លោតសារ Notification ប្រាប់ User ថាកាត់លុយជោគជ័យ
                 if (!user.notifications) user.notifications = [];
                 user.notifications.unshift({
                   id:
@@ -147,7 +145,6 @@ const initCronJobs = () => {
                 await centralBank.save();
                 fundUpdated = true;
               } else if (user && user.balance < auto.amount) {
-                // ❌ លុយមិនគ្រប់ កំណត់ Status ជា "overdue" និងលោតសារប្រាប់
                 member.status = "overdue";
 
                 if (!user.notifications) user.notifications = [];
@@ -172,6 +169,117 @@ const initCronJobs = () => {
         }
       } catch (err) {
         console.error("❌ Error in U-Fund Cron Job:", err);
+      }
+    },
+    { timezone: "Asia/Phnom_Penh" },
+  );
+
+  // ==========================================
+  // 🔥 ៣. មុខងារលុបគណនីរួមស្វ័យប្រវត្តិ (Joint Account > 24H)
+  // ==========================================
+  cron.schedule(
+    "0 * * * *", // ដើររៀងរាល់ម៉ោងម្តង (រៀងរាល់នាទីសូន្យ ឧ.ម៉ោង 1:00, 2:00...)
+    async () => {
+      try {
+        const nowMs = Date.now();
+        // ស្វែងរកអ្នកប្រើប្រាស់ដែលមានគណនីប្រភេទ Joint
+        const users = await User.find({ "subAccounts.accountType": "joint" });
+        if (users.length === 0) return;
+
+        let centralBank = await User.findOne({ accountNumber: "888888888" });
+        let cbUpdated = false;
+
+        for (let u of users) {
+          let userChanged = false;
+
+          // រត់ Loop ត្រលប់ក្រោយ (Backwards) ងាយស្រួលក្នុងការលុប Array ចេញ
+          for (let i = u.subAccounts.length - 1; i >= 0; i--) {
+            let acc = u.subAccounts[i];
+
+            if (acc.accountType === "joint") {
+              // ឆែកមើលថាតើមានសមាជិកណាមួយនៅ "pending" ដែរឬទេ
+              let isPending = acc.members.some((m) => m.status === "pending");
+
+              // គណនាម៉ោងដែលបានកន្លងផុតគិតចាប់តាំងពីពេលបង្កើត
+              let hoursPassed =
+                (nowMs - new Date(acc.createdAt).getTime()) / (1000 * 60 * 60);
+
+              // ប្រសិនបើហួស ២៤ ម៉ោង ហើយនៅតែ Pending
+              if (isPending && hoursPassed > 24) {
+                const pricePaid = acc.metadata?.pricePaid || 0;
+                const refundAmount = pricePaid / 2; // សងត្រលប់ ៥០%
+
+                if (refundAmount > 0 && centralBank) {
+                  u.balance += refundAmount;
+                  centralBank.balance -= refundAmount;
+                  cbUpdated = true;
+
+                  const dateNow = getFormattedDate();
+                  const refId = "REF-" + Date.now().toString().slice(-6);
+                  const hash = generateHash();
+
+                  // 📝 កត់ត្រាប្រវត្តិទទួលលុយសង 50% ឱ្យម្ចាស់ដើម
+                  await Transaction.create({
+                    username: u.username,
+                    refId: refId,
+                    hash: hash,
+                    date: dateNow,
+                    type: "Joint Account Refund",
+                    amount: refundAmount,
+                    currency: "USD",
+                    senderName: "System",
+                    receiverName: u.fullName || u.username,
+                    remark: `Refund 50% for Expired Joint Acc: ${acc.accountNumber}`,
+                    status: "Success",
+                    trxMethod: "System Auto",
+                  });
+
+                  // 📝 កត់ត្រាប្រវត្តិកាត់លុយសង ពីធនាគារកណ្តាល
+                  await Transaction.create({
+                    username: centralBank.username,
+                    refId: refId,
+                    hash: hash,
+                    date: dateNow,
+                    type: "Joint Acc Refund Deducted",
+                    amount: -refundAmount,
+                    currency: "USD",
+                    senderName: "System",
+                    receiverName: u.fullName || u.username,
+                    remark: `Refund 50% to ${u.username} for Expired Joint Acc: ${acc.accountNumber}`,
+                    status: "Success",
+                    trxMethod: "System Auto",
+                  });
+                }
+
+                // 🔔 ផ្ញើ Notification ប្រាប់ម្ចាស់ដើមថាផុតកំណត់ហើយ
+                if (!u.notifications) u.notifications = [];
+                u.notifications.unshift({
+                  id: "NOTIF-" + Date.now(),
+                  title: "គណនីរួមផុតកំណត់ ⏱️",
+                  message: `ការអញ្ជើញគណនីរួមលេខ ${acc.accountNumber} ហួសកំណត់ ២៤ម៉ោង។ ប្រព័ន្ធបានលុបចោល និងបង្វិលប្រាក់ ៥០% ចូលគណនីអ្នកវិញដោយស្វ័យប្រវត្តិ។`,
+                  date: getFormattedDate(),
+                  isRead: false,
+                });
+
+                // 🗑️ លុបគណនីនេះចេញពីប្រព័ន្ធ
+                u.subAccounts.splice(i, 1);
+                userChanged = true;
+              }
+            }
+          }
+
+          if (userChanged) {
+            u.markModified("subAccounts");
+            u.markModified("notifications");
+            await u.save();
+          }
+        }
+
+        if (cbUpdated && centralBank) {
+          await centralBank.save();
+        }
+      } catch (err) {
+        console.error("❌ Error in Joint Account Auto-Cleanup Job:", err);
       }
     },
     { timezone: "Asia/Phnom_Penh" },
