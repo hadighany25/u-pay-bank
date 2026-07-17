@@ -1835,6 +1835,7 @@
 
       // ==========================================
       // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
+      // [កែថ្មី: ចុចដើរហ្មង អត់មានលោតសួរទៀតទេ 1-Click Action]
       // ==========================================
       async function handleJointInvite(
         ownerUsername,
@@ -1842,60 +1843,63 @@
         action,
         notifId,
       ) {
-        const actionText = action === "accept" ? "យល់ព្រមចូលរួម" : "បដិសេធ";
-        const actionColor = action === "accept" ? "#10b981" : "#ef4444";
-
+        // លោត Loading ភ្លាមៗ (មិនបាច់សួរ Confirm ទេ)
         Swal.fire({
-          title: `តើអ្នកចង់${actionText}ឬទេ?`,
-          text: `គណនីរួមលេខ: ${accountNumber}`,
-          icon: "question",
-          showCancelButton: true,
-          confirmButtonColor: actionColor,
-          cancelButtonColor: "#64748b",
-          confirmButtonText:
-            action === "accept" ? "បាទ/ចាស យល់ព្រម" : "បាទ/ចាស បដិសេធ",
-          cancelButtonText: "ត្រឡប់ក្រោយ",
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            Swal.fire({
-              title: "កំពុងដំណើរការ...",
-              didOpen: () => Swal.showLoading(),
-              allowOutsideClick: false,
-            });
-
-            try {
-              const res = await fetch("/api/account/respond-joint-invite", {
-                method: "POST",
-                headers: window.authHeaders, // យកមកពី u-pay-core.js
-                body: JSON.stringify({
-                  inviteeUsername: window.currentUser.username,
-                  ownerUsername: ownerUsername,
-                  accountNumber: accountNumber,
-                  action: action,
-                }),
-              });
-
-              const data = await res.json();
-
-              if (data.success) {
-                // មុននឹង Reload យើងគួរ clear Notification នេះចោលសិន ដើម្បីកុំអោយវាលោតសារនេះទៀត
-                await fetch(`/api/user/notifications/read/${notifId}`, {
-                  method: "POST",
-                  headers: window.authHeaders,
-                }).catch(() => console.log("Failed to clear notif"));
-
-                Swal.fire("ជោគជ័យ!", data.message, "success").then(() => {
-                  window.location.reload();
-                });
-              } else {
-                Swal.fire("បរាជ័យ", data.message, "error");
-              }
-            } catch (error) {
-              console.error("Error responding to invite:", error);
-              Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-            }
-          }
+          title: "កំពុងដំណើរការ...",
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
         });
+
+        try {
+          // 🔥 ធានាថាយើងចាប់យក Username អ្នកកំពុងលេងបានត្រឹមត្រូវ ១០០%
+          let currentUsr =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+          if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
+
+          // បាញ់ API ទៅកាន់ Backend
+          const res = await fetch("/api/account/respond-joint-invite", {
+            method: "POST",
+            headers: window.authHeaders || {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              inviteeUsername: currentUsr.username,
+              ownerUsername: ownerUsername,
+              accountNumber: accountNumber,
+              action: action,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            // លុបសារ Notification នេះចោលភ្លាមៗពីប្រព័ន្ធ
+            await fetch(`/api/user/notifications/read/${notifId}`, {
+              method: "POST",
+              headers: window.authHeaders || {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }).catch(() => console.log("Failed to clear notif"));
+
+            // លោតប្រាប់ថាជោគជ័យ ហើយ Refresh Page
+            Swal.fire({
+              title: "ជោគជ័យ!",
+              text: data.message,
+              icon: "success",
+              timer: 2000,
+              showConfirmButton: false,
+            }).then(() => {
+              window.location.reload();
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error("Error responding to invite:", error);
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
       }
 
       // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)

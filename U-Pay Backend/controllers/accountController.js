@@ -566,7 +566,7 @@ exports.createJointAccount = async (req, res) => {
 };
 
 // =========================================================================
-// 🌟 ៦. API ឆ្លើយតបការអញ្ជើញ (Accept Joint Account)
+// 🌟 ៦. API ឆ្លើយតបការអញ្ជើញ (Accept/Reject Joint Account) - អូតូទាញទាំង២គណនី & សង៥០%
 // =========================================================================
 exports.respondToJointInvite = async (req, res) => {
   const { inviteeUsername, ownerUsername, accountNumber, action } = req.body;
@@ -578,42 +578,30 @@ exports.respondToJointInvite = async (req, res) => {
     if (!owner || !invitee)
       return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    let foundSubAccountIndex = owner.subAccounts.findIndex(
+    // 🔥 ទាញយកគណនីរួម "ទាំងអស់" ដែលពាក់ព័ន្ធនឹងការអញ្ជើញនេះ (ដើម្បីអូតូយកទាំង USD និង KHR)
+    let linkedAccs = owner.subAccounts.filter(
       (acc) =>
-        acc.accountNumber === accountNumber && acc.accountType === "joint",
+        acc.accountType === "joint" &&
+        acc.members.some(
+          (m) => m.username === inviteeUsername && m.status === "pending",
+        ) &&
+        acc.accountNumber.substring(0, 8) === accountNumber.substring(0, 8), // ធានាថាជាកុងតែមួយវគ្គ
     );
 
-    if (foundSubAccountIndex === -1) {
+    if (linkedAccs.length === 0) {
       return res.json({
         success: false,
         message: "រកគណនីរួមនេះមិនឃើញទេ ឬត្រូវបានលុបបាត់ហើយ!",
       });
     }
 
-    let jointAcc = owner.subAccounts[foundSubAccountIndex];
-    let memberIndex = jointAcc.members.findIndex(
-      (m) => m.username === inviteeUsername,
-    );
-
-    if (memberIndex === -1) {
-      return res.json({
-        success: false,
-        message: "អ្នកមិនមានសិទ្ធិក្នុងគណនីនេះទេ!",
-      });
-    }
-
-    // ឆែក ២៤ ម៉ោង
-    const createdAtTime = new Date(jointAcc.createdAt).getTime();
-    const currentTime = Date.now();
-    const hoursDifference = (currentTime - createdAtTime) / (1000 * 60 * 60);
-    const isExpired =
-      hoursDifference > 24 &&
-      jointAcc.members[memberIndex].status === "pending";
-
-    // ករណីបដិសេធ ឬ ហួសកំណត់ (កាត់ ៥០%)
-    if (action === "reject" || isExpired) {
-      const pricePaid = jointAcc.metadata?.pricePaid || 0;
-      const refundAmount = pricePaid / 2; // សង ៥០%
+    // ---------------------------------------------------------------------
+    // ករណីបដិសេធ (Reject) -> លុបគណនីភ្លាមៗ និងបង្វិលសង ៥០%
+    // ---------------------------------------------------------------------
+    if (action === "reject") {
+      // យកតម្លៃដើមពីគណនីទី១ មកគណនា (កុំអោយវាបូកជាន់គ្នាទ្វេដង)
+      const pricePaid = linkedAccs[0].metadata?.pricePaid || 0;
+      const refundAmount = pricePaid / 2; // សងត្រលប់ ៥០% ភ្លាមៗ
 
       if (refundAmount > 0) {
         const centralBank = await User.findOne({ accountNumber: "888888888" });
@@ -635,7 +623,7 @@ exports.respondToJointInvite = async (req, res) => {
             currency: "USD",
             senderName: "System",
             receiverName: owner.fullName || owner.username,
-            remark: `Refund 50% for Cancelled/Expired Joint Acc: ${accountNumber}`,
+            remark: `Refund 50% for Rejected Joint Acc: ${accountNumber}`,
             status: "Success",
             trxMethod: "System Refund",
           });
@@ -645,12 +633,12 @@ exports.respondToJointInvite = async (req, res) => {
             refId,
             hash,
             date: dateNow,
-            type: "Joint Account Refund Deducted",
+            type: "Joint Acc Refund Deducted",
             amount: -refundAmount,
             currency: "USD",
             senderName: "System",
             receiverName: owner.fullName || owner.username,
-            remark: `Refund 50% to ${owner.username} for Joint Acc: ${accountNumber}`,
+            remark: `Refund 50% to ${owner.username} for Rejected Joint Acc`,
             status: "Success",
             trxMethod: "System Refund",
           });
@@ -658,21 +646,20 @@ exports.respondToJointInvite = async (req, res) => {
         }
       }
 
-      owner.subAccounts.splice(foundSubAccountIndex, 1);
+      // លុបគណនីរួមទាំងអស់ដែលពាក់ព័ន្ធនឹងលេខនេះ ចេញពីមេធំ
+      linkedAccs.forEach((la) => {
+        let idx = owner.subAccounts.findIndex(
+          (sa) => sa.accountNumber === la.accountNumber,
+        );
+        if (idx !== -1) owner.subAccounts.splice(idx, 1);
+      });
 
-      let notifMessage =
-        action === "reject"
-          ? `${invitee.fullName || invitee.username} បានបដិសេធការអញ្ជើញរបស់អ្នក។ គណនីត្រូវបានលុបចោល ហើយប្រព័ន្ធបានបង្វិលសង ៥០% ទៅគណនីអ្នកវិញ។`
-          : `ការអញ្ជើញគណនីរួមលេខ ${accountNumber} ហួសកំណត់ ២៤ម៉ោង។ ប្រព័ន្ធបានលុបចោល និងបង្វិលប្រាក់ ៥០% ចូលគណនីអ្នកវិញ។`;
-
+      // បាញ់ Notification ប្រាប់មេធំ
       if (!owner.notifications) owner.notifications = [];
       owner.notifications.unshift({
         id: "NOTIF-" + Date.now(),
-        title:
-          action === "reject"
-            ? "ការអញ្ជើញត្រូវបានបដិសេធ ❌"
-            : "គណនីរួមផុតកំណត់ ⏱️",
-        message: notifMessage,
+        title: "ការអញ្ជើញត្រូវបានបដិសេធ ❌",
+        message: `${invitee.fullName || invitee.username} បានបដិសេធការអញ្ជើញរបស់អ្នក។ គណនីរួមលេខ ${accountNumber} ត្រូវបានលុបចោល ហើយប្រព័ន្ធបានបង្វិលសង ៥០% ($${refundAmount}) ទៅគណនីអ្នកវិញ។`,
         date: getFormattedDate(),
         isRead: false,
       });
@@ -680,27 +667,38 @@ exports.respondToJointInvite = async (req, res) => {
       await owner.save();
 
       return res.json({
-        success: action === "reject" ? true : false,
-        message:
-          action === "reject"
-            ? "អ្នកបានបដិសេធការអញ្ជើញនេះដោយជោគជ័យ។"
-            : "ការអញ្ជើញនេះហួសកំណត់ ២៤ ម៉ោងហើយ! ប្រព័ន្ធបានលុបចោល និងបង្វិលសង ៥០% ទៅម្ចាស់គណនីវិញ។",
+        success: true,
+        message: "អ្នកបានបដិសេធការអញ្ជើញនេះដោយជោគជ័យ។ គណនីត្រូវបានលុប!",
       });
     }
 
-    // ករណីយល់ព្រម
+    // ---------------------------------------------------------------------
+    // ករណីយល់ព្រម (Accept) -> យល់ព្រមអូតូទាំង ២កុង (បើគាត់បង្កើតទាំង២)
+    // ---------------------------------------------------------------------
     if (action === "accept") {
-      owner.subAccounts[foundSubAccountIndex].members[memberIndex].status =
-        "active";
+      linkedAccs.forEach((la) => {
+        let idx = owner.subAccounts.findIndex(
+          (sa) => sa.accountNumber === la.accountNumber,
+        );
+        if (idx !== -1) {
+          // ប្តូរ Status ដៃគូទៅជា Active
+          let mIdx = owner.subAccounts[idx].members.findIndex(
+            (m) => m.username === inviteeUsername,
+          );
+          if (mIdx !== -1)
+            owner.subAccounts[idx].members[mIdx].status = "active";
 
-      invitee.subAccounts.push({
-        accountId: jointAcc.accountId,
-        accountNumber: jointAcc.accountNumber,
-        accountName: jointAcc.accountName,
-        accountType: "joint_member",
-        balance: jointAcc.balance,
-        currency: jointAcc.currency,
-        metadata: { owner: ownerUsername },
+          // Copy ញាត់ចូលទៅកុងដៃគូ (ដើម្បីអោយលោតចូល Dropdown អូតូ)
+          invitee.subAccounts.push({
+            accountId: la.accountId,
+            accountNumber: la.accountNumber,
+            accountName: la.accountName,
+            accountType: "joint_member",
+            balance: la.balance,
+            currency: la.currency,
+            metadata: { owner: ownerUsername },
+          });
+        }
       });
 
       if (!owner.notifications) owner.notifications = [];
@@ -717,8 +715,7 @@ exports.respondToJointInvite = async (req, res) => {
 
       return res.json({
         success: true,
-        message:
-          "អ្នកបានចូលរួមគណនីគ្រួសារនេះដោយជោគជ័យ! លេខគណនីនេះនឹងបង្ហាញក្នុងជម្រើសរបស់អ្នក។",
+        message: "អ្នកបានចូលរួមគណនីគ្រួសារនេះដោយជោគជ័យ!",
       });
     }
   } catch (error) {
