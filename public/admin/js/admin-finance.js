@@ -398,16 +398,33 @@ async function processCashTransaction() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
   ).value;
+
+  // 🔥 បន្ថែមការចាប់យកលេខគណនីដែល Admin បានរើស (Main ឬ កុងរង)
+  const targetAccountElement = document.getElementById("targetAccountSelect");
+  const targetAccount = targetAccountElement
+    ? targetAccountElement.value
+    : null;
+
   const currency = document.getElementById("cashCurrency").value;
   const amount = document.getElementById("cashAmount").value;
   let remark = document.getElementById("cashRemark").value.trim();
 
+  // លក្ខខណ្ឌត្រួតពិនិត្យ
   if (!amount || amount <= 0)
     return Swal.fire(
       "កំហុស",
       "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ",
       "error",
     );
+
+  // 🔥 បន្ថែមការត្រួតពិនិត្យថាបានរើសកុងហើយឬនៅ
+  if (!targetAccount)
+    return Swal.fire(
+      "កំហុស",
+      "សូមជ្រើសរើសគណនី (Main ឬ កុងរង) ដែលត្រូវទទួលប្រាក់សិន",
+      "error",
+    );
+
   if (type === "other" && !currentDepositorUser)
     return Swal.fire(
       "កំហុស",
@@ -424,9 +441,10 @@ async function processCashTransaction() {
     }
   }
 
+  // បង្ហាញលេខកុងនៅក្នុងផ្ទាំងបញ្ជាក់ (Swal) ឱ្យកាន់តែច្បាស់
   Swal.fire({
     title: "បញ្ជាក់ការដាក់ប្រាក់",
-    html: `អ្នកកំពុងដាក់ប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${amount}</b> <br>ចូលទៅគណនី <b>@${currentTargetUser.username}</b> <br><br> <i>ចំណាំ៖ ${remark}</i>`,
+    html: `អ្នកកំពុងដាក់ប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${amount}</b> <br>ចូលទៅគណនី <b>${targetAccount}</b> របស់ <b>@${currentTargetUser.username}</b> <br><br> <i>ចំណាំ៖ ${remark}</i>`,
     icon: "question",
     showCancelButton: true,
     confirmButtonColor: "#10b981",
@@ -444,6 +462,7 @@ async function processCashTransaction() {
           headers: getAuthHeaders(),
           body: JSON.stringify({
             targetUsername: currentTargetUser.username,
+            targetAccount: targetAccount, // 🔥 បញ្ជូនលេខគណនីដែលបានរើសទៅកាន់ Backend
             depositorType: type,
             depositorUsername: currentDepositorUser
               ? currentDepositorUser.username
@@ -463,6 +482,7 @@ async function processCashTransaction() {
           document.getElementById("cashRemark").value = "";
           document.getElementById("depositorSearch").value = "";
           document.getElementById("targetUserSearch").value = "";
+          if (targetAccountElement) targetAccountElement.value = ""; // Clear Dropdown
           document.getElementById("targetUserCard").style.display = "none";
           document.getElementById("transactionForm").style.display = "none";
           currentTargetUser = null;
