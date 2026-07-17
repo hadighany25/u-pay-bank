@@ -597,7 +597,7 @@ exports.respondToJointInvite = async (req, res) => {
       // 🔥 វេទមន្តនៅទីនេះ៖ Copy គណនីរួមនោះ ញាត់ចូលទៅក្នុង subAccounts របស់ invitee ផ្ទាល់!
       // ដាក់ type: "joint_member" ដើម្បីអោយ Dropdown ចាប់យកស្វ័យប្រវត្តិ តែដឹងថាវាជាគណនីគេអញ្ជើញ
       invitee.subAccounts.push({
-        accountId: jointAcc.accountId, // ប្រើ ID ដូចគ្នាដើម្បីងាយស្រួល Update Balance ថ្ងៃក្រោយ
+        accountId: jointAcc.accountId, // ប្រើ ID ដូចគ្នាដើម្បីងាយស្រួល Update Balance ថ្ងៃក្រោយy
         accountNumber: jointAcc.accountNumber,
         accountName: jointAcc.accountName,
         accountType: "joint_member", // សំខាន់ណាស់!
