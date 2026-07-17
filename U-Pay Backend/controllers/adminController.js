@@ -408,12 +408,12 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 const adjustBalance = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "adjustBal");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
-  // 🔥 ទី១៖ បន្ថែមការទទួលយក targetAccount ពី Frontend
   const { username, targetAccount, amount, type, currency, remark } = req.body;
 
   try {
@@ -433,7 +433,7 @@ const adjustBalance = async (req, res) => {
     // អថេរសម្រាប់ផ្ទុកលេខគណនីពិតប្រាកដដែលត្រូវដាក់ប្រាក់ចូល
     let actualUserAcc = "";
 
-    // 🔥 ទី២៖ ឆែកមើលប្រភេទគណនី និងធ្វើការបូក/ដកប្រាក់តាមគណនីជាក់លាក់
+    // ឆែកមើលប្រភេទគណនី និងធ្វើការបូក/ដកប្រាក់តាមគណនីជាក់លាក់
     if (targetAccount === "MAIN_USD") {
       actualUserAcc = user.accountNumber;
       if (type === "deduct" && user.balance < adjustAmount) {
@@ -485,7 +485,7 @@ const adjustBalance = async (req, res) => {
           : user.subAccounts[subIdx].balance - adjustAmount;
     }
 
-    // 💰 ធ្វើការបូក/ដកប្រាក់សម្រាប់ Central Bank (រក្សាទុកដូចចាស់)
+    // 💰 ធ្វើការបូក/ដកប្រាក់សម្រាប់ Central Bank
     if (type === "add") {
       if (isKHR)
         centralBank.balanceKHR = (centralBank.balanceKHR || 0) - adjustAmount;
@@ -510,7 +510,7 @@ const adjustBalance = async (req, res) => {
       ? centralBank.accountNumberKHR
       : centralBank.accountNumber;
 
-    // 📝 រៀបចំទិន្នន័យសម្រាប់អតិថិជន (ប្រើ actualUserAcc)
+    // 📝 រៀបចំទិន្នន័យសម្រាប់អតិថិជន
     const userTrx = {
       username: user.username,
       refId,
@@ -522,11 +522,9 @@ const adjustBalance = async (req, res) => {
       fee: 0,
       senderName:
         type === "add" ? "Cash Deposit" : user.fullName || user.username,
-      // 🔥 ទី៣៖ ប្តូរលេខគណនីឱ្យត្រូវនឹងគណនីដែលគេរើស
       senderAcc: type === "add" ? centralBankAcc : actualUserAcc,
       receiverName:
         type === "add" ? user.fullName || user.username : "Cash Withdrawal",
-      // 🔥 ទី៤៖ ប្តូរលេខគណនីឱ្យត្រូវនឹងគណនីដែលគេរើស
       receiverAcc: type === "add" ? actualUserAcc : centralBankAcc,
       remark: remark
         ? remark
@@ -545,7 +543,6 @@ const adjustBalance = async (req, res) => {
       type: type === "add" ? "Fund Disbursement" : "Fund Recovery",
     };
 
-    // បញ្ជូនចូល Collection 'Transaction'
     await Transaction.create(userTrx);
     await Transaction.create(bankTrx);
 
@@ -1583,12 +1580,12 @@ exports.searchCashierUser = async (req, res) => {
 };
 
 // =======================================================
-// 💰 ២. ដំណើរការដាក់ប្រាក់ (Cashier Transaction) - គាំទ្រ Sub-Accounts
+// 💰 ២. ដំណើរការដាក់ប្រាក់ (គាំទ្រ Main & Sub-accounts 100%)
 // =======================================================
 const processCashierTransaction = async (req, res) => {
   const {
     targetUsername,
-    targetAccount, // 🔥 ចាប់យកលេខគណនីដែលគេរើស (Main ឬ Sub)
+    targetAccount, // 🔥 ចាប់យកលេខគណនីដែលបានរើសពី Frontend
     depositorType,
     depositorUsername,
     currency,
@@ -1597,9 +1594,13 @@ const processCashierTransaction = async (req, res) => {
   } = req.body;
 
   try {
-    // ----------------------------------------------------
-    // ១. ស្វែងរកអតិថិជន និង ធនាគារកណ្តាល
-    // ----------------------------------------------------
+    if (!targetAccount) {
+      return res.json({
+        success: false,
+        message: "សូមជ្រើសរើសគណនីទទួលប្រាក់សិន!",
+      });
+    }
+
     const targetUser = await User.findOne({ username: targetUsername });
     const centralBank = await User.findOne({ accountNumber: "888888888" });
 
@@ -1610,13 +1611,7 @@ const processCashierTransaction = async (req, res) => {
         success: false,
         message: "រកមិនឃើញគណនី Central Bank!",
       });
-    if (!targetAccount)
-      return res.json({
-        success: false,
-        message: "សូមជ្រើសរើសគណនីទទួលប្រាក់!",
-      });
 
-    // ស្វែងរកអ្នកតំណាងដែលយកប្រាក់មកដាក់ (បើមាន)
     let depUser = null;
     if (depositorType === "other") {
       depUser = await User.findOne({ username: depositorUsername });
@@ -1631,72 +1626,61 @@ const processCashierTransaction = async (req, res) => {
     const isKHR = currency === "KHR";
     const sign = isKHR ? "៛" : "$";
 
-    // ----------------------------------------------------
-    // ២. ដំណើរការបូកប្រាក់ចូលគណនី (ចំគោលដៅ)
-    // ----------------------------------------------------
-    let isSubAccount = false;
-    let actualReceiverName = targetUser.fullName || targetUser.username;
-
-    if (targetAccount === targetUser.accountNumber) {
-      // ករណីដាក់ចូល Main USD
-      targetUser.balance = (targetUser.balance || 0) + cashAmount;
-    } else if (targetAccount === targetUser.accountNumberKHR) {
-      // ករណីដាក់ចូល Main KHR
-      targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
-    } else {
-      // ករណីដាក់ចូល Sub-accounts (ស្វែងរកក្នុង Array)
-      const targetSubIndex = targetUser.subAccounts.findIndex(
-        (sub) => sub.accountNumber === targetAccount,
-      );
-
-      if (targetSubIndex !== -1) {
-        isSubAccount = true;
-        targetUser.subAccounts[targetSubIndex].balance += cashAmount;
-        actualReceiverName = `${targetUser.fullName || targetUser.username} (${targetUser.subAccounts[targetSubIndex].accountName})`;
-      } else {
-        return res.json({
-          success: false,
-          message: "គណនីទទួលប្រាក់មិនត្រឹមត្រូវ ឬរកមិនឃើញ!",
-        });
-      }
-    }
-
-    // ----------------------------------------------------
-    // ៣. កាត់ប្រាក់ពី Central Bank (ធនាគារកណ្តាល)
-    // ----------------------------------------------------
+    // ---------------------------------------------------
+    // 🔥 ១. កាត់ប្រាក់ពី Central Bank
+    // ---------------------------------------------------
     if (isKHR) {
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
     } else {
       centralBank.balance = (centralBank.balance || 0) - cashAmount;
     }
 
-    // ----------------------------------------------------
-    // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Transaction History)
-    // ----------------------------------------------------
+    // ---------------------------------------------------
+    // 🔥 ២. បូកប្រាក់ចូលគណនីអតិថិជន (Main ឬ Sub-account)
+    // ---------------------------------------------------
+    let actualReceiverAcc = targetAccount;
+    let isReceiverSubAccount = false;
+    let subIndex = -1;
+
+    if (targetAccount === targetUser.accountNumber) {
+      // បូកចូល Main USD
+      targetUser.balance = (targetUser.balance || 0) + cashAmount;
+    } else if (targetAccount === targetUser.accountNumberKHR) {
+      // បូកចូល Main KHR
+      targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
+    } else {
+      // ករណី Sub-account
+      subIndex = targetUser.subAccounts.findIndex(
+        (s) => s.accountNumber === targetAccount,
+      );
+      if (subIndex !== -1) {
+        targetUser.subAccounts[subIndex].balance += cashAmount;
+        isReceiverSubAccount = true;
+      } else {
+        // បើរកគណនីរងមិនឃើញសោះ ការពារកុំឱ្យបាត់ប្រាក់អតិថិជន គឺទម្លាក់ចូល Main ទៅតាមរូបិយប័ណ្ណដែលរើស
+        if (isKHR) {
+          targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
+          actualReceiverAcc = targetUser.accountNumberKHR;
+        } else {
+          targetUser.balance = (targetUser.balance || 0) + cashAmount;
+          actualReceiverAcc = targetUser.accountNumber;
+        }
+      }
+    }
+
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
+
+    // 🔥 កែលេខឱ្យខ្លី៖ ឧ. DEP-638190 និង HSH16AF1C
     const refId = "DEP-" + Math.floor(100000 + Math.random() * 900000);
     const trxHash =
       "HSH" + Math.random().toString(16).substring(2, 9).toUpperCase();
 
-    // កំណត់ឈ្មោះ និងគណនីអ្នកដាក់ (Depositor)
-    const dName =
-      depositorType === "self"
-        ? targetUser.fullName || targetUser.username
-        : depUser.fullName || depUser.username;
-
-    const dAcc =
-      depositorType === "self"
-        ? isKHR
-          ? targetUser.accountNumberKHR
-          : targetUser.accountNumber
-        : isKHR
-          ? depUser.accountNumberKHR
-          : depUser.accountNumber;
-
-    // History សម្រាប់អ្នកទទួល
+    // ---------------------------------------------------
+    // 🔥 ៣. កត់ត្រាប្រវត្តិ Transaction
+    // ---------------------------------------------------
     const targetTrx = {
       username: targetUser.username,
       refId,
@@ -1707,17 +1691,27 @@ const processCashierTransaction = async (req, res) => {
       currency: currency,
       fee: 0,
       senderName: "Cash Deposit",
-      senderAcc: "CASH-DESK", // ប្រភពចេញពីបញ្ជរដាក់ប្រាក់
-      receiverName: actualReceiverName,
-      receiverAcc: targetAccount, // 🔥 លេខកុងពិតប្រាកដដែលលុយចូល
+      senderAcc: "CASH-DESK",
+      receiverName: targetUser.fullName || targetUser.username,
+      receiverAcc: actualReceiverAcc, // 🔥 ប្រើលេខគណនីពិតដែលទទួលបានប្រាក់
       remark: remark,
       status: "Success",
       trxMethod: "U-PAY System",
-      depositorName: dName,
-      depositorAcc: dAcc,
+      // ចាប់យកឈ្មោះ និងលេខគណនីអ្នកដាក់ពិតប្រាកដ
+      depositorName:
+        depositorType === "self"
+          ? targetUser.fullName || targetUser.username
+          : depUser.fullName || depUser.username,
+      depositorAcc:
+        depositorType === "self"
+          ? isKHR
+            ? targetUser.accountNumberKHR
+            : targetUser.accountNumber
+          : isKHR
+            ? depUser.accountNumberKHR
+            : depUser.accountNumber,
     };
 
-    // History សម្រាប់ធនាគារកណ្តាល
     const bankTrx = {
       ...targetTrx,
       username: centralBank.username,
@@ -1728,14 +1722,15 @@ const processCashierTransaction = async (req, res) => {
     await Transaction.create(targetTrx);
     await Transaction.create(bankTrx);
 
-    // ----------------------------------------------------
-    // ៥. បង្កើតសារជូនដំណឹង (Notifications) & Save Database
-    // ----------------------------------------------------
+    // ---------------------------------------------------
+    // 🔥 ៤. លោត Notification ជូនដំណឹងដល់អតិថិជន
+    // ---------------------------------------------------
     if (!targetUser.notifications) targetUser.notifications = [];
     targetUser.notifications.unshift({
       id: "NOTIF-" + Date.now(),
       title: "ទទួលបានប្រាក់ (Cash Deposit)",
-      message: `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${targetAccount}) របស់អ្នក។ ចំណាំ៖ ${remark}`,
+      // 🔥 បញ្ជាក់លេខគណនីនៅក្នុងការជូនដំណឹងឱ្យអតិថិជនដឹងច្បាស់
+      message: `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នក។ ចំណាំ៖ ${remark}`,
       date: dateStr,
       isRead: false,
     });
