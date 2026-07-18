@@ -1,11 +1,16 @@
 const express = require("express");
 const router = express.Router();
 
-// 🔥 ទី១៖ ទាញយកពីកន្លែង controller (ឈ្មោះត្រូវ ១០០% តាមរូបភាព)
+// ទាញយក Controller
 const transactionController = require("../controllers/transactionController");
+// ទាញយក Middleware
+const authMiddleware = require("../middleware/authMiddleware");
 
-// 🔥 ទី២៖ ទាញយកពីកន្លែង middleware (អត់មានអក្សរ s ទេ ត្រូវ ១០០% តាមរូបភាព)
-const { verifyToken } = require("../middleware/authMiddleware");
+// 🔥 នេះជាកូដការពារ៖ ទោះបង export ជា Object ក៏ដោយ ឬ Function ផ្ទាល់ក៏ដោយ ក៏វាចាប់យកត្រូវដែរ
+const verifyToken =
+  typeof authMiddleware === "function"
+    ? authMiddleware
+    : authMiddleware.verifyToken;
 
 // ==========================================
 // 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
