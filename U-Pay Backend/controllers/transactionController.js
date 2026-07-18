@@ -66,7 +66,7 @@ const checkAccount = async (req, res) => {
         if (subAcc) {
           if (subAcc.currency === "KHR") isReceiverKHR = true;
 
-          // បើជាគណនីរួម គឺបង្ហាញឈ្មោះគណនីរួម (DARA AND SINA) ដែលយើងបាន Save ទុក
+          // បើជាគណនីរួម គឺបង្ហាញឈ្មោះគណនីរួម
           if (
             subAcc.accountType === "joint" ||
             subAcc.accountType === "joint_member"
@@ -197,7 +197,7 @@ const transfer = async (req, res) => {
 
     let isSenderSubAccount = false;
     let senderSubIndex = -1;
-    let jointSenderAcc = null; // 🔥 ទុកផ្ទុកទិន្នន័យបើវេរចេញពីគណនីរួម
+    let jointSenderAcc = null;
 
     if (
       senderAccount &&
@@ -241,7 +241,7 @@ const transfer = async (req, res) => {
     let actualReceiverAccNum = receiverAccount;
     let targetSubAccIndex = -1;
     let isReceiverSubAccount = false;
-    let jointReceiverAcc = null; // 🔥 ទុកផ្ទុកទិន្នន័យបើវេរចូលគណនីរួម
+    let jointReceiverAcc = null;
 
     if (isMerchant) {
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
@@ -302,7 +302,7 @@ const transfer = async (req, res) => {
 
       if (isReceiverSubAccount) {
         const targetSubAcc = receiver.subAccounts[targetSubAccIndex];
-        // 🔥 បើទទួលលុយចូលគណនីរួម (បូកលុយចូលធុង JointAccount តែម្តង!)
+        // 🔥 បើទទួលលុយចូលគណនីរួម
         if (
           targetSubAcc.accountType === "joint" ||
           targetSubAcc.accountType === "joint_member"
@@ -331,7 +331,6 @@ const transfer = async (req, res) => {
     // ==========================================
     if (isSenderSubAccount) {
       const senderSubAcc = sender.subAccounts[senderSubIndex];
-      // 🔥 បើកាត់លុយចេញពីគណនីរួម (កាត់ចេញពីធុង JointAccount ផ្ទាល់)
       if (
         senderSubAcc.accountType === "joint" ||
         senderSubAcc.accountType === "joint_member"
@@ -351,7 +350,7 @@ const transfer = async (req, res) => {
     }
 
     // ==========================================
-    // 📝 ការកត់ត្រាប្រវត្តិ & ការផ្ញើសារ (Transactions & Notifications)
+    // 📝 ការកត់ត្រាប្រវត្តិ & ការផ្ញើសារ
     // ==========================================
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
@@ -413,28 +412,22 @@ const transfer = async (req, res) => {
       merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
     };
 
-    // 🔥 ១. កត់ត្រាប្រវត្តិអ្នកផ្ញើ (បញ្ជូនអោយគ្រប់សមាជិកគណនីរួម)
+    // កត់ត្រាប្រវត្តិអ្នកផ្ញើ
     if (jointSenderAcc) {
-      // ប្រសិនបើវេរចេញពីគណនីរួម
       for (let m of jointSenderAcc.members) {
-        if (m.status === "active") {
+        if (m.status === "active")
           await Transaction.create({ ...senderTrx, username: m.username });
-        }
       }
     } else {
       await Transaction.create(senderTrx);
     }
 
-    // 🔥 ២. កត់ត្រាប្រវត្តិអ្នកទទួល (បញ្ជូនអោយគ្រប់សមាជិកគណនីរួម)
+    // កត់ត្រាប្រវត្តិអ្នកទទួល
     const currencySymbol = isReceiverKHR ? "៛" : "$";
-
     if (!isMerchant && jointReceiverAcc) {
-      // ប្រសិនបើវេរចូលគណនីរួម
       for (let m of jointReceiverAcc.members) {
         if (m.status === "active") {
           await Transaction.create({ ...receiverTrx, username: m.username });
-
-          // 🔔 លោតសារអោយដៃគូ និង ម្ចាស់ដើម ទាំងអស់គ្នា
           const uDoc = await User.findOne({ username: m.username });
           if (uDoc) {
             if (!uDoc.notifications) uDoc.notifications = [];
@@ -451,8 +444,6 @@ const transfer = async (req, res) => {
       }
     } else {
       await Transaction.create(receiverTrx);
-
-      // 🔔 លោតសារកុងធម្មតា
       if (!isMerchant) {
         const rDoc = await User.findOne({ username: receiver.username });
         if (rDoc) {
@@ -481,14 +472,13 @@ const transfer = async (req, res) => {
       });
     }
 
-    // 🔥 ទាញយកសមតុល្យចុងក្រោយបង្អស់មកបង្ហាញអ្នកផ្ញើវិញ (Fresh Balance)
+    // ទាញយកសមតុល្យចុងក្រោយបង្អស់មកបង្ហាញអ្នកផ្ញើវិញ
     const updatedSender = await User.findOne({ username: senderUsername });
     let newBalanceRes = 0;
 
     if (isSenderSubAccount) {
       const sType = updatedSender.subAccounts[senderSubIndex].accountType;
       if (sType === "joint" || sType === "joint_member") {
-        // ទាញពីធុង Joint ពិតប្រាកដ
         const updatedJoint = await JointAccount.findOne({
           accountId: updatedSender.subAccounts[senderSubIndex].accountId,
         });
@@ -502,11 +492,7 @@ const transfer = async (req, res) => {
         : updatedSender.balance;
     }
 
-    res.json({
-      success: true,
-      newBalance: newBalanceRes,
-      slipData: senderTrx,
-    });
+    res.json({ success: true, newBalance: newBalanceRes, slipData: senderTrx });
   } catch (err) {
     console.error("TRANSFER ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -627,38 +613,40 @@ const rewardCashback = async (req, res) => {
 
         user.balance += reward;
         centralBank.balance -= reward;
-        await Transaction.create({
-          username: user.username,
-          refId: sharedRefId,
-          hash: sharedHash,
-          date: date,
-          type: "Cashback Reward",
-          amount: reward,
-          currency: "USD",
-          fee: 0,
-          senderName: "U-Pay Central Bank",
-          receiverName: user.username,
-          remark: sharedRemark,
-          status: "Success",
-          device: "App",
-          ip: req.ip || "127.0.0.1",
-        });
-        await Transaction.create({
-          username: centralBank.username,
-          refId: sharedRefId,
-          hash: sharedHash,
-          date: date,
-          type: "Cashback Payout",
-          amount: -reward,
-          currency: "USD",
-          fee: 0,
-          senderName: "U-Pay Central Bank",
-          receiverName: user.username,
-          remark: sharedRemark,
-          status: "Success",
-          device: "System",
-          ip: "127.0.0.1",
-        });
+        await Transaction.create([
+          {
+            username: user.username,
+            refId: sharedRefId,
+            hash: sharedHash,
+            date,
+            type: "Cashback Reward",
+            amount: reward,
+            currency: "USD",
+            fee: 0,
+            senderName: "U-Pay Central Bank",
+            receiverName: user.username,
+            remark: sharedRemark,
+            status: "Success",
+            device: "App",
+            ip: req.ip || "127.0.0.1",
+          },
+          {
+            username: centralBank.username,
+            refId: sharedRefId,
+            hash: sharedHash,
+            date,
+            type: "Cashback Payout",
+            amount: -reward,
+            currency: "USD",
+            fee: 0,
+            senderName: "U-Pay Central Bank",
+            receiverName: user.username,
+            remark: sharedRemark,
+            status: "Success",
+            device: "System",
+            ip: "127.0.0.1",
+          },
+        ]);
         await user.save();
         await centralBank.save();
       }
@@ -728,36 +716,38 @@ const claimPromoCode = async (req, res) => {
     const sharedRefId = "PRM-" + Date.now().toString().slice(-6);
     const sharedRemark = `Claimed Promo Code: ${promo.code}`;
 
-    await Transaction.create({
-      username: user.username,
-      refId: sharedRefId,
-      hash: sharedHash,
-      date: date,
-      type: "Promo Reward",
-      amount: rewardAmt,
-      currency: "USD",
-      fee: 0,
-      senderName: "U-Pay Promos",
-      receiverName: user.username,
-      remark: sharedRemark,
-      status: "Success",
-      trxMethod: "API Endpoint",
-    });
-    await Transaction.create({
-      username: centralBank.username,
-      refId: sharedRefId,
-      hash: sharedHash,
-      date: date,
-      type: "Promo Expense",
-      amount: -rewardAmt,
-      currency: "USD",
-      fee: 0,
-      senderName: "U-Pay Promos",
-      receiverName: user.username,
-      remark: sharedRemark,
-      status: "Success",
-      trxMethod: "API Endpoint",
-    });
+    await Transaction.create([
+      {
+        username: user.username,
+        refId: sharedRefId,
+        hash: sharedHash,
+        date,
+        type: "Promo Reward",
+        amount: rewardAmt,
+        currency: "USD",
+        fee: 0,
+        senderName: "U-Pay Promos",
+        receiverName: user.username,
+        remark: sharedRemark,
+        status: "Success",
+        trxMethod: "API Endpoint",
+      },
+      {
+        username: centralBank.username,
+        refId: sharedRefId,
+        hash: sharedHash,
+        date,
+        type: "Promo Expense",
+        amount: -rewardAmt,
+        currency: "USD",
+        fee: 0,
+        senderName: "U-Pay Promos",
+        receiverName: user.username,
+        remark: sharedRemark,
+        status: "Success",
+        trxMethod: "API Endpoint",
+      },
+    ]);
 
     promo.usedCount += 1;
     promo.usedBy.push(username);
@@ -779,11 +769,11 @@ const claimPromoCode = async (req, res) => {
 // 🧧 ៧. មុខងារផ្ញើអាំងប៉ាវ (Send E-Gift)
 // ==========================================
 const sendEgift = async (req, res) => {
-  // [បងបន្តដាក់កូដ sendEgift ចាស់របស់បងនៅទីនេះ]
+  // កន្លែងនេះទុកអោយបងដាក់កូដ sendEgift
 };
 
 const egiftOpened = async (req, res) => {
-  // [បងបន្តដាក់កូដ egiftOpened ចាស់របស់បងនៅទីនេះ]
+  // កន្លែងនេះទុកអោយបងដាក់កូដ egiftOpened
 };
 
 module.exports = {
