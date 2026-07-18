@@ -1871,7 +1871,7 @@
           }
 
           // 🔥 ២. ហៅ API (ចំណាំ៖ បើបងមិនទាន់បានប្តូរ Route ក្នុង Backend ទេ សូមកែត្រង់នេះទៅជា "/api/account/respond-joint-invite" វិញ)
-          const res = await fetch("/api/account/respond-joint-invite", {
+          const res = await fetch("/api/account/joint/respond", {
             method: "POST",
             headers: reqHeaders,
             credentials: "include", // 👈 អាហ្នឹងហើយជាអាគន្លឹះដែលការពារកុំឱ្យលោត Session Expired!
