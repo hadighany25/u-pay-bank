@@ -1,31 +1,23 @@
 const express = require("express");
 const router = express.Router();
 const accountController = require("../controllers/accountController");
-const { verifyToken } = require("../middlewares/authMiddleware"); // ឬ middleware របស់បង
 
-router.post(
-  "/premium/create",
-  verifyToken,
-  accountController.createPremiumAccount,
-);
-router.get(
-  "/premium/suggested",
-  verifyToken,
-  accountController.getSuggestedNumbers,
-);
-router.post("/premium/check", verifyToken, accountController.checkAvailability);
+// API សម្រាប់បង្កើតគណនីលេខពិសេស
+router.post("/create-premium", accountController.createPremiumAccount);
 
-// 🔥 ខ្សែ API ថ្មីសម្រាប់គណនីរួម (Joint Account) ដែលយើងទើបបន្ថែម
-router.get(
-  "/joint/search/:identifier",
-  verifyToken,
-  accountController.searchUserForJoint,
-);
-router.post("/joint/create", verifyToken, accountController.createJointAccount);
-router.post(
-  "/joint/respond",
-  verifyToken,
-  accountController.respondToJointInvite,
-);
+// API សម្រាប់ទាញយកលេខណែនាំ (Suggested Numbers)
+router.get("/suggested-numbers", accountController.getSuggestedNumbers);
+
+// API ឆែកភាពទំនេរនៃលេខគណនី
+router.post("/check-availability", accountController.checkAvailability);
+
+// 🔥 API ថ្មី (សម្រាប់ User): ស្វែងរកដៃគូ
+router.get("/search-user/:identifier", accountController.searchUserForJoint);
+
+// 🔥 API ថ្មី: សម្រាប់បង្កើតគណនីរួម (Joint Account)
+router.post("/create-joint", accountController.createJointAccount);
+
+// 🔥 API ថ្មី: សម្រាប់យល់ព្រម ឬ បដិសេធការអញ្ជើញចូលគណនីរួម
+router.post("/respond-joint-invite", accountController.respondToJointInvite);
 
 module.exports = router;
