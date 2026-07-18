@@ -3,7 +3,7 @@ const router = express.Router();
 
 // ប្រើ transactionController វិញ បើ file បងឈ្មោះនេះ
 const transactionController = require("../controllers/transactionController");
-const { verifyToken } = require("../middlewares/authMiddleware");
+const { verifyUser } = require("../middleware/authMiddleware");
 
 // ==========================================
 // 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
