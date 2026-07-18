@@ -1,30 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const accountController = require("../controllers/accountController");
-const { verifyToken } = require("../middleware/authMiddleware"); // ឬ middleware របស់បង
 
+// 🔥 កែត្រង់នេះ៖ ប្រើឈ្មោះ verifyUser ទើបត្រូវនឹង Middleware របស់បង
+const { verifyUser } = require("../middleware/authMiddleware");
+
+// ==========================================
+// 🌟 មុខងារ Premium Account
+// ==========================================
 router.post(
   "/premium/create",
-  verifyToken,
+  verifyUser,
   accountController.createPremiumAccount,
 );
 router.get(
   "/premium/suggested",
-  verifyToken,
+  verifyUser,
   accountController.getSuggestedNumbers,
 );
-router.post("/premium/check", verifyToken, accountController.checkAvailability);
+router.post("/premium/check", verifyUser, accountController.checkAvailability);
 
-// 🔥 ខ្សែ API ថ្មីសម្រាប់គណនីរួម (Joint Account) ដែលយើងទើបបន្ថែម
+// ==========================================
+// 🤝 ខ្សែ API ថ្មីសម្រាប់គណនីរួម (Joint Account)
+// ==========================================
 router.get(
   "/joint/search/:identifier",
-  verifyToken,
+  verifyUser,
   accountController.searchUserForJoint,
 );
-router.post("/joint/create", verifyToken, accountController.createJointAccount);
+router.post("/joint/create", verifyUser, accountController.createJointAccount);
 router.post(
   "/joint/respond",
-  verifyToken,
+  verifyUser,
   accountController.respondToJointInvite,
 );
 

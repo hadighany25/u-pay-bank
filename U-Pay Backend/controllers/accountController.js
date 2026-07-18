@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
-const JointAccount = require("../models/JointAccount"); // 🔥 Import ធុងលុយថ្មី
+const JointAccount = require("../models/JointAccount");
 const {
   getFormattedDate,
   generateRefId,
@@ -8,7 +8,7 @@ const {
 } = require("../services/helpers");
 
 // ==========================================
-// ១. រូបមន្តគណនាតម្លៃលេខ (ត្រូវឱ្យដូច Frontend ១០០%)
+// ១. រូបមន្តគណនាតម្លៃលេខ
 // ==========================================
 function calculatePremiumPrice(numStr) {
   if (numStr.length === 6) return 100;
@@ -36,7 +36,7 @@ function calculatePremiumPrice(numStr) {
 }
 
 // ==========================================
-// ២. API បង្កើតគណនី Premium (ធម្មតា)
+// ២. API បង្កើតគណនី Premium
 // ==========================================
 exports.createPremiumAccount = async (req, res) => {
   const { username, requestedNumber, accountName, price, pin, currencyOption } =
@@ -44,16 +44,9 @@ exports.createPremiumAccount = async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-    if (!user)
-      return res.json({
-        success: false,
-        message: "រកគណនីអ្នកប្រើប្រាស់មិនឃើញទេ!",
-      });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
     if (user.pin !== pin)
-      return res.json({
-        success: false,
-        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
-      });
+      return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវ!" });
 
     const existingMainAcc = await User.findOne({
       $or: [
@@ -66,12 +59,12 @@ exports.createPremiumAccount = async (req, res) => {
     });
     const existingJointAcc = await JointAccount.findOne({
       accountNumber: requestedNumber,
-    }); // ឆែកក្នុងធុង Joint ផង
+    });
 
     if (existingMainAcc || existingSubAcc || existingJointAcc) {
       return res.json({
         success: false,
-        message: "សូមអភ័យទោស លេខគណនីនេះមានអ្នកយកបាត់ហើយ!",
+        message: "លេខគណនីនេះមានអ្នកយកបាត់ហើយ!",
       });
     }
 
@@ -105,7 +98,7 @@ exports.createPremiumAccount = async (req, res) => {
     if (price !== actualPrice)
       return res.json({
         success: false,
-        message: "ទិន្នន័យតម្លៃមិនត្រឹមត្រូវទេ!",
+        message: "ទិន្នន័យតម្លៃមិនត្រឹមត្រូវ!",
       });
     if (actualPrice > 0 && user.balance < actualPrice)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់ទេ!" });
@@ -125,62 +118,64 @@ exports.createPremiumAccount = async (req, res) => {
       const refId = generateRefId();
       const hash = generateHash();
 
-      await Transaction.create({
-        username: user.username,
-        refId,
-        hash,
-        date: dateNow,
-        type: "Premium Account Purchase",
-        amount: -actualPrice,
-        currency: "USD",
-        senderName: user.fullName || user.username,
-        receiverName: "Buy Premium Account",
-        remark: `Bought Acc No: ${requestedNumber}`,
-        status: "Success",
-        trxMethod: "Main Account",
-      });
-      await Transaction.create({
-        username: centralBank.username,
-        refId,
-        hash,
-        date: dateNow,
-        type: "Premium Account Revenue",
-        amount: actualPrice,
-        currency: "USD",
-        senderName: user.fullName || user.username,
-        receiverName: "Buy Premium Account",
-        remark: `Sold Acc No: ${requestedNumber}`,
-        status: "Success",
-        trxMethod: "System Receipt",
-      });
+      await Transaction.create([
+        {
+          username: user.username,
+          refId,
+          hash,
+          date: dateNow,
+          type: "Premium Account Purchase",
+          amount: -actualPrice,
+          currency: "USD",
+          senderName: user.fullName || user.username,
+          receiverName: "Buy Premium Account",
+          remark: `Bought Acc No: ${requestedNumber}`,
+          status: "Success",
+          trxMethod: "Main Account",
+        },
+        {
+          username: centralBank.username,
+          refId,
+          hash,
+          date: dateNow,
+          type: "Premium Account Revenue",
+          amount: actualPrice,
+          currency: "USD",
+          senderName: user.fullName || user.username,
+          receiverName: "Buy Premium Account",
+          remark: `Sold Acc No: ${requestedNumber}`,
+          status: "Success",
+          trxMethod: "System Receipt",
+        },
+      ]);
       await centralBank.save();
     }
 
+    const baseAccountId = Date.now().toString();
+
     if (currencyOption === "USD" || currencyOption === "BOTH") {
       user.subAccounts.push({
-        accountId: Date.now().toString() + "_1",
+        accountId: baseAccountId + "_1",
         accountNumber: requestedNumber,
-        accountName: accountName,
+        accountName,
         accountType: "premium",
         balance: 0,
         currency: "USD",
       });
     }
-
     if (currencyOption === "KHR") {
       user.subAccounts.push({
-        accountId: Date.now().toString() + "_1",
+        accountId: baseAccountId + "_1",
         accountNumber: requestedNumber,
-        accountName: accountName,
+        accountName,
         accountType: "premium",
         balance: 0,
         currency: "KHR",
       });
     }
-
     if (currencyOption === "BOTH" && secondNumber) {
       user.subAccounts.push({
-        accountId: Date.now().toString() + "_2",
+        accountId: baseAccountId + "_2",
         accountNumber: secondNumber,
         accountName: accountName + " (KHR)",
         accountType: "premium",
@@ -203,7 +198,7 @@ exports.createPremiumAccount = async (req, res) => {
 };
 
 // ==========================================
-// ៣. API ទាញយកលេខណែនាំពិសេសៗ (១២ លេខ)
+// ៣. API ទាញយកលេខណែនាំពិសេសៗ
 // ==========================================
 exports.getSuggestedNumbers = async (req, res) => {
   try {
@@ -248,24 +243,16 @@ exports.getSuggestedNumbers = async (req, res) => {
       accountNumber: { $in: generatedNumbers },
     });
 
-    const takenNumbers = [];
+    const takenNumbers = new Set();
     existingUsers.forEach((user) => {
-      if (generatedNumbers.includes(user.accountNumber))
-        takenNumbers.push(user.accountNumber);
-      if (generatedNumbers.includes(user.accountNumberKHR))
-        takenNumbers.push(user.accountNumberKHR);
-      user.subAccounts.forEach((sub) => {
-        if (generatedNumbers.includes(sub.accountNumber))
-          takenNumbers.push(sub.accountNumber);
-      });
+      takenNumbers.add(user.accountNumber);
+      takenNumbers.add(user.accountNumberKHR);
+      user.subAccounts.forEach((sub) => takenNumbers.add(sub.accountNumber));
     });
-    existingJoints.forEach((joint) => {
-      if (generatedNumbers.includes(joint.accountNumber))
-        takenNumbers.push(joint.accountNumber);
-    });
+    existingJoints.forEach((joint) => takenNumbers.add(joint.accountNumber));
 
     const availableNumbers = generatedNumbers.filter(
-      (num) => !takenNumbers.includes(num),
+      (num) => !takenNumbers.has(num),
     );
     const suggestedList = availableNumbers
       .slice(0, 12)
@@ -297,7 +284,7 @@ exports.checkAvailability = async (req, res) => {
 };
 
 // =========================================================================
-// ៤.១ (ថ្មី) API ស្វែងរកគណនីដៃគូ
+// ៤.១ API ស្វែងរកគណនីដៃគូ (Joint Partner)
 // =========================================================================
 exports.searchUserForJoint = async (req, res) => {
   try {
@@ -322,7 +309,7 @@ exports.searchUserForJoint = async (req, res) => {
 };
 
 // =========================================================================
-// 🌟 ៥. API បង្កើតគណនីរួម (JOINT ACCOUNT) - ប្រើធុងថ្មី JointAccount
+// 🌟 ៥. API បង្កើតគណនីរួម (JointAccount Database ថ្មី)
 // =========================================================================
 exports.createJointAccount = async (req, res) => {
   const {
@@ -400,43 +387,43 @@ exports.createJointAccount = async (req, res) => {
       const dateNow = getFormattedDate();
       const refId = generateRefId();
       const hash = generateHash();
-      await Transaction.create({
-        username: user.username,
-        refId,
-        hash,
-        date: dateNow,
-        type: "Joint Account Purchase",
-        amount: -actualPrice,
-        currency: "USD",
-        senderName: user.fullName || user.username,
-        receiverName: "Buy Joint Account",
-        remark: `Bought Joint Acc No: ${requestedNumber}`,
-        status: "Success",
-        trxMethod: "Main Account",
-      });
-      await Transaction.create({
-        username: centralBank.username,
-        refId,
-        hash,
-        date: dateNow,
-        type: "Joint Account Revenue",
-        amount: actualPrice,
-        currency: "USD",
-        senderName: user.fullName || user.username,
-        receiverName: "Buy Joint Account",
-        remark: `Sold Joint Acc No: ${requestedNumber}`,
-        status: "Success",
-        trxMethod: "System Receipt",
-      });
+      await Transaction.create([
+        {
+          username: user.username,
+          refId,
+          hash,
+          date: dateNow,
+          type: "Joint Account Purchase",
+          amount: -actualPrice,
+          currency: "USD",
+          senderName: user.fullName || user.username,
+          receiverName: "Buy Joint Account",
+          remark: `Bought Joint Acc No: ${requestedNumber}`,
+          status: "Success",
+          trxMethod: "Main Account",
+        },
+        {
+          username: centralBank.username,
+          refId,
+          hash,
+          date: dateNow,
+          type: "Joint Account Revenue",
+          amount: actualPrice,
+          currency: "USD",
+          senderName: user.fullName || user.username,
+          receiverName: "Buy Joint Account",
+          remark: `Sold Joint Acc No: ${requestedNumber}`,
+          status: "Success",
+          trxMethod: "System Receipt",
+        },
+      ]);
       await centralBank.save();
     }
 
     const jointAccountName = `${(user.fullName || user.username).toUpperCase()} AND ${(partner.fullName || partner.username).toUpperCase()}`;
     const baseAccountId = "JNT_" + Date.now().toString();
 
-    // មុខងារសម្រាប់បង្កើតចូលក្នុងធុង JointAccount និង User SubAccount
     const createJointRecord = async (accountId, accNum, suffix, curr) => {
-      // ១. បង្កើតចូលធុងកណ្តាលពិតប្រាកដ
       await JointAccount.create({
         accountId: accountId,
         accountNumber: accNum,
@@ -444,19 +431,18 @@ exports.createJointAccount = async (req, res) => {
         balance: 0,
         currency: curr,
         members: [
-          { username: user.username, role: "owner", status: "active" }, // Owner is active
+          { username: user.username, role: "owner", status: "active" },
           {
             username: partner.username,
             role: "co-owner",
             dailyLimit: dailyLimit || 0,
             spentToday: 0,
             status: "pending",
-          }, // Partner pending
+          },
         ],
         metadata: { pricePaid: actualPrice },
       });
 
-      // ២. បង្កើតតំណភ្ជាប់ (Reference ID) ចូលក្នុងកុង Owner
       user.subAccounts.push({
         accountId: accountId,
         accountNumber: accNum,
@@ -469,11 +455,9 @@ exports.createJointAccount = async (req, res) => {
     if (currencyOption === "USD" || currencyOption === "BOTH") {
       await createJointRecord(baseAccountId + "_1", requestedNumber, "", "USD");
     }
-
     if (currencyOption === "KHR") {
       await createJointRecord(baseAccountId + "_1", requestedNumber, "", "KHR");
     }
-
     if (currencyOption === "BOTH" && secondNumber) {
       await createJointRecord(
         baseAccountId + "_2",
@@ -513,7 +497,7 @@ exports.createJointAccount = async (req, res) => {
 };
 
 // =========================================================================
-// 🌟 ៦. API ឆ្លើយតបការអញ្ជើញ (Accept/Reject Joint Account) - ប្រើធុងថ្មី JointAccount
+// 🌟 ៦. API ឆ្លើយតបការអញ្ជើញ (Accept/Reject Joint Account)
 // =========================================================================
 exports.respondToJointInvite = async (req, res) => {
   const { inviteeUsername, ownerUsername, accountNumber, action } = req.body;
@@ -525,8 +509,8 @@ exports.respondToJointInvite = async (req, res) => {
     if (!owner || !invitee)
       return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    // 🔥 ទាញយកគណនីរួមចេញពីធុង JointAccount (ដែល Invite ចូលលេខគណនី Base នេះ)
-    const baseNumber = accountNumber.substring(0, 8);
+    // ទាញយកគណនីរួមចេញពីធុង JointAccount
+    const baseNumber = accountNumber.substring(0, 8); // ចាប់យកលេខដើម ដើម្បីរកទាំង USD និង KHR (បើមាន)
     const linkedAccs = await JointAccount.find({
       accountNumber: new RegExp("^" + baseNumber),
       "members.username": inviteeUsername,
@@ -540,9 +524,7 @@ exports.respondToJointInvite = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------------
-    // ករណីបដិសេធ (Reject) -> លុបគណនីភ្លាមៗ និងបង្វិលសង ៥០%
-    // ---------------------------------------------------------------------
+    // --- ករណីបដិសេធ (Reject) ---
     if (action === "reject") {
       const pricePaid = linkedAccs[0].metadata?.pricePaid || 0;
       const refundAmount = pricePaid / 2;
@@ -556,43 +538,43 @@ exports.respondToJointInvite = async (req, res) => {
           const dateNow = getFormattedDate();
           const refId = "REF-" + Date.now().toString().slice(-6);
           const hash = generateHash();
-          await Transaction.create({
-            username: owner.username,
-            refId,
-            hash,
-            date: dateNow,
-            type: "Joint Account Refund",
-            amount: refundAmount,
-            currency: "USD",
-            senderName: "System",
-            receiverName: owner.fullName || owner.username,
-            remark: `Refund 50% for Rejected Joint Acc: ${accountNumber}`,
-            status: "Success",
-            trxMethod: "System Refund",
-          });
-          await Transaction.create({
-            username: centralBank.username,
-            refId,
-            hash,
-            date: dateNow,
-            type: "Joint Acc Refund Deducted",
-            amount: -refundAmount,
-            currency: "USD",
-            senderName: "System",
-            receiverName: owner.fullName || owner.username,
-            remark: `Refund 50% to ${owner.username}`,
-            status: "Success",
-            trxMethod: "System Refund",
-          });
+
+          await Transaction.create([
+            {
+              username: owner.username,
+              refId,
+              hash,
+              date: dateNow,
+              type: "Joint Account Refund",
+              amount: refundAmount,
+              currency: "USD",
+              senderName: "System",
+              receiverName: owner.fullName || owner.username,
+              remark: `Refund 50% for Rejected Joint Acc: ${accountNumber}`,
+              status: "Success",
+              trxMethod: "System Refund",
+            },
+            {
+              username: centralBank.username,
+              refId,
+              hash,
+              date: dateNow,
+              type: "Joint Acc Refund Deducted",
+              amount: -refundAmount,
+              currency: "USD",
+              senderName: "System",
+              receiverName: owner.fullName || owner.username,
+              remark: `Refund 50% to ${owner.username}`,
+              status: "Success",
+              trxMethod: "System Refund",
+            },
+          ]);
           await centralBank.save();
         }
       }
 
-      // លុបទិន្នន័យចេញពីធុងកណ្តាល (JointAccount)
       const accIdsToRemove = linkedAccs.map((a) => a.accountId);
       await JointAccount.deleteMany({ accountId: { $in: accIdsToRemove } });
-
-      // លុប ID ចេញពីកុង Owner
       owner.subAccounts = owner.subAccounts.filter(
         (sa) => !accIdsToRemove.includes(sa.accountId),
       );
@@ -613,26 +595,21 @@ exports.respondToJointInvite = async (req, res) => {
       });
     }
 
-    // ---------------------------------------------------------------------
-    // ករណីយល់ព្រម (Accept) -> Update ធុងកណ្តាល និងបាញ់ ID ចូលកុង Partner
-    // ---------------------------------------------------------------------
+    // --- ករណីយល់ព្រម (Accept) ---
     if (action === "accept") {
       for (let la of linkedAccs) {
-        // Update ស្ថានភាពទៅ Active ក្នុងធុង JointAccount
         let mIdx = la.members.findIndex((m) => m.username === inviteeUsername);
         if (mIdx !== -1) {
           la.members[mIdx].status = "active";
           await la.save();
         }
 
-        // បាញ់ ID នេះចូលទៅកាន់កុង Invitee (អ្នកត្រូវអញ្ជើញ)
         invitee.subAccounts.push({
           accountId: la.accountId,
           accountNumber: la.accountNumber,
           accountName: la.accountName,
           accountType: "joint_member",
           currency: la.currency,
-          // 🔥 ឃើញទេ! គ្មាន balance ត្រូវ Save ទៀតទេ! រក្សាទុកតែអត្តសញ្ញាណ!
         });
       }
 
