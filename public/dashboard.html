@@ -1834,7 +1834,6 @@
       }
 
       // ==========================================
-      // ==========================================
       // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
       // ==========================================
       async function handleJointInvite(
@@ -1844,7 +1843,7 @@
         action,
         notifId,
       ) {
-        // ១. ប្តូរប៊ូតុងទៅជា Loading
+        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
         if (parentDiv) {
           parentDiv.innerHTML = `
@@ -1861,20 +1860,21 @@
             JSON.parse(localStorage.getItem("user"));
           if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
 
-          // 🔥 ចាប់យក Token ឱ្យច្បាស់ ១០០% ដើម្បីកុំឱ្យវាលោតទារ Login ផ្តេសផ្តាសទៀត
-          let token =
-            localStorage.getItem("token") || sessionStorage.getItem("token");
-          if (!token && currentUsr.token) token = currentUsr.token;
+          // 🔥 រៀបចំ Headers តាមស្តង់ដារប្រព័ន្ធរបស់បង
+          let reqHeaders = window.authHeaders ? { ...window.authHeaders } : {};
+          reqHeaders["Content-Type"] = "application/json";
 
-          const reqHeaders = {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          };
+          if (!reqHeaders["Authorization"]) {
+            let token =
+              localStorage.getItem("token") || sessionStorage.getItem("token");
+            reqHeaders["Authorization"] = `Bearer ${token}`;
+          }
 
-          // ២. ហៅ API ទៅកាន់ Backend
-          const res = await fetch("/api/account/joint/respond", {
+          // 🔥 ២. ហៅ API (ចំណាំ៖ បើបងមិនទាន់បានប្តូរ Route ក្នុង Backend ទេ សូមកែត្រង់នេះទៅជា "/api/account/respond-joint-invite" វិញ)
+          const res = await fetch("/api/account/respond-joint-invite", {
             method: "POST",
             headers: reqHeaders,
+            credentials: "include", // 👈 អាហ្នឹងហើយជាអាគន្លឹះដែលការពារកុំឱ្យលោត Session Expired!
             body: JSON.stringify({
               inviteeUsername: currentUsr.username,
               ownerUsername: ownerUsername,
@@ -1886,22 +1886,25 @@
           const data = await res.json();
 
           if (data.success) {
-            // ៣. បើជោគជ័យ លុបសារពី Database រួច Refresh
+            // ៣. បើជោគជ័យ បញ្ជាឱ្យលុបសារ (Mark as read)
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
               headers: reqHeaders,
+              credentials: "include",
             }).catch(() => console.log("Failed to clear notif"));
 
+            // ៤. Refresh ទិន្នន័យពីខាងក្រោយ
             if (typeof loadDashboardData === "function") {
               loadDashboardData(false);
             } else {
               window.location.reload();
             }
           } else {
+            // លោតប្រាប់ពីបញ្ហាជាក់លាក់ ឧ. លុយមិនគ្រប់ ឬ គណនីមានបញ្ហា
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
-                       <i class="fa-solid fa-circle-exclamation"></i> ${data.message}
+                       <i class="fa-solid fa-circle-exclamation"></i> ${data.message || "មិនអាចដំណើរការបានទេ"}
                    </div>
                 `;
             }
