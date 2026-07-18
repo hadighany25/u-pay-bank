@@ -1730,7 +1730,7 @@
                   bg = "#fff7ed";
                   col = "#ea580c";
                 }
-                // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward ដែលទើបតែបន្ថែម
+                // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward
                 else if (
                   n.title.includes("Cashback") ||
                   n.type === "cashback_reward" ||
@@ -1761,14 +1761,14 @@
 
                   displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
 
-                  // 🔥 បន្ថែមប៊ូតុងចុចទទួលកាដូមកវិញ
+                  // ប៊ូតុងចុចទទួលកាដូ
                   actionBtn = `
-                     <div style="margin-top: 10px;">
-                       <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                         <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
-                       </button>
-                     </div>
-                   `;
+                      <div style="margin-top: 10px;">
+                        <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
+                        </button>
+                      </div>
+                    `;
                 }
 
                 // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
@@ -1777,13 +1777,12 @@
                   bg = "#ecfeff";
                   col = "#0891b2";
 
-                  // ប៊ូតុង យល់ព្រម និង បដិសេធ សម្រាប់ U-Fund
                   actionBtn = `
-                     <div style="margin-top: 10px; display: flex; gap: 10px;">
-                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
-                       <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
-                     </div>
-                   `;
+                      <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                        <button onclick="respondUFundInvite('${n.fundId}', '${n.id}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                      </div>
+                    `;
                 }
 
                 // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
@@ -1792,20 +1791,21 @@
                   bg = "#e0e7ff";
                   col = "#4f46e5";
 
+                  // 🔥 កែប៊ូតុងអោយប្តូរទៅជាសភាព Loading (Loading State) ពេលចុចភ្លាម
                   actionBtn = `
-                     <div style="margin-top: 10px; display: flex; gap: 10px;">
-                       <button
-                         onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${n.id}')"
-                         style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                         <i class="fa-solid fa-check"></i> យល់ព្រម
-                       </button>
-                       <button
-                         onclick="handleJointInvite('${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${n.id}')"
-                         style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                         <i class="fa-solid fa-xmark"></i> បដិសេធ
-                       </button>
-                     </div>
-                   `;
+                      <div id="joint-action-${n.id}" style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button
+                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${n.id}')"
+                          style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-check"></i> យល់ព្រម
+                        </button>
+                        <button
+                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${n.id}')"
+                          style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-xmark"></i> បដិសេធ
+                        </button>
+                      </div>
+                    `;
                 }
 
                 // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
@@ -1835,29 +1835,35 @@
 
       // ==========================================
       // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
-      // [កែថ្មី: លុបផ្ទាំងសួរបញ្ជាក់ចេញ ចុចភ្លាមដើរភ្លាម]
+      // [កែថ្មី: លុប Swal ចោល ប្រើបច្ចេកទេស Silent 1-Click Loading]
       // ==========================================
       async function handleJointInvite(
+        btnElement,
         ownerUsername,
         accountNumber,
         action,
         notifId,
       ) {
-        // បង្ហាញត្រឹមតែការផ្ទុក (Loading) ដោយមិនមានប៊ូតុងអ្វីអោយចុចទៀតទេ
-        Swal.fire({
-          title: "កំពុងដំណើរការ...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
-        });
+        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ (Spinning UI) ភ្លាមៗ ដើម្បីកុំអោយគេចុចទាន់
+        const originalContent = btnElement.innerHTML;
+        const parentDiv = document.getElementById(`joint-action-${notifId}`);
+        if (parentDiv) {
+          // លាក់ប៊ូតុងមួយទៀត (បើចុច Accept លាក់ប៊ូតុង Reject)
+          parentDiv.innerHTML = `
+              <button style="width: 100%; padding:8px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:not-allowed; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...
+              </button>
+            `;
+        }
 
         try {
           let currentUsr =
             window.currentUser || JSON.parse(sessionStorage.getItem("user"));
           if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
 
-          const res = await fetch("/api/account/respond-joint-invite", {
+          // ២. ហៅ API ទៅកាន់ Backend ស្ងាត់ៗ
+          // 🔥 ចំណាំ៖ កុំភ្លេចកែ Route ឱ្យត្រូវ បើបងដូរ /api/account/respond-joint-invite ទៅ /api/account/joint/respond នៅក្នុង accountRouter.js
+          const res = await fetch("/api/account/joint/respond", {
             method: "POST",
             headers: window.authHeaders || {
               "Content-Type": "application/json",
@@ -1874,6 +1880,7 @@
           const data = await res.json();
 
           if (data.success) {
+            // ៣. បើជោគជ័យ បញ្ជាឱ្យលុបសារ (Mark as read/delete) ពី Database
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
               headers: window.authHeaders || {
@@ -1882,21 +1889,31 @@
               },
             }).catch(() => console.log("Failed to clear notif"));
 
-            Swal.fire({
-              title: "ជោគជ័យ!",
-              text: data.message,
-              icon: "success",
-              timer: 2000,
-              showConfirmButton: false, // លាក់ប៊ូតុងអោយវាបាត់ខ្លួនឯង
-            }).then(() => {
-              window.location.reload();
-            });
+            // ៤. ដំណើរការជោគជ័យ គ្រាន់តែ Refresh ទិន្នន័យពីខាងក្រោយ (ដោយមិនបាច់ Reload Web)
+            if (typeof loadDashboardData === "function") {
+              loadDashboardData(false); // ហៅ function load ទិន្នន័យឡើងវិញស្ងាត់ៗ
+            } else {
+              window.location.reload(); // បើអត់មាន function នោះទេ ចាំ reload ទាំងមូល
+            }
           } else {
-            Swal.fire("បរាជ័យ", data.message, "error");
+            // បើមានបញ្ហា (ឧ. លុយមិនគ្រប់) ត្រូវលោត Alert ប្រាប់ និងប្តូរប៊ូតុងមកសភាពដើមវិញ
+            if (parentDiv) {
+              parentDiv.innerHTML = `
+                   <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
+                       <i class="fa-solid fa-circle-exclamation"></i> ${data.message}
+                   </div>
+                `;
+            }
           }
         } catch (error) {
           console.error("Error responding to invite:", error);
-          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+          if (parentDiv) {
+            parentDiv.innerHTML = `
+               <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
+                   <i class="fa-solid fa-triangle-exclamation"></i> បញ្ហាភ្ជាប់ទៅកាន់ Server
+               </div>
+            `;
+          }
         }
       }
 
@@ -1911,10 +1928,12 @@
           try {
             await fetch("/api/user/read-notifications", {
               method: "POST",
-              headers: authHeaders,
-              body: JSON.stringify({ username: user.username }),
+              headers: window.authHeaders,
+              body: JSON.stringify({ username: window.currentUser.username }),
             });
-            loadDashboardData(false);
+            if (typeof loadDashboardData === "function") {
+              loadDashboardData(false);
+            }
           } catch (e) {}
         }
       }

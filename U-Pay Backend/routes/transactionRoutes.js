@@ -1,49 +1,33 @@
 const express = require("express");
 const router = express.Router();
+const transferController = require("../controllers/transferController");
+const { verifyToken } = require("../middleware/authMiddleware"); // ឬ middleware ផ្សេងដែលបងកំពុងប្រើ
 
-// 🛡️ IMPORT MIDDLEWARE
-const {
-  verifyUser, // ប្រើ verifyUser សម្រាប់ការពារ
-  enforceSystemActive,
-} = require("../middleware/authMiddleware");
+// ==========================================
+// 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
+// ==========================================
+// ឆែកឈ្មោះអ្នកទទួលមុនពេលវេរលុយ
+router.post("/check", verifyToken, transferController.checkAccount);
 
-// 🕹️ IMPORT CONTROLLERS
-const transactionController = require("../controllers/transactionController"); // Import ទាំងមូលដើម្បីងាយហៅ
+// វេរលុយ (ទៅកាន់គណនីធម្មតា, គណនីរួម, ឬ Merchant)
+router.post("/submit", verifyToken, transferController.transfer);
 
-// 🌐 API ROUTES
-router.post("/check-account", verifyUser, transactionController.checkAccount);
-router.post(
-  "/transfer",
-  verifyUser,
-  enforceSystemActive,
-  transactionController.transfer,
-);
-router.post("/bank/scan-bill", transactionController.scanBankBill);
-router.post(
-  "/bank/pay-bill",
-  enforceSystemActive,
-  transactionController.payBankBill,
-);
-router.post(
-  "/reward/cashback",
-  verifyUser,
-  enforceSystemActive,
-  transactionController.rewardCashback,
-);
-router.post(
-  "/claim-promo",
-  verifyUser,
-  enforceSystemActive,
-  transactionController.claimPromoCode,
-);
+// ==========================================
+// 🧾 មុខងារបង់វិក្កយបត្រ (PayHub)
+// ==========================================
+router.post("/bill/scan", verifyToken, transferController.scanBankBill);
+router.post("/bill/pay", verifyToken, transferController.payBankBill);
 
-// 🔥 Route សម្រាប់ E-Gift (ប្រើ verifyUser ឱ្យដូច Route ផ្សេងៗ)
-router.post(
-  "/egift/send",
-  verifyUser,
-  enforceSystemActive,
-  transactionController.sendEgift,
-);
-router.post("/egift/opened", verifyUser, transactionController.egiftOpened);
+// ==========================================
+// 🎁 មុខងាររង្វាន់ និង ប្រូម៉ូកូដ
+// ==========================================
+router.post("/reward/spin", verifyToken, transferController.rewardCashback);
+router.post("/reward/promo", verifyToken, transferController.claimPromoCode);
+
+// ==========================================
+// 🧧 មុខងារអាំងប៉ាវ (E-Gift)
+// ==========================================
+router.post("/egift/send", verifyToken, transferController.sendEgift);
+router.post("/egift/open", verifyToken, transferController.egiftOpened);
 
 module.exports = router;
