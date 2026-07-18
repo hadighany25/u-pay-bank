@@ -49,26 +49,30 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // 🔥 កែប្រែថ្មី: បន្ថែមរចនាសម្ព័ន្ធសម្រាប់គាំទ្រ គណនីរួម (Joint Account)
+    // 🔥 Sub-Accounts
     subAccounts: [
       {
         accountId: { type: String, default: () => Date.now().toString() },
         accountNumber: { type: String },
         accountName: { type: String },
         accountType: { type: String, default: "premium" }, // premium, joint, junior
+
+        // ចំណាំ៖ balance នេះនឹងប្រើសម្រាប់តែគណនី premium ប៉ុណ្ណោះ
+        // បើជាគណនី joint យើងនឹងទាញយកលុយពី JointAccount Collection វិញ
         balance: { type: Number, default: 0.0 },
         currency: { type: String, default: "USD" },
         isLocked: { type: Boolean, default: false },
 
-        // 👥 សម្រាប់ផ្ទុកសមាជិកក្នុងគណនីរួម (បើជាគណនី premium ធម្មតា Array នេះនឹងនៅទទេ)
+        // ក្រុមសមាជិកនេះនៅរក្សាទុក ដើម្បីកុំឱ្យ Error កូដ Frontend ចាស់
+        // តែទិន្នន័យពិតប្រាកដសម្រាប់គណនីរួម គឺស្ថិតនៅ JointAccount
         members: [
           {
             username: { type: String },
-            role: { type: String, default: "member" }, // ឧ. "co-owner" (ម្ចាស់រួម) ឬ "member" (សមាជិកធម្មតា)
-            dailyLimit: { type: Number, default: 0 }, // 0 មានន័យថាគ្មានដែនកំណត់
-            spentToday: { type: Number, default: 0 }, // កត់ត្រាលុយដែលបានចាយថ្ងៃនេះ
-            lastSpentDate: { type: String, default: "" }, // សម្រាប់ Reset Limit រៀងរាល់ថ្ងៃថ្មី
-            status: { type: String, default: "pending" }, // pending (រង់ចាំការយល់ព្រម), active (កំពុងប្រើ)
+            role: { type: String, default: "member" },
+            dailyLimit: { type: Number, default: 0 },
+            spentToday: { type: Number, default: 0 },
+            lastSpentDate: { type: String, default: "" },
+            status: { type: String, default: "pending" },
           },
         ],
 

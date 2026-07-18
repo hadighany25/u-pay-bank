@@ -8,6 +8,7 @@ const bot = require("../services/telegramBot");
 const Merchant = require("../models/Merchant");
 const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
+const JointAccount = require("../models/JointAccount"); // 🔥 Import ធុងលុយ JointAccount
 
 const {
   getFormattedDate,
@@ -65,7 +66,7 @@ const checkAccount = async (req, res) => {
         if (subAcc) {
           if (subAcc.currency === "KHR") isReceiverKHR = true;
 
-          // 🔥 បើជាគណនីរួម គឺបង្ហាញឈ្មោះទាំង២ (DARA AND SINA)
+          // បើជាគណនីរួម គឺបង្ហាញឈ្មោះគណនីរួម (DARA AND SINA) ដែលយើងបាន Save ទុក
           if (
             subAcc.accountType === "joint" ||
             subAcc.accountType === "joint_member"
@@ -168,7 +169,6 @@ const transfer = async (req, res) => {
     }
 
     sender.pinAttempts = 0;
-    await sender.save(); // Save pin attempt reset
 
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
@@ -197,6 +197,7 @@ const transfer = async (req, res) => {
 
     let isSenderSubAccount = false;
     let senderSubIndex = -1;
+    let jointSenderAcc = null; // 🔥 ទុកផ្ទុកទិន្នន័យបើវេរចេញពីគណនីរួម
 
     if (
       senderAccount &&
@@ -211,7 +212,18 @@ const transfer = async (req, res) => {
 
     let senderAvailableBal = 0;
     if (isSenderSubAccount) {
-      senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
+      const sType = sender.subAccounts[senderSubIndex].accountType;
+      // 🔥 ឆែកលុយក្នុងធុង JointAccount ពិតប្រាកដ
+      if (sType === "joint" || sType === "joint_member") {
+        jointSenderAcc = await JointAccount.findOne({
+          accountId: sender.subAccounts[senderSubIndex].accountId,
+        });
+        if (!jointSenderAcc)
+          return res.json({ success: false, message: "រកគណនីរួមនេះមិនឃើញទេ!" });
+        senderAvailableBal = jointSenderAcc.balance;
+      } else {
+        senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
+      }
     } else {
       senderAvailableBal = isSenderKHR
         ? sender.balanceKHR || 0
@@ -229,6 +241,7 @@ const transfer = async (req, res) => {
     let actualReceiverAccNum = receiverAccount;
     let targetSubAccIndex = -1;
     let isReceiverSubAccount = false;
+    let jointReceiverAcc = null; // 🔥 ទុកផ្ទុកទិន្នន័យបើវេរចូលគណនីរួម
 
     if (isMerchant) {
       isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
@@ -289,12 +302,18 @@ const transfer = async (req, res) => {
 
       if (isReceiverSubAccount) {
         const targetSubAcc = receiver.subAccounts[targetSubAccIndex];
-        // 🔥 បើទទួលលុយចូលគណនីរួម
+        // 🔥 បើទទួលលុយចូលគណនីរួម (បូកលុយចូលធុង JointAccount តែម្តង!)
         if (
           targetSubAcc.accountType === "joint" ||
           targetSubAcc.accountType === "joint_member"
         ) {
-          await syncJointBalance(targetSubAcc.accountId, receiverAmount);
+          jointReceiverAcc = await JointAccount.findOne({
+            accountId: targetSubAcc.accountId,
+          });
+          if (jointReceiverAcc) {
+            jointReceiverAcc.balance += receiverAmount;
+            await jointReceiverAcc.save();
+          }
         } else {
           targetSubAcc.balance += receiverAmount;
           await receiver.save();
@@ -312,12 +331,15 @@ const transfer = async (req, res) => {
     // ==========================================
     if (isSenderSubAccount) {
       const senderSubAcc = sender.subAccounts[senderSubIndex];
-      // 🔥 បើកាត់លុយចេញពីគណនីរួម
+      // 🔥 បើកាត់លុយចេញពីគណនីរួម (កាត់ចេញពីធុង JointAccount ផ្ទាល់)
       if (
         senderSubAcc.accountType === "joint" ||
         senderSubAcc.accountType === "joint_member"
       ) {
-        await syncJointBalance(senderSubAcc.accountId, -totalDeduction);
+        if (jointSenderAcc) {
+          jointSenderAcc.balance -= totalDeduction;
+          await jointSenderAcc.save();
+        }
       } else {
         senderSubAcc.balance -= totalDeduction;
         await sender.save();
@@ -391,57 +413,34 @@ const transfer = async (req, res) => {
       merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
     };
 
-    // 🔥 ១. កត់ត្រាប្រវត្តិអ្នកផ្ញើ (បញ្ចូនអោយគ្រប់សមាជិកគណនីរួម)
-    if (
-      isSenderSubAccount &&
-      (sender.subAccounts[senderSubIndex].accountType === "joint" ||
-        sender.subAccounts[senderSubIndex].accountType === "joint_member")
-    ) {
-      const sAccId = sender.subAccounts[senderSubIndex].accountId;
-      const sOwner = await User.findOne({ "subAccounts.accountId": sAccId });
-      if (sOwner) {
-        const sAcc = sOwner.subAccounts.find((a) => a.accountId === sAccId);
-        let sUsers = [sOwner.username];
-        for (let m of sAcc.members) {
-          if (m.status === "active") sUsers.push(m.username);
-        }
-
-        for (let u of sUsers) {
-          await Transaction.create({ ...senderTrx, username: u });
+    // 🔥 ១. កត់ត្រាប្រវត្តិអ្នកផ្ញើ (បញ្ជូនអោយគ្រប់សមាជិកគណនីរួម)
+    if (jointSenderAcc) {
+      // ប្រសិនបើវេរចេញពីគណនីរួម
+      for (let m of jointSenderAcc.members) {
+        if (m.status === "active") {
+          await Transaction.create({ ...senderTrx, username: m.username });
         }
       }
     } else {
       await Transaction.create(senderTrx);
     }
 
-    // 🔥 ២. កត់ត្រាប្រវត្តិអ្នកទទួល (បញ្ចូនអោយគ្រប់សមាជិកគណនីរួម)
+    // 🔥 ២. កត់ត្រាប្រវត្តិអ្នកទទួល (បញ្ជូនអោយគ្រប់សមាជិកគណនីរួម)
     const currencySymbol = isReceiverKHR ? "៛" : "$";
 
-    if (
-      !isMerchant &&
-      isReceiverSubAccount &&
-      (receiver.subAccounts[targetSubAccIndex].accountType === "joint" ||
-        receiver.subAccounts[targetSubAccIndex].accountType === "joint_member")
-    ) {
-      const rAccId = receiver.subAccounts[targetSubAccIndex].accountId;
-      const rOwner = await User.findOne({ "subAccounts.accountId": rAccId });
-      if (rOwner) {
-        const rAcc = rOwner.subAccounts.find((a) => a.accountId === rAccId);
-        let rUsers = [rOwner.username];
-        for (let m of rAcc.members) {
-          if (m.status === "active") rUsers.push(m.username);
-        }
-
-        for (let u of rUsers) {
-          await Transaction.create({ ...receiverTrx, username: u });
+    if (!isMerchant && jointReceiverAcc) {
+      // ប្រសិនបើវេរចូលគណនីរួម
+      for (let m of jointReceiverAcc.members) {
+        if (m.status === "active") {
+          await Transaction.create({ ...receiverTrx, username: m.username });
 
           // 🔔 លោតសារអោយដៃគូ និង ម្ចាស់ដើម ទាំងអស់គ្នា
-          const uDoc = await User.findOne({ username: u });
+          const uDoc = await User.findOne({ username: m.username });
           if (uDoc) {
             if (!uDoc.notifications) uDoc.notifications = [];
             uDoc.notifications.push({
               title: "ទទួលបានទឹកប្រាក់ (គណនីរួម)! 💸",
-              message: `គណនីរួម ${rAcc.accountName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
+              message: `គណនីរួម ${jointReceiverAcc.accountName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
               type: "transfer_receive",
               date,
               isRead: false,
@@ -482,14 +481,21 @@ const transfer = async (req, res) => {
       });
     }
 
-    // ទាញយកសមតុល្យចុងក្រោយបង្អស់ (Fresh Balance) មកបង្ហាញអ្នកផ្ញើវិញ
+    // 🔥 ទាញយកសមតុល្យចុងក្រោយបង្អស់មកបង្ហាញអ្នកផ្ញើវិញ (Fresh Balance)
     const updatedSender = await User.findOne({ username: senderUsername });
     let newBalanceRes = 0;
+
     if (isSenderSubAccount) {
-      let sub = updatedSender.subAccounts.find(
-        (a) => a.accountNumber === senderAccount,
-      );
-      if (sub) newBalanceRes = sub.balance;
+      const sType = updatedSender.subAccounts[senderSubIndex].accountType;
+      if (sType === "joint" || sType === "joint_member") {
+        // ទាញពីធុង Joint ពិតប្រាកដ
+        const updatedJoint = await JointAccount.findOne({
+          accountId: updatedSender.subAccounts[senderSubIndex].accountId,
+        });
+        newBalanceRes = updatedJoint ? updatedJoint.balance : 0;
+      } else {
+        newBalanceRes = updatedSender.subAccounts[senderSubIndex].balance;
+      }
     } else {
       newBalanceRes = isSenderKHR
         ? updatedSender.balanceKHR
@@ -517,15 +523,12 @@ const scanBankBill = async (req, res) => {
       `https://payhub-kh.fly.dev/api/gateway/check-bill?query=${bill_id}`,
     );
     const data = await response.json();
-
-    if (data.success) {
-      res.json({ success: true, billData: data.bill });
-    } else {
+    if (data.success) res.json({ success: true, billData: data.bill });
+    else
       res.json({
         success: false,
         message: data.message || "រកមិនឃើញវិក្កយបត្រនេះទេ!",
       });
-    }
   } catch (err) {
     console.error("Scan Bill Error:", err);
     res
@@ -539,14 +542,12 @@ const scanBankBill = async (req, res) => {
 // ==========================================
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
-
   try {
     let payingUser = await User.findOne({ username });
     if (!payingUser)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នក!" });
-
     if (payingUser.balance < amount)
       return res
         .status(400)
@@ -560,11 +561,9 @@ const payBankBill = async (req, res) => {
     });
 
     const payhubData = await response.json();
-
     if (payhubData && payhubData.success) {
       payingUser.balance -= amount;
       const newHash = generateHash();
-
       await Transaction.create({
         username: payingUser.username,
         refId: currentRefId,
@@ -579,9 +578,7 @@ const payBankBill = async (req, res) => {
         remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
         status: "Success",
       });
-
       await payingUser.save();
-
       res.json({
         success: true,
         newBalance: payingUser.balance,
@@ -609,17 +606,14 @@ const payBankBill = async (req, res) => {
 // ==========================================
 const rewardCashback = async (req, res) => {
   const { username, amount, refId } = req.body;
-
-  if (req.user.username !== username) {
+  if (req.user.username !== username)
     return res
       .status(403)
       .json({ success: false, message: "បម្រាមសុវត្ថិភាព!" });
-  }
 
   try {
     const user = await User.findOne({ username });
     const centralBank = await User.findOne({ accountNumber: "888888888" });
-
     if (user && centralBank) {
       const reward = parseFloat(amount);
       if (reward > 0) {
@@ -633,7 +627,6 @@ const rewardCashback = async (req, res) => {
 
         user.balance += reward;
         centralBank.balance -= reward;
-
         await Transaction.create({
           username: user.username,
           refId: sharedRefId,
@@ -650,7 +643,6 @@ const rewardCashback = async (req, res) => {
           device: "App",
           ip: req.ip || "127.0.0.1",
         });
-
         await Transaction.create({
           username: centralBank.username,
           refId: sharedRefId,
@@ -667,7 +659,6 @@ const rewardCashback = async (req, res) => {
           device: "System",
           ip: "127.0.0.1",
         });
-
         await user.save();
         await centralBank.save();
       }
@@ -685,7 +676,6 @@ const rewardCashback = async (req, res) => {
 // ==========================================
 const claimPromoCode = async (req, res) => {
   const { username, code } = req.body;
-
   if (req.user.username !== username)
     return res
       .status(403)
@@ -727,7 +717,6 @@ const claimPromoCode = async (req, res) => {
       });
 
     const rewardAmt = promo.rewardValue;
-
     user.balance += rewardAmt;
     centralBank.balance -= rewardAmt;
 
@@ -754,7 +743,6 @@ const claimPromoCode = async (req, res) => {
       status: "Success",
       trxMethod: "API Endpoint",
     });
-
     await Transaction.create({
       username: centralBank.username,
       refId: sharedRefId,
@@ -773,7 +761,6 @@ const claimPromoCode = async (req, res) => {
 
     promo.usedCount += 1;
     promo.usedBy.push(username);
-
     await promo.save();
     await user.save();
     await centralBank.save();
@@ -792,52 +779,11 @@ const claimPromoCode = async (req, res) => {
 // 🧧 ៧. មុខងារផ្ញើអាំងប៉ាវ (Send E-Gift)
 // ==========================================
 const sendEgift = async (req, res) => {
-  // ... កូដអាំងប៉ាវចាស់រក្សាទុកដដែល ...
-  // [ដោយសារកូដវែងខ្លាំង ខ្ញុំមិនលុបកូដបងទេ គ្រាន់តែកាត់វាចេញពីនេះដើម្បីកុំអោយវែងពេក តែបងនៅរក្សាកូដ sendEgift ចាស់ដដែល]
+  // [បងបន្តដាក់កូដ sendEgift ចាស់របស់បងនៅទីនេះ]
 };
 
 const egiftOpened = async (req, res) => {
-  // ... កូដ egiftOpened ចាស់រក្សាទុកដដែល ...
-};
-
-// ==========================================
-// 🔥 មុខងារ syncJointBalance សម្រាប់ Update លុយគណនីរួម
-// ==========================================
-const syncJointBalance = async (accountId, amountChange) => {
-  try {
-    const owner = await User.findOne({ "subAccounts.accountId": accountId });
-    if (!owner) return;
-
-    const acc = owner.subAccounts.find((a) => a.accountId === accountId);
-    if (!acc || acc.accountType !== "joint") return;
-
-    // Update ក្នុងកុងម្ចាស់ដើម (Owner)
-    let ownerAccIndex = owner.subAccounts.findIndex(
-      (a) => a.accountId === accountId,
-    );
-    if (ownerAccIndex !== -1) {
-      owner.subAccounts[ownerAccIndex].balance += amountChange;
-      await owner.save();
-    }
-
-    // Update ក្នុងកុងដៃគូ (Partner)
-    for (let member of acc.members) {
-      if (member.status === "active") {
-        const partner = await User.findOne({ username: member.username });
-        if (partner) {
-          let pIdx = partner.subAccounts.findIndex(
-            (a) => a.accountId === accountId,
-          );
-          if (pIdx !== -1) {
-            partner.subAccounts[pIdx].balance += amountChange;
-            await partner.save();
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Sync Joint Balance Error:", err);
-  }
+  // [បងបន្តដាក់កូដ egiftOpened ចាស់របស់បងនៅទីនេះ]
 };
 
 module.exports = {
