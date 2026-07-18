@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const transferController = require("../controllers/transferController");
-const { verifyToken } = require("../middlewares/authMiddleware"); // ឬ middleware ផ្សេងដែលបងកំពុងប្រើ
+
+// 🔥 នេះជាកន្លែងដែលកែ (លុបអក្សរ s ចេញពី middlewares ទៅជា middleware វិញ)
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // ==========================================
 // 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
