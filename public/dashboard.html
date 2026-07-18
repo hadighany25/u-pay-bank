@@ -1834,6 +1834,7 @@
       }
 
       // ==========================================
+      // ==========================================
       // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
       // ==========================================
       async function handleJointInvite(
@@ -1843,10 +1844,9 @@
         action,
         notifId,
       ) {
-        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ (Spinning UI) ភ្លាមៗ ដើម្បីកុំអោយគេចុចទាន់
+        // ១. ប្តូរប៊ូតុងទៅជា Loading
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
         if (parentDiv) {
-          // លាក់ប៊ូតុងទាំងពីរ ជំនួសមកវិញដោយប៊ូតុង Loading តែមួយ
           parentDiv.innerHTML = `
               <button style="width: 100%; padding:8px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:not-allowed; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
                   <i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...
@@ -1856,16 +1856,25 @@
 
         try {
           let currentUsr =
-            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+            window.currentUser ||
+            JSON.parse(sessionStorage.getItem("user")) ||
+            JSON.parse(localStorage.getItem("user"));
           if (!currentUsr) throw new Error("រកមិនឃើញគណនីកំពុងប្រើប្រាស់ទេ");
 
-          // ២. ហៅ API ទៅកាន់ Backend ស្ងាត់ៗ (🔥 Route ត្រូវបាន Update ឱ្យត្រូវជាមួយ Backend ថ្មី)
+          // 🔥 ចាប់យក Token ឱ្យច្បាស់ ១០០% ដើម្បីកុំឱ្យវាលោតទារ Login ផ្តេសផ្តាសទៀត
+          let token =
+            localStorage.getItem("token") || sessionStorage.getItem("token");
+          if (!token && currentUsr.token) token = currentUsr.token;
+
+          const reqHeaders = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          };
+
+          // ២. ហៅ API ទៅកាន់ Backend
           const res = await fetch("/api/account/joint/respond", {
             method: "POST",
-            headers: window.authHeaders || {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token")}`,
-            },
+            headers: reqHeaders,
             body: JSON.stringify({
               inviteeUsername: currentUsr.username,
               ownerUsername: ownerUsername,
@@ -1877,23 +1886,18 @@
           const data = await res.json();
 
           if (data.success) {
-            // ៣. បើជោគជ័យ បញ្ជាឱ្យលុបសារ (Mark as read/delete) ពី Database
+            // ៣. បើជោគជ័យ លុបសារពី Database រួច Refresh
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
-              headers: window.authHeaders || {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("token") || sessionStorage.getItem("token")}`,
-              },
+              headers: reqHeaders,
             }).catch(() => console.log("Failed to clear notif"));
 
-            // ៤. ដំណើរការជោគជ័យ គ្រាន់តែ Refresh ទិន្នន័យពីខាងក្រោយ
             if (typeof loadDashboardData === "function") {
-              loadDashboardData(false); // ហៅ function load ទិន្នន័យឡើងវិញស្ងាត់ៗ
+              loadDashboardData(false);
             } else {
-              window.location.reload(); // បើអត់មាន function នោះទេ ចាំ reload ទាំងមូល
+              window.location.reload();
             }
           } else {
-            // បើមានបញ្ហា (ឧ. លុយមិនគ្រប់) ត្រូវលោត Alert ប្រាប់ និងប្តូរប៊ូតុងមកសភាពដើមវិញ
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
