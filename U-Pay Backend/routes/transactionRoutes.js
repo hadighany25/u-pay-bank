@@ -1,39 +1,56 @@
 const express = require("express");
 const router = express.Router();
 
-// ទាញយក Controller
+// 🛡️ IMPORT MIDDLEWARE
+// សំខាន់៖ បើវានៅតែ error ត្រង់នេះ បងត្រូវឆែកមើលក្នុង authMiddleware.js ថាបង export ឈ្មោះអ្វី
+const {
+  verifyUser,
+  enforceSystemActive,
+} = require("../middleware/authMiddleware");
+
+// 🕹️ IMPORT CONTROLLERS
 const transactionController = require("../controllers/transactionController");
-// ទាញយក Middleware
-const authMiddleware = require("../middleware/authMiddleware");
 
-// 🔥 នេះជាកូដការពារ៖ ទោះបង export ជា Object ក៏ដោយ ឬ Function ផ្ទាល់ក៏ដោយ ក៏វាចាប់យកត្រូវដែរ
-const verifyToken =
-  typeof authMiddleware === "function"
-    ? authMiddleware
-    : authMiddleware.verifyToken;
+// 🌐 API ROUTES
+router.post("/check-account", verifyUser, transactionController.checkAccount);
 
-// ==========================================
-// 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
-// ==========================================
-router.post("/check", verifyToken, transactionController.checkAccount);
-router.post("/submit", verifyToken, transactionController.transfer);
+router.post(
+  "/transfer",
+  verifyUser,
+  enforceSystemActive,
+  transactionController.transfer,
+);
 
-// ==========================================
-// 🧾 មុខងារបង់វិក្កយបត្រ (PayHub)
-// ==========================================
-router.post("/bill/scan", verifyToken, transactionController.scanBankBill);
-router.post("/bill/pay", verifyToken, transactionController.payBankBill);
+router.post("/bank/scan-bill", transactionController.scanBankBill);
 
-// ==========================================
-// 🎁 មុខងាររង្វាន់ និង ប្រូម៉ូកូដ
-// ==========================================
-router.post("/reward/spin", verifyToken, transactionController.rewardCashback);
-router.post("/reward/promo", verifyToken, transactionController.claimPromoCode);
+router.post(
+  "/bank/pay-bill",
+  enforceSystemActive,
+  transactionController.payBankBill,
+);
 
-// ==========================================
-// 🧧 មុខងារអាំងប៉ាវ (E-Gift)
-// ==========================================
-router.post("/egift/send", verifyToken, transactionController.sendEgift);
-router.post("/egift/open", verifyToken, transactionController.egiftOpened);
+router.post(
+  "/reward/cashback",
+  verifyUser,
+  enforceSystemActive,
+  transactionController.rewardCashback,
+);
+
+router.post(
+  "/claim-promo",
+  verifyUser,
+  enforceSystemActive,
+  transactionController.claimPromoCode,
+);
+
+// 🔥 Route សម្រាប់ E-Gift
+router.post(
+  "/egift/send",
+  verifyUser,
+  enforceSystemActive,
+  transactionController.sendEgift,
+);
+
+router.post("/egift/opened", verifyUser, transactionController.egiftOpened);
 
 module.exports = router;
