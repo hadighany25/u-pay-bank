@@ -1843,7 +1843,6 @@
         action,
         notifId,
       ) {
-        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
         if (parentDiv) {
           parentDiv.innerHTML = `
@@ -1857,7 +1856,6 @@
           let currentUsr =
             window.currentUser || JSON.parse(sessionStorage.getItem("user"));
 
-          // ២. ហៅ API ទៅកាន់ Backend ស្ងាត់ៗ
           const res = await fetch("/api/account/joint/respond", {
             method: "POST",
             headers:
@@ -1875,7 +1873,7 @@
           const data = await res.json();
 
           if (data.success) {
-            // ៣. បង្ហាញពាក្យ "ជោគជ័យ" ពណ៌បៃតងនៅកន្លែងប៊ូតុង
+            // ទី១: បង្ហាញពាក្យ "ជោគជ័យ" ពណ៌បៃតង
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#ecfdf5; color:#10b981; border:none; border-radius:8px; text-align: center; font-weight:bold; font-size: 0.95rem;">
@@ -1884,23 +1882,48 @@
                 `;
             }
 
-            // ៤. បាញ់ API ប្រាប់ Backend ថាសារនេះអានរួចហើយ (Mark as read ស្ងាត់ៗ)
-            await fetch(`/api/user/notifications/read/${notifId}`, {
+            // ទី២: បង្ខំឲ្យ Frontend ចំណាំថាសារនេះបានអានរួច (ការពារ Backend លោតមកលងទៀត)
+            if (currentUsr && currentUsr.notifications) {
+              const index = currentUsr.notifications.findIndex(
+                (n) => (n._id || n.id) === notifId,
+              );
+              if (index !== -1) {
+                currentUsr.notifications[index].isRead = true;
+                sessionStorage.setItem("user", JSON.stringify(currentUsr));
+                window.currentUser = currentUsr;
+              }
+            }
+
+            // ទី៣: សាកល្បងបាញ់ API ទៅប្រាប់ Backend (ប្រើ Bulk Read)
+            await fetch("/api/user/read-notifications", {
               method: "POST",
               headers:
                 typeof authHeaders !== "undefined"
                   ? authHeaders
                   : window.authHeaders,
+              body: JSON.stringify({ username: currentUsr.username }),
             }).catch(() => {});
 
-            // ៥. ពន្យារពេល ១.៥ វិនាទី ដើម្បីឲ្យគេឃើញពាក្យ "ជោគជ័យ" សិន រួចទើប Refresh ឱ្យបាត់សារ
+            // ទី៤: រង់ចាំ ១.៥ វិនាទី រួចលាក់សារហ្នឹងចេញពីអេក្រង់ភ្លាមៗ
             setTimeout(() => {
-              if (typeof loadDashboardData === "function") {
-                loadDashboardData(false);
+              const notifItem = document
+                .getElementById(`joint-action-${notifId}`)
+                ?.closest(".notif-item");
+              if (notifItem) notifItem.style.display = "none";
+
+              // បន្ថយលេខកណ្តឹងពណ៌ក្រហម (Badge)
+              currentUnreadCount = Math.max(0, currentUnreadCount - 1);
+              const badge = document.getElementById("notiBadge");
+              if (badge) {
+                badge.innerText = currentUnreadCount;
+                badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
               }
+
+              // Refresh ទិន្នន័យពីខាងក្រោយដោយស្ងាត់ៗ
+              if (typeof loadDashboardData === "function")
+                loadDashboardData(false);
             }, 1500);
           } else {
-            // បើបរាជ័យ (ឧ. អត់លុយ ឬគណនីមានបញ្ហា) លោតប្រាប់ជាពណ៌ក្រហម
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
@@ -1921,24 +1944,43 @@
         }
       }
 
+      // ==========================================
       // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
+      // ==========================================
       async function closeNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
-        // Mark as Read តែសារធម្មតា (ទុកសារ E-Gift ឲ្យនៅដដែលបើមិនទាន់បើក)
         const badge = document.getElementById("notiBadge");
         if (badge && parseInt(badge.innerText) > 0) {
           try {
+            let currentUsr =
+              window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+
+            // 🔥 កន្លែងនេះដែលធ្វើឲ្យ Joint Account បាត់ជារៀងរហូតពេលចុចបិទ
+            if (currentUsr && currentUsr.notifications) {
+              currentUsr.notifications.forEach((n) => {
+                // ទុកតែ E-Gift ទេដែលចាំបាច់ត្រូវចុចបើកទើបបាត់
+                if (n.type !== "egift_receive") {
+                  n.isRead = true;
+                }
+              });
+              sessionStorage.setItem("user", JSON.stringify(currentUsr));
+              window.currentUser = currentUsr;
+            }
+
             await fetch("/api/user/read-notifications", {
               method: "POST",
               headers: window.authHeaders,
-              body: JSON.stringify({ username: window.currentUser.username }),
+              body: JSON.stringify({ username: currentUsr.username }),
             });
+
             if (typeof loadDashboardData === "function") {
               loadDashboardData(false);
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error(e);
+          }
         }
       }
 
