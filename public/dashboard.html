@@ -1843,7 +1843,7 @@
         action,
         notifId,
       ) {
-        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ (អត់មានលោត Popup ញ៉េញ៉ៃទេ)
+        // ១. ប្តូរប៊ូតុងទៅជា Loading រង្វិលៗ
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
         if (parentDiv) {
           parentDiv.innerHTML = `
@@ -1857,8 +1857,7 @@
           let currentUsr =
             window.currentUser || JSON.parse(sessionStorage.getItem("user"));
 
-          // ២. ហៅ API ទៅកាន់ Backend ស្ងាត់ៗ (ប្រើ authHeaders ដូច U-Fund ដែរ)
-          // ⚠️ ចំណាំ៖ បើនៅតែលោត Session Expired ទៀត, សូមសាកប្តូរឈ្មោះ Route នេះទៅជា "/api/account/respond-joint-invite" វិញ (ក្រែងលោក្នុង Backend បងមិនទាន់បានប្តូរឈ្មោះ)
+          // ២. ហៅ API ទៅកាន់ Backend ស្ងាត់ៗ
           const res = await fetch("/api/account/joint/respond", {
             method: "POST",
             headers:
@@ -1876,7 +1875,16 @@
           const data = await res.json();
 
           if (data.success) {
-            // ៣. Mark as read ស្ងាត់ៗ
+            // ៣. បង្ហាញពាក្យ "ជោគជ័យ" ពណ៌បៃតងនៅកន្លែងប៊ូតុង
+            if (parentDiv) {
+              parentDiv.innerHTML = `
+                   <div style="width: 100%; padding:8px; background:#ecfdf5; color:#10b981; border:none; border-radius:8px; text-align: center; font-weight:bold; font-size: 0.95rem;">
+                       <i class="fa-solid fa-circle-check"></i> ជោគជ័យ!
+                   </div>
+                `;
+            }
+
+            // ៤. បាញ់ API ប្រាប់ Backend ថាសារនេះអានរួចហើយ (Mark as read ស្ងាត់ៗ)
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
               headers:
@@ -1885,12 +1893,14 @@
                   : window.authHeaders,
             }).catch(() => {});
 
-            // ៤. Refresh ទិន្នន័យពីខាងក្រោយ (អត់ Reload វេបសាយទេ)
-            if (typeof loadDashboardData === "function") {
-              loadDashboardData(false);
-            }
+            // ៥. ពន្យារពេល ១.៥ វិនាទី ដើម្បីឲ្យគេឃើញពាក្យ "ជោគជ័យ" សិន រួចទើប Refresh ឱ្យបាត់សារ
+            setTimeout(() => {
+              if (typeof loadDashboardData === "function") {
+                loadDashboardData(false);
+              }
+            }, 1500);
           } else {
-            // បើមានបញ្ហា (ឧ. អត់លុយ) លោតប្រាប់លើកន្លែងប៊ូតុងហ្នឹងតែម្តង មិនបាច់ Popup
+            // បើបរាជ័យ (ឧ. អត់លុយ ឬគណនីមានបញ្ហា) លោតប្រាប់ជាពណ៌ក្រហម
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
