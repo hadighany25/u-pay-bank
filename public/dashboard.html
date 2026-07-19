@@ -1827,7 +1827,6 @@
         }
       }
 
-      // មុខងារបើកផ្ទាំងសារ (Open Notification Modal)
       function readNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "flex";
@@ -1844,6 +1843,8 @@
         notifId,
       ) {
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
+        const notifItem = document.getElementById(`notif-item-${notifId}`);
+
         if (parentDiv) {
           parentDiv.innerHTML = `
               <button style="width: 100%; padding:8px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:not-allowed; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
@@ -1854,14 +1855,26 @@
 
         try {
           let currentUsr =
-            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+            window.currentUser ||
+            JSON.parse(
+              sessionStorage.getItem("user") || localStorage.getItem("user"),
+            );
+
+          let reqHeaders =
+            typeof authHeaders !== "undefined"
+              ? authHeaders
+              : window.authHeaders || {};
+          reqHeaders["Content-Type"] = "application/json";
+
+          if (!reqHeaders["Authorization"]) {
+            let token =
+              localStorage.getItem("token") || sessionStorage.getItem("token");
+            reqHeaders["Authorization"] = `Bearer ${token}`;
+          }
 
           const res = await fetch("/api/account/joint/respond", {
             method: "POST",
-            headers:
-              typeof authHeaders !== "undefined"
-                ? authHeaders
-                : window.authHeaders,
+            headers: reqHeaders,
             body: JSON.stringify({
               inviteeUsername: currentUsr.username,
               ownerUsername: ownerUsername,
@@ -1873,7 +1886,6 @@
           const data = await res.json();
 
           if (data.success) {
-            // ទី១: បង្ហាញពាក្យ "ជោគជ័យ" ពណ៌បៃតង
             if (parentDiv) {
               parentDiv.innerHTML = `
                    <div style="width: 100%; padding:8px; background:#ecfdf5; color:#10b981; border:none; border-radius:8px; text-align: center; font-weight:bold; font-size: 0.95rem;">
@@ -1882,46 +1894,40 @@
                 `;
             }
 
-            // ទី២: បង្ខំឲ្យ Frontend ចំណាំថាសារនេះបានអានរួច (ការពារ Backend លោតមកលងទៀត)
+            // 🔥 លុបសារហ្នឹងចោលពី Memory របស់ Browser ការពារវាងើបមកវិញ
             if (currentUsr && currentUsr.notifications) {
-              const index = currentUsr.notifications.findIndex(
+              const notifIndex = currentUsr.notifications.findIndex(
                 (n) => (n._id || n.id) === notifId,
               );
-              if (index !== -1) {
-                currentUsr.notifications[index].isRead = true;
+              if (notifIndex > -1) {
+                currentUsr.notifications[notifIndex].isRead = true;
                 sessionStorage.setItem("user", JSON.stringify(currentUsr));
                 window.currentUser = currentUsr;
               }
             }
 
-            // ទី៣: សាកល្បងបាញ់ API ទៅប្រាប់ Backend (ប្រើ Bulk Read)
-            await fetch("/api/user/read-notifications", {
+            // ប្រាប់ Backend ថាសារហ្នឹងត្រូវបានអានហើយ
+            await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
-              headers:
-                typeof authHeaders !== "undefined"
-                  ? authHeaders
-                  : window.authHeaders,
-              body: JSON.stringify({ username: currentUsr.username }),
+              headers: reqHeaders,
             }).catch(() => {});
 
-            // ទី៤: រង់ចាំ ១.៥ វិនាទី រួចលាក់សារហ្នឹងចេញពីអេក្រង់ភ្លាមៗ
+            // 🔥 បន្ទាប់ពី ១.៥ វិនាទី លុបប្រអប់សារហ្នឹងចោលពីអេក្រង់ភ្លាមៗតែម្តង (Remove Element)
             setTimeout(() => {
-              const notifItem = document
-                .getElementById(`joint-action-${notifId}`)
-                ?.closest(".notif-item");
-              if (notifItem) notifItem.style.display = "none";
+              if (notifItem) notifItem.remove();
 
-              // បន្ថយលេខកណ្តឹងពណ៌ក្រហម (Badge)
-              currentUnreadCount = Math.max(0, currentUnreadCount - 1);
+              const unreadList = document.querySelectorAll(".notif-item");
               const badge = document.getElementById("notiBadge");
               if (badge) {
-                badge.innerText = currentUnreadCount;
-                badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
+                badge.innerText = unreadList.length;
+                badge.style.display = unreadList.length > 0 ? "flex" : "none";
               }
 
-              // Refresh ទិន្នន័យពីខាងក្រោយដោយស្ងាត់ៗ
-              if (typeof loadDashboardData === "function")
-                loadDashboardData(false);
+              if (unreadList.length === 0) {
+                const list = document.getElementById("notifList");
+                if (list)
+                  list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
+              }
             }, 1500);
           } else {
             if (parentDiv) {
@@ -1937,7 +1943,7 @@
           if (parentDiv) {
             parentDiv.innerHTML = `
                <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
-                   <i class="fa-solid fa-triangle-exclamation"></i> បញ្ហាភ្ជាប់ទៅកាន់ Server
+                   <i class="fa-solid fa-triangle-exclamation"></i> បញ្ហាភ្ជាប់ទៅ Server
                </div>
             `;
           }
@@ -1945,42 +1951,43 @@
       }
 
       // ==========================================
-      // មុខងារបិទផ្ទាំងសារ និង Update Status (Close & Mark as Read)
+      // មុខងារបិទផ្ទាំងសារ (Close Notifications)
       // ==========================================
       async function closeNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
-        const badge = document.getElementById("notiBadge");
-        if (badge && parseInt(badge.innerText) > 0) {
-          try {
-            let currentUsr =
-              window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+        let currentUsr =
+          window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+        if (!currentUsr) return;
 
-            // 🔥 កន្លែងនេះដែលធ្វើឲ្យ Joint Account បាត់ជារៀងរហូតពេលចុចបិទ
-            if (currentUsr && currentUsr.notifications) {
-              currentUsr.notifications.forEach((n) => {
-                // ទុកតែ E-Gift ទេដែលចាំបាច់ត្រូវចុចបើកទើបបាត់
-                if (n.type !== "egift_receive") {
-                  n.isRead = true;
-                }
-              });
-              sessionStorage.setItem("user", JSON.stringify(currentUsr));
-              window.currentUser = currentUsr;
+        let hasUpdates = false;
+        if (currentUsr.notifications) {
+          currentUsr.notifications.forEach((n) => {
+            // 🔥 Mark សារទាំងអស់ (រួមទាំង Joint Account) ថាអានរួច ទុកតែ E-Gift ទេ
+            if (!n.isRead && n.type !== "egift_receive") {
+              n.isRead = true;
+              hasUpdates = true;
             }
+          });
+        }
 
-            await fetch("/api/user/read-notifications", {
-              method: "POST",
-              headers: window.authHeaders,
-              body: JSON.stringify({ username: currentUsr.username }),
-            });
+        if (hasUpdates) {
+          sessionStorage.setItem("user", JSON.stringify(currentUsr));
+          window.currentUser = currentUsr;
 
-            if (typeof loadDashboardData === "function") {
-              loadDashboardData(false);
-            }
-          } catch (e) {
-            console.error(e);
-          }
+          let reqHeaders =
+            typeof authHeaders !== "undefined"
+              ? authHeaders
+              : window.authHeaders || {};
+
+          fetch("/api/user/read-notifications", {
+            method: "POST",
+            headers: reqHeaders,
+            body: JSON.stringify({ username: currentUsr.username }),
+          }).catch((e) => console.log(e));
+
+          updateNotificationsUI(currentUsr);
         }
       }
 
@@ -1993,11 +2000,9 @@
         notifId,
         senderUsername,
       ) {
-        // ១. បិទ Notification Modal សិន ឱ្យមើល Surprise បានច្បាស់
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
 
-        // ២. បាញ់ព្រិល (Confetti Effect)
         if (typeof confetti === "function") {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -2008,7 +2013,6 @@
             ? Number(amount).toFixed(2)
             : Number(amount).toLocaleString();
 
-        // បង្ហាញផ្ទាំងប្រាក់រង្វាន់ (Surprise Alert)
         Swal.fire({
           html: `
                    <div style="padding:20px; text-align:center;">
@@ -2023,15 +2027,15 @@
           confirmButtonColor: "#004d40",
           customClass: { popup: "modal-radius" },
         }).then(() => {
-          // ពេលចុច "ឡូយកប់!" យើង Update UI ដើម្បីឱ្យបាត់សារ
-          loadDashboardData(false);
+          if (typeof loadDashboardData === "function") loadDashboardData(false);
         });
 
-        // ៣. បាញ់សារទៅអ្នកផ្ញើវិញ ថាបានបើកហើយ (Update Server)
         try {
+          let user =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
           await fetch("/api/egift/opened", {
             method: "POST",
-            headers: authHeaders,
+            headers: window.authHeaders,
             body: JSON.stringify({
               receiverName: user.fullName || user.username,
               senderUsername: senderUsername,
@@ -2046,26 +2050,31 @@
       // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
       async function respondUFundInvite(fundId, notifId, response) {
         try {
+          const notifModal = document.getElementById("notifModal");
+          if (notifModal) notifModal.style.display = "none";
+
           Swal.fire({
             title: "កំពុងដំណើរការ...",
             didOpen: () => Swal.showLoading(),
+            allowOutsideClick: false,
           });
 
+          let user =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
           const res = await fetch("/api/ufund/respond-invite", {
             method: "POST",
-            headers: authHeaders,
+            headers: window.authHeaders,
             body: JSON.stringify({
               username: user.username,
               fundId: fundId,
               notifId: notifId,
-              response: response, // 'accept' ឬ 'decline'
+              response: response,
             }),
           });
 
           const data = await res.json();
 
           if (data.success) {
-            closeNotifications();
             Swal.fire({
               icon: "success",
               title: "ជោគជ័យ!",
@@ -2073,7 +2082,8 @@
               timer: 2000,
               showConfirmButton: false,
             }).then(() => {
-              loadDashboardData(false); // Refresh ទិន្នន័យ Dashboard
+              if (typeof loadDashboardData === "function")
+                loadDashboardData(false);
             });
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
