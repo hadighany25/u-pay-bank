@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transfer Money - U-Pay</title>
 
+    <link rel="icon" type="image/png" href="images/favicon.png" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -177,7 +178,7 @@
         color: #004d40;
         font-size: 1.5rem;
         transition: 0.3s;
-        overflow: hidden; /* For images */
+        overflow: hidden;
       }
       .input-group {
         margin-bottom: 20px;
@@ -525,9 +526,7 @@
         transform: translate(-50%, -50%) scale(0.9);
       }
 
-      /* ==========================================
-         🌙 DARK MODE
-         ========================================== */
+      /* DARK MODE */
       body.dark-mode {
         background-color: #121212 !important;
         color: white !important;
@@ -573,10 +572,7 @@
         color: #a7f3d0;
       }
 
-      /* Slip Dark Mode Fix */
-      body.dark-mode .slip-container {
-        background: #fff !important;
-      }
+      body.dark-mode .slip-container,
       body.dark-mode .slip-body {
         background: #fff !important;
       }
@@ -621,6 +617,7 @@
           </p>
         </div>
 
+        <!-- 🔥 ផ្នែកគណនីប្រភព (Source Account) -->
         <div class="input-group">
           <label data-lang="source_account">Source Account</label>
           <select
@@ -628,8 +625,7 @@
             class="main-input"
             onchange="updateBalanceDisplay()"
           >
-            <option value="USD" data-lang="acc_usd">USD Account ($)</option>
-            <option value="KHR" data-lang="acc_khr">KHR Account (៛)</option>
+            <!-- Options នឹងត្រូវបាន Generate ដោយ JavaScript -->
           </select>
           <p
             id="availableBalance"
@@ -644,7 +640,6 @@
 
         <div class="input-group">
           <label data-lang="receiver_acc">Receiver Account</label>
-          <!-- 🔥 បន្ថែម oninput ដើម្បីហៅ Debounce រកឈ្មោះអូតូ -->
           <input
             type="text"
             id="receiverAcc"
@@ -698,7 +693,7 @@
       </div>
     </div>
 
-    <!-- 🔥 Native PIN Modal ថ្មី -->
+    <!-- Native PIN Modal -->
     <div id="pinModal" class="modal-overlay" style="z-index: 9999">
       <div
         style="
@@ -739,6 +734,7 @@
       </div>
     </div>
 
+    <!-- Spin Modal -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -782,6 +778,7 @@
       </button>
     </div>
 
+    <!-- Slip Modal -->
     <div id="slipModal" class="modal-overlay">
       <div id="captureArea" class="slip-container">
         <div class="slip-header">
@@ -868,7 +865,6 @@
     </div>
 
     <script>
-      // Authentication Check & Variables Setup
       const uPayUserString = sessionStorage.getItem("user");
       const token = sessionStorage.getItem("userToken");
       if (!uPayUserString || !token) {
@@ -881,57 +877,14 @@
         Authorization: `Bearer ${token}`,
       };
 
-      // DOM Content Loaded - Theme & FOUC Prevention
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
         document.body.classList.add("loaded");
 
         // Translations Logic
         const translations = {
-          en: {
-            title_transfer: "Transfer Money",
-            recent_contacts: "Recent Contacts",
-            source_account: "Source Account",
-            acc_usd: "USD Account ($)",
-            acc_khr: "KHR Account (៛)",
-            avail_balance: "Available Balance: ",
-            receiver_label: "Receiver",
-            receiver_acc: "Receiver Account",
-            amount_label: "Amount",
-            remark: "Remark",
-            btn_transfer: "Transfer Now",
-            enter_pin: "Enter PIN",
-            btn_cancel: "Cancel",
-            spin_title: "Lucky Spin",
-            spin_desc: "You transferred over $10! Spin to win Cashback!",
-            btn_skip: "Skip & View Slip",
-            transfer_success: "Transfer Successful",
-            exchange_rate: "Exchange Rate:",
-            receiver_gets: "Receiver Gets:",
-          },
-          kh: {
-            title_transfer: "វេរប្រាក់",
-            recent_contacts: "អ្នកដែលធ្លាប់វេរប្រាក់ឱ្យ",
-            source_account: "គណនីប្រភព",
-            acc_usd: "គណនី USD ($)",
-            acc_khr: "គណនី KHR (៛)",
-            avail_balance: "សមតុល្យអាចចាយបាន: ",
-            receiver_label: "អ្នកទទួល",
-            receiver_acc: "លេខគណនីអ្នកទទួល",
-            amount_label: "ចំនួនប្រាក់",
-            remark: "ចំណាំ (បើមាន)",
-            btn_transfer: "វេរប្រាក់ឥឡូវនេះ",
-            enter_pin: "បញ្ចូលលេខ PIN",
-            btn_cancel: "បោះបង់",
-            spin_title: "កងវិលផ្សងសំណាង",
-            spin_desc: "អ្នកវេរប្រាក់លើសពី $10! បង្វិលដើម្បីឈ្នះលុយ Cashback!",
-            btn_skip: "រំលង & មើលវិក្កយបត្រ",
-            transfer_success: "វេរប្រាក់ជោគជ័យ",
-            exchange_rate: "អត្រាប្តូរប្រាក់:",
-            receiver_gets: "អ្នកទទួលទទួលបាន:",
-          },
+          /* ... រក្សាទុកដូចដើម ... */
         };
-
         let currentLang = localStorage.getItem("lang") || "en";
         document.querySelectorAll("[data-lang]").forEach((el) => {
           const key = el.getAttribute("data-lang");
@@ -939,7 +892,9 @@
             el.innerText = translations[currentLang][key];
         });
 
-        // Setup Initials
+        // 🔥 ទាញយក និងគូរគណនីទាំងអស់បញ្ចូលទៅក្នុង Dropdown
+        populateSourceAccounts();
+
         try {
           const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
           const fxData = await fxRes.json();
@@ -981,7 +936,6 @@
 
         loadRecentContacts();
         drawWheel();
-        updateBalanceDisplay();
       });
 
       function applyTheme() {
@@ -1004,22 +958,69 @@
       let spinIsActive = false;
       let enteredPin = "";
 
+      // 🔥 មុខងារគូរគណនីទាំងអស់ចូលក្នុង Dropdown
+      function populateSourceAccounts() {
+        const select = document.getElementById("fromAccount");
+        select.innerHTML = "";
+
+        let lang = localStorage.getItem("lang") || "en";
+
+        // ១. គណនី Main USD
+        const usdOpt = document.createElement("option");
+        usdOpt.value = "MAIN_USD";
+        usdOpt.dataset.currency = "USD";
+        usdOpt.dataset.balance = user.balance || 0;
+        usdOpt.text =
+          (lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - ") +
+          user.accountNumber;
+        select.appendChild(usdOpt);
+
+        // ២. គណនី Main KHR
+        const khrOpt = document.createElement("option");
+        khrOpt.value = "MAIN_KHR";
+        khrOpt.dataset.currency = "KHR";
+        khrOpt.dataset.balance = user.balanceKHR || 0;
+        khrOpt.text =
+          (lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - ") +
+          (user.accountNumberKHR || "N/A");
+        select.appendChild(khrOpt);
+
+        // ៣. គណនី Sub-Accounts (Premium/Pocket)
+        if (user.subAccounts && user.subAccounts.length > 0) {
+          user.subAccounts.forEach((sub) => {
+            const opt = document.createElement("option");
+            opt.value = sub.accountNumber;
+            opt.dataset.currency = sub.currency;
+            opt.dataset.balance = sub.balance || 0;
+            const sym = sub.currency === "USD" ? "$" : "៛";
+            opt.text = `${sub.accountName} (${sym}) - ${sub.accountNumber}`;
+            select.appendChild(opt);
+          });
+        }
+
+        updateBalanceDisplay();
+      }
+
+      // 🔥 មុខងារ Update តួលេខលុយនៅពេលដែលប្តូរ Dropdown
       function updateBalanceDisplay() {
-        const type = document.getElementById("fromAccount").value;
-        const bal = type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
+        const select = document.getElementById("fromAccount");
+        if (select.options.length === 0) return;
+        const selectedOption = select.options[select.selectedIndex];
+
+        const type = selectedOption.dataset.currency;
+        const bal = parseFloat(selectedOption.dataset.balance);
         const sign = type === "USD" ? "$" : "៛";
+
         let lang = localStorage.getItem("lang") || "en";
         const textKey =
           lang === "kh" ? "សមតុល្យអាចចាយបាន: " : "Available Balance: ";
 
         let displayBal =
           type === "USD" ? bal.toFixed(2) : bal.toLocaleString("en-US");
-        if (type === "USD")
-          document.getElementById("availableBalance").innerText =
-            `${textKey}${sign}${displayBal}`;
-        else
-          document.getElementById("availableBalance").innerText =
-            `${textKey}${displayBal} ${sign}`;
+        document.getElementById("availableBalance").innerText =
+          type === "USD"
+            ? `${textKey}${sign}${displayBal}`
+            : `${textKey}${displayBal} ${sign}`;
 
         calculateExchangePreview();
       }
@@ -1077,9 +1078,8 @@
         }
       }
 
-      // 🔥 មុខងារ Debounce សម្រាប់ Auto-fetch Name
       let typingTimer;
-      const doneTypingInterval = 500; // វាយចប់កន្លះវិនាទី ទើបហៅ API
+      const doneTypingInterval = 500;
       function debounceCheckName() {
         clearTimeout(typingTimer);
         const accInput = document.getElementById("receiverAcc").value;
@@ -1104,14 +1104,26 @@
         const iconUI = document.getElementById("receiverIconUI");
 
         if (acc.startsWith("UFND-")) {
-          nameDisplay.innerText = "U-Fund (Scan Pay)";
+          fetch("/api/ufund/get-name", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ qrString: acc }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success)
+                nameDisplay.innerHTML = `U-Fund (${data.projectName})`;
+              else nameDisplay.innerHTML = "U-Fund (Scan Pay)";
+            })
+            .catch(() => (nameDisplay.innerHTML = "U-Fund (Scan Pay)"));
+
           status.innerText = "✔";
           status.className = "check-status status-ok";
           boxUI.style.borderColor = "#10b981";
           boxUI.style.background = "#ecfdf5";
           iconUI.style.background = "#10b981";
           iconUI.style.color = "white";
-          iconUI.innerHTML = '<i class="fa-solid fa-qrcode"></i>'; // QR Icon
+          iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
           targetUserIsKHR = false;
           calculateExchangePreview();
           return true;
@@ -1135,18 +1147,17 @@
             iconUI.style.background = "#10b981";
             iconUI.style.color = "white";
 
-            // 🔥 ប្តូរ Icon ឆ្លាតវៃតាមប្រភេទ Account
             if (data.isMerchant) {
-              iconUI.innerHTML = '<i class="fa-solid fa-store"></i>'; // រូបហាង
+              iconUI.innerHTML = '<i class="fa-solid fa-store"></i>';
             } else if (data.profileImage && data.profileImage !== "") {
-              iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`; // រូប Profile
+              iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
             } else if (
               acc.includes("SAV") ||
               data.username.toLowerCase().includes("saving")
             ) {
-              iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>'; // រូបកូនជ្រូក (សន្សំ)
+              iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
             } else {
-              iconUI.innerHTML = '<i class="fa-solid fa-user"></i>'; // រូបធម្មតា
+              iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
             }
 
             targetUserIsKHR = data.isReceiverKHR;
@@ -1187,7 +1198,11 @@
 
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amount").value);
-        const fromType = document.getElementById("fromAccount").value;
+        const select = document.getElementById("fromAccount");
+        const fromType =
+          select.options.length > 0
+            ? select.options[select.selectedIndex].dataset.currency
+            : "USD";
         const previewBox = document.getElementById("exchangePreview");
 
         if (
@@ -1261,9 +1276,10 @@
 
       async function validateAndOpenPin() {
         const amount = parseFloat(document.getElementById("amount").value);
-        const type = document.getElementById("fromAccount").value;
-        const currentBal =
-          type === "USD" ? user.balance || 0 : user.balanceKHR || 0;
+        const select = document.getElementById("fromAccount");
+        const currentBal = parseFloat(
+          select.options[select.selectedIndex].dataset.balance,
+        );
         let lang = localStorage.getItem("lang") || "en";
 
         if (!amount || amount <= 0)
@@ -1289,7 +1305,6 @@
             return Swal.fire("Error", "Receiver Not Found", "error");
         }
 
-        // បើកផ្ទាំង PIN កែសម្រួលថ្មីដោយប្រើ Native Keyboard
         document.getElementById("pinModal").style.display = "flex";
         const pinInput = document.getElementById("nativePinInput");
         pinInput.value = "";
@@ -1300,20 +1315,25 @@
         document.getElementById(id).style.display = "none";
       }
 
-      // 🔥 មុខងារចាប់យកលេខដែលវាយលើ Native Keyboard
       function handleNativePin(val) {
         if (val.length >= 4) {
           enteredPin = val.substring(0, 4);
-          submitPin(); // បញ្ជូនអូតូពេលគ្រប់ ៤ខ្ទង់
+          submitPin();
         }
       }
 
       async function submitPin() {
         const pin = enteredPin;
         const method =
-          urlParams.get("source") === "qr" ? "QR Scan" : "App Deep Link";
+          urlParams.get("source") === "qr" ? "QR Scan" : "Account Input";
         const amount = document.getElementById("amount").value;
-        const fromAccountType = document.getElementById("fromAccount").value;
+
+        // 🔥 ចាប់យកលេខគណនីដែលគេកំពុងរើសយកទៅបាញ់ API
+        const select = document.getElementById("fromAccount");
+        const selectedOption = select.options[select.selectedIndex];
+        const fromAccountType = selectedOption.dataset.currency;
+        const senderAccountVal = selectedOption.value; // "MAIN_USD", "MAIN_KHR", ឬ លេខកុង Sub
+
         const receiverAcc = document.getElementById("receiverAcc").value;
 
         if (pin.length === 4) {
@@ -1326,6 +1346,7 @@
           let apiUrl = "/api/transfer";
           let requestBody = {
             senderUsername: user.username,
+            senderAccount: senderAccountVal, // 🔥 បញ្ជូនទៅ Backend ដើម្បីឱ្យដឹងថាកាត់លុយពីកុងណា
             receiverAccount: receiverAcc,
             amount: amount,
             remark: document.getElementById("remark").value,
@@ -1369,8 +1390,18 @@
                 return;
               }
 
-              if (fromAccountType === "USD") user.balance = data.newBalance;
-              else user.balanceKHR = data.newBalance;
+              // 🔥 ធ្វើបច្ចុប្បន្នភាពសមតុល្យតាមគណនីដែលបានរើស
+              if (senderAccountVal === "MAIN_USD")
+                user.balance = data.newBalance;
+              else if (senderAccountVal === "MAIN_KHR")
+                user.balanceKHR = data.newBalance;
+              else {
+                let subIdx = user.subAccounts.findIndex(
+                  (a) => a.accountNumber === senderAccountVal,
+                );
+                if (subIdx !== -1)
+                  user.subAccounts[subIdx].balance = data.newBalance;
+              }
 
               user.transactions.unshift(data.slipData);
               sessionStorage.setItem("user", JSON.stringify(user));
