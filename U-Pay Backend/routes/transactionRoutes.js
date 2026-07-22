@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-// 🔥 កែទី១៖ ទាញយកអោយត្រូវឈ្មោះពិតប្រាកដ "transactionController"
 const transactionController = require("../controllers/transactionController");
 
-// 🔥 កែទី២៖ ទាញយកអោយត្រូវឈ្មោះ Middleware "verifyUser" និង "enforceSystemActive"
 const {
   verifyUser,
   enforceSystemActive,
@@ -13,12 +11,12 @@ const {
 // ==========================================
 // 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
 // ==========================================
-// ឆែកឈ្មោះអ្នកទទួលមុនពេលវេរលុយ
-router.post("/check", verifyUser, transactionController.checkAccount);
+// 🔥 កែទី១៖ ប្តូរពី /check ទៅ /check-account ឲ្យត្រូវនឹងការហៅរបស់ Frontend
+router.post("/check-account", verifyUser, transactionController.checkAccount);
 
-// វេរលុយ (ទៅកាន់គណនីធម្មតា, គណនីរួម, ឬ Merchant)
+// 🔥 កែទី២៖ ប្តូរពី /submit ទៅ /transfer ឲ្យត្រូវនឹងការហៅរបស់ Frontend
 router.post(
-  "/submit",
+  "/transfer",
   verifyUser,
   enforceSystemActive,
   transactionController.transfer,
@@ -38,12 +36,14 @@ router.post(
 // ==========================================
 // 🎁 មុខងាររង្វាន់ និង ប្រូម៉ូកូដ
 // ==========================================
+// 🔥 កែទី៣៖ ប្តូរពី /reward/spin ទៅ /reward/cashback ឲ្យត្រូវនឹង Frontend
 router.post(
-  "/reward/spin",
+  "/reward/cashback",
   verifyUser,
   enforceSystemActive,
   transactionController.rewardCashback,
 );
+
 router.post(
   "/reward/promo",
   verifyUser,
