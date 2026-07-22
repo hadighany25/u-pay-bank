@@ -59,7 +59,6 @@
         outline: none;
         background: #fff;
         box-sizing: border-box;
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
         transition: 0.3s;
       }
       .section-label,
@@ -105,7 +104,6 @@
       .section-label {
         font-size: 0.85rem;
         color: #64748b;
-        font-weight: 700;
         text-transform: uppercase;
         margin-bottom: 15px;
         letter-spacing: 0.5px;
@@ -216,7 +214,6 @@
       .status-loading {
         color: #f59e0b;
       }
-
       .confirm-btn {
         width: 100%;
         padding: 16px;
@@ -235,7 +232,7 @@
         transform: scale(0.98);
       }
 
-      /* Exchange Rate Preview */
+      /* FX Preview */
       .fx-preview-box {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -290,8 +287,6 @@
         justify-content: center;
         flex-direction: column;
       }
-
-      /* Native PIN Pad Style */
       .native-pin-input {
         width: 150px;
         text-align: center;
@@ -311,7 +306,7 @@
         background: #fff;
       }
 
-      /* Slip Container */
+      /* Slip */
       .slip-container {
         width: 340px;
         margin: 0 auto;
@@ -411,7 +406,6 @@
         color: #004d40;
         font-weight: bold;
       }
-
       .slip-footer-info {
         display: flex;
         justify-content: space-between;
@@ -571,7 +565,6 @@
       body.dark-mode .fx-preview-box p {
         color: #a7f3d0;
       }
-
       body.dark-mode .slip-container,
       body.dark-mode .slip-body {
         background: #fff !important;
@@ -617,16 +610,13 @@
           </p>
         </div>
 
-        <!-- 🔥 ផ្នែកគណនីប្រភព (Source Account) -->
         <div class="input-group">
           <label data-lang="source_account">Source Account</label>
           <select
             id="fromAccount"
             class="main-input"
             onchange="updateBalanceDisplay()"
-          >
-            <!-- Options នឹងត្រូវបាន Generate ដោយ JavaScript -->
-          </select>
+          ></select>
           <p
             id="availableBalance"
             style="
@@ -693,7 +683,7 @@
       </div>
     </div>
 
-    <!-- Native PIN Modal -->
+    <!-- Modals -->
     <div id="pinModal" class="modal-overlay" style="z-index: 9999">
       <div
         style="
@@ -713,7 +703,6 @@
         <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px">
           សូមវាយលេខ PIN ៤ ខ្ទង់របស់អ្នក
         </p>
-
         <input
           type="password"
           id="nativePinInput"
@@ -723,7 +712,6 @@
           inputmode="numeric"
           oninput="handleNativePin(this.value)"
         />
-
         <button
           class="confirm-btn"
           onclick="closeModal('pinModal')"
@@ -734,7 +722,6 @@
       </div>
     </div>
 
-    <!-- Spin Modal -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -778,7 +765,6 @@
       </button>
     </div>
 
-    <!-- Slip Modal -->
     <div id="slipModal" class="modal-overlay">
       <div id="captureArea" class="slip-container">
         <div class="slip-header">
@@ -865,12 +851,18 @@
     </div>
 
     <script>
-      const uPayUserString = sessionStorage.getItem("user");
-      const token = sessionStorage.getItem("userToken");
+      const uPayUserString =
+        sessionStorage.getItem("user") || localStorage.getItem("user");
+      const token =
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("userToken");
+
       if (!uPayUserString || !token) {
         window.location.href = "index.html" + window.location.search;
       }
-      const user = JSON.parse(uPayUserString);
+
+      let user = JSON.parse(uPayUserString);
 
       const authHeaders = {
         "Content-Type": "application/json",
@@ -881,18 +873,6 @@
         applyTheme();
         document.body.classList.add("loaded");
 
-        // Translations Logic
-        const translations = {
-          /* ... រក្សាទុកដូចដើម ... */
-        };
-        let currentLang = localStorage.getItem("lang") || "en";
-        document.querySelectorAll("[data-lang]").forEach((el) => {
-          const key = el.getAttribute("data-lang");
-          if (translations[currentLang] && translations[currentLang][key])
-            el.innerText = translations[currentLang][key];
-        });
-
-        // 🔥 ទាញយក និងគូរគណនីទាំងអស់បញ្ចូលទៅក្នុង Dropdown
         populateSourceAccounts();
 
         try {
@@ -958,34 +938,34 @@
       let spinIsActive = false;
       let enteredPin = "";
 
-      // 🔥 មុខងារគូរគណនីទាំងអស់ចូលក្នុង Dropdown
       function populateSourceAccounts() {
         const select = document.getElementById("fromAccount");
+        if (!select) return;
         select.innerHTML = "";
-
         let lang = localStorage.getItem("lang") || "en";
 
-        // ១. គណនី Main USD
+        // IMPORTANT: The backend expects "MAIN_USD"
         const usdOpt = document.createElement("option");
         usdOpt.value = "MAIN_USD";
         usdOpt.dataset.currency = "USD";
         usdOpt.dataset.balance = user.balance || 0;
         usdOpt.text =
           (lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - ") +
-          user.accountNumber;
+          (user.accountNumber || "N/A");
         select.appendChild(usdOpt);
 
-        // ២. គណនី Main KHR
-        const khrOpt = document.createElement("option");
-        khrOpt.value = "MAIN_KHR";
-        khrOpt.dataset.currency = "KHR";
-        khrOpt.dataset.balance = user.balanceKHR || 0;
-        khrOpt.text =
-          (lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - ") +
-          (user.accountNumberKHR || "N/A");
-        select.appendChild(khrOpt);
+        // IMPORTANT: The backend expects "MAIN_KHR"
+        if (user.accountNumberKHR) {
+          const khrOpt = document.createElement("option");
+          khrOpt.value = "MAIN_KHR";
+          khrOpt.dataset.currency = "KHR";
+          khrOpt.dataset.balance = user.balanceKHR || 0;
+          khrOpt.text =
+            (lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - ") +
+            user.accountNumberKHR;
+          select.appendChild(khrOpt);
+        }
 
-        // ៣. គណនី Sub-Accounts (Premium/Pocket)
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
             const opt = document.createElement("option");
@@ -1001,27 +981,24 @@
         updateBalanceDisplay();
       }
 
-      // 🔥 មុខងារ Update តួលេខលុយនៅពេលដែលប្តូរ Dropdown
       function updateBalanceDisplay() {
         const select = document.getElementById("fromAccount");
-        if (select.options.length === 0) return;
+        if (!select || select.options.length === 0) return;
         const selectedOption = select.options[select.selectedIndex];
 
         const type = selectedOption.dataset.currency;
         const bal = parseFloat(selectedOption.dataset.balance);
         const sign = type === "USD" ? "$" : "៛";
-
         let lang = localStorage.getItem("lang") || "en";
         const textKey =
           lang === "kh" ? "សមតុល្យអាចចាយបាន: " : "Available Balance: ";
-
         let displayBal =
           type === "USD" ? bal.toFixed(2) : bal.toLocaleString("en-US");
+
         document.getElementById("availableBalance").innerText =
           type === "USD"
             ? `${textKey}${sign}${displayBal}`
             : `${textKey}${displayBal} ${sign}`;
-
         calculateExchangePreview();
       }
 
@@ -1147,18 +1124,16 @@
             iconUI.style.background = "#10b981";
             iconUI.style.color = "white";
 
-            if (data.isMerchant) {
+            if (data.isMerchant)
               iconUI.innerHTML = '<i class="fa-solid fa-store"></i>';
-            } else if (data.profileImage && data.profileImage !== "") {
+            else if (data.profileImage)
               iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            } else if (
+            else if (
               acc.includes("SAV") ||
               data.username.toLowerCase().includes("saving")
-            ) {
+            )
               iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
-            } else {
-              iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
-            }
+            else iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
 
             targetUserIsKHR = data.isReceiverKHR;
             if (data.fxRates) currentFXRates = data.fxRates;
@@ -1236,53 +1211,29 @@
         }
       }
 
-      function drawWheel() {
-        const canvas = document.getElementById("wheelCanvas");
-        if (!canvas.getContext) return;
-        const ctx = canvas.getContext("2d");
-        const prizes = ["$0.05", "$0.50", "0.00", "$0.10", "$1.00", "$0.20"];
-        const colors = [
-          "#f59e0b",
-          "#10b981",
-          "#64748b",
-          "#3b82f6",
-          "#ef4444",
-          "#8b5cf6",
-        ];
-        const arc = Math.PI / (prizes.length / 2);
-
-        ctx.clearRect(0, 0, 280, 280);
-        for (let i = 0; i < prizes.length; i++) {
-          const angle = i * arc;
-          ctx.beginPath();
-          ctx.fillStyle = colors[i];
-          ctx.moveTo(140, 140);
-          ctx.arc(140, 140, 140, angle, angle + arc, false);
-          ctx.lineTo(140, 140);
-          ctx.fill();
-          ctx.save();
-          ctx.fillStyle = "white";
-          ctx.translate(
-            140 + Math.cos(angle + arc / 2) * 90,
-            140 + Math.sin(angle + arc / 2) * 90,
-          );
-          ctx.rotate(angle + arc / 2 + Math.PI / 2);
-          ctx.font = "bold 20px 'Inter'";
-          let text = prizes[i] === "0.00" ? "Oops!" : prizes[i];
-          ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
-          ctx.restore();
-        }
-      }
-
       async function validateAndOpenPin() {
-        const amount = parseFloat(document.getElementById("amount").value);
+        let lang = localStorage.getItem("lang") || "en";
         const select = document.getElementById("fromAccount");
+
+        if (
+          !select ||
+          select.options.length === 0 ||
+          select.selectedIndex === -1
+        ) {
+          return Swal.fire(
+            "Error",
+            "បញ្ហាទាញយកគណនីប្រភព សូម Refresh ឡើងវិញ",
+            "error",
+          );
+        }
+
+        const amountStr = document.getElementById("amount").value;
+        const amount = parseFloat(amountStr);
         const currentBal = parseFloat(
           select.options[select.selectedIndex].dataset.balance,
         );
-        let lang = localStorage.getItem("lang") || "en";
 
-        if (!amount || amount <= 0)
+        if (!amount || amount <= 0) {
           return Swal.fire(
             "Warning",
             lang === "kh"
@@ -1290,19 +1241,33 @@
               : "Please enter valid amount",
             "warning",
           );
-
-        if (amount > currentBal)
+        }
+        if (amount > currentBal) {
           return Swal.fire(
             "Error",
             lang === "kh" ? "សមតុល្យមិនគ្រប់គ្រាន់" : "Insufficient Balance",
             "error",
           );
+        }
+
+        const receiverAcc = document.getElementById("receiverAcc").value.trim();
+        if (receiverAcc.length < 6) {
+          return Swal.fire(
+            "Warning",
+            lang === "kh"
+              ? "សូមបញ្ចូលគណនីអ្នកទទួលឲ្យបានត្រឹមត្រូវ"
+              : "Please enter a valid receiver account",
+            "warning",
+          );
+        }
 
         const isValidReceiver = await checkName();
         if (!isValidReceiver) {
-          const statusText = document.getElementById("nameCheck").innerText;
-          if (statusText.includes("✘"))
-            return Swal.fire("Error", "Receiver Not Found", "error");
+          return Swal.fire(
+            "Error",
+            lang === "kh" ? "រកមិនឃើញគណនីអ្នកទទួលទេ" : "Receiver Not Found",
+            "error",
+          );
         }
 
         document.getElementById("pinModal").style.display = "flex";
@@ -1328,11 +1293,10 @@
           urlParams.get("source") === "qr" ? "QR Scan" : "Account Input";
         const amount = document.getElementById("amount").value;
 
-        // 🔥 ចាប់យកលេខគណនីដែលគេកំពុងរើសយកទៅបាញ់ API
         const select = document.getElementById("fromAccount");
         const selectedOption = select.options[select.selectedIndex];
         const fromAccountType = selectedOption.dataset.currency;
-        const senderAccountVal = selectedOption.value; // "MAIN_USD", "MAIN_KHR", ឬ លេខកុង Sub
+        const senderAccountVal = selectedOption.value;
 
         const receiverAcc = document.getElementById("receiverAcc").value;
 
@@ -1346,7 +1310,7 @@
           let apiUrl = "/api/transfer";
           let requestBody = {
             senderUsername: user.username,
-            senderAccount: senderAccountVal, // 🔥 បញ្ជូនទៅ Backend ដើម្បីឱ្យដឹងថាកាត់លុយពីកុងណា
+            senderAccount: senderAccountVal,
             receiverAccount: receiverAcc,
             amount: amount,
             remark: document.getElementById("remark").value,
@@ -1390,7 +1354,6 @@
                 return;
               }
 
-              // 🔥 ធ្វើបច្ចុប្បន្នភាពសមតុល្យតាមគណនីដែលបានរើស
               if (senderAccountVal === "MAIN_USD")
                 user.balance = data.newBalance;
               else if (senderAccountVal === "MAIN_KHR")
@@ -1404,7 +1367,11 @@
               }
 
               user.transactions.unshift(data.slipData);
-              sessionStorage.setItem("user", JSON.stringify(user));
+
+              if (sessionStorage.getItem("user"))
+                sessionStorage.setItem("user", JSON.stringify(user));
+              if (localStorage.getItem("user"))
+                localStorage.setItem("user", JSON.stringify(user));
 
               new Audio(
                 "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
@@ -1427,7 +1394,7 @@
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     orderId: orderId,
-                    amount: urlParams.get("amount"),
+                    amount: amount,
                     user: shopBuyerName,
                     items: items,
                   }),
@@ -1447,7 +1414,7 @@
                 showSlipData(data.slipData);
               }
             } else {
-              Swal.fire("Failed", data.message, "error");
+              Swal.fire("បរាជ័យ", data.message, "error");
             }
           } catch (error) {
             console.error("API Error:", error);
@@ -1461,19 +1428,13 @@
         spinIsActive = true;
         const prizeValues = [0.05, 0.5, 0, 0.1, 1.0, 0.2];
         const rand = Math.random();
-        let targetIndex = 2;
-        if (rand < 0.1) targetIndex = 4;
-        else if (rand < 0.3) targetIndex = 1;
-        else if (rand < 0.6) targetIndex = 5;
-        else if (rand < 0.8) targetIndex = 3;
-        else targetIndex = 0;
-
+        let targetIndex =
+          rand < 0.1 ? 4 : rand < 0.3 ? 1 : rand < 0.6 ? 5 : rand < 0.8 ? 3 : 0;
         const targetAngle = 270 - (targetIndex * 60 + 30);
         const totalRotation = 360 * 5 + targetAngle;
         const canvas = document.getElementById("wheelCanvas");
         canvas.style.transition = "transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)";
         canvas.style.transform = `rotate(${totalRotation}deg)`;
-
         let lang = localStorage.getItem("lang") || "en";
 
         setTimeout(() => {
@@ -1492,23 +1453,16 @@
               .then((data) => {
                 if (data.success) {
                   user.balance = data.balance;
-                  sessionStorage.setItem("user", JSON.stringify(user));
+                  if (sessionStorage.getItem("user"))
+                    sessionStorage.setItem("user", JSON.stringify(user));
+                  if (localStorage.getItem("user"))
+                    localStorage.setItem("user", JSON.stringify(user));
+
                   new Audio(
                     "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                   )
                     .play()
-                    .catch((e) => {});
-
-                  if (typeof showAppNotification === "function") {
-                    showAppNotification(
-                      lang === "kh" ? "អបអរសាទរ!" : "Congratulations!",
-                      lang === "kh"
-                        ? `អ្នកឈ្នះបាន $${wonAmount.toFixed(2)}`
-                        : `You won $${wonAmount.toFixed(2)}`,
-                      "receive",
-                    );
-                  }
-
+                    .catch(() => {});
                   let tTitle =
                     lang === "kh"
                       ? `ឈ្នះបាន $${wonAmount.toFixed(2)}!`
@@ -1527,7 +1481,9 @@
               });
           } else {
             let tOops =
-              lang === "kh" ? "សូមព្យាយាមម្តងទៀត!" : "Better luck next time.";
+              lang === "kh"
+                ? "សូមព្យាយាមម្តងទៀតនៅពេលក្រោយ!"
+                : "Better luck next time.";
             Swal.fire({
               icon: "info",
               title: "Oops!",
@@ -1555,14 +1511,9 @@
         const formattedAmt = Math.abs(data.amount).toLocaleString("en-US", {
           minimumFractionDigits: isKHR ? 0 : 2,
         });
-
-        if (isKHR)
-          document.getElementById("slipAmount").innerText =
-            `${formattedAmt} ${sign}`;
-        else
-          document.getElementById("slipAmount").innerText =
-            `${sign}${formattedAmt}`;
-
+        document.getElementById("slipAmount").innerText = isKHR
+          ? `${formattedAmt} ${sign}`
+          : `${sign}${formattedAmt}`;
         document.getElementById("slipRef").innerText = data.refId;
         document.getElementById("slipHash").innerText = data.hash || "N/A";
         document.getElementById("slipSender").innerText = user.username;
@@ -1587,12 +1538,8 @@
       }
 
       function returnToShopOrDashboard() {
-        if (callbackUrl) {
-          const urlObj = new URL(callbackUrl);
-          window.location.href = urlObj.origin;
-        } else {
-          window.location.href = "dashboard.html";
-        }
+        if (callbackUrl) window.location.href = new URL(callbackUrl).origin;
+        else window.location.href = "dashboard.html";
       }
     </script>
   </body>
