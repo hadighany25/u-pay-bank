@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
-const bcrypt = require("bcryptjs");
+// លុបការទាញយក bcryptjs ចោល ព្រោះប្រព័ន្ធរបស់បងរក្សាទុក Password ជាអក្សរធម្មតា
 
 const createJuniorAccount = async (req, res) => {
   try {
@@ -23,7 +23,7 @@ const createJuniorAccount = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
 
-    // ២. ផ្ទៀងផ្ទាត់ PIN របស់ប៉ាម៉ាក់ (កែមកប្រៀបធៀបផ្ទាល់បែបនេះវិញ)
+    // ២. ផ្ទៀងផ្ទាត់ PIN របស់ប៉ាម៉ាក់ (ប្រៀបធៀបផ្ទាល់)
     if (parent.pin !== pin) {
       return res.status(400).json({
         success: false,
@@ -67,11 +67,11 @@ const createJuniorAccount = async (req, res) => {
     }
 
     // ៦. 🔒 បង្កើតគណនីកុមារ (Shadow User)
-    const hashedChildPassword = await bcrypt.hash(childPassword, 10);
-
+    // 🔥 កែចំណុចនេះ៖ រក្សាទុក Password ធម្មតា និងបន្ថែម ID/Date ដើម្បីកុំឱ្យមានបញ្ហាពេល Login
     const newJunior = new User({
+      id: Date.now().toString(), // ទាមទារដោយ Model ដើម
       username: childUsername,
-      password: hashedChildPassword, // កូនប្រើ Password នេះដើម្បី Login ចូល App
+      password: childPassword, // 👈 មិនបាច់ Hash ទេ ព្រោះប្រព័ន្ធបងឆែក Password ធម្មតា
       fullName: childName,
       accountNumber: currencyOption === "KHR" ? null : primaryNumber,
       accountNumberKHR:
@@ -87,7 +87,10 @@ const createJuniorAccount = async (req, res) => {
       dailyLimit: dailyLimit,
       dailySpent: 0,
       isFrozen: false,
+      joinDate: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
     });
+
     await newJunior.save();
 
     // ៧. កាត់លុយថ្លៃសេវាពីគណនីប៉ាម៉ាក់ និងកត់ត្រាប្រវត្តិ
@@ -116,7 +119,7 @@ const createJuniorAccount = async (req, res) => {
     // ៨. ភ្ជាប់គណនីកូនចូលទៅក្នុង Dropdown `subAccounts` របស់ប៉ាម៉ាក់
     parent.subAccounts = parent.subAccounts || [];
     parent.subAccounts.push({
-      accountId: newJunior.username, // ទុក Username កូន ដើម្បីងាយស្រួលទាញទិន្នន័យ
+      accountId: newJunior.username,
       accountNumber: primaryNumber,
       accountName: childName + " (Junior)",
       accountType: "junior",
@@ -131,7 +134,7 @@ const createJuniorAccount = async (req, res) => {
       success: true,
       message: "គណនីកុមារត្រូវបានបង្កើតជោគជ័យ!",
       secondNumber: secondaryNumber,
-      user: parent, // ផ្ញើទិន្នន័យ Parent ថ្មីដើម្បី Update Session
+      user: parent,
     });
   } catch (error) {
     console.error("Junior Creation Error:", error);
