@@ -14,6 +14,7 @@ const User = require("../models/User");
 const Chat = require("../models/Chat");
 const mongoose = require("mongoose");
 const PromoCode = require("../models/PromoCode");
+const JointAccount = require("../models/JointAccount");
 const { getFormattedDate, generateHash } = require("../services/helpers");
 const Merchant = require("../models/Merchant");
 
@@ -432,6 +433,8 @@ const adjustBalance = async (req, res) => {
 
     // អថេរសម្រាប់ផ្ទុកលេខគណនីពិតប្រាកដដែលត្រូវដាក់ប្រាក់ចូល
     let actualUserAcc = "";
+    // 🔥 អថេរសម្រាប់ផ្ទុកទិន្នន័យគណនីរួម បើរកឃើញ
+    let targetJointAcc = null;
 
     // ឆែកមើលប្រភេទគណនី និងធ្វើការបូក/ដកប្រាក់តាមគណនីជាក់លាក់
     if (targetAccount === "MAIN_USD") {
@@ -459,7 +462,7 @@ const adjustBalance = async (req, res) => {
           ? (user.balanceKHR || 0) + adjustAmount
           : (user.balanceKHR || 0) - adjustAmount;
     } else {
-      // ករណីជារើសគណនី Sub-account (Premium/Saving/Pocket)
+      // ករណីជារើសគណនី Sub-account (Premium/Saving/Pocket/Joint)
       const subIdx = user.subAccounts.findIndex(
         (s) => s.accountNumber === targetAccount,
       );
@@ -467,22 +470,50 @@ const adjustBalance = async (req, res) => {
         return res.json({ success: false, message: "Sub-account not found!" });
       }
 
-      actualUserAcc = targetAccount; // យកលេខកុង Sub-account មកប្រើ
+      actualUserAcc = targetAccount;
+      const subAcc = user.subAccounts[subIdx];
 
+      // 🔥 ឆែកមើលថាតើ Sub-account នេះជាគណនីរួមដែរឬទេ?
       if (
-        type === "deduct" &&
-        user.subAccounts[subIdx].balance < adjustAmount
+        subAcc.accountType === "joint" ||
+        subAcc.accountType === "joint_member"
       ) {
-        return res.json({
-          success: false,
-          message: "Insufficient balance in Sub-account!",
+        targetJointAcc = await JointAccount.findOne({
+          accountId: subAcc.accountId,
         });
-      }
+        if (!targetJointAcc)
+          return res.json({
+            success: false,
+            message: "រកគណនីរួមក្នុងប្រព័ន្ធមិនឃើញទេ!",
+          });
 
-      user.subAccounts[subIdx].balance =
-        type === "add"
-          ? user.subAccounts[subIdx].balance + adjustAmount
-          : user.subAccounts[subIdx].balance - adjustAmount;
+        if (type === "deduct" && targetJointAcc.balance < adjustAmount) {
+          return res.json({
+            success: false,
+            message: "សមតុល្យក្នុងគណនីរួមមិនគ្រប់គ្រាន់ទេ!",
+          });
+        }
+
+        // Update លុយចូលធុងកណ្តាលរបស់ JointAccount
+        targetJointAcc.balance =
+          type === "add"
+            ? targetJointAcc.balance + adjustAmount
+            : targetJointAcc.balance - adjustAmount;
+        await targetJointAcc.save();
+      } else {
+        // បើជា Sub-account ធម្មតា (Premium/Pocket) មិនមែន Joint ទេ
+        if (type === "deduct" && subAcc.balance < adjustAmount) {
+          return res.json({
+            success: false,
+            message: "Insufficient balance in Sub-account!",
+          });
+        }
+        user.subAccounts[subIdx].balance =
+          type === "add"
+            ? subAcc.balance + adjustAmount
+            : subAcc.balance - adjustAmount;
+        user.markModified("subAccounts"); // 🔥 Safety Lock
+      }
     }
 
     // 💰 ធ្វើការបូក/ដកប្រាក់សម្រាប់ Central Bank
@@ -543,25 +574,45 @@ const adjustBalance = async (req, res) => {
       type: type === "add" ? "Fund Disbursement" : "Fund Recovery",
     };
 
-    await Transaction.create(userTrx);
-    await Transaction.create(bankTrx);
-
-    // 🔔 ប្រព័ន្ធលោត Notification
-    if (!user.notifications) user.notifications = [];
+    // 🔥 បញ្ចូល Transaction & Notification (បែងចែកបើជាគណនីរួម)
     const notifMsg =
       type === "add"
         ? `+${sign}${adjustAmount.toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })} credited to your account (${actualUserAcc}).`
         : `-${sign}${adjustAmount.toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })} deducted from your account (${actualUserAcc}).`;
 
-    user.notifications.unshift({
+    const notifData = {
       id: "NOTIF-" + Date.now(),
       title: type === "add" ? "Deposit Received" : "Balance Deducted",
       message: notifMsg,
       date: dateStr,
       isRead: false,
-    });
-    user.markModified("notifications");
+    };
 
+    if (targetJointAcc) {
+      // បើជាគណនីរួម បាញ់ Transaction និង Notification អោយសមាជិកទាំងអស់
+      for (let m of targetJointAcc.members) {
+        if (m.status === "active") {
+          await Transaction.create({ ...userTrx, username: m.username });
+
+          const memberDoc = await User.findOne({ username: m.username });
+          if (memberDoc) {
+            if (!memberDoc.notifications) memberDoc.notifications = [];
+            memberDoc.notifications.unshift(notifData);
+            memberDoc.markModified("notifications");
+            await memberDoc.save();
+          }
+        }
+      }
+    } else {
+      // បើជាគណនីធម្មតា
+      await Transaction.create(userTrx);
+
+      if (!user.notifications) user.notifications = [];
+      user.notifications.unshift(notifData);
+      user.markModified("notifications");
+    }
+
+    await Transaction.create(bankTrx);
     await user.save();
     await centralBank.save();
 

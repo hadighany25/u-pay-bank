@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
+const JointAccount = require("../models/JointAccount");
 const { checkRole } = require("../middleware/authMiddleware");
 
 // ==========================================
