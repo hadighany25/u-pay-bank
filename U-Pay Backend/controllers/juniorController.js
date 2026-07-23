@@ -23,21 +23,20 @@ const createJuniorAccount = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
 
-    // ២. ផ្ទៀងផ្ទាត់ PIN របស់ប៉ាម៉ាក់
-    const isPinMatch = await bcrypt.compare(pin, parent.pin);
-    if (!isPinMatch)
-      return res
-        .status(400)
-        .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវ!" });
+    // ២. ផ្ទៀងផ្ទាត់ PIN របស់ប៉ាម៉ាក់ (កែមកប្រៀបធៀបផ្ទាល់បែបនេះវិញ)
+    if (parent.pin !== pin) {
+      return res.status(400).json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវ!",
+      });
+    }
 
     // ៣. ឆែកសមតុល្យលុយ (ដើម្បីកាត់ថ្លៃសេវា)
     if (parent.balance < price) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់ការបង្កើតគណនីទេ!",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់ការបង្កើតគណនីទេ!",
+      });
     }
 
     // ៤. ឆែកមើលក្រែងលោ Username ឬ លេខគណនីកូន ជាន់គ្នាជាមួយអ្នកផ្សេង

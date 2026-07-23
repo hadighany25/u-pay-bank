@@ -1483,19 +1483,25 @@
           .forEach((s) => s.classList.remove("active"));
         document.getElementById(screenId).classList.add("active");
         window.scrollTo(0, 0);
+
         if (screenId === "screen-search") {
           document.getElementById("input-search-num").value = "";
           generateRandomList();
-          // ដូរពណ៌ Header តាមប្រភេទ
           const header = document.getElementById("search-nav-header");
           if (flowType === "junior") header.style.background = "#db2777";
           else header.style.background = "#004d40";
         }
+
         if (screenId === "screen-pin") {
           document.getElementById("input-pin").value = ""; // Clear old PIN
           const header = document.getElementById("pin-nav-header");
           if (flowType === "junior") header.style.background = "#db2777";
           else header.style.background = "#004d40";
+
+          // 🔥 ថែមលេខកូដនេះ ដើម្បីឱ្យវា Auto-focus Cursor ចូលប្រអប់ភ្លាមៗ
+          setTimeout(() => {
+            document.getElementById("input-pin").focus();
+          }, 300); // រង់ចាំ ៣០០ មីលីវិនាទី ឱ្យផ្ទាំងលោតចេញរួចសិន សឹម Focus
         }
       }
 
@@ -1594,13 +1600,27 @@
         const password = document.getElementById("input-junior-password").value;
         const limit = document.getElementById("input-junior-limit").value;
 
-        if (!name) return showToast("សូមបញ្ចូលឈ្មោះកូន!", "error");
+        // 🔥 ដូរមកប្រើ Swal.fire វិញ ដើម្បីអោយលោតច្បាស់ៗ
+        if (!name)
+          return Swal.fire("ព័ត៌មានមិនគ្រប់", "សូមបញ្ចូលឈ្មោះកូន!", "warning");
         if (!username || username.includes(" "))
-          return showToast("Username មិនត្រូវមានដកឃ្លាទេ!", "error");
+          return Swal.fire(
+            "ព័ត៌មានមិនគ្រប់",
+            "Username មិនត្រូវមានដកឃ្លាទេ!",
+            "warning",
+          );
         if (password.length < 4)
-          return showToast("Password ត្រូវមានយ៉ាងតិច ៤ ខ្ទង់!", "error");
+          return Swal.fire(
+            "ព័ត៌មានមិនគ្រប់",
+            "Password ត្រូវមានយ៉ាងតិច ៤ ខ្ទង់!",
+            "warning",
+          );
         if (limit < 0 || limit === "")
-          return showToast("សូមបញ្ចូលចំនួនទឹកប្រាក់កំណត់ត្រឹមត្រូវ!", "error");
+          return Swal.fire(
+            "ព័ត៌មានមិនគ្រប់",
+            "សូមបញ្ចូលចំនួនទឹកប្រាក់កំណត់ត្រឹមត្រូវ!",
+            "warning",
+          );
 
         juniorState.name = name;
         juniorState.username = username;
