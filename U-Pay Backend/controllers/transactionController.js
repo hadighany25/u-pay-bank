@@ -181,7 +181,7 @@ const transfer = async (req, res) => {
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
-    const currentFXRates = readFXRates();
+    const currentFXRates = readFXRates(); // ត្រូវប្រាកដថាអថេរនេះមាន Data មកពីកន្លែងណាផ្សេង
 
     // បំប្លែងទៅជា USD ដើម្បីឆែកកម្រិតយកសេវា (Fee Tiers)
     let transferUsdAmount = isSenderKHR
@@ -459,6 +459,7 @@ const transfer = async (req, res) => {
               date,
               isRead: false,
             });
+            uDoc.markModified("notifications");
             await uDoc.save();
           }
         }
@@ -476,22 +477,35 @@ const transfer = async (req, res) => {
             date,
             isRead: false,
           });
+          rDoc.markModified("notifications");
           await rDoc.save();
         }
       }
     }
 
-    // បាញ់ Socket ទៅអ្នកទទួលអោយលោត Notification ភ្លាមៗ (Real-time)
+    // 🔥 កែចំណុចនេះ៖ បាញ់ Socket (Real-time Alert) ទៅកាន់សមាជិកទាំងអស់ក្នុងគណនីរួម
     const io = req.app.get("io");
     if (io) {
-      const targetSocketUser = isMerchant
-        ? receiverMerchant.userId
-        : receiver.username;
-      io.to(targetSocketUser).emit("paymentReceived", {
+      const socketPayload = {
         amount: receiverAmount,
         currency: isReceiverKHR ? "KHR" : "USD",
         senderName: sender.fullName || sender.username,
-      });
+      };
+
+      if (!isMerchant && jointReceiverAcc) {
+        // បើជាកុងរួម, បាញ់ Socket ទៅកាន់ username សមាជិកម្នាក់ៗ
+        for (let m of jointReceiverAcc.members) {
+          if (m.status === "active") {
+            io.to(m.username).emit("paymentReceived", socketPayload);
+          }
+        }
+      } else {
+        // បើជាកុងធម្មតា
+        const targetSocketUser = isMerchant
+          ? receiverMerchant.userId
+          : receiver.username;
+        io.to(targetSocketUser).emit("paymentReceived", socketPayload);
+      }
     }
 
     // ------------------------------------------
@@ -805,7 +819,7 @@ const sendEgift = async (req, res) => {
 
   try {
     // កំណត់អត្រាប្តូរប្រាក់ (ទាញពី System មកវិញល្អជាង Fix ចោល)
-    const currentFXRates = readFXRates();
+    const currentFXRates = readFXRates(); // ត្រូវប្រាកដថាអថេរនេះមាន Data មកពីកន្លែងណាផ្សេង
     const giftAmount = parseFloat(amount);
 
     // ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងលេខកូដ PIN
@@ -1054,6 +1068,7 @@ const sendEgift = async (req, res) => {
           if (uDoc) {
             uDoc.notifications = uDoc.notifications || [];
             uDoc.notifications.push(giftNotification);
+            uDoc.markModified("notifications");
             await uDoc.save();
           }
         }
@@ -1061,6 +1076,7 @@ const sendEgift = async (req, res) => {
     } else {
       receiver.notifications = receiver.notifications || [];
       receiver.notifications.push(giftNotification);
+      receiver.markModified("notifications");
       await receiver.save();
     }
 
@@ -1078,15 +1094,26 @@ const sendEgift = async (req, res) => {
       newBalanceRes = sender.balance;
     }
 
-    // បាញ់ Socket (Real-time)
+    // 🔥 កែចំណុចនេះ៖ បាញ់ Socket (Real-time) អោយសមាជិកទាំងអស់ក្នុងកុងរួម
     const io = req.app.get("io");
     if (io) {
-      io.to(receiver.username).emit("paymentReceived", {
+      const socketPayload = {
         amount: giftAmount,
         currency: currency,
         senderName: sender.fullName || sender.username,
         isGift: true,
-      });
+      };
+
+      if (jointReceiverAcc) {
+        // បាញ់ចូល Username សមាជិកនីមួយៗ
+        for (let m of jointReceiverAcc.members) {
+          if (m.status === "active") {
+            io.to(m.username).emit("paymentReceived", socketPayload);
+          }
+        }
+      } else {
+        io.to(receiver.username).emit("paymentReceived", socketPayload);
+      }
     }
 
     res.json({
