@@ -101,7 +101,7 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// 💸 ២. មុខងារវេរលុយ (មានសេវា, ប្តូរប្រាក់, គណនីរួម & Merchant)
+// 💸 ២. មុខងារវេរលុយ (មានសេវា, ប្តូរប្រាក់, គណនីរួម, Merchant & Junior)
 // ==========================================
 const transfer = async (req, res) => {
   const {
@@ -150,13 +150,20 @@ const transfer = async (req, res) => {
     }
     sender.pinAttempts = 0; // Reset PIN ពេលវាយត្រូវ
 
+    // 🔥 FIX ទី១៖ ស្វែងរកគណនីមេ (User ធម្មតា ឬ Junior) ជាមុនសិន
     let receiver = await User.findOne({
       $or: [
         { accountNumber: receiverAccount },
         { accountNumberKHR: receiverAccount },
-        { "subAccounts.accountNumber": receiverAccount },
       ],
     });
+
+    // បើរករាងកាយ User ដើមមិនឃើញទេ ទើបស្វែងរកក្នុង SubAccounts (សម្រាប់ Saving/Pocket/Joint)
+    if (!receiver) {
+      receiver = await User.findOne({
+        "subAccounts.accountNumber": receiverAccount,
+      });
+    }
 
     let receiverMerchant = null;
     let isMerchant = false;
@@ -181,7 +188,7 @@ const transfer = async (req, res) => {
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
     const isSenderKHR = currency === "KHR";
-    const currentFXRates = readFXRates(); // ត្រូវប្រាកដថាអថេរនេះមាន Data មកពីកន្លែងណាផ្សេង
+    const currentFXRates = readFXRates();
 
     // បំប្លែងទៅជា USD ដើម្បីឆែកកម្រិតយកសេវា (Fee Tiers)
     let transferUsdAmount = isSenderKHR
@@ -212,6 +219,7 @@ const transfer = async (req, res) => {
     let isSenderSubAccount = false;
     let senderSubIndex = -1;
     let jointSenderAcc = null;
+    let juniorSenderAcc = null; // 🔥 សម្រាប់ផ្ទុកទិន្នន័យពិតរបស់គណនីកូនបើម៉ាក់ប៉ាផ្ញើចេញពីកុងកូន
 
     if (
       senderAccount &&
@@ -234,6 +242,14 @@ const transfer = async (req, res) => {
         if (!jointSenderAcc)
           return res.json({ success: false, message: "រកគណនីរួមនេះមិនឃើញទេ!" });
         senderAvailableBal = jointSenderAcc.balance;
+      } else if (sType === "junior") {
+        // 🔥 FIX ទី២៖ បើកាត់លុយចេញពីកុងកូន ត្រូវទៅឆែកលុយពី User កូនផ្ទាល់
+        juniorSenderAcc = await User.findOne({ accountNumber: senderAccount });
+        if (!juniorSenderAcc)
+          return res.json({ success: false, message: "រកគណនីកូនមិនឃើញទេ!" });
+        senderAvailableBal = isSenderKHR
+          ? juniorSenderAcc.balanceKHR || 0
+          : juniorSenderAcc.balance || 0;
       } else {
         senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
       }
@@ -299,7 +315,7 @@ const transfer = async (req, res) => {
         receiver = owner;
       }
     } else {
-      // ករណីបាញ់ឲ្យ User ធម្មតា
+      // ករណីបាញ់ឲ្យ User ធម្មតា ឬ Junior
       targetSubAccIndex = receiver.subAccounts.findIndex(
         (acc) => acc.accountNumber === receiverAccount,
       );
@@ -359,6 +375,13 @@ const transfer = async (req, res) => {
           jointSenderAcc.balance -= totalDeduction;
           await jointSenderAcc.save();
         }
+      } else if (senderSubAcc.accountType === "junior") {
+        // 🔥 FIX ទី៣៖ កាត់លុយពីគណនីកូនពិតប្រាកដ
+        if (juniorSenderAcc) {
+          if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
+          else juniorSenderAcc.balance -= totalDeduction;
+          await juniorSenderAcc.save();
+        }
       } else {
         senderSubAcc.balance -= totalDeduction;
         sender.markModified("subAccounts"); // 🔥 Safety Lock
@@ -392,7 +415,6 @@ const transfer = async (req, res) => {
         ? sender.accountNumberKHR
         : sender.accountNumber;
 
-    // 🔥 ១. កំណត់ឈ្មោះអ្នកផ្ញើ និងអ្នកទទួលឱ្យចេញឈ្មោះគណនីរួមពេញលេញ (Full Name)
     const finalSenderName = jointSenderAcc
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
@@ -410,8 +432,8 @@ const transfer = async (req, res) => {
       amount: -totalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
       fee: appliedFee,
-      senderName: finalSenderName, // ប្រើឈ្មោះដែលបានកំណត់
-      receiverName: finalReceiverName, // ប្រើឈ្មោះដែលបានកំណត់
+      senderName: finalSenderName,
+      receiverName: finalReceiverName,
       receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
@@ -428,8 +450,8 @@ const transfer = async (req, res) => {
       amount: receiverAmount,
       currency: isReceiverKHR ? "KHR" : "USD",
       fee: 0,
-      senderName: finalSenderName, // ប្រើឈ្មោះដែលបានកំណត់
-      receiverName: finalReceiverName, // ប្រើឈ្មោះដែលបានកំណត់
+      senderName: finalSenderName,
+      receiverName: finalReceiverName,
       receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
@@ -451,7 +473,6 @@ const transfer = async (req, res) => {
 
     // Save Receiver Trx & Send Notification
     const currencySymbol = isReceiverKHR ? "៛" : "$";
-    // 🔥 ២. កំណត់ឈ្មោះអ្នកផ្ញើសម្រាប់បង្ហាញក្នុងសារ Notification (មានពាក្យ "គណនីរួម" ពីមុខ បើផ្ញើពីកុងរួម)
     const senderMsgName = jointSenderAcc
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
@@ -494,13 +515,13 @@ const transfer = async (req, res) => {
       }
     }
 
-    // បាញ់ Socket (Real-time Alert) ទៅកាន់សមាជិកទាំងអស់ក្នុងគណនីរួម
+    // បាញ់ Socket (Real-time Alert)
     const io = req.app.get("io");
     if (io) {
       const socketPayload = {
         amount: receiverAmount,
         currency: isReceiverKHR ? "KHR" : "USD",
-        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
+        senderName: finalSenderName,
       };
 
       if (!isMerchant && jointReceiverAcc) {
@@ -530,6 +551,16 @@ const transfer = async (req, res) => {
           accountId: updatedSender.subAccounts[senderSubIndex].accountId,
         });
         newBalanceRes = updatedJoint ? updatedJoint.balance : 0;
+      } else if (sType === "junior") {
+        // 🔥 FIX ទី៤៖ ទាញសមតុល្យកូនថ្មី
+        const updatedJunior = await User.findOne({
+          accountNumber: senderAccount,
+        });
+        newBalanceRes = updatedJunior
+          ? isSenderKHR
+            ? updatedJunior.balanceKHR
+            : updatedJunior.balance
+          : 0;
       } else {
         newBalanceRes = updatedSender.subAccounts[senderSubIndex].balance;
       }
@@ -539,7 +570,6 @@ const transfer = async (req, res) => {
         : updatedSender.balance;
     }
 
-    // ជោគជ័យ! បញ្ជូន Slip ទៅ Frontend វិញ
     res.json({ success: true, newBalance: newBalanceRes, slipData: senderTrx });
   } catch (err) {
     console.error("TRANSFER ERROR:", err);
