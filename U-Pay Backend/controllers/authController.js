@@ -1,17 +1,24 @@
+// ==========================================
+// 📦 ផ្នែកទី ១៖ ទាញយក Modules និង Models
+// ==========================================
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
-// 🔥 ថែមម៉ូឌុល JointAccount ដើម្បីទាញលុយពិតប្រាកដ
 const JointAccount = require("../models/JointAccount");
+const Admin = require("../models/Admin");
+
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
-const Admin = require("../models/Admin");
-const bcrypt = require("bcryptjs");
-
+// អថេរសម្រាប់ផ្ទុក OTP បណ្តោះអាសន្នពេលភ្លេចលេខសម្ងាត់
 let tempForgotOtps = {};
 
+// ==========================================
+// 🛠️ ផ្នែកទី ២៖ មុខងារជំនួយ (Helper Functions)
+// ==========================================
 // មុខងារជំនួយសម្រាប់បង្កើតលេខគណនីអូតូ
 const generatePatternAccounts = (users) => {
   let isUnique = false;
@@ -37,6 +44,9 @@ const generatePatternAccounts = (users) => {
   return { usd: newAccUSD, khr: newAccKHR };
 };
 
+// ==========================================
+// 🔐 ផ្នែកទី ៣៖ ការគ្រប់គ្រងការចូលប្រើ (Authentication - Register, Login, Logout)
+// ==========================================
 const register = async (req, res) => {
   const { username, password, fullName, phone, pin } = req.body;
   try {
@@ -93,6 +103,7 @@ const login = async (req, res) => {
       ],
       password: password,
     });
+
     if (user) {
       if (user.isFrozen)
         return res.json({ success: false, message: "Account Frozen!" });
@@ -111,7 +122,7 @@ const login = async (req, res) => {
       const safeUser = user.toObject();
 
       // ========================================================
-      // 🔥 ចំណុចកែទី១៖ ធ្វើបច្ចុប្បន្នភាពលុយគណនីរួមពី JointAccount អោយត្រូវ ១០០%
+      // 🔥 ១. ធ្វើបច្ចុប្បន្នភាពលុយគណនីរួមពី JointAccount អោយត្រូវ ១០០%
       // ========================================================
       if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
         const jointAccIds = safeUser.subAccounts
@@ -122,7 +133,6 @@ const login = async (req, res) => {
           .map((sa) => sa.accountId);
 
         if (jointAccIds.length > 0) {
-          // ទាញយកទិន្នន័យពីធុងលុយ JointAccount
           const jointAccounts = await JointAccount.find({
             accountId: { $in: jointAccIds },
           });
@@ -131,7 +141,6 @@ const login = async (req, res) => {
             jointMap[ja.accountId] = ja.balance;
           });
 
-          // Update លុយក្នុង Array មុននឹងបញ្ជូនទៅ Dashboard
           safeUser.subAccounts.forEach((sa) => {
             if (
               sa.accountType === "joint" ||
@@ -145,6 +154,15 @@ const login = async (req, res) => {
         }
       }
 
+      // ========================================================
+      // 👶 ២. ការអនុញ្ញាតពិសេសសម្រាប់គណនីកុមារ (Junior Account)
+      // ========================================================
+      if (safeUser.role === "junior") {
+        // រំលង KYC សម្រាប់ក្មេង ដោយចាត់ទុកថាជា Verified ស្រាប់
+        safeUser.kycStatus = "verified";
+      }
+
+      // លុបទិន្នន័យសម្ងាត់ចេញមុននឹងបោះទៅ Frontend
       delete safeUser.password;
       delete safeUser.pin;
 
@@ -185,6 +203,9 @@ const logout = async (req, res) => {
   }
 };
 
+// ==========================================
+// 📡 ផ្នែកទី ៤៖ ការទាញយកទិន្នន័យ (Data Retrieval & User Status)
+// ==========================================
 const heartbeat = async (req, res) => {
   const { username } = req.body;
   try {
@@ -199,15 +220,11 @@ const heartbeat = async (req, res) => {
   }
 };
 
-// ==========================================
-// 🔄 ទាញយកទិន្នន័យ User និងទាញ Transaction ថ្មីៗ ១០០%
-// ==========================================
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({});
     const allTransactions = await Transaction.find({}).sort({ createdAt: -1 });
 
-    // 🔥 ចំណុចកែទី២៖ ទាញយកធុងលុយគណនីរួមទាំងអស់ ដើម្បី Update លុយអោយត្រូវរាល់ពេល Load
     const allJointAccounts = await JointAccount.find({});
     const jointMap = {};
     allJointAccounts.forEach((ja) => {
@@ -217,12 +234,11 @@ const getUsers = async (req, res) => {
     const usersWithTrx = users.map((user) => {
       const userObj = user.toObject();
 
-      // Update លុយគណនីរួមមុននឹងបញ្ជូនទៅ UI របស់ Admin ឫ Dashboard
       if (userObj.subAccounts && userObj.subAccounts.length > 0) {
         userObj.subAccounts.forEach((sa) => {
           if (sa.accountType === "joint" || sa.accountType === "joint_member") {
             if (jointMap[sa.accountId] !== undefined) {
-              sa.balance = jointMap[sa.accountId]; // Update លុយអោយត្រូវ
+              sa.balance = jointMap[sa.accountId];
             }
           }
         });
@@ -241,6 +257,30 @@ const getUsers = async (req, res) => {
   }
 };
 
+const verifyAccount = async (req, res) => {
+  const { account_number } = req.params;
+  try {
+    const targetUser = await User.findOne({
+      $or: [
+        { accountNumber: account_number },
+        { accountNumberKHR: account_number },
+      ],
+    });
+    if (targetUser)
+      res.json({
+        success: true,
+        account_name: targetUser.fullName || targetUser.username,
+      });
+    else
+      res.status(404).json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+// ==========================================
+// ⚙️ ផ្នែកទី ៥៖ ការកំណត់គណនី (Settings & Updates)
+// ==========================================
 const changePassword = async (req, res) => {
   const { username, oldPassword, newPassword } = req.body;
   try {
@@ -326,6 +366,9 @@ const submitKyc = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🔑 ផ្នែកទី ៦៖ ការសង្គ្រោះគណនី (Forgot Password & Recovery)
+// ==========================================
 const verifyUser = async (req, res) => {
   const { identifier } = req.body;
   try {
@@ -367,6 +410,9 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🤖 ផ្នែកទី ៧៖ ការតភ្ជាប់ Telegram (Telegram Link)
+// ==========================================
 const generateTelegramCode = async (req, res) => {
   const { username } = req.body;
   try {
@@ -405,27 +451,9 @@ const unlinkTelegram = async (req, res) => {
   }
 };
 
-const verifyAccount = async (req, res) => {
-  const { account_number } = req.params;
-  try {
-    const targetUser = await User.findOne({
-      $or: [
-        { accountNumber: account_number },
-        { accountNumberKHR: account_number },
-      ],
-    });
-    if (targetUser)
-      res.json({
-        success: true,
-        account_name: targetUser.fullName || targetUser.username,
-      });
-    else
-      res.status(404).json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-};
-
+// ==========================================
+// 🛡️ ផ្នែកទី ៨៖ ការគ្រប់គ្រងដោយ Admin (Admin & System)
+// ==========================================
 const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -520,6 +548,9 @@ const migrateTransactions = async (req, res) => {
   }
 };
 
+// ==========================================
+// 📤 ផ្នែកទី ៩៖ បញ្ចេញមុខងារ (Exports)
+// ==========================================
 module.exports = {
   register,
   login,

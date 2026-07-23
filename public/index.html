@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Login - U-Pay</title>
+
+    <!-- ========================================== -->
+    <!-- 🗂️ ផ្នែកទាញយក Fonts & Libraries -->
+    <!-- ========================================== -->
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -16,7 +20,9 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-      /* BASE STYLES */
+      /* ========================================== */
+      /* 🎨 ១. BASE STYLES (ការរៀបចំទូទៅ) */
+      /* ========================================== */
       body {
         margin: 0;
         padding: 0;
@@ -28,7 +34,9 @@
         min-height: 100vh;
       }
 
-      /* MOBILE APP STYLE CONTAINER */
+      /* ========================================== */
+      /* 📱 ២. MOBILE APP CONTAINER (ស៊ុមទូរស័ព្ទ) */
+      /* ========================================== */
       .app-container {
         background: white;
         width: 100%;
@@ -53,7 +61,9 @@
         }
       }
 
-      /* GREEN HEADER SECTION */
+      /* ========================================== */
+      /* 🟢 ៣. HEADER SECTION (ផ្នែកពណ៌បៃតងខាងលើ) */
+      /* ========================================== */
       .header-section {
         background: linear-gradient(135deg, #004d40, #00695c);
         color: white;
@@ -86,7 +96,9 @@
         opacity: 0.8;
       }
 
-      /* FORM SECTION */
+      /* ========================================== */
+      /* 📝 ៤. FORM SECTION (ផ្នែកប្រអប់បញ្ចូលទិន្នន័យ) */
+      /* ========================================== */
       .form-section {
         padding: 35px 30px 30px 30px;
         display: flex;
@@ -139,7 +151,7 @@
         box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
       }
 
-      /* TOGGLE PASSWORD ICON */
+      /* Icon សម្រាប់មើល/លាក់ Password */
       .toggle-password {
         position: absolute;
         right: 15px;
@@ -151,11 +163,14 @@
         padding: 5px;
         z-index: 2;
       }
+
       .toggle-password:hover {
         color: #0f172a;
       }
 
-      /* BUTTON */
+      /* ========================================== */
+      /* 🔘 ៥. BUTTON & LINKS (ប៊ូតុង និងតំណភ្ជាប់) */
+      /* ========================================== */
       .btn-primary {
         width: 100%;
         padding: 15px 0;
@@ -174,31 +189,35 @@
         align-items: center;
         gap: 8px;
       }
+
       .btn-primary:hover {
         background: #00382e;
         transform: translateY(-2px);
         box-shadow: 0 6px 15px rgba(0, 77, 64, 0.3);
       }
+
       .btn-primary:active {
         transform: translateY(0);
       }
+
       .btn-primary:disabled {
         opacity: 0.7;
         cursor: not-allowed;
       }
 
-      /* LINKS & BADGE */
       .link {
         margin-top: 25px;
         font-size: 0.95rem;
         color: #64748b;
         text-align: center;
       }
+
       .link a {
         color: #004d40;
         text-decoration: none;
         font-weight: 700;
       }
+
       .link a:hover {
         text-decoration: underline;
       }
@@ -214,26 +233,29 @@
         gap: 6px;
       }
 
-      /* ================================================= */
-      /* 🔥 PREMIUM SWAL STYLING (កែថ្មីឱ្យស្អាតកប់) */
-      /* ================================================= */
+      /* ========================================== */
+      /* 💎 ៦. PREMIUM SWAL STYLING (កែ SweetAlert2) */
+      /* ========================================== */
       .premium-swal {
         border-radius: 28px !important;
         padding: 30px 20px 20px 20px !important;
         background: #ffffff !important;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
       }
+
       .swal2-title {
         font-family: "Inter", "Kantumruy Pro", sans-serif !important;
         color: #0f172a !important;
         font-size: 1.4rem !important;
         margin-bottom: 20px !important;
       }
+
       .swal-form-group {
         text-align: left;
         margin-bottom: 18px;
         width: 100%;
       }
+
       .swal-form-label {
         display: block;
         font-size: 0.85rem;
@@ -241,6 +263,7 @@
         font-weight: 600;
         margin-bottom: 8px;
       }
+
       .swal-custom-input {
         width: 100%;
         padding: 15px 16px;
@@ -253,11 +276,13 @@
         transition: 0.2s;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
       }
+
       .swal-custom-input:focus {
         border-color: #004d40;
         background: #ffffff;
         box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
       }
+
       .swal2-actions {
         width: 100%;
         display: flex !important;
@@ -265,6 +290,7 @@
         gap: 10px;
         margin-top: 10px !important;
       }
+
       .premium-btn-confirm {
         background: #004d40 !important;
         color: white !important;
@@ -276,6 +302,7 @@
         margin: 0 !important;
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
       }
+
       .premium-btn-cancel {
         background: #f1f5f9 !important;
         color: #64748b !important;
@@ -287,9 +314,9 @@
         margin: 0 !important;
       }
 
-      /* ================================================= */
-      /* 🔥 CUSTOM SMS TOAST NOTIFICATION (លែងប៉ះពាល់ Swal) */
-      /* ================================================= */
+      /* ========================================== */
+      /* 📩 ៧. CUSTOM SMS TOAST (សារលោតពីលើ) */
+      /* ========================================== */
       .custom-sms-toast {
         position: fixed;
         top: -100px; /* លាក់ពីលើ */
@@ -308,9 +335,11 @@
         max-width: 380px;
         border-left: 6px solid #10b981;
       }
+
       .custom-sms-toast.show {
         top: 25px; /* ហោះធ្លាក់មកក្រោម */
       }
+
       .sms-icon {
         background: #ecfdf5;
         color: #10b981;
@@ -323,15 +352,18 @@
         font-size: 1.2rem;
         flex-shrink: 0;
       }
+
       .sms-content {
         flex-grow: 1;
         text-align: left;
       }
+
       .sms-title {
         font-weight: 700;
         color: #0f172a;
         font-size: 0.95rem;
       }
+
       .sms-desc {
         color: #64748b;
         font-size: 0.85rem;
@@ -340,8 +372,11 @@
       }
     </style>
   </head>
+
   <body>
+    <!-- 🟢 ផ្នែក UI ទូរស័ព្ទ -->
     <div class="app-container">
+      <!-- ផ្នែក Logo និងពាក្យស្វាគមន៍ -->
       <div class="header-section">
         <img
           src="images/logo.png"
@@ -355,8 +390,10 @@
         <p>Login to your U-Pay account</p>
       </div>
 
+      <!-- ផ្នែក Form បញ្ចូលទិន្នន័យ -->
       <div class="form-section">
         <form onsubmit="handleLogin(event)">
+          <!-- ប្រអប់ Username/Phone -->
           <div class="input-group">
             <label>Username / Phone</label>
             <div class="input-box">
@@ -371,6 +408,7 @@
             </div>
           </div>
 
+          <!-- ប្រអប់ Password -->
           <div class="input-group">
             <label>Password</label>
             <div class="input-box">
@@ -389,6 +427,7 @@
             </div>
           </div>
 
+          <!-- ភ្លេចពាក្យសម្ងាត់ -->
           <div
             style="text-align: right; margin-top: -10px; margin-bottom: 20px"
           >
@@ -401,27 +440,34 @@
                 font-weight: 700;
                 text-decoration: none;
               "
-              >Forgot Password?</a
             >
+              Forgot Password?
+            </a>
           </div>
 
+          <!-- ប៊ូតុង Login -->
           <button type="submit" class="btn-primary" id="loginBtn">
             Login Securely <i class="fa-solid fa-arrow-right-to-bracket"></i>
           </button>
         </form>
 
+        <!-- តំណភ្ជាប់ទៅកាន់ការចុះឈ្មោះ -->
         <div class="link">
           Don't have an account? <a href="register.html">Sign Up</a>
         </div>
 
+        <!-- និមិត្តសញ្ញាសុវត្ថិភាព -->
         <div class="security-badge">
           <i class="fa-solid fa-shield-halved"></i> 256-bit Secure Encryption
         </div>
       </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- ⚙️ ផ្នែក JAVASCRIPT LOGIC -->
+    <!-- ========================================== -->
     <script>
-      // មុខងារមើល Password (Show/Hide)
+      // 👁️ មុខងារមើល/លាក់ Password (Show/Hide)
       function toggleVisibility(inputId, iconElement) {
         const input = document.getElementById(inputId);
         if (input.type === "password") {
@@ -435,10 +481,10 @@
         }
       }
 
-      // ចាប់យក Parameters ពី URL
+      // 🔍 ចាប់យក Parameters ពី URL (ឧទាហរណ៍ពេលស្កេន QR)
       const currentUrlParams = window.location.search;
 
-      // ឆែកមើលបើ Login រួចហើយ
+      // 🛡️ ឆែកមើលបើ Login រួចហើយ មិនបាច់អោយ Login ទៀតទេ
       if (
         sessionStorage.getItem("user") &&
         sessionStorage.getItem("userToken")
@@ -452,7 +498,9 @@
         }
       }
 
-      // 🔥 មុខងារ Login ធម្មតា (ដែលត្រូវបាន Update ដើម្បីទាញ Token ទុក)
+      // ==========================================
+      // 🚀 មុខងារ LOGOIN (បញ្ជូនទិន្នន័យទៅ Backend)
+      // ==========================================
       async function handleLogin(e) {
         e.preventDefault();
         const identifier = document.getElementById("identifier").value.trim();
@@ -460,6 +508,7 @@
 
         if (!identifier || !password) return;
 
+        // ប្តូរស្ថានភាពប៊ូតុងទៅជា Loading
         const btn = document.getElementById("loginBtn");
         const originalText = btn.innerHTML;
         btn.innerHTML =
@@ -475,12 +524,13 @@
           const data = await res.json();
 
           if (data.success) {
-            // 🔥 រក្សាទុកទាំង User Data និង Token សម្ងាត់ចូលក្នុង Session
+            // រក្សាទុកទិន្នន័យ User និង Token ទៅក្នុង Session
             sessionStorage.setItem("user", JSON.stringify(data.user));
             if (data.token) {
               sessionStorage.setItem("userToken", data.token);
             }
 
+            // បង្ហាញសារជោគជ័យ
             Swal.fire({
               toast: true,
               position: "top-end",
@@ -490,6 +540,7 @@
               timer: 1500,
             });
 
+            // បញ្ជូនទៅកាន់ទំព័របន្ទាប់
             setTimeout(() => {
               if (currentUrlParams && currentUrlParams.includes("orderId")) {
                 window.location.href = "transfer.html" + currentUrlParams;
@@ -500,6 +551,7 @@
               }
             }, 1000);
           } else {
+            // បើ Login បរាជ័យ
             btn.innerHTML = originalText;
             btn.disabled = false;
             Swal.fire({
@@ -516,9 +568,9 @@
         }
       }
 
-      // =========================================================
-      // 🔥 មុខងារថ្មី៖ CUSTOM SMS TOAST (មិនប៉ះពាល់ផ្ទាំង OTP)
-      // =========================================================
+      // ==========================================
+      // 📩 មុខងារ CUSTOM SMS TOAST (សារលោតពីលើអាកាស)
+      // ==========================================
       function showSmsToast(otp, username) {
         const div = document.createElement("div");
         div.className = "custom-sms-toast";
@@ -531,19 +583,21 @@
           `;
         document.body.appendChild(div);
 
-        // ឱ្យវាហោះចុះមកក្រោម
+        // ឱ្យវាហោះចុះមកក្រោមបន្ទាប់ពីបង្កើតរួច
         setTimeout(() => div.classList.add("show"), 100);
 
-        // បាត់ទៅវិញដោយស្វ័យប្រវត្តិក្រោយ 15 វិនាទី
+        // បាត់ទៅវិញដោយស្វ័យប្រវត្តិក្រោយ ១៥ វិនាទី
         setTimeout(() => {
           div.classList.remove("show");
-          setTimeout(() => div.remove(), 600); // រង់ចាំ Animation ចប់សឹមលុបចេញ
+          setTimeout(() => div.remove(), 600); // រង់ចាំ Animation ចប់សឹមលុបចេញពី DOM
         }, 15000);
       }
 
-      // =========================================================
-      // 🔥 មុខងារ FORGOT PASSWORD FLOW (OTP & RESET)
-      // =========================================================
+      // ==========================================
+      // 🔑 មុខងារ FORGOT PASSWORD (សង្គ្រោះគណនី)
+      // ==========================================
+
+      // រចនាប័ទ្មសម្រាប់ផ្ទាំង SweetAlert ឱ្យមើលទៅ Premium
       const swalStyle = {
         buttonsStyling: false,
         customClass: {
@@ -556,7 +610,7 @@
       async function handleForgotPassword(e) {
         e.preventDefault();
 
-        // STEP 1: វាយបញ្ចូល Username ឬលេខទូរស័ព្ទ
+        // ជំហានទី ១: វាយបញ្ចូល Username ឬ លេខទូរស័ព្ទ
         const { value: identifierInput } = await Swal.fire({
           ...swalStyle,
           title: "🔐 Recovery Account",
@@ -570,11 +624,12 @@
           preConfirm: () => document.getElementById("forgot-id").value.trim(),
         });
 
-        if (!identifierInput) return;
+        if (!identifierInput) return; // ឈប់ដំណើរការបើអត់មានបញ្ជូលអ្វី
 
         Swal.fire({ title: "Checking...", didOpen: () => Swal.showLoading() });
 
         try {
+          // ស្វែងរកគណនីក្នុងប្រព័ន្ធ
           const res = await fetch("/api/forgot-password/verify-user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -595,10 +650,10 @@
           const userPhone = userData.phone;
           const receivedOtp = userData.otp;
 
-          // 🔥 លោត SMS ហោះពីលើអាកាសមក (មិនប៉ះពាល់ Swal ទេ!)
+          // លោតសារ SMS ចំលងហោះពីលើអាកាសមកបង្ហាញលេខ OTP
           setTimeout(() => showSmsToast(receivedOtp, username), 500);
 
-          // STEP 2: វាយបញ្ចូលលេខកូដ OTP (ផ្ទាំងនេះនឹងរង់ចាំនៅទីនេះរហូត)
+          // ជំហានទី ២: ផ្ទាំងវាយបញ្ចូលលេខកូដ OTP
           const { value: otpInput } = await Swal.fire({
             ...swalStyle,
             title: "🔢 OTP Verification",
@@ -615,6 +670,7 @@
 
           if (!otpInput) return; // បើគេចុចខ្វែង ឬ Cancel
 
+          // ឆែកមើលលេខកូដ OTP
           if (otpInput !== receivedOtp) {
             return Swal.fire({
               icon: "error",
@@ -623,7 +679,7 @@
             });
           }
 
-          // STEP 3: បង្កើតពាក្យសម្ងាត់ថ្មី
+          // ជំហានទី ៣: បង្កើតពាក្យសម្ងាត់ថ្មី
           const { value: passwordForm } = await Swal.fire({
             ...swalStyle,
             title: "🆕 Reset Password",
@@ -655,7 +711,7 @@
 
           if (!passwordForm) return;
 
-          // ផ្ញើទៅ Update លើ Database
+          // ផ្ញើទៅ Update លើ Database ក្នុង Backend
           Swal.fire({
             title: "Updating...",
             didOpen: () => Swal.showLoading(),
