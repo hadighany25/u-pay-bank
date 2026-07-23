@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const accountController = require("../controllers/accountController");
-
-// 🔥 កែត្រង់នេះ៖ ប្រើឈ្មោះ verifyUser ទើបត្រូវនឹង Middleware របស់បង
 const { verifyUser } = require("../middleware/authMiddleware");
+
+// ទាញយក File ផ្លូវរបស់ Junior
+const juniorRoutes = require("./juniorRoutes");
 
 // ==========================================
 // 🌟 មុខងារ Premium Account
@@ -34,5 +35,10 @@ router.post(
   verifyUser,
   accountController.respondToJointInvite,
 );
+
+// ==========================================
+// 👶 បញ្ជូនរាល់ Request /junior ទាំងអស់ទៅកាន់ juniorRoutes
+// ==========================================
+router.use("/junior", juniorRoutes);
 
 module.exports = router;

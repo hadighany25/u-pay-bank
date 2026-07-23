@@ -12,10 +12,16 @@ const userSchema = new mongoose.Schema(
     accountNumberKHR: { type: String, unique: true },
     balance: { type: Number, default: 0.0 },
     balanceKHR: { type: Number, default: 0.0 },
+
+    // 🔥 បន្ថែម Fields សម្រាប់ Junior Account (Parental Control)
     role: { type: String, default: "user" },
+    parentUsername: { type: String, default: null }, // សម្គាល់ថា ID នេះជាកូនរបស់អ្នកណា
+    dailyLimit: { type: Number, default: 0 }, // ដែនកំណត់ចាយប្រចាំថ្ងៃរបស់កូន
+    dailySpent: { type: Number, default: 0 }, // កត់ត្រាលុយដែលបានចាយថ្ងៃនេះ
+
     trxLimit: { type: Number, default: 1000.0 },
     profileImage: { type: String, default: "" },
-    isFrozen: { type: Boolean, default: false },
+    isFrozen: { type: Boolean, default: false }, // មានស្រាប់ ងាយស្រួលឱ្យប៉ាម៉ាក់ Freeze កុងកូនពីចម្ងាយ
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
     notifications: { type: Array, default: [] },
