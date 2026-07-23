@@ -157,6 +157,10 @@
         background: #e0e7ff;
         color: #4f46e5;
       }
+      .icon-junior {
+        background: #fce7f3;
+        color: #db2777;
+      }
       .icon-pocket {
         background: #dcfce7;
         color: #16a34a;
@@ -250,23 +254,6 @@
         transform: scale(0.98);
       }
 
-      .btn-secondary {
-        width: 100%;
-        background: #f1f5f9;
-        color: #0f172a;
-        padding: 16px;
-        border: 1px solid #cbd5e1;
-        border-radius: 14px;
-        font-size: 1.1rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .btn-secondary:active {
-        transform: scale(0.98);
-        background: #e2e8f0;
-      }
-
       /* --- SUGGESTED NUMBERS --- */
       .suggested-section-title {
         font-size: 0.95rem;
@@ -345,26 +332,8 @@
         border-bottom: 1px solid #f1f5f9;
         transition: 0.2s;
       }
-      .filter-item:last-child {
-        border-bottom: none;
-      }
-      .filter-item:active {
-        background: #f0fdf4;
-        color: #004d40;
-        font-weight: bold;
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
 
-      /* --- JOINT ACCOUNT UI SPECIFICS --- */
+      /* --- TOGGLE BOX --- */
       .currency-toggle-box {
         display: flex;
         background: #f1f5f9;
@@ -388,7 +357,13 @@
         color: white;
         box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
       }
+      .curr-tab.active-junior {
+        background: #db2777;
+        color: white;
+        box-shadow: 0 2px 8px rgba(219, 39, 119, 0.3);
+      }
 
+      /* Joint Specifics */
       .member-list-box {
         background: white;
         border-radius: 14px;
@@ -418,11 +393,6 @@
         color: #475569;
         overflow: hidden;
       }
-      .member-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
       .member-info {
         flex: 1;
       }
@@ -440,7 +410,6 @@
         padding: 5px;
         cursor: pointer;
       }
-
       .add-member-btn {
         display: flex;
         align-items: center;
@@ -489,9 +458,6 @@
         background: #00251f;
         border-color: #004d40;
       }
-      body.dark-mode .suggested-section-title {
-        color: #f1f5f9;
-      }
       body.dark-mode .suggested-card {
         background: #1e1e1e;
         border-color: #333;
@@ -499,32 +465,11 @@
       body.dark-mode .suggested-card:active {
         background: #2a2a2a;
       }
-      body.dark-mode .suggested-num {
-        color: #10b981;
-      }
-      body.dark-mode .filter-menu {
-        background: #1e1e1e;
-        border-color: #333;
-      }
-      body.dark-mode .filter-item {
-        color: #cbd5e1;
-        border-color: #2d2d2d;
-      }
-      body.dark-mode .filter-item:hover,
-      body.dark-mode .filter-item:active {
-        background: #2a2a2a;
-        color: #10b981;
-      }
       body.dark-mode .currency-toggle-box {
         background: #2d2d2d;
       }
       body.dark-mode .member-item {
         border-color: #333;
-      }
-      body.dark-mode .btn-secondary {
-        background: #2d2d2d;
-        border-color: #475569;
-        color: white;
       }
     </style>
   </head>
@@ -563,7 +508,7 @@
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
 
-          <!-- ២. គណនីរួមគ្រួសារ (Joint Account) - ថ្មី -->
+          <!-- ២. គណនីរួមគ្រួសារ (Joint Account) -->
           <div class="account-card" onclick="startFlow('joint')">
             <div class="card-icon-box icon-family">
               <i class="fa-solid fa-users"></i>
@@ -578,11 +523,299 @@
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
+
+          <!-- ៣. គណនីកុមារ (Junior Account) - ថ្មី -->
+          <div class="account-card" onclick="startFlow('junior')">
+            <div class="card-icon-box icon-junior">
+              <i class="fa-solid fa-child-reaching"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title">U-Pay Junior Account</h4>
+              <p class="card-desc">
+                បង្កើតគណនីឱ្យកូនរបស់អ្នក និងគ្រប់គ្រងការចំណាយពីចម្ងាយ។
+              </p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
         </div>
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២.១: រៀបចំគណនីរួម (JOINT SETUP) - ថ្មី
+           អេក្រង់ទី ២.១: រៀបចំគណនីកុមារ (JUNIOR SETUP) - ថ្មី
+           ========================================== -->
+      <div id="screen-junior-setup" class="screen">
+        <div class="nav-header" style="background: #db2777">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="switchScreen('screen-menu')"
+          ></i>
+          <span>បង្កើតគណនីកុមារ</span>
+        </div>
+        <div class="content-body">
+          <label class="form-label">ជ្រើសរើសរូបិយប័ណ្ណគណនីកូន:</label>
+          <div class="currency-toggle-box">
+            <div
+              class="curr-tab active-junior"
+              id="junior-usd-tab"
+              onclick="selectJuniorCurrency('USD')"
+            >
+              ដុល្លារ
+            </div>
+            <div
+              class="curr-tab"
+              id="junior-khr-tab"
+              onclick="selectJuniorCurrency('KHR')"
+            >
+              រៀល
+            </div>
+            <div
+              class="curr-tab"
+              id="junior-both-tab"
+              onclick="selectJuniorCurrency('BOTH')"
+            >
+              ទាំងពីរ
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ឈ្មោះពេញរបស់កូន</label>
+            <input
+              type="text"
+              id="input-junior-name"
+              class="native-input"
+              placeholder="ឧ. កូន សុខ ចិត្រា"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"
+              >កំណត់ Username ឱ្យកូន (សម្រាប់ Login)</label
+            >
+            <input
+              type="text"
+              id="input-junior-username"
+              class="native-input"
+              placeholder="ឧ. chitra_upay"
+              style="text-transform: lowercase"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"
+              >កំណត់ Password ឱ្យកូន (សម្រាប់ Login)</label
+            >
+            <input
+              type="password"
+              id="input-junior-password"
+              class="native-input"
+              placeholder="យ៉ាងតិច ៤ ខ្ទង់"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label"
+              >ដែនកំណត់ចំណាយប្រចាំថ្ងៃ (Daily Limit)</label
+            >
+            <div style="position: relative">
+              <span
+                style="
+                  position: absolute;
+                  left: 15px;
+                  top: 15px;
+                  color: #475569;
+                  font-weight: bold;
+                "
+                >$</span
+              >
+              <input
+                type="number"
+                id="input-junior-limit"
+                class="native-input"
+                placeholder="20"
+                value="20"
+                style="padding-left: 35px"
+              />
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: 5px">
+              * កូនមិនអាចចាយលើសចំនួននេះក្នុងមួយថ្ងៃបានទេ។
+            </p>
+          </div>
+        </div>
+        <div class="fixed-bottom-bar">
+          <button
+            class="btn-primary"
+            style="background: #db2777"
+            onclick="goToJuniorNumberType()"
+          >
+            បន្ត
+          </button>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           អេក្រង់ទី ២.២: ជ្រើសរើសប្រភេទលេខគណនីកុមារ (JUNIOR NUMBER TYPE)
+           ========================================== -->
+      <div id="screen-junior-number-type" class="screen">
+        <div class="nav-header" style="background: #db2777">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="switchScreen('screen-junior-setup')"
+          ></i>
+          <span>ជ្រើសរើសលេខគណនីកូន</span>
+        </div>
+        <div class="content-body">
+          <p class="page-desc">តើអ្នកចង់បានលេខគណនីបែបណាសម្រាប់គណនីកូននេះ?</p>
+
+          <div class="account-card" onclick="processRandomJuniorNumber()">
+            <div
+              class="card-icon-box"
+              style="background: #f1f5f9; color: #475569"
+            >
+              <i class="fa-solid fa-shuffle"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title">លេខចៃដន្យ (Random)</h4>
+              <p class="card-desc">
+                ប្រព័ន្ធនឹងផ្តល់លេខ ៩ខ្ទង់ ដោយស្វ័យប្រវត្តិ។
+              </p>
+              <b style="color: #ef4444; font-size: 0.9rem">តម្លៃ: $5.00</b>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+
+          <div class="account-card" onclick="switchScreen('screen-search')">
+            <div class="card-icon-box icon-premium">
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="card-text">
+              <h4 class="card-title">រើសលេខពិសេស</h4>
+              <p class="card-desc">
+                ជ្រើសរើសលេខដែលអ្នកស្រលាញ់ (គិតថ្លៃតាមលេខ)។
+              </p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           អេក្រង់ទី ២.៣: បញ្ជាក់ព័ត៌មាន (JUNIOR CONFIRM SCREEN)
+           ========================================== -->
+      <div id="screen-junior-confirm" class="screen">
+        <div class="nav-header" style="background: #db2777">
+          <i
+            class="fa-solid fa-arrow-left"
+            onclick="goBackFromJuniorConfirm()"
+          ></i>
+          <span>បញ្ជាក់ការបង្កើតគណនីកូន</span>
+        </div>
+        <div class="content-body">
+          <div style="text-align: center; margin-bottom: 25px">
+            <h1
+              id="junior-display-num"
+              style="
+                margin: 0;
+                font-size: 2.2rem;
+                color: #db2777;
+                font-family: monospace;
+                letter-spacing: 2px;
+              "
+            >
+              ...
+            </h1>
+            <p style="margin: 10px 0 0 0; font-size: 1rem; color: #475569">
+              តម្លៃសេវា:
+              <b
+                id="junior-display-price"
+                style="color: #ef4444; font-size: 1.3rem"
+                >$0</b
+              >
+            </p>
+            <p
+              style="margin: 5px 0 0 0; font-size: 0.9rem; color: #64748b"
+              id="junior-display-curr"
+            >
+              រូបិយប័ណ្ណ: USD
+            </p>
+          </div>
+
+          <div class="member-list-box" style="margin-bottom: 25px">
+            <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 0.95rem">
+              ព័ត៌មានគណនីកុមារ
+            </h4>
+            <div class="member-item">
+              <div
+                class="member-avatar"
+                style="background: #fce7f3; color: #db2777"
+              >
+                <i class="fa-solid fa-child"></i>
+              </div>
+              <div class="member-info">
+                <div class="member-name" id="junior-confirm-name">...</div>
+                <div class="member-role" id="junior-confirm-username">
+                  @username
+                </div>
+              </div>
+            </div>
+            <div class="member-item">
+              <div
+                class="member-avatar"
+                style="background: #f1f5f9; color: #475569"
+              >
+                <i class="fa-solid fa-shield"></i>
+              </div>
+              <div class="member-info">
+                <div class="member-name" id="junior-confirm-limit">...</div>
+                <div class="member-role">កំណត់ការចាយប្រចាំថ្ងៃ</div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="info-box"
+            style="background: #fffbeb; border-color: #fde68a"
+          >
+            <label
+              style="
+                display: flex;
+                align-items: start;
+                gap: 10px;
+                cursor: pointer;
+                margin: 0;
+              "
+            >
+              <input
+                type="checkbox"
+                id="junior-input-tnc"
+                style="
+                  width: 25px;
+                  height: 25px;
+                  margin-top: 2px;
+                  accent-color: #db2777;
+                "
+              />
+              <span
+                style="font-size: 0.85rem; color: #b45309; line-height: 1.5"
+              >
+                ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា។
+                ខ្ញុំយល់ព្រមទទួលខុសត្រូវរាល់ប្រតិបត្តិការដែលធ្វើឡើងដោយគណនីកូនរបស់ខ្ញុំ។
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="fixed-bottom-bar">
+          <button
+            class="btn-primary"
+            style="background: #db2777"
+            onclick="processJuniorDetails()"
+          >
+            បន្តការទូទាត់
+          </button>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           អេក្រង់ទី ២.១ (ចាស់): រៀបចំគណនីរួម (JOINT SETUP)
            ========================================== -->
       <div id="screen-joint-setup" class="screen">
         <div class="nav-header">
@@ -622,9 +855,7 @@
           <div class="member-list-box">
             <!-- ម្ចាស់គណនី -->
             <div class="member-item">
-              <div class="member-avatar">
-                <i class="fa-solid fa-user"></i>
-              </div>
+              <div class="member-avatar"><i class="fa-solid fa-user"></i></div>
               <div class="member-info">
                 <div class="member-name" id="joint-self-name">ខ្លួនឯង</div>
                 <div class="member-role">ម្ចាស់គណនី (Owner)</div>
@@ -650,7 +881,6 @@
               </div>
             </div>
 
-            <!-- ប៊ូតុងបន្ថែម -->
             <div
               class="add-member-btn"
               id="btn-add-partner"
@@ -660,7 +890,6 @@
             </div>
           </div>
 
-          <!-- ប្រអប់ស្វែងរកដៃគូ (លាក់សិន) -->
           <div
             id="search-partner-box"
             style="
@@ -689,10 +918,10 @@
           </div>
 
           <div class="info-box">
-            <span style="font-size: 0.85rem; color: #166534; line-height: 1.5">
-              <b>ចំណាំ៖</b>
-              គណនីរួមនឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិបន្ទាប់ពីសមាជិកទាំងអស់យល់ព្រមទទួលយកការអញ្ជើញរបស់អ្នក។
-            </span>
+            <span style="font-size: 0.85rem; color: #166534; line-height: 1.5"
+              ><b>ចំណាំ៖</b>
+              គណនីរួមនឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិបន្ទាប់ពីសមាជិកទាំងអស់យល់ព្រមទទួលយកការអញ្ជើញរបស់អ្នក។</span
+            >
           </div>
         </div>
         <div class="fixed-bottom-bar">
@@ -703,7 +932,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២.២: ជ្រើសរើសប្រភេទលេខគណនីរួម (JOINT NUMBER TYPE) - ថ្មី
+           អេក្រង់ទី ២.២ (ចាស់): ជ្រើសរើសប្រភេទលេខគណនីរួម (JOINT NUMBER TYPE)
            ========================================== -->
       <div id="screen-joint-number-type" class="screen">
         <div class="nav-header">
@@ -715,7 +944,6 @@
         </div>
         <div class="content-body">
           <p class="page-desc">តើអ្នកចង់បានលេខគណនីបែបណាសម្រាប់គណនីរួមនេះ?</p>
-
           <div class="account-card" onclick="processRandomJointNumber()">
             <div
               class="card-icon-box"
@@ -732,7 +960,6 @@
             </div>
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
-
           <div class="account-card" onclick="switchScreen('screen-search')">
             <div class="card-icon-box icon-premium">
               <i class="fa-solid fa-star"></i>
@@ -749,15 +976,14 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២: ស្វែងរកលេខ (SEARCH SCREEN - ប្រើរួមគ្នា)
+           អេក្រង់ទី ២ (ចាស់): ស្វែងរកលេខ (SEARCH SCREEN - ប្រើរួមគ្នា)
            ========================================== -->
       <div id="screen-search" class="screen">
-        <div class="nav-header">
+        <div class="nav-header" id="search-nav-header">
           <i class="fa-solid fa-arrow-left" onclick="goBackFromSearch()"></i>
           <span>ស្វែងរកលេខគណនី</span>
         </div>
         <div class="content-body" style="padding-bottom: 20px">
-          <!-- ប្រអប់វាយលេខ -->
           <div class="form-group" style="margin-bottom: 25px">
             <input
               type="number"
@@ -768,7 +994,6 @@
               style="letter-spacing: 3px"
             />
           </div>
-
           <div class="suggested-section">
             <div class="suggested-section-title">
               <span
@@ -776,10 +1001,8 @@
                 <i
                   class="fa-solid fa-fire"
                   style="color: #ef4444; margin-left: 5px"
-                ></i>
-              </span>
-
-              <!-- ឧបករណ៍ Filter និង Refresh -->
+                ></i
+              ></span>
               <div
                 style="
                   display: flex;
@@ -808,8 +1031,6 @@
                     padding: 5px;
                   "
                 ></i>
-
-                <!-- Dropdown Menu សម្រាប់ Sort -->
                 <div id="sort-dropdown" class="filter-menu">
                   <div class="filter-item" onclick="setSortOrder('asc')">
                     <i class="fa-solid fa-arrow-down-1-9"></i> តម្លៃ ថោក-ថ្លៃ
@@ -820,8 +1041,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- កន្លែងបង្ហាញប្រអប់លេខ (១៤ ប្រអប់) -->
             <div id="suggested-numbers-list" class="suggested-grid"></div>
           </div>
         </div>
@@ -873,8 +1092,6 @@
               >
             </p>
           </div>
-
-          <!-- ផ្នែកជ្រើសរើសរូបិយប័ណ្ណ (តែ Premium) -->
           <div class="form-group">
             <label class="form-label">ជ្រើសរើសរូបិយប័ណ្ណ (Currency)</label>
             <div style="display: flex; gap: 8px">
@@ -913,7 +1130,6 @@
               * គណនីទី២ នឹងប្រើលេខបូកថែម ឬដក១ ខ្ទង់ចុងក្រោយដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
-
           <div class="form-group">
             <label class="form-label">ឈ្មោះគណនី (Account Name)</label>
             <input
@@ -923,7 +1139,6 @@
               placeholder="ឧ. លុយអាជីវកម្ម"
             />
           </div>
-
           <div class="info-box">
             <label
               style="
@@ -959,7 +1174,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ៣.២: បញ្ជាក់ព័ត៌មាន (JOINT CONFIRM SCREEN) - ថ្មី
+           អេក្រង់ទី ៣.២: បញ្ជាក់ព័ត៌មាន (JOINT CONFIRM SCREEN)
            ========================================== -->
       <div id="screen-joint-confirm" class="screen">
         <div class="nav-header">
@@ -998,7 +1213,6 @@
               រូបិយប័ណ្ណ: USD
             </p>
           </div>
-
           <div class="member-list-box" style="margin-bottom: 25px">
             <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 0.95rem">
               សមាជិកគណនី
@@ -1021,7 +1235,6 @@
               </div>
             </div>
           </div>
-
           <div
             class="info-box"
             style="background: #fffbeb; border-color: #fde68a"
@@ -1045,14 +1258,11 @@
                   accent-color: #d97706;
                 "
               />
-              <span
-                style="font-size: 0.85rem; color: #b45309; line-height: 1.5"
-              >
-                ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា។
+              <span style="font-size: 0.85rem; color: #b45309; line-height: 1.5"
+                >ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា។
                 <b>បើសមាជិកដៃគូមិនយល់ព្រមទទួលការអញ្ជើញក្នុងរយៈពេល ២៤ ម៉ោង</b>
-                គណនីនឹងត្រូវលុបចោល ហើយប្រាក់សេវានឹងបង្វិលសងវិញ ៥០% (៥០%
-                ទៀតចាត់ទុកជាកម្រៃសេវាធនាគារ)។
-              </span>
+                គណនីនឹងត្រូវលុបចោល...</span
+              >
             </label>
           </div>
         </div>
@@ -1068,12 +1278,12 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ៤: បញ្ចូល PIN (PIN SCREEN - ប្រើរួមគ្នា)
+           អេក្រង់ទី ៤: បញ្ចូល PIN (PIN SCREEN - AUTO SUBMIT)
            ========================================== -->
       <div id="screen-pin" class="screen">
-        <div class="nav-header">
+        <div class="nav-header" id="pin-nav-header">
           <i class="fa-solid fa-arrow-left" onclick="goBackFromPin()"></i>
-          <span>បញ្ចូលលេខសម្ងាត់</span>
+          <span>បញ្ជាក់លេខសម្ងាត់</span>
         </div>
         <div
           class="content-body"
@@ -1092,6 +1302,7 @@
             >
           </p>
 
+          <!-- 🔥 កន្លែងនេះបានបន្ថែម oninput ដើម្បីវាយ ៤ខ្ទង់ហើយរត់ទៅមុខដោយស្វ័យប្រវត្តិ -->
           <input
             type="password"
             id="input-pin"
@@ -1099,9 +1310,11 @@
             placeholder="****"
             maxlength="4"
             style="letter-spacing: 15px; font-size: 2rem"
+            oninput="checkPinLength()"
           />
         </div>
-        <div class="fixed-bottom-bar">
+        <!-- លាក់ប៊ូតុងចេញ ព្រោះយើងប្រើ Auto-submit ជំនួសវិញ -->
+        <div class="fixed-bottom-bar" style="display: none">
           <button
             class="btn-primary"
             id="btn-submit-pin"
@@ -1219,15 +1432,25 @@
       // ==========================================
       // ១. អថេរគោល (Global Variables)
       // ==========================================
-      let flowType = "premium"; // 'premium' ឬ 'joint'
+      let flowType = "premium"; // 'premium', 'joint', 'junior'
 
-      // State សម្រាប់ Premium
       let state = { number: "", price: 0, name: "", pin: "" };
 
-      // State សម្រាប់ Joint
       let jointState = {
         partnerUsername: null,
         partnerName: null,
+        currency: "USD",
+        number: "",
+        price: 0,
+        numberType: "",
+      };
+
+      // 🔥 បន្ថែម State សម្រាប់ Junior Account
+      let juniorState = {
+        name: "",
+        username: "",
+        password: "",
+        limit: 20,
         currency: "USD",
         number: "",
         price: 0,
@@ -1238,7 +1461,6 @@
       let currentSortOrder = "asc";
       let selectedAccountCurrency = "USD";
 
-      // ពេលโหลดចូល ដាក់ឈ្មោះខ្លួនឯង
       document.addEventListener("DOMContentLoaded", () => {
         if (user)
           document.getElementById("joint-self-name").innerText =
@@ -1246,16 +1468,13 @@
       });
 
       // ==========================================
-      // ២. មុខងារបញ្ជាទូទៅ និង រូបមន្ត
+      // ២. មុខងារបញ្ជាទូទៅ
       // ==========================================
-
       function startFlow(type) {
         flowType = type;
-        if (type === "premium") {
-          switchScreen("screen-search");
-        } else if (type === "joint") {
-          switchScreen("screen-joint-setup");
-        }
+        if (type === "premium") switchScreen("screen-search");
+        else if (type === "joint") switchScreen("screen-joint-setup");
+        else if (type === "junior") switchScreen("screen-junior-setup");
       }
 
       function switchScreen(screenId) {
@@ -1264,20 +1483,32 @@
           .forEach((s) => s.classList.remove("active"));
         document.getElementById(screenId).classList.add("active");
         window.scrollTo(0, 0);
-
         if (screenId === "screen-search") {
           document.getElementById("input-search-num").value = "";
           generateRandomList();
+          // ដូរពណ៌ Header តាមប្រភេទ
+          const header = document.getElementById("search-nav-header");
+          if (flowType === "junior") header.style.background = "#db2777";
+          else header.style.background = "#004d40";
+        }
+        if (screenId === "screen-pin") {
+          document.getElementById("input-pin").value = ""; // Clear old PIN
+          const header = document.getElementById("pin-nav-header");
+          if (flowType === "junior") header.style.background = "#db2777";
+          else header.style.background = "#004d40";
         }
       }
 
       function goBackFromSearch() {
         if (flowType === "joint") switchScreen("screen-joint-number-type");
+        else if (flowType === "junior")
+          switchScreen("screen-junior-number-type");
         else switchScreen("screen-menu");
       }
 
       function goBackFromPin() {
         if (flowType === "joint") switchScreen("screen-joint-confirm");
+        else if (flowType === "junior") switchScreen("screen-junior-confirm");
         else switchScreen("screen-details");
       }
 
@@ -1311,29 +1542,133 @@
           numStr.endsWith("99")
         )
           return 10;
-        return 5;
+        return 5; // Base fee សម្រាប់លេខធម្មតា
       }
 
       function formatAccountNumber(num) {
         return num.replace(/(\d{3})(?=\d)/g, "$1 ");
       }
 
+      // 🔥 មុខងារ Auto-submit ពេលវាយ PIN គ្រប់ ៤ខ្ទង់
+      function checkPinLength() {
+        const pinVal = document.getElementById("input-pin").value;
+        if (pinVal.length === 4) {
+          submitCreation();
+        }
+      }
+
       // ==========================================
-      // ៣. មុខងារសម្រាប់ Premium Account (ចាស់)
+      // ៣. JUNIOR ACCOUNT FUNCTIONS (ថ្មី)
+      // ==========================================
+      function selectJuniorCurrency(curr) {
+        juniorState.currency = curr;
+        document
+          .getElementById("junior-usd-tab")
+          .classList.remove("active-junior");
+        document
+          .getElementById("junior-khr-tab")
+          .classList.remove("active-junior");
+        document
+          .getElementById("junior-both-tab")
+          .classList.remove("active-junior");
+        if (curr === "USD")
+          document
+            .getElementById("junior-usd-tab")
+            .classList.add("active-junior");
+        if (curr === "KHR")
+          document
+            .getElementById("junior-khr-tab")
+            .classList.add("active-junior");
+        if (curr === "BOTH")
+          document
+            .getElementById("junior-both-tab")
+            .classList.add("active-junior");
+      }
+
+      function goToJuniorNumberType() {
+        const name = document.getElementById("input-junior-name").value.trim();
+        const username = document
+          .getElementById("input-junior-username")
+          .value.trim()
+          .toLowerCase();
+        const password = document.getElementById("input-junior-password").value;
+        const limit = document.getElementById("input-junior-limit").value;
+
+        if (!name) return showToast("សូមបញ្ចូលឈ្មោះកូន!", "error");
+        if (!username || username.includes(" "))
+          return showToast("Username មិនត្រូវមានដកឃ្លាទេ!", "error");
+        if (password.length < 4)
+          return showToast("Password ត្រូវមានយ៉ាងតិច ៤ ខ្ទង់!", "error");
+        if (limit < 0 || limit === "")
+          return showToast("សូមបញ្ចូលចំនួនទឹកប្រាក់កំណត់ត្រឹមត្រូវ!", "error");
+
+        juniorState.name = name;
+        juniorState.username = username;
+        juniorState.password = password;
+        juniorState.limit = Number(limit);
+
+        switchScreen("screen-junior-number-type");
+      }
+
+      function processRandomJuniorNumber() {
+        juniorState.numberType = "random";
+        juniorState.price = 5; // តម្លៃគោលសម្រាប់លេខធម្មតា $5
+        juniorState.number = Math.floor(
+          100000000 + Math.random() * 900000000,
+        ).toString();
+        showJuniorConfirmScreen();
+      }
+
+      function goBackFromJuniorConfirm() {
+        if (juniorState.numberType === "random")
+          switchScreen("screen-junior-number-type");
+        else switchScreen("screen-search");
+      }
+
+      function showJuniorConfirmScreen() {
+        document.getElementById("junior-display-num").innerText =
+          formatAccountNumber(juniorState.number);
+        document.getElementById("junior-display-price").innerText =
+          `$${juniorState.price}`;
+        let currText = juniorState.currency;
+        if (currText === "BOTH") currText = "USD & KHR";
+        document.getElementById("junior-display-curr").innerText =
+          `រូបិយប័ណ្ណ: ${currText}`;
+
+        document.getElementById("junior-confirm-name").innerText =
+          juniorState.name;
+        document.getElementById("junior-confirm-username").innerText =
+          "@" + juniorState.username;
+        document.getElementById("junior-confirm-limit").innerText =
+          `$${juniorState.limit} / ថ្ងៃ`;
+
+        switchScreen("screen-junior-confirm");
+      }
+
+      function processJuniorDetails() {
+        const tnc = document.getElementById("junior-input-tnc").checked;
+        if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌសិន!", "error");
+
+        document.getElementById("display-total").innerText =
+          `$${juniorState.price}`;
+        document.getElementById("pin-icon").style.color = "#db2777";
+        switchScreen("screen-pin");
+      }
+
+      // ==========================================
+      // ៤. PREMIUM & JOINT ACCOUNT FUNCTIONS (ចាស់)
       // ==========================================
       function selectCurrencyOption(currencyType) {
         selectedAccountCurrency = currencyType;
         document.getElementById("btn-curr-usd")?.classList.remove("active");
         document.getElementById("btn-curr-khr")?.classList.remove("active");
         document.getElementById("btn-curr-both")?.classList.remove("active");
-
         if (currencyType === "USD")
           document.getElementById("btn-curr-usd")?.classList.add("active");
         if (currencyType === "KHR")
           document.getElementById("btn-curr-khr")?.classList.add("active");
         if (currencyType === "BOTH")
           document.getElementById("btn-curr-both")?.classList.add("active");
-
         const note = document.getElementById("curr-note");
         if (note)
           note.style.display = currencyType === "BOTH" ? "block" : "none";
@@ -1342,30 +1677,20 @@
       function processDetails() {
         const name = document.getElementById("input-acc-name").value;
         const tnc = document.getElementById("input-tnc").checked;
-
         if (!name) return showToast("សូមបញ្ចូលឈ្មោះគណនី!", "error");
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌ!", "error");
-
         state.name = name;
         document.getElementById("display-total").innerText =
           state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
-
-        // Setup Styling សម្រាប់ Premium
         document.getElementById("pin-icon").style.color = "#004d40";
-        document.getElementById("btn-submit-pin").style.background = "#004d40";
-
         switchScreen("screen-pin");
       }
 
-      // ==========================================
-      // ៤. មុខងារសម្រាប់ Joint Account (ថ្មី)
-      // ==========================================
       function selectJointCurrency(curr) {
         jointState.currency = curr;
         document.getElementById("joint-usd-tab").classList.remove("active");
         document.getElementById("joint-khr-tab").classList.remove("active");
         document.getElementById("joint-both-tab").classList.remove("active");
-
         if (curr === "USD")
           document.getElementById("joint-usd-tab").classList.add("active");
         if (curr === "KHR")
@@ -1384,31 +1709,25 @@
           .getElementById("input-partner-search")
           .value.trim();
         if (!val) return showToast("សូមបញ្ចូល Username ឬ លេខគណនី!", "error");
-
         Swal.fire({
           title: "កំពុងស្វែងរក...",
           didOpen: () => Swal.showLoading(),
         });
         try {
-          // 🔥 កែតម្រូវ URL ទៅជា Endpoint ថ្មីរបស់ Joint Account Search
           const res = await fetch(`/api/account/joint/search/${val}`, {
             headers: window.authHeaders,
           });
           const data = await res.json();
-
           if (data.success && data.user) {
             Swal.close();
             if (data.user.username === user.username)
               return showToast("មិនអាចបន្ថែមខ្លួនឯងបានទេ!", "error");
-
             jointState.partnerUsername = data.user.username;
             jointState.partnerName = data.user.fullName || data.user.username;
-
             document.getElementById("joint-partner-name").innerText =
               jointState.partnerName;
             document.getElementById("joint-partner-initial").innerText =
               jointState.partnerName.charAt(0).toUpperCase();
-
             document.getElementById("search-partner-box").style.display =
               "none";
             document.getElementById("joint-partner-container").style.display =
@@ -1439,12 +1758,9 @@
       function processRandomJointNumber() {
         jointState.numberType = "random";
         jointState.price = 5;
-        // បង្កើតលេខចៃដន្យ ៩ខ្ទង់
-        let randomNum = Math.floor(
+        jointState.number = Math.floor(
           100000000 + Math.random() * 900000000,
         ).toString();
-        jointState.number = randomNum;
-
         showJointConfirmScreen();
       }
 
@@ -1453,49 +1769,39 @@
           formatAccountNumber(jointState.number);
         document.getElementById("joint-display-price").innerText =
           `$${jointState.price}`;
-
         let currText = jointState.currency;
         if (currText === "BOTH")
           currText = "USD & KHR (គណនីទី២ នឹងកែខ្ទង់ចុងក្រោយ)";
         document.getElementById("joint-display-curr").innerText =
           `រូបិយប័ណ្ណ: ${currText}`;
-
         document.getElementById("joint-confirm-self").innerText =
           user.fullName || user.username;
         document.getElementById("joint-confirm-partner").innerText =
           jointState.partnerName;
-
         switchScreen("screen-joint-confirm");
       }
 
       function processJointDetails() {
         const tnc = document.getElementById("joint-input-tnc").checked;
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌសិន!", "error");
-
         document.getElementById("display-total").innerText =
           `$${jointState.price}`;
-
-        // Setup Styling សម្រាប់ Joint
         document.getElementById("pin-icon").style.color = "#0284c7";
-        document.getElementById("btn-submit-pin").style.background = "#0284c7";
-
         switchScreen("screen-pin");
       }
 
       // ==========================================
-      // ៥. មុខងារស្វែងរកលេខ និង តម្រៀប (ប្រើរួមគ្នា)
+      // ៥. មុខងារស្វែងរកលេខ (ប្រើរួមគ្នា)
       // ==========================================
       function toggleFilter(event) {
         event.stopPropagation();
         document.getElementById("sort-dropdown").classList.toggle("show");
       }
-
       function setSortOrder(order) {
         currentSortOrder = order;
         document.getElementById("sort-dropdown").classList.remove("show");
         renderNumberList();
       }
-
       window.onclick = function (event) {
         if (
           !event.target.closest(".filter-menu") &&
@@ -1510,14 +1816,12 @@
       function generateRandomList() {
         allNumbers = [];
         const priceTiers = [5, 10, 15, 20, 50, 100, 250];
-
         priceTiers.forEach((tier) => {
           for (let i = 0; i < 2; i++) {
             let num = "";
             let randomPart = Math.floor(
               100000 + Math.random() * 899999,
             ).toString();
-
             if (tier === 250)
               num = randomPart.substring(0, 4) + (i === 0 ? "88888" : "99999");
             else if (tier === 100)
@@ -1529,7 +1833,6 @@
             else if (tier === 10)
               num = randomPart.substring(0, 7) + (i === 0 ? "00" : "88");
             else num = randomPart.substring(0, 6) + "123";
-
             allNumbers.push({ number: num.substring(0, 9), price: tier });
           }
         });
@@ -1539,7 +1842,6 @@
       function handleLiveSearch() {
         const query = document.getElementById("input-search-num").value;
         const listContainer = document.getElementById("suggested-numbers-list");
-
         if (query.length === 0) {
           generateRandomList();
           return;
@@ -1548,20 +1850,17 @@
           listContainer.innerHTML = `<div style="grid-column: span 2; text-align: center; color: #ef4444; padding: 20px;">មិនមានលេខនេះទេ (លេខលើសពី ៩ ខ្ទង់)</div>`;
           return;
         }
-
         allNumbers = [];
         for (let i = 0; i < 14; i++) {
           let randomSuffix = Math.floor(Math.random() * 100000000)
             .toString()
             .padStart(9, "0");
           let generatedNum = (query + randomSuffix).substring(0, 9);
-
           if (i === 0) generatedNum = (query + "88888").substring(0, 9);
           if (i === 1) generatedNum = (query + "9999").substring(0, 9);
           if (i === 2) generatedNum = (query + "168").substring(0, 9);
           if (i === 3) generatedNum = (query + "777").substring(0, 9);
           if (i === 4) generatedNum = (query + "00").substring(0, 9);
-
           allNumbers.push({
             number: generatedNum,
             price: calculateAppPrice(generatedNum),
@@ -1573,17 +1872,14 @@
       function renderNumberList() {
         const container = document.getElementById("suggested-numbers-list");
         container.innerHTML = "";
-
         let sorted = [...allNumbers].sort((a, b) => {
           return currentSortOrder === "asc"
             ? a.price - b.price
             : b.price - a.price;
         });
-
         sorted.forEach((item) => {
           let formattedNum = formatAccountNumber(item.number);
           let priceTag = item.price === 0 ? "FREE" : `$${item.price}`;
-
           container.innerHTML += `
             <div class="suggested-card" onclick="goToDetails('${item.number}', ${item.price})">
               <div class="suggested-num">${formattedNum}</div>
@@ -1607,11 +1903,16 @@
           jointState.number = num;
           jointState.price = price;
           showJointConfirmScreen();
+        } else if (flowType === "junior") {
+          juniorState.numberType = "special";
+          juniorState.number = num;
+          juniorState.price = price;
+          showJuniorConfirmScreen();
         }
       }
 
       // ==========================================
-      // ៦. បាញ់ API បង្កើតគណនី (Premium ឫ Joint)
+      // ៦. API SUBMIT ទៅ BACKEND
       // ==========================================
       async function submitCreation() {
         const pin = document.getElementById("input-pin").value;
@@ -1629,7 +1930,6 @@
           let reqBody = {};
 
           if (flowType === "premium") {
-            // 🔥 កែតម្រូវ URL ទៅជា Endpoint ថ្មីរបស់ Premium Create
             apiUrl = "/api/account/premium/create";
             reqBody = {
               username: user.username,
@@ -1640,7 +1940,6 @@
               currencyOption: selectedAccountCurrency,
             };
           } else if (flowType === "joint") {
-            // 🔥 កែតម្រូវ URL ទៅជា Endpoint ថ្មីរបស់ Joint Create
             apiUrl = "/api/account/joint/create";
             reqBody = {
               username: user.username,
@@ -1650,6 +1949,20 @@
               pin: pin,
               currencyOption: jointState.currency,
               dailyLimit: 0,
+            };
+          } else if (flowType === "junior") {
+            // 🔥 API ថ្មីសម្រាប់បង្កើតគណនី Junior
+            apiUrl = "/api/account/junior/create";
+            reqBody = {
+              parentUsername: user.username,
+              childName: juniorState.name,
+              childUsername: juniorState.username,
+              childPassword: juniorState.password,
+              dailyLimit: juniorState.limit,
+              requestedNumber: juniorState.number,
+              price: juniorState.price,
+              pin: pin,
+              currencyOption: juniorState.currency,
             };
           }
 
@@ -1667,17 +1980,14 @@
             )
               .play()
               .catch(() => {});
-
             sessionStorage.setItem("user", JSON.stringify(data.user || user));
 
-            // រៀបចំបង្ហាញនៅលើអេក្រង់ជោគជ័យ
+            // តម្រៀបផ្ទាំងជោគជ័យទៅតាមប្រភេទនីមួយៗ
             if (flowType === "premium") {
-              let createdNumbersDisplay = formatAccountNumber(state.number);
+              let displayNum = formatAccountNumber(state.number);
               if (data.secondNumber)
-                createdNumbersDisplay += `<br><span style="color:#10b981; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
-
-              document.getElementById("receipt-num").innerHTML =
-                createdNumbersDisplay;
+                displayNum += `<br><span style="color:#10b981; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
+              document.getElementById("receipt-num").innerHTML = displayNum;
               document.getElementById("receipt-name").innerText = state.name;
               document.getElementById("receipt-price").innerText =
                 state.price === 0 ? "FREE" : `$${state.price}`;
@@ -1688,29 +1998,44 @@
                 "ការអញ្ជើញបានបញ្ជូន!";
               document.getElementById("success-desc").innerText =
                 "រង់ចាំដៃគូយល់ព្រម គណនីនឹងត្រូវបង្កើតជាស្ថាពរ។";
-
-              let createdNumbersDisplay = formatAccountNumber(
-                jointState.number,
-              );
+              let displayNum = formatAccountNumber(jointState.number);
               if (data.secondNumber)
-                createdNumbersDisplay += `<br><span style="color:#0284c7; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
-
-              document.getElementById("receipt-num").innerHTML =
-                createdNumbersDisplay;
+                displayNum += `<br><span style="color:#0284c7; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
+              document.getElementById("receipt-num").innerHTML = displayNum;
               document.getElementById("receipt-name-label").innerText =
                 "ដៃគូ (Partner)";
               document.getElementById("receipt-name").innerText =
                 jointState.partnerName;
               document.getElementById("receipt-price").innerText =
                 `$${jointState.price}`;
+            } else if (flowType === "junior") {
+              // 🔥 ការបង្ហាញភាពជោគជ័យសម្រាប់ Junior Account
+              document.getElementById("success-icon-box").style.background =
+                "#db2777";
+              document.getElementById("success-title").innerText =
+                "បង្កើតគណនីកុមារជោគជ័យ!";
+              document.getElementById("success-desc").innerText =
+                "កូនរបស់អ្នកអាចយក Username ទៅ Login បានហើយ។";
+              let displayNum = formatAccountNumber(juniorState.number);
+              if (data.secondNumber)
+                displayNum += `<br><span style="color:#db2777; font-size: 0.9rem;">& ${formatAccountNumber(data.secondNumber)} (KHR)</span>`;
+              document.getElementById("receipt-num").innerHTML = displayNum;
+              document.getElementById("receipt-name-label").innerText =
+                "ឈ្មោះកូន";
+              document.getElementById("receipt-name").innerText =
+                juniorState.name;
+              document.getElementById("receipt-price").innerText =
+                `$${juniorState.price}`;
             }
 
             switchScreen("screen-success");
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
+            document.getElementById("input-pin").value = ""; // Clear PIN if failed
           }
         } catch (error) {
           Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
+          document.getElementById("input-pin").value = ""; // Clear PIN if failed
         }
       }
     </script>
