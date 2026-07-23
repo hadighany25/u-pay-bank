@@ -598,6 +598,7 @@ const payBankBill = async (req, res) => {
     if (payhubData && payhubData.success) {
       payingUser.balance -= amount;
       const newHash = generateHash();
+
       await Transaction.create({
         username: payingUser.username,
         refId: currentRefId,
@@ -608,10 +609,14 @@ const payBankBill = async (req, res) => {
         }),
         type: "Bill Payment",
         amount: -amount,
+        senderName: payingUser.fullName || payingUser.username, // 🔥 Update: យកឈ្មោះពេញ
         receiverName: company,
+        senderAcc: payingUser.accountNumber, // 🔥 Update: បន្ថែមលេខកុង
+        receiverAcc: bill_id, // 🔥 Update: បន្ថែមលេខវិក្កយបត្រ
         remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
         status: "Success",
       });
+
       await payingUser.save();
       res.json({
         success: true,
@@ -657,8 +662,12 @@ const rewardCashback = async (req, res) => {
         const sharedRefId = "RWD-" + Date.now().toString().slice(-6);
         const sharedRemark = `Lucky Spin Reward (Trx: ${refId})`;
 
+        // 🔥 Update: ទាញយកឈ្មោះពេញ
+        const finalReceiverName = user.fullName || user.username;
+
         user.balance += reward;
         centralBank.balance -= reward;
+
         await Transaction.create([
           {
             username: user.username,
@@ -669,8 +678,8 @@ const rewardCashback = async (req, res) => {
             amount: reward,
             currency: "USD",
             fee: 0,
-            senderName: "U PAY Cashback Reward",
-            receiverName: user.username,
+            senderName: "U-Pay Cashback Reward",
+            receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
             remark: sharedRemark,
             status: "Success",
             device: "App",
@@ -685,8 +694,8 @@ const rewardCashback = async (req, res) => {
             amount: -reward,
             currency: "USD",
             fee: 0,
-            senderName: "U PAY Cashback Reward",
-            receiverName: user.username,
+            senderName: "U-Pay Cashback Reward",
+            receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
             remark: sharedRemark,
             status: "Success",
             device: "System",
@@ -762,6 +771,9 @@ const claimPromoCode = async (req, res) => {
     const sharedRefId = "PRM-" + Date.now().toString().slice(-6);
     const sharedRemark = `Claimed Promo Code: ${promo.code}`;
 
+    // 🔥 Update: ទាញយកឈ្មោះពេញ
+    const finalReceiverName = user.fullName || user.username;
+
     await Transaction.create([
       {
         username: user.username,
@@ -772,8 +784,8 @@ const claimPromoCode = async (req, res) => {
         amount: rewardAmt,
         currency: "USD",
         fee: 0,
-        senderName: "U-Pay Promos Reward",
-        receiverName: user.username,
+        senderName: "U-Pay Promo Reward",
+        receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
@@ -787,8 +799,8 @@ const claimPromoCode = async (req, res) => {
         amount: -rewardAmt,
         currency: "USD",
         fee: 0,
-        senderName: "U-Pay Promos Reward",
-        receiverName: user.username,
+        senderName: "U-Pay Promo Reward",
+        receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
