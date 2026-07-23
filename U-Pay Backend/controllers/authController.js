@@ -122,9 +122,10 @@ const login = async (req, res) => {
       const safeUser = user.toObject();
 
       // ========================================================
-      // 🔥 ១. ធ្វើបច្ចុប្បន្នភាពលុយគណនីរួមពី JointAccount អោយត្រូវ ១០០%
+      // 🔥 ១. ធ្វើបច្ចុប្បន្នភាពលុយគណនីរួម (Joint) និង គណនីកូន (Junior) អោយត្រូវ ១០០%
       // ========================================================
       if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
+        // --- ផ្នែក Joint Account (ចាស់) ---
         const jointAccIds = safeUser.subAccounts
           .filter(
             (sa) =>
@@ -149,6 +150,32 @@ const login = async (req, res) => {
               if (jointMap[sa.accountId] !== undefined) {
                 sa.balance = jointMap[sa.accountId];
               }
+            }
+          });
+        }
+
+        // --- ផ្នែក Junior Account (ថ្មី) ---
+        const juniorAccNums = safeUser.subAccounts
+          .filter((sa) => sa.accountType === "junior")
+          .map((sa) => sa.accountNumber);
+
+        if (juniorAccNums.length > 0) {
+          // ទាញយកទិន្នន័យកូនៗទាំងអស់ តាមលេខគណនី
+          const juniorUsers = await User.find({
+            accountNumber: { $in: juniorAccNums },
+          });
+          const juniorMap = {};
+          juniorUsers.forEach((ju) => {
+            juniorMap[ju.accountNumber] = ju.balance; // ចាប់យកលុយពិតប្រាកដ
+          });
+
+          // ដាក់លុយបញ្ចូលទៅក្នុងកាតវិញ
+          safeUser.subAccounts.forEach((sa) => {
+            if (
+              sa.accountType === "junior" &&
+              juniorMap[sa.accountNumber] !== undefined
+            ) {
+              sa.balance = juniorMap[sa.accountNumber];
             }
           });
         }
@@ -231,14 +258,28 @@ const getUsers = async (req, res) => {
       jointMap[ja.accountId] = ja.balance;
     });
 
+    // 🔥 បង្កើត Map ដើម្បីរក្សាទុកលុយពិតប្រាកដរបស់ User ទាំងអស់
+    const realBalanceMap = {};
+    users.forEach((u) => {
+      if (u.accountNumber) realBalanceMap[u.accountNumber] = u.balance;
+      if (u.accountNumberKHR) realBalanceMap[u.accountNumberKHR] = u.balanceKHR;
+    });
+
     const usersWithTrx = users.map((user) => {
       const userObj = user.toObject();
 
       if (userObj.subAccounts && userObj.subAccounts.length > 0) {
         userObj.subAccounts.forEach((sa) => {
+          // ឆែកលុយសម្រាប់ Joint Account
           if (sa.accountType === "joint" || sa.accountType === "joint_member") {
             if (jointMap[sa.accountId] !== undefined) {
               sa.balance = jointMap[sa.accountId];
+            }
+          }
+          // 🔥 ឆែកលុយសម្រាប់ Junior Account (ទាញយកពីលុយពិតប្រាកដដែលបាន Map)
+          else if (sa.accountType === "junior") {
+            if (realBalanceMap[sa.accountNumber] !== undefined) {
+              sa.balance = realBalanceMap[sa.accountNumber];
             }
           }
         });
