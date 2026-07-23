@@ -392,6 +392,16 @@ const transfer = async (req, res) => {
         ? sender.accountNumberKHR
         : sender.accountNumber;
 
+    // 🔥 ១. កំណត់ឈ្មោះអ្នកផ្ញើ និងអ្នកទទួលឱ្យចេញឈ្មោះគណនីរួមពេញលេញ (Full Name)
+    const finalSenderName = jointSenderAcc
+      ? jointSenderAcc.accountName
+      : sender.fullName || sender.username;
+    const finalReceiverName = isMerchant
+      ? receiverMerchant.name
+      : jointReceiverAcc
+        ? jointReceiverAcc.accountName
+        : receiver.fullName || receiver.username;
+
     const senderTrx = {
       refId: sharedRefId,
       hash: sharedHash,
@@ -400,10 +410,8 @@ const transfer = async (req, res) => {
       amount: -totalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
       fee: appliedFee,
-      senderName: sender.fullName || sender.username,
-      receiverName: isMerchant
-        ? receiverMerchant.name
-        : receiver.fullName || receiver.username,
+      senderName: finalSenderName, // ប្រើឈ្មោះដែលបានកំណត់
+      receiverName: finalReceiverName, // ប្រើឈ្មោះដែលបានកំណត់
       receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
@@ -420,10 +428,8 @@ const transfer = async (req, res) => {
       amount: receiverAmount,
       currency: isReceiverKHR ? "KHR" : "USD",
       fee: 0,
-      senderName: sender.fullName || sender.username,
-      receiverName: isMerchant
-        ? receiverMerchant.name
-        : receiver.fullName || receiver.username,
+      senderName: finalSenderName, // ប្រើឈ្មោះដែលបានកំណត់
+      receiverName: finalReceiverName, // ប្រើឈ្មោះដែលបានកំណត់
       receiverAcc: actualReceiverAccNum,
       senderAcc: actualSenderAccNum,
       trxMethod: currentMethod,
@@ -445,6 +451,11 @@ const transfer = async (req, res) => {
 
     // Save Receiver Trx & Send Notification
     const currencySymbol = isReceiverKHR ? "៛" : "$";
+    // 🔥 ២. កំណត់ឈ្មោះអ្នកផ្ញើសម្រាប់បង្ហាញក្នុងសារ Notification (មានពាក្យ "គណនីរួម" ពីមុខ បើផ្ញើពីកុងរួម)
+    const senderMsgName = jointSenderAcc
+      ? `គណនីរួម ${jointSenderAcc.accountName}`
+      : finalSenderName;
+
     if (!isMerchant && jointReceiverAcc) {
       for (let m of jointReceiverAcc.members) {
         if (m.status === "active") {
@@ -454,7 +465,7 @@ const transfer = async (req, res) => {
             uDoc.notifications = uDoc.notifications || [];
             uDoc.notifications.push({
               title: "ទទួលបានទឹកប្រាក់ (គណនីរួម)! 💸",
-              message: `គណនីរួម ${jointReceiverAcc.accountName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
+              message: `គណនីរួម ${jointReceiverAcc.accountName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`,
               type: "transfer_receive",
               date,
               isRead: false,
@@ -472,7 +483,7 @@ const transfer = async (req, res) => {
           rDoc.notifications = rDoc.notifications || [];
           rDoc.notifications.push({
             title: "ទទួលបានទឹកប្រាក់! 💸",
-            message: `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${sender.fullName || sender.username}។`,
+            message: `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`,
             type: "transfer_receive",
             date,
             isRead: false,
@@ -483,24 +494,22 @@ const transfer = async (req, res) => {
       }
     }
 
-    // 🔥 កែចំណុចនេះ៖ បាញ់ Socket (Real-time Alert) ទៅកាន់សមាជិកទាំងអស់ក្នុងគណនីរួម
+    // បាញ់ Socket (Real-time Alert) ទៅកាន់សមាជិកទាំងអស់ក្នុងគណនីរួម
     const io = req.app.get("io");
     if (io) {
       const socketPayload = {
         amount: receiverAmount,
         currency: isReceiverKHR ? "KHR" : "USD",
-        senderName: sender.fullName || sender.username,
+        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
       };
 
       if (!isMerchant && jointReceiverAcc) {
-        // បើជាកុងរួម, បាញ់ Socket ទៅកាន់ username សមាជិកម្នាក់ៗ
         for (let m of jointReceiverAcc.members) {
           if (m.status === "active") {
             io.to(m.username).emit("paymentReceived", socketPayload);
           }
         }
       } else {
-        // បើជាកុងធម្មតា
         const targetSocketUser = isMerchant
           ? receiverMerchant.userId
           : receiver.username;
