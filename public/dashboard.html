@@ -1553,6 +1553,13 @@
                   icon = "fa-hand-holding-dollar";
                   bg = "#ecfdf5";
                   col = "#10b981";
+
+                  // 🔥 ថែម Icon ក្មេង ប្រសិនបើជាគណនីកូន (Junior Account) ទទួលលុយ
+                  if (currentUser.role === "junior") {
+                    icon = "fa-child-reaching";
+                    bg = "#fce7f3"; // ពណ៌ Background ផ្កាឈូក
+                    col = "#db2777"; // ពណ៌ Icon ផ្កាឈូកក្រាស់
+                  }
                 }
                 // 🛒 ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request)
                 else if (
@@ -1623,7 +1630,6 @@
                   bg = "#e0e7ff";
                   col = "#4f46e5";
 
-                  // 🔥 កែប៊ូតុងអោយប្តូរទៅជាសភាព Loading ពេលចុចភ្លាម
                   actionBtn = `
                       <div id="joint-action-${notifId}" style="margin-top: 10px; display: flex; gap: 10px;">
                         <button
@@ -1726,7 +1732,6 @@
                 `;
             }
 
-            // 🔥 លុបសារហ្នឹងចោលពី Memory របស់ Browser ការពារវាងើបមកវិញ
             if (currentUsr && currentUsr.notifications) {
               const notifIndex = currentUsr.notifications.findIndex(
                 (n) => (n._id || n.id) === notifId,
@@ -1738,13 +1743,11 @@
               }
             }
 
-            // ប្រាប់ Backend ថាសារហ្នឹងត្រូវបានអានហើយ
             await fetch(`/api/user/notifications/read/${notifId}`, {
               method: "POST",
               headers: reqHeaders,
             }).catch(() => {});
 
-            // 🔥 បន្ទាប់ពី ១.៥ វិនាទី លុបប្រអប់សារហ្នឹងចោលពីអេក្រង់ភ្លាមៗតែម្តង (Remove Element)
             setTimeout(() => {
               if (notifItem) notifItem.remove();
 
@@ -1796,8 +1799,8 @@
         let hasUpdates = false;
         if (currentUsr.notifications) {
           currentUsr.notifications.forEach((n) => {
-            // 🔥 Mark សារទាំងអស់ (រួមទាំង Joint Account) ថាអានរួច ទុកតែ E-Gift ទេ
-            if (!n.isRead && n.type !== "egift_receive") {
+            // 🔥 យកលក្ខខណ្ឌដកចេញ E-Gift ចេញ ដើម្បីអោយវា Mark អានរួចទាំងអស់ពេលចុចខ្វែង (X) បិទ
+            if (!n.isRead) {
               n.isRead = true;
               hasUpdates = true;
             }
@@ -1813,6 +1816,7 @@
               ? authHeaders
               : window.authHeaders || {};
 
+          // បាញ់ API ប្រាប់ Server ថាបានអានសារទាំងអស់ហើយ
           fetch("/api/user/read-notifications", {
             method: "POST",
             headers: reqHeaders,
