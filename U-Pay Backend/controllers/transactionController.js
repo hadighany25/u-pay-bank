@@ -669,7 +669,7 @@ const rewardCashback = async (req, res) => {
             amount: reward,
             currency: "USD",
             fee: 0,
-            senderName: "U-Pay Central Bank",
+            senderName: "U PAY Cashback Reward",
             receiverName: user.username,
             remark: sharedRemark,
             status: "Success",
@@ -685,7 +685,7 @@ const rewardCashback = async (req, res) => {
             amount: -reward,
             currency: "USD",
             fee: 0,
-            senderName: "U-Pay Central Bank",
+            senderName: "U PAY Cashback Reward",
             receiverName: user.username,
             remark: sharedRemark,
             status: "Success",
@@ -772,7 +772,7 @@ const claimPromoCode = async (req, res) => {
         amount: rewardAmt,
         currency: "USD",
         fee: 0,
-        senderName: "U-Pay Promos",
+        senderName: "U-Pay Promos Reward",
         receiverName: user.username,
         remark: sharedRemark,
         status: "Success",
@@ -787,7 +787,7 @@ const claimPromoCode = async (req, res) => {
         amount: -rewardAmt,
         currency: "USD",
         fee: 0,
-        senderName: "U-Pay Promos",
+        senderName: "U-Pay Promos Reward",
         receiverName: user.username,
         remark: sharedRemark,
         status: "Success",
@@ -1000,6 +1000,14 @@ const sendEgift = async (req, res) => {
     const sharedHash = Math.random().toString(36).substring(2, 11);
     const sharedRemark = message || "E-Gift";
 
+    // 🔥 កំណត់ឈ្មោះអ្នកផ្ញើ និងអ្នកទទួលឱ្យចេញឈ្មោះពេញ (Full Name ឬ ឈ្មោះគណនីរួម)
+    const finalSenderName = jointSenderAcc
+      ? jointSenderAcc.accountName
+      : sender.fullName || sender.username;
+    const finalReceiverName = jointReceiverAcc
+      ? jointReceiverAcc.accountName
+      : receiver.fullName || receiver.username;
+
     const senderTrx = {
       username: sender.username,
       refId: sharedRefId,
@@ -1007,8 +1015,8 @@ const sendEgift = async (req, res) => {
       type: "E-Gift Sent",
       amount: -finalDeduction,
       currency: sourceCurrency,
-      senderName: sender.fullName || sender.username,
-      receiverName: receiver.fullName || receiver.username,
+      senderName: finalSenderName, // ប្រើឈ្មោះពេញ
+      receiverName: finalReceiverName, // ប្រើឈ្មោះពេញ
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1024,8 +1032,8 @@ const sendEgift = async (req, res) => {
       type: "E-Gift Received",
       amount: giftAmount,
       currency: currency,
-      senderName: sender.fullName || sender.username,
-      receiverName: receiver.fullName || receiver.username,
+      senderName: finalSenderName, // ប្រើឈ្មោះពេញ
+      receiverName: finalReceiverName, // ប្រើឈ្មោះពេញ
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1053,10 +1061,14 @@ const sendEgift = async (req, res) => {
       await Transaction.create(receiverTrx);
     }
 
-    // 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល
+    // 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (បង្ហាញឈ្មោះពេញ)
+    const senderMsgName = jointSenderAcc
+      ? `គណនីរួម ${jointSenderAcc.accountName}`
+      : finalSenderName;
+
     const giftNotification = {
       title: "មានកាដូថ្មី! 🎁",
-      message: `អ្នកទទួលបានអាំងប៉ាវពី ${sender.fullName || sender.username}។ ចុចដើម្បីបើកមើល!`,
+      message: `អ្នកទទួលបានអាំងប៉ាវពី ${senderMsgName}។ ចុចដើម្បីបើកមើល!`,
       type: "egift_receive",
       date: dateStr,
       isRead: false,
@@ -1065,7 +1077,7 @@ const sendEgift = async (req, res) => {
         currency: currency,
         theme: theme,
         message: message,
-        senderName: sender.fullName || sender.username,
+        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
         senderUsername: sender.username,
       },
     };
@@ -1103,18 +1115,17 @@ const sendEgift = async (req, res) => {
       newBalanceRes = sender.balance;
     }
 
-    // 🔥 កែចំណុចនេះ៖ បាញ់ Socket (Real-time) អោយសមាជិកទាំងអស់ក្នុងកុងរួម
+    // 🔥 បាញ់ Socket (Real-time) អោយសមាជិកទាំងអស់ក្នុងកុងរួម (បង្ហាញឈ្មោះពេញ)
     const io = req.app.get("io");
     if (io) {
       const socketPayload = {
         amount: giftAmount,
         currency: currency,
-        senderName: sender.fullName || sender.username,
+        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
         isGift: true,
       };
 
       if (jointReceiverAcc) {
-        // បាញ់ចូល Username សមាជិកនីមួយៗ
         for (let m of jointReceiverAcc.members) {
           if (m.status === "active") {
             io.to(m.username).emit("paymentReceived", socketPayload);
