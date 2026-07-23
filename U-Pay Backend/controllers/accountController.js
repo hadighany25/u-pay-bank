@@ -449,6 +449,7 @@ exports.createJointAccount = async (req, res) => {
         accountName: jointAccountName + suffix,
         accountType: "joint",
         currency: curr,
+        balance: 0, // 🔥 ថែម balance: 0 អោយច្បាស់ពេលបង្កើត
       });
     };
 
@@ -509,8 +510,7 @@ exports.respondToJointInvite = async (req, res) => {
     if (!owner || !invitee)
       return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    // ទាញយកគណនីរួមចេញពីធុង JointAccount
-    const baseNumber = accountNumber.substring(0, 8); // ចាប់យកលេខដើម ដើម្បីរកទាំង USD និង KHR (បើមាន)
+    const baseNumber = accountNumber.substring(0, 8);
     const linkedAccs = await JointAccount.find({
       accountNumber: new RegExp("^" + baseNumber),
       "members.username": inviteeUsername,
@@ -610,6 +610,7 @@ exports.respondToJointInvite = async (req, res) => {
           accountName: la.accountName,
           accountType: "joint_member",
           currency: la.currency,
+          balance: la.balance, // 🔥 ថែម balance អោយច្បាស់ពេលទទួល
         });
       }
 

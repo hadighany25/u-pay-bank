@@ -2,10 +2,11 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
+// 🔥 ថែមម៉ូឌុល JointAccount ដើម្បីទាញលុយពិតប្រាកដ
+const JointAccount = require("../models/JointAccount");
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
-// 🔥 ថែម ២ បន្ទាត់នេះចូល
 const Admin = require("../models/Admin");
 const bcrypt = require("bcryptjs");
 
@@ -65,21 +66,16 @@ const register = async (req, res) => {
 
     await newUser.save();
 
-    // 🔥 បង្កើត Token ភ្លាមៗ ពេលចុះឈ្មោះរួច
     const token = jwt.sign(
       { id: newUser.id, username: newUser.username, role: newUser.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
 
-    // ========================================================
-    // 🔥 កាត់លេខសម្ងាត់ (Password & PIN) ចេញ មុននឹងបោះទៅអោយ Frontend
-    // ========================================================
-    const safeUser = newUser.toObject(); // បម្លែងទិន្នន័យពី MongoDB មកជា Object ធម្មតា
-    delete safeUser.password; // លុប Password ចេញពីការផ្ញើ
-    delete safeUser.pin; // លុប PIN ចេញពីការផ្ញើ
+    const safeUser = newUser.toObject();
+    delete safeUser.password;
+    delete safeUser.pin;
 
-    // បោះតែទិន្នន័យសុវត្ថិភាព (safeUser) និង Token ទៅកាន់ Browser ប៉ុណ្ណោះ
     res.json({ success: true, user: safeUser, token: token });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -105,7 +101,6 @@ const login = async (req, res) => {
       user.lastActive = new Date().toISOString();
       await user.save();
 
-      // បង្កើត Token សម្ងាត់
       const jwt = require("jsonwebtoken");
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
@@ -113,12 +108,46 @@ const login = async (req, res) => {
         { expiresIn: "7d" },
       );
 
-      // 🔥 កាត់លេខសម្ងាត់ (Password & PIN) ចេញ មុននឹងបោះទៅអោយ Frontend
-      const safeUser = user.toObject(); // បម្លែងទិន្នន័យពី MongoDB មកជា Object ធម្មតា
-      delete safeUser.password; // លុប Password ចេញពីការផ្ញើ
-      delete safeUser.pin; // លុប PIN ចេញពីការផ្ញើ
+      const safeUser = user.toObject();
 
-      // បោះតែទិន្នន័យសុវត្ថិភាព (safeUser) និង Token ទៅកាន់ Browser ប៉ុណ្ណោះ
+      // ========================================================
+      // 🔥 ចំណុចកែទី១៖ ធ្វើបច្ចុប្បន្នភាពលុយគណនីរួមពី JointAccount អោយត្រូវ ១០០%
+      // ========================================================
+      if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
+        const jointAccIds = safeUser.subAccounts
+          .filter(
+            (sa) =>
+              sa.accountType === "joint" || sa.accountType === "joint_member",
+          )
+          .map((sa) => sa.accountId);
+
+        if (jointAccIds.length > 0) {
+          // ទាញយកទិន្នន័យពីធុងលុយ JointAccount
+          const jointAccounts = await JointAccount.find({
+            accountId: { $in: jointAccIds },
+          });
+          const jointMap = {};
+          jointAccounts.forEach((ja) => {
+            jointMap[ja.accountId] = ja.balance;
+          });
+
+          // Update លុយក្នុង Array មុននឹងបញ្ជូនទៅ Dashboard
+          safeUser.subAccounts.forEach((sa) => {
+            if (
+              sa.accountType === "joint" ||
+              sa.accountType === "joint_member"
+            ) {
+              if (jointMap[sa.accountId] !== undefined) {
+                sa.balance = jointMap[sa.accountId];
+              }
+            }
+          });
+        }
+      }
+
+      delete safeUser.password;
+      delete safeUser.pin;
+
       res.json({ success: true, user: safeUser, token: token });
     } else {
       res.json({ success: false, message: "Invalid Credentials" });
@@ -131,22 +160,20 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   const { username } = req.body;
   try {
-    // រក User និងធ្វើការ Reset ស្ថានភាព
     const user = await User.findOneAndUpdate(
       { username: username },
       {
         $set: {
           isOnline: false,
-          forceLogout: false, // ធានាថា Reset ស្ថានភាព Force Logout វិញដើម្បីឱ្យគាត់ Login ចូលបានធម្មតានៅពេលក្រោយ
+          forceLogout: false,
         },
         $unset: {
-          currentToken: "", // លុប Token ចោលពី DB (ប្រសិនបើអ្នកមានរក្សាទុក)
+          currentToken: "",
         },
       },
       { new: true },
     );
 
-    // បើអ្នកប្រើ Express-Session (បើអត់ទេ អាចរំលងបន្ទាត់នេះ)
     if (req.session) {
       req.session.destroy();
     }
@@ -178,12 +205,29 @@ const heartbeat = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const users = await User.find({});
-    // ទាញយកពីប្រព័ន្ធថ្មី រួចតម្រៀបពីថ្មីមកចាស់
     const allTransactions = await Transaction.find({}).sort({ createdAt: -1 });
+
+    // 🔥 ចំណុចកែទី២៖ ទាញយកធុងលុយគណនីរួមទាំងអស់ ដើម្បី Update លុយអោយត្រូវរាល់ពេល Load
+    const allJointAccounts = await JointAccount.find({});
+    const jointMap = {};
+    allJointAccounts.forEach((ja) => {
+      jointMap[ja.accountId] = ja.balance;
+    });
 
     const usersWithTrx = users.map((user) => {
       const userObj = user.toObject();
-      // 🔥 យកតែពី Collection ថ្មីសុទ្ធ ១០០% គ្មានការលាយឡំ
+
+      // Update លុយគណនីរួមមុននឹងបញ្ជូនទៅ UI របស់ Admin ឫ Dashboard
+      if (userObj.subAccounts && userObj.subAccounts.length > 0) {
+        userObj.subAccounts.forEach((sa) => {
+          if (sa.accountType === "joint" || sa.accountType === "joint_member") {
+            if (jointMap[sa.accountId] !== undefined) {
+              sa.balance = jointMap[sa.accountId]; // Update លុយអោយត្រូវ
+            }
+          }
+        });
+      }
+
       userObj.transactions = allTransactions.filter(
         (t) => t.username === user.username,
       );
@@ -240,7 +284,6 @@ const changeLimit = async (req, res) => {
   }
 };
 
-// 🔥 ការអាប់ឡូត Profile ជា Base64
 const uploadImage = async (req, res) => {
   const userId = req.body.id;
   if (!req.file)
@@ -261,7 +304,6 @@ const uploadImage = async (req, res) => {
   }
 };
 
-// 🔥 ការបញ្ជូន KYC ជា Base64
 const submitKyc = async (req, res) => {
   const username = req.body.username;
   if (!req.file)
@@ -384,8 +426,6 @@ const verifyAccount = async (req, res) => {
   }
 };
 
-// 🔥 មុខងារសម្រាប់ Admin Login ដាច់ដោយឡែក (មានប្រព័ន្ធ RBAC)
-// 🔥 មុខងារសម្រាប់ Admin Login ដែល Update ថ្មី (ស្គាល់ទាំង Admin ចាស់ និង Admin ថ្មី)
 const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -393,14 +433,10 @@ const adminLogin = async (req, res) => {
     let finalRole = "support_agent";
     let adminId = "";
 
-    // ១. ស្វែងរកក្នុងតារាង Admin ថ្មីមុនគេ (ប្រព័ន្ធថ្មី)
     const newAdminAcc = await Admin.findOne({ username: username });
 
     if (newAdminAcc) {
-      // ផ្ទៀងផ្ទាត់លេខសម្ងាត់ដែលបាន Hash
       isValid = await bcrypt.compare(password, newAdminAcc.password);
-
-      // ករណីពិសេសលេខសម្ងាត់អត់ទាន់ Hash
       if (!isValid && newAdminAcc.password === password) isValid = true;
 
       if (isValid) {
@@ -408,7 +444,6 @@ const adminLogin = async (req, res) => {
         adminId = newAdminAcc.id || newAdminAcc._id;
       }
     } else {
-      // ២. បើរកអត់ឃើញទេ ទៅរកក្នុងតារាង User ចាស់ (ករណី Master Admin ចាស់បងមិនទាន់លុប)
       const legacyAdmin = await User.findOne({
         username: username,
         role: {
@@ -424,7 +459,6 @@ const adminLogin = async (req, res) => {
       }
     }
 
-    // ៣. បើលេខសម្ងាត់ខុស
     if (!isValid) {
       return res.json({
         success: false,
@@ -432,11 +466,10 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // ៤. បង្កើត Token បញ្ជាក់សិទ្ធិ
     const token = jwt.sign(
       { id: adminId, username: username, role: finalRole },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }, // ផុតកំណត់ក្រោយ ១ថ្ងៃ
+      { expiresIn: "1d" },
     );
 
     res.json({
@@ -454,34 +487,26 @@ const adminLogin = async (req, res) => {
   }
 };
 
-// ==========================================
-// 🚀 មុខងារពិសេស (Run តែម្តង): ជម្លៀសទិន្នន័យ Transaction ចាស់ៗទៅកន្លែងថ្មី
-// ==========================================
 const migrateTransactions = async (req, res) => {
   try {
-    // រកមើលតែ User ណាដែលមាន Transaction ចាស់សេសសល់
     const users = await User.find({ "transactions.0": { $exists: true } });
     let totalMigrated = 0;
 
     for (let user of users) {
       if (user.transactions && user.transactions.length > 0) {
-        // ១. រៀបចំទិន្នន័យចាស់ៗ ដោយថែមឈ្មោះ username ចូល
         const trxsToInsert = user.transactions.map((t) => {
           const tObj = t.toObject ? t.toObject() : t;
           return { ...tObj, username: user.username };
         });
 
-        // ២. បញ្ចូលទៅកាន់ Collection ថ្មី (Transaction.js)
         await Transaction.insertMany(trxsToInsert);
         totalMigrated += trxsToInsert.length;
 
-        // ៣. លុបទិន្នន័យចេញពី User ចោល
         user.transactions = undefined;
         await user.save();
       }
     }
 
-    // ៤. ធានាថាលុប Field 'transactions' ពី Database Structure របស់ User ទាំងស្រុង
     await User.updateMany({}, { $unset: { transactions: 1 } });
 
     res.json({
