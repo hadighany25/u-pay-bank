@@ -1500,7 +1500,7 @@
       }
 
       // ==========================================
-      // ១៥. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
+      // ១៤. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
       // ==========================================
       let currentUnreadCount = 0;
       function updateNotificationsUI(currentUser) {
@@ -1508,6 +1508,7 @@
           (n) => !n.isRead,
         );
 
+        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
         if (unread.length > currentUnreadCount) {
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
@@ -1520,6 +1521,7 @@
             setTimeout(() => bell.classList.remove("fa-shake"), 2000);
           }
         }
+
         currentUnreadCount = unread.length;
 
         const badge = document.getElementById("notiBadge");
@@ -1535,13 +1537,15 @@
           } else {
             list.innerHTML = unread
               .map((n) => {
+                // តម្លៃដើម (Default) សម្រាប់ Icon និង ពណ៌
                 let icon = "fa-bullhorn",
                   bg = "#e0f2fe",
-                  col = "#0284c7",
-                  displayMsg = n.message,
-                  actionBtn = "";
-                const notifId = n._id || n.id;
+                  col = "#0284c7";
+                let displayMsg = n.message;
+                let actionBtn = "";
+                const notifId = n._id || n.id; // ចាប់យក ID ដើម្បីកុំអោយ Error ពេលហៅ Parameter
 
+                // 💵 ពណ៌សម្រាប់ ការទទួលប្រាក់ធម្មតា
                 if (
                   n.title.includes("Received") &&
                   n.type !== "egift_receive"
@@ -1549,14 +1553,18 @@
                   icon = "fa-hand-holding-dollar";
                   bg = "#ecfdf5";
                   col = "#10b981";
-                } else if (
+                }
+                // 🛒 ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request)
+                else if (
                   n.title.includes("សំណើទូទាត់ប្រាក់") ||
                   n.type === "payment_request"
                 ) {
                   icon = "fa-cart-shopping";
                   bg = "#fff7ed";
                   col = "#ea580c";
-                } else if (
+                }
+                // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward
+                else if (
                   n.title.includes("Cashback") ||
                   n.type === "cashback_reward" ||
                   n.title.includes("ឈ្នះបាន")
@@ -1565,10 +1573,13 @@
                   bg = "#dcfce7";
                   col = "#059669";
                 }
+
+                // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
                 if (n.type === "egift_receive") {
                   icon = "fa-gift";
                   bg = "#fee2e2";
                   col = "#dc2626";
+
                   const amount = n.egiftData?.amount || 0;
                   const currency = n.egiftData?.currency || "USD";
                   const sender = (
@@ -1578,14 +1589,66 @@
                     /'/g,
                     "\\'",
                   );
+                  const senderUsername = n.egiftData?.senderUsername || "";
+
                   displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
-                  actionBtn = `<div style="margin-top: 10px;"><button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${n.egiftData?.senderUsername || ""}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">បើកអាំងប៉ាវឥឡូវនេះ</button></div>`;
+
+                  // ប៊ូតុងចុចទទួលកាដូ
+                  actionBtn = `
+                      <div style="margin-top: 10px;">
+                        <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
+                        </button>
+                      </div>
+                    `;
                 }
 
+                // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
+                if (n.type === "ufund_invite") {
+                  icon = "fa-bullseye";
+                  bg = "#ecfeff";
+                  col = "#0891b2";
+
+                  actionBtn = `
+                      <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button onclick="respondUFundInvite('${n.fundId}', '${notifId}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                        <button onclick="respondUFundInvite('${n.fundId}', '${notifId}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                      </div>
+                    `;
+                }
+
+                // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
+                if (n.metadata && n.metadata.type === "joint_invite") {
+                  icon = "fa-users";
+                  bg = "#e0e7ff";
+                  col = "#4f46e5";
+
+                  // 🔥 កែប៊ូតុងអោយប្តូរទៅជាសភាព Loading ពេលចុចភ្លាម
+                  actionBtn = `
+                      <div id="joint-action-${notifId}" style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button
+                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${notifId}')"
+                          style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-check"></i> យល់ព្រម
+                        </button>
+                        <button
+                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${notifId}')"
+                          style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                          <i class="fa-solid fa-xmark"></i> បដិសេធ
+                        </button>
+                      </div>
+                    `;
+                }
+
+                // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
                 return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
                            <div style="display:flex; gap:12px;">
                                <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
-                               <div><h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4><p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p><span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span></div>
+                               <div>
+                                   <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4>
+                                   <p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p>
+                                   <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span>
+                               </div>
                            </div>
                            ${actionBtn}
                        </div>`;
@@ -1601,28 +1664,265 @@
         if (notifModal) notifModal.style.display = "flex";
       }
 
+      // ==========================================
+      // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
+      // ==========================================
+      async function handleJointInvite(
+        btnElement,
+        ownerUsername,
+        accountNumber,
+        action,
+        notifId,
+      ) {
+        const parentDiv = document.getElementById(`joint-action-${notifId}`);
+        const notifItem = document.getElementById(`notif-item-${notifId}`);
+
+        if (parentDiv) {
+          parentDiv.innerHTML = `
+              <button style="width: 100%; padding:8px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:not-allowed; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...
+              </button>
+            `;
+        }
+
+        try {
+          let currentUsr =
+            window.currentUser ||
+            JSON.parse(
+              sessionStorage.getItem("user") || localStorage.getItem("user"),
+            );
+
+          let reqHeaders =
+            typeof authHeaders !== "undefined"
+              ? authHeaders
+              : window.authHeaders || {};
+          reqHeaders["Content-Type"] = "application/json";
+
+          if (!reqHeaders["Authorization"]) {
+            let token =
+              localStorage.getItem("token") || sessionStorage.getItem("token");
+            reqHeaders["Authorization"] = `Bearer ${token}`;
+          }
+
+          const res = await fetch("/api/account/joint/respond", {
+            method: "POST",
+            headers: reqHeaders,
+            body: JSON.stringify({
+              inviteeUsername: currentUsr.username,
+              ownerUsername: ownerUsername,
+              accountNumber: accountNumber,
+              action: action,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            if (parentDiv) {
+              parentDiv.innerHTML = `
+                   <div style="width: 100%; padding:8px; background:#ecfdf5; color:#10b981; border:none; border-radius:8px; text-align: center; font-weight:bold; font-size: 0.95rem;">
+                       <i class="fa-solid fa-circle-check"></i> ជោគជ័យ!
+                   </div>
+                `;
+            }
+
+            // 🔥 លុបសារហ្នឹងចោលពី Memory របស់ Browser ការពារវាងើបមកវិញ
+            if (currentUsr && currentUsr.notifications) {
+              const notifIndex = currentUsr.notifications.findIndex(
+                (n) => (n._id || n.id) === notifId,
+              );
+              if (notifIndex > -1) {
+                currentUsr.notifications[notifIndex].isRead = true;
+                sessionStorage.setItem("user", JSON.stringify(currentUsr));
+                window.currentUser = currentUsr;
+              }
+            }
+
+            // ប្រាប់ Backend ថាសារហ្នឹងត្រូវបានអានហើយ
+            await fetch(`/api/user/notifications/read/${notifId}`, {
+              method: "POST",
+              headers: reqHeaders,
+            }).catch(() => {});
+
+            // 🔥 បន្ទាប់ពី ១.៥ វិនាទី លុបប្រអប់សារហ្នឹងចោលពីអេក្រង់ភ្លាមៗតែម្តង (Remove Element)
+            setTimeout(() => {
+              if (notifItem) notifItem.remove();
+
+              const unreadList = document.querySelectorAll(".notif-item");
+              const badge = document.getElementById("notiBadge");
+              if (badge) {
+                badge.innerText = unreadList.length;
+                badge.style.display = unreadList.length > 0 ? "flex" : "none";
+              }
+
+              if (unreadList.length === 0) {
+                const list = document.getElementById("notifList");
+                if (list)
+                  list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
+              }
+            }, 1500);
+          } else {
+            if (parentDiv) {
+              parentDiv.innerHTML = `
+                   <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
+                       <i class="fa-solid fa-circle-exclamation"></i> ${data.message}
+                   </div>
+                `;
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          if (parentDiv) {
+            parentDiv.innerHTML = `
+               <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
+                   <i class="fa-solid fa-triangle-exclamation"></i> បញ្ហាភ្ជាប់ទៅ Server
+               </div>
+            `;
+          }
+        }
+      }
+
+      // ==========================================
+      // មុខងារបិទផ្ទាំងសារ (Close Notifications)
+      // ==========================================
       async function closeNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "none";
-        if (!user) return;
+
+        let currentUsr =
+          window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+        if (!currentUsr) return;
 
         let hasUpdates = false;
-        if (user.notifications) {
-          user.notifications.forEach((n) => {
+        if (currentUsr.notifications) {
+          currentUsr.notifications.forEach((n) => {
+            // 🔥 Mark សារទាំងអស់ (រួមទាំង Joint Account) ថាអានរួច ទុកតែ E-Gift ទេ
             if (!n.isRead && n.type !== "egift_receive") {
               n.isRead = true;
               hasUpdates = true;
             }
           });
         }
+
         if (hasUpdates) {
-          sessionStorage.setItem("user", JSON.stringify(user));
+          sessionStorage.setItem("user", JSON.stringify(currentUsr));
+          window.currentUser = currentUsr;
+
+          let reqHeaders =
+            typeof authHeaders !== "undefined"
+              ? authHeaders
+              : window.authHeaders || {};
+
           fetch("/api/user/read-notifications", {
             method: "POST",
-            headers: authHeaders,
-            body: JSON.stringify({ username: user.username }),
+            headers: reqHeaders,
+            body: JSON.stringify({ username: currentUsr.username }),
           }).catch((e) => console.log(e));
-          updateNotificationsUI(user);
+
+          updateNotificationsUI(currentUsr);
+        }
+      }
+
+      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
+      async function handleOpenGiftFromDash(
+        amount,
+        currency,
+        sender,
+        msg,
+        notifId,
+        senderUsername,
+      ) {
+        const notifModal = document.getElementById("notifModal");
+        if (notifModal) notifModal.style.display = "none";
+
+        if (typeof confetti === "function") {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
+
+        const curSym = currency === "USD" ? "$" : "៛";
+        const displayAmt =
+          currency === "USD"
+            ? Number(amount).toFixed(2)
+            : Number(amount).toLocaleString();
+
+        Swal.fire({
+          html: `
+                   <div style="padding:20px; text-align:center;">
+                       <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
+                       <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
+                       <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
+                       <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
+                       <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
+                   </div>
+               `,
+          confirmButtonText: "ឡូយកប់!",
+          confirmButtonColor: "#004d40",
+          customClass: { popup: "modal-radius" },
+        }).then(() => {
+          if (typeof loadDashboardData === "function") loadDashboardData(false);
+        });
+
+        try {
+          let user =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+          await fetch("/api/egift/opened", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              receiverName: user.fullName || user.username,
+              senderUsername: senderUsername,
+              notifId: notifId,
+            }),
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
+      async function respondUFundInvite(fundId, notifId, response) {
+        try {
+          const notifModal = document.getElementById("notifModal");
+          if (notifModal) notifModal.style.display = "none";
+
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+            allowOutsideClick: false,
+          });
+
+          let user =
+            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
+          const res = await fetch("/api/ufund/respond-invite", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              username: user.username,
+              fundId: fundId,
+              notifId: notifId,
+              response: response,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ!",
+              text: data.message,
+              timer: 2000,
+              showConfirmButton: false,
+            }).then(() => {
+              if (typeof loadDashboardData === "function")
+                loadDashboardData(false);
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (error) {
+          console.error(error);
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
         }
       }
 
