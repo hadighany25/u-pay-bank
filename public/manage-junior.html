@@ -921,18 +921,20 @@
           title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
           html: `
             <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ</p>
-            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5 (USD)">
+            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5">
             <input type="password" id="limitPin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">
           `,
           confirmButtonText: "រក្សាទុក",
           confirmButtonColor: "#f59e0b",
           showCancelButton: true,
+          cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
           preConfirm: () => {
             const limit = document.getElementById("limit").value;
             const pin = document.getElementById("limitPin").value;
-            if (!limit || !pin)
+            if (!limit || !pin) {
               Swal.showValidationMessage("សូមបំពេញចំនួនលុយ និង PIN!");
+            }
             return { limit, pin };
           },
         }).then((result) => {
@@ -958,11 +960,16 @@
               .then((res) => res.json())
               .then((data) => {
                 if (data.success) {
+                  // Update Data ចូល Storage ភ្លាមៗ (ដូចមុខងារ Freeze ដែរ)
+                  if (data.user) {
+                    sessionStorage.setItem("user", JSON.stringify(data.user));
+                    currentUser = data.user;
+                  }
                   Swal.fire({
                     icon: "success",
                     title: "ជោគជ័យ!",
                     text: data.message,
-                    timer: 1500,
+                    timer: 2000,
                     showConfirmButton: false,
                   });
                 } else {

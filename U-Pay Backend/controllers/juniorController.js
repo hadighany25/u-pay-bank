@@ -228,14 +228,24 @@ const updateDailyLimit = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
 
-    // ៣. Update លីមីតក្នុងគណនីកូន
+    // ៣. Update លីមីតក្នុងគណនីកូនផ្ទាល់
     child.dailyLimit = Number(dailyLimit);
     await child.save();
+
+    // ៤. Update លីមីតក្នុង subAccounts របស់ប៉ាម៉ាក់ ដើម្បីឱ្យ UI ស្គាល់
+    const subAccIndex = parent.subAccounts.findIndex(
+      (acc) => acc.accountNumber === childAccountNumber,
+    );
+    if (subAccIndex !== -1) {
+      parent.subAccounts[subAccIndex].dailyLimit = Number(dailyLimit);
+      parent.markModified("subAccounts"); // ប្រាប់ថាមានការប្រែប្រួលក្នុង Array
+      await parent.save();
+    }
 
     res.json({
       success: true,
       message: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃជោគជ័យ!",
-      // ត្រង់នេះយើងមិនចាំបាច់ Update ចូល subAccounts ក៏បាន ព្រោះ Frontend មិនទាន់ត្រូវការវាបន្ទាន់
+      user: parent, // បោះទិន្នន័យម៉ាក់ប៉ាថ្មីទៅអោយ Frontend វិញ
     });
   } catch (error) {
     console.error("Update Limit Error:", error);
