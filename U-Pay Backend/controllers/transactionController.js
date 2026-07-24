@@ -269,11 +269,13 @@ const transfer = async (req, res) => {
     if (actualSenderDoc.role === "junior") {
       const limit = actualSenderDoc.dailyLimit || 0;
       const spentToday = actualSenderDoc.dailySpent || 0;
-      
-      // បំប្លែងទឹកប្រាក់ដែលចាយទៅជា USD ដើម្បីប្រៀបធៀបជាមួយ limit ងាយស្រួល
-      let spentAmountUsd = isSenderKHR ? totalDeduction / currentFXRates.usdToKhrSell : totalDeduction;
 
-      if (limit > 0 && (spentToday + spentAmountUsd) > limit) {
+      // បំប្លែងទឹកប្រាក់ដែលចាយទៅជា USD ដើម្បីប្រៀបធៀបជាមួយ limit ងាយស្រួល
+      let spentAmountUsd = isSenderKHR
+        ? totalDeduction / currentFXRates.usdToKhrSell
+        : totalDeduction;
+
+      if (limit > 0 && spentToday + spentAmountUsd > limit) {
         return res.json({
           success: false,
           message: `ប្រតិបត្តិការបរាជ័យ! គណនីកុមារនេះចាយបានត្រឹម $${limit} ក្នុង១ថ្ងៃ (ថ្ងៃនេះចាយអស់ $${spentToday.toFixed(2)} ហើយ)។`,
@@ -319,7 +321,7 @@ const transfer = async (req, res) => {
           );
           if (sub) {
             sub.balance += receiverAmount;
-            owner.markModified("subAccounts"); 
+            owner.markModified("subAccounts");
           } else {
             if (isReceiverKHR)
               owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
@@ -369,7 +371,7 @@ const transfer = async (req, res) => {
           }
         } else {
           targetSubAcc.balance += receiverAmount;
-          receiver.markModified("subAccounts"); 
+          receiver.markModified("subAccounts");
           await receiver.save();
         }
       } else {
@@ -382,16 +384,25 @@ const transfer = async (req, res) => {
         // 🛑 🔥 NEW: Sync លុយទៅអោយ Parent ពេលប៉ាម៉ាក់ដាក់លុយអោយកូន
         // ==========================================
         if (receiver.role === "junior" && receiver.parentUsername) {
-          const parentOfReceiver = await User.findOne({ username: receiver.parentUsername });
+          const parentOfReceiver = await User.findOne({
+            username: receiver.parentUsername,
+          });
           if (parentOfReceiver) {
             const subIdx = parentOfReceiver.subAccounts.findIndex(
-              (acc) => acc.accountNumber === receiverAccount || acc.accountId === receiver.username
+              (acc) =>
+                acc.accountNumber === receiverAccount ||
+                acc.accountId === receiver.username,
             );
             if (subIdx !== -1) {
               if (isReceiverKHR) {
-                parentOfReceiver.subAccounts[subIdx].balanceKHR = (parseFloat(parentOfReceiver.subAccounts[subIdx].balanceKHR) || 0) + receiverAmount;
+                parentOfReceiver.subAccounts[subIdx].balanceKHR =
+                  (parseFloat(
+                    parentOfReceiver.subAccounts[subIdx].balanceKHR,
+                  ) || 0) + receiverAmount;
               } else {
-                parentOfReceiver.subAccounts[subIdx].balance = (parseFloat(parentOfReceiver.subAccounts[subIdx].balance) || 0) + receiverAmount;
+                parentOfReceiver.subAccounts[subIdx].balance =
+                  (parseFloat(parentOfReceiver.subAccounts[subIdx].balance) ||
+                    0) + receiverAmount;
               }
               parentOfReceiver.markModified("subAccounts");
               await parentOfReceiver.save();
@@ -404,7 +415,9 @@ const transfer = async (req, res) => {
     // ------------------------------------------
     // ង. ដំណើរការកាត់លុយពីអ្នកផ្ញើ (ដកលុយចេញ)
     // ------------------------------------------
-    let actualSpentUsd = isSenderKHR ? totalDeduction / currentFXRates.usdToKhrSell : totalDeduction;
+    let actualSpentUsd = isSenderKHR
+      ? totalDeduction / currentFXRates.usdToKhrSell
+      : totalDeduction;
 
     if (isSenderSubAccount) {
       const senderSubAcc = sender.subAccounts[senderSubIndex];
@@ -420,25 +433,26 @@ const transfer = async (req, res) => {
         if (juniorSenderAcc) {
           if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
           else juniorSenderAcc.balance -= totalDeduction;
-          
+
           // 🔥 NEW: កត់ត្រាការចាយវាយប្រចាំថ្ងៃរបស់កូន (Daily Spent)
-          juniorSenderAcc.dailySpent = (juniorSenderAcc.dailySpent || 0) + actualSpentUsd;
+          juniorSenderAcc.dailySpent =
+            (juniorSenderAcc.dailySpent || 0) + actualSpentUsd;
           await juniorSenderAcc.save();
 
           // កាត់លុយពី subAccounts របស់ម៉ាក់ប៉ា ដើម្បីឲ្យ UI ស៊ីគ្នា
           senderSubAcc.balance -= totalDeduction;
-          sender.markModified("subAccounts"); 
+          sender.markModified("subAccounts");
           await sender.save();
         }
       } else {
         senderSubAcc.balance -= totalDeduction;
-        sender.markModified("subAccounts"); 
+        sender.markModified("subAccounts");
         await sender.save();
       }
     } else {
       if (isSenderKHR) sender.balanceKHR -= totalDeduction;
       else sender.balance -= totalDeduction;
-      
+
       // 🔥 NEW: បើអ្នក Login ជាកូនផ្ទាល់ ហើយវេរលុយចេញ កត់ត្រាចូល dailySpent
       if (sender.role === "junior") {
         sender.dailySpent = (sender.dailySpent || 0) + actualSpentUsd;
@@ -447,15 +461,27 @@ const transfer = async (req, res) => {
 
       // 🔥 NEW: Sync ទៅគណនីម៉ាក់ប៉ាវិញ ក្រែងលោកូនចាយលុយចេញ ឲ្យម៉ាក់ប៉ាឃើញលុយថយចុះដែរ
       if (sender.role === "junior" && sender.parentUsername) {
-        const parentOfSender = await User.findOne({ username: sender.parentUsername });
+        const parentOfSender = await User.findOne({
+          username: sender.parentUsername,
+        });
         if (parentOfSender) {
-          const actualAcc = isSenderKHR ? sender.accountNumberKHR : sender.accountNumber;
-          const subIdx = parentOfSender.subAccounts.findIndex((acc) => acc.accountNumber === actualAcc || acc.accountId === sender.username);
+          const actualAcc = isSenderKHR
+            ? sender.accountNumberKHR
+            : sender.accountNumber;
+          const subIdx = parentOfSender.subAccounts.findIndex(
+            (acc) =>
+              acc.accountNumber === actualAcc ||
+              acc.accountId === sender.username,
+          );
           if (subIdx !== -1) {
             if (isSenderKHR) {
-              parentOfSender.subAccounts[subIdx].balanceKHR = (parseFloat(parentOfSender.subAccounts[subIdx].balanceKHR) || 0) - totalDeduction;
+              parentOfSender.subAccounts[subIdx].balanceKHR =
+                (parseFloat(parentOfSender.subAccounts[subIdx].balanceKHR) ||
+                  0) - totalDeduction;
             } else {
-              parentOfSender.subAccounts[subIdx].balance = (parseFloat(parentOfSender.subAccounts[subIdx].balance) || 0) - totalDeduction;
+              parentOfSender.subAccounts[subIdx].balance =
+                (parseFloat(parentOfSender.subAccounts[subIdx].balance) || 0) -
+                totalDeduction;
             }
             parentOfSender.markModified("subAccounts");
             await parentOfSender.save();
@@ -640,7 +666,12 @@ const transfer = async (req, res) => {
         : updatedSender.balance;
     }
 
-    res.json({ success: true, newBalance: newBalanceRes, slipData: senderTrx, user: updatedSender }); // 🔥 NEW: បោះ User Update ទៅវិញ ងាយស្រួល Frontend ចាប់
+    res.json({
+      success: true,
+      newBalance: newBalanceRes,
+      slipData: senderTrx,
+      user: updatedSender,
+    }); // 🔥 NEW: បោះ User Update ទៅវិញ ងាយស្រួល Frontend ចាប់
   } catch (err) {
     console.error("TRANSFER ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -778,7 +809,7 @@ const rewardCashback = async (req, res) => {
             currency: "USD",
             fee: 0,
             senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName, 
+            receiverName: finalReceiverName,
             remark: sharedRemark,
             status: "Success",
             device: "App",
@@ -794,7 +825,7 @@ const rewardCashback = async (req, res) => {
             currency: "USD",
             fee: 0,
             senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName, 
+            receiverName: finalReceiverName,
             remark: sharedRemark,
             status: "Success",
             device: "System",
@@ -883,7 +914,7 @@ const claimPromoCode = async (req, res) => {
         currency: "USD",
         fee: 0,
         senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName, 
+        receiverName: finalReceiverName,
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
@@ -898,7 +929,7 @@ const claimPromoCode = async (req, res) => {
         currency: "USD",
         fee: 0,
         senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName, 
+        receiverName: finalReceiverName,
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
@@ -937,7 +968,7 @@ const sendEgift = async (req, res) => {
   } = req.body;
 
   try {
-    const currentFXRates = readFXRates(); 
+    const currentFXRates = readFXRates();
     const giftAmount = parseFloat(amount);
 
     const sender = await User.findOne({ username: senderUsername });
@@ -962,7 +993,7 @@ const sendEgift = async (req, res) => {
         message: `លេខកូដ PIN មិនត្រឹមត្រូវទេ! នៅសល់ ${3 - sender.pinAttempts} ដង។`,
       });
     }
-    sender.pinAttempts = 0; 
+    sender.pinAttempts = 0;
 
     let finalDeduction = giftAmount;
     let sourceCurrency = "USD";
@@ -1081,7 +1112,7 @@ const sendEgift = async (req, res) => {
         }
       } else {
         targetSubAcc.balance += receiveAmt;
-        receiver.markModified("subAccounts"); 
+        receiver.markModified("subAccounts");
       }
     } else {
       if (receiverInput === receiver.accountNumberKHR) {
@@ -1115,7 +1146,7 @@ const sendEgift = async (req, res) => {
       amount: -finalDeduction,
       currency: sourceCurrency,
       senderName: finalSenderName,
-      receiverName: finalReceiverName, 
+      receiverName: finalReceiverName,
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1131,8 +1162,8 @@ const sendEgift = async (req, res) => {
       type: "E-Gift Received",
       amount: giftAmount,
       currency: currency,
-      senderName: finalSenderName, 
-      receiverName: finalReceiverName, 
+      senderName: finalSenderName,
+      receiverName: finalReceiverName,
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1174,7 +1205,7 @@ const sendEgift = async (req, res) => {
         currency: currency,
         theme: theme,
         message: message,
-        senderName: finalSenderName, 
+        senderName: finalSenderName,
         senderUsername: sender.username,
       },
     };
