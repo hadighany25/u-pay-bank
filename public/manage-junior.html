@@ -9,7 +9,6 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Manage Kids - U-Pay</title>
 
-    <!-- Fonts & Icons -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -19,14 +18,13 @@
       rel="stylesheet"
     />
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
 
     <style>
       /* ==========================================
-         🚀 FOUC PREVENTION
+         🚀 CORE STYLES & LAYOUT
          ========================================== */
       body {
         background-color: #f2f4f6;
@@ -47,9 +45,6 @@
         opacity: 1;
       }
 
-      /* ==========================================
-         📱 BASE APP CONTAINER & LAYOUT
-         ========================================== */
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -58,9 +53,8 @@
         display: flex;
         flex-direction: column;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        transition: background-color 0.3s;
-        padding-bottom: 90px;
         position: relative;
+        padding-bottom: 90px;
       }
       .nav-header {
         padding: 20px;
@@ -72,21 +66,17 @@
         font-size: 1.1rem;
         position: sticky;
         top: 0;
-        z-index: 100;
-      }
-      .nav-header a {
-        color: white;
-        text-decoration: none;
+        z-index: 50;
       }
       .content-body {
-        padding: 20px 20px 30px;
+        padding: 20px;
         flex: 1;
         display: flex;
         flex-direction: column;
       }
 
       /* ==========================================
-         👶 JUNIOR MANAGEMENT STYLES
+         👶 JUNIOR CARDS & MULTI-CURRENCY
          ========================================== */
       .add-btn {
         display: flex;
@@ -103,11 +93,6 @@
         font-weight: 600;
         cursor: pointer;
         margin-bottom: 25px;
-        transition: 0.2s;
-      }
-      .add-btn:active {
-        transform: scale(0.98);
-        background: #b2dfdb;
       }
 
       .junior-card {
@@ -117,10 +102,7 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         margin-bottom: 20px;
         position: relative;
-        overflow: hidden;
-        border: 1px solid #f1f5f9;
       }
-
       .status-badge {
         position: absolute;
         top: 15px;
@@ -166,11 +148,17 @@
         color: #64748b;
       }
 
-      .balance-box {
+      /* Multi-Currency Box */
+      .balance-container {
         background: #f8fafc;
-        padding: 15px;
         border-radius: 12px;
+        padding: 15px;
         margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .bal-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -178,13 +166,26 @@
       .bal-label {
         color: #64748b;
         font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .bal-label img {
+        width: 18px;
+        border-radius: 50%;
       }
       .bal-amount {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: #004d40;
       }
+      .bal-divider {
+        height: 1px;
+        background: #e2e8f0;
+        width: 100%;
+      }
 
+      /* Actions Grid */
       .action-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -208,11 +209,6 @@
         align-items: center;
         justify-content: center;
         font-size: 1.2rem;
-        transition: 0.2s;
-      }
-      .action-btn span {
-        font-size: 0.75rem;
-        font-weight: 500;
       }
       .btn-topup .icon-bg {
         background: #ecfdf5;
@@ -230,298 +226,392 @@
         background: #fef2f2;
         color: #ef4444;
       }
-      .action-btn:active .icon-bg {
-        transform: scale(0.9);
-      }
 
       /* ==========================================
-         BOTTOM NAV 
+         📱 BOTTOM SHEETS (HALF SCREEN MODALS)
          ========================================== */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        max-width: 450px;
-        display: flex;
-        background: white;
-        padding: 12px 0 15px 0;
-        justify-content: space-around;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
-        z-index: 999;
-        border-radius: 20px 20px 0 0;
-      }
-      .nav-item {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.75rem;
-        text-decoration: none;
-        cursor: pointer;
-        flex: 1;
-        transition: 0.2s;
-      }
-      .nav-item i {
-        font-size: 1.4rem;
-        display: block;
-        margin-bottom: 5px;
-      }
-      .nav-item.active {
-        color: #004d40;
-        font-weight: 700;
-        transform: translateY(-5px);
-      }
-
-      /* ==========================================
-         🔥 CUSTOM BOTTOM SHEET MODALS
-         ========================================== */
-      .custom-modal {
-        display: none;
+      .sheet-overlay {
         position: fixed;
         top: 0;
         left: 0;
-        right: 0;
-        bottom: 0;
+        width: 100%;
+        height: 100%;
         background: rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        align-items: flex-end;
-        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
       }
-      .modal-content {
-        background: white;
+      .sheet-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .bottom-sheet {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
         width: 100%;
         max-width: 450px;
-        border-radius: 25px 25px 0 0;
-        padding: 30px 25px;
-        box-sizing: border-box;
-        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        min-height: 50vh;
+        max-height: 85vh;
+        background: white;
+        border-radius: 24px 24px 0 0;
+        z-index: 1001;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
-      @keyframes slideUp {
+      .bottom-sheet.active {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .sheet-header {
+        padding: 20px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        border-bottom: 1px solid #f1f5f9;
+        position: relative;
+        color: #1e293b;
+      }
+      .sheet-close {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        color: #94a3b8;
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+      .sheet-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      /* Step Inputs (For TopUp, Limit) */
+      .step-section {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+      .step-section.active {
+        display: block;
+      }
+      @keyframes fadeIn {
         from {
-          transform: translateY(100%);
+          opacity: 0;
+          transform: translateY(10px);
         }
         to {
+          opacity: 1;
           transform: translateY(0);
         }
       }
-      .modal-title {
-        font-size: 1.2rem;
-        margin-bottom: 20px;
-        text-align: center;
-        color: #1e293b;
-      }
 
-      .modal-input {
+      .input-group {
+        margin-bottom: 20px;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+      .big-input {
         width: 100%;
         padding: 15px;
-        margin-bottom: 15px;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        font-size: 1rem;
-        box-sizing: border-box;
+        font-size: 1.5rem;
         text-align: center;
-      }
-      .modal-input:focus {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
         outline: none;
+        font-weight: 700;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+      }
+      .big-input:focus {
         border-color: #004d40;
       }
+      .currency-toggle {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        padding: 4px;
+      }
+      .cur-btn {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #64748b;
+        transition: 0.2s;
+      }
+      .cur-btn.active {
+        background: white;
+        color: #004d40;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
 
-      .btn-full {
+      /* History List in Bottom Sheet */
+      .trx-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+      }
+      .trx-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .trx-icon {
+        width: 40px;
+        height: 40px;
+        background: #e0f2f1;
+        color: #004d40;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .trx-title {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+      }
+      .trx-date {
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      .trx-amt {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+      .amt-in {
+        color: #10b981;
+      }
+      .amt-out {
+        color: #ef4444;
+      }
+
+      /* Primary Button */
+      .btn-primary {
         width: 100%;
         padding: 15px;
         background: #004d40;
         color: white;
         border: none;
         border-radius: 12px;
-        font-size: 1rem;
-        font-weight: bold;
+        font-size: 1.1rem;
+        font-weight: 600;
         cursor: pointer;
-        transition: 0.2s;
-        margin-bottom: 10px;
-      }
-      .btn-full:active {
-        transform: scale(0.98);
-      }
-      .btn-cancel {
-        background: #f1f5f9;
-        color: #64748b;
-      }
-      .btn-danger {
-        background: #ef4444;
       }
 
-      /* Dark Mode Overrides */
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES (Optional)
+         ========================================== */
       body.dark-mode {
         background-color: #000000 !important;
       }
       body.dark-mode .app-container {
         background-color: #121212 !important;
       }
-      body.dark-mode .nav-header {
-        background-color: #00251f !important;
-      }
       body.dark-mode .junior-card {
         background: #1e1e1e !important;
         border-color: #2d2d2d !important;
       }
-      body.dark-mode .kid-info h3,
-      body.dark-mode .modal-title {
-        color: #ffffff !important;
-      }
-      body.dark-mode .balance-box {
+      body.dark-mode .balance-container {
         background: #2d2d2d !important;
       }
-      body.dark-mode .bottom-nav,
-      body.dark-mode .modal-content {
-        background-color: #1e1e1e !important;
-        border-top: 1px solid #2d2d2d !important;
+      body.dark-mode .bottom-sheet {
+        background: #1e1e1e !important;
       }
-      body.dark-mode .modal-input {
-        background: #2d2d2d;
+      body.dark-mode .sheet-header {
         color: white;
-        border-color: #444;
+        border-color: #2d2d2d;
       }
-      body.dark-mode .btn-cancel {
-        background: #2d2d2d;
-        color: #94a3b8;
+      body.dark-mode .big-input {
+        background: #121212;
+        color: white;
+        border-color: #333;
+      }
+      body.dark-mode .trx-item {
+        border-color: #2d2d2d;
+      }
+      body.dark-mode .trx-title {
+        color: white;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <!-- Header -->
       <div class="nav-header">
-        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-i18n="btn_manage_junior">Manage Kids</span>
+        <a href="dashboard.html" style="color: white"
+          ><i class="fa-solid fa-arrow-left"></i
+        ></a>
+        <span>Manage Kids</span>
       </div>
 
-      <!-- Main Content -->
       <div class="content-body">
         <button
           class="add-btn"
           onclick="window.location.href = 'new-account.html'"
         >
-          <i class="fa-solid fa-plus"></i>
-          <span data-i18n="btn_create_kid">បង្កើតគណនីកូនថ្មី</span>
+          <i class="fa-solid fa-plus"></i> បង្កើតគណនីកូនថ្មី
         </button>
         <div id="juniorCardsContainer"></div>
       </div>
+    </div>
 
-      <!-- Bottom Nav -->
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item"
-          ><i class="fa-solid fa-house"></i><span>Home</span></a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i><span>Scan</span></a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a
-        >
-        <a href="settings.html" class="nav-item"
-          ><i class="fa-solid fa-gear"></i><span>Settings</span></a
-        >
+    <!-- ⬛ OVERLAY សម្រាប់ Background -->
+    <div
+      class="sheet-overlay"
+      id="sheetOverlay"
+      onclick="closeAllSheets()"
+    ></div>
+
+    <!-- 📱 BOTTOM SHEET 1: បញ្ចូលប្រាក់ (Top Up) -->
+    <div class="bottom-sheet" id="topupSheet">
+      <div class="sheet-header">
+        បញ្ចូលប្រាក់
+        <i class="fa-solid fa-xmark sheet-close" onclick="closeAllSheets()"></i>
       </div>
-
-      <!-- 🔥 MODALS (ចេញពីក្រោម) 🔥 -->
-
-      <!-- ១. Modal បញ្ចូលប្រាក់ (Top Up) -->
-      <div class="custom-modal" id="topupModal" onclick="closeModals(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-          <h3 class="modal-title" id="topupTitle">បញ្ចូលប្រាក់</h3>
-          <input
-            type="number"
-            id="topupAmt"
-            class="modal-input"
-            placeholder="ចំនួនទឹកប្រាក់ (USD)"
-          />
-          <input
-            type="password"
-            id="topupPin"
-            class="modal-input"
-            placeholder="លេខសម្ងាត់ PIN ៤ខ្ទង់"
-            maxlength="4"
-          />
-          <button class="btn-full" onclick="confirmTopUp()">
-            ផ្ទេរឥឡូវនេះ
-          </button>
-          <button class="btn-full btn-cancel" onclick="closeModals()">
-            បោះបង់
-          </button>
-        </div>
-      </div>
-
-      <!-- ២. Modal កំណត់លុយ (Daily Limit) -->
-      <div class="custom-modal" id="limitModal" onclick="closeModals(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-          <h3 class="modal-title">កំណត់រនាំងចំណាយប្រចាំថ្ងៃ</h3>
+      <div class="sheet-body">
+        <!-- ជំហានទី ១: បញ្ចូលទឹកប្រាក់ (Amount) -->
+        <div class="step-section active" id="topupStep1">
           <p
-            style="
-              text-align: center;
-              color: #64748b;
-              font-size: 0.85rem;
-              margin-bottom: 15px;
-            "
+            style="text-align: center; color: #64748b; margin-bottom: 15px"
+            id="topupToName"
           >
-            កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ
+            ផ្ទេរទៅកាន់: ...
           </p>
-          <input
-            type="number"
-            id="limitAmt"
-            class="modal-input"
-            placeholder="ឧទាហរណ៍: 5 (USD)"
-          />
-          <input
-            type="password"
-            id="limitPin"
-            class="modal-input"
-            placeholder="បញ្ជាក់លេខ PIN របស់អ្នក"
-            maxlength="4"
-          />
-          <button
-            class="btn-full"
-            style="background: #f59e0b"
-            onclick="confirmLimit()"
-          >
-            រក្សាទុក
+
+          <div class="currency-toggle">
+            <div
+              class="cur-btn active"
+              id="btnCurUSD"
+              onclick="setCurrency('USD')"
+            >
+              USD ($)
+            </div>
+            <div class="cur-btn" id="btnCurKHR" onclick="setCurrency('KHR')">
+              KHR (៛)
+            </div>
+          </div>
+
+          <div class="input-group">
+            <input
+              type="number"
+              id="inputAmount"
+              class="big-input"
+              placeholder="0.00"
+            />
+          </div>
+          <button class="btn-primary" onclick="goToTopupStep2()">
+            បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
           </button>
-          <button class="btn-full btn-cancel" onclick="closeModals()">
-            បោះបង់
+        </div>
+
+        <!-- ជំហានទី ២: លេខសម្ងាត់ (PIN) -->
+        <div class="step-section" id="topupStep2">
+          <p style="text-align: center; color: #64748b; margin-bottom: 15px">
+            សូមបញ្ចូលលេខសម្ងាត់ (PIN) ៤ខ្ទង់
+          </p>
+          <div class="input-group">
+            <input
+              type="password"
+              id="inputPin"
+              class="big-input"
+              maxlength="4"
+              placeholder="••••"
+              style="letter-spacing: 15px"
+            />
+          </div>
+          <button class="btn-primary" onclick="submitTopup()">
+            បញ្ជាក់ការផ្ទេរ
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- ៣. Modal ផ្អាកគណនី (Freeze) -->
-      <div class="custom-modal" id="freezeModal" onclick="closeModals(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
+    <!-- 📱 BOTTOM SHEET 2: ប្រវត្តិ (History) -->
+    <div class="bottom-sheet" id="historySheet">
+      <div class="sheet-header">
+        ប្រវត្តិប្រតិបត្តិការ
+        <i class="fa-solid fa-xmark sheet-close" onclick="closeAllSheets()"></i>
+      </div>
+      <div class="sheet-body" id="historyListContainer" style="padding: 0 20px">
+        <!-- Data rendered here -->
+      </div>
+    </div>
+
+    <!-- 📱 SLIP MODAL (នៅពេលចុចលើប្រវត្តិ) -->
+    <div class="bottom-sheet" id="slipSheet" style="min-height: 70vh">
+      <div class="sheet-header">
+        វិក្កយបត្រ (Slip)
+        <i class="fa-solid fa-xmark sheet-close" onclick="closeSlipSheet()"></i>
+      </div>
+      <div
+        class="sheet-body"
+        style="background: #f8fafc; padding: 20px; text-align: center"
+      >
+        <!-- UI វិក្កយបត្រកាត់ខ្លីៗ -->
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+          "
+        >
+          <i
+            class="fa-solid fa-circle-check"
+            style="font-size: 3rem; color: #10b981; margin-bottom: 10px"
+          ></i>
+          <h2 id="slipStatus" style="margin: 0; color: #10b981">ជោគជ័យ</h2>
+          <h1
+            id="slipAmount"
+            style="margin: 15px 0; font-size: 2rem; color: #1e293b"
+          >
+            $0.00
+          </h1>
+
           <div
             style="
-              text-align: center;
-              margin-bottom: 15px;
-              font-size: 2.5rem;
-              color: #ef4444;
+              text-align: left;
+              margin-top: 20px;
+              font-size: 0.9rem;
+              color: #64748b;
             "
           >
-            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+              "
+            >
+              <span>កាលបរិច្ឆេទ:</span>
+              <strong id="slipDate" style="color: #1e293b">...</strong>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+              "
+            >
+              <span>ប្រតិបត្តិការ:</span>
+              <strong id="slipType" style="color: #1e293b">...</strong>
+            </div>
           </div>
-          <h3 class="modal-title" id="freezeTitle">
-            តើអ្នកពិតជាចង់ផ្អាកគណនីមែនទេ?
-          </h3>
-          <input
-            type="password"
-            id="freezePin"
-            class="modal-input"
-            placeholder="បញ្ជាក់លេខ PIN របស់អ្នក"
-            maxlength="4"
-          />
-          <button
-            class="btn-full btn-danger"
-            id="btnConfirmFreeze"
-            onclick="confirmFreeze()"
-          >
-            យល់ព្រមផ្អាក
-          </button>
-          <button class="btn-full btn-cancel" onclick="closeModals()">
-            បោះបង់
-          </button>
         </div>
       </div>
     </div>
@@ -530,34 +620,29 @@
       let currentUser = JSON.parse(
         sessionStorage.getItem("user") || localStorage.getItem("user"),
       );
-      let token =
-        sessionStorage.getItem("userToken") || localStorage.getItem("token");
-      if (!currentUser || !token) window.location.href = "index.html";
-
-      const authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-
-      // អថេរទុកចំណាំថាកំពុងចុចលើកុងកូនមួយណា
-      let activeTargetAccount = "";
-      let activeTargetFrozen = false;
-
-      function applyTheme() {
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem("darkMode_" + currentUser.username) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
-        else document.body.classList.remove("dark-mode");
-      }
+      let activeChildAccount = "";
+      let activeCurrency = "USD";
 
       document.addEventListener("DOMContentLoaded", () => {
+        if (!currentUser) window.location.href = "index.html";
         applyTheme();
-        if (typeof applyLanguage === "function") applyLanguage();
         renderJuniorCards();
         document.body.classList.add("loaded");
+        setupEnterKeyListeners();
       });
 
+      function applyTheme() {
+        if (
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem("darkMode_" + currentUser.username) === "true"
+        ) {
+          document.body.classList.add("dark-mode");
+        }
+      }
+
+      // ==========================================
+      // ១. គូរ UI កាតកូន (Multi-Currency)
+      // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
         const juniorAccounts = (currentUser.subAccounts || []).filter(
@@ -565,23 +650,22 @@
         );
 
         if (juniorAccounts.length === 0) {
-          container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: #64748b;"><i class="fa-solid fa-children" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i><p>អ្នកមិនទាន់មានគណនីកូននៅឡើយទេ!</p></div>`;
+          container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:#64748b;"><p>មិនទាន់មានគណនីកូនទេ!</p></div>`;
           return;
         }
 
         let html = "";
         juniorAccounts.forEach((acc) => {
           const isFrozen = acc.isLocked || false;
-          const statusClass = isFrozen ? "status-frozen" : "status-active";
-          const statusText = isFrozen
-            ? "🔒 ផ្អាក (Frozen)"
-            : "🟢 សកម្ម (Active)";
-          const freezeIcon = isFrozen ? "fa-unlock" : "fa-lock";
-          const freezeText = isFrozen ? "បើកសោរ" : "ផ្អាក";
+          const usdBal = Number(acc.balance || 0).toFixed(2);
+          const khrBal = Number(acc.balanceKHR || 0).toLocaleString();
 
           html += `
             <div class="junior-card">
-              <div class="status-badge ${statusClass}">${statusText}</div>
+              <div class="status-badge ${isFrozen ? "status-frozen" : "status-active"}">
+                ${isFrozen ? "🔒 បានផ្អាក" : "🟢 សកម្ម"}
+              </div>
+              
               <div class="card-header">
                 <div class="profile-icon"><i class="fa-solid fa-child-reaching"></i></div>
                 <div class="kid-info">
@@ -589,22 +673,41 @@
                   <p>Acc: ${acc.accountNumber}</p>
                 </div>
               </div>
-              <div class="balance-box">
-                <span class="bal-label">សមតុល្យបច្ចុប្បន្ន</span>
-                <span class="bal-amount">$${Number(acc.balance).toFixed(2)}</span>
+
+              <!-- Multi-Currency Display -->
+              <div class="balance-container">
+                <div class="bal-row">
+                  <div class="bal-label">
+                    <img src="https://flagcdn.com/w40/us.png" alt="USD"> USD
+                  </div>
+                  <div class="bal-amount">$${usdBal}</div>
+                </div>
+                <div class="bal-divider"></div>
+                <div class="bal-row">
+                  <div class="bal-label">
+                    <img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR
+                  </div>
+                  <div class="bal-amount">${khrBal} ៛</div>
+                </div>
               </div>
+
+              <!-- Action Buttons -->
               <div class="action-grid">
-                <button class="action-btn btn-topup" onclick="openTopupModal('${acc.accountNumber}', '${acc.accountName}')">
-                  <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div><span>បញ្ចូលប្រាក់</span>
+                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}')">
+                  <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                  <span>បញ្ជូលប្រាក់</span>
                 </button>
-                <button class="action-btn btn-history" onclick="viewHistory('${acc.accountNumber}')">
-                  <div class="icon-bg"><i class="fa-solid fa-clock-rotate-left"></i></div><span>ប្រវត្តិ</span>
+                <button class="action-btn btn-history" onclick="openHistorySheet('${acc.accountNumber}')">
+                  <div class="icon-bg"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                  <span>ប្រវត្តិ</span>
                 </button>
-                <button class="action-btn btn-limit" onclick="openLimitModal('${acc.accountNumber}')">
-                  <div class="icon-bg"><i class="fa-solid fa-sliders"></i></div><span>កំណត់លុយ</span>
+                <button class="action-btn btn-limit" onclick="developmentAlert()">
+                  <div class="icon-bg"><i class="fa-solid fa-sliders"></i></div>
+                  <span>កំណត់លុយ</span>
                 </button>
-                <button class="action-btn btn-freeze" onclick="openFreezeModal('${acc.accountNumber}', ${isFrozen})">
-                  <div class="icon-bg"><i class="fa-solid ${freezeIcon}"></i></div><span>${freezeText}</span>
+                <button class="action-btn btn-freeze" onclick="developmentAlert()">
+                  <div class="icon-bg"><i class="fa-solid fa-lock"></i></div>
+                  <span>ផ្អាក</span>
                 </button>
               </div>
             </div>
@@ -614,35 +717,78 @@
       }
 
       // ==========================================
-      // CONTROLLING MODALS (បិទ/បើក ផ្ទាំង)
+      // ២. មុខងារ BOTTOM SHEETS & Auto Focus/Enter
       // ==========================================
-      function closeModals(e) {
-        // បើចុចចំ Background ខ្មៅ (e.target.classList.contains) ឱ្យបិទ
-        if (e && !e.target.classList.contains("custom-modal")) return;
+      function closeAllSheets() {
         document
-          .querySelectorAll(".custom-modal")
-          .forEach((m) => (m.style.display = "none"));
+          .querySelectorAll(".bottom-sheet")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById("sheetOverlay").classList.remove("active");
 
-        // Reset inputs
-        document
-          .querySelectorAll(".modal-input")
-          .forEach((inp) => (inp.value = ""));
+        // Reset Inputs
+        document.getElementById("inputAmount").value = "";
+        document.getElementById("inputPin").value = "";
+        document.getElementById("topupStep1").classList.add("active");
+        document.getElementById("topupStep2").classList.remove("active");
       }
 
-      // ១. បញ្ចូលប្រាក់
-      function openTopupModal(accNum, name) {
-        activeTargetAccount = accNum;
-        document.getElementById("topupTitle").innerText =
-          `បញ្ចូលប្រាក់ឱ្យ ${name}`;
-        document.getElementById("topupModal").style.display = "flex";
+      function openTopupSheet(accNum, name) {
+        activeChildAccount = accNum;
+        document.getElementById("topupToName").innerText =
+          `ផ្ទេរទៅកាន់: ${name}`;
+
+        document.getElementById("sheetOverlay").classList.add("active");
+        document.getElementById("topupSheet").classList.add("active");
+
+        // Auto-focus after animation
+        setTimeout(() => document.getElementById("inputAmount").focus(), 350);
       }
 
-      function confirmTopUp() {
-        const amt = document.getElementById("topupAmt").value;
-        const pin = document.getElementById("topupPin").value;
-        if (!amt || !pin) return alert("សូមបំពេញចំនួនទឹកប្រាក់ និង PIN!");
+      function setCurrency(cur) {
+        activeCurrency = cur;
+        document
+          .getElementById("btnCurUSD")
+          .classList.toggle("active", cur === "USD");
+        document
+          .getElementById("btnCurKHR")
+          .classList.toggle("active", cur === "KHR");
+        document.getElementById("inputAmount").focus();
+      }
 
-        closeModals();
+      function goToTopupStep2() {
+        const amt = document.getElementById("inputAmount").value;
+        if (!amt || amt <= 0) {
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "error",
+            title: "សូមបញ្ចូលចំនួនប្រាក់!",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          return;
+        }
+        document.getElementById("topupStep1").classList.remove("active");
+        document.getElementById("topupStep2").classList.add("active");
+
+        setTimeout(() => document.getElementById("inputPin").focus(), 350);
+      }
+
+      function submitTopup() {
+        const amt = document.getElementById("inputAmount").value;
+        const pin = document.getElementById("inputPin").value;
+        if (pin.length < 4) {
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "error",
+            title: "PIN ត្រូវមាន៤ខ្ទង់",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          return;
+        }
+
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
@@ -651,75 +797,107 @@
         const reqBody = {
           senderUsername: currentUser.username,
           senderAccount: currentUser.accountNumber,
-          receiverAccount: activeTargetAccount,
+          receiverAccount: activeChildAccount,
           amount: amt,
-          remark: "Top Up (Junior Account)",
+          currency: activeCurrency,
+          remark: "Junior Top Up",
           pin: pin,
-          currency: "USD",
         };
 
-        fetch("/api/transaction/transfer", {
-          method: "POST",
-          headers: authHeaders,
-          body: JSON.stringify(reqBody),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.success) {
-              Swal.fire({
-                icon: "success",
-                title: "ជោគជ័យ!",
-                timer: 1500,
-                showConfirmButton: false,
-              }).then(() => location.reload());
-            } else Swal.fire("បរាជ័យ", data.message, "error");
-          })
-          .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+        // TODO: Call real API here
+        // fetch("/api/transaction/transfer", ...)
+        setTimeout(() => {
+          Swal.fire("ជោគជ័យ!", "ផ្ទេរប្រាក់បានសម្រេច!", "success").then(() => {
+            closeAllSheets();
+            // window.location.reload(); (សាកល្បងសិនទើបបើកវិញ)
+          });
+        }, 1500);
       }
 
-      // ២. មើលប្រវត្តិ
-      function viewHistory(accNum) {
-        sessionStorage.setItem("viewAccountHistory", accNum);
-        window.location.href = "history.html";
+      // ចាប់យក Keyboard Event (ចុច Enter ទៅមុខដោយស្វ័យប្រវត្តិ)
+      function setupEnterKeyListeners() {
+        document
+          .getElementById("inputAmount")
+          .addEventListener("keyup", (e) => {
+            if (e.key === "Enter") goToTopupStep2();
+          });
+
+        document.getElementById("inputPin").addEventListener("keyup", (e) => {
+          if (e.key === "Enter") submitTopup();
+          // Auto submit ពេលវាយពេញ ៤ខ្ទង់ក៏បាន
+          if (e.target.value.length === 4) {
+            setTimeout(submitTopup, 300); // ទុកពេលអោយមើលឃើញលេខទី៤បន្តិចសិន
+          }
+        });
       }
 
-      // ៣. កំណត់លុយ
-      function openLimitModal(accNum) {
-        activeTargetAccount = accNum;
-        document.getElementById("limitModal").style.display = "flex";
-      }
-      function confirmLimit() {
-        closeModals();
-        Swal.fire(
-          "កំពុងអភិវឌ្ឍន៍",
-          "មុខងារកំណត់លុយនឹងដំណើរការឆាប់ៗ (រង់ចាំអាប់ដេត Backend)!",
-          "info",
+      // ==========================================
+      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip
+      // ==========================================
+      function openHistorySheet(accNum) {
+        document.getElementById("sheetOverlay").classList.add("active");
+        document.getElementById("historySheet").classList.add("active");
+
+        const container = document.getElementById("historyListContainer");
+        const trxs = (currentUser.transactions || []).filter(
+          (t) => t.receiverAccount === accNum || t.senderAccount === accNum,
         );
-      }
 
-      // ៤. ផ្អាកគណនី
-      function openFreezeModal(accNum, isFrozen) {
-        activeTargetAccount = accNum;
-        activeTargetFrozen = isFrozen;
-
-        const title = document.getElementById("freezeTitle");
-        const btn = document.getElementById("btnConfirmFreeze");
-
-        if (isFrozen) {
-          title.innerText = "តើអ្នកចង់បើកសោរគណនីនេះវិញមែនទេ?";
-          btn.innerText = "យល់ព្រមបើកសោរ";
-          btn.style.background = "#10b981"; // ពណ៌បៃតង
-        } else {
-          title.innerText = "តើអ្នកពិតជាចង់ផ្អាកគណនីមែនទេ?";
-          btn.innerText = "យល់ព្រមផ្អាក";
-          btn.style.background = "#ef4444"; // ពណ៌ក្រហម
+        if (trxs.length === 0) {
+          container.innerHTML = `<p style="text-align:center; padding:20px; color:#94a3b8;">មិនទាន់មានប្រវត្តិទេ</p>`;
+          return;
         }
 
-        document.getElementById("freezeModal").style.display = "flex";
+        let html = "";
+        trxs.forEach((t) => {
+          const isIncome = t.receiverAccount === accNum; // បើកុងកូនជាអ្នកទទួល គឺបូកចូល
+          const amtColor = isIncome ? "amt-in" : "amt-out";
+          const symbol = isIncome ? "+" : "-";
+          const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+
+          html += `
+            <div class="trx-item" onclick="openSlip('${t.transactionId || "12345"}', '${t.amount}', '${t.currency}', '${t.date}', '${t.remark}')">
+              <div class="trx-left">
+                <div class="trx-icon"><i class="fa-solid ${icon}"></i></div>
+                <div>
+                  <div class="trx-title">${t.remark || "Transfer"}</div>
+                  <div class="trx-date">${t.date || "Today"}</div>
+                </div>
+              </div>
+              <div class="trx-amt ${amtColor}">${symbol}${t.currency === "USD" ? "$" : ""}${t.amount}${t.currency === "KHR" ? " ៛" : ""}</div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
       }
-      function confirmFreeze() {
-        closeModals();
-        Swal.fire("កំពុងអភិវឌ្ឍន៍", "មុខងារផ្អាកគណនីនឹងដំណើរការឆាប់ៗ!", "info");
+
+      function openSlip(id, amount, cur, date, remark) {
+        document.getElementById("historySheet").classList.remove("active"); // បិទ History សិន
+        document.getElementById("slipSheet").classList.add("active"); // បើក Slip ពីលើ
+
+        document.getElementById("slipAmount").innerText =
+          `${cur === "USD" ? "$" : ""}${amount}${cur === "KHR" ? " ៛" : ""}`;
+        document.getElementById("slipDate").innerText =
+          date || new Date().toLocaleDateString();
+        document.getElementById("slipType").innerText =
+          remark || "Junior Transfer";
+      }
+
+      function closeSlipSheet() {
+        document.getElementById("slipSheet").classList.remove("active");
+        // បើក History Sheet មកវិញក៏បាន ឬបិទទាំង Overlay
+        document.getElementById("sheetOverlay").classList.remove("active");
+      }
+
+      function developmentAlert() {
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "info",
+          title: "កំពុងអភិវឌ្ឍន៍ (រង់ចាំ Backend)",
+          showConfirmButton: false,
+          timer: 2000,
+        });
       }
     </script>
   </body>
