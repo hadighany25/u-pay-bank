@@ -254,8 +254,8 @@
         transform: translateX(-50%) translateY(100%);
         width: 100%;
         max-width: 450px;
-        min-height: 50vh;
-        max-height: 85vh;
+        min-height: 70vh;
+        max-height: 85vh; /* ដំឡើងកម្ពស់ត្រង់នេះ */
         background: white;
         border-radius: 24px 24px 0 0;
         z-index: 1001;
@@ -493,7 +493,7 @@
             ផ្ទេរទៅកាន់: ...
           </p>
 
-          <div class="currency-toggle">
+          <div class="currency-toggle" id="currencyToggleBox">
             <div
               class="cur-btn active"
               id="btnCurUSD"
@@ -534,7 +534,11 @@
               style="letter-spacing: 15px"
             />
           </div>
-          <button class="btn-primary" onclick="submitTopup()">
+          <button
+            class="btn-primary"
+            id="btnSubmitTransfer"
+            onclick="submitTopup()"
+          >
             បញ្ជាក់ការផ្ទេរ
           </button>
         </div>
@@ -553,7 +557,7 @@
     </div>
 
     <!-- 📱 SLIP MODAL (នៅពេលចុចលើប្រវត្តិ) -->
-    <div class="bottom-sheet" id="slipSheet" style="min-height: 70vh">
+    <div class="bottom-sheet" id="slipSheet" style="min-height: 75vh">
       <div class="sheet-header">
         វិក្កយបត្រ (Slip)
         <i class="fa-solid fa-xmark sheet-close" onclick="closeSlipSheet()"></i>
@@ -620,8 +624,15 @@
       let currentUser = JSON.parse(
         sessionStorage.getItem("user") || localStorage.getItem("user"),
       );
+      let token =
+        sessionStorage.getItem("userToken") || localStorage.getItem("token");
       let activeChildAccount = "";
       let activeCurrency = "USD";
+
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
       document.addEventListener("DOMContentLoaded", () => {
         if (!currentUser) window.location.href = "index.html";
@@ -641,7 +652,7 @@
       }
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (Multi-Currency)
+      // ១. គូរ UI កាតកូន (Dynamic Currency)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -657,8 +668,36 @@
         let html = "";
         juniorAccounts.forEach((acc) => {
           const isFrozen = acc.isLocked || false;
-          const usdBal = Number(acc.balance || 0).toFixed(2);
-          const khrBal = Number(acc.balanceKHR || 0).toLocaleString();
+
+          // ឆែកមើលថាកុងកូនមានលុយដុល្លារឬខ្មែរ (Dynamic check)
+          const hasUSD = acc.balance !== undefined && acc.balance !== null;
+          const hasKHR =
+            acc.balanceKHR !== undefined && acc.balanceKHR !== null;
+
+          let currencyHtml = "";
+          if (hasUSD) {
+            currencyHtml += `
+              <div class="bal-row">
+                <div class="bal-label">
+                  <img src="https://flagcdn.com/w40/us.png" alt="USD"> USD
+                </div>
+                <div class="bal-amount">$${Number(acc.balance).toFixed(2)}</div>
+              </div>
+            `;
+          }
+          if (hasUSD && hasKHR) {
+            currencyHtml += `<div class="bal-divider"></div>`;
+          }
+          if (hasKHR) {
+            currencyHtml += `
+              <div class="bal-row">
+                <div class="bal-label">
+                  <img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR
+                </div>
+                <div class="bal-amount">${Number(acc.balanceKHR).toLocaleString()} ៛</div>
+              </div>
+            `;
+          }
 
           html += `
             <div class="junior-card">
@@ -674,21 +713,9 @@
                 </div>
               </div>
 
-              <!-- Multi-Currency Display -->
+              <!-- Dynamic Multi-Currency Display -->
               <div class="balance-container">
-                <div class="bal-row">
-                  <div class="bal-label">
-                    <img src="https://flagcdn.com/w40/us.png" alt="USD"> USD
-                  </div>
-                  <div class="bal-amount">$${usdBal}</div>
-                </div>
-                <div class="bal-divider"></div>
-                <div class="bal-row">
-                  <div class="bal-label">
-                    <img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR
-                  </div>
-                  <div class="bal-amount">${khrBal} ៛</div>
-                </div>
+                ${currencyHtml}
               </div>
 
               <!-- Action Buttons -->
@@ -737,6 +764,34 @@
         document.getElementById("topupToName").innerText =
           `ផ្ទេរទៅកាន់: ${name}`;
 
+        // ឆែកមើលថាកុងកូនអាចទទួលលុយអីបានខ្លះ ដើម្បីបង្ហាញប៊ូតុងរើសលុយឱ្យត្រូវ
+        const childAcc = currentUser.subAccounts.find(
+          (a) => String(a.accountNumber) === String(accNum),
+        );
+        const hasUSD =
+          childAcc.balance !== undefined && childAcc.balance !== null;
+        const hasKHR =
+          childAcc.balanceKHR !== undefined && childAcc.balanceKHR !== null;
+
+        const btnUSD = document.getElementById("btnCurUSD");
+        const btnKHR = document.getElementById("btnCurKHR");
+        const toggleBox = document.getElementById("currencyToggleBox");
+
+        // បិទ/បើកប៊ូតុងលុយតាមទិន្នន័យជាក់ស្តែង
+        btnUSD.style.display = hasUSD ? "block" : "none";
+        btnKHR.style.display = hasKHR ? "block" : "none";
+
+        // លាក់ប្រអប់រើសលុយតែម្តង បើមានតែ១ជម្រើស
+        if ((hasUSD && !hasKHR) || (!hasUSD && hasKHR)) {
+          toggleBox.style.display = "none";
+        } else {
+          toggleBox.style.display = "flex";
+        }
+
+        // Auto select currency
+        if (hasUSD) setCurrency("USD");
+        else if (hasKHR) setCurrency("KHR");
+
         document.getElementById("sheetOverlay").classList.add("active");
         document.getElementById("topupSheet").classList.add("active");
 
@@ -778,17 +833,11 @@
         const amt = document.getElementById("inputAmount").value;
         const pin = document.getElementById("inputPin").value;
         if (pin.length < 4) {
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "error",
-            title: "PIN ត្រូវមាន៤ខ្ទង់",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          return;
+          return; // ទុកឱ្យវាយឱ្យគ្រប់ ៤សិន
         }
 
+        // ការពារការចុចជាប់ៗគ្នា (Double Click)
+        document.getElementById("btnSubmitTransfer").disabled = true;
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
@@ -796,22 +845,53 @@
 
         const reqBody = {
           senderUsername: currentUser.username,
-          senderAccount: currentUser.accountNumber,
-          receiverAccount: activeChildAccount,
-          amount: amt,
+          senderAccount: currentUser.accountNumber, // កាត់ពីគណនីមេ (ប៉ាម៉ាក់)
+          receiverAccount: activeChildAccount, // ចូលគណនីកូន
+          amount: Number(amt),
           currency: activeCurrency,
-          remark: "Junior Top Up",
+          remark: "បញ្ចូលប្រាក់ឱ្យកូន",
           pin: pin,
         };
 
-        // TODO: Call real API here
-        // fetch("/api/transaction/transfer", ...)
-        setTimeout(() => {
-          Swal.fire("ជោគជ័យ!", "ផ្ទេរប្រាក់បានសម្រេច!", "success").then(() => {
-            closeAllSheets();
-            // window.location.reload(); (សាកល្បងសិនទើបបើកវិញ)
+        // តភ្ជាប់ទៅ API ពិតប្រាកដដែលយើងបានសរសេរពីមុន
+        fetch("/api/transaction/transfer", {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(reqBody),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("btnSubmitTransfer").disabled = false;
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ!",
+                text: "ប្រាក់ត្រូវបានផ្ទេរចូលគណនីកូនរូចរាល់!",
+                confirmButtonColor: "#10b981",
+                customClass: { popup: "premium-swal" },
+              }).then(() => {
+                closeAllSheets();
+                // Refresh ផេកដើម្បីទាញយកសមតុល្យលុយថ្មីបំផុតពី Database
+                window.location.reload();
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "បរាជ័យ",
+                text: data.message || "មិនអាចផ្ទេរប្រាក់បានទេ!",
+                confirmButtonColor: "#ef4444",
+                customClass: { popup: "premium-swal" },
+              }).then(() => {
+                // បើវាយ PIN ខុស លុបចោលហើយឱ្យវាយម្តងទៀត
+                document.getElementById("inputPin").value = "";
+                document.getElementById("inputPin").focus();
+              });
+            }
+          })
+          .catch((err) => {
+            document.getElementById("btnSubmitTransfer").disabled = false;
+            Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server!", "error");
           });
-        }, 1500);
       }
 
       // ចាប់យក Keyboard Event (ចុច Enter ទៅមុខដោយស្វ័យប្រវត្តិ)
@@ -822,12 +902,15 @@
             if (e.key === "Enter") goToTopupStep2();
           });
 
-        document.getElementById("inputPin").addEventListener("keyup", (e) => {
-          if (e.key === "Enter") submitTopup();
-          // Auto submit ពេលវាយពេញ ៤ខ្ទង់ក៏បាន
+        document.getElementById("inputPin").addEventListener("input", (e) => {
+          // Auto submit ពេលវាយពេញ ៤ខ្ទង់ (មិនបាច់ចាំចុច Enter ក៏បាន)
           if (e.target.value.length === 4) {
-            setTimeout(submitTopup, 300); // ទុកពេលអោយមើលឃើញលេខទី៤បន្តិចសិន
+            setTimeout(submitTopup, 150);
           }
+        });
+
+        document.getElementById("inputPin").addEventListener("keyup", (e) => {
+          if (e.key === "Enter" && e.target.value.length === 4) submitTopup();
         });
       }
 
@@ -839,8 +922,12 @@
         document.getElementById("historySheet").classList.add("active");
 
         const container = document.getElementById("historyListContainer");
+
+        // ទាញយកប្រវត្តិ (បំប្លែងទៅជា String ដើម្បីប្រាកដថាការប្រៀបធៀបត្រឹមត្រូវ)
         const trxs = (currentUser.transactions || []).filter(
-          (t) => t.receiverAccount === accNum || t.senderAccount === accNum,
+          (t) =>
+            String(t.receiverAccount) === String(accNum) ||
+            String(t.senderAccount) === String(accNum),
         );
 
         if (trxs.length === 0) {
@@ -850,7 +937,7 @@
 
         let html = "";
         trxs.forEach((t) => {
-          const isIncome = t.receiverAccount === accNum; // បើកុងកូនជាអ្នកទទួល គឺបូកចូល
+          const isIncome = String(t.receiverAccount) === String(accNum); // បើកុងកូនជាអ្នកទទួល គឺបូកចូល
           const amtColor = isIncome ? "amt-in" : "amt-out";
           const symbol = isIncome ? "+" : "-";
           const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
@@ -885,7 +972,6 @@
 
       function closeSlipSheet() {
         document.getElementById("slipSheet").classList.remove("active");
-        // បើក History Sheet មកវិញក៏បាន ឬបិទទាំង Overlay
         document.getElementById("sheetOverlay").classList.remove("active");
       }
 
