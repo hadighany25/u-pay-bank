@@ -651,13 +651,13 @@
                   <div class="icon-bg"><i class="fa-solid fa-clock-rotate-left"></i></div>
                   <span>ប្រវត្តិ</span>
                 </button>
-                <button class="action-btn btn-limit" onclick="developmentAlert()">
+                <button class="action-btn btn-limit" onclick="setDailyLimit('${acc.accountNumber}')">
                   <div class="icon-bg"><i class="fa-solid fa-sliders"></i></div>
                   <span>កំណត់លុយ</span>
                 </button>
-                <button class="action-btn btn-freeze" onclick="developmentAlert()">
-                  <div class="icon-bg"><i class="fa-solid fa-lock"></i></div>
-                  <span>ផ្អាក</span>
+                <button class="action-btn btn-freeze" onclick="toggleFreeze('${acc.accountNumber}', ${isFrozen})">
+                  <div class="icon-bg"><i class="fa-solid ${isFrozen ? "fa-unlock" : "fa-lock"}"></i></div>
+                  <span>${isFrozen ? "បើកសោរ" : "ផ្អាក"}</span>
                 </button>
               </div>
             </div>
