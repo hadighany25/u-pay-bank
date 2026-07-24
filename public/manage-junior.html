@@ -604,8 +604,11 @@
       }
 
       function viewHistory(accNum) {
+        // រក្សាទុកលេខគណនីកូនសិន ដើម្បីឱ្យ history.html ដឹងថាត្រូវទាញប្រវត្តិរបស់កុងមួយណា
         sessionStorage.setItem("viewAccountHistory", accNum);
-        window.location.href = "statement.html";
+
+        // កែពី statement.html មក history.html វិញ
+        window.location.href = "history.html";
       }
 
       function setDailyLimit(accNum) {
