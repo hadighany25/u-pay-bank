@@ -226,7 +226,7 @@
       }
 
       /* ==========================================
-         📱 BOTTOM SHEETS (Drawn Higher)
+         📱 BOTTOM SHEETS (Higher Height: 75vh)
          ========================================== */
       .sheet-overlay {
         position: fixed;
@@ -252,8 +252,7 @@
         transform: translateX(-50%) translateY(100%);
         width: 100%;
         max-width: 450px;
-        min-height: 65vh; /* ទាញឱ្យខ្ពស់ជាងមុន */
-        max-height: 90vh;
+        height: 75vh; /* ទាញឱ្យខ្ពស់ដល់ 75% នៃកម្ពស់អេក្រង់ */
         background: white;
         border-radius: 24px 24px 0 0;
         z-index: 1001;
@@ -425,6 +424,7 @@
       </div>
     </div>
 
+    <!-- ⬛ OVERLAY សម្រាប់ Background -->
     <div
       class="sheet-overlay"
       id="sheetOverlay"
@@ -447,7 +447,7 @@
           </p>
 
           <div class="currency-toggle" id="dynamicCurrencyToggle">
-            <!-- Render by JS based on what accounts child has -->
+            <!-- នឹងត្រូវបាន Render ស្វ័យប្រវត្តិដោយផ្អែកលើប្រភេទគណនី -->
           </div>
 
           <div class="input-group">
@@ -578,7 +578,7 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (Dynamic Currency)
+      // ១. គូរ UI កាតកូន (១០០% Dynamic Currency Database Check)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -595,28 +595,33 @@
         juniorAccounts.forEach((acc) => {
           const isFrozen = acc.isLocked || false;
 
-          // ឆែកមើលថាគណនីកូនមានលុយដុល្លារ ឬលុយខ្មែរ (ឬទាំង២)
-          const hasUSD = acc.balance !== undefined && acc.balance !== null;
-          const hasKHR =
-            acc.balanceKHR !== undefined && acc.balanceKHR !== null;
+          // ឆែកមើល Database ពិតប្រាកដ: បើមាន field balance អោយតម្លៃមកវាគឺមាន USD, បើមាន field balanceKHR គឺមាន KHR
+          const hasUSD = !isNaN(parseFloat(acc.balance));
+          const hasKHR = !isNaN(parseFloat(acc.balanceKHR));
+
+          // បើ labled តាម currency ផ្ទាល់
+          const isOnlyUSD = acc.currency === "USD";
+          const isOnlyKHR = acc.currency === "KHR";
+
+          const showUSD = hasUSD || isOnlyUSD;
+          const showKHR = hasKHR || isOnlyKHR;
 
           let balanceHtml = `<div class="balance-container">`;
-
-          if (hasUSD) {
+          if (showUSD) {
             balanceHtml += `
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/us.png" alt="USD"> USD</div>
-                <div class="bal-amount">$${Number(acc.balance).toFixed(2)}</div>
+                <div class="bal-amount">$${Number(acc.balance || 0).toFixed(2)}</div>
               </div>`;
           }
-          if (hasUSD && hasKHR) {
+          if (showUSD && showKHR) {
             balanceHtml += `<div class="bal-divider"></div>`;
           }
-          if (hasKHR) {
+          if (showKHR) {
             balanceHtml += `
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR</div>
-                <div class="bal-amount">${Number(acc.balanceKHR).toLocaleString()} ៛</div>
+                <div class="bal-amount">${Number(acc.balanceKHR || 0).toLocaleString()} ៛</div>
               </div>`;
           }
           balanceHtml += `</div>`;
@@ -635,10 +640,10 @@
                 </div>
               </div>
 
-              ${balanceHtml} <!-- បង្ហាញលុយតាមជាក់ស្តែង -->
+              ${balanceHtml}
 
               <div class="action-grid">
-                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}', ${hasUSD}, ${hasKHR})">
+                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}', ${showUSD}, ${showKHR})">
                   <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                   <span>បញ្ជូលប្រាក់</span>
                 </button>
@@ -662,7 +667,7 @@
       }
 
       // ==========================================
-      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ
+      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ (Full Flow)
       // ==========================================
       function closeAllSheets() {
         document
@@ -680,7 +685,7 @@
         document.getElementById("topupToName").innerText =
           `ផ្ទេរទៅកាន់: ${name}`;
 
-        // រៀបចំប៊ូតុងរើសលុយ តាមទិន្នន័យជាក់ស្តែងរបស់កូន
+        // រៀបចំប៊ូតុងរើសលុយ តាមទិន្នន័យពិត
         const toggleContainer = document.getElementById(
           "dynamicCurrencyToggle",
         );
@@ -727,22 +732,27 @@
         setTimeout(() => document.getElementById("inputPin").focus(), 350);
       }
 
-      // 🔥 ហៅ API ពិតប្រាកដដើម្បីកាត់លុយម៉ាក់ប៉ា ចូលកុងកូន
+      // 🔥 ការផ្ទេរប្រាក់ពិតប្រាកដ និង Optimistic Update UI (ទោះ Server យឺតក៏ UI លោតភ្លាមៗ)
       function submitTopup() {
-        const amt = document.getElementById("inputAmount").value;
+        const amt = parseFloat(document.getElementById("inputAmount").value);
         const pin = document.getElementById("inputPin").value;
 
         if (pin.length < 4) return;
-
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
         });
 
+        // ឆែកមើលគណនីមេតាមរូបិយប័ណ្ណ
+        const senderAcc =
+          activeCurrency === "KHR" && currentUser.accountNumberKHR
+            ? currentUser.accountNumberKHR
+            : currentUser.accountNumber;
+
         const reqBody = {
           senderUsername: currentUser.username,
-          senderAccount: currentUser.accountNumber, // កុងមេ
-          receiverAccount: activeChildAccount, // កុងកូន
+          senderAccount: senderAcc,
+          receiverAccount: activeChildAccount,
           amount: amt,
           currency: activeCurrency,
           remark: "ប៉ាម៉ាក់ផ្ទេរប្រាក់ឱ្យ",
@@ -760,6 +770,48 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
+              // 💡 OPTIMISTIC UI UPDATE: Update ទិន្នន័យក្នុង Storage ដោយខ្លួនឯងភ្លាមៗ ដើម្បីឱ្យ UI រត់លឿន
+              if (data.user) {
+                // បើ Backend បោះ User Update មកអោយ យកតាមវា
+                currentUser = data.user;
+              } else {
+                // បើ Backend អត់បោះអោយទេ យើង Update ខ្លួនឯងភ្លាមៗកុំអោយគាំង
+                if (activeCurrency === "USD") {
+                  currentUser.balance = parseFloat(currentUser.balance) - amt;
+                  let targetAcc = currentUser.subAccounts.find(
+                    (a) => a.accountNumber === activeChildAccount,
+                  );
+                  if (targetAcc)
+                    targetAcc.balance = (
+                      parseFloat(targetAcc.balance || 0) + amt
+                    ).toFixed(2);
+                } else {
+                  currentUser.balanceKHR =
+                    parseFloat(currentUser.balanceKHR || 0) - amt;
+                  let targetAcc = currentUser.subAccounts.find(
+                    (a) => a.accountNumber === activeChildAccount,
+                  );
+                  if (targetAcc)
+                    targetAcc.balanceKHR = (
+                      parseFloat(targetAcc.balanceKHR || 0) + amt
+                    ).toString();
+                }
+
+                // កត់ត្រាចូលប្រវត្តិភ្លាមៗ
+                if (!currentUser.transactions) currentUser.transactions = [];
+                currentUser.transactions.unshift({
+                  transactionId: data.transactionId || "TRX" + Date.now(),
+                  senderAccount: senderAcc,
+                  receiverAccount: activeChildAccount,
+                  amount: amt,
+                  currency: activeCurrency,
+                  remark: "ប៉ាម៉ាក់ផ្ទេរប្រាក់ឱ្យ",
+                  date: new Date().toLocaleString(),
+                });
+              }
+
+              sessionStorage.setItem("user", JSON.stringify(currentUser));
+
               Swal.fire({
                 icon: "success",
                 title: "ជោគជ័យ!",
@@ -768,16 +820,12 @@
                 showConfirmButton: false,
                 customClass: { popup: "premium-swal" },
               }).then(() => {
-                // Update Storage បើ Backend បោះ User ថ្មីមកអោយ
-                if (data.user) {
-                  sessionStorage.setItem("user", JSON.stringify(data.user));
-                  localStorage.setItem("user", JSON.stringify(data.user));
-                }
-                window.location.reload(); // Refresh យកលុយថ្មី
+                closeAllSheets();
+                renderJuniorCards(); // គូរ UI ថ្មីដោយមិនបាច់ Refresh នាំឲ្យទាក់
               });
             } else {
               Swal.fire({ icon: "error", title: "បរាជ័យ", text: data.message });
-              document.getElementById("inputPin").value = ""; // Reset PIN
+              document.getElementById("inputPin").value = ""; // Reset PIN អោយវាយម្តងទៀត
             }
           })
           .catch((err) => {
@@ -800,7 +848,7 @@
       }
 
       // ==========================================
-      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip (Fixed)
+      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip (Fixed Filter)
       // ==========================================
       function openHistorySheet(accNum) {
         document.getElementById("sheetOverlay").classList.add("active");
@@ -808,11 +856,13 @@
 
         const container = document.getElementById("historyListContainer");
 
-        // 🔥 កែសម្រួលការទាញប្រវត្តិ៖ ឆែកមើលតែកុងកូនហ្នឹង
+        // ឆែកមើល History របស់ User រួច Filter យកតែលេខកុងកូន
         const trxs = (currentUser.transactions || []).filter(
           (t) =>
             String(t.receiverAccount) === String(accNum) ||
-            String(t.senderAccount) === String(accNum),
+            String(t.senderAccount) === String(accNum) ||
+            String(t.toAccount) === String(accNum) || // Fallback if backend uses different name
+            String(t.fromAccount) === String(accNum),
         );
 
         if (trxs.length === 0) {
@@ -821,9 +871,11 @@
         }
 
         let html = "";
-        // បញ្ច្រាស Array ដើម្បីឱ្យថ្មីៗលោតមកលើគេ
-        trxs.reverse().forEach((t) => {
-          const isIncome = String(t.receiverAccount) === String(accNum);
+        trxs.forEach((t) => {
+          // បើគណនីកូនជាអ្នកទទួល (receiver) បានន័យថាជាការបូកចូល (Income)
+          const isIncome =
+            String(t.receiverAccount) === String(accNum) ||
+            String(t.toAccount) === String(accNum);
           const amtColor = isIncome ? "amt-in" : "amt-out";
           const symbol = isIncome ? "+" : "-";
           const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
