@@ -144,4 +144,106 @@ const createJuniorAccount = async (req, res) => {
   }
 };
 
-module.exports = { createJuniorAccount };
+// ==========================================
+// 🔒 មុខងារ ផ្អាក ឬ បើកសោរគណនីកូន (Toggle Freeze)
+// ==========================================
+const toggleFreeze = async (req, res) => {
+  try {
+    const { parentUsername, childAccountNumber, pin, isFrozen } = req.body;
+
+    // ១. ផ្ទៀងផ្ទាត់អាណាព្យាបាល និង PIN
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
+    if (parent.pin !== pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
+
+    // ២. ស្វែងរកគណនីកូនពិតប្រាកដ (Primary Account របស់កូន)
+    const child = await User.findOne({
+      accountNumber: childAccountNumber,
+      role: "junior",
+    });
+    if (!child)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+
+    // ៣. Update ស្ថានភាពក្នុងគណនីកូន
+    child.isFrozen = isFrozen;
+    await child.save();
+
+    // ៤. Update ស្ថានភាពក្នុង subAccounts របស់ប៉ាម៉ាក់ ដើម្បីឱ្យ Frontend ឃើញភ្លាមៗ
+    const subAccIndex = parent.subAccounts.findIndex(
+      (acc) => acc.accountNumber === childAccountNumber,
+    );
+    if (subAccIndex !== -1) {
+      parent.subAccounts[subAccIndex].isLocked = isFrozen;
+      // ត្រូវប្រាប់ Mongoose ថាមានការប្រែប្រួលក្នុង Array បើមិនអញ្ចឹងវាមិន Save ទេ
+      parent.markModified("subAccounts");
+      await parent.save();
+    }
+
+    res.json({
+      success: true,
+      message: `គណនីកូនត្រូវបាន ${isFrozen ? "ផ្អាក" : "បើក"} ជោគជ័យ!`,
+      user: parent, // បោះទិន្នន័យម៉ាក់ប៉ាថ្មីទៅ Frontend
+    });
+  } catch (error) {
+    console.error("Freeze Junior Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+// ==========================================
+// 📊 មុខងារ កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (Update Daily Limit)
+// ==========================================
+const updateDailyLimit = async (req, res) => {
+  try {
+    const { parentUsername, childAccountNumber, pin, dailyLimit } = req.body;
+
+    // ១. ផ្ទៀងផ្ទាត់អាណាព្យាបាល និង PIN
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
+    if (parent.pin !== pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
+
+    // ២. ស្វែងរកគណនីកូន
+    const child = await User.findOne({
+      accountNumber: childAccountNumber,
+      role: "junior",
+    });
+    if (!child)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+
+    // ៣. Update លីមីតក្នុងគណនីកូន
+    child.dailyLimit = Number(dailyLimit);
+    await child.save();
+
+    res.json({
+      success: true,
+      message: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃជោគជ័យ!",
+      // ត្រង់នេះយើងមិនចាំបាច់ Update ចូល subAccounts ក៏បាន ព្រោះ Frontend មិនទាន់ត្រូវការវាបន្ទាន់
+    });
+  } catch (error) {
+    console.error("Update Limit Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+// កុំភ្លេច Export មុខងារទាំង ២ នេះចេញ
+module.exports = { createJuniorAccount, toggleFreeze, updateDailyLimit };

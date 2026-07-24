@@ -913,14 +913,137 @@
         document.getElementById("sheetOverlay").classList.remove("active");
       }
 
-      function developmentAlert() {
+      // ==========================================
+      // 📊 កំណត់រនាំងចំណាយ (Daily Limit)
+      // ==========================================
+      function setDailyLimit(accNum) {
         Swal.fire({
-          toast: true,
-          position: "top",
-          icon: "info",
-          title: "កំពុងអភិវឌ្ឍន៍ (រង់ចាំ Backend)",
-          showConfirmButton: false,
-          timer: 2000,
+          title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
+          html: `
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ</p>
+            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5 (USD)">
+            <input type="password" id="limitPin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">
+          `,
+          confirmButtonText: "រក្សាទុក",
+          confirmButtonColor: "#f59e0b",
+          showCancelButton: true,
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const limit = document.getElementById("limit").value;
+            const pin = document.getElementById("limitPin").value;
+            if (!limit || !pin)
+              Swal.showValidationMessage("សូមបំពេញចំនួនលុយ និង PIN!");
+            return { limit, pin };
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "កំពុងដំណើរការ...",
+              didOpen: () => Swal.showLoading(),
+            });
+
+            fetch("/api/account/junior/update-limit", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                parentUsername: currentUser.username,
+                childAccountNumber: accNum,
+                pin: result.value.pin,
+                dailyLimit: result.value.limit,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) {
+                  Swal.fire({
+                    icon: "success",
+                    title: "ជោគជ័យ!",
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false,
+                  });
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: "បរាជ័យ",
+                    text: data.message,
+                  });
+                }
+              })
+              .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+          }
+        });
+      }
+
+      // ==========================================
+      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze)
+      // ==========================================
+      function toggleFreeze(accNum, currentFrozenStatus) {
+        const isFrozen = !currentFrozenStatus; // ប្តូរពី ពិត ទៅ មិនពិត ឬ ផ្ទុយមកវិញ
+        const actionText = isFrozen ? "ផ្អាក" : "បើកសោរ";
+        const confirmColor = isFrozen ? "#ef4444" : "#10b981";
+
+        Swal.fire({
+          title: `តើអ្នកពិតជាចង់ ${actionText} គណនីនេះមែនទេ?`,
+          html: `<input type="password" id="freezePin" class="swal2-input" placeholder="បញ្ជាក់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: `យល់ព្រម ${actionText}`,
+          confirmButtonColor: confirmColor,
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const pin = document.getElementById("freezePin").value;
+            if (!pin) Swal.showValidationMessage("សូមបញ្ចូល PIN!");
+            return pin;
+          },
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "កំពុងដំណើរការ...",
+              didOpen: () => Swal.showLoading(),
+            });
+
+            fetch("/api/account/junior/toggle-freeze", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                parentUsername: currentUser.username,
+                childAccountNumber: accNum,
+                pin: result.value,
+                isFrozen: isFrozen,
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.success) {
+                  // Update ក្នុង Storage ភ្លាមៗ ដើម្បីកុំអោយគាំង
+                  if (data.user) {
+                    sessionStorage.setItem("user", JSON.stringify(data.user));
+                    currentUser = data.user;
+                  }
+                  Swal.fire({
+                    icon: "success",
+                    title: "ជោគជ័យ!",
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false,
+                  }).then(() => renderJuniorCards()); // គូរ UI កាតកូនម្តងទៀត
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: "បរាជ័យ",
+                    text: data.message,
+                  });
+                }
+              })
+              .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+          }
         });
       }
     </script>

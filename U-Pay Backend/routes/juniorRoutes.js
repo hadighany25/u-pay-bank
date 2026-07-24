@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-// ទាញយក Controller និង Middleware
-const { createJuniorAccount } = require("../controllers/juniorController");
+// ទាញយក Controller ទាំង៣ មកប្រើ
+const {
+  createJuniorAccount,
+  toggleFreeze,
+  updateDailyLimit,
+} = require("../controllers/juniorController");
 const { verifyUser } = require("../middleware/authMiddleware");
 
 // ==========================================
@@ -13,8 +17,10 @@ const { verifyUser } = require("../middleware/authMiddleware");
 // បង្កើតគណនីកូន: (POST /api/account/junior/create)
 router.post("/create", verifyUser, createJuniorAccount);
 
-// ថ្ងៃក្រោយបងអាចថែម API ផ្សេងៗនៅទីនេះបានយ៉ាងងាយស្រួល ឧទាហរណ៍៖
-// router.post("/update-limit", verifyUser, updateDailyLimit);
-// router.post("/freeze", verifyUser, freezeAccount);
+// ផ្អាក ឬ បើកគណនីកូន: (POST /api/account/junior/toggle-freeze)
+router.post("/toggle-freeze", verifyUser, toggleFreeze);
+
+// កំណត់រនាំងចំណាយ: (POST /api/account/junior/update-limit)
+router.post("/update-limit", verifyUser, updateDailyLimit);
 
 module.exports = router;
