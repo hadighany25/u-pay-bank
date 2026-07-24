@@ -70,7 +70,6 @@
         align-items: center;
         gap: 15px;
         font-size: 1.1rem;
-        transition: background-color 0.3s;
         position: sticky;
         top: 0;
         z-index: 100;
@@ -84,7 +83,6 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        transition: background-color 0.3s;
       }
 
       /* ==========================================
@@ -105,7 +103,7 @@
         font-weight: 600;
         cursor: pointer;
         margin-bottom: 25px;
-        transition: all 0.2s;
+        transition: 0.2s;
       }
       .add-btn:active {
         transform: scale(0.98);
@@ -121,9 +119,6 @@
         position: relative;
         overflow: hidden;
         border: 1px solid #f1f5f9;
-        transition:
-          background-color 0.3s,
-          border-color 0.3s;
       }
 
       .status-badge {
@@ -165,12 +160,10 @@
         font-size: 1.1rem;
         margin-bottom: 4px;
         color: #1e293b;
-        transition: color 0.3s;
       }
       .kid-info p {
         font-size: 0.85rem;
         color: #64748b;
-        transition: color 0.3s;
       }
 
       .balance-box {
@@ -181,18 +174,15 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: background-color 0.3s;
       }
       .bal-label {
         color: #64748b;
         font-size: 0.9rem;
-        transition: color 0.3s;
       }
       .bal-amount {
         font-size: 1.4rem;
         font-weight: 700;
         color: #004d40;
-        transition: color 0.3s;
       }
 
       .action-grid {
@@ -209,7 +199,6 @@
         gap: 8px;
         cursor: pointer;
         color: #64748b;
-        transition: color 0.3s;
       }
       .action-btn .icon-bg {
         width: 45px;
@@ -225,7 +214,6 @@
         font-size: 0.75rem;
         font-weight: 500;
       }
-
       .btn-topup .icon-bg {
         background: #ecfdf5;
         color: #10b981;
@@ -250,20 +238,17 @@
          BOTTOM NAV 
          ========================================== */
       .bottom-nav {
-        position: absolute;
+        position: fixed;
         bottom: 0;
         width: 100%;
+        max-width: 450px;
         display: flex;
         background: white;
         padding: 12px 0 15px 0;
         justify-content: space-around;
         box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
-        z-index: 9999;
+        z-index: 999;
         border-radius: 20px 20px 0 0;
-        transition:
-          background-color 0.3s,
-          border-color 0.3s,
-          box-shadow 0.3s;
       }
       .nav-item {
         text-align: center;
@@ -271,8 +256,8 @@
         font-size: 0.75rem;
         text-decoration: none;
         cursor: pointer;
-        transition: 0.2s;
         flex: 1;
+        transition: 0.2s;
       }
       .nav-item i {
         font-size: 1.4rem;
@@ -285,92 +270,118 @@
         transform: translateY(-5px);
       }
 
-      /* 🔥 PREMIUM SWAL STYLING */
-      .premium-swal {
-        border-radius: 20px !important;
+      /* ==========================================
+         🔥 CUSTOM BOTTOM SHEET MODALS
+         ========================================== */
+      .custom-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        align-items: flex-end;
+        justify-content: center;
       }
-      .premium-swal .swal2-title {
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
-        font-size: 1.3rem;
+      .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 450px;
+        border-radius: 25px 25px 0 0;
+        padding: 30px 25px;
+        box-sizing: border-box;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .swal2-input {
-        border-radius: 12px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+      .modal-title {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #1e293b;
       }
 
-      /* ==========================================
-         🌙 FULL DARK MODE OVERRIDES
-         ========================================== */
+      .modal-input {
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .modal-input:focus {
+        outline: none;
+        border-color: #004d40;
+      }
+
+      .btn-full {
+        width: 100%;
+        padding: 15px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        margin-bottom: 10px;
+      }
+      .btn-full:active {
+        transform: scale(0.98);
+      }
+      .btn-cancel {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+      .btn-danger {
+        background: #ef4444;
+      }
+
+      /* Dark Mode Overrides */
       body.dark-mode {
         background-color: #000000 !important;
       }
       body.dark-mode .app-container {
         background-color: #121212 !important;
-        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
       }
       body.dark-mode .nav-header {
         background-color: #00251f !important;
-        color: #ffffff !important;
-      }
-      body.dark-mode .content-body {
-        background-color: #121212 !important;
-      }
-
-      body.dark-mode .add-btn {
-        background: #00251f !important;
-        color: #10b981 !important;
-        border-color: #10b981 !important;
       }
       body.dark-mode .junior-card {
         background: #1e1e1e !important;
         border-color: #2d2d2d !important;
       }
-      body.dark-mode .kid-info h3 {
+      body.dark-mode .kid-info h3,
+      body.dark-mode .modal-title {
         color: #ffffff !important;
-      }
-      body.dark-mode .kid-info p {
-        color: #94a3b8 !important;
       }
       body.dark-mode .balance-box {
         background: #2d2d2d !important;
       }
-      body.dark-mode .bal-label {
-        color: #94a3b8 !important;
-      }
-      body.dark-mode .bal-amount {
-        color: #10b981 !important;
-      }
-      body.dark-mode .action-btn {
-        color: #94a3b8 !important;
-      }
-
-      body.dark-mode .btn-topup .icon-bg {
-        background: #064e3b !important;
-        color: #34d399 !important;
-      }
-      body.dark-mode .btn-history .icon-bg {
-        background: #1e3a8a !important;
-        color: #60a5fa !important;
-      }
-      body.dark-mode .btn-limit .icon-bg {
-        background: #78350f !important;
-        color: #fbbf24 !important;
-      }
-      body.dark-mode .btn-freeze .icon-bg {
-        background: #7f1d1d !important;
-        color: #f87171 !important;
-      }
-
-      body.dark-mode .bottom-nav {
+      body.dark-mode .bottom-nav,
+      body.dark-mode .modal-content {
         background-color: #1e1e1e !important;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4) !important;
         border-top: 1px solid #2d2d2d !important;
       }
-      body.dark-mode .nav-item {
-        color: #94a3b8 !important;
+      body.dark-mode .modal-input {
+        background: #2d2d2d;
+        color: white;
+        border-color: #444;
       }
-      body.dark-mode .nav-item.active {
-        color: #10b981 !important;
+      body.dark-mode .btn-cancel {
+        background: #2d2d2d;
+        color: #94a3b8;
       }
     </style>
   </head>
@@ -384,7 +395,6 @@
 
       <!-- Main Content -->
       <div class="content-body">
-        <!-- Add Kid Button -->
         <button
           class="add-btn"
           onclick="window.location.href = 'new-account.html'"
@@ -392,36 +402,131 @@
           <i class="fa-solid fa-plus"></i>
           <span data-i18n="btn_create_kid">បង្កើតគណនីកូនថ្មី</span>
         </button>
-
-        <!-- Container សម្រាប់បង្ហាញកាតកូនៗ -->
-        <div id="juniorCardsContainer">
-          <!-- ទិន្នន័យនឹងត្រូវ Render ចេញពី JavaScript -->
-        </div>
+        <div id="juniorCardsContainer"></div>
       </div>
 
       <!-- Bottom Nav -->
       <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item">
-          <i class="fa-solid fa-house"></i>
-          <span data-i18n="nav_home">Home</span>
-        </a>
-        <a href="scan.html" class="nav-item">
-          <i class="fa-solid fa-qrcode"></i>
-          <span data-i18n="nav_scan">Scan</span>
-        </a>
-        <a href="history.html" class="nav-item">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-i18n="nav_history">History</span>
-        </a>
-        <a href="settings.html" class="nav-item">
-          <i class="fa-solid fa-gear"></i>
-          <span data-i18n="nav_settings">Settings</span>
-        </a>
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i><span>Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i><span>Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i><span>Settings</span></a
+        >
+      </div>
+
+      <!-- 🔥 MODALS (ចេញពីក្រោម) 🔥 -->
+
+      <!-- ១. Modal បញ្ចូលប្រាក់ (Top Up) -->
+      <div class="custom-modal" id="topupModal" onclick="closeModals(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <h3 class="modal-title" id="topupTitle">បញ្ចូលប្រាក់</h3>
+          <input
+            type="number"
+            id="topupAmt"
+            class="modal-input"
+            placeholder="ចំនួនទឹកប្រាក់ (USD)"
+          />
+          <input
+            type="password"
+            id="topupPin"
+            class="modal-input"
+            placeholder="លេខសម្ងាត់ PIN ៤ខ្ទង់"
+            maxlength="4"
+          />
+          <button class="btn-full" onclick="confirmTopUp()">
+            ផ្ទេរឥឡូវនេះ
+          </button>
+          <button class="btn-full btn-cancel" onclick="closeModals()">
+            បោះបង់
+          </button>
+        </div>
+      </div>
+
+      <!-- ២. Modal កំណត់លុយ (Daily Limit) -->
+      <div class="custom-modal" id="limitModal" onclick="closeModals(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <h3 class="modal-title">កំណត់រនាំងចំណាយប្រចាំថ្ងៃ</h3>
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              font-size: 0.85rem;
+              margin-bottom: 15px;
+            "
+          >
+            កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ
+          </p>
+          <input
+            type="number"
+            id="limitAmt"
+            class="modal-input"
+            placeholder="ឧទាហរណ៍: 5 (USD)"
+          />
+          <input
+            type="password"
+            id="limitPin"
+            class="modal-input"
+            placeholder="បញ្ជាក់លេខ PIN របស់អ្នក"
+            maxlength="4"
+          />
+          <button
+            class="btn-full"
+            style="background: #f59e0b"
+            onclick="confirmLimit()"
+          >
+            រក្សាទុក
+          </button>
+          <button class="btn-full btn-cancel" onclick="closeModals()">
+            បោះបង់
+          </button>
+        </div>
+      </div>
+
+      <!-- ៣. Modal ផ្អាកគណនី (Freeze) -->
+      <div class="custom-modal" id="freezeModal" onclick="closeModals(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <div
+            style="
+              text-align: center;
+              margin-bottom: 15px;
+              font-size: 2.5rem;
+              color: #ef4444;
+            "
+          >
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <h3 class="modal-title" id="freezeTitle">
+            តើអ្នកពិតជាចង់ផ្អាកគណនីមែនទេ?
+          </h3>
+          <input
+            type="password"
+            id="freezePin"
+            class="modal-input"
+            placeholder="បញ្ជាក់លេខ PIN របស់អ្នក"
+            maxlength="4"
+          />
+          <button
+            class="btn-full btn-danger"
+            id="btnConfirmFreeze"
+            onclick="confirmFreeze()"
+          >
+            យល់ព្រមផ្អាក
+          </button>
+          <button class="btn-full btn-cancel" onclick="closeModals()">
+            បោះបង់
+          </button>
+        </div>
       </div>
     </div>
 
     <script>
-      // 🔥 JWT SECURITY & SESSION MANAGEMENT
       let currentUser = JSON.parse(
         sessionStorage.getItem("user") || localStorage.getItem("user"),
       );
@@ -434,22 +539,18 @@
         Authorization: `Bearer ${token}`,
       };
 
-      // 🌙 THEME (Per-Account Settings)
-      const userThemeKey = "darkMode_" + currentUser.username;
+      // អថេរទុកចំណាំថាកំពុងចុចលើកុងកូនមួយណា
+      let activeTargetAccount = "";
+      let activeTargetFrozen = false;
 
       function applyTheme() {
         const isDark =
           localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
-        }
+          localStorage.getItem("darkMode_" + currentUser.username) === "true";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
       }
 
-      // ពេលបើកផេកភ្លាម
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();
         if (typeof applyLanguage === "function") applyLanguage();
@@ -457,22 +558,14 @@
         document.body.classList.add("loaded");
       });
 
-      // មុខងារគូរ UI កាតរបស់កូនៗ
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
-
-        // ចម្រាញ់យកតែ SubAccounts ណាដែលជាកូន (junior)
         const juniorAccounts = (currentUser.subAccounts || []).filter(
           (acc) => acc.accountType === "junior",
         );
 
         if (juniorAccounts.length === 0) {
-          container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #64748b;">
-              <i class="fa-solid fa-children" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
-              <p data-i18n="no_kids_msg">អ្នកមិនទាន់មានគណនីកូននៅឡើយទេ!</p>
-            </div>
-          `;
+          container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: #64748b;"><i class="fa-solid fa-children" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i><p>អ្នកមិនទាន់មានគណនីកូននៅឡើយទេ!</p></div>`;
           return;
         }
 
@@ -489,172 +582,144 @@
           html += `
             <div class="junior-card">
               <div class="status-badge ${statusClass}">${statusText}</div>
-              
               <div class="card-header">
-                <div class="profile-icon">
-                  <i class="fa-solid fa-child-reaching"></i>
-                </div>
+                <div class="profile-icon"><i class="fa-solid fa-child-reaching"></i></div>
                 <div class="kid-info">
                   <h3>${acc.accountName}</h3>
                   <p>Acc: ${acc.accountNumber}</p>
                 </div>
               </div>
-
               <div class="balance-box">
-                <span class="bal-label" data-i18n="current_balance">សមតុល្យបច្ចុប្បន្ន</span>
+                <span class="bal-label">សមតុល្យបច្ចុប្បន្ន</span>
                 <span class="bal-amount">$${Number(acc.balance).toFixed(2)}</span>
               </div>
-
               <div class="action-grid">
-                <button class="action-btn btn-topup" onclick="topUpJunior('${acc.accountNumber}', '${acc.accountName}')">
-                  <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-                  <span data-i18n="btn_topup">បញ្ចូលប្រាក់</span>
+                <button class="action-btn btn-topup" onclick="openTopupModal('${acc.accountNumber}', '${acc.accountName}')">
+                  <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div><span>បញ្ចូលប្រាក់</span>
                 </button>
-
                 <button class="action-btn btn-history" onclick="viewHistory('${acc.accountNumber}')">
-                  <div class="icon-bg"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                  <span data-i18n="nav_history">ប្រវត្តិ</span>
+                  <div class="icon-bg"><i class="fa-solid fa-clock-rotate-left"></i></div><span>ប្រវត្តិ</span>
                 </button>
-
-                <button class="action-btn btn-limit" onclick="setDailyLimit('${acc.accountNumber}')">
-                  <div class="icon-bg"><i class="fa-solid fa-sliders"></i></div>
-                  <span data-i18n="btn_limit">កំណត់លុយ</span>
+                <button class="action-btn btn-limit" onclick="openLimitModal('${acc.accountNumber}')">
+                  <div class="icon-bg"><i class="fa-solid fa-sliders"></i></div><span>កំណត់លុយ</span>
                 </button>
-
-                <button class="action-btn btn-freeze" onclick="toggleFreeze('${acc.accountNumber}', ${isFrozen})">
-                  <div class="icon-bg"><i class="fa-solid ${freezeIcon}"></i></div>
-                  <span>${freezeText}</span>
+                <button class="action-btn btn-freeze" onclick="openFreezeModal('${acc.accountNumber}', ${isFrozen})">
+                  <div class="icon-bg"><i class="fa-solid ${freezeIcon}"></i></div><span>${freezeText}</span>
                 </button>
               </div>
             </div>
           `;
         });
-
         container.innerHTML = html;
       }
 
       // ==========================================
-      // មុខងារស្នូល (Core Functions)
+      // CONTROLLING MODALS (បិទ/បើក ផ្ទាំង)
       // ==========================================
+      function closeModals(e) {
+        // បើចុចចំ Background ខ្មៅ (e.target.classList.contains) ឱ្យបិទ
+        if (e && !e.target.classList.contains("custom-modal")) return;
+        document
+          .querySelectorAll(".custom-modal")
+          .forEach((m) => (m.style.display = "none"));
 
-      function topUpJunior(accNum, name) {
-        Swal.fire({
-          title: `បញ្ចូលប្រាក់ឱ្យ ${name}`,
-          html: `
-            <input type="number" id="amt" class="swal2-input" placeholder="ចំនួនទឹកប្រាក់ (USD)">
-            <input type="password" id="pin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4">
-          `,
-          confirmButtonText: "ផ្ទេរឥឡូវនេះ",
-          confirmButtonColor: "#10b981",
-          showCancelButton: true,
-          cancelButtonText: "បោះបង់",
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => {
-            const amt = document.getElementById("amt").value;
-            const pin = document.getElementById("pin").value;
-            if (!amt || !pin)
-              Swal.showValidationMessage("សូមបំពេញចំនួនលុយ និង PIN!");
-            return { amt, pin };
-          },
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.fire({
-              title: "កំពុងដំណើរការ...",
-              didOpen: () => Swal.showLoading(),
-            });
-
-            const reqBody = {
-              senderUsername: currentUser.username,
-              senderAccount: currentUser.accountNumber,
-              receiverAccount: accNum,
-              amount: result.value.amt,
-              remark: "Top Up (Junior Account)",
-              pin: result.value.pin,
-              currency: "USD",
-            };
-
-            fetch("/api/transaction/transfer", {
-              method: "POST",
-              headers: authHeaders,
-              body: JSON.stringify(reqBody),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.success) {
-                  Swal.fire({
-                    icon: "success",
-                    title: "ជោគជ័យ!",
-                    text: "លុយបានផ្ទេរចូលគណនីកូនរួចរាល់",
-                    customClass: { popup: "premium-swal" },
-                  }).then(() => {
-                    window.location.reload();
-                  });
-                } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: "បរាជ័យ",
-                    text: data.message,
-                    customClass: { popup: "premium-swal" },
-                  });
-                }
-              })
-              .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
-          }
-        });
+        // Reset inputs
+        document
+          .querySelectorAll(".modal-input")
+          .forEach((inp) => (inp.value = ""));
       }
 
-      function viewHistory(accNum) {
-        // រក្សាទុកលេខគណនីកូនសិន ដើម្បីឱ្យ history.html ដឹងថាត្រូវទាញប្រវត្តិរបស់កុងមួយណា
-        sessionStorage.setItem("viewAccountHistory", accNum);
+      // ១. បញ្ចូលប្រាក់
+      function openTopupModal(accNum, name) {
+        activeTargetAccount = accNum;
+        document.getElementById("topupTitle").innerText =
+          `បញ្ចូលប្រាក់ឱ្យ ${name}`;
+        document.getElementById("topupModal").style.display = "flex";
+      }
 
-        // កែពី statement.html មក history.html វិញ
+      function confirmTopUp() {
+        const amt = document.getElementById("topupAmt").value;
+        const pin = document.getElementById("topupPin").value;
+        if (!amt || !pin) return alert("សូមបំពេញចំនួនទឹកប្រាក់ និង PIN!");
+
+        closeModals();
+        Swal.fire({
+          title: "កំពុងដំណើរការ...",
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const reqBody = {
+          senderUsername: currentUser.username,
+          senderAccount: currentUser.accountNumber,
+          receiverAccount: activeTargetAccount,
+          amount: amt,
+          remark: "Top Up (Junior Account)",
+          pin: pin,
+          currency: "USD",
+        };
+
+        fetch("/api/transaction/transfer", {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(reqBody),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ!",
+                timer: 1500,
+                showConfirmButton: false,
+              }).then(() => location.reload());
+            } else Swal.fire("បរាជ័យ", data.message, "error");
+          })
+          .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+      }
+
+      // ២. មើលប្រវត្តិ
+      function viewHistory(accNum) {
+        sessionStorage.setItem("viewAccountHistory", accNum);
         window.location.href = "history.html";
       }
 
-      function setDailyLimit(accNum) {
-        Swal.fire({
-          title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
-          html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ</p>
-            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5 (USD)">
-            <input type="password" id="limitPin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក">
-          `,
-          confirmButtonText: "រក្សាទុក",
-          confirmButtonColor: "#f59e0b",
-          showCancelButton: true,
-          customClass: { popup: "premium-swal" },
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.fire(
-              "កំពុងអភិវឌ្ឍន៍",
-              "មុខងារកំណត់លុយនឹងដំណើរការឆាប់ៗ (រង់ចាំអាប់ដេត Backend)!",
-              "info",
-            );
-          }
-        });
+      // ៣. កំណត់លុយ
+      function openLimitModal(accNum) {
+        activeTargetAccount = accNum;
+        document.getElementById("limitModal").style.display = "flex";
+      }
+      function confirmLimit() {
+        closeModals();
+        Swal.fire(
+          "កំពុងអភិវឌ្ឍន៍",
+          "មុខងារកំណត់លុយនឹងដំណើរការឆាប់ៗ (រង់ចាំអាប់ដេត Backend)!",
+          "info",
+        );
       }
 
-      function toggleFreeze(accNum, currentFrozenStatus) {
-        const actionText = currentFrozenStatus ? "បើកសោរ" : "ផ្អាក";
-        const confirmColor = currentFrozenStatus ? "#10b981" : "#ef4444";
+      // ៤. ផ្អាកគណនី
+      function openFreezeModal(accNum, isFrozen) {
+        activeTargetAccount = accNum;
+        activeTargetFrozen = isFrozen;
 
-        Swal.fire({
-          title: `តើអ្នកពិតជាចង់ ${actionText} គណនីនេះមែនទេ?`,
-          html: `<input type="password" id="freezePin" class="swal2-input" placeholder="បញ្ជាក់ PIN របស់អ្នក">`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: `យល់ព្រម ${actionText}`,
-          confirmButtonColor: confirmColor,
-          customClass: { popup: "premium-swal" },
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.fire(
-              "កំពុងអភិវឌ្ឍន៍",
-              "មុខងារផ្អាកគណនីនឹងដំណើរការឆាប់ៗ (រង់ចាំអាប់ដេត Backend)!",
-              "info",
-            );
-          }
-        });
+        const title = document.getElementById("freezeTitle");
+        const btn = document.getElementById("btnConfirmFreeze");
+
+        if (isFrozen) {
+          title.innerText = "តើអ្នកចង់បើកសោរគណនីនេះវិញមែនទេ?";
+          btn.innerText = "យល់ព្រមបើកសោរ";
+          btn.style.background = "#10b981"; // ពណ៌បៃតង
+        } else {
+          title.innerText = "តើអ្នកពិតជាចង់ផ្អាកគណនីមែនទេ?";
+          btn.innerText = "យល់ព្រមផ្អាក";
+          btn.style.background = "#ef4444"; // ពណ៌ក្រហម
+        }
+
+        document.getElementById("freezeModal").style.display = "flex";
+      }
+      function confirmFreeze() {
+        closeModals();
+        Swal.fire("កំពុងអភិវឌ្ឍន៍", "មុខងារផ្អាកគណនីនឹងដំណើរការឆាប់ៗ!", "info");
       }
     </script>
   </body>
