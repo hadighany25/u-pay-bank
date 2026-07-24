@@ -243,7 +243,6 @@ const transfer = async (req, res) => {
           return res.json({ success: false, message: "រកគណនីរួមនេះមិនឃើញទេ!" });
         senderAvailableBal = jointSenderAcc.balance;
       } else if (sType === "junior") {
-        // 🔥 FIX ទី២៖ បើកាត់លុយចេញពីកុងកូន ត្រូវទៅឆែកលុយពី User កូនផ្ទាល់
         juniorSenderAcc = await User.findOne({ accountNumber: senderAccount });
         if (!juniorSenderAcc)
           return res.json({ success: false, message: "រកគណនីកូនមិនឃើញទេ!" });
@@ -261,6 +260,25 @@ const transfer = async (req, res) => {
 
     if (senderAvailableBal < totalDeduction) {
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
+    }
+
+    // ==========================================
+    // 🛑 🔥 NEW: ទប់ស្កាត់លីមីតចំណាយប្រចាំថ្ងៃរបស់កូន (Daily Limit Check)
+    // ==========================================
+    let actualSenderDoc = juniorSenderAcc ? juniorSenderAcc : sender;
+    if (actualSenderDoc.role === "junior") {
+      const limit = actualSenderDoc.dailyLimit || 0;
+      const spentToday = actualSenderDoc.dailySpent || 0;
+      
+      // បំប្លែងទឹកប្រាក់ដែលចាយទៅជា USD ដើម្បីប្រៀបធៀបជាមួយ limit ងាយស្រួល
+      let spentAmountUsd = isSenderKHR ? totalDeduction / currentFXRates.usdToKhrSell : totalDeduction;
+
+      if (limit > 0 && (spentToday + spentAmountUsd) > limit) {
+        return res.json({
+          success: false,
+          message: `ប្រតិបត្តិការបរាជ័យ! គណនីកុមារនេះចាយបានត្រឹម $${limit} ក្នុង១ថ្ងៃ (ថ្ងៃនេះចាយអស់ $${spentToday.toFixed(2)} ហើយ)។`,
+        });
+      }
     }
 
     // ------------------------------------------
@@ -301,7 +319,7 @@ const transfer = async (req, res) => {
           );
           if (sub) {
             sub.balance += receiverAmount;
-            owner.markModified("subAccounts"); // 🔥 Safety Lock
+            owner.markModified("subAccounts"); 
           } else {
             if (isReceiverKHR)
               owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
@@ -351,7 +369,7 @@ const transfer = async (req, res) => {
           }
         } else {
           targetSubAcc.balance += receiverAmount;
-          receiver.markModified("subAccounts"); // 🔥 Safety Lock
+          receiver.markModified("subAccounts"); 
           await receiver.save();
         }
       } else {
@@ -359,12 +377,35 @@ const transfer = async (req, res) => {
           receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
         await receiver.save();
+
+        // ==========================================
+        // 🛑 🔥 NEW: Sync លុយទៅអោយ Parent ពេលប៉ាម៉ាក់ដាក់លុយអោយកូន
+        // ==========================================
+        if (receiver.role === "junior" && receiver.parentUsername) {
+          const parentOfReceiver = await User.findOne({ username: receiver.parentUsername });
+          if (parentOfReceiver) {
+            const subIdx = parentOfReceiver.subAccounts.findIndex(
+              (acc) => acc.accountNumber === receiverAccount || acc.accountId === receiver.username
+            );
+            if (subIdx !== -1) {
+              if (isReceiverKHR) {
+                parentOfReceiver.subAccounts[subIdx].balanceKHR = (parseFloat(parentOfReceiver.subAccounts[subIdx].balanceKHR) || 0) + receiverAmount;
+              } else {
+                parentOfReceiver.subAccounts[subIdx].balance = (parseFloat(parentOfReceiver.subAccounts[subIdx].balance) || 0) + receiverAmount;
+              }
+              parentOfReceiver.markModified("subAccounts");
+              await parentOfReceiver.save();
+            }
+          }
+        }
       }
     }
 
     // ------------------------------------------
     // ង. ដំណើរការកាត់លុយពីអ្នកផ្ញើ (ដកលុយចេញ)
     // ------------------------------------------
+    let actualSpentUsd = isSenderKHR ? totalDeduction / currentFXRates.usdToKhrSell : totalDeduction;
+
     if (isSenderSubAccount) {
       const senderSubAcc = sender.subAccounts[senderSubIndex];
       if (
@@ -376,21 +417,51 @@ const transfer = async (req, res) => {
           await jointSenderAcc.save();
         }
       } else if (senderSubAcc.accountType === "junior") {
-        // 🔥 FIX ទី៣៖ កាត់លុយពីគណនីកូនពិតប្រាកដ
         if (juniorSenderAcc) {
           if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
           else juniorSenderAcc.balance -= totalDeduction;
+          
+          // 🔥 NEW: កត់ត្រាការចាយវាយប្រចាំថ្ងៃរបស់កូន (Daily Spent)
+          juniorSenderAcc.dailySpent = (juniorSenderAcc.dailySpent || 0) + actualSpentUsd;
           await juniorSenderAcc.save();
+
+          // កាត់លុយពី subAccounts របស់ម៉ាក់ប៉ា ដើម្បីឲ្យ UI ស៊ីគ្នា
+          senderSubAcc.balance -= totalDeduction;
+          sender.markModified("subAccounts"); 
+          await sender.save();
         }
       } else {
         senderSubAcc.balance -= totalDeduction;
-        sender.markModified("subAccounts"); // 🔥 Safety Lock
+        sender.markModified("subAccounts"); 
         await sender.save();
       }
     } else {
       if (isSenderKHR) sender.balanceKHR -= totalDeduction;
       else sender.balance -= totalDeduction;
+      
+      // 🔥 NEW: បើអ្នក Login ជាកូនផ្ទាល់ ហើយវេរលុយចេញ កត់ត្រាចូល dailySpent
+      if (sender.role === "junior") {
+        sender.dailySpent = (sender.dailySpent || 0) + actualSpentUsd;
+      }
       await sender.save();
+
+      // 🔥 NEW: Sync ទៅគណនីម៉ាក់ប៉ាវិញ ក្រែងលោកូនចាយលុយចេញ ឲ្យម៉ាក់ប៉ាឃើញលុយថយចុះដែរ
+      if (sender.role === "junior" && sender.parentUsername) {
+        const parentOfSender = await User.findOne({ username: sender.parentUsername });
+        if (parentOfSender) {
+          const actualAcc = isSenderKHR ? sender.accountNumberKHR : sender.accountNumber;
+          const subIdx = parentOfSender.subAccounts.findIndex((acc) => acc.accountNumber === actualAcc || acc.accountId === sender.username);
+          if (subIdx !== -1) {
+            if (isSenderKHR) {
+              parentOfSender.subAccounts[subIdx].balanceKHR = (parseFloat(parentOfSender.subAccounts[subIdx].balanceKHR) || 0) - totalDeduction;
+            } else {
+              parentOfSender.subAccounts[subIdx].balance = (parseFloat(parentOfSender.subAccounts[subIdx].balance) || 0) - totalDeduction;
+            }
+            parentOfSender.markModified("subAccounts");
+            await parentOfSender.save();
+          }
+        }
+      }
     }
 
     // ------------------------------------------
@@ -552,7 +623,6 @@ const transfer = async (req, res) => {
         });
         newBalanceRes = updatedJoint ? updatedJoint.balance : 0;
       } else if (sType === "junior") {
-        // 🔥 FIX ទី៤៖ ទាញសមតុល្យកូនថ្មី
         const updatedJunior = await User.findOne({
           accountNumber: senderAccount,
         });
@@ -570,7 +640,7 @@ const transfer = async (req, res) => {
         : updatedSender.balance;
     }
 
-    res.json({ success: true, newBalance: newBalanceRes, slipData: senderTrx });
+    res.json({ success: true, newBalance: newBalanceRes, slipData: senderTrx, user: updatedSender }); // 🔥 NEW: បោះ User Update ទៅវិញ ងាយស្រួល Frontend ចាប់
   } catch (err) {
     console.error("TRANSFER ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -639,10 +709,10 @@ const payBankBill = async (req, res) => {
         }),
         type: "Bill Payment",
         amount: -amount,
-        senderName: payingUser.fullName || payingUser.username, // 🔥 Update: យកឈ្មោះពេញ
+        senderName: payingUser.fullName || payingUser.username,
         receiverName: company,
-        senderAcc: payingUser.accountNumber, // 🔥 Update: បន្ថែមលេខកុង
-        receiverAcc: bill_id, // 🔥 Update: បន្ថែមលេខវិក្កយបត្រ
+        senderAcc: payingUser.accountNumber,
+        receiverAcc: bill_id,
         remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
         status: "Success",
       });
@@ -692,7 +762,6 @@ const rewardCashback = async (req, res) => {
         const sharedRefId = "RWD-" + Date.now().toString().slice(-6);
         const sharedRemark = `Lucky Spin Reward (Trx: ${refId})`;
 
-        // 🔥 Update: ទាញយកឈ្មោះពេញ
         const finalReceiverName = user.fullName || user.username;
 
         user.balance += reward;
@@ -709,7 +778,7 @@ const rewardCashback = async (req, res) => {
             currency: "USD",
             fee: 0,
             senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
+            receiverName: finalReceiverName, 
             remark: sharedRemark,
             status: "Success",
             device: "App",
@@ -725,7 +794,7 @@ const rewardCashback = async (req, res) => {
             currency: "USD",
             fee: 0,
             senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
+            receiverName: finalReceiverName, 
             remark: sharedRemark,
             status: "Success",
             device: "System",
@@ -801,7 +870,6 @@ const claimPromoCode = async (req, res) => {
     const sharedRefId = "PRM-" + Date.now().toString().slice(-6);
     const sharedRemark = `Claimed Promo Code: ${promo.code}`;
 
-    // 🔥 Update: ទាញយកឈ្មោះពេញ
     const finalReceiverName = user.fullName || user.username;
 
     await Transaction.create([
@@ -815,7 +883,7 @@ const claimPromoCode = async (req, res) => {
         currency: "USD",
         fee: 0,
         senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
+        receiverName: finalReceiverName, 
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
@@ -830,7 +898,7 @@ const claimPromoCode = async (req, res) => {
         currency: "USD",
         fee: 0,
         senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName, // 🔥 Update: ដូរពី username មកឈ្មោះពេញ
+        receiverName: finalReceiverName, 
         remark: sharedRemark,
         status: "Success",
         trxMethod: "API Endpoint",
@@ -869,11 +937,9 @@ const sendEgift = async (req, res) => {
   } = req.body;
 
   try {
-    // កំណត់អត្រាប្តូរប្រាក់ (ទាញពី System មកវិញល្អជាង Fix ចោល)
-    const currentFXRates = readFXRates(); // ត្រូវប្រាកដថាអថេរនេះមាន Data មកពីកន្លែងណាផ្សេង
+    const currentFXRates = readFXRates(); 
     const giftAmount = parseFloat(amount);
 
-    // ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងលេខកូដ PIN
     const sender = await User.findOne({ username: senderUsername });
     if (!sender)
       return res.json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នកទេ" });
@@ -896,9 +962,8 @@ const sendEgift = async (req, res) => {
         message: `លេខកូដ PIN មិនត្រឹមត្រូវទេ! នៅសល់ ${3 - sender.pinAttempts} ដង។`,
       });
     }
-    sender.pinAttempts = 0; // Reset ពេលវាយត្រូវ
+    sender.pinAttempts = 0; 
 
-    // គណនាទឹកប្រាក់ត្រូវកាត់ & រកគណនីប្រភព
     let finalDeduction = giftAmount;
     let sourceCurrency = "USD";
     let actualSenderAccNum = sender.accountNumber;
@@ -924,7 +989,6 @@ const sendEgift = async (req, res) => {
       sourceCurrency = sub.currency;
       actualSenderAccNum = sub.accountNumber;
 
-      // ឆែកមើលក្រែងជាគណនីរួម
       if (sub.accountType === "joint" || sub.accountType === "joint_member") {
         jointSenderAcc = await JointAccount.findOne({
           accountId: sub.accountId,
@@ -934,7 +998,6 @@ const sendEgift = async (req, res) => {
       }
     }
 
-    // ប្តូរប្រាក់បើកាដូ និងកុងខុសរូបិយប័ណ្ណ
     if (sourceCurrency !== currency) {
       if (sourceCurrency === "USD" && currency === "KHR")
         finalDeduction = giftAmount / currentFXRates.usdToKhrSell;
@@ -942,7 +1005,6 @@ const sendEgift = async (req, res) => {
         finalDeduction = giftAmount * currentFXRates.usdToKhrBuy;
     }
 
-    // ឆែកសមតុល្យលុយ
     let senderAvailableBal = 0;
     if (isSenderSubAccount) {
       senderAvailableBal = jointSenderAcc
@@ -957,14 +1019,13 @@ const sendEgift = async (req, res) => {
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់ទេ" });
     }
 
-    // កាត់ប្រាក់ពីគណនីជាក់លាក់ (អ្នកផ្ញើ)
     if (isSenderSubAccount) {
       if (jointSenderAcc) {
         jointSenderAcc.balance -= finalDeduction;
         await jointSenderAcc.save();
       } else {
         sender.subAccounts[senderSubIndex].balance -= finalDeduction;
-        sender.markModified("subAccounts"); // 🔥 Safety Lock
+        sender.markModified("subAccounts");
       }
     } else if (senderAccount === "MAIN_KHR") {
       sender.balanceKHR -= finalDeduction;
@@ -972,7 +1033,6 @@ const sendEgift = async (req, res) => {
       sender.balance -= finalDeduction;
     }
 
-    // ស្វែងរកអ្នកទទួល
     const receiver = await User.findOne({
       $or: [
         { username: receiverInput },
@@ -991,7 +1051,6 @@ const sendEgift = async (req, res) => {
         message: "មិនអាចផ្ញើអាំងប៉ាវឱ្យខ្លួនឯងបានទេ!",
       });
 
-    // ដំណើរការបញ្ចូលប្រាក់ទៅឱ្យអ្នកទទួល
     let receiverSubIndex = receiver.subAccounts.findIndex(
       (acc) => acc.accountNumber === receiverInput,
     );
@@ -1022,7 +1081,7 @@ const sendEgift = async (req, res) => {
         }
       } else {
         targetSubAcc.balance += receiveAmt;
-        receiver.markModified("subAccounts"); // 🔥 Safety Lock
+        receiver.markModified("subAccounts"); 
       }
     } else {
       if (receiverInput === receiver.accountNumberKHR) {
@@ -1033,7 +1092,6 @@ const sendEgift = async (req, res) => {
       }
     }
 
-    // 📝 ការកត់ត្រាប្រវត្តិ
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
@@ -1042,7 +1100,6 @@ const sendEgift = async (req, res) => {
     const sharedHash = Math.random().toString(36).substring(2, 11);
     const sharedRemark = message || "E-Gift";
 
-    // 🔥 កំណត់ឈ្មោះអ្នកផ្ញើ និងអ្នកទទួលឱ្យចេញឈ្មោះពេញ (Full Name ឬ ឈ្មោះគណនីរួម)
     const finalSenderName = jointSenderAcc
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
@@ -1057,8 +1114,8 @@ const sendEgift = async (req, res) => {
       type: "E-Gift Sent",
       amount: -finalDeduction,
       currency: sourceCurrency,
-      senderName: finalSenderName, // ប្រើឈ្មោះពេញ
-      receiverName: finalReceiverName, // ប្រើឈ្មោះពេញ
+      senderName: finalSenderName,
+      receiverName: finalReceiverName, 
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1074,8 +1131,8 @@ const sendEgift = async (req, res) => {
       type: "E-Gift Received",
       amount: giftAmount,
       currency: currency,
-      senderName: finalSenderName, // ប្រើឈ្មោះពេញ
-      receiverName: finalReceiverName, // ប្រើឈ្មោះពេញ
+      senderName: finalSenderName, 
+      receiverName: finalReceiverName, 
       senderAcc: actualSenderAccNum,
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
@@ -1084,7 +1141,6 @@ const sendEgift = async (req, res) => {
       status: "Completed",
     };
 
-    // Save Transactions (ពិនិត្យមើលគណនីរួម)
     if (jointSenderAcc) {
       for (let m of jointSenderAcc.members) {
         if (m.status === "active")
@@ -1103,7 +1159,6 @@ const sendEgift = async (req, res) => {
       await Transaction.create(receiverTrx);
     }
 
-    // 🎁 បង្កើត Notification ពិសេសឱ្យអ្នកទទួល (បង្ហាញឈ្មោះពេញ)
     const senderMsgName = jointSenderAcc
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
@@ -1119,7 +1174,7 @@ const sendEgift = async (req, res) => {
         currency: currency,
         theme: theme,
         message: message,
-        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
+        senderName: finalSenderName, 
         senderUsername: sender.username,
       },
     };
@@ -1145,7 +1200,6 @@ const sendEgift = async (req, res) => {
 
     await sender.save();
 
-    // ត្រលប់ទិន្នន័យទៅ Frontend
     let newBalanceRes = 0;
     if (isSenderSubAccount) {
       newBalanceRes = jointSenderAcc
@@ -1157,13 +1211,12 @@ const sendEgift = async (req, res) => {
       newBalanceRes = sender.balance;
     }
 
-    // 🔥 បាញ់ Socket (Real-time) អោយសមាជិកទាំងអស់ក្នុងកុងរួម (បង្ហាញឈ្មោះពេញ)
     const io = req.app.get("io");
     if (io) {
       const socketPayload = {
         amount: giftAmount,
         currency: currency,
-        senderName: finalSenderName, // ប្រើឈ្មោះពេញ
+        senderName: finalSenderName,
         isGift: true,
       };
 
@@ -1197,7 +1250,6 @@ const sendEgift = async (req, res) => {
 const egiftOpened = async (req, res) => {
   const { receiverName, senderUsername, notifId } = req.body;
   try {
-    // Mark អាំងប៉ាវជា "បានអាន" នៅក្នុង Database របស់អ្នកទទួល
     if (notifId && req.user) {
       await User.updateOne(
         { username: req.user.username, "notifications._id": notifId },
@@ -1205,7 +1257,6 @@ const egiftOpened = async (req, res) => {
       );
     }
 
-    // បង្កើត Notification ជូនដំណឹងដល់អ្នកផ្ញើវិញ
     if (senderUsername) {
       const sender = await User.findOne({ username: senderUsername });
       if (sender) {
