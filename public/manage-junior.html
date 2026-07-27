@@ -13,7 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro -->
+    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro ឱ្យស្អាតគ្រប់កន្លែង -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -84,7 +84,7 @@
       }
 
       /* ==========================================
-         👶 JUNIOR CARDS (REDESIGNED + ANIMATIONS)
+         👶 JUNIOR CARDS (ដក Animation លាក់កាតចេញ ដើម្បីកុំឱ្យបាត់)
          ========================================== */
       .add-btn {
         display: flex;
@@ -113,9 +113,7 @@
         padding: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         margin-bottom: 20px;
-        animation: slideUpFade 0.5s ease-out forwards;
-        opacity: 0;
-        transform: translateY(20px);
+        /* បានលុប opacity: 0 និង animation ចេញ ដើម្បីដោះស្រាយបញ្ហាបាត់កាត */
         transition:
           transform 0.3s ease,
           box-shadow 0.3s ease;
@@ -123,12 +121,6 @@
       .junior-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      }
-      @keyframes slideUpFade {
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
       }
 
       .card-top {
@@ -737,13 +729,21 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: ដោះស្រាយបញ្ហាបាត់កាត)
+      // ១. គូរ UI កាតកូន (SMART PARSER: អាប់ដេតថ្មី ធានាមិនឱ្យបាត់កាត ១០០%)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
-        const juniorAccounts = (currentUser.subAccounts || []).filter(
-          (acc) => acc.accountType === "junior",
-        );
+
+        // ស្រូបយក Account ទាំងអស់ដែលជាកូន (ជៀសវាង Field ខុសគ្នា យើងឆែកអោយទូលាយបំផុត)
+        const juniorAccounts = (currentUser.subAccounts || []).filter((acc) => {
+          const typeStr = String(
+            acc.accountType || acc.type || acc.role || "",
+          ).toLowerCase();
+          const nameStr = String(
+            acc.accountName || acc.fullName || "",
+          ).toUpperCase();
+          return typeStr === "junior" || nameStr.includes("JUNIOR");
+        });
 
         if (juniorAccounts.length === 0) {
           container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:#94a3b8;"><p>មិនទាន់មានគណនីកូនទេ!</p></div>`;
@@ -752,14 +752,17 @@
 
         const groupedKids = {};
 
-        // តម្រៀបទិន្នន័យកូនចូលគ្នា (Group By Name)
+        // តម្រៀបទិន្នន័យកូនចូលគ្នា
         juniorAccounts.forEach((acc) => {
-          let rawName = acc.accountName || "JUNIOR";
+          let rawName = String(
+            acc.accountName || acc.fullName || acc.name || "JUNIOR",
+          );
           rawName = rawName
             .replace(/\s*\((JUNIOR|KHR|USD|\$|៛)\)\s*/gi, "")
             .replace(/\b(KHR|USD)\b/gi, "")
             .trim()
             .toUpperCase();
+          if (!rawName) rawName = "JUNIOR";
 
           if (!groupedKids[rawName]) {
             groupedKids[rawName] = {
@@ -770,65 +773,71 @@
             };
           }
 
-          // ប្រើ "N/A" បើអត់ទាន់មានលេខកុងកុំអោយវាលាក់កាតចោលទៀត
           const accNum = acc.accountNumber || acc.accountId || "N/A";
 
-          // ឆែកមើលក្រែងមាន USD
-          if (acc.currency !== "KHR") {
+          // ឆែកមើលលុយដុល្លារ
+          if (
+            acc.balance !== undefined &&
+            acc.balance !== null &&
+            acc.currency !== "KHR"
+          ) {
             groupedKids[rawName].usd = {
               accountNumber: accNum,
-              balance: acc.balance || 0,
+              balance: acc.balance,
             };
           }
 
-          // ឆែកមើលក្រែងមាន KHR ដាច់ដោយឡែក
-          if (acc.currency === "KHR") {
-            groupedKids[rawName].khr = {
-              accountNumber: accNum,
-              balance: acc.balance || 0,
-            };
-          }
-
-          // ឆែកមើលក្រែង Backend ខ្ចប់ KHR ចូលគ្នាក្នុង Object តែមួយ (Dual-Currency)
-          if (
-            acc.accountNumberKHR !== undefined ||
-            acc.balanceKHR !== undefined
-          ) {
+          // ឆែកមើលលុយខ្មែរ (ករណី Dual-Currency ឬ កុងដាច់គ្នា)
+          if (acc.balanceKHR !== undefined && acc.balanceKHR !== null) {
             groupedKids[rawName].khr = {
               accountNumber: acc.accountNumberKHR || accNum,
-              balance: acc.balanceKHR || 0,
+              balance: acc.balanceKHR,
             };
+          } else if (acc.currency === "KHR" && acc.balance !== undefined) {
+            groupedKids[rawName].khr = {
+              accountNumber: accNum,
+              balance: acc.balance,
+            };
+          }
+
+          // ករណីកុងទើបបង្កើត អត់ទាន់មានលុយសោះ
+          if (acc.balance === undefined && acc.balanceKHR === undefined) {
+            if (acc.currency === "KHR") {
+              groupedKids[rawName].khr = { accountNumber: accNum, balance: 0 };
+            } else {
+              groupedKids[rawName].usd = { accountNumber: accNum, balance: 0 };
+            }
           }
         });
 
         globalKidsData = groupedKids;
         let html = "";
-        let delayCount = 1;
 
         Object.values(groupedKids).forEach((kid) => {
-          const hasUSD = kid.usd !== null;
-          const hasKHR = kid.khr !== null;
-          if (!hasUSD && !hasKHR) return;
+          // ការពារកុំឱ្យកាតទទេ ក្នុងករណីមានបញ្ហា
+          if (!kid.usd && !kid.khr) {
+            kid.usd = { accountNumber: "N/A", balance: 0 };
+          }
 
           let accountsHtml = "";
 
-          if (hasUSD) {
+          if (kid.usd) {
             accountsHtml += `
               <div class="acc-item">
                 <div class="acc-currency"><img src="https://flagcdn.com/w40/us.png" alt="USD"> <span>USD</span></div>
-                <div class="acc-balance">$${Number(kid.usd.balance).toFixed(2)}</div>
+                <div class="acc-balance">$${Number(kid.usd.balance || 0).toFixed(2)}</div>
               </div>
               <div class="acc-number-sub">Acc: ${kid.usd.accountNumber}</div>
             `;
           }
-          if (hasUSD && hasKHR) {
+          if (kid.usd && kid.khr) {
             accountsHtml += `<div class="acc-divider"></div>`;
           }
-          if (hasKHR) {
+          if (kid.khr) {
             accountsHtml += `
               <div class="acc-item">
                 <div class="acc-currency"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> <span>KHR</span></div>
-                <div class="acc-balance">${Number(kid.khr.balance).toLocaleString("en-US")} ៛</div>
+                <div class="acc-balance">${Number(kid.khr.balance || 0).toLocaleString("en-US")} ៛</div>
               </div>
               <div class="acc-number-sub">Acc: ${kid.khr.accountNumber}</div>
             `;
@@ -837,7 +846,7 @@
           const kidNameEncoded = encodeURIComponent(kid.name);
 
           html += `
-            <div class="junior-card" style="animation-delay: ${delayCount * 0.1}s">
+            <div class="junior-card">
               <div class="card-top">
                 <div class="kid-profile">
                   <div class="kid-icon"><i class="fa-solid fa-child-reaching"></i></div>
@@ -875,7 +884,6 @@
               </div>
             </div>
           `;
-          delayCount++;
         });
         container.innerHTML = html;
       }
@@ -1106,7 +1114,7 @@
       }
 
       // ==========================================
-      // 📊 កំណត់រនាំងចំណាយ (Daily Limit) ជាមួយ Auto-Focus & Enter
+      // 📊 កំណត់រនាំងចំណាយ (Daily Limit)
       // ==========================================
       function setDailyLimit(encodedName) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
@@ -1196,7 +1204,7 @@
       }
 
       // ==========================================
-      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze) ជាមួយ Auto-Focus & Enter
+      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze)
       // ==========================================
       function toggleFreeze(encodedName, isCurrentlyFrozen) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
