@@ -13,8 +13,9 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro គ្រប់ទំហំ -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
@@ -26,10 +27,14 @@
       /* ==========================================
          🚀 CORE STYLES & LAYOUT
          ========================================== */
+      /* បង្ខំអោយប្រើ Font ខ្មែរគ្រប់ទីកន្លែង រួមទាំងប្រអប់ Input */
+      * {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
       body {
         background-color: #f2f4f6;
         margin: 0;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
         visibility: hidden;
         opacity: 0;
         display: flex;
@@ -76,7 +81,7 @@
       }
 
       /* ==========================================
-         👶 JUNIOR CARDS (REDESIGNED 100% ដូចរូប)
+         👶 JUNIOR CARDS (REDESIGNED + ANIMATIONS)
          ========================================== */
       .add-btn {
         display: flex;
@@ -93,15 +98,37 @@
         font-weight: 600;
         cursor: pointer;
         margin-bottom: 25px;
+        transition: 0.3s;
+      }
+      .add-btn:active {
+        transform: scale(0.96);
       }
 
       .junior-card {
         background: #ffffff;
-        border-radius: 16px;
+        border-radius: 20px;
         padding: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         margin-bottom: 20px;
+        animation: slideUpFade 0.5s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
       }
+      /* Hover Animation លើកាតកូន */
+      .junior-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+      @keyframes slideUpFade {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       .card-top {
         display: flex;
         justify-content: space-between;
@@ -114,55 +141,80 @@
         gap: 15px;
       }
       .kid-icon {
-        width: 50px;
-        height: 50px;
+        width: 55px;
+        height: 55px;
         background: #fdf2f8;
         color: #ec4899;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.8rem;
       }
       .kid-name h3 {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         color: #1e293b;
-        margin: 0 0 5px 0;
+        margin: 0 0 4px 0;
+        font-weight: 700;
+      }
+      .kid-name p {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin: 0;
       }
 
       .status-badge {
-        padding: 4px 10px;
+        padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
-      .status-badge::before {
-        content: "";
-        width: 6px;
-        height: 6px;
+      .status-dot {
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
       }
       .status-active {
         background: #ecfdf5;
         color: #10b981;
       }
-      .status-active::before {
+      .status-active .status-dot {
         background: #10b981;
+        animation: pulse 1.5s infinite;
       }
       .status-frozen {
         background: #fef2f2;
         color: #ef4444;
       }
-      .status-frozen::before {
+      .status-frozen .status-dot {
         background: #ef4444;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
       }
 
       /* Accounts list */
       .account-list {
         margin-bottom: 25px;
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 15px;
+        border: 1px solid #f1f5f9;
       }
       .acc-item {
         display: flex;
@@ -175,28 +227,31 @@
         align-items: center;
         gap: 10px;
         font-size: 0.95rem;
-        font-weight: 600;
+        font-weight: 700;
         color: #475569;
       }
       .acc-currency img {
         width: 22px;
         border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       .acc-balance {
         font-size: 1.3rem;
         font-weight: 800;
-        color: #0f172a;
+        color: #004d40;
       }
       .acc-number-sub {
-        font-size: 0.7rem;
-        color: #cbd5e1;
-        margin-top: -5px;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 2px;
         margin-left: 32px;
+        font-weight: 500;
       }
       .acc-divider {
         height: 1px;
-        background: #f1f5f9;
-        margin: 15px 0;
+        background: #e2e8f0;
+        margin: 12px 0;
+        width: 100%;
       }
 
       /* Actions */
@@ -214,23 +269,24 @@
         gap: 8px;
         cursor: pointer;
         padding: 0;
+        outline: none;
       }
       .act-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 12px;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
-        transition: 0.2s;
+        font-size: 1.25rem;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .act-btn:active .act-icon {
-        transform: scale(0.9);
+        transform: scale(0.85);
       }
       .act-text {
-        font-size: 0.7rem;
-        color: #94a3b8;
+        font-size: 0.75rem;
+        color: #64748b;
         font-weight: 600;
       }
 
@@ -255,54 +311,70 @@
          🎨 PREMIUM SWEET ALERT (CUSTOM CSS)
          ========================================== */
       .premium-swal {
-        border-radius: 12px !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
+        border-radius: 20px !important;
         padding: 30px 20px !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
       }
       .premium-swal .swal2-title {
-        font-size: 1.25rem !important;
-        color: #4b5563 !important;
+        font-size: 1.3rem !important;
+        color: #1e293b !important;
         font-weight: 700 !important;
         margin-bottom: 5px !important;
       }
       .premium-swal .swal2-html-container {
-        font-size: 0.9rem !important;
-        color: #6b7280 !important;
+        font-size: 0.95rem !important;
+        color: #64748b !important;
         margin: 0 0 20px 0 !important;
       }
+      /* Input កណ្តាល SweetAlert */
       .premium-swal .swal2-input {
-        height: 48px !important;
-        border-radius: 6px !important;
-        border: 1px solid #d1d5db !important;
+        height: 55px !important;
+        border-radius: 12px !important;
+        border: 2px solid #e2e8f0 !important;
         text-align: center !important;
-        font-size: 1rem !important;
-        color: #374151 !important;
+        font-size: 1.1rem !important;
+        color: #1e293b !important;
         box-shadow: none !important;
         margin: 0 auto 15px auto !important;
-        width: 90% !important;
+        width: 100% !important;
+        transition: 0.3s ease;
+        box-sizing: border-box !important;
       }
       .premium-swal .swal2-input:focus {
-        border-color: #9ca3af !important;
+        border-color: #004d40 !important;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1) !important;
+        outline: none !important;
       }
       .premium-swal .pin-input {
-        letter-spacing: 10px !important;
-        font-weight: bold;
+        letter-spacing: 12px !important;
+        font-weight: 800 !important;
+        font-size: 1.5rem !important;
       }
+
+      /* Buttons ក្នុង SweetAlert */
       .premium-swal .swal2-actions {
-        gap: 10px;
-        margin-top: 5px !important;
+        gap: 15px !important;
+        margin-top: 10px !important;
+        width: 100%;
+        padding: 0 10px;
+        box-sizing: border-box;
       }
       .premium-swal .swal2-confirm {
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-        padding: 10px 24px !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        padding: 14px 0 !important;
+        flex: 1;
+        font-size: 1.05rem !important;
+        border: none !important;
       }
       .premium-swal .swal2-cancel {
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-        padding: 10px 24px !important;
-        background-color: #6b7280 !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        padding: 14px 0 !important;
+        flex: 1;
+        background-color: #64748b !important;
         color: white !important;
+        font-size: 1.05rem !important;
       }
 
       /* ==========================================
@@ -371,16 +443,6 @@
       }
       .step-section.active {
         display: block;
-      }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
       }
 
       .input-group {
@@ -516,7 +578,12 @@
       <div class="sheet-body">
         <div class="step-section active" id="topupStep1">
           <p
-            style="text-align: center; color: #64748b; margin-bottom: 15px"
+            style="
+              text-align: center;
+              color: #64748b;
+              margin-bottom: 15px;
+              font-weight: 600;
+            "
             id="topupToName"
           >
             ផ្ទេរទៅកាន់: ...
@@ -536,14 +603,22 @@
         </div>
 
         <div class="step-section" id="topupStep2">
-          <p style="text-align: center; color: #64748b; margin-bottom: 15px">
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              margin-bottom: 15px;
+              font-weight: 600;
+            "
+          >
             សូមបញ្ចូលលេខសម្ងាត់ (PIN) ៤ខ្ទង់
           </p>
           <div class="input-group">
             <input
               type="password"
               id="inputPin"
-              class="big-input pin-input"
+              class="big-input"
+              style="letter-spacing: 12px"
               maxlength="4"
               placeholder="••••"
             />
@@ -601,7 +676,7 @@
             style="
               text-align: left;
               margin-top: 20px;
-              font-size: 0.9rem;
+              font-size: 0.95rem;
               color: #64748b;
             "
           >
@@ -647,7 +722,7 @@
       let token =
         sessionStorage.getItem("userToken") || localStorage.getItem("token");
 
-      let globalKidsData = {}; // រក្សាទុកទិន្នន័យកូនដែលបាន Group រួច
+      let globalKidsData = {};
       let activeChildAccountUSD = null;
       let activeChildAccountKHR = null;
       let activeCurrency = "USD";
@@ -660,7 +735,7 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: ទាញទាំង USD & KHR ចូលកាតតែមួយ)
+      // ១. គូរ UI កាតកូន (SMART PARSER: ទាញទាំង USD & KHR ចូលកាតតែមួយយ៉ាងវៃឆ្លាត)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -675,13 +750,15 @@
 
         const groupedKids = {};
 
-        // តម្រៀបទិន្នន័យកូនចូលគ្នា (Group By Name) ទោះ Backend បោះមក ១កុង ឬ ២កុង ក៏ចាប់បានទាំងអស់
+        // តម្រៀបទិន្នន័យកូនចូលគ្នា (Group By Name) ទោះបោះមក១កុង ឬ២កុង ដាច់គ្នាក៏ដោយ
         juniorAccounts.forEach((acc) => {
           let rawName = acc.accountName || "JUNIOR";
+          // លុបអក្សរកន្ទុយចោល ដើម្បីអោយឈ្មោះកូននៅសល់តែឈ្មោះពិត ងាយស្រួលផ្គុំចូលគ្នា
           rawName = rawName
-            .replace(/\s*\(JUNIOR\)\s*/i, "")
+            .replace(/\s*\((JUNIOR|KHR|USD|\$|៛)\)\s*/gi, "")
+            .replace(/\b(KHR|USD)\b/gi, "")
             .trim()
-            .toUpperCase(); // ដកពាក្យ JUNIOR ចេញក្រែងវាជាន់គ្នា
+            .toUpperCase();
 
           if (!groupedKids[rawName]) {
             groupedKids[rawName] = {
@@ -692,29 +769,30 @@
             };
           }
 
-          // ឆែករកកុង USD
-          if (
-            acc.currency === "USD" ||
-            (acc.currency !== "KHR" && acc.balance !== undefined)
-          ) {
-            groupedKids[rawName].usd = {
-              accountNumber: acc.accountNumber,
-              balance: acc.balance || 0,
-            };
+          // ឆែកមើលក្រែងមាន USD
+          if (acc.currency === "USD" || acc.currency !== "KHR") {
+            if (acc.accountNumber) {
+              groupedKids[rawName].usd = {
+                accountNumber: acc.accountNumber,
+                balance: acc.balance || 0,
+              };
+            }
           }
-
-          // ឆែករកកុង KHR
+          // ឆែកមើលក្រែងមាន KHR ដាច់ដោយឡែក
           if (acc.currency === "KHR") {
             groupedKids[rawName].khr = {
               accountNumber: acc.accountNumber,
               balance: acc.balance || 0,
             };
-          } else if (
-            acc.balanceKHR !== undefined ||
-            acc.accountNumberKHR !== undefined
+          }
+
+          // ឆែកមើលក្រែង Backend ខ្ចប់ KHR ចូលគ្នាក្នុង Object តែមួយ
+          if (
+            acc.accountNumberKHR !== undefined ||
+            acc.balanceKHR !== undefined
           ) {
             groupedKids[rawName].khr = {
-              accountNumber: acc.accountNumberKHR || acc.accountNumber, // Fallback យកកុងដើមបើអត់មានកុងខ្មែរ
+              accountNumber: acc.accountNumberKHR || acc.accountNumber,
               balance: acc.balanceKHR || 0,
             };
           }
@@ -722,6 +800,7 @@
 
         globalKidsData = groupedKids;
         let html = "";
+        let delayCount = 1;
 
         Object.values(groupedKids).forEach((kid) => {
           const hasUSD = kid.usd !== null;
@@ -739,11 +818,9 @@
               <div class="acc-number-sub">Acc: ${kid.usd.accountNumber}</div>
             `;
           }
-
           if (hasUSD && hasKHR) {
             accountsHtml += `<div class="acc-divider"></div>`;
           }
-
           if (hasKHR) {
             accountsHtml += `
               <div class="acc-item">
@@ -757,16 +834,17 @@
           const kidNameEncoded = encodeURIComponent(kid.name);
 
           html += `
-            <div class="junior-card">
+            <div class="junior-card" style="animation-delay: ${delayCount * 0.1}s">
               <div class="card-top">
                 <div class="kid-profile">
                   <div class="kid-icon"><i class="fa-solid fa-child-reaching"></i></div>
                   <div class="kid-name">
                     <h3>${kid.name} (JUNIOR)</h3>
+                    <p>គណនីកូន</p>
                   </div>
                 </div>
                 <div class="status-badge ${kid.isFrozen ? "status-frozen" : "status-active"}">
-                  ${kid.isFrozen ? "បានផ្អាក" : "សកម្ម"}
+                  <span class="status-dot"></span>${kid.isFrozen ? "បានផ្អាក" : "សកម្ម"}
                 </div>
               </div>
 
@@ -794,6 +872,7 @@
               </div>
             </div>
           `;
+          delayCount++;
         });
         container.innerHTML = html;
       }
@@ -840,8 +919,6 @@
 
         document.getElementById("sheetOverlay").classList.add("active");
         document.getElementById("topupSheet").classList.add("active");
-
-        // Auto Focus Input Amount
         setTimeout(() => document.getElementById("inputAmount").focus(), 350);
       }
 
@@ -869,8 +946,6 @@
         }
         document.getElementById("topupStep1").classList.remove("active");
         document.getElementById("topupStep2").classList.add("active");
-
-        // Auto Focus PIN Input
         setTimeout(() => document.getElementById("inputPin").focus(), 350);
       }
 
@@ -890,24 +965,22 @@
             ? activeChildAccountKHR
             : activeChildAccountUSD;
 
-        const reqBody = {
-          senderUsername: currentUser.username,
-          senderAccount: senderAcc,
-          receiverAccount: receiverAccTarget,
-          amount: amt,
-          currency: activeCurrency,
-          remark: "បញ្ចូលប្រាក់ឱ្យកូន",
-          pin: pin,
-          trxMethod: "Top-Up Junior",
-        };
-
         fetch("/api/transfer", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(reqBody),
+          body: JSON.stringify({
+            senderUsername: currentUser.username,
+            senderAccount: senderAcc,
+            receiverAccount: receiverAccTarget,
+            amount: amt,
+            currency: activeCurrency,
+            remark: "បញ្ចូលប្រាក់ឱ្យកូន",
+            pin: pin,
+            trxMethod: "Top-Up Junior",
+          }),
         })
           .then((res) => res.json())
           .then((data) => {
@@ -945,7 +1018,7 @@
               );
             }
           })
-          .catch((err) => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+          .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
       }
 
       function setupEnterKeyListeners() {
@@ -1030,7 +1103,7 @@
       }
 
       // ==========================================
-      // 📊 កំណត់រនាំងចំណាយ (Daily Limit) + Auto-Focus & Enter Flow
+      // 📊 កំណត់រនាំងចំណាយ (Daily Limit) ជាមួយ Auto-Focus & Enter
       // ==========================================
       function setDailyLimit(encodedName) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
@@ -1051,18 +1124,15 @@
           cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
           didOpen: () => {
-            // 🔥 Auto Focus ពេលបើក Popup ភ្លាម
             const limitInput = document.getElementById("limit");
             const pinInput = document.getElementById("limitPin");
             if (limitInput) {
               limitInput.focus();
-              // វាយលេខរួច ចុច Enter លោតទៅប្រអប់ PIN ស្វ័យប្រវត្តិ
               limitInput.addEventListener("keyup", (e) => {
                 if (e.key === "Enter") pinInput.focus();
               });
             }
             if (pinInput) {
-              // វាយ PIN រួច ចុច Enter គឺស្មើនឹងចុចប៊ូតុង "រក្សាទុក" តែម្តង
               pinInput.addEventListener("keyup", (e) => {
                 if (e.key === "Enter") Swal.clickConfirm();
               });
@@ -1123,33 +1193,33 @@
       }
 
       // ==========================================
-      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze) + Auto-Focus & Enter Flow
+      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze) ជាមួយ Auto-Focus & Enter
       // ==========================================
       function toggleFreeze(encodedName, isCurrentlyFrozen) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
         const primaryAcc = kid.usd
           ? kid.usd.accountNumber
           : kid.khr.accountNumber;
-
         const isFrozen = !isCurrentlyFrozen;
         const actionText = isFrozen ? "ផ្អាក" : "បើកសោរ";
         const confirmColor = isFrozen ? "#ef4444" : "#10b981";
 
         Swal.fire({
           title: `តើអ្នកពិតជាចង់ <b>${actionText}</b> គណនីនេះមែនទេ?`,
-          html: `<input type="password" id="freezePin" class="swal2-input pin-input" placeholder="បញ្ជាក់ PIN របស់អ្នក" maxlength="4">`,
+          html: `
+            <div style="margin-bottom: 25px;">សូមវាយលេខ PIN ដើម្បីបញ្ជាក់សិទ្ធិ</div>
+            <input type="password" id="freezePin" class="swal2-input pin-input" placeholder="បញ្ជាក់ PIN របស់អ្នក" maxlength="4">
+          `,
           icon: "warning",
           showCancelButton: true,
           confirmButtonText: `យល់ព្រម ${actionText}`,
           confirmButtonColor: confirmColor,
-          cancelButtonText: "Cancel",
+          cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
           didOpen: () => {
-            // 🔥 Auto Focus ចូលប្រអប់ PIN ភ្លាមៗពេលបើក
             const pinInput = document.getElementById("freezePin");
             if (pinInput) {
               pinInput.focus();
-              // វាយ PIN រួច ចុច Enter គឺស្មើនឹងចុចប៊ូតុង "យល់ព្រម" តែម្តង
               pinInput.addEventListener("keyup", (e) => {
                 if (e.key === "Enter") Swal.clickConfirm();
               });
