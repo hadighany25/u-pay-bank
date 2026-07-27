@@ -101,22 +101,19 @@ function renderUsersTable(users) {
           actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
       }
 
-      const freezeHtml = isCentralBank
-        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
-        : canFreeze
-          ? `<label class="switch" style="margin: 0 auto;"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
-          : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
+      // បង្កើតរូបតំណាងដោយស្វ័យប្រវត្តិ ដោយផ្អែកលើឈ្មោះ (FullName ឬ Username)
+      const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || u.username || "User")}&background=random&color=fff`;
 
-      const bgStyle = isCentralBank ? "background-color: #fef9c3;" : "";
+      // កែ Path Logo ឱ្យមានសញ្ញា / ពីមុខ ដើម្បីការពារកុំឱ្យខុស Path ទៀត
       const imgSrc =
-        u.profileImage ||
-        (isCentralBank ? "images/logo.png" : "images/default-avatar.png");
+        u.profileImage || (isCentralBank ? "/images/logo.png" : fallbackAvatar);
 
       return `
       <tr style="${bgStyle}">
         <td style="vertical-align: middle;">
             <div style="display: flex; align-items: center; gap: 10px">
-                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='images/default-avatar.png'" />
+                <!-- កែត្រង់ onerror ឱ្យវាទាញរូប fallback មកប្រើដែរ ពេល Error -->
+                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='${fallbackAvatar}'" />
                 <div>
                     <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
