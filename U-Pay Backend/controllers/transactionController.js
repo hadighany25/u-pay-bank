@@ -244,7 +244,7 @@ const transfer = async (req, res) => {
         if (!juniorSenderAcc)
           return res.json({ success: false, message: "រកគណនីកូនមិនឃើញទេ!" });
 
-        // 🔥 FIX ទី១៖ ឆែកទប់ Limit ប្រចាំថ្ងៃរបស់គណនីកូន មុនអនុញ្ញាតអោយវេរលុយ
+        // (រក្សាទុកចាស់) ឆែកទប់ Limit ពេលប៉ាម៉ាក់បញ្ជាកុងកូនតាមរយៈ SubAccount
         const dailyLimit = juniorSenderAcc.dailyLimit || 0;
         const dailySpent = juniorSenderAcc.dailySpent || 0;
         if (dailyLimit > 0) {
@@ -266,6 +266,26 @@ const transfer = async (req, res) => {
       senderAvailableBal = isSenderKHR
         ? sender.balanceKHR || 0
         : sender.balance || 0;
+    }
+
+    // 🔥 FIX ទី១៖ ឆែកទប់ Limit ពេលកូន Login ហើយបាញ់លុយចេញដោយខ្លួនឯង (Main Sender គឺជាកូន)
+    if (sender.role === "junior") {
+      const dailyLimit = sender.dailyLimit || 0;
+      const dailySpent = sender.dailySpent || 0;
+
+      // បំប្លែងការចំណាយទៅជា USD ដើម្បីប្រៀបធៀប (ព្រោះ Limit គិតជា USD)
+      let spentUsd = isSenderKHR
+        ? totalDeduction / currentFXRates.usdToKhrSell
+        : totalDeduction;
+
+      if (dailyLimit > 0) {
+        if (dailySpent + spentUsd > dailyLimit) {
+          return res.json({
+            success: false,
+            message: `ប្រតិបត្តិការបរាជ័យ! អ្នកត្រូវបានកំណត់អោយចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ (ថ្ងៃនេះចាយអស់ $${dailySpent.toFixed(2)} ហើយ)។`,
+          });
+        }
+      }
     }
 
     if (senderAvailableBal < totalDeduction) {
@@ -366,7 +386,7 @@ const transfer = async (req, res) => {
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
         await receiver.save();
 
-        // 🔥 FIX ទី២៖ ប៉ាម៉ាក់បញ្ចូលលុយឱ្យកូន ត្រូវ Sync ទិន្នន័យចូលក្នុង subAccounts របស់ប៉ាម៉ាក់វិញ
+        // (រក្សាទុកចាស់) ប៉ាម៉ាក់បញ្ចូលលុយឱ្យកូន ត្រូវ Sync ទិន្នន័យចូលក្នុង subAccounts របស់ប៉ាម៉ាក់វិញ
         if (receiver.role === "junior" && receiver.parentUsername) {
           let parentDoc =
             sender.username === receiver.parentUsername
@@ -385,7 +405,6 @@ const transfer = async (req, res) => {
               }
               parentDoc.markModified("subAccounts");
 
-              // បើអ្នកផ្ញើមិនមែនជាប៉ាម៉ាក់ផ្ទាល់ (ឧ.អ្នកផ្សេងបាញ់លុយឱ្យកូន) ត្រូវ save ដាច់ដោយឡែក
               if (parentDoc.username !== sender.username) {
                 await parentDoc.save();
               }
@@ -413,12 +432,10 @@ const transfer = async (req, res) => {
           if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
           else juniorSenderAcc.balance -= totalDeduction;
 
-          // 🔥 FIX ទី៣៖ កត់ត្រាលុយដែលកូនបានចាយ (ដើម្បីទប់ Limit)
           juniorSenderAcc.dailySpent =
             (juniorSenderAcc.dailySpent || 0) + totalDeduction;
           await juniorSenderAcc.save();
 
-          // 🔥 FIX ទី៤៖ ពេលកូនចាយលុយ ត្រូវ Sync អោយប៉ាម៉ាក់ឃើញកុងលុយធ្លាក់ចុះដែរ
           if (isSenderKHR) {
             sender.subAccounts[senderSubIndex].balanceKHR =
               juniorSenderAcc.balanceKHR;
@@ -437,7 +454,33 @@ const transfer = async (req, res) => {
     } else {
       if (isSenderKHR) sender.balanceKHR -= totalDeduction;
       else sender.balance -= totalDeduction;
+
+      // 🔥 FIX ទី២៖ បូកលុយដែលកូនបានចាយថ្ងៃនេះចូល dailySpent ពេលកូន Login ផ្ទាល់
+      if (sender.role === "junior") {
+        let spentUsd = isSenderKHR
+          ? totalDeduction / currentFXRates.usdToKhrSell
+          : totalDeduction;
+        sender.dailySpent = (sender.dailySpent || 0) + spentUsd;
+      }
+
       await sender.save();
+
+      // 🔥 FIX ទី៣៖ Update ទិន្នន័យត្រលប់ទៅគណនីប៉ាម៉ាក់វិញ (Sync) ដើម្បីអោយប៉ាម៉ាក់ឃើញលុយកូនកាត់ភ្លាមៗ
+      if (sender.role === "junior" && sender.parentUsername) {
+        let parentDoc = await User.findOne({ username: sender.parentUsername });
+        if (parentDoc) {
+          const subIdx = parentDoc.subAccounts.findIndex(
+            (acc) => acc.accountNumber === sender.accountNumber,
+          );
+          if (subIdx !== -1) {
+            parentDoc.subAccounts[subIdx].balance = sender.balance;
+            parentDoc.subAccounts[subIdx].balanceKHR = sender.balanceKHR;
+            parentDoc.subAccounts[subIdx].dailySpent = sender.dailySpent;
+            parentDoc.markModified("subAccounts");
+            await parentDoc.save();
+          }
+        }
+      }
     }
 
     // ------------------------------------------
@@ -613,7 +656,6 @@ const transfer = async (req, res) => {
         : updatedSender.balance;
     }
 
-    // 🔥 FIX ទី៥៖ ផ្ញើ Data ថ្មីរបស់ User (updatedSender) ត្រលប់ទៅអោយ Frontend វិញដើម្បី Update UI អោយលោតលុយ
     res.json({
       success: true,
       newBalance: newBalanceRes,
