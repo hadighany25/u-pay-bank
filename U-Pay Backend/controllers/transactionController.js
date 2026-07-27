@@ -53,26 +53,47 @@ const checkAccount = async (req, res) => {
       }
     } else {
       // បើជា User ធម្មតា
-      targetName = target.fullName || target.username;
 
-      if (target.accountNumberKHR === accountNumber) {
-        isReceiverKHR = true;
+      // 🔥 កែត្រង់នេះ៖ ឆែកមើលក្រែងលោប្រព័ន្ធចាប់បានគណនីកូនផ្ទាល់ (Shadow User)
+      if (target.role === "junior") {
+        let childName = target.fullName || target.username;
+        // ដាក់ឈ្មោះកូន + (JUNIOR) តែម្តង
+        targetName = childName.toUpperCase() + " (JUNIOR)";
+
+        if (target.accountNumberKHR === accountNumber) {
+          isReceiverKHR = true;
+        }
       } else {
-        // ឆែកមើលក្រែងលោគាត់បាញ់ចូល Sub-Account ណាមួយ
-        const subAcc = target.subAccounts.find(
-          (acc) => acc.accountNumber === accountNumber,
-        );
-        if (subAcc) {
-          if (subAcc.currency === "KHR") isReceiverKHR = true;
+        // បើចាប់បានគណនីប៉ាម៉ាក់ ឬគណនីធម្មតាផ្សេងៗ
+        targetName = target.fullName || target.username;
 
-          // បើបាញ់ចូលគណនីរួម (Joint Account) បង្ហាញឈ្មោះគណនីរួមតែម្តង
-          if (
-            subAcc.accountType === "joint" ||
-            subAcc.accountType === "joint_member"
-          ) {
-            targetName = subAcc.accountName;
-          } else {
-            targetName = targetName + " (" + subAcc.accountName + ")";
+        if (target.accountNumberKHR === accountNumber) {
+          isReceiverKHR = true;
+        } else if (target.subAccounts && target.subAccounts.length > 0) {
+          // ឆែកមើលក្រែងលោគាត់បាញ់ចូល Sub-Account ណាមួយ
+          const subAcc = target.subAccounts.find(
+            (acc) => acc.accountNumber === accountNumber,
+          );
+          if (subAcc) {
+            if (subAcc.currency === "KHR") isReceiverKHR = true;
+
+            if (
+              subAcc.accountType === "joint" ||
+              subAcc.accountType === "joint_member"
+            ) {
+              // បើគណនីរួម បង្ហាញឈ្មោះគណនីរួម
+              targetName = subAcc.accountName;
+            } else if (subAcc.accountType === "junior") {
+              // 🔥 កែត្រង់នេះ៖ បើជាកុងកូនដែលនៅក្រោមម៉ាក់ប៉ា មិនបាច់យកឈ្មោះប៉ាម៉ាក់មកតភ្ជាប់ទេ
+              let cleanName = subAcc.accountName.replace(
+                /\s*\(Junior\)\s*/i,
+                "",
+              );
+              targetName = cleanName.toUpperCase() + " (JUNIOR)";
+            } else {
+              // បើ Saving ឬ Pocket ទើបយកឈ្មោះម៉ាក់ប៉ា + (ឈ្មោះ Sub Account)
+              targetName = targetName + " (" + subAcc.accountName + ")";
+            }
           }
         }
       }
