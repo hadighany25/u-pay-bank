@@ -345,87 +345,93 @@ async function searchTrx() {
 }
 
 async function handleAdminAction(action, id) {
-  // បង្ហាញក្នុង Console ដើម្បីឆែកមើលថា ID ត្រូវឬខុស
-  console.log(`[Action Triggered] Type: ${action}, Target ID: ${id}`);
-
-  if (!id || id === "undefined") {
-    return Swal.fire(
-      "Error",
-      "រកមិនឃើញលេខសម្គាល់ប្រតិបត្តិការ (ID) ទេ!",
-      "error",
-    );
-  }
-
-  let reason = "Admin Action";
   if (action === "refund") {
-    const { value: text, isDismissed } = await Swal.fire({
-      title: "បញ្ជាក់ការ Refund",
-      input: "textarea",
-      inputLabel: "សូមសរសេរមូលហេតុដែលអ្នក Refund លុយនេះត្រលប់ទៅវិញ៖",
+    // ១. បង្ហាញផ្ទាំងឱ្យ Admin បញ្ចូលលេខគណនី និងចំនួនលុយដែលត្រូវសងវិញ
+    const { value: refundData, isDismissed } = await Swal.fire({
+      title: "💸 Refund ទឹកប្រាក់",
+      html: `
+        <div style="text-align: left; font-size: 0.9rem;">
+          <label style="font-weight:bold; color:var(--text);">ឈ្មោះគណនី (Username) ឬ លេខកុង:</label>
+          <input id="ref-username" class="swal2-input" placeholder="ឧទាហរណ៍: dara123" style="width: 90%; margin-top: 5px;">
+          
+          <label style="font-weight:bold; color:var(--text); margin-top: 15px; display:block;">ចំនួនទឹកប្រាក់:</label>
+          <div style="display: flex; gap: 10px; width: 90%; margin: 5px auto 0;">
+            <input id="ref-amount" type="number" class="swal2-input" placeholder="0.00" style="margin:0; flex: 2;">
+            <select id="ref-currency" class="swal2-select" style="margin:0; flex: 1; padding: 0 10px;">
+              <option value="USD">USD ($)</option>
+              <option value="KHR">KHR (៛)</option>
+            </select>
+          </div>
+          
+          <label style="font-weight:bold; color:var(--text); margin-top: 15px; display:block;">មូលហេតុ:</label>
+          <input id="ref-remark" class="swal2-input" value="Refunded for Transaction ID: ${id}" style="width: 90%; margin-top: 5px;">
+        </div>
+      `,
+      focusConfirm: false,
       showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#94a3b8",
-      confirmButtonText: "បញ្ជាក់ការ Refund",
+      confirmButtonText: "បញ្ជាក់ការសងប្រាក់",
       cancelButtonText: "បោះបង់",
-      inputValidator: (value) => {
-        if (!value || value.trim() === "")
-          return "អ្នកត្រូវតែសរសេរមូលហេតុជាដាច់ខាត!";
+      confirmButtonColor: "#10b981",
+      preConfirm: () => {
+        const user = document.getElementById("ref-username").value.trim();
+        const amt = document.getElementById("ref-amount").value;
+        const cur = document.getElementById("ref-currency").value;
+        const rem = document.getElementById("ref-remark").value;
+
+        if (!user || !amt || amt <= 0) {
+          Swal.showValidationMessage(
+            "សូមបញ្ចូលឈ្មោះគណនី និងចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
+          );
+          return false;
+        }
+        return {
+          targetUsername: user,
+          amount: amt,
+          currency: cur,
+          remark: rem,
+        };
       },
     });
-    if (isDismissed || !text) return;
-    reason = text;
-  }
 
-  const endpoint =
-    action === "approve"
-      ? "/api/admin/approve-transaction"
-      : "/api/admin/refund-transaction";
+    if (isDismissed || !refundData) return;
 
-  try {
-    Swal.fire({
-      title: "Processing...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    // ២. បាញ់ទិន្នន័យទៅកាន់ API ដាក់ប្រាក់ (Cashier API) ដែលមានស្រាប់
+    try {
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        didOpen: () => Swal.showLoading(),
+      });
 
-    console.log(`[Sending to API] Endpoint: ${endpoint}, Body:`, {
-      refId: id,
-      reason: reason,
-    });
+      const res = await fetch("/api/admin/cashier/transaction", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          targetUsername: refundData.targetUsername,
+          targetAccount: refundData.targetUsername, // បោះលេខកុង/Username
+          depositorType: "self", // ចាត់ទុកថាប្រព័ន្ធដាក់ឱ្យ (ឬម្ចាស់គណនី)
+          currency: refundData.currency,
+          amount: refundData.amount,
+          remark: refundData.remark,
+        }),
+      });
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      // ⚠️ បើ Backend សុំឈ្មោះ "transactionId" ត្រូវប្តូរ 'refId: id' ទៅជា 'transactionId: id' វិញ
-      body: JSON.stringify({ refId: id, reason: reason }),
-    });
+      const data = await res.json();
 
-    // ឆែកមើល Status របស់ HTTP
-    if (!res.ok) {
-      console.error(`[HTTP Error] Status: ${res.status}`);
-      throw new Error(`Server status ${res.status}`);
+      if (data.success) {
+        Swal.fire(
+          "ជោគជ័យ!",
+          "បានសងទឹកប្រាក់ (Refund) ត្រលប់ទៅវិញរួចរាល់!",
+          "success",
+        );
+        // ទាញទិន្នន័យ Transaction មកបង្ហាញម្តងទៀត (បើសិនបងមាន Function នេះ)
+        if (typeof searchTrx === "function") searchTrx();
+      } else {
+        Swal.fire("បរាជ័យ!", data.message || "មិនអាច Refund បានទេ", "error");
+      }
+    } catch (err) {
+      console.error("Refund Error:", err);
+      Swal.fire("Error", "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
     }
-
-    const data = await res.json();
-    console.log("[Server Response]:", data);
-
-    if (data.success) {
-      Swal.fire("ជោគជ័យ!", data.message || "ប្រតិបត្តិការជោគជ័យ", "success");
-      searchTrx();
-    } else {
-      Swal.fire(
-        "បរាជ័យ!",
-        data.message || "មិនអាចធ្វើប្រតិបត្តិការបានទេ",
-        "error",
-      );
-    }
-  } catch (err) {
-    console.error("[Catch Error]:", err);
-    Swal.fire(
-      "Error",
-      "បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server សូមឆែក Console (F12)",
-      "error",
-    );
   }
 }
 
