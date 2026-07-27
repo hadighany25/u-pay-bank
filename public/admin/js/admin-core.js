@@ -128,13 +128,11 @@ function logout() {
     customClass: { popup: "premium-swal" },
   }).then((result) => {
     if (result.isConfirmed) {
-      // 1. លុបទិន្នន័យ (Token) ចេញពី Browser
       sessionStorage.removeItem("adminToken");
       sessionStorage.removeItem("adminRole");
 
-      // 2. លោតទៅកាន់ទំព័រ Login វិញ
-      // (ការប្រើសញ្ញា / ពីមុខ គឺបញ្ជាឱ្យវាលោតទៅកាន់ Root នៃ Domain តែម្តង ដែលស្មើនឹង https://u-pay-bank.fly.dev/admin-login.html)
-      window.location.href = "/admin-login.html";
+      // បង្ខំឱ្យលោតទៅកាន់ Domain ដើមបូកនឹង /admin-login.html ជានិច្ច
+      window.location.href = window.location.origin + "/admin-login.html";
     }
   });
 }
