@@ -345,6 +345,17 @@ async function searchTrx() {
 }
 
 async function handleAdminAction(action, id) {
+  // បង្ហាញក្នុង Console ដើម្បីឆែកមើលថា ID ត្រូវឬខុស
+  console.log(`[Action Triggered] Type: ${action}, Target ID: ${id}`);
+
+  if (!id || id === "undefined") {
+    return Swal.fire(
+      "Error",
+      "រកមិនឃើញលេខសម្គាល់ប្រតិបត្តិការ (ID) ទេ!",
+      "error",
+    );
+  }
+
   let reason = "Admin Action";
   if (action === "refund") {
     const { value: text, isDismissed } = await Swal.fire({
@@ -364,28 +375,57 @@ async function handleAdminAction(action, id) {
     if (isDismissed || !text) return;
     reason = text;
   }
+
   const endpoint =
     action === "approve"
       ? "/api/admin/approve-transaction"
       : "/api/admin/refund-transaction";
+
   try {
     Swal.fire({
       title: "Processing...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
+
+    console.log(`[Sending to API] Endpoint: ${endpoint}, Body:`, {
+      refId: id,
+      reason: reason,
+    });
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: getAuthHeaders(),
+      // ⚠️ បើ Backend សុំឈ្មោះ "transactionId" ត្រូវប្តូរ 'refId: id' ទៅជា 'transactionId: id' វិញ
       body: JSON.stringify({ refId: id, reason: reason }),
     });
+
+    // ឆែកមើល Status របស់ HTTP
+    if (!res.ok) {
+      console.error(`[HTTP Error] Status: ${res.status}`);
+      throw new Error(`Server status ${res.status}`);
+    }
+
     const data = await res.json();
+    console.log("[Server Response]:", data);
+
     if (data.success) {
-      Swal.fire("ជោគជ័យ!", data.message, "success");
+      Swal.fire("ជោគជ័យ!", data.message || "ប្រតិបត្តិការជោគជ័យ", "success");
       searchTrx();
-    } else Swal.fire("បរាជ័យ!", data.message, "error");
+    } else {
+      Swal.fire(
+        "បរាជ័យ!",
+        data.message || "មិនអាចធ្វើប្រតិបត្តិការបានទេ",
+        "error",
+      );
+    }
   } catch (err) {
-    Swal.fire("Error", "បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server", "error");
+    console.error("[Catch Error]:", err);
+    Swal.fire(
+      "Error",
+      "បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server សូមឆែក Console (F12)",
+      "error",
+    );
   }
 }
 

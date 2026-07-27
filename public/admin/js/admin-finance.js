@@ -1,6 +1,6 @@
-// ==========================================
-// 1. FX Rate (អត្រាប្តូរប្រាក់)
-// ==========================================
+// ========================================================================
+// 📊 SECTION 1: FX RATE (អត្រាប្តូរប្រាក់)
+// ========================================================================
 async function fetchFXRates() {
   const res = await fetch("/api/admin/fx/rates", { headers: getAuthHeaders() });
   const data = await res.json();
@@ -41,10 +41,11 @@ async function updateFX() {
   }
 }
 
-// ==========================================
-// 2. Fees & Limits (កម្រៃសេវា និង ដែនកំណត់)
-// ==========================================
+// ========================================================================
+// 💰 SECTION 2: FEES & LIMITS (កម្រៃសេវា និង ដែនកំណត់)
+// ========================================================================
 let feeTiersList = [];
+
 async function loadFeeSettings() {
   try {
     const res = await fetch("/api/admin/fees", { headers: getAuthHeaders() });
@@ -165,6 +166,7 @@ function addFeeTier() {
   feeTiersList.push({ min: 0, max: 0, fee: 0 });
   renderFeeTiers();
 }
+
 function removeTier(index) {
   feeTiersList.splice(index, 1);
   renderFeeTiers();
@@ -201,9 +203,9 @@ async function saveFeeSettings() {
 }
 setTimeout(loadFeeSettings, 1000);
 
-// ==========================================
-// 3. Promo Codes (ប្រូម៉ូសិនកូដ)
-// ==========================================
+// ========================================================================
+// 🎟️ SECTION 3: PROMO CODES (ប្រូម៉ូសិនកូដ)
+// ========================================================================
 function openPromoModal() {
   document.getElementById("prmCode").value = "";
   document.getElementById("prmReward").value = "";
@@ -219,13 +221,16 @@ async function savePromoCode() {
   const reward = document.getElementById("prmReward").value;
   const max = document.getElementById("prmMax").value;
   const expiry = document.getElementById("prmExpiry").value;
+
   if (!code || !reward)
     return Swal.fire(
       "បំពេញមិនគ្រប់",
       "សូមបញ្ចូលឈ្មោះកូដ និងទឹកប្រាក់រង្វាន់!",
       "warning",
     );
+
   Swal.fire({ title: "កំពុងបង្កើត...", didOpen: () => Swal.showLoading() });
+
   try {
     const res = await fetch("/api/admin/promo/create", {
       method: "POST",
@@ -282,18 +287,19 @@ async function togglePromoStatus(id) {
   loadPromoCodes();
 }
 
-// ==========================================
-// 4. Cashier (បេឡាករ) Logic - ភ្ជាប់ API ពិតប្រាកដ
-// ==========================================
+// ========================================================================
+// 💵 SECTION 4: CASHIER (បេឡាករ) LOGIC
+// ========================================================================
 let currentTargetUser = null;
 let currentDepositorUser = null;
 
-// ១. បិទ/បើក ប្រអប់ "អ្នកផ្សេងដាក់ឱ្យ"
+// បិទ/បើក ប្រអប់ "អ្នកផ្សេងដាក់ឱ្យ"
 function toggleDepositorType() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
   ).value;
   const otherDiv = document.getElementById("otherDepositorDiv");
+
   if (type === "other") {
     otherDiv.style.display = "block";
   } else {
@@ -304,7 +310,7 @@ function toggleDepositorType() {
   }
 }
 
-// ១. មុខងារស្វែងរកអ្នកទទួលប្រាក់ (Admin Cashier)
+// មុខងារស្វែងរកអ្នកទទួលប្រាក់ (Admin Cashier)
 async function searchTargetUser() {
   const searchVal = document.getElementById("targetUserSearch").value.trim();
   if (!searchVal) return;
@@ -322,7 +328,7 @@ async function searchTargetUser() {
 
     if (data.success) {
       Swal.close();
-      currentTargetUser = data.user; // ទិន្នន័យ User ដែលបានមកពី Backend
+      currentTargetUser = data.user;
 
       // បង្ហាញកាតព័ត៌មានអតិថិជន
       document.getElementById("targetUserCard").style.display = "flex";
@@ -338,23 +344,18 @@ async function searchTargetUser() {
       document.getElementById("cardBalKHR").textContent =
         `KHR: ៛${balKHR.toLocaleString()}`;
 
-      // ==========================================
-      // 🔥 កូដបញ្ញូលគណនីទាំងអស់ទៅក្នុង Dropdown
-      // ==========================================
+      // បញ្ចូលគណនីទាំងអស់ទៅក្នុង Dropdown
       const accountSelect = document.getElementById("targetAccountSelect");
-      let optionHTML = ""; // ចាប់ផ្តើមដោយ String ទទេ
+      let optionHTML = "";
 
-      // ក. បញ្ចូលគណនី Main USD
       if (currentTargetUser.accountNumber) {
         optionHTML += `<option value="${currentTargetUser.accountNumber}">Main USD: ${currentTargetUser.accountNumber}</option>`;
       }
 
-      // ខ. បញ្ចូលគណនី Main KHR
       if (currentTargetUser.accountNumberKHR) {
         optionHTML += `<option value="${currentTargetUser.accountNumberKHR}">Main KHR: ${currentTargetUser.accountNumberKHR}</option>`;
       }
 
-      // គ. បញ្ចូលគណនី Sub-Accounts ទាំងអស់
       if (
         currentTargetUser.subAccounts &&
         currentTargetUser.subAccounts.length > 0
@@ -364,16 +365,13 @@ async function searchTargetUser() {
         });
       }
 
-      // បញ្ចូលជម្រើសទៅក្នុង Dropdown
       accountSelect.innerHTML = optionHTML;
 
-      // ==========================================
-      // 🔥 កូដឆ្លាតវៃ៖ អោយវា Auto-Select ចំកុងដែលគេវាយស្វែងរក
-      // ==========================================
+      // Auto-Select ចំកុងដែលគេវាយស្វែងរក
       let foundExactMatch = false;
       for (let i = 0; i < accountSelect.options.length; i++) {
         if (accountSelect.options[i].value === searchVal) {
-          accountSelect.selectedIndex = i; // ជ្រើសរើសស្វ័យប្រវត្តិ
+          accountSelect.selectedIndex = i;
           foundExactMatch = true;
 
           // Auto ប្តូររូបិយប័ណ្ណ (Currency)
@@ -393,7 +391,6 @@ async function searchTargetUser() {
         }
       }
 
-      // ប្រសិនបើស្វែងរកតាម Username វានឹងឈរលើ Main USD ដោយ default
       if (!foundExactMatch) {
         document.getElementById("cashCurrency").value = "USD";
       }
@@ -409,7 +406,7 @@ async function searchTargetUser() {
   }
 }
 
-// ៣. ឆែកឈ្មោះអ្នកដាក់ឱ្យ (ហៅ API)
+// ឆែកឈ្មោះអ្នកដាក់ឱ្យ (ហៅ API)
 async function verifyDepositor() {
   const val = document.getElementById("depositorSearch").value.trim();
   const nameText = document.getElementById("depNameText");
@@ -427,9 +424,7 @@ async function verifyDepositor() {
       const result = await res.json();
 
       if (result.success) {
-        // 🔥 កែត្រង់នេះ៖ ដូរពី result.data ទៅជា result.user វិញ
         currentDepositorUser = result.user;
-
         nameText.innerText = `${currentDepositorUser.fullName} (@${currentDepositorUser.username})`;
         nameText.style.color = "#16a34a"; // ពណ៌បៃតងពេលរកឃើញ
       } else {
@@ -448,36 +443,32 @@ async function verifyDepositor() {
   }
 }
 
-// ៤. មើល KYC
+// មើល KYC
 function viewKYC() {
   if (!currentTargetUser || !currentTargetUser.kycImage) {
     return Swal.fire("ព័ត៌មាន", "អតិថិជននេះមិនទាន់មានរូប KYC ទេ", "info");
   }
   Swal.fire({
     title: `អត្តសញ្ញាណប័ណ្ណរបស់ ${currentTargetUser.fullName}`,
-    imageUrl: currentTargetUser.kycImage, // ទាញរូបពី Database ពិត
+    imageUrl: currentTargetUser.kycImage,
     imageWidth: 400,
     imageAlt: "KYC Image",
   });
 }
 
-// ៥. ពេលចុចប៊ូតុងបញ្ជាក់ការដាក់ប្រាក់ (បញ្ជូនទិន្នន័យទៅ Backend)
+// បញ្ជាក់ការដាក់ប្រាក់ (បញ្ជូនទិន្នន័យទៅ Backend)
 async function processCashTransaction() {
   const type = document.querySelector(
     'input[name="depositorType"]:checked',
   ).value;
-
-  // 🔥 បន្ថែមការចាប់យកលេខគណនីដែល Admin បានរើស (Main ឬ កុងរង)
   const targetAccountElement = document.getElementById("targetAccountSelect");
   const targetAccount = targetAccountElement
     ? targetAccountElement.value
     : null;
-
   const currency = document.getElementById("cashCurrency").value;
   const amount = document.getElementById("cashAmount").value;
   let remark = document.getElementById("cashRemark").value.trim();
 
-  // លក្ខខណ្ឌត្រួតពិនិត្យ
   if (!amount || amount <= 0)
     return Swal.fire(
       "កំហុស",
@@ -485,7 +476,6 @@ async function processCashTransaction() {
       "error",
     );
 
-  // 🔥 បន្ថែមការត្រួតពិនិត្យថាបានរើសកុងហើយឬនៅ
   if (!targetAccount)
     return Swal.fire(
       "កំហុស",
@@ -500,7 +490,6 @@ async function processCashTransaction() {
       "error",
     );
 
-  // កំណត់ Remark ស្វ័យប្រវត្តិ
   if (!remark) {
     if (type === "self") {
       remark = `ដាក់ប្រាក់ដោយម្ចាស់គណនី (${currentTargetUser.fullName})`;
@@ -509,7 +498,6 @@ async function processCashTransaction() {
     }
   }
 
-  // បង្ហាញលេខកុងនៅក្នុងផ្ទាំងបញ្ជាក់ (Swal) ឱ្យកាន់តែច្បាស់
   Swal.fire({
     title: "បញ្ជាក់ការដាក់ប្រាក់",
     html: `អ្នកកំពុងដាក់ប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${amount}</b> <br>ចូលទៅគណនី <b>${targetAccount}</b> របស់ <b>@${currentTargetUser.username}</b> <br><br> <i>ចំណាំ៖ ${remark}</i>`,
@@ -530,7 +518,7 @@ async function processCashTransaction() {
           headers: getAuthHeaders(),
           body: JSON.stringify({
             targetUsername: currentTargetUser.username,
-            targetAccount: targetAccount, // 🔥 បញ្ជូនលេខគណនីដែលបានរើសទៅកាន់ Backend
+            targetAccount: targetAccount,
             depositorType: type,
             depositorUsername: currentDepositorUser
               ? currentDepositorUser.username
@@ -545,12 +533,11 @@ async function processCashTransaction() {
         if (data.success) {
           Swal.fire("ជោគជ័យ!", data.message, "success");
 
-          // Clear ទិន្នន័យចេញពី Form ពេលជោគជ័យ
           document.getElementById("cashAmount").value = "";
           document.getElementById("cashRemark").value = "";
           document.getElementById("depositorSearch").value = "";
           document.getElementById("targetUserSearch").value = "";
-          if (targetAccountElement) targetAccountElement.value = ""; // Clear Dropdown
+          if (targetAccountElement) targetAccountElement.value = "";
           document.getElementById("targetUserCard").style.display = "none";
           document.getElementById("transactionForm").style.display = "none";
           currentTargetUser = null;
