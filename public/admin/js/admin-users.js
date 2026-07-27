@@ -101,19 +101,16 @@ function renderUsersTable(users) {
           actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
       }
 
-      // បង្កើតរូបតំណាងដោយស្វ័យប្រវត្តិ ដោយផ្អែកលើឈ្មោះ (FullName ឬ Username)
-      const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullName || u.username || "User")}&background=random&color=fff`;
-
-      // កែ Path Logo ឱ្យមានសញ្ញា / ពីមុខ ដើម្បីការពារកុំឱ្យខុស Path ទៀត
-      const imgSrc =
-        u.profileImage || (isCentralBank ? "/images/logo.png" : fallbackAvatar);
+      // ទាញរូបពី Database (u.profileImage) មុនគេ។
+      // បើអត់មានរូប (null/empty) វាលោតមកយក /images/logo.png
+      const imgSrc = u.profileImage || "/images/logo.png";
 
       return `
       <tr style="${bgStyle}">
         <td style="vertical-align: middle;">
             <div style="display: flex; align-items: center; gap: 10px">
-                <!-- កែត្រង់ onerror ឱ្យវាទាញរូប fallback មកប្រើដែរ ពេល Error -->
-                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='${fallbackAvatar}'" />
+                <!-- កែ Path នៅកន្លែង onerror ដូចគ្នា។ បើ Link រូបក្នុង Database ខូច វាលោតមកយក /images/logo.png វិញ -->
+                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='/images/logo.png'" />
                 <div>
                     <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
