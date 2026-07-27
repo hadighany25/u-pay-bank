@@ -1,15 +1,18 @@
-// Global Variables (អាចប្រើបានគ្រប់ File)
+// ========================================================================
+// ⚙️ SECTION 1: GLOBAL VARIABLES & AUTHENTICATION
+// ========================================================================
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
 let myAdminPermissions = null;
-let myChart = null;
+let myChart = null; // សម្រាប់គូរក្រាហ្វចាស់ (បើនៅប្រើ)
 let globalUsersData = [];
 
-// Auth Check
+// ទប់ស្កាត់មិនឱ្យចូលដោយគ្មានការ Login
 if (!adminToken || !adminRole) {
   window.location.href = "admin-login.html";
 }
 
+// មុខងារបង្កើត Header ស្តង់ដារសម្រាប់បាញ់ API ទាំងអស់
 const getAuthHeaders = () => {
   return {
     "Content-Type": "application/json",
@@ -17,6 +20,7 @@ const getAuthHeaders = () => {
   };
 };
 
+// បង្ហាញឈ្មោះ និងតួនាទី Admin នៅលើ Sidebar
 document.getElementById("adminNameDisplay").innerText =
   "U-PAY " + adminRole.split("_")[0].toUpperCase();
 document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
@@ -24,9 +28,9 @@ document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
   " ",
 );
 
-// ==========================================
-// DARK MODE / LIGHT MODE TOGGLE
-// ==========================================
+// ========================================================================
+// 🌙 SECTION 2: UI & THEME MANAGEMENT (DARK / LIGHT MODE)
+// ========================================================================
 let isDarkMode = localStorage.getItem("adminDarkMode") === "true";
 
 function toggleTheme() {
@@ -59,6 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyTheme();
 });
 
+// មុខងារបិទ/បើក Sidebar (Mobile Responsiveness)
 function toggleSidebar(force) {
   const sb = document.getElementById("sidebar");
   const ov = document.querySelector(".overlay");
@@ -71,6 +76,9 @@ function toggleSidebar(force) {
   }
 }
 
+// ========================================================================
+// 🧭 SECTION 3: MENU NAVIGATION & LOGOUT
+// ========================================================================
 function showSection(id, btn) {
   sessionStorage.setItem("activeSection", id);
 
@@ -95,19 +103,23 @@ function showSection(id, btn) {
     "system",
   ];
 
+  // លាក់គ្រប់ផ្ទាំងទាំងអស់សិន
   sections.forEach((sec) => {
     const el = document.getElementById("sec-" + sec);
     if (el) el.style.display = "none";
   });
 
+  // បង្ហាញតែផ្ទាំងដែលបានជ្រើសរើស
   document.getElementById("sec-" + id).style.display = "block";
 
+  // ហៅទិន្នន័យបន្ថែមពេលបើកចូលផ្ទាំងជាក់លាក់
   if (id === "broadcast-history" && typeof loadBroadcastHistory === "function")
     loadBroadcastHistory();
   if (id === "fx" && typeof fetchFXRates === "function") fetchFXRates();
   if (id === "logs" && typeof loadAdminLogs === "function") loadAdminLogs();
   if (id === "promo" && typeof loadPromoCodes === "function") loadPromoCodes();
 
+  // Highlight Menu ដែលកំពុង Active
   document
     .querySelectorAll(".menu-item")
     .forEach((m) => m.classList.remove("active"));
@@ -130,13 +142,95 @@ function logout() {
     if (result.isConfirmed) {
       sessionStorage.removeItem("adminToken");
       sessionStorage.removeItem("adminRole");
-
       // បង្ខំឱ្យលោតទៅកាន់ Domain ដើមបូកនឹង /admin-login.html ជានិច្ច
       window.location.href = window.location.origin + "/admin-login.html";
     }
   });
 }
 
+// ========================================================================
+// 📊 SECTION 4: DASHBOARD CHART RENDERER (ថ្មី)
+// ========================================================================
+let trxChartInstance = null; // អថេរ Global ការពារក្រាហ្វជាន់គ្នា
+
+function renderDashboardChart(usersData) {
+  const canvas = document.getElementById("trxChart");
+  if (!canvas) return; // បើគ្មានកន្លែងគូរទេ រំលងវាសិន
+
+  // បង្កើតតារាងកាលបរិច្ឆេទ ៧ថ្ងៃចុងក្រោយ
+  const last7DaysLabels = [];
+  const dailyDataCounts = [0, 0, 0, 0, 0, 0, 0];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    last7DaysLabels.push(d.toLocaleDateString());
+  }
+
+  // ប្រមូលយក Transaction ទាំងអស់ពី Users គ្រប់គ្នា
+  let allTransactions = [];
+  usersData.forEach((user) => {
+    if (user.transactions && Array.isArray(user.transactions)) {
+      allTransactions = allTransactions.concat(user.transactions);
+    }
+  });
+
+  // រាប់ចំនួន Transaction តាមថ្ងៃនីមួយៗ
+  allTransactions.forEach((trx) => {
+    const trxDateStr = trx.date || trx.createdAt;
+    if (trxDateStr) {
+      const justDate = new Date(trxDateStr).toLocaleDateString();
+      const index = last7DaysLabels.indexOf(justDate);
+      if (index !== -1) {
+        dailyDataCounts[index] += 1; // 💡 (បើចង់បូកជាលុយប្តូរទៅប្រើ += parseFloat(trx.amount))
+      }
+    }
+  });
+
+  // ចាប់ផ្តើមគូរក្រាហ្វ (Update ឬ បង្កើតថ្មី)
+  if (trxChartInstance) {
+    trxChartInstance.data.labels = last7DaysLabels;
+    trxChartInstance.data.datasets[0].data = dailyDataCounts;
+    trxChartInstance.update();
+  } else {
+    const ctx = canvas.getContext("2d");
+    trxChartInstance = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: last7DaysLabels,
+        datasets: [
+          {
+            label: "Transaction Volume",
+            data: dailyDataCounts,
+            borderColor: "#10b981",
+            backgroundColor: "rgba(16, 185, 129, 0.1)",
+            borderWidth: 2,
+            pointBackgroundColor: "#10b981",
+            pointBorderColor: "#fff",
+            pointRadius: 4,
+            tension: 0.3, // ធ្វើឱ្យបន្ទាត់កោង (Smooth curve)
+            fill: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0 },
+          },
+        },
+      },
+    });
+  }
+}
+
+// ========================================================================
+// 🔄 SECTION 5: CORE DATA FETCHING (Load Data)
+// ========================================================================
 async function loadData() {
   try {
     const [userRes, chartRes, extraRes] = await Promise.all([
@@ -151,12 +245,18 @@ async function loadData() {
 
     globalUsersData = users;
     const clients = users.filter((u) => u.role !== "admin");
+
+    // បាញ់ទិន្នន័យទៅឱ្យ User Management Table
     if (typeof renderUsersTable === "function")
       renderUsersTable(globalUsersData);
+
+    // 💡 ហៅមុខងារគូរ Chart ថ្មីនៅទីនេះដើម្បីឱ្យវាយកទិន្នន័យចុងក្រោយមកបង្ហាញ
+    renderDashboardChart(globalUsersData);
 
     let cardsHtml = "";
     let kycHtml = "";
     let ticketsHtml = "";
+
     let activeToday = 0,
       newUsers = 0,
       totalFunds = 0,
@@ -170,6 +270,7 @@ async function loadData() {
     const todayStr = new Date().toISOString().split("T")[0];
 
     clients.forEach((u) => {
+      // រាប់ចំនួនតួលេខ (Stats)
       if (u.isOnline) activeToday++;
       if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
       if (u.isFrozen) frozenCount++;
@@ -195,12 +296,14 @@ async function loadData() {
             totalTransfers++;
         });
       }
+
       if (u.notifications && Array.isArray(u.notifications))
         u.notifications.forEach((n) => {
           if (n.sender === "admin")
             allAdminNotifs.add(n.id || n.title + n.date);
         });
 
+      // រៀបចំទិន្នន័យ Cards
       if (u.virtualCards) {
         u.virtualCards.forEach((c) => {
           const statusHtml = c.isLocked
@@ -214,10 +317,12 @@ async function loadData() {
         });
       }
 
+      // រៀបចំទិន្នន័យ KYC
       if (u.kycStatus === "pending") {
         kycHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td><td>Identity Document</td><td>${u.kycSubmittedAt || "Recent"}</td><td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td><td style="text-align: right;"><button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button><button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button><button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button></td></tr>`;
       }
 
+      // រៀបចំទិន្នន័យ Support Tickets
       if (u.tickets) {
         u.tickets.forEach((t) => {
           const statusColor =
@@ -229,6 +334,7 @@ async function loadData() {
       }
     });
 
+    // បញ្ចូលទិន្នន័យទៅក្នុង HTML Tables
     document.getElementById("cardTableBody").innerHTML =
       cardsHtml ||
       '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
@@ -239,6 +345,7 @@ async function loadData() {
       ticketsHtml ||
       '<tr><td colspan="6" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
 
+    // បញ្ចូលទិន្នន័យទៅក្នុង Dashboard Cards
     document.getElementById("d-users").innerText = clients.length;
     document.getElementById("d-active").innerText = activeToday;
     document.getElementById("d-new-users").innerText = newUsers;
@@ -256,48 +363,7 @@ async function loadData() {
     document.getElementById("d-transfers").innerText = totalTransfers;
     document.getElementById("d-frozen").innerText = frozenCount;
 
-    try {
-      const ctx = document.getElementById("trxChart").getContext("2d");
-      let gradient = ctx.createLinearGradient(0, 0, 0, 350);
-      gradient.addColorStop(0, "rgba(16, 185, 129, 0.4)");
-      gradient.addColorStop(1, "rgba(16, 185, 129, 0.0)");
-      if (myChart) {
-        myChart.data.labels = chartData.labels;
-        myChart.data.datasets[0].data = chartData.data;
-        myChart.update();
-      } else {
-        myChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: chartData.labels,
-            datasets: [
-              {
-                label: "Volume ($)",
-                data: chartData.data,
-                borderColor: "#10b981",
-                backgroundColor: gradient,
-                borderWidth: 3,
-                pointBackgroundColor: "#ffffff",
-                pointBorderColor: "#10b981",
-                pointRadius: 4,
-                fill: true,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { grid: { display: false } },
-              y: { border: { display: false } },
-            },
-          },
-        });
-      }
-    } catch (err) {}
-
+    // គ្រប់គ្រងទិន្នន័យ Activity Feed
     try {
       if (extraData.success || extraData.revenue !== undefined) {
         document.getElementById("d-revenue").innerText =
@@ -342,9 +408,12 @@ async function loadData() {
   } catch (e) {}
 }
 
+// ========================================================================
+// 🔐 SECTION 6: PERMISSIONS & ROLES MANAGEMENT
+// ========================================================================
 async function applyDynamicPermissions() {
   if (adminRole === "super_admin") {
-    setInterval(loadData, 15000);
+    setInterval(loadData, 15000); // ទាញទិន្នន័យរាល់ 15 វិនាទី
     loadData();
     return;
   }
@@ -355,6 +424,7 @@ async function applyDynamicPermissions() {
       myAdminPermissions = data.admin.permissions;
       const menus = data.admin.permissions.menus;
 
+      // លាក់ Menu ណាដែលគ្មានសិទ្ធិ
       if (!menus.users)
         document.getElementById("menu-users").style.display = "none";
       if (!menus.checktrx)
@@ -371,6 +441,7 @@ async function applyDynamicPermissions() {
       if (!menus.chat)
         document.getElementById("menu-chat").style.display = "none";
 
+      // លាក់ចំណងជើងធំៗ (Labels) បើគ្មាន Menu ខាងក្នុងសោះ
       if (!menus.checktrx && !menus.broadcast)
         document.getElementById("label-ops").style.display = "none";
       if (!menus.fx && !menus.cards)
@@ -378,6 +449,7 @@ async function applyDynamicPermissions() {
       if (!menus.kyc && !menus.tickets && !menus.chat)
         document.getElementById("label-security").style.display = "none";
 
+      // ដូរឈ្មោះ Role បើជា Custom Role
       if (
         data.admin.role === "custom" &&
         data.admin.permissions.customRoleName
@@ -386,16 +458,19 @@ async function applyDynamicPermissions() {
           data.admin.permissions.customRoleName.toUpperCase();
       }
 
+      // លាក់ Menu សំខាន់ៗ ដែលសម្រាប់តែ Super Admin ប៉ុណ្ណោះ
       document.getElementById("menu-super-only").style.display = "none";
       document.getElementById("menu-admins").style.display = "none";
       document.getElementById("menu-logs").style.display = "none";
       document.getElementById("menu-system").style.display = "none";
     }
   } catch (err) {}
+
   setInterval(loadData, 15000);
   loadData();
 }
 
+// មុខងារផ្អាកប្រព័ន្ធទាំងមូល (System Freeze)
 async function toggleSystemFreeze() {
   try {
     const res = await fetch("/api/admin/system-status", {
@@ -440,39 +515,16 @@ async function toggleSystemFreeze() {
   } catch (e) {}
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  const savedSection = sessionStorage.getItem("activeSection");
-  if (savedSection) {
-    const menuItems = document.querySelectorAll(".menu-item");
-    let targetBtn = null;
-    menuItems.forEach((item) => {
-      if (
-        item.getAttribute("onclick") &&
-        item.getAttribute("onclick").includes(`'${savedSection}'`)
-      )
-        targetBtn = item;
-    });
-    showSection(savedSection, targetBtn);
-  }
-
-  const searchInput = document.getElementById("searchTrxId");
-  if (searchInput)
-    searchInput.addEventListener("keypress", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        if (typeof searchTrx === "function") searchTrx();
-      }
-    });
-
-  applyDynamicPermissions();
-});
-
-// Notifications Polling (Core Logic)
+// ========================================================================
+// 🔔 SECTION 7: NOTIFICATIONS & SOUND ALERTS POLLING
+// ========================================================================
 let previousTotalUnread = 0;
 let previousQueueLength = 0;
 let previousPendingKyc = 0;
 let previousOpenTickets = 0;
 let isFirstLoadNotif = true;
+
+// ឯកសារសំឡេងលោតតឿន (Notification Sounds)
 const chatSound = new Audio(
   "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
 );
@@ -499,10 +551,10 @@ async function checkAdminNotifications() {
     const userData = await userRes.json();
 
     if (chatData.success && Array.isArray(userData)) {
-      let currentTotalUnread = 0;
-      let currentQueueLength = chatData.contacts.length;
-      let currentPendingKyc = 0;
-      let currentOpenTickets = 0;
+      let currentTotalUnread = 0,
+        currentQueueLength = chatData.contacts.length;
+      let currentPendingKyc = 0,
+        currentOpenTickets = 0;
 
       chatData.contacts.forEach((c) => {
         currentTotalUnread += c.unreadCount;
@@ -515,6 +567,7 @@ async function checkAdminNotifications() {
           });
       });
 
+      // បាញ់ Alert តែពេលមានទិន្នន័យកើនឡើង (មិនលោតរំខានរាល់ដងទេ)
       if (!isFirstLoadNotif) {
         let shouldRefreshTable = false;
         if (currentQueueLength > previousQueueLength)
@@ -545,6 +598,8 @@ async function checkAdminNotifications() {
 
         if (shouldRefreshTable && typeof loadData === "function") loadData();
       }
+
+      // Update តួលេខចាស់ ទុកចាំផ្ទៀងផ្ទាត់លើកក្រោយ
       previousQueueLength = currentQueueLength;
       previousTotalUnread = currentTotalUnread;
       previousPendingKyc = currentPendingKyc;
@@ -553,8 +608,9 @@ async function checkAdminNotifications() {
     }
   } catch (e) {}
 }
+
 function playCustomNotif(message, soundObj, iconColorHex) {
-  soundObj.play().catch(() => {});
+  soundObj.play().catch(() => {}); // ទប់ Error ក្រែង Browser បិទសំឡេង
   Swal.fire({
     toast: true,
     position: "top-end",
@@ -568,4 +624,41 @@ function playCustomNotif(message, soundObj, iconColorHex) {
     customClass: { popup: "premium-swal" },
   });
 }
+
+// ឆែកមើលសារថ្មីៗរាល់ 3 វិនាទី
 setInterval(checkAdminNotifications, 3000);
+
+// ========================================================================
+// 🎬 SECTION 8: EVENT LISTENERS (ពេលវេបសាយដើរពេញលេញ)
+// ========================================================================
+window.addEventListener("DOMContentLoaded", () => {
+  // ចងចាំផ្ទាំងចាស់ដែល Admin ធ្លាប់បើកមើលចុងក្រោយ
+  const savedSection = sessionStorage.getItem("activeSection");
+  if (savedSection) {
+    const menuItems = document.querySelectorAll(".menu-item");
+    let targetBtn = null;
+    menuItems.forEach((item) => {
+      if (
+        item.getAttribute("onclick") &&
+        item.getAttribute("onclick").includes(`'${savedSection}'`)
+      ) {
+        targetBtn = item;
+      }
+    });
+    showSection(savedSection, targetBtn);
+  }
+
+  // ឱ្យអ្នកប្រើចុច "Enter" ដើម្បីស្វែងរក Transaction តែម្តង
+  const searchInput = document.getElementById("searchTrxId");
+  if (searchInput) {
+    searchInput.addEventListener("keypress", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (typeof searchTrx === "function") searchTrx();
+      }
+    });
+  }
+
+  // ចាប់ផ្តើមបាញ់ API យកទិន្នន័យ
+  applyDynamicPermissions();
+});
