@@ -675,15 +675,27 @@ const refundTransaction = async (req, res) => {
   const { refId, reason } = req.body;
 
   try {
-    // ២. ស្វែងរកអ្នកផ្ញើដោយប្រើ refId (ប្រើ String() ដើម្បីការពារ Error Data Type)
+    // ២. ស្វែងរកអ្នកផ្ញើដោយប្រើ refId (ប្រើ $or ដើម្បីស្វែងរកទាំងទម្រង់ String និង Number)
+    console.log("===> 🟢 Admin កំពុងព្យាយាម Refund ID:", refId); // ជំនួយការ Debug
+
     const sender = await User.findOne({
-      "transactions.refId": String(refId),
+      $or: [
+        { "transactions.refId": String(refId) },
+        { "transactions.refId": Number(refId) }, // ក្រែងលោក្នុង DB ជាប្រភេទ Number
+        { "transactions.id": String(refId) }, // ក្រែងលោក្នុង DB ប្រើឈ្មោះ id
+        { "transactions.id": Number(refId) },
+      ],
     });
+
+    console.log(
+      "===> 🟢 លទ្ធផលស្វែងរកពី DB:",
+      sender ? `រកឃើញគណនី (@${sender.username})` : "រកអត់ឃើញទេ (Null)",
+    );
 
     if (!sender) {
       return res.json({
         success: false,
-        message: "រកប្រតិបត្តិការមិនឃើញនៅក្នុងប្រព័ន្ធទេ!",
+        message: "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញនៅក្នុងប្រព័ន្ធទេ!",
       });
     }
 
