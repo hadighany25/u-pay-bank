@@ -1859,6 +1859,74 @@
             <span data-i18n="reload-data">ទាញយកទិន្នន័យថ្មី</span>
           </button>
         </div>
+
+        <!-- ផ្នែកបន្ថែមថ្មី៖ ប្រអប់ស្វែងរក (Filters) -->
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+          "
+        >
+          <input
+            type="date"
+            id="filterLogDate"
+            style="
+              height: 40px;
+              padding: 0 15px;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              outline: none;
+              color: #475569;
+            "
+          />
+          <input
+            type="text"
+            id="filterLogAdmin"
+            placeholder="ស្វែងរកឈ្មោះ Admin..."
+            style="
+              height: 40px;
+              padding: 0 15px;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              outline: none;
+              flex: 1;
+              min-width: 200px;
+            "
+          />
+          <input
+            type="text"
+            id="filterLogAction"
+            placeholder="ប្រភេទសកម្មភាព (ឧ. Delete, Update)..."
+            style="
+              height: 40px;
+              padding: 0 15px;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              outline: none;
+              flex: 1;
+              min-width: 200px;
+            "
+          />
+          <button
+            onclick="applyLogFilters()"
+            style="
+              height: 40px;
+              padding: 0 20px;
+              background: #0f172a;
+              color: #fff;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            <i class="fa-solid fa-filter"></i> ស្វែងរក
+          </button>
+        </div>
+
         <div class="table-container">
           <table>
             <thead>
@@ -1882,6 +1950,56 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- ផ្នែកបន្ថែមថ្មី៖ ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px 0;
+          "
+        >
+          <button
+            id="btnPrevLogs"
+            onclick="changeLogPage(-1)"
+            style="
+              height: 40px;
+              padding: 0 20px;
+              background: #f1f5f9;
+              color: #64748b;
+              border: 1px solid #cbd5e1;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: bold;
+            "
+            disabled
+          >
+            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+          </button>
+
+          <span id="logPageInfo" style="font-weight: bold; color: #1e293b"
+            >ទំព័រទី 1</span
+          >
+
+          <button
+            id="btnNextLogs"
+            onclick="changeLogPage(1)"
+            style="
+              height: 40px;
+              padding: 0 20px;
+              background: #0f172a;
+              color: #fff;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-weight: bold;
+            "
+          >
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </div>

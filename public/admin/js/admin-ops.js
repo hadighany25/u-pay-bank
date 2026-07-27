@@ -1,4 +1,6 @@
-// KYC & Documents
+// ========================================================================
+// 📂 SECTION 1: KYC & DOCUMENTS MANAGEMENT
+// ========================================================================
 function viewKycDocument(base64Image) {
   Swal.fire({
     title: "ឯកសារបញ្ជាក់អត្តសញ្ញាណ",
@@ -30,7 +32,9 @@ async function kycAction(username, action) {
   }
 }
 
-// Cards
+// ========================================================================
+// 💳 SECTION 2: CARDS MANAGEMENT
+// ========================================================================
 async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
   const confirm = await Swal.fire({
@@ -58,7 +62,9 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   }
 }
 
-// Tickets
+// ========================================================================
+// 🎫 SECTION 3: TICKETS & CUSTOMER SUPPORT
+// ========================================================================
 async function replyTicket(username, ticketId) {
   const { value: text } = await Swal.fire({
     title: "Reply to Ticket",
@@ -79,6 +85,7 @@ async function replyTicket(username, ticketId) {
     }
   }
 }
+
 function viewUserMessage(username, ticketId) {
   const targetUser = globalUsersData.find((u) => u.username === username);
   const ticket = targetUser?.tickets?.find((t) => t.ticketId === ticketId);
@@ -97,9 +104,9 @@ function viewUserMessage(username, ticketId) {
   });
 }
 
-// ==========================================
-// 🔍 Trx Check & Action (ជួសជុលបញ្ហា Receiver ពេលកាត់ថ្លៃសេវា Fee)
-// ==========================================
+// ========================================================================
+// 🔍 SECTION 4: TRANSACTION CHECK & ACTION (Approve / Refund)
+// ========================================================================
 async function searchTrx() {
   const id = document.getElementById("searchTrxId").value.trim();
   if (!id)
@@ -191,7 +198,7 @@ async function searchTrx() {
 
       let depositorHtml = "";
 
-      // 🔥 ទី១៖ ឆែកមើលក្រែងលោជា Cash Deposit ឬ Withdrawal
+      // ទី១៖ ឆែកមើលក្រែងលោជា Cash Deposit ឬ Withdrawal
       if (t.type === "Cash Deposit") {
         sName = "Cash Deposit (ដាក់ប្រាក់)";
         sAcc = "CASH-DESK";
@@ -232,7 +239,7 @@ async function searchTrx() {
         rKyc = "System";
         rKycColor = "#3b82f6";
       }
-      // 🔥 ទី២៖ ដោះស្រាយបញ្ហា Receiver Details ពេលកាត់ថ្លៃសេវា (Fee / Service)
+      // ទី២៖ ដោះស្រាយបញ្ហា Receiver Details ពេលកាត់ថ្លៃសេវា (Fee / Service)
       else if (
         t.type === "Card Issuance Fee" ||
         (t.type && t.type.includes("Fee")) ||
@@ -246,7 +253,7 @@ async function searchTrx() {
         rKycColor = "#3b82f6";
       }
 
-      // 🔥 ទី៣៖ បើមានពាក្យ System ត្រូវទម្លាក់វាជាប្រព័ន្ធទាំងអស់
+      // ទី៣៖ បើមានពាក្យ System ត្រូវទម្លាក់វាជាប្រព័ន្ធទាំងអស់
       if (sName.toLowerCase().includes("system")) {
         sAcc = "SYSTEM-WALLET";
         sDevice = "System Server";
@@ -264,7 +271,7 @@ async function searchTrx() {
         rKycColor = "#3b82f6";
       }
 
-      // 🌟 រៀបចំ Merchant ID
+      // រៀបចំ Merchant ID
       let mId = t.merchantId || t.receiverMerchantId;
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
@@ -382,7 +389,9 @@ async function handleAdminAction(action, id) {
   }
 }
 
-// Broadcast
+// ========================================================================
+// 📢 SECTION 5: BROADCAST MESSAGES
+// ========================================================================
 async function sendBroadcast() {
   const { value: formValues } = await Swal.fire({
     title:
@@ -469,9 +478,12 @@ async function deleteBroadcast(notifId) {
   }
 }
 
-// Live Chat Support
+// ========================================================================
+// 💬 SECTION 6: LIVE CHAT SUPPORT
+// ========================================================================
 let adminCurrentChat = null;
 let adminChatInterval = null;
+
 async function fetchAdminContacts() {
   try {
     const res = await fetch("/api/chat/contacts", {
@@ -583,7 +595,9 @@ function endAdminChat() {
 setInterval(fetchAdminContacts, 3000);
 fetchAdminContacts();
 
-// Admin Management & Logs
+// ========================================================================
+// 🧑‍💼 SECTION 7: ADMIN ACCOUNTS MANAGEMENT
+// ========================================================================
 async function loadAdminList() {
   if (adminRole !== "super_admin") return;
   try {
@@ -611,26 +625,6 @@ async function loadAdminList() {
   } catch (e) {}
 }
 setTimeout(loadAdminList, 1000);
-
-async function loadAdminLogs() {
-  if (adminRole !== "super_admin") return;
-  try {
-    const res = await fetch("/api/admin/logs", { headers: getAuthHeaders() });
-    const data = await res.json();
-    const tbody = document.getElementById("logsTableBody");
-    if (data.success && data.logs && data.logs.length > 0) {
-      tbody.innerHTML = data.logs
-        .map(
-          (l) =>
-            `<tr><td style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${l.date}</td><td style="font-weight: bold; color: var(--primary);">@${l.admin}</td><td><span style="background: #f1f5f9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td><td style="font-family: monospace; font-size: 0.95rem;">${l.target || "-"}</td><td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td></tr>`,
-        )
-        .join("");
-    } else {
-      tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានប្រវត្តិសកម្មភាពទេ</td></tr>';
-    }
-  } catch (e) {}
-}
 
 function toggleCustomPermissions(role) {
   const customBox = document.getElementById("customPermissionBox");
@@ -721,4 +715,134 @@ async function deleteAdminAcc(id) {
       loadAdminList();
     }
   }
+}
+
+// ========================================================================
+// 🛡️ SECTION 8: ADMIN AUDIT LOGS (Pagination & Filters) - ថ្មី!
+// ========================================================================
+
+// ប្រកាសអថេរសម្រាប់ផ្ទុកទិន្នន័យ និងកំណត់ទំព័រ
+let allAuditLogs = []; // ទុកទិន្នន័យ Logs សរុបពី Server
+let filteredAuditLogs = []; // ទុកទិន្នន័យក្រោយពេល Search រួច
+let currentLogPage = 1; // ទំព័របច្ចុប្បន្ន
+const LOGS_PER_PAGE = 15; // ចំនួនកំណត់ក្នុងមួយទំព័រ
+
+// មុខងារទាញទិន្នន័យពី Server
+async function loadAdminLogs() {
+  if (adminRole !== "super_admin") return;
+  try {
+    const res = await fetch("/api/admin/logs", { headers: getAuthHeaders() });
+    const data = await res.json();
+
+    if (data.success && data.logs && data.logs.length > 0) {
+      allAuditLogs = data.logs; // រក្សាទុកទិន្នន័យដើម
+      applyLogFilters(); // ហៅមុខងារ Filter និង Render ឱ្យចេញជាទម្រង់ ១៥/ទំព័រ
+    } else {
+      allAuditLogs = [];
+      filteredAuditLogs = [];
+      document.getElementById("logsTableBody").innerHTML =
+        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានប្រវត្តិសកម្មភាពទេ</td></tr>';
+      document.getElementById("logPageInfo").innerText = "ទំព័រទី 1 / 0";
+    }
+  } catch (e) {
+    console.error("Error loading logs:", e);
+  }
+}
+
+// មុខងារចម្រាញ់ទិន្នន័យ (ស្វែងរកតាម ថ្ងៃខែ, ឈ្មោះ, សកម្មភាព)
+function applyLogFilters() {
+  const filterDate = document.getElementById("filterLogDate").value; // Format: YYYY-MM-DD
+  const filterAdmin = document
+    .getElementById("filterLogAdmin")
+    .value.toLowerCase()
+    .trim();
+  const filterAction = document
+    .getElementById("filterLogAction")
+    .value.toLowerCase()
+    .trim();
+
+  filteredAuditLogs = allAuditLogs.filter((log) => {
+    // ឆែកថ្ងៃខែ (តម្រូវ Format ទាំង DD/MM/YYYY និង YYYY-MM-DD)
+    let matchDate = true;
+    if (filterDate) {
+      const [year, month, day] = filterDate.split("-");
+      const format1 = `${year}-${month}-${day}`;
+      const format2 = `${day}/${month}/${year}`;
+      matchDate = log.date.includes(format1) || log.date.includes(format2);
+    }
+
+    // ឆែកឈ្មោះ Admin
+    const matchAdmin =
+      !filterAdmin ||
+      (log.admin && log.admin.toLowerCase().includes(filterAdmin));
+
+    // ឆែកសកម្មភាព Action
+    const matchAction =
+      !filterAction ||
+      (log.action && log.action.toLowerCase().includes(filterAction));
+
+    return matchDate && matchAdmin && matchAction;
+  });
+
+  currentLogPage = 1; // ពេល Search ថ្មី ត្រូវលោតមកទំព័រទី ១ ជានិច្ច
+  renderAuditLogs();
+}
+
+// មុខងារគូរតារាង និងកាត់យកម្តង ១៥ មកបង្ហាញ (Pagination)
+function renderAuditLogs() {
+  const tbody = document.getElementById("logsTableBody");
+
+  if (filteredAuditLogs.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">រកមិនឃើញទិន្នន័យដែលអ្នកស្វែងរកទេ</td></tr>';
+    document.getElementById("logPageInfo").innerText = "ទំព័រទី 1 / 0";
+    document.getElementById("btnPrevLogs").disabled = true;
+    document.getElementById("btnNextLogs").disabled = true;
+    return;
+  }
+
+  // គណនាចំនួនទំព័រសរុប
+  const totalPages = Math.ceil(filteredAuditLogs.length / LOGS_PER_PAGE);
+
+  // កំណត់គោលដៅកាត់ទិន្នន័យ
+  const startIndex = (currentLogPage - 1) * LOGS_PER_PAGE;
+  const endIndex = startIndex + LOGS_PER_PAGE;
+
+  // កាត់យកទិន្នន័យតាមចំនួនកំណត់ (slice)
+  const logsToShow = filteredAuditLogs.slice(startIndex, endIndex);
+
+  // បង្ហាញក្នុងតារាង
+  tbody.innerHTML = logsToShow
+    .map(
+      (l) =>
+        `<tr>
+           <td style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${l.date}</td>
+           <td style="font-weight: bold; color: var(--primary);">@${l.admin}</td>
+           <td><span style="background: #f1f5f9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td>
+           <td style="font-family: monospace; font-size: 0.95rem;">${l.target || "-"}</td>
+           <td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td>
+         </tr>`,
+    )
+    .join("");
+
+  // Update អក្សរបង្ហាញទំព័រទីប៉ុន្មាន
+  document.getElementById("logPageInfo").innerText =
+    `ទំព័រទី ${currentLogPage} / ${totalPages}`;
+
+  // បើក/បិទ ប៊ូតុង Next / Prev
+  document.getElementById("btnPrevLogs").disabled = currentLogPage === 1;
+  document.getElementById("btnNextLogs").disabled =
+    currentLogPage === totalPages;
+}
+
+// មុខងារចុចប្តូរទំព័រ (Next / Prev)
+function changeLogPage(step) {
+  const totalPages = Math.ceil(filteredAuditLogs.length / LOGS_PER_PAGE);
+  currentLogPage += step;
+
+  // ការពារកុំឱ្យចុចហួសទំព័រ
+  if (currentLogPage < 1) currentLogPage = 1;
+  if (currentLogPage > totalPages) currentLogPage = totalPages;
+
+  renderAuditLogs();
 }
