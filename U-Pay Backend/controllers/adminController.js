@@ -673,44 +673,26 @@ const refundTransaction = async (req, res) => {
     return res.status(403).json({ success: false, message: access.message });
 
   const { refId, reason } = req.body;
+  const cleanRefId = String(refId).trim(); // កាត់ចោល Space ក្រែងលោមាន
 
   try {
-    // ២. ស្វែងរកអ្នកផ្ញើដោយប្រើ refId (ប្រើ $or ដើម្បីស្វែងរកទាំងទម្រង់ String និង Number)
-    console.log("===> 🟢 Admin កំពុងព្យាយាម Refund ID:", refId); // ជំនួយការ Debug
-
-    const sender = await User.findOne({
-      $or: [
-        { "transactions.refId": String(refId) },
-        { "transactions.refId": Number(refId) }, // ក្រែងលោក្នុង DB ជាប្រភេទ Number
-        { "transactions.id": String(refId) }, // ក្រែងលោក្នុង DB ប្រើឈ្មោះ id
-        { "transactions.id": Number(refId) },
-      ],
+    // ២. ស្វែងរក Transaction នេះនៅក្នុងប្រព័ន្ធ (រកឃើញមួយណាក៏បាន ព្រោះវាមានទិន្នន័យកុងអ្នកផ្ញើ/ទទួលដូចគ្នា)
+    const involvedUser = await User.findOne({
+      "transactions.refId": cleanRefId,
     });
 
-    console.log(
-      "===> 🟢 លទ្ធផលស្វែងរកពី DB:",
-      sender ? `រកឃើញគណនី (@${sender.username})` : "រកអត់ឃើញទេ (Null)",
-    );
-
-    if (!sender) {
+    if (!involvedUser) {
       return res.json({
         success: false,
-        message: "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញនៅក្នុងប្រព័ន្ធទេ!",
+        message:
+          "រកប្រតិបត្តិការមិនឃើញទេ! សូមប្រាកដថា refId នេះពិតជាមានក្នុងប្រព័ន្ធ។",
       });
     }
 
-    // ៣. ចាប់យកប្រវត្តិប្រតិបត្តិការជាក់លាក់នោះចេញមក
-    const originalTrx = sender.transactions.find(
-      (t) => String(t.refId) === String(refId),
+    // ៣. ទាញយកទិន្នន័យ Transaction នោះចេញមក ដើម្បីយកលេខកុង
+    const originalTrx = involvedUser.transactions.find(
+      (t) => String(t.refId).trim() === cleanRefId,
     );
-
-    // ពិនិត្យមើលថាវាជាការវេរចេញ (amount ត្រូវតែតូចជាង ០) និងមិនទាន់បាន Refund
-    if (!originalTrx || Number(originalTrx.amount) >= 0) {
-      return res.json({
-        success: false,
-        message: "ប្រតិបត្តិការនេះមិនមែនជាការវេរប្រាក់ចេញ ឬមិនត្រឹមត្រូវ!",
-      });
-    }
 
     if (originalTrx.status === "Refunded") {
       return res.json({
@@ -719,31 +701,34 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ៤. ស្វែងរកគណនីអ្នកទទួល
-    if (!originalTrx.receiverAcc && !originalTrx.receiverName) {
+    // ៤. ទាញយកលេខកុងអ្នកផ្ញើ និង អ្នកទទួល ពី Transaction ផ្ទាល់ (ផ្អែកតាមរូបភាពរបស់បង)
+    const senderAcc = originalTrx.senderAcc;
+    const receiverAcc = originalTrx.receiverAcc;
+
+    if (!senderAcc || !receiverAcc) {
       return res.json({
         success: false,
         message:
-          "ប្រតិបត្តិការនេះគ្មានព័ត៌មានគណនីអ្នកទទួលទេ មិនអាច Refund បានឡើយ!",
+          "Transaction នេះគ្មានទិន្នន័យលេខកុងអ្នកផ្ញើ ឬអ្នកទទួលគ្រប់គ្រាន់ទេ!",
       });
     }
 
+    // ៥. ស្វែងរកគណនីអ្នកទាំង ២ តាមរយៈលេខកុងរបស់ពួកគេ
+    const sender = await User.findOne({
+      $or: [{ accountNumber: senderAcc }, { accountNumberKHR: senderAcc }],
+    });
     const receiver = await User.findOne({
-      $or: [
-        { accountNumber: originalTrx.receiverAcc },
-        { accountNumberKHR: originalTrx.receiverAcc },
-        { username: originalTrx.receiverName }, // ថែមលក្ខខណ្ឌរកតាម username បើសិនអត់មានលេខកុង
-      ],
+      $or: [{ accountNumber: receiverAcc }, { accountNumberKHR: receiverAcc }],
     });
 
-    if (!receiver) {
+    if (!sender || !receiver) {
       return res.json({
         success: false,
-        message: "រកគណនីអ្នកទទួលមិនឃើញទេ! មិនអាចកាត់លុយមកវិញបានឡើយ។",
+        message: "រកគណនីពិតប្រាកដរបស់អ្នកផ្ញើ ឬអ្នកទទួលមិនឃើញទេ!",
       });
     }
 
-    // ៥. ឆែកលុយអ្នកទទួល តើមានគ្រប់គ្រាន់អោយកាត់វិញទេ?
+    // ៦. ឆែកមើលសមតុល្យលុយរបស់អ្នកទទួល តើមានគ្រប់គ្រាន់សម្រាប់កាត់សងវិញទេ?
     const isKHR = originalTrx.currency === "KHR";
     const refundAmount = Math.abs(Number(originalTrx.amount));
     const receiverBalance = isKHR
@@ -753,11 +738,11 @@ const refundTransaction = async (req, res) => {
     if (receiverBalance < refundAmount) {
       return res.json({
         success: false,
-        message: `មិនអាច Refund បានទេ! អ្នកទទួល (@${receiver.username}) បានដកលុយចាយអស់ខ្លះហើយ សមតុល្យនៅសល់តែ ${isKHR ? "៛" : "$"}${receiverBalance} ប៉ុណ្ណោះ។`,
+        message: `មិនអាច Refund បានទេ! អ្នកទទួល (@${receiver.username}) បានចាយលុយអស់ខ្លះហើយ សល់ត្រឹម ${isKHR ? "៛" : "$"}${receiverBalance}។`,
       });
     }
 
-    // ៦. ធ្វើការកាត់លុយពីអ្នកទទួល និងបូកអោយអ្នកផ្ញើវិញ
+    // ៧. កាត់លុយពីអ្នកទទួល បូកអោយអ្នកផ្ញើវិញ
     if (isKHR) {
       receiver.balanceKHR -= refundAmount;
       sender.balanceKHR += refundAmount;
@@ -766,23 +751,25 @@ const refundTransaction = async (req, res) => {
       sender.balance += refundAmount;
     }
 
-    // ៧. Update Status ប្រតិបត្តិការចាស់របស់អ្នកផ្ញើ
-    originalTrx.status = "Refunded";
-    originalTrx.remark = `[REFUNDED] មូលហេតុ: ${reason}`;
-
-    // ស្វែងរកប្រតិបត្តិការចាស់ក្នុងគណនីអ្នកទទួល ដើម្បីប្តូរ Status ដូចគ្នា
-    const receiverOriginalTrx = receiver.transactions.find(
-      (t) => String(t.refId) === String(refId),
+    // ៨. កែប្រែ Status ប្រតិបត្តិការចាស់របស់អ្នកទាំងពីរ ទៅជា "Refunded"
+    const senderTrx = sender.transactions.find(
+      (t) => String(t.refId).trim() === cleanRefId,
     );
-    if (receiverOriginalTrx) {
-      receiverOriginalTrx.status = "Refunded";
-      receiverOriginalTrx.remark = `[REFUNDED BY ADMIN] មូលហេតុ: ${reason}`;
+    if (senderTrx) {
+      senderTrx.status = "Refunded";
+      senderTrx.remark = `[REFUNDED] មូលហេតុ: ${reason}`;
     }
 
-    // ៨. បង្កើតប្រវត្តិថ្មី (Transaction History)
-    const refundRef = "RF-" + Date.now().toString().slice(-6);
+    const receiverTrx = receiver.transactions.find(
+      (t) => String(t.refId).trim() === cleanRefId,
+    );
+    if (receiverTrx) {
+      receiverTrx.status = "Refunded";
+      receiverTrx.remark = `[REFUNDED BY ADMIN] មូលហេតុ: ${reason}`;
+    }
 
-    // ការពារក្រែងលោ Function ខាងក្រោមនេះអត់មាន Import
+    // ៩. បង្កើតប្រវត្តិថ្មី (Transaction History) សម្រាប់អ្នកទាំង ២
+    const refundRef = "RF-" + Date.now().toString().slice(-6);
     const dateNow =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
@@ -792,6 +779,7 @@ const refundTransaction = async (req, res) => {
         ? generateHash()
         : "HASH-" + Date.now();
 
+    // កត់ត្រាចូលកុងអ្នកផ្ញើ (ទទួលបានលុយវិញ)
     sender.transactions.unshift({
       refId: refundRef,
       hash: newHash,
@@ -801,12 +789,15 @@ const refundTransaction = async (req, res) => {
       currency: originalTrx.currency,
       fee: 0,
       senderName: receiver.username,
+      senderAcc: receiver.accountNumber,
       receiverName: sender.username,
+      receiverAcc: sender.accountNumber,
       remark: `Admin Refund: ${reason}`,
       status: "Success",
       trxMethod: "System Refund",
     });
 
+    // កត់ត្រាចូលកុងអ្នកទទួល (ត្រូវប្រព័ន្ធកាត់លុយចេញ)
     receiver.transactions.unshift({
       refId: refundRef,
       hash: newHash,
@@ -816,13 +807,15 @@ const refundTransaction = async (req, res) => {
       currency: originalTrx.currency,
       fee: 0,
       senderName: receiver.username,
+      senderAcc: receiver.accountNumber,
       receiverName: sender.username,
+      receiverAcc: sender.accountNumber,
       remark: `Reversed by Admin: ${reason}`,
       status: "Success",
       trxMethod: "System Refund",
     });
 
-    // ៩. ផ្ញើ Notification (ជូនដំណឹង)
+    // ១០. ផ្ញើការជូនដំណឹង (Notifications)
     if (!sender.notifications) sender.notifications = [];
     sender.notifications.unshift({
       id: "NOTIF-" + Date.now() + "1",
@@ -841,7 +834,7 @@ const refundTransaction = async (req, res) => {
       isRead: false,
     });
 
-    // ១០. Save ទិន្នន័យទាំងអស់ទៅ Database
+    // ១១. រក្សាទុកទិន្នន័យ
     sender.markModified("transactions");
     sender.markModified("notifications");
     receiver.markModified("transactions");
@@ -850,7 +843,7 @@ const refundTransaction = async (req, res) => {
     await sender.save();
     await receiver.save();
 
-    // ១១. កត់ត្រាចូលក្នុងប្រវត្តិ Admin
+    // ១២. កត់ត្រាសកម្មភាពរបស់ Admin
     if (typeof logAdminAction === "function") {
       await logAdminAction(
         req.admin.username,
@@ -862,7 +855,7 @@ const refundTransaction = async (req, res) => {
 
     return res.json({
       success: true,
-      message: `កាត់លុយពី @${receiver.username} មកអោយ @${sender.username} ជោគជ័យ!`,
+      message: `កាត់លុយពី @${receiver.username} ត្រលប់មកអោយ @${sender.username} វិញបានជោគជ័យ ១០០%!`,
     });
   } catch (err) {
     console.error("Refund Error in adminController:", err);
