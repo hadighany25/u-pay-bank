@@ -13,7 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro គ្រប់ទំហំ -->
+    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -27,9 +27,12 @@
       /* ==========================================
          🚀 CORE STYLES & LAYOUT
          ========================================== */
-      /* បង្ខំអោយប្រើ Font ខ្មែរគ្រប់ទីកន្លែង រួមទាំងប្រអប់ Input */
-      * {
-        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      body,
+      input,
+      button,
+      select,
+      textarea {
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
       }
 
       body {
@@ -117,7 +120,6 @@
           transform 0.3s ease,
           box-shadow 0.3s ease;
       }
-      /* Hover Animation លើកាតកូន */
       .junior-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
@@ -314,6 +316,7 @@
         border-radius: 20px !important;
         padding: 30px 20px !important;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+        font-family: "Kantumruy Pro", sans-serif !important;
       }
       .premium-swal .swal2-title {
         font-size: 1.3rem !important;
@@ -326,7 +329,6 @@
         color: #64748b !important;
         margin: 0 0 20px 0 !important;
       }
-      /* Input កណ្តាល SweetAlert */
       .premium-swal .swal2-input {
         height: 55px !important;
         border-radius: 12px !important;
@@ -339,6 +341,7 @@
         width: 100% !important;
         transition: 0.3s ease;
         box-sizing: border-box !important;
+        font-family: "Kantumruy Pro", sans-serif !important;
       }
       .premium-swal .swal2-input:focus {
         border-color: #004d40 !important;
@@ -351,7 +354,6 @@
         font-size: 1.5rem !important;
       }
 
-      /* Buttons ក្នុង SweetAlert */
       .premium-swal .swal2-actions {
         gap: 15px !important;
         margin-top: 10px !important;
@@ -735,7 +737,7 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: ទាញទាំង USD & KHR ចូលកាតតែមួយយ៉ាងវៃឆ្លាត)
+      // ១. គូរ UI កាតកូន (SMART PARSER: ដោះស្រាយបញ្ហាបាត់កាត)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -750,10 +752,9 @@
 
         const groupedKids = {};
 
-        // តម្រៀបទិន្នន័យកូនចូលគ្នា (Group By Name) ទោះបោះមក១កុង ឬ២កុង ដាច់គ្នាក៏ដោយ
+        // តម្រៀបទិន្នន័យកូនចូលគ្នា (Group By Name)
         juniorAccounts.forEach((acc) => {
           let rawName = acc.accountName || "JUNIOR";
-          // លុបអក្សរកន្ទុយចោល ដើម្បីអោយឈ្មោះកូននៅសល់តែឈ្មោះពិត ងាយស្រួលផ្គុំចូលគ្នា
           rawName = rawName
             .replace(/\s*\((JUNIOR|KHR|USD|\$|៛)\)\s*/gi, "")
             .replace(/\b(KHR|USD)\b/gi, "")
@@ -769,30 +770,32 @@
             };
           }
 
+          // ប្រើ "N/A" បើអត់ទាន់មានលេខកុងកុំអោយវាលាក់កាតចោលទៀត
+          const accNum = acc.accountNumber || acc.accountId || "N/A";
+
           // ឆែកមើលក្រែងមាន USD
-          if (acc.currency === "USD" || acc.currency !== "KHR") {
-            if (acc.accountNumber) {
-              groupedKids[rawName].usd = {
-                accountNumber: acc.accountNumber,
-                balance: acc.balance || 0,
-              };
-            }
-          }
-          // ឆែកមើលក្រែងមាន KHR ដាច់ដោយឡែក
-          if (acc.currency === "KHR") {
-            groupedKids[rawName].khr = {
-              accountNumber: acc.accountNumber,
+          if (acc.currency !== "KHR") {
+            groupedKids[rawName].usd = {
+              accountNumber: accNum,
               balance: acc.balance || 0,
             };
           }
 
-          // ឆែកមើលក្រែង Backend ខ្ចប់ KHR ចូលគ្នាក្នុង Object តែមួយ
+          // ឆែកមើលក្រែងមាន KHR ដាច់ដោយឡែក
+          if (acc.currency === "KHR") {
+            groupedKids[rawName].khr = {
+              accountNumber: accNum,
+              balance: acc.balance || 0,
+            };
+          }
+
+          // ឆែកមើលក្រែង Backend ខ្ចប់ KHR ចូលគ្នាក្នុង Object តែមួយ (Dual-Currency)
           if (
             acc.accountNumberKHR !== undefined ||
             acc.balanceKHR !== undefined
           ) {
             groupedKids[rawName].khr = {
-              accountNumber: acc.accountNumberKHR || acc.accountNumber,
+              accountNumber: acc.accountNumberKHR || accNum,
               balance: acc.balanceKHR || 0,
             };
           }
