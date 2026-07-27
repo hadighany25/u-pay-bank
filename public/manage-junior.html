@@ -252,7 +252,7 @@
         transform: translateX(-50%) translateY(100%);
         width: 100%;
         max-width: 450px;
-        height: 75vh; /* ទាញឱ្យខ្ពស់ដល់ 75% នៃកម្ពស់អេក្រង់ */
+        height: 75vh;
         background: white;
         border-radius: 24px 24px 0 0;
         z-index: 1001;
@@ -434,7 +434,7 @@
     <!-- 📱 TOP UP SHEET -->
     <div class="bottom-sheet" id="topupSheet">
       <div class="sheet-header">
-        បញ្ចូលប្រាក់
+        បញ្ចូលប្រាក់ឱ្យកូន
         <i class="fa-solid fa-xmark sheet-close" onclick="closeAllSheets()"></i>
       </div>
       <div class="sheet-body">
@@ -555,6 +555,16 @@
               <span>ប្រតិបត្តិការ:</span>
               <strong id="slipType" style="color: #1e293b">...</strong>
             </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+              "
+            >
+              <span>លេខកូដ (Ref):</span>
+              <strong id="slipRef" style="color: #1e293b">...</strong>
+            </div>
           </div>
         </div>
       </div>
@@ -578,7 +588,7 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (១០០% Dynamic Currency Database Check)
+      // ១. គូរ UI កាតកូន (បង្ហាញរូបិយប័ណ្ណពិតប្រាកដ)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -593,31 +603,25 @@
 
         let html = "";
         juniorAccounts.forEach((acc) => {
-          const isFrozen = acc.isLocked || false;
+          const isFrozen = acc.isLocked || acc.isFrozen || false;
 
-          // ឆែកមើល Database ពិតប្រាកដ: បើមាន field balance អោយតម្លៃមកវាគឺមាន USD, បើមាន field balanceKHR គឺមាន KHR
-          const hasUSD = !isNaN(parseFloat(acc.balance));
-          const hasKHR = !isNaN(parseFloat(acc.balanceKHR));
-
-          // បើ labled តាម currency ផ្ទាល់
-          const isOnlyUSD = acc.currency === "USD";
-          const isOnlyKHR = acc.currency === "KHR";
-
-          const showUSD = hasUSD || isOnlyUSD;
-          const showKHR = hasKHR || isOnlyKHR;
+          // ឆែកទិន្នន័យជាក់ស្ដែង បើមាន field balance ឬ balanceKHR អោយបង្ហាញ
+          const hasUSD = acc.balance !== undefined && acc.balance !== null;
+          const hasKHR =
+            acc.balanceKHR !== undefined && acc.balanceKHR !== null;
 
           let balanceHtml = `<div class="balance-container">`;
-          if (showUSD) {
+          if (hasUSD) {
             balanceHtml += `
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/us.png" alt="USD"> USD</div>
                 <div class="bal-amount">$${Number(acc.balance || 0).toFixed(2)}</div>
               </div>`;
           }
-          if (showUSD && showKHR) {
+          if (hasUSD && hasKHR) {
             balanceHtml += `<div class="bal-divider"></div>`;
           }
-          if (showKHR) {
+          if (hasKHR) {
             balanceHtml += `
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR</div>
@@ -635,7 +639,7 @@
               <div class="card-header">
                 <div class="profile-icon"><i class="fa-solid fa-child-reaching"></i></div>
                 <div class="kid-info">
-                  <h3>${acc.accountName}</h3>
+                  <h3>${acc.accountName.toUpperCase()}</h3>
                   <p>Acc: ${acc.accountNumber}</p>
                 </div>
               </div>
@@ -643,7 +647,7 @@
               ${balanceHtml}
 
               <div class="action-grid">
-                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}', ${showUSD}, ${showKHR})">
+                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}', ${hasUSD}, ${hasKHR})">
                   <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                   <span>បញ្ជូលប្រាក់</span>
                 </button>
@@ -667,7 +671,7 @@
       }
 
       // ==========================================
-      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ (Full Flow)
+      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ
       // ==========================================
       function closeAllSheets() {
         document
@@ -683,13 +687,13 @@
       function openTopupSheet(accNum, name, hasUSD, hasKHR) {
         activeChildAccount = accNum;
         document.getElementById("topupToName").innerText =
-          `ផ្ទេរទៅកាន់: ${name}`;
+          `ផ្ទេរទៅកាន់: ${name.toUpperCase()} (JUNIOR)`;
 
-        // រៀបចំប៊ូតុងរើសលុយ តាមទិន្នន័យពិត
         const toggleContainer = document.getElementById(
           "dynamicCurrencyToggle",
         );
         toggleContainer.innerHTML = "";
+
         if (hasUSD) {
           toggleContainer.innerHTML += `<div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>`;
           activeCurrency = "USD";
@@ -732,7 +736,7 @@
         setTimeout(() => document.getElementById("inputPin").focus(), 350);
       }
 
-      // 🔥 ការផ្ទេរប្រាក់ពិតប្រាកដ និង Optimistic Update UI (ទោះ Server យឺតក៏ UI លោតភ្លាមៗ)
+      // 🔥 ការផ្ទេរប្រាក់ពិតប្រាកដទៅកាន់ API ត្រឹមត្រូវ
       function submitTopup() {
         const amt = parseFloat(document.getElementById("inputAmount").value);
         const pin = document.getElementById("inputPin").value;
@@ -743,11 +747,8 @@
           didOpen: () => Swal.showLoading(),
         });
 
-        // ឆែកមើលគណនីមេតាមរូបិយប័ណ្ណ
-        const senderAcc =
-          activeCurrency === "KHR" && currentUser.accountNumberKHR
-            ? currentUser.accountNumberKHR
-            : currentUser.accountNumber;
+        // កំណត់កុងប្រភពអោយត្រូវតាមស្តង់ដារ API (MAIN_USD ឬ MAIN_KHR)
+        const senderAcc = activeCurrency === "KHR" ? "MAIN_KHR" : "MAIN_USD";
 
         const reqBody = {
           senderUsername: currentUser.username,
@@ -755,11 +756,13 @@
           receiverAccount: activeChildAccount,
           amount: amt,
           currency: activeCurrency,
-          remark: "ប៉ាម៉ាក់ផ្ទេរប្រាក់ឱ្យ",
+          remark: "បញ្ចូលប្រាក់ឱ្យកូន",
           pin: pin,
+          trxMethod: "Top-Up Junior",
         };
 
-        fetch("/api/transaction/transfer", {
+        // ប្តូរទៅហៅ API Transfer ធំរបស់ប្រព័ន្ធ
+        fetch("/api/transfer", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -770,47 +773,15 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
-              // 💡 OPTIMISTIC UI UPDATE: Update ទិន្នន័យក្នុង Storage ដោយខ្លួនឯងភ្លាមៗ ដើម្បីឱ្យ UI រត់លឿន
+              // 💡 Update ទិន្នន័យពិតចូល Storage ដើម្បីអោយវាលោតលុយភ្លាមៗ
               if (data.user) {
-                // បើ Backend បោះ User Update មកអោយ យកតាមវា
                 currentUser = data.user;
-              } else {
-                // បើ Backend អត់បោះអោយទេ យើង Update ខ្លួនឯងភ្លាមៗកុំអោយគាំង
-                if (activeCurrency === "USD") {
-                  currentUser.balance = parseFloat(currentUser.balance) - amt;
-                  let targetAcc = currentUser.subAccounts.find(
-                    (a) => a.accountNumber === activeChildAccount,
-                  );
-                  if (targetAcc)
-                    targetAcc.balance = (
-                      parseFloat(targetAcc.balance || 0) + amt
-                    ).toFixed(2);
-                } else {
-                  currentUser.balanceKHR =
-                    parseFloat(currentUser.balanceKHR || 0) - amt;
-                  let targetAcc = currentUser.subAccounts.find(
-                    (a) => a.accountNumber === activeChildAccount,
-                  );
-                  if (targetAcc)
-                    targetAcc.balanceKHR = (
-                      parseFloat(targetAcc.balanceKHR || 0) + amt
-                    ).toString();
+                if (data.slipData) {
+                  if (!currentUser.transactions) currentUser.transactions = [];
+                  currentUser.transactions.unshift(data.slipData);
                 }
-
-                // កត់ត្រាចូលប្រវត្តិភ្លាមៗ
-                if (!currentUser.transactions) currentUser.transactions = [];
-                currentUser.transactions.unshift({
-                  transactionId: data.transactionId || "TRX" + Date.now(),
-                  senderAccount: senderAcc,
-                  receiverAccount: activeChildAccount,
-                  amount: amt,
-                  currency: activeCurrency,
-                  remark: "ប៉ាម៉ាក់ផ្ទេរប្រាក់ឱ្យ",
-                  date: new Date().toLocaleString(),
-                });
+                sessionStorage.setItem("user", JSON.stringify(currentUser));
               }
-
-              sessionStorage.setItem("user", JSON.stringify(currentUser));
 
               Swal.fire({
                 icon: "success",
@@ -821,11 +792,11 @@
                 customClass: { popup: "premium-swal" },
               }).then(() => {
                 closeAllSheets();
-                renderJuniorCards(); // គូរ UI ថ្មីដោយមិនបាច់ Refresh នាំឲ្យទាក់
+                renderJuniorCards(); // គូរ UI ថ្មីតាមលុយដែលទើបតែបញ្ចូល
               });
             } else {
               Swal.fire({ icon: "error", title: "បរាជ័យ", text: data.message });
-              document.getElementById("inputPin").value = ""; // Reset PIN អោយវាយម្តងទៀត
+              document.getElementById("inputPin").value = "";
             }
           })
           .catch((err) => {
@@ -841,14 +812,12 @@
           });
         document.getElementById("inputPin").addEventListener("keyup", (e) => {
           if (e.key === "Enter") submitTopup();
-          if (e.target.value.length === 4) {
-            setTimeout(submitTopup, 200);
-          }
+          if (e.target.value.length === 4) setTimeout(submitTopup, 200);
         });
       }
 
       // ==========================================
-      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip (Fixed Filter)
+      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip (ចាប់តាម receiverAcc/senderAcc)
       // ==========================================
       function openHistorySheet(accNum) {
         document.getElementById("sheetOverlay").classList.add("active");
@@ -856,13 +825,11 @@
 
         const container = document.getElementById("historyListContainer");
 
-        // ឆែកមើល History របស់ User រួច Filter យកតែលេខកុងកូន
+        // ឆែកមើល History របស់ User តាម Field ពិតដែល Backend ប្រើ (receiverAcc និង senderAcc)
         const trxs = (currentUser.transactions || []).filter(
           (t) =>
-            String(t.receiverAccount) === String(accNum) ||
-            String(t.senderAccount) === String(accNum) ||
-            String(t.toAccount) === String(accNum) || // Fallback if backend uses different name
-            String(t.fromAccount) === String(accNum),
+            String(t.receiverAcc) === String(accNum) ||
+            String(t.senderAcc) === String(accNum),
         );
 
         if (trxs.length === 0) {
@@ -872,24 +839,22 @@
 
         let html = "";
         trxs.forEach((t) => {
-          // បើគណនីកូនជាអ្នកទទួល (receiver) បានន័យថាជាការបូកចូល (Income)
-          const isIncome =
-            String(t.receiverAccount) === String(accNum) ||
-            String(t.toAccount) === String(accNum);
+          // បើគណនីកូនជាអ្នកទទួល គឺប្រាក់ចូល
+          const isIncome = String(t.receiverAcc) === String(accNum);
           const amtColor = isIncome ? "amt-in" : "amt-out";
           const symbol = isIncome ? "+" : "-";
           const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
 
           html += `
-            <div class="trx-item" onclick="openSlip('${t.transactionId || ""}', '${t.amount}', '${t.currency}', '${t.date}', '${t.remark}')">
+            <div class="trx-item" onclick="openSlip('${t.refId || ""}', '${t.amount}', '${t.currency}', '${t.date}', '${t.remark}')">
               <div class="trx-left">
                 <div class="trx-icon"><i class="fa-solid ${icon}"></i></div>
                 <div>
-                  <div class="trx-title">${t.remark || (isIncome ? "ទទួលប្រាក់" : "ផ្ទេរប្រាក់")}</div>
+                  <div class="trx-title">${t.remark || (isIncome ? "ទទួលប្រាក់" : "ចាយប្រាក់")}</div>
                   <div class="trx-date">${t.date || "Today"}</div>
                 </div>
               </div>
-              <div class="trx-amt ${amtColor}">${symbol}${t.currency === "USD" ? "$" : ""}${t.amount}${t.currency === "KHR" ? " ៛" : ""}</div>
+              <div class="trx-amt ${amtColor}">${symbol}${t.currency === "USD" ? "$" : ""}${Math.abs(t.amount)}${t.currency === "KHR" ? " ៛" : ""}</div>
             </div>
           `;
         });
@@ -901,11 +866,12 @@
         document.getElementById("slipSheet").classList.add("active");
 
         document.getElementById("slipAmount").innerText =
-          `${cur === "USD" ? "$" : ""}${amount}${cur === "KHR" ? " ៛" : ""}`;
+          `${cur === "USD" ? "$" : ""}${Math.abs(amount)}${cur === "KHR" ? " ៛" : ""}`;
         document.getElementById("slipDate").innerText =
           date || new Date().toLocaleString();
         document.getElementById("slipType").innerText =
           remark || "ប្រតិបត្តិការ";
+        document.getElementById("slipRef").innerText = id || "N/A";
       }
 
       function closeSlipSheet() {
@@ -920,7 +886,7 @@
         Swal.fire({
           title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
           html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានក្នុង ១ថ្ងៃ</p>
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានដុល្លាក្នុង ១ថ្ងៃ</p>
             <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5">
             <input type="password" id="limitPin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">
           `,
@@ -932,9 +898,8 @@
           preConfirm: () => {
             const limit = document.getElementById("limit").value;
             const pin = document.getElementById("limitPin").value;
-            if (!limit || !pin) {
+            if (!limit || !pin)
               Swal.showValidationMessage("សូមបំពេញចំនួនលុយ និង PIN!");
-            }
             return { limit, pin };
           },
         }).then((result) => {
@@ -943,7 +908,6 @@
               title: "កំពុងដំណើរការ...",
               didOpen: () => Swal.showLoading(),
             });
-
             fetch("/api/account/junior/update-limit", {
               method: "POST",
               headers: {
@@ -960,7 +924,6 @@
               .then((res) => res.json())
               .then((data) => {
                 if (data.success) {
-                  // Update Data ចូល Storage ភ្លាមៗ (ដូចមុខងារ Freeze ដែរ)
                   if (data.user) {
                     sessionStorage.setItem("user", JSON.stringify(data.user));
                     currentUser = data.user;
@@ -972,13 +935,12 @@
                     timer: 2000,
                     showConfirmButton: false,
                   });
-                } else {
+                } else
                   Swal.fire({
                     icon: "error",
                     title: "បរាជ័យ",
                     text: data.message,
                   });
-                }
               })
               .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
           }
@@ -989,7 +951,7 @@
       // 🔒 ផ្អាកគណនី (Freeze/Unfreeze)
       // ==========================================
       function toggleFreeze(accNum, currentFrozenStatus) {
-        const isFrozen = !currentFrozenStatus; // ប្តូរពី ពិត ទៅ មិនពិត ឬ ផ្ទុយមកវិញ
+        const isFrozen = !currentFrozenStatus;
         const actionText = isFrozen ? "ផ្អាក" : "បើកសោរ";
         const confirmColor = isFrozen ? "#ef4444" : "#10b981";
 
@@ -1012,7 +974,6 @@
               title: "កំពុងដំណើរការ...",
               didOpen: () => Swal.showLoading(),
             });
-
             fetch("/api/account/junior/toggle-freeze", {
               method: "POST",
               headers: {
@@ -1029,7 +990,6 @@
               .then((res) => res.json())
               .then((data) => {
                 if (data.success) {
-                  // Update ក្នុង Storage ភ្លាមៗ ដើម្បីកុំអោយគាំង
                   if (data.user) {
                     sessionStorage.setItem("user", JSON.stringify(data.user));
                     currentUser = data.user;
@@ -1040,14 +1000,13 @@
                     text: data.message,
                     timer: 1500,
                     showConfirmButton: false,
-                  }).then(() => renderJuniorCards()); // គូរ UI កាតកូនម្តងទៀត
-                } else {
+                  }).then(() => renderJuniorCards());
+                } else
                   Swal.fire({
                     icon: "error",
                     title: "បរាជ័យ",
                     text: data.message,
                   });
-                }
               })
               .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
           }
