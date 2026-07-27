@@ -402,6 +402,41 @@
         font-weight: 600;
         cursor: pointer;
       }
+
+      /* ==========================================
+         ✨ SWEETALERT PREMIUM STYLING ✨
+         ========================================== */
+      .premium-swal {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+        border-radius: 20px !important;
+      }
+      .premium-swal .swal2-title {
+        font-size: 1.25rem !important;
+        color: #1e293b !important;
+      }
+      .premium-swal .swal2-input {
+        border-radius: 12px !important;
+        border: 2px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        transition: border-color 0.3s;
+      }
+      .premium-swal .swal2-input:focus {
+        border-color: #004d40 !important;
+      }
+      /* កំណត់អក្សរ PIN អោយនៅកណ្តាល មានគម្លាតស្អាត */
+      .swal-pin-input {
+        text-align: center;
+        font-size: 1.8rem !important;
+        letter-spacing: 15px !important;
+        font-weight: 700;
+        color: #004d40 !important;
+      }
+      /* កំណត់អក្សរប្រាក់អោយនៅកណ្តាល */
+      .swal-amount-input {
+        text-align: center;
+        font-size: 1.3rem !important;
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -447,7 +482,16 @@
           </p>
 
           <div class="currency-toggle" id="dynamicCurrencyToggle">
-            <!-- នឹងត្រូវបាន Render ស្វ័យប្រវត្តិដោយផ្អែកលើប្រភេទគណនី -->
+            <div
+              class="cur-btn active"
+              id="btnCurUSD"
+              onclick="setCurrency('USD')"
+            >
+              USD ($)
+            </div>
+            <div class="cur-btn" id="btnCurKHR" onclick="setCurrency('KHR')">
+              KHR (៛)
+            </div>
           </div>
 
           <div class="input-group">
@@ -588,7 +632,7 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (បង្ហាញរូបិយប័ណ្ណពិតប្រាកដ)
+      // ១. គូរ UI កាតកូន (បង្ហាញទាំងកុងដុល្លា ទាំងកុងខ្មែរ)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
@@ -605,30 +649,22 @@
         juniorAccounts.forEach((acc) => {
           const isFrozen = acc.isLocked || acc.isFrozen || false;
 
-          // ឆែកទិន្នន័យជាក់ស្ដែង បើមាន field balance ឬ balanceKHR អោយបង្ហាញ
-          const hasUSD = acc.balance !== undefined && acc.balance !== null;
-          const hasKHR =
-            acc.balanceKHR !== undefined && acc.balanceKHR !== null;
+          // ទាញយកលុយជាក់ស្តែងពី Database (បើអត់មានអោយលោតលេខ ០ ជានិច្ច ដើម្បីកុំអោយវាបាត់)
+          const balUSD = Number(acc.balance || 0);
+          const balKHR = Number(acc.balanceKHR || 0);
 
-          let balanceHtml = `<div class="balance-container">`;
-          if (hasUSD) {
-            balanceHtml += `
+          let balanceHtml = `
+            <div class="balance-container">
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/us.png" alt="USD"> USD</div>
-                <div class="bal-amount">$${Number(acc.balance || 0).toFixed(2)}</div>
-              </div>`;
-          }
-          if (hasUSD && hasKHR) {
-            balanceHtml += `<div class="bal-divider"></div>`;
-          }
-          if (hasKHR) {
-            balanceHtml += `
+                <div class="bal-amount">$${balUSD.toFixed(2)}</div>
+              </div>
+              <div class="bal-divider"></div>
               <div class="bal-row">
                 <div class="bal-label"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> KHR</div>
-                <div class="bal-amount">${Number(acc.balanceKHR || 0).toLocaleString()} ៛</div>
-              </div>`;
-          }
-          balanceHtml += `</div>`;
+                <div class="bal-amount">${balKHR.toLocaleString("en-US")} ៛</div>
+              </div>
+            </div>`;
 
           html += `
             <div class="junior-card">
@@ -647,7 +683,7 @@
               ${balanceHtml}
 
               <div class="action-grid">
-                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}', ${hasUSD}, ${hasKHR})">
+                <button class="action-btn btn-topup" onclick="openTopupSheet('${acc.accountNumber}', '${acc.accountName}')">
                   <div class="icon-bg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                   <span>បញ្ជូលប្រាក់</span>
                 </button>
@@ -684,25 +720,13 @@
         document.getElementById("topupStep2").classList.remove("active");
       }
 
-      function openTopupSheet(accNum, name, hasUSD, hasKHR) {
+      function openTopupSheet(accNum, name) {
         activeChildAccount = accNum;
         document.getElementById("topupToName").innerText =
           `ផ្ទេរទៅកាន់: ${name.toUpperCase()} (JUNIOR)`;
 
-        const toggleContainer = document.getElementById(
-          "dynamicCurrencyToggle",
-        );
-        toggleContainer.innerHTML = "";
-
-        if (hasUSD) {
-          toggleContainer.innerHTML += `<div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>`;
-          activeCurrency = "USD";
-        }
-        if (hasKHR) {
-          const isActive = !hasUSD ? "active" : "";
-          toggleContainer.innerHTML += `<div class="cur-btn ${isActive}" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>`;
-          if (!hasUSD) activeCurrency = "KHR";
-        }
+        // លំនាំដើមគឺ USD ជានិច្ចពេលបើក Form
+        setCurrency("USD");
 
         document.getElementById("sheetOverlay").classList.add("active");
         document.getElementById("topupSheet").classList.add("active");
@@ -736,7 +760,6 @@
         setTimeout(() => document.getElementById("inputPin").focus(), 350);
       }
 
-      // 🔥 ការផ្ទេរប្រាក់ពិតប្រាកដទៅកាន់ API ត្រឹមត្រូវ
       function submitTopup() {
         const amt = parseFloat(document.getElementById("inputAmount").value);
         const pin = document.getElementById("inputPin").value;
@@ -747,7 +770,6 @@
           didOpen: () => Swal.showLoading(),
         });
 
-        // កំណត់កុងប្រភពអោយត្រូវតាមស្តង់ដារ API (MAIN_USD ឬ MAIN_KHR)
         const senderAcc = activeCurrency === "KHR" ? "MAIN_KHR" : "MAIN_USD";
 
         const reqBody = {
@@ -761,7 +783,6 @@
           trxMethod: "Top-Up Junior",
         };
 
-        // ប្តូរទៅហៅ API Transfer ធំរបស់ប្រព័ន្ធ
         fetch("/api/transfer", {
           method: "POST",
           headers: {
@@ -773,7 +794,6 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.success) {
-              // 💡 Update ទិន្នន័យពិតចូល Storage ដើម្បីអោយវាលោតលុយភ្លាមៗ
               if (data.user) {
                 currentUser = data.user;
                 if (data.slipData) {
@@ -792,7 +812,7 @@
                 customClass: { popup: "premium-swal" },
               }).then(() => {
                 closeAllSheets();
-                renderJuniorCards(); // គូរ UI ថ្មីតាមលុយដែលទើបតែបញ្ចូល
+                renderJuniorCards();
               });
             } else {
               Swal.fire({ icon: "error", title: "បរាជ័យ", text: data.message });
@@ -817,15 +837,13 @@
       }
 
       // ==========================================
-      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip (ចាប់តាម receiverAcc/senderAcc)
+      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip
       // ==========================================
       function openHistorySheet(accNum) {
         document.getElementById("sheetOverlay").classList.add("active");
         document.getElementById("historySheet").classList.add("active");
 
         const container = document.getElementById("historyListContainer");
-
-        // ឆែកមើល History របស់ User តាម Field ពិតដែល Backend ប្រើ (receiverAcc និង senderAcc)
         const trxs = (currentUser.transactions || []).filter(
           (t) =>
             String(t.receiverAcc) === String(accNum) ||
@@ -839,7 +857,6 @@
 
         let html = "";
         trxs.forEach((t) => {
-          // បើគណនីកូនជាអ្នកទទួល គឺប្រាក់ចូល
           const isIncome = String(t.receiverAcc) === String(accNum);
           const amtColor = isIncome ? "amt-in" : "amt-out";
           const symbol = isIncome ? "+" : "-";
@@ -886,15 +903,27 @@
         Swal.fire({
           title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
           html: `
-            <p style="font-size:0.9rem; color:#64748b; margin-bottom:10px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានដុល្លាក្នុង ១ថ្ងៃ</p>
-            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5">
-            <input type="password" id="limitPin" class="swal2-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">
+            <p style="font-size:0.9rem; color:#64748b; margin-bottom:15px; font-family: 'Kantumruy Pro', sans-serif;">កំណត់ថាគណនីនេះអាចចាយបានប៉ុន្មានដុល្លារក្នុង ១ថ្ងៃ</p>
+            <input type="number" id="limit" class="swal2-input swal-amount-input" placeholder="ឧទាហរណ៍: 5" style="margin-top: 0;">
+            <input type="password" id="limitPin" class="swal2-input swal-pin-input" placeholder="លេខ PIN" maxlength="4">
           `,
           confirmButtonText: "រក្សាទុក",
           confirmButtonColor: "#f59e0b",
           showCancelButton: true,
           cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
+          // 💡 Auto Focus ចូលប្រអប់ទី១ រួចចុច Enter ទៅប្រអប់បន្ទាប់
+          didOpen: () => {
+            const limitInput = document.getElementById("limit");
+            const pinInput = document.getElementById("limitPin");
+            limitInput.focus();
+            limitInput.addEventListener("keyup", (e) => {
+              if (e.key === "Enter") pinInput.focus();
+            });
+            pinInput.addEventListener("keyup", (e) => {
+              if (e.key === "Enter") Swal.clickConfirm();
+            });
+          },
           preConfirm: () => {
             const limit = document.getElementById("limit").value;
             const pin = document.getElementById("limitPin").value;
@@ -934,12 +963,14 @@
                     text: data.message,
                     timer: 2000,
                     showConfirmButton: false,
+                    customClass: { popup: "premium-swal" },
                   });
                 } else
                   Swal.fire({
                     icon: "error",
                     title: "បរាជ័យ",
                     text: data.message,
+                    customClass: { popup: "premium-swal" },
                   });
               })
               .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
@@ -957,12 +988,23 @@
 
         Swal.fire({
           title: `តើអ្នកពិតជាចង់ ${actionText} គណនីនេះមែនទេ?`,
-          html: `<input type="password" id="freezePin" class="swal2-input" placeholder="បញ្ជាក់ PIN របស់អ្នក" maxlength="4" style="letter-spacing: 5px;">`,
+          html: `
+            <input type="password" id="freezePin" class="swal2-input swal-pin-input" placeholder="លេខ PIN" maxlength="4" style="margin-top: 15px;">
+          `,
           icon: "warning",
           showCancelButton: true,
           confirmButtonText: `យល់ព្រម ${actionText}`,
           confirmButtonColor: confirmColor,
+          cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
+          // 💡 Auto Focus ចូលប្រអប់ PIN ភ្លាមៗ គ្រាន់តែវាយរួចចុច Enter ដើរតែម្តង
+          didOpen: () => {
+            const pinInput = document.getElementById("freezePin");
+            pinInput.focus();
+            pinInput.addEventListener("keyup", (e) => {
+              if (e.key === "Enter") Swal.clickConfirm();
+            });
+          },
           preConfirm: () => {
             const pin = document.getElementById("freezePin").value;
             if (!pin) Swal.showValidationMessage("សូមបញ្ចូល PIN!");
@@ -1000,12 +1042,14 @@
                     text: data.message,
                     timer: 1500,
                     showConfirmButton: false,
+                    customClass: { popup: "premium-swal" },
                   }).then(() => renderJuniorCards());
                 } else
                   Swal.fire({
                     icon: "error",
                     title: "បរាជ័យ",
                     text: data.message,
+                    customClass: { popup: "premium-swal" },
                   });
               })
               .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
