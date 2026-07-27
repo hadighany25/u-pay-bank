@@ -101,6 +101,15 @@ function renderUsersTable(users) {
           actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
       }
 
+      // 🔥 ត្រូវថែមកូដ ២ នេះចូលវិញ មុននឹង Return ព្រោះបើអត់វា កូដនឹងគាំងលែងបង្ហាញតារាង
+      const freezeHtml = isCentralBank
+        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
+        : canFreeze
+          ? `<label class="switch" style="margin: 0 auto;"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
+          : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
+
+      const bgStyle = isCentralBank ? "background-color: #fef9c3;" : "";
+
       // ទាញរូបពី Database (u.profileImage) មុនគេ។
       // បើអត់មានរូប (null/empty) វាលោតមកយក /images/logo.png
       const imgSrc = u.profileImage || "/images/logo.png";
