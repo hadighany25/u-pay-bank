@@ -587,6 +587,7 @@ const transfer = async (req, res) => {
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
 
+    // ១. ករណីអ្នកទទួល ជាគណនីរួម (Joint Account)
     if (!isMerchant && jointReceiverAcc) {
       for (let m of jointReceiverAcc.members) {
         if (m.status === "active") {
@@ -603,11 +604,23 @@ const transfer = async (req, res) => {
             });
             uDoc.markModified("notifications");
             await uDoc.save();
+
+            // 🔥 ថែមថ្មី៖ បាញ់សារ Telegram ទៅសមាជិកគណនីរួម
+            if (bot && bot.sendUserPaymentAlert) {
+              bot.sendUserPaymentAlert(uDoc._id, {
+                amount: receiverAmount,
+                currency: isReceiverKHR ? "KHR" : "USD",
+                senderName: senderMsgName,
+                refId: sharedRefId,
+              });
+            }
           }
         }
       }
     } else {
       await Transaction.create(receiverTrx);
+
+      // ២. ករណីអ្នកទទួល ជា USER ធម្មតា
       if (!isMerchant) {
         const rDoc = await User.findOne({ username: receiver.username });
         if (rDoc) {
@@ -621,9 +634,19 @@ const transfer = async (req, res) => {
           });
           rDoc.markModified("notifications");
           await rDoc.save();
+
+          // 🔥 ថែមថ្មី៖ បាញ់សារ Telegram ទៅកាន់ USER ធម្មតា
+          if (bot && bot.sendUserPaymentAlert) {
+            bot.sendUserPaymentAlert(rDoc._id, {
+              amount: receiverAmount,
+              currency: isReceiverKHR ? "KHR" : "USD",
+              senderName: senderMsgName,
+              refId: sharedRefId,
+            });
+          }
         }
       } else {
-        // 🔥 កន្លែងថែមថ្មី៖ បាញ់សារ Telegram ទៅកាន់ម្ចាស់ហាង (Merchant) 🔥
+        // ៣. ករណីអ្នកទទួល ជា MERCHANT
         if (bot && bot.sendMerchantPaymentAlert) {
           try {
             bot.sendMerchantPaymentAlert(receiverMerchant._id, {

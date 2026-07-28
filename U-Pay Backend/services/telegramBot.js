@@ -1,10 +1,9 @@
 const TelegramBot = require("node-telegram-bot-api");
 const User = require("../models/User");
-const Merchant = require("../models/Merchant"); // ទាញ Model Merchant មកប្រើ
-const merchantController = require("../controllers/merchantController"); // ទាញយក Controller មកដើម្បីយក Object ដែលស្តុកលេខកូដ
+const Merchant = require("../models/Merchant");
+const merchantController = require("../controllers/merchantController");
 require("dotenv").config();
 
-// ទាញយក Token ពី .env
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
@@ -12,15 +11,17 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text ? msg.text.trim() : "";
 
-  // ឆែកមើលថាតើសារដែលគេវាយ ជាលេខកូដ ៤ ខ្ទង់ដែរឬទេ
   if (text.length === 4 && !isNaN(text)) {
     try {
-      // ១. ឆែកមើលសម្រាប់ USER ធម្មតាជាមុនសិន
+      // ==========================================
+      // ១. ឆែកមើលសម្រាប់ USER ធម្មតា
+      // ==========================================
       let user = await User.findOne({ linkCode: text });
       if (user) {
-        user.telegramChatId = chatId;
+        // 🔥 ជួសជុលត្រង់នេះ៖ ប្តូរទៅជា .toString() ដើម្បីឱ្យវា Save ចូល Database ជោគជ័យ
+        user.telegramChatId = chatId.toString();
         user.linkCode = null;
-        await user.save();
+        await user.save(); // បើ Save ជោគជ័យ ផ្ទាំង Web នឹងលោតអូតូ!
 
         bot.sendMessage(
           chatId,
@@ -30,23 +31,16 @@ bot.on("message", async (msg) => {
         console.log(
           `✅ Linked User: Account: ${user.username}, Group: ${chatId}`,
         );
-        // 💥 ថែមថ្មី៖ បាញ់សញ្ញាទៅកាន់ Frontend របស់ User នេះ ថាការភ្ជាប់គឺជោគជ័យហើយ!
-        if (global.io) {
-          global.io.to(user.username).emit("telegramLinked", {
-            success: true,
-            message: "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ដោយជោគជ័យ!",
-          });
-        }
-
-        return; // ឈប់ត្រឹមនេះ បើស្គាល់ថាជា User
+        return;
       }
 
-      // ២. បើមិនមែនជា User ទេ, ឆែកមើលសម្រាប់ MERCHANT វិញម្តង
+      // ==========================================
+      // ២. ឆែកមើលសម្រាប់ MERCHANT
+      // ==========================================
       const pendingMerchCodes = merchantController.pendingMerchantTeleCodes;
       if (pendingMerchCodes && pendingMerchCodes[text]) {
         const data = pendingMerchCodes[text];
 
-        // ឆែកមើលថាតើកូដនេះហួសម៉ោង ៥នាទី (Expired) ទេ?
         if (data.expiresAt < Date.now()) {
           bot.sendMessage(
             chatId,
@@ -56,7 +50,6 @@ bot.on("message", async (msg) => {
           return;
         }
 
-        // Update យក Chat ID នេះទៅតភ្ជាប់ជាមួយ Merchant នោះ
         const merchant = await Merchant.findByIdAndUpdate(
           data.merchantId,
           { telegramChatId: chatId.toString() },
@@ -67,8 +60,6 @@ bot.on("message", async (msg) => {
           const successMsg = `✅ <b>ការភ្ជាប់ជោគជ័យ! (Linked Successfully)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nចាប់ពីពេលនេះតទៅ រាល់ពេលមានអតិថិជនទូទាត់ប្រាក់ចូលហាងនេះ ប្រព័ន្ធនឹងលោតសារជូនដំណឹងចូលមកទីនេះភ្លាមៗ។ 🚀`;
           bot.sendMessage(chatId, successMsg, { parse_mode: "HTML" });
           console.log(`✅ Linked Merchant: ${merchant.name}, Group: ${chatId}`);
-
-          // លុបកូដនេះចេញពី Memory ក្រោយពេលភ្ជាប់ជោគជ័យ
           delete pendingMerchCodes[text];
         }
         return;
@@ -84,14 +75,39 @@ bot.on("message", async (msg) => {
 });
 
 // ========================================================
-// មុខងារបន្ថែម៖ បាញ់សារទៅ Merchant ពេលមានលុយចូល
-// (យើងភ្ជាប់វាជាមួយ Object bot ដើម្បីងាយស្រួលហៅពីខាងក្រៅ)
+// មុខងារទី ១៖ បាញ់សារទៅ USER ធម្មតា ពេលមានលុយចូល (🔥 ថែមថ្មីវិញ)
+// ========================================================
+bot.sendUserPaymentAlert = async (userId, paymentData) => {
+  try {
+    const user = await User.findById(userId);
+    if (user && user.telegramChatId) {
+      const symbol = paymentData.currency === "USD" ? "$" : "៛";
+      const amountStr =
+        paymentData.currency === "USD"
+          ? paymentData.amount.toFixed(2)
+          : paymentData.amount.toLocaleString();
+
+      const alertMsg = `🔔 <b>ទទួលបានការផ្ទេរប្រាក់ថ្មី!</b>
+━━━━━━━━━━━━━━━━━
+💵 ចំនួនទឹកប្រាក់៖ <b>+${symbol}${amountStr}</b>
+👤 ពីគណនី៖ ${paymentData.senderName}
+📝 លេខប្រតិបត្តិការ៖ <code>${paymentData.refId}</code>
+🕒 ម៉ោង៖ ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Phnom_Penh" })}
+✅ <b>ស្ថានភាព៖ ជោគជ័យ</b>`;
+
+      bot.sendMessage(user.telegramChatId, alertMsg, { parse_mode: "HTML" });
+    }
+  } catch (error) {
+    console.error("Failed to send user telegram alert:", error);
+  }
+};
+
+// ========================================================
+// មុខងារទី ២៖ បាញ់សារទៅ MERCHANT ពេលមានលុយចូល
 // ========================================================
 bot.sendMerchantPaymentAlert = async (merchantId, paymentData) => {
   try {
     const merchant = await Merchant.findById(merchantId);
-
-    // ឆែកមើលថាហាងហ្នឹង ពិតជាបានភ្ជាប់ Telegram មែនឬអត់
     if (merchant && merchant.telegramChatId) {
       const symbol = paymentData.currency === "USD" ? "$" : "៛";
       const amountStr =
