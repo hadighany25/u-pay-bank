@@ -298,15 +298,25 @@
         btn.disabled = false;
       }
 
-      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (Real-time check)
+      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (បានជួសជុលបញ្ហា Browser Cache)
       function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+
         pollingInterval = setInterval(async () => {
           try {
-            const res = await fetch("/api/users");
-            const users = await res.json();
-            const freshUser = users.find((u) => u.username === user.username);
+            // 💥 ថែម ?t=... ដើម្បីបង្ខំឱ្យ Browser ទាញទិន្នន័យថ្មីជានិច្ច (ការពារកុំឱ្យគាំងទិន្នន័យចាស់)
+            const res = await fetch(`/api/users?t=${new Date().getTime()}`);
+            const data = await res.json();
 
-            // បើ Server លោតមាន ChatID ថ្មី មានន័យថាគេវាយលេខត្រូវហើយ!
+            const userList = Array.isArray(data) ? data : data.users || [];
+
+            const freshUser = userList.find(
+              (u) =>
+                u.username &&
+                u.username.toLowerCase() === user.username.toLowerCase(),
+            );
+
+            // បើ Server លោតមាន ChatID ថ្មី មានន័យថាភ្ជាប់ជោគជ័យហើយ!
             if (freshUser && freshUser.telegramChatId) {
               clearInterval(pollingInterval); // ឈប់ឆែក
 
@@ -314,20 +324,27 @@
               user = freshUser;
               sessionStorage.setItem("user", JSON.stringify(user));
 
-              // បង្ហាញ Animation និងបិទកូដចោល
+              // លាក់កូដ និងបង្ហាញ UI ជោគជ័យ
               document.getElementById("codeContainer").style.display = "none";
               document.getElementById("instructions").style.display = "none";
               showSuccessUI();
 
+              // 💥 កែទម្រង់ Alert ឱ្យលោតស្អាតដូចខាង Merchant (ក្នុងរូបភាព)
               Swal.fire({
                 icon: "success",
-                title: "Congratulations! 🎉",
-                text: "គណនីត្រូវបានភ្ជាប់ទៅកាន់ Telegram ជោគជ័យ!",
-                confirmButtonColor: "#10b981",
-                timer: 3000,
+                title: "ជោគជ័យ! 🎉",
+                text: `គណនី ${user.username} ភ្ជាប់ Telegram រួចរាល់!`,
+                confirmButtonColor: "#004d40", // ពណ៌បៃតងចាស់ដូច Theme បង
+                confirmButtonText: "OK",
+                allowOutsideClick: false,
+              }).then(() => {
+                // បន្ទាប់ពីចុច OK ឱ្យវា Refresh ទំព័រម្តងដើម្បីអាប់ដេតទិន្នន័យ
+                window.location.reload();
               });
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Polling error:", e);
+          }
         }, 2000); // ឆែករៀងរាល់ ២វិនាទី
       }
 
