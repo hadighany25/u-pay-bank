@@ -8,7 +8,7 @@ const Merchant = require("../models/Merchant");
 const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount"); // ធុងលុយគណនីរួម
-const bot = require("../path/to/telegrambot");
+const bot = require("../services/telegramBot");
 
 // នាំចូល Services
 const {
