@@ -741,12 +741,25 @@ const refundTransaction = async (req, res) => {
       sender.balance += refundAmount;
     }
 
-    // ៧. បង្កើតប្រវត្តិថ្មី ២ ដាច់ដោយឡែក (🔥 ជួសជុលបញ្ហា Duplicate Key)
+    // ៧. បង្កើតប្រវត្តិថ្មី ២ ដាច់ដោយឡែក
     const timestamp = Date.now();
-    const refundRefSender = "RF-" + timestamp.toString().slice(-6) + "S"; // ថែមអក្សរ S ការពារការជាន់គ្នា
-    const refundRefReceiver = "RF-" + timestamp.toString().slice(-6) + "R"; // ថែមអក្សរ R ការពារការជាន់គ្នា
-    const newHashSender = "HS-" + timestamp + "1";
-    const newHashReceiver = "HS-" + timestamp + "2";
+    const refundRefSender = "RF-" + timestamp.toString().slice(-6) + "S";
+    const refundRefReceiver = "RF-" + timestamp.toString().slice(-6) + "R";
+
+    // បង្កើត Function តូចមួយសម្រាប់ Random អក្សរលាយលេខ ៨ ខ្ទង់
+    const generateShortHash = () => {
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      let hash = "";
+      for (let i = 0; i < 8; i++) {
+        hash += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return hash;
+    };
+
+    // ហៅ Function នោះមកប្រើ ដើម្បីបាន Hash ៨ខ្ទង់ ស្អាតៗ
+    const newHashSender = generateShortHash();
+    const newHashReceiver = generateShortHash();
+
     const dateNow =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
@@ -761,7 +774,7 @@ const refundTransaction = async (req, res) => {
       currency: originalTrx.currency,
       fee: 0,
       username: sender.username, // ⬅️ បន្ថែម username នៅទីនេះ
-      senderName: receiver.username,
+      senderName: "System Refund",
       senderAcc: receiver.accountNumber,
       receiverName: sender.username,
       receiverAcc: sender.accountNumber,
@@ -779,7 +792,7 @@ const refundTransaction = async (req, res) => {
       currency: originalTrx.currency,
       fee: 0,
       username: receiver.username, // ⬅️ បន្ថែម username នៅទីនេះ
-      senderName: receiver.username,
+      senderName: "System Refund",
       senderAcc: receiver.accountNumber,
       receiverName: sender.username,
       receiverAcc: sender.accountNumber,
@@ -807,7 +820,7 @@ const refundTransaction = async (req, res) => {
     sender.notifications.unshift({
       id: "NOTIF-" + Date.now() + "1",
       title: "Refund Processed ✅",
-      message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} ត្រូវបានបង្វិលចូលគណនីអ្នកវិញ។ មូលហេតុ: ${reason}`,
+      message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} ពីប្រតិបត្តិការលេខ ${cleanRefId} ត្រូវបានបង្វិលចូលគណនីអ្នកវិញ។ មូលហេតុ: ${reason}`,
       date: dateNow,
       isRead: false,
     });
@@ -816,7 +829,7 @@ const refundTransaction = async (req, res) => {
     receiver.notifications.unshift({
       id: "NOTIF-" + Date.now() + "2",
       title: "Refund Deducted ⚠️",
-      message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} ត្រូវបានដកចេញពីគណនីអ្នកដោយ Admin។ មូលហេតុ: ${reason}`,
+      message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} នៃប្រតិបត្តិការលេខ ${cleanRefId} ត្រូវបានដកចេញពីគណនីអ្នកដោយ Admin។ មូលហេតុ: ${reason}`,
       date: dateNow,
       isRead: false,
     });
