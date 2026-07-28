@@ -18,10 +18,9 @@ bot.on("message", async (msg) => {
       // ==========================================
       let user = await User.findOne({ linkCode: text });
       if (user) {
-        // 🔥 ជួសជុលត្រង់នេះ៖ ប្តូរទៅជា .toString() ដើម្បីឱ្យវា Save ចូល Database ជោគជ័យ
         user.telegramChatId = chatId.toString();
         user.linkCode = null;
-        await user.save(); // បើ Save ជោគជ័យ ផ្ទាំង Web នឹងលោតអូតូ!
+        await user.save(); // បើ Save ជោគជ័យ
 
         bot.sendMessage(
           chatId,
@@ -31,6 +30,17 @@ bot.on("message", async (msg) => {
         console.log(
           `✅ Linked User: Account: ${user.username}, Group: ${chatId}`,
         );
+
+        // 🔥 ថែមថ្មី៖ បាញ់សញ្ញា Socket ទៅកាន់ Frontend របស់ User ឱ្យលោតផ្ទាំង Success ភ្លាមៗ
+        const io = global.io; // ឬទាញតាមរយៈ app instance ប្រសិនបើបង configure ទុក (ឬ global.io)
+        if (io) {
+          io.to(user.username).emit("telegramLinked", {
+            success: true,
+            telegramChatId: user.telegramChatId,
+            message: "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ Telegram រួចរាល់!",
+          });
+        }
+
         return;
       }
 
