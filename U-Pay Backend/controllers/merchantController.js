@@ -338,11 +338,10 @@ exports.unlinkTelegram = async (req, res) => {
     const userId = req.user.username;
 
     // ស្វែងរកហាង រួច Set telegramChatId ទៅជា null វិញ
-    const merchant = await Merchant.findOneAndUpdate(
-      { _id: merchantId, userId: userId },
-      { telegramChatId: null },
-      { new: true },
-    );
+    const merchant = await Merchant.findOne({
+      _id: merchantId,
+      userId: userId,
+    });
 
     if (!merchant) {
       return res
@@ -350,10 +349,32 @@ exports.unlinkTelegram = async (req, res) => {
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
     }
 
+    // 🔥 ថែមថ្មី៖ បាញ់សារជូនដំណឹងចូល Telegram មុនពេលផ្តាច់
+    if (merchant.telegramChatId) {
+      try {
+        const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram (Unlinked)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nគណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay ហាងរបស់អ្នកជោគជ័យ។ ចាប់ពីពេលនេះតទៅ នឹងមិនមានសារជូនដំណឹងលុយចូលទីនេះទៀតទេ។`;
+
+        // ហៅ bot មកប្រើ (ត្រូវប្រាកដថាបាន require bot មកក្នុង file Controller นี้រួចរាល់)
+        await bot.sendMessage(merchant.telegramChatId, unlinkMsg, {
+          parse_mode: "HTML",
+        });
+      } catch (teleErr) {
+        console.error(
+          "Failed to send telegram merchant unlink alert:",
+          teleErr,
+        );
+      }
+    }
+
+    // ធ្វើការ Update លុប ChatID ចោល
+    merchant.telegramChatId = null;
+    await merchant.save();
+
     res
       .status(200)
       .json({ success: true, message: "បានផ្តាច់ Telegram ដោយជោគជ័យ" });
   } catch (error) {
+    console.error("Unlink Merchant Error:", error);
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };

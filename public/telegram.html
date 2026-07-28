@@ -14,6 +14,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <style>
@@ -253,6 +254,37 @@
 
       let pollingInterval;
 
+      // 🔥 ភ្ជាប់ Socket.io ជាមួយ Backend ទុកជាស្រេច
+      const socket = io();
+
+      // ចាប់យកសញ្ញា Telegram Linked ពី Backend មកភ្លាមៗ (Real-time 100%)
+      socket.on("telegramLinked", (data) => {
+        if (data.success) {
+          if (pollingInterval) clearInterval(pollingInterval); // បញ្ឈប់ការ Polling
+
+          // Update Session ថ្មី
+          user.telegramChatId = data.telegramChatId;
+          sessionStorage.setItem("user", JSON.stringify(user));
+
+          // លាក់កូដ និងបង្ហាញ UI ជោគជ័យ
+          document.getElementById("codeContainer").style.display = "none";
+          document.getElementById("instructions").style.display = "none";
+          showSuccessUI();
+
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ! 🎉",
+            text:
+              data.message || "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ Telegram រួចរាល់!",
+            confirmButtonColor: "#004d40",
+            confirmButtonText: "OK",
+            allowOutsideClick: false,
+          }).then(() => {
+            window.location.reload();
+          });
+        }
+      });
+
       // ពិនិត្យមើលពេលបើកមកដល់ (បើមាន ChatID ស្រាប់ បង្ហាញ Success)
       if (user.telegramChatId) {
         showSuccessUI();
@@ -280,7 +312,7 @@
             document.getElementById("codeContainer").style.display = "block";
             document.getElementById("instructions").style.display = "block";
 
-            // 🔥 ចាប់ផ្តើមអង្គុយចាំមើលរាល់ 2 វិនាទីម្តង
+            // នៅតែរក្សា Polling ទុកเผื่อករណី Socket หลุด connection (Dual protection)
             startPolling();
           } else {
             Swal.fire("Error", "បរាជ័យក្នុងការទាញកូដ!", "error");
@@ -298,16 +330,13 @@
         btn.disabled = false;
       }
 
-      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (បានជួសជុលបញ្ហា Browser Cache)
       function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
 
         pollingInterval = setInterval(async () => {
           try {
-            // 💥 ថែម ?t=... ដើម្បីបង្ខំឱ្យ Browser ទាញទិន្នន័យថ្មីជានិច្ច (ការពារកុំឱ្យគាំងទិន្នន័យចាស់)
             const res = await fetch(`/api/users?t=${new Date().getTime()}`);
             const data = await res.json();
-
             const userList = Array.isArray(data) ? data : data.users || [];
 
             const freshUser = userList.find(
@@ -316,36 +345,30 @@
                 u.username.toLowerCase() === user.username.toLowerCase(),
             );
 
-            // បើ Server លោតមាន ChatID ថ្មី មានន័យថាភ្ជាប់ជោគជ័យហើយ!
             if (freshUser && freshUser.telegramChatId) {
-              clearInterval(pollingInterval); // ឈប់ឆែក
-
-              // Update Session ថ្មី
+              clearInterval(pollingInterval);
               user = freshUser;
               sessionStorage.setItem("user", JSON.stringify(user));
 
-              // លាក់កូដ និងបង្ហាញ UI ជោគជ័យ
               document.getElementById("codeContainer").style.display = "none";
               document.getElementById("instructions").style.display = "none";
               showSuccessUI();
 
-              // 💥 កែទម្រង់ Alert ឱ្យលោតស្អាតដូចខាង Merchant (ក្នុងរូបភាព)
               Swal.fire({
                 icon: "success",
                 title: "ជោគជ័យ! 🎉",
                 text: `គណនី ${user.username} ភ្ជាប់ Telegram រួចរាល់!`,
-                confirmButtonColor: "#004d40", // ពណ៌បៃតងចាស់ដូច Theme បង
+                confirmButtonColor: "#004d40",
                 confirmButtonText: "OK",
                 allowOutsideClick: false,
               }).then(() => {
-                // បន្ទាប់ពីចុច OK ឱ្យវា Refresh ទំព័រម្តងដើម្បីអាប់ដេតទិន្នន័យ
                 window.location.reload();
               });
             }
           } catch (e) {
             console.error("Polling error:", e);
           }
-        }, 2000); // ឆែករៀងរាល់ ២វិនាទី
+        }, 2000);
       }
 
       function showSuccessUI() {
@@ -354,7 +377,6 @@
         document.getElementById("btnUnlink").style.display = "block";
       }
 
-      // 🔥 មុខងារផ្តាច់ Telegram
       async function unlinkTelegram() {
         Swal.fire({
           title: "តើអ្នកចង់ផ្តាច់មែនទេ?",
@@ -375,12 +397,11 @@
             const data = await res.json();
 
             if (data.success) {
-              // លុប ChatID ចេញពី Session
               user.telegramChatId = null;
               sessionStorage.setItem("user", JSON.stringify(user));
 
               Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
-                location.reload(); // Refresh ទំព័រឱ្យទៅសភាពដើម
+                location.reload();
               });
             }
           }
