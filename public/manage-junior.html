@@ -13,7 +13,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro ឱ្យស្អាតគ្រប់កន្លែង -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -25,7 +24,7 @@
 
     <style>
       /* ==========================================
-         🚀 CORE STYLES & LAYOUT
+         🚀 ១. រចនាបទមូលដ្ឋាន (CORE STYLES & LAYOUT)
          ========================================== */
       body,
       input,
@@ -43,9 +42,7 @@
         display: flex;
         justify-content: center;
         min-height: 100vh;
-        transition:
-          opacity 0.4s ease,
-          background-color 0.3s ease;
+        transition: opacity 0.4s ease;
         -webkit-font-smoothing: antialiased;
       }
       body.loaded {
@@ -64,6 +61,7 @@
         position: relative;
         padding-bottom: 90px;
       }
+
       .nav-header {
         padding: 20px;
         background: #004d40;
@@ -75,7 +73,9 @@
         position: sticky;
         top: 0;
         z-index: 50;
+        font-weight: 600;
       }
+
       .content-body {
         padding: 20px;
         flex: 1;
@@ -84,7 +84,7 @@
       }
 
       /* ==========================================
-         👶 JUNIOR CARDS (ដក Animation លាក់កាតចេញ ដើម្បីកុំឱ្យបាត់)
+         👶 ២. រចនាប័ទ្មកាតគណនីកូន (JUNIOR CARDS)
          ========================================== */
       .add-btn {
         display: flex;
@@ -113,7 +113,6 @@
         padding: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         margin-bottom: 20px;
-        /* បានលុប opacity: 0 និង animation ចេញ ដើម្បីដោះស្រាយបញ្ហាបាត់កាត */
         transition:
           transform 0.3s ease,
           box-shadow 0.3s ease;
@@ -127,26 +126,29 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
       }
+
       .kid-profile {
         display: flex;
         align-items: center;
         gap: 15px;
       }
+
       .kid-icon {
-        width: 55px;
-        height: 55px;
+        width: 50px;
+        height: 50px;
         background: #fdf2f8;
         color: #ec4899;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.8rem;
+        font-size: 1.5rem;
       }
+
       .kid-name h3 {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         color: #1e293b;
         margin: 0 0 4px 0;
         font-weight: 700;
@@ -157,6 +159,7 @@
         margin: 0;
       }
 
+      /* ស្លាកស្ថានភាព (Active/Frozen) */
       .status-badge {
         padding: 5px 12px;
         border-radius: 20px;
@@ -165,7 +168,6 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
       .status-dot {
         width: 8px;
@@ -187,6 +189,7 @@
       .status-frozen .status-dot {
         background: #ef4444;
       }
+
       @keyframes pulse {
         0% {
           transform: scale(0.95);
@@ -202,7 +205,7 @@
         }
       }
 
-      /* Accounts list */
+      /* បញ្ជីសមតុល្យលុយ (Account Balances) */
       .account-list {
         margin-bottom: 25px;
         background: #f8fafc;
@@ -225,12 +228,12 @@
         color: #475569;
       }
       .acc-currency img {
-        width: 22px;
+        width: 20px;
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       .acc-balance {
-        font-size: 1.3rem;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #004d40;
       }
@@ -238,7 +241,7 @@
         font-size: 0.75rem;
         color: #94a3b8;
         margin-top: 2px;
-        margin-left: 32px;
+        margin-left: 30px;
         font-weight: 500;
       }
       .acc-divider {
@@ -248,7 +251,7 @@
         width: 100%;
       }
 
-      /* Actions */
+      /* ប៊ូតុងមុខងារ (Actions) */
       .action-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -266,20 +269,20 @@
         outline: none;
       }
       .act-icon {
-        width: 48px;
-        height: 48px;
+        width: 45px;
+        height: 45px;
         border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1.1rem;
+        transition: transform 0.2s;
       }
       .act-btn:active .act-icon {
         transform: scale(0.85);
       }
       .act-text {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: #64748b;
         font-weight: 600;
       }
@@ -302,77 +305,7 @@
       }
 
       /* ==========================================
-         🎨 PREMIUM SWEET ALERT (CUSTOM CSS)
-         ========================================== */
-      .premium-swal {
-        border-radius: 20px !important;
-        padding: 30px 20px !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
-      }
-      .premium-swal .swal2-title {
-        font-size: 1.3rem !important;
-        color: #1e293b !important;
-        font-weight: 700 !important;
-        margin-bottom: 5px !important;
-      }
-      .premium-swal .swal2-html-container {
-        font-size: 0.95rem !important;
-        color: #64748b !important;
-        margin: 0 0 20px 0 !important;
-      }
-      .premium-swal .swal2-input {
-        height: 55px !important;
-        border-radius: 12px !important;
-        border: 2px solid #e2e8f0 !important;
-        text-align: center !important;
-        font-size: 1.1rem !important;
-        color: #1e293b !important;
-        box-shadow: none !important;
-        margin: 0 auto 15px auto !important;
-        width: 100% !important;
-        transition: 0.3s ease;
-        box-sizing: border-box !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
-      }
-      .premium-swal .swal2-input:focus {
-        border-color: #004d40 !important;
-        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1) !important;
-        outline: none !important;
-      }
-      .premium-swal .pin-input {
-        letter-spacing: 12px !important;
-        font-weight: 800 !important;
-        font-size: 1.5rem !important;
-      }
-
-      .premium-swal .swal2-actions {
-        gap: 15px !important;
-        margin-top: 10px !important;
-        width: 100%;
-        padding: 0 10px;
-        box-sizing: border-box;
-      }
-      .premium-swal .swal2-confirm {
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 14px 0 !important;
-        flex: 1;
-        font-size: 1.05rem !important;
-        border: none !important;
-      }
-      .premium-swal .swal2-cancel {
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 14px 0 !important;
-        flex: 1;
-        background-color: #64748b !important;
-        color: white !important;
-        font-size: 1.05rem !important;
-      }
-
-      /* ==========================================
-         📱 BOTTOM SHEETS
+         📱 ៣. ផ្ទាំងលោតពីក្រោម (BOTTOM SHEETS)
          ========================================== */
       .sheet-overlay {
         position: fixed;
@@ -390,6 +323,7 @@
         opacity: 1;
         pointer-events: auto;
       }
+
       .bottom-sheet {
         position: fixed;
         bottom: 0;
@@ -409,6 +343,7 @@
       .bottom-sheet.active {
         transform: translateX(-50%) translateY(0);
       }
+
       .sheet-header {
         padding: 20px;
         text-align: center;
@@ -431,6 +366,8 @@
         overflow-y: auto;
         flex: 1;
       }
+
+      /* កន្លែងបញ្ចូលទិន្នន័យ (Inputs & Currency Toggle) */
       .step-section {
         display: none;
         animation: fadeIn 0.3s ease;
@@ -438,10 +375,19 @@
       .step-section.active {
         display: block;
       }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
 
       .input-group {
         margin-bottom: 20px;
       }
+
       .big-input {
         width: 100%;
         padding: 15px;
@@ -457,12 +403,13 @@
       .big-input:focus {
         border-color: #004d40;
       }
+
       .currency-toggle {
         display: flex;
         background: #f1f5f9;
         border-radius: 12px;
-        margin-bottom: 20px;
         padding: 4px;
+        margin-bottom: 20px;
       }
       .cur-btn {
         flex: 1;
@@ -480,6 +427,64 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
 
+      /* បង្ហាញនៅពេលក្មេងមានគណនីតែមួយ (No Toggle needed) */
+      .single-currency-badge {
+        text-align: center;
+        padding: 12px;
+        background: #e0f2f1;
+        color: #004d40;
+        border-radius: 12px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        border: 1px solid #b2dfdb;
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 15px;
+        background: #004d40;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* ==========================================
+         🎨 ៤. រចនាប័ទ្ម SweetAlert (CUSTOM ALERTS)
+         ========================================== */
+      .premium-swal {
+        border-radius: 20px !important;
+        padding: 30px 20px !important;
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+      .premium-swal .swal2-title {
+        font-size: 1.2rem !important;
+        color: #1e293b !important;
+      }
+      .premium-swal .swal2-input {
+        border-radius: 12px !important;
+        text-align: center !important;
+        font-size: 1.1rem !important;
+        height: 50px !important;
+      }
+      .premium-swal .pin-input {
+        letter-spacing: 12px !important;
+        font-weight: 800 !important;
+        font-size: 1.5rem !important;
+      }
+      .premium-swal .swal2-confirm {
+        border-radius: 12px !important;
+        flex: 1;
+      }
+      .premium-swal .swal2-cancel {
+        border-radius: 12px !important;
+        flex: 1;
+        background-color: #64748b !important;
+      }
+
+      /* ប្រវត្តិ (History) */
       .trx-item {
         display: flex;
         justify-content: space-between;
@@ -522,18 +527,6 @@
       .amt-out {
         color: #ef4444;
       }
-
-      .btn-primary {
-        width: 100%;
-        padding: 15px;
-        background: #004d40;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
-      }
     </style>
   </head>
   <body>
@@ -552,18 +545,19 @@
         >
           <i class="fa-solid fa-plus"></i> បង្កើតគណនីកូនថ្មី
         </button>
+        <!-- ទីតាំងបង្ហាញកាតគណនីកូន -->
         <div id="juniorCardsContainer"></div>
       </div>
     </div>
 
-    <!-- ⬛ OVERLAY សម្រាប់ Background -->
+    <!-- ⬛ ផ្ទៃងងឹតខាងក្រោយពេលលោតផ្ទាំង -->
     <div
       class="sheet-overlay"
       id="sheetOverlay"
       onclick="closeAllSheets()"
     ></div>
 
-    <!-- 📱 TOP UP SHEET -->
+    <!-- 📱 ផ្ទាំងបញ្ចូលប្រាក់ (TOP UP SHEET) -->
     <div class="bottom-sheet" id="topupSheet">
       <div class="sheet-header">
         បញ្ចូលប្រាក់ឱ្យកូន
@@ -582,7 +576,9 @@
           >
             ផ្ទេរទៅកាន់: ...
           </p>
-          <div class="currency-toggle" id="dynamicCurrencyToggle"></div>
+          <!-- ទីតាំងបង្ហាញរូបិយប័ណ្ណ (បង្ហាញ Toggle បើក្មេងមាន ២កុង, បង្ហាញធម្មតាបើមាន ១កុង) -->
+          <div id="dynamicCurrencyContainer"></div>
+
           <div class="input-group">
             <input
               type="number"
@@ -624,7 +620,7 @@
       </div>
     </div>
 
-    <!-- 📱 HISTORY SHEET -->
+    <!-- 📱 ផ្ទាំងប្រវត្តិប្រតិបត្តិការ (HISTORY SHEET) -->
     <div class="bottom-sheet" id="historySheet">
       <div class="sheet-header">
         ប្រវត្តិប្រតិបត្តិការ
@@ -637,7 +633,7 @@
       ></div>
     </div>
 
-    <!-- 📱 SLIP MODAL -->
+    <!-- 📱 ផ្ទាំងវិក្កយបត្រ (SLIP MODAL) -->
     <div class="bottom-sheet" id="slipSheet" style="min-height: 70vh">
       <div class="sheet-header">
         វិក្កយបត្រ (Slip)
@@ -729,12 +725,10 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: អាប់ដេតថ្មី ធានាមិនឱ្យបាត់កាត ១០០%)
+      // ១. មុខងារទាញទិន្នន័យ និងគូរកាតកូន (SMART RENDER)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
-
-        // ស្រូបយក Account ទាំងអស់ដែលជាកូន (ជៀសវាង Field ខុសគ្នា យើងឆែកអោយទូលាយបំផុត)
         const juniorAccounts = (currentUser.subAccounts || []).filter((acc) => {
           const typeStr = String(
             acc.accountType || acc.type || acc.role || "",
@@ -752,7 +746,7 @@
 
         const groupedKids = {};
 
-        // តម្រៀបទិន្នន័យកូនចូលគ្នា
+        // តម្រៀបទិន្នន័យកូនចូលគ្នា (បញ្ចៀសការខុសឈ្មោះ ឬ Account ដាច់គ្នា)
         juniorAccounts.forEach((acc) => {
           let rawName = String(
             acc.accountName || acc.fullName || acc.name || "JUNIOR",
@@ -787,7 +781,7 @@
             };
           }
 
-          // ឆែកមើលលុយខ្មែរ (ករណី Dual-Currency ឬ កុងដាច់គ្នា)
+          // ឆែកមើលលុយខ្មែរ
           if (acc.balanceKHR !== undefined && acc.balanceKHR !== null) {
             groupedKids[rawName].khr = {
               accountNumber: acc.accountNumberKHR || accNum,
@@ -800,13 +794,12 @@
             };
           }
 
-          // ករណីកុងទើបបង្កើត អត់ទាន់មានលុយសោះ
+          // ករណីកុងទើបបង្កើត អត់ទាន់មានលុយ
           if (acc.balance === undefined && acc.balanceKHR === undefined) {
-            if (acc.currency === "KHR") {
+            if (acc.currency === "KHR")
               groupedKids[rawName].khr = { accountNumber: accNum, balance: 0 };
-            } else {
+            else
               groupedKids[rawName].usd = { accountNumber: accNum, balance: 0 };
-            }
           }
         });
 
@@ -814,13 +807,9 @@
         let html = "";
 
         Object.values(groupedKids).forEach((kid) => {
-          // ការពារកុំឱ្យកាតទទេ ក្នុងករណីមានបញ្ហា
-          if (!kid.usd && !kid.khr) {
-            kid.usd = { accountNumber: "N/A", balance: 0 };
-          }
-
           let accountsHtml = "";
 
+          // បើក្មេងមានលុយដុល្លារ
           if (kid.usd) {
             accountsHtml += `
               <div class="acc-item">
@@ -830,9 +819,13 @@
               <div class="acc-number-sub">Acc: ${kid.usd.accountNumber}</div>
             `;
           }
+
+          // បើក្មេងមានទាំង ២ ដាក់បន្ទាត់ខណ្ឌ
           if (kid.usd && kid.khr) {
             accountsHtml += `<div class="acc-divider"></div>`;
           }
+
+          // បើក្មេងមានលុយខ្មែរ
           if (kid.khr) {
             accountsHtml += `
               <div class="acc-item">
@@ -851,7 +844,7 @@
                 <div class="kid-profile">
                   <div class="kid-icon"><i class="fa-solid fa-child-reaching"></i></div>
                   <div class="kid-name">
-                    <h3>${kid.name} (JUNIOR)</h3>
+                    <h3>${kid.name}</h3>
                     <p>គណនីកូន</p>
                   </div>
                 </div>
@@ -889,7 +882,7 @@
       }
 
       // ==========================================
-      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ
+      // ២. មុខងារលោតផ្ទាំង និងបញ្ចូលប្រាក់ (TOP-UP LOGIC)
       // ==========================================
       function closeAllSheets() {
         document
@@ -911,21 +904,30 @@
         activeChildAccountKHR = hasKHR ? kid.khr.accountNumber : null;
 
         document.getElementById("topupToName").innerText =
-          `ផ្ទេរទៅកាន់: ${kid.name} (JUNIOR)`;
+          `ផ្ទេរទៅកាន់: ${kid.name}`;
 
-        const toggleContainer = document.getElementById(
-          "dynamicCurrencyToggle",
+        const dynamicContainer = document.getElementById(
+          "dynamicCurrencyContainer",
         );
-        toggleContainer.innerHTML = "";
 
-        if (hasUSD) {
-          toggleContainer.innerHTML += `<div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>`;
+        // បង្ហាញ UI ទៅតាមចំនួនគណនីដែលក្មេងមាន (១ ឬ ២)
+        if (hasUSD && hasKHR) {
+          // មានទាំង ២ ត្រូវបង្ហាញ Toggle ឱ្យជ្រើសរើស
+          dynamicContainer.innerHTML = `
+            <div class="currency-toggle">
+              <div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>
+              <div class="cur-btn" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>
+            </div>
+          `;
           activeCurrency = "USD";
-        }
-        if (hasKHR) {
-          const isActive = !hasUSD ? "active" : "";
-          toggleContainer.innerHTML += `<div class="cur-btn ${isActive}" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>`;
-          if (!hasUSD) activeCurrency = "KHR";
+        } else if (hasUSD) {
+          // មានតែប្រាក់ដុល្លារ
+          dynamicContainer.innerHTML = `<div class="single-currency-badge">គណនីប្រាក់ដុល្លារ (USD)</div>`;
+          activeCurrency = "USD";
+        } else if (hasKHR) {
+          // មានតែប្រាក់រៀល
+          dynamicContainer.innerHTML = `<div class="single-currency-badge">គណនីប្រាក់រៀល (KHR)</div>`;
+          activeCurrency = "KHR";
         }
 
         document.getElementById("sheetOverlay").classList.add("active");
@@ -1045,7 +1047,7 @@
       }
 
       // ==========================================
-      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip
+      // ៣. ប្រវត្តិប្រតិបត្តិការ (HISTORY & SLIP)
       // ==========================================
       function openHistorySheet(encodedName) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
@@ -1114,7 +1116,7 @@
       }
 
       // ==========================================
-      // 📊 កំណត់រនាំងចំណាយ (Daily Limit)
+      // ៤. មុខងារកំណត់រនាំងចំណាយ (DAILY LIMIT)
       // ==========================================
       function setDailyLimit(encodedName) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
@@ -1204,7 +1206,7 @@
       }
 
       // ==========================================
-      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze)
+      // ៥. មុខងារផ្អាកគណនី (FREEZE/UNFREEZE)
       // ==========================================
       function toggleFreeze(encodedName, isCurrentlyFrozen) {
         const kid = globalKidsData[decodeURIComponent(encodedName)];
