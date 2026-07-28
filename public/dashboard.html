@@ -1585,6 +1585,7 @@
                   bg = "#fff7ed";
                   col = "#ea580c";
                 }
+
                 // 🎁 ពណ៌ និង Icon សម្រាប់ Cashback Reward
                 else if (
                   n.title.includes("Cashback") ||
@@ -1594,6 +1595,13 @@
                   icon = "fa-sack-dollar";
                   bg = "#dcfce7";
                   col = "#059669";
+                }
+
+                // 🔄 ពណ៌ និង Icon សម្រាប់ System Refund (បន្ថែមថ្មីនៅទីនេះ)
+                else if (n.title.includes("Refund")) {
+                  icon = "fa-arrow-rotate-left"; // Icon បង្វិលត្រឡប់ក្រោយ
+                  bg = "#f3e8ff"; // ពណ៌ Background ស្វាយស្រាល
+                  col = "#9333ea"; // ពណ៌ Icon ស្វាយ
                 }
 
                 // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
