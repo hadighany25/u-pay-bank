@@ -676,7 +676,7 @@ const refundTransaction = async (req, res) => {
   const cleanRefId = String(refId).trim();
 
   try {
-    // ២. ស្វែងរក Transaction ដោយផ្ទាល់ពី Collection `transactions`
+    // ២. ស្វែងរក Transaction ពី Collection `transactions`
     const originalTrx = await Transaction.findOne({
       $or: [{ refId: cleanRefId }, { hash: cleanRefId }],
     });
@@ -684,8 +684,7 @@ const refundTransaction = async (req, res) => {
     if (!originalTrx) {
       return res.json({
         success: false,
-        message:
-          "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញទេ! សូមប្រាកដថា refId ឬ hash នេះពិតជាមានក្នុងប្រព័ន្ធ។",
+        message: "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញទេ!",
       });
     }
 
@@ -696,19 +695,18 @@ const refundTransaction = async (req, res) => {
       });
     }
 
-    // ៣. ទាញយកលេខកុងអ្នកផ្ញើ និង អ្នកទទួល ពី Transaction
+    // ៣. ទាញយកលេខកុងអ្នកផ្ញើ និង អ្នកទទួល
     const senderAcc = originalTrx.senderAcc;
     const receiverAcc = originalTrx.receiverAcc;
 
     if (!senderAcc || !receiverAcc) {
       return res.json({
         success: false,
-        message:
-          "Transaction នេះគ្មានទិន្នន័យលេខកុងអ្នកផ្ញើ ឬអ្នកទទួលគ្រប់គ្រាន់ទេ!",
+        message: "Transaction នេះគ្មានទិន្នន័យលេខកុងគ្រប់គ្រាន់ទេ!",
       });
     }
 
-    // ៤. ស្វែងរកគណនីអ្នកទាំង ២ តាមរយៈលេខកុងរបស់ពួកគេ ពី Collection `users`
+    // ៤. ស្វែងរកគណនីអ្នកទាំង ២
     const sender = await User.findOne({
       $or: [{ accountNumber: senderAcc }, { accountNumberKHR: senderAcc }],
     });
@@ -717,13 +715,10 @@ const refundTransaction = async (req, res) => {
     });
 
     if (!sender || !receiver) {
-      return res.json({
-        success: false,
-        message: "រកគណនីពិតប្រាកដរបស់អ្នកផ្ញើ ឬអ្នកទទួលមិនឃើញទេ!",
-      });
+      return res.json({ success: false, message: "រកគណនីពិតប្រាកដមិនឃើញទេ!" });
     }
 
-    // ៥. ឆែកមើលសមតុល្យលុយរបស់អ្នកទទួល តើមានគ្រប់គ្រាន់សម្រាប់កាត់សងវិញទេ?
+    // ៥. ឆែកមើលសមតុល្យលុយរបស់អ្នកទទួល
     const isKHR = originalTrx.currency === "KHR";
     const refundAmount = Math.abs(Number(originalTrx.amount));
     const receiverBalance = isKHR
@@ -733,7 +728,7 @@ const refundTransaction = async (req, res) => {
     if (receiverBalance < refundAmount) {
       return res.json({
         success: false,
-        message: `មិនអាច Refund បានទេ! អ្នកទទួល (@${receiver.username}) បានចាយលុយអស់ខ្លះហើយ សល់ត្រឹម ${isKHR ? "៛" : "$"}${receiverBalance}។`,
+        message: `មិនអាច Refund បានទេ! អ្នកទទួល (@${receiver.username}) ចាយលុយអស់ខ្លះហើយ សល់ត្រឹម ${isKHR ? "៛" : "$"}${receiverBalance}។`,
       });
     }
 
@@ -746,33 +741,20 @@ const refundTransaction = async (req, res) => {
       sender.balance += refundAmount;
     }
 
-    // ៧. កែប្រែ Status ប្រតិបត្តិការចាស់ទៅជា "Refunded"
-    // ប្រើ updateMany ដើម្បីធានាថាវា Update ទាំង Record អ្នកផ្ញើ និងអ្នកទទួល
-    // (ក្នុងករណី Database បង Save record ២ ផ្សេងគ្នាសម្រាប់ប្រតិបត្តិការតែ១)
-    await Transaction.updateMany(
-      { $or: [{ refId: cleanRefId }, { hash: cleanRefId }] },
-      {
-        $set: {
-          status: "Refunded",
-          remark: `[REFUNDED BY ADMIN] មូលហេតុ: ${reason}`,
-        },
-      },
-    );
-
-    // ៨. បង្កើតប្រវត្តិថ្មី (Transaction History) ២ ចូលទៅកាន់ Collection `transactions`
-    const refundRef = "RF-" + Date.now().toString().slice(-6);
+    // ៧. បង្កើតប្រវត្តិថ្មី ២ ដាច់ដោយឡែក (🔥 ជួសជុលបញ្ហា Duplicate Key)
+    const timestamp = Date.now();
+    const refundRefSender = "RF-" + timestamp.toString().slice(-6) + "S"; // ថែមអក្សរ S ការពារការជាន់គ្នា
+    const refundRefReceiver = "RF-" + timestamp.toString().slice(-6) + "R"; // ថែមអក្សរ R ការពារការជាន់គ្នា
+    const newHashSender = "HS-" + timestamp + "1";
+    const newHashReceiver = "HS-" + timestamp + "2";
     const dateNow =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
         : new Date().toISOString();
-    const newHash =
-      typeof generateHash === "function"
-        ? generateHash()
-        : "HASH-" + Date.now();
 
     const refundTxSender = new Transaction({
-      refId: refundRef,
-      hash: newHash,
+      refId: refundRefSender,
+      hash: newHashSender,
       date: dateNow,
       type: "Refund Received",
       amount: refundAmount,
@@ -788,8 +770,8 @@ const refundTransaction = async (req, res) => {
     });
 
     const refundTxReceiver = new Transaction({
-      refId: refundRef,
-      hash: newHash,
+      refId: refundRefReceiver,
+      hash: newHashReceiver,
       date: dateNow,
       type: "Refund Deducted",
       amount: -refundAmount,
@@ -807,7 +789,18 @@ const refundTransaction = async (req, res) => {
     await refundTxSender.save();
     await refundTxReceiver.save();
 
-    // ៩. ផ្ញើការជូនដំណឹង (Notifications) ទៅ User ទាំង ២
+    // ៨. កែប្រែ Status ប្រតិបត្តិការចាស់ទៅជា "Refunded"
+    await Transaction.updateMany(
+      { $or: [{ refId: cleanRefId }, { hash: cleanRefId }] },
+      {
+        $set: {
+          status: "Refunded",
+          remark: `[REFUNDED BY ADMIN] មូលហេតុ: ${reason}`,
+        },
+      },
+    );
+
+    // ៩. ផ្ញើការជូនដំណឹង និងរក្សាទុកលុយទៅក្នុង DB
     if (!sender.notifications) sender.notifications = [];
     sender.notifications.unshift({
       id: "NOTIF-" + Date.now() + "1",
@@ -826,13 +819,12 @@ const refundTransaction = async (req, res) => {
       isRead: false,
     });
 
-    // ១០. រក្សាទុកទិន្នន័យ (លែងមាន .markModified("transactions") ទៀតហើយ)
     sender.markModified("notifications");
     receiver.markModified("notifications");
     await sender.save();
     await receiver.save();
 
-    // ១១. កត់ត្រាសកម្មភាពរបស់ Admin
+    // ១០. កត់ត្រាសកម្មភាពរបស់ Admin
     if (typeof logAdminAction === "function") {
       await logAdminAction(
         req.admin.username,
@@ -848,7 +840,10 @@ const refundTransaction = async (req, res) => {
     });
   } catch (err) {
     console.error("Refund Error in adminController:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+    // ថែម err.message ដើម្បិងាយស្រួលមើលថាវា Error អីប្រាកដ
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + err.message });
   }
 };
 
