@@ -298,13 +298,24 @@
         btn.disabled = false;
       }
 
-      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (Real-time check)
+      // 🔥 មុខងារឆ្លាតវៃ៖ អង្គុយចាំស្តាប់ Server (កែសម្រួលឱ្យកាន់តែ Safe មិនងាយ Error)
       function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+
         pollingInterval = setInterval(async () => {
           try {
             const res = await fetch("/api/users");
-            const users = await res.json();
-            const freshUser = users.find((u) => u.username === user.username);
+            const data = await res.json();
+
+            // ការពារករណី API ឆ្លើយតបជា { success: true, users: [] } ឬ Array ផ្ទាល់
+            const userList = Array.isArray(data) ? data : data.users || [];
+
+            // ឆែកមើលដោយមិនប្រកាន់អក្សរតូចធំ (Case-insensitive comparison)
+            const freshUser = userList.find(
+              (u) =>
+                u.username &&
+                u.username.toLowerCase() === user.username.toLowerCase(),
+            );
 
             // បើ Server លោតមាន ChatID ថ្មី មានន័យថាគេវាយលេខត្រូវហើយ!
             if (freshUser && freshUser.telegramChatId) {
@@ -327,7 +338,9 @@
                 timer: 3000,
               });
             }
-          } catch (e) {}
+          } catch (e) {
+            console.error("Polling error:", e);
+          }
         }, 2000); // ឆែករៀងរាល់ ២វិនាទី
       }
 
@@ -350,21 +363,31 @@
         }).then(async (result) => {
           if (result.isConfirmed) {
             Swal.showLoading();
-            const res = await fetch("/api/unlink-telegram", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ username: user.username }),
-            });
-            const data = await res.json();
-
-            if (data.success) {
-              // លុប ChatID ចេញពី Session
-              user.telegramChatId = null;
-              sessionStorage.setItem("user", JSON.stringify(user));
-
-              Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
-                location.reload(); // Refresh ទំព័រឱ្យទៅសភាពដើម
+            try {
+              const res = await fetch("/api/unlink-telegram", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: user.username }),
               });
+              const data = await res.json();
+
+              if (data.success) {
+                // លុប ChatID ចេញពី Session
+                user.telegramChatId = null;
+                sessionStorage.setItem("user", JSON.stringify(user));
+
+                Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
+                  location.reload(); // Refresh ទំព័រឱ្យទៅសភាពដើម
+                });
+              } else {
+                Swal.fire(
+                  "Error",
+                  data.message || "មិនអាចផ្តាច់បានទេ",
+                  "error",
+                );
+              }
+            } catch (err) {
+              Swal.fire("Error", "Server Error!", "error");
             }
           }
         });
