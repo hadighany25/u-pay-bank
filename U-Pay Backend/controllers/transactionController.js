@@ -622,6 +622,20 @@ const transfer = async (req, res) => {
           rDoc.markModified("notifications");
           await rDoc.save();
         }
+      } else {
+        // 🔥 កន្លែងថែមថ្មី៖ បាញ់សារ Telegram ទៅកាន់ម្ចាស់ហាង (Merchant) 🔥
+        if (bot && bot.sendMerchantPaymentAlert) {
+          try {
+            bot.sendMerchantPaymentAlert(receiverMerchant._id, {
+              amount: receiverAmount,
+              currency: isReceiverKHR ? "KHR" : "USD",
+              senderName: senderMsgName,
+              refId: sharedRefId,
+            });
+          } catch (teleErr) {
+            console.error("Telegram Merchant Alert Error:", teleErr);
+          }
+        }
       }
     }
 
