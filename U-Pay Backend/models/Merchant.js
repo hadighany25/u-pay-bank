@@ -20,17 +20,15 @@ const merchantSchema = new mongoose.Schema(
       required: true,
       default: "Other",
     },
-    // 🔥 កែត្រង់នេះ៖ ជំនួស linkedAccount ចាស់ដោយ linkedAccounts ថ្មី
     linkedAccounts: {
-      USD: { type: String, default: null }, // លេខគណនីប្រាក់ដុល្លារដែលម្ចាស់ហាងរើសយកមកភ្ជាប់
-      KHR: { type: String, default: null }, // លេខគណនីប្រាក់រៀលដែលម្ចាស់ហាងរើសយកមកភ្ជាប់
+      USD: { type: String, default: null },
+      KHR: { type: String, default: null },
     },
     merchantId: {
       type: String,
       required: true,
       unique: true,
     },
-    // លេខកុង QR របស់ហាងផ្ទាល់ (បង្កើតអូតូ សម្រាប់ឱ្យគេ Scan)
     accountNumbers: {
       USD: { type: String, default: null },
       KHR: { type: String, default: null },
@@ -51,6 +49,11 @@ const merchantSchema = new mongoose.Schema(
     webhookUrl: {
       type: String,
       default: "",
+    },
+    // 🔥 បន្ថែម Field នេះសម្រាប់ទុក Telegram Chat ID របស់ហាងនីមួយៗ
+    telegramChatId: {
+      type: String,
+      default: null,
     },
     status: {
       type: String,

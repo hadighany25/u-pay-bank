@@ -27,6 +27,14 @@ router.get(
   merchantController.getMerchantTransactions,
 );
 
+// Routes សម្រាប់ Telegram Alert (កែសម្រួលត្រង់នេះរួចរាល់)
+router.post(
+  "/generate-telegram-code",
+  verifyUser,
+  merchantController.generateTelegramCode,
+);
+router.post("/unlink-telegram", verifyUser, merchantController.unlinkTelegram);
+
 // Routes សម្រាប់ Admin
 const Merchant = require("../models/Merchant");
 router.get("/admin/all-merchants", verifyUser, async (req, res) => {

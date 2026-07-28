@@ -281,3 +281,79 @@ exports.adminEditMerchant = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ========================================================
+// 🤖 Telegram Bot Alert APIs (សម្រាប់ Merchant)
+// ========================================================
+
+// Object សម្រាប់ផ្ទុកកូដ ៤ ខ្ទង់បណ្តោះអាសន្ន (ទុកក្នុង Memory)
+const pendingMerchantTeleCodes = {};
+// Export វាចេញ ដើម្បីអោយ File Bot អាចឆែកមើលបាន
+exports.pendingMerchantTeleCodes = pendingMerchantTeleCodes;
+
+// ៧. បង្កើតលេខកូដ ៤ ខ្ទង់សម្រាប់ភ្ជាប់ Telegram
+exports.generateTelegramCode = async (req, res) => {
+  try {
+    const { merchantId } = req.body;
+    const userId = req.user.username;
+
+    // ផ្ទៀងផ្ទាត់ថាហាងនេះពិតជារបស់គាត់មែន
+    const merchant = await Merchant.findOne({
+      _id: merchantId,
+      userId: userId,
+    });
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
+    }
+
+    // បង្កើតកូដ ៤ ខ្ទង់ (ពី 1000 ដល់ 9999)
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+
+    // រក្សាទុកកូដនេះ ដោយភ្ជាប់ជាមួយ ID ហាង (កូដមានសុពលភាព ៥ នាទី)
+    pendingMerchantTeleCodes[code] = {
+      merchantId: merchant._id.toString(),
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    };
+
+    // (ស្រេចចិត្ត) លុបកូដចាស់ៗដែលហួសម៉ោងចោល ដើម្បីកុំអោយចង្អៀត Memory
+    for (let key in pendingMerchantTeleCodes) {
+      if (pendingMerchantTeleCodes[key].expiresAt < Date.now()) {
+        delete pendingMerchantTeleCodes[key];
+      }
+    }
+
+    res.status(200).json({ success: true, code: code });
+  } catch (error) {
+    console.error("GENERATE TELE CODE ERROR:", error);
+    res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
+  }
+};
+
+// ៨. ផ្តាច់ការជូនដំណឹងពី Telegram វិញ
+exports.unlinkTelegram = async (req, res) => {
+  try {
+    const { merchantId } = req.body;
+    const userId = req.user.username;
+
+    // ស្វែងរកហាង រួច Set telegramChatId ទៅជា null វិញ
+    const merchant = await Merchant.findOneAndUpdate(
+      { _id: merchantId, userId: userId },
+      { telegramChatId: null },
+      { new: true },
+    );
+
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
+    }
+
+    res
+      .status(200)
+      .json({ success: true, message: "បានផ្តាច់ Telegram ដោយជោគជ័យ" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
+  }
+};
