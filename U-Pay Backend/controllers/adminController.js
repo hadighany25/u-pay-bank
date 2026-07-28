@@ -676,23 +676,35 @@ const refundTransaction = async (req, res) => {
   const cleanRefId = String(refId).trim(); // កាត់ចោល Space ក្រែងលោមាន
 
   try {
-    // ២. ស្វែងរក Transaction នេះនៅក្នុងប្រព័ន្ធ (រកឃើញមួយណាក៏បាន ព្រោះវាមានទិន្នន័យកុងអ្នកផ្ញើ/ទទួលដូចគ្នា)
+    // ២. ស្វែងរក Transaction នេះនៅក្នុងប្រព័ន្ធ (រកតាម refId ក៏បាន ឬតាម hash ក៏បាន)
     const involvedUser = await User.findOne({
-      "transactions.refId": cleanRefId,
+      $or: [
+        { "transactions.refId": cleanRefId },
+        { "transactions.hash": cleanRefId },
+      ],
     });
 
     if (!involvedUser) {
       return res.json({
         success: false,
         message:
-          "រកប្រតិបត្តិការមិនឃើញទេ! សូមប្រាកដថា refId នេះពិតជាមានក្នុងប្រព័ន្ធ។",
+          "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញទេ! សូមប្រាកដថា refId ឬ hash នេះពិតជាមានក្នុងប្រព័ន្ធ។",
       });
     }
 
     // ៣. ទាញយកទិន្នន័យ Transaction នោះចេញមក ដើម្បីយកលេខកុង
     const originalTrx = involvedUser.transactions.find(
-      (t) => String(t.refId).trim() === cleanRefId,
+      (t) =>
+        String(t.refId).trim() === cleanRefId ||
+        String(t.hash).trim() === cleanRefId,
     );
+
+    if (!originalTrx) {
+      return res.json({
+        success: false,
+        message: "រកប្រតិបត្តិការជាក់លាក់មិនឃើញទេ!",
+      });
+    }
 
     if (originalTrx.status === "Refunded") {
       return res.json({
