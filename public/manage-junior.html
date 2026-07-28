@@ -13,7 +13,6 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- បញ្ចូល Font ខ្មែរ Kantumruy Pro ឱ្យស្អាតគ្រប់កន្លែង -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
@@ -25,7 +24,7 @@
 
     <style>
       /* ==========================================
-         🚀 CORE STYLES & LAYOUT
+         🚀 CORE STYLES & LAYOUT (រក្សាទុកនៅដដែល ១០០%)
          ========================================== */
       body,
       input,
@@ -84,7 +83,7 @@
       }
 
       /* ==========================================
-         👶 JUNIOR CARDS (ដក Animation លាក់កាតចេញ ដើម្បីកុំឱ្យបាត់)
+         👶 JUNIOR CARDS 
          ========================================== */
       .add-btn {
         display: flex;
@@ -113,7 +112,6 @@
         padding: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
         margin-bottom: 20px;
-        /* បានលុប opacity: 0 និង animation ចេញ ដើម្បីដោះស្រាយបញ្ហាបាត់កាត */
         transition:
           transform 0.3s ease,
           box-shadow 0.3s ease;
@@ -202,7 +200,6 @@
         }
       }
 
-      /* Accounts list */
       .account-list {
         margin-bottom: 25px;
         background: #f8fafc;
@@ -248,7 +245,6 @@
         width: 100%;
       }
 
-      /* Actions */
       .action-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -302,7 +298,7 @@
       }
 
       /* ==========================================
-         🎨 PREMIUM SWEET ALERT (CUSTOM CSS)
+         🎨 PREMIUM SWEET ALERT
          ========================================== */
       .premium-swal {
         border-radius: 20px !important;
@@ -345,7 +341,6 @@
         font-weight: 800 !important;
         font-size: 1.5rem !important;
       }
-
       .premium-swal .swal2-actions {
         gap: 15px !important;
         margin-top: 10px !important;
@@ -437,6 +432,14 @@
       }
       .step-section.active {
         display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       .input-group {
@@ -556,7 +559,7 @@
       </div>
     </div>
 
-    <!-- ⬛ OVERLAY សម្រាប់ Background -->
+    <!-- ⬛ OVERLAY -->
     <div
       class="sheet-overlay"
       id="sheetOverlay"
@@ -729,12 +732,11 @@
       });
 
       // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: អាប់ដេតថ្មី ធានាមិនឱ្យបាត់កាត ១០០%)
+      // ១. គូរ UI កាតកូន (SMART PARSER BASED ON SCHEMA)
       // ==========================================
       function renderJuniorCards() {
         const container = document.getElementById("juniorCardsContainer");
 
-        // ស្រូបយក Account ទាំងអស់ដែលជាកូន (ជៀសវាង Field ខុសគ្នា យើងឆែកអោយទូលាយបំផុត)
         const juniorAccounts = (currentUser.subAccounts || []).filter((acc) => {
           const typeStr = String(
             acc.accountType || acc.type || acc.role || "",
@@ -752,7 +754,7 @@
 
         const groupedKids = {};
 
-        // តម្រៀបទិន្នន័យកូនចូលគ្នា
+        // តម្រៀបទិន្នន័យកូន ដោយផ្អែកលើវាជា Array Object ផ្សេងគ្នាក្នុង Database
         juniorAccounts.forEach((acc) => {
           let rawName = String(
             acc.accountName || acc.fullName || acc.name || "JUNIOR",
@@ -774,39 +776,19 @@
           }
 
           const accNum = acc.accountNumber || acc.accountId || "N/A";
+          const currentBalance = acc.balance !== undefined ? acc.balance : 0;
 
-          // ឆែកមើលលុយដុល្លារ
-          if (
-            acc.balance !== undefined &&
-            acc.balance !== null &&
-            acc.currency !== "KHR"
-          ) {
+          // កត់ចំណាំ: ក្នុង Schema របស់បង វាប្រើ "currency" ដើម្បិបែងចែក មិនមែន "balanceKHR" ទេ
+          if (acc.currency === "KHR") {
+            groupedKids[rawName].khr = {
+              accountNumber: accNum,
+              balance: currentBalance,
+            };
+          } else {
             groupedKids[rawName].usd = {
               accountNumber: accNum,
-              balance: acc.balance,
+              balance: currentBalance,
             };
-          }
-
-          // ឆែកមើលលុយខ្មែរ (ករណី Dual-Currency ឬ កុងដាច់គ្នា)
-          if (acc.balanceKHR !== undefined && acc.balanceKHR !== null) {
-            groupedKids[rawName].khr = {
-              accountNumber: acc.accountNumberKHR || accNum,
-              balance: acc.balanceKHR,
-            };
-          } else if (acc.currency === "KHR" && acc.balance !== undefined) {
-            groupedKids[rawName].khr = {
-              accountNumber: accNum,
-              balance: acc.balance,
-            };
-          }
-
-          // ករណីកុងទើបបង្កើត អត់ទាន់មានលុយសោះ
-          if (acc.balance === undefined && acc.balanceKHR === undefined) {
-            if (acc.currency === "KHR") {
-              groupedKids[rawName].khr = { accountNumber: accNum, balance: 0 };
-            } else {
-              groupedKids[rawName].usd = { accountNumber: accNum, balance: 0 };
-            }
           }
         });
 
@@ -814,30 +796,28 @@
         let html = "";
 
         Object.values(groupedKids).forEach((kid) => {
-          // ការពារកុំឱ្យកាតទទេ ក្នុងករណីមានបញ្ហា
-          if (!kid.usd && !kid.khr) {
-            kid.usd = { accountNumber: "N/A", balance: 0 };
-          }
-
           let accountsHtml = "";
 
+          // បង្ហាញកុងដុល្លារបើមាន
           if (kid.usd) {
             accountsHtml += `
               <div class="acc-item">
                 <div class="acc-currency"><img src="https://flagcdn.com/w40/us.png" alt="USD"> <span>USD</span></div>
-                <div class="acc-balance">$${Number(kid.usd.balance || 0).toFixed(2)}</div>
+                <div class="acc-balance">$${Number(kid.usd.balance).toFixed(2)}</div>
               </div>
               <div class="acc-number-sub">Acc: ${kid.usd.accountNumber}</div>
             `;
           }
+          // បង្ហាញបន្ទាត់ខណ្ឌ បើមានទាំង ២
           if (kid.usd && kid.khr) {
             accountsHtml += `<div class="acc-divider"></div>`;
           }
+          // បង្ហាញកុងខ្មែរបើមាន
           if (kid.khr) {
             accountsHtml += `
               <div class="acc-item">
                 <div class="acc-currency"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> <span>KHR</span></div>
-                <div class="acc-balance">${Number(kid.khr.balance || 0).toLocaleString("en-US")} ៛</div>
+                <div class="acc-balance">${Number(kid.khr.balance).toLocaleString("en-US")} ៛</div>
               </div>
               <div class="acc-number-sub">Acc: ${kid.khr.accountNumber}</div>
             `;
@@ -916,16 +896,20 @@
         const toggleContainer = document.getElementById(
           "dynamicCurrencyToggle",
         );
-        toggleContainer.innerHTML = "";
 
-        if (hasUSD) {
-          toggleContainer.innerHTML += `<div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>`;
+        // ប្រើប្រាស់ UI ដើមរបស់បង មិនថាក្មេងមានគណនី ១ ឬ ២ ទេ (ការពារកុំឱ្យខូចទម្រង់)
+        if (hasUSD && hasKHR) {
+          toggleContainer.innerHTML = `
+            <div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>
+            <div class="cur-btn" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>
+          `;
           activeCurrency = "USD";
-        }
-        if (hasKHR) {
-          const isActive = !hasUSD ? "active" : "";
-          toggleContainer.innerHTML += `<div class="cur-btn ${isActive}" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>`;
-          if (!hasUSD) activeCurrency = "KHR";
+        } else if (hasUSD) {
+          toggleContainer.innerHTML = `<div class="cur-btn active" style="flex:1; cursor:default;">គណនីប្រាក់ដុល្លារ (USD)</div>`;
+          activeCurrency = "USD";
+        } else if (hasKHR) {
+          toggleContainer.innerHTML = `<div class="cur-btn active" style="flex:1; cursor:default;">គណនីប្រាក់រៀល (KHR)</div>`;
+          activeCurrency = "KHR";
         }
 
         document.getElementById("sheetOverlay").classList.add("active");
