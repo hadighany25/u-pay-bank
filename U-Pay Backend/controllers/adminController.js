@@ -760,6 +760,7 @@ const refundTransaction = async (req, res) => {
       amount: refundAmount,
       currency: originalTrx.currency,
       fee: 0,
+      username: sender.username, // ⬅️ បន្ថែម username នៅទីនេះ
       senderName: receiver.username,
       senderAcc: receiver.accountNumber,
       receiverName: sender.username,
@@ -777,6 +778,7 @@ const refundTransaction = async (req, res) => {
       amount: -refundAmount,
       currency: originalTrx.currency,
       fee: 0,
+      username: receiver.username, // ⬅️ បន្ថែម username នៅទីនេះ
       senderName: receiver.username,
       senderAcc: receiver.accountNumber,
       receiverName: sender.username,
