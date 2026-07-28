@@ -21,6 +21,7 @@ bot.on("message", async (msg) => {
         user.telegramChatId = chatId;
         user.linkCode = null;
         await user.save();
+
         bot.sendMessage(
           chatId,
           `🎉 អបអរសាទរ! គណនី U-Pay (<b>${user.username}</b>) ត្រូវបានភ្ជាប់ជោគជ័យ!`,
@@ -29,6 +30,14 @@ bot.on("message", async (msg) => {
         console.log(
           `✅ Linked User: Account: ${user.username}, Group: ${chatId}`,
         );
+        // 💥 ថែមថ្មី៖ បាញ់សញ្ញាទៅកាន់ Frontend របស់ User នេះ ថាការភ្ជាប់គឺជោគជ័យហើយ!
+        if (global.io) {
+          global.io.to(user.username).emit("telegramLinked", {
+            success: true,
+            message: "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ដោយជោគជ័យ!",
+          });
+        }
+
         return; // ឈប់ត្រឹមនេះ បើស្គាល់ថាជា User
       }
 
