@@ -380,7 +380,7 @@ exports.unlinkTelegram = async (req, res) => {
 };
 
 // ========================================================
-// 💰 ៩. API សម្រាប់ Partner ឬ កម្មវិធីភាគីទី៣ ស្នើសុំ QR Code (General API)
+// 💰 ៩. API សម្រាប់ Partner ឬ កម្មវិធីភាគីទី៣ ស្នើសុំ QR Code
 // ========================================================
 exports.createMerchantQR = async (req, res) => {
   try {
@@ -394,41 +394,32 @@ exports.createMerchantQR = async (req, res) => {
       sign,
     } = req.body;
 
-    // ១. ស្វែងរកហាងតាម merchant_id ដែល Client បញ្ជូនមក
+    // ... (កូដផ្ទៀងផ្ទាត់ Merchant និង Signature នៅដដែល) ...
     const merchant = await Merchant.findOne({ merchantId: merchant_id });
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ code: "FAIL", message: "រកមិនឃើញគណនី Merchant នេះទេ" });
-    }
 
-    // ២. ផ្ទៀងផ្ទាត់ Signature ថាពិតជាស្នើសុំពី Partner ត្រឹមត្រូវមែនឬអត់
     const rawSignature = `${merchant_id}${order_id}${amount}${merchant.apiKey}${req_time}`;
     const hashSignature = crypto
       .createHmac("sha256", merchant.apiSecret)
       .update(rawSignature)
       .digest("hex");
-
-    // បើ Signature ខុស មានន័យថាជាការវាយប្រហារ ឬការស្នើសុំមិនត្រឹមត្រូវ
-    if (sign !== hashSignature) {
+    if (sign !== hashSignature)
       return res
         .status(401)
-        .json({
-          code: "FAIL",
-          message: "សោរសម្ងាត់មិនត្រឹមត្រូវ (Invalid Signature)",
-        });
-    }
+        .json({ code: "FAIL", message: "សោរសម្ងាត់មិនត្រឹមត្រូវ" });
 
-    // ៣. បង្កើតតំណ DeepLink (សម្រាប់ឲ្យ App ស្កេន ឬចុចបង់លុយ)
-    const deepLink = `upay://pay?m=${merchant_id}&o=${order_id}&a=${amount}`;
+    // ✅ កែប្រែត្រង់នេះ៖ ប្រើ Web Link របស់បងផ្ទាល់ ហើយភ្ជាប់ទិន្នន័យទៅជាមួយ
+    const deepLink = `https://u-pay-bank.fly.dev/transfer.html?m=${merchant_id}&o=${order_id}&a=${amount}`;
 
-    // ៤. ឆ្លើយតបទៅកាន់ Partner (Client App) វិញ
     res.status(200).json({
       code: "SUCCESS",
       message: "ជោគជ័យ",
       data: {
-        qr_code_data: deepLink, // Client អាចយកទៅ Generate ជា QR Image
-        deeplink: deepLink, // Client អាចយកទៅធ្វើជា Link សម្រាប់ចុចបង់ផ្ទាល់
+        qr_code_data: deepLink,
+        deeplink: deepLink,
       },
     });
   } catch (error) {
