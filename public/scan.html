@@ -752,7 +752,7 @@
       }
 
       // ==========================================
-      // 4. ROUTING LOGIC (ឆ្លាតវៃ ទប់កុំឲ្យលោតកាត់ Login)
+      // 4. ROUTING LOGIC (ឆ្លាតវៃ ទប់កុំឲ្យលោតកាត់ Login និង ចាប់លុយ Lock ឲ្យជាប់)
       // ==========================================
       function handleScanResult(decodedText) {
         if (qrScanner) qrScanner.stop();
@@ -773,7 +773,8 @@
 
             if (acc) {
               let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              if (amount) redirectUrl += `&amount=${amount}`;
+              // 🔥 ថែម &lockAmount=true នៅទីនេះ ដើម្បីចាក់សោលុយ
+              if (amount) redirectUrl += `&amount=${amount}&lockAmount=true`;
               window.location.href = redirectUrl;
               return;
             }
@@ -792,7 +793,8 @@
 
             if (acc) {
               let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              if (amount) redirectUrl += `&amount=${amount}`;
+              // 🔥 ថែម &lockAmount=true នៅទីនេះ ដើម្បីចាក់សោលុយ
+              if (amount) redirectUrl += `&amount=${amount}&lockAmount=true`;
               window.location.href = redirectUrl;
               return;
             }
@@ -805,7 +807,7 @@
           return;
         }
 
-        // ៤. ករណីលេខកុងសុទ្ធ ឫមានចាក់សោលុយ
+        // ៤. ករណីលេខកុងសុទ្ធ ឫមានចាក់សោលុយ (ទម្រង់ ចាស់: លេខកុង:ចំនួនលុយ)
         let targetAcc = decodedText;
         let targetAmount = "";
         let lockMoney = false;
@@ -821,7 +823,7 @@
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
           if (targetAmount) {
             url += `&amount=${targetAmount}`;
-            if (lockMoney) url += `&lockAmount=true`;
+            if (lockMoney) url += `&lockAmount=true`; // កន្លែងនេះមានស្រាប់ហើយ
           }
           window.location.href = url;
         } else {
