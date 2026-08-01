@@ -750,9 +750,8 @@
           }
         }
       }
-
       // ==========================================
-      // 4. ROUTING LOGIC (ឆ្លាតវៃ ទប់កុំឲ្យលោតកាត់ Login និង ចាប់លុយ Lock ឲ្យជាប់)
+      // 4. ROUTING LOGIC (ប្រើ Regex ចាប់ទាញយកទិន្នន័យដោយបង្ខំ ទោះ Link ខូចទ្រង់ទ្រាយក៏ដោយ)
       // ==========================================
       function handleScanResult(decodedText) {
         if (qrScanner) qrScanner.stop();
@@ -764,67 +763,54 @@
           .catch(() => {});
         console.log("QR Data:", decodedText);
 
-        // ១. ករណីស្កេនប៉ះ Full URL របស់ប្រព័ន្ធផ្សេងៗ (ឧ. Fashion Shop)
-        try {
-          if (decodedText.startsWith("http") || decodedText.includes("://")) {
-            let urlObj = new URL(decodedText);
-            let acc = urlObj.searchParams.get("acc");
-            let amount = urlObj.searchParams.get("amount");
+        // ១. សម្អាតទិន្នន័យ (ជួសជុលបញ្ហាពេល QR មានជាប់ &amp; ជំនួសឲ្យ & ពីខាង E-Commerce)
+        let cleanText = decodedText.replace(/&amp;/g, "&");
 
-            if (acc) {
-              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              // 🔥 ថែម &lockAmount=true នៅទីនេះ ដើម្បីចាក់សោលុយ
-              if (amount) redirectUrl += `&amount=${amount}&lockAmount=true`;
-              window.location.href = redirectUrl;
-              return;
-            }
-          }
-        } catch (e) {}
-
-        // ២. ករណីស្កេនប៉ះ Relative URL
-        if (decodedText.includes("acc=")) {
-          try {
-            let queryString = decodedText.includes("?")
-              ? decodedText.substring(decodedText.indexOf("?"))
-              : decodedText;
-            let urlParams = new URLSearchParams(queryString);
-            let acc = urlParams.get("acc");
-            let amount = urlParams.get("amount");
-
-            if (acc) {
-              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              // 🔥 ថែម &lockAmount=true នៅទីនេះ ដើម្បីចាក់សោលុយ
-              if (amount) redirectUrl += `&amount=${amount}&lockAmount=true`;
-              window.location.href = redirectUrl;
-              return;
-            }
-          } catch (e) {}
-        }
-
-        // ៣. ករណី U-Fund
-        if (decodedText.startsWith("UFND-")) {
-          window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
-          return;
-        }
-
-        // ៤. ករណីលេខកុងសុទ្ធ ឫមានចាក់សោលុយ (ទម្រង់ ចាស់: លេខកុង:ចំនួនលុយ)
-        let targetAcc = decodedText;
+        let targetAcc = "";
         let targetAmount = "";
         let lockMoney = false;
 
-        if (decodedText.includes(":")) {
-          const parts = decodedText.split(":");
+        // ២. ប្រើម៉ាស៊ីន Regex ដើម្បីឆែកឆេរកកូដ acc= និង amount= ចេញពី Link គ្រប់ប្រភេទ
+        let accMatch =
+          cleanText.match(/[?&#]acc=([^&#]+)/) ||
+          cleanText.match(/^acc=([^&#]+)/);
+        let amountMatch =
+          cleanText.match(/[?&#]amount=([^&#]+)/) ||
+          cleanText.match(/^amount=([^&#]+)/);
+
+        if (accMatch) {
+          targetAcc = accMatch[1]; // ចាប់បានលេខកុង ឬលេខវិក័យប័ត្រ (ឧ. ORD-404725)
+          if (amountMatch) {
+            targetAmount = amountMatch[1].replace(/[^0-9.]/g, ""); // ចាប់យកតែតួលេខ និងចំណុច
+            lockMoney = true; // ឲ្យតែមានលុយ គឺ Lock មិនឲ្យកែ
+          }
+        }
+        // ៣. ករណី U-Fund
+        else if (cleanText.startsWith("UFND-")) {
+          targetAcc = cleanText;
+        }
+        // ៤. ករណីទម្រង់លេខកុងមានចាក់សោលុយ (ឧទាហរណ៍ 888888888:5.00)
+        else if (cleanText.includes(":")) {
+          const parts = cleanText.split(":");
           targetAcc = parts[0];
-          targetAmount = parts[1];
+          targetAmount = parts[1].replace(/[^0-9.]/g, "");
           lockMoney = true;
         }
+        // ៥. ករណីលេខកុងសុទ្ធ (ធម្មតា)
+        else if (cleanText.length >= 5 && !cleanText.startsWith("http")) {
+          targetAcc = cleanText;
+        }
 
-        if (targetAcc.length >= 5) {
+        // ៦. ធ្វើការបញ្ជូនទៅ transfer.html (ផ្ទាំង Transfer)
+        if (targetAcc && targetAcc.length >= 5) {
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
-          if (targetAmount) {
-            url += `&amount=${targetAmount}`;
-            if (lockMoney) url += `&lockAmount=true`; // កន្លែងនេះមានស្រាប់ហើយ
+
+          if (targetAmount && parseFloat(targetAmount) > 0) {
+            // ភ្ជាប់លុយ និងចាក់សោ Lock ទៅក្នុង Link
+            url += `&amount=${targetAmount}&lockAmount=true`;
           }
+
+          console.log("បញ្ជូនទៅកាន់:", url); // តេស្តមើល Link ចុងក្រោយនៅក្នុង Console
           window.location.href = url;
         } else {
           Swal.fire({
@@ -832,7 +818,9 @@
             title: "បរាជ័យ",
             text: "កូដ QR មិនត្រឹមត្រូវឬមិនគាំទ្រ!",
             confirmButtonColor: "#00b894",
-          }).then(() => startSmartScanner());
+          }).then(() => {
+            if (typeof startSmartScanner === "function") startSmartScanner();
+          });
         }
       }
 
