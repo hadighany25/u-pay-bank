@@ -15,7 +15,7 @@
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="js/lang.js"></script>
 
-    <!-- 🚀 NEW AI QR SCANNER ENGINE (លឿន និងឆ្លាតជាងមុន) -->
+    <!-- 🚀 NEW AI QR SCANNER ENGINE -->
     <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
 
     <!-- 🔤 បណ្ដុំ Fonts និង Icons -->
@@ -141,7 +141,6 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        /* Black transparent overlay with cutout for scanning */
         background: rgba(0, 0, 0, 0.4);
         clip-path: polygon(
           0% 0%,
@@ -156,7 +155,6 @@
           calc(50% - 135px) calc(50% - 160px)
         );
       }
-
       .scan-focus-box {
         position: absolute;
         width: 270px;
@@ -166,8 +164,6 @@
         border-radius: 24px;
         z-index: 12;
       }
-
-      /* Animated Corner Borders */
       .focus-corner {
         position: absolute;
         width: 45px;
@@ -205,7 +201,6 @@
         border-bottom-right-radius: 24px;
       }
 
-      /* AI Scanning Line */
       .scan-laser {
         position: absolute;
         width: 90%;
@@ -287,7 +282,6 @@
         transform: scale(0.85);
         background: rgba(255, 255, 255, 0.3);
       }
-
       .btn-myqr {
         background: var(--primary);
         border: none;
@@ -299,7 +293,7 @@
       }
 
       /* ==========================================
-         🔥 MODAL "MY QR" (Kept the same styling)
+         🔥 MODAL "MY QR"
          ========================================== */
       .qr-modal {
         display: none;
@@ -665,7 +659,7 @@
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
-      // ម៉ាស៊ីន Worker របស់ Nimiq QR Scanner ជួយកាត់បន្ថយការគាំងពេល Scan QR វែងៗ
+      // Worker សម្រាប់អោយកាមេរ៉ាស្កេនបានលឿននិងមិនគាំង
       QrScanner.WORKER_PATH =
         "https://unpkg.com/qr-scanner@1.4.2/qr-scanner-worker.min.js";
 
@@ -693,7 +687,7 @@
       });
 
       // ==========================================
-      // 3. AI SCANNER LOGIC (New State-of-the-art engine)
+      // 3. AI SCANNER LOGIC & CAMERA HANDLING
       // ==========================================
       function initScannerLogic() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -720,7 +714,7 @@
           videoElem,
           (result) => handleScanResult(result.data),
           {
-            onDecodeError: (error) => {}, // បិទ Error មិនអោយរំខាន
+            onDecodeError: (error) => {}, // បិទ Error រំខាន
             highlightScanRegion: true,
             highlightCodeOutline: true,
             returnDetailedScanResult: true,
@@ -744,8 +738,7 @@
           });
         } catch (err) {
           console.warn("Camera Issue:", err.message);
-
-          // ✅ ឆែកមើលថាតើធ្លាប់បង្ហាញ Error នេះរួចហើយឬនៅ?
+          // បង្ហាញ Error តែម្តងគត់រាល់ពេលចូល មិនអោយលោតរំខានរហូតទេ
           if (!sessionStorage.getItem("cameraErrorShown")) {
             Swal.fire({
               icon: "error",
@@ -753,12 +746,14 @@
               text: "សូមអនុញ្ញាតសិទ្ធិ (Camera Permission) នៅក្នុង Browser របស់អ្នក។",
               confirmButtonColor: "#00b894",
             });
-            // កត់ត្រាទុកថា "បានបង្ហាញរួចហើយ" ដើម្បីកុំឲ្យលោតលើកក្រោយទៀត
             sessionStorage.setItem("cameraErrorShown", "true");
           }
         }
       }
 
+      // ==========================================
+      // 4. ROUTING LOGIC (ឆ្លាតវៃ ទប់កុំឲ្យលោតកាត់ Login)
+      // ==========================================
       function handleScanResult(decodedText) {
         if (qrScanner) qrScanner.stop();
 
@@ -769,14 +764,13 @@
           .catch(() => {});
         console.log("QR Data:", decodedText);
 
-        // 🌟 ដំណោះស្រាយទី១: បើវាជា Full URL (មាន http) យើងទាញយកតែ Query Params មកប្រើ
+        // ១. ករណីស្កេនប៉ះ Full URL របស់ប្រព័ន្ធផ្សេងៗ (ឧ. Fashion Shop)
         try {
           if (decodedText.startsWith("http") || decodedText.includes("://")) {
             let urlObj = new URL(decodedText);
             let acc = urlObj.searchParams.get("acc");
             let amount = urlObj.searchParams.get("amount");
 
-            // បើចាប់បាន acc គឺយើងបញ្ជូនទៅ transfer.html ផ្ទាល់តែម្តង (មិនឲ្យលោតកាត់ Login ទេ)
             if (acc) {
               let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
               if (amount) redirectUrl += `&amount=${amount}`;
@@ -784,14 +778,11 @@
               return;
             }
           }
-        } catch (e) {
-          console.log("Not a valid URL, fallback to normal scan");
-        }
+        } catch (e) {}
 
-        // 🌟 ដំណោះស្រាយទី២: បើវាជា Relative Link (មានពាក្យ acc= តែមិនមាន http ពីមុខ)
+        // ២. ករណីស្កេនប៉ះ Relative URL
         if (decodedText.includes("acc=")) {
           try {
-            // កាត់យកតែអ្វីដែលនៅក្រោយសញ្ញា ?
             let queryString = decodedText.includes("?")
               ? decodedText.substring(decodedText.indexOf("?"))
               : decodedText;
@@ -808,13 +799,13 @@
           } catch (e) {}
         }
 
-        // 🌟 ដំណោះស្រាយទី៣: ករណីស្កេន U-Fund
+        // ៣. ករណី U-Fund
         if (decodedText.startsWith("UFND-")) {
           window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
           return;
         }
 
-        // 🌟 ដំណោះស្រាយទី៤: ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
+        // ៤. ករណីលេខកុងសុទ្ធ ឫមានចាក់សោលុយ
         let targetAcc = decodedText;
         let targetAmount = "";
         let lockMoney = false;
@@ -826,8 +817,6 @@
           lockMoney = true;
         }
 
-        // 🌟 ដំណោះស្រាយទី៥: ករណី QR ជាលេខគណនីធម្មតា ឬលេខកូដវិក័យប័ត្រ (ORD-...)
-        // អនុញ្ញាតឲ្យរត់ទៅ Transfer បើប្រវែងវាលើសពី ៥ ខ្ទង់
         if (targetAcc.length >= 5) {
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
           if (targetAmount) {
@@ -836,7 +825,6 @@
           }
           window.location.href = url;
         } else {
-          // បើមិនចូលលក្ខខណ្ឌណាសោះ (QR មិនត្រឹមត្រូវ) ទើបលោត Error
           Swal.fire({
             icon: "error",
             title: "បរាជ័យ",
@@ -847,7 +835,7 @@
       }
 
       // ==========================================
-      // 4. SCAN FROM GALLERY
+      // 5. SCAN FROM GALLERY & FLASH
       // ==========================================
       const fileInput = document.getElementById("qr-input-file");
       fileInput.addEventListener("change", (event) => {
@@ -900,13 +888,14 @@
       }
 
       // ==========================================
-      // 5. MY QR MODAL LOGIC
+      // 6. MY QR MODAL LOGIC
       // ==========================================
       let qrCurrency = "USD";
 
       function populateAccounts() {
         const selector = document.getElementById("accountSelector");
         selector.innerHTML = "";
+
         let optUSD = document.createElement("option");
         optUSD.value = user.accountNumber;
         optUSD.dataset.currency = "USD";
@@ -1002,7 +991,8 @@
       }
 
       // ==========================================
-      // 6. SOCKET.IO (Live Payment Notification)
+      // 7. SOCKET.IO (Live Payment Notification)
+      // ** មានតែមួយគត់ មិនជាន់គ្នាទៀតទេ **
       // ==========================================
       const socket = io("https://u-pay-bank.fly.dev");
       socket.emit("joinRoom", user.username);
