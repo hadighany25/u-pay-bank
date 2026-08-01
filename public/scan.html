@@ -720,7 +720,7 @@
           videoElem,
           (result) => handleScanResult(result.data),
           {
-            onDecodeError: (error) => {}, // Ignore constant errors to avoid console spam
+            onDecodeError: (error) => {}, // បិទ Error មិនអោយរំខាន
             highlightScanRegion: true,
             highlightCodeOutline: true,
             returnDetailedScanResult: true,
@@ -730,27 +730,32 @@
         try {
           await qrScanner.start();
 
-          // 🔥 AI Auto-Zoom: ព្យាយាមចាប់យកកាមេរ៉ា ហើយ Zoom ឲ្យដោយស្វ័យប្រវត្តិដើម្បីងាយចាប់ QR តូចៗ
           qrScanner.hasCamera().then((hasCamera) => {
             if (hasCamera) {
               const videoTrack = videoElem.srcObject.getVideoTracks()[0];
               const capabilities = videoTrack.getCapabilities();
               if (capabilities.zoom) {
-                // កំណត់ Zoom ប្រហែល 1.5x - 2.0x ជាស្តង់ដារ
                 const targetZoom = Math.min(capabilities.zoom.max, 1.8);
                 videoTrack
                   .applyConstraints({ advanced: [{ zoom: targetZoom }] })
-                  .catch((e) => console.log("Zoom API not fully supported."));
+                  .catch((e) => {});
               }
             }
           });
         } catch (err) {
-          Swal.fire({
-            icon: "error",
-            title: "មិនអាចបើកកាមេរ៉ាបានទេ!",
-            text: "សូមអនុញ្ញាតសិទ្ធិ (Camera Permission) នៅក្នុង Browser របស់អ្នក។",
-            confirmButtonColor: "#00b894",
-          });
+          console.warn("Camera Issue:", err.message);
+
+          // ✅ ឆែកមើលថាតើធ្លាប់បង្ហាញ Error នេះរួចហើយឬនៅ?
+          if (!sessionStorage.getItem("cameraErrorShown")) {
+            Swal.fire({
+              icon: "error",
+              title: "មិនអាចបើកកាមេរ៉ាបានទេ!",
+              text: "សូមអនុញ្ញាតសិទ្ធិ (Camera Permission) នៅក្នុង Browser របស់អ្នក។",
+              confirmButtonColor: "#00b894",
+            });
+            // កត់ត្រាទុកថា "បានបង្ហាញរួចហើយ" ដើម្បីកុំឲ្យលោតលើកក្រោយទៀត
+            sessionStorage.setItem("cameraErrorShown", "true");
+          }
         }
       }
 
@@ -762,23 +767,54 @@
         )
           .play()
           .catch(() => {});
+        console.log("QR Data:", decodedText);
 
-        console.log("QR Data:", decodedText); // ទុកសម្រាប់មើលតេស្ត
+        // 🌟 ដំណោះស្រាយទី១: បើវាជា Full URL (មាន http) យើងទាញយកតែ Query Params មកប្រើ
+        try {
+          if (decodedText.startsWith("http") || decodedText.includes("://")) {
+            let urlObj = new URL(decodedText);
+            let acc = urlObj.searchParams.get("acc");
+            let amount = urlObj.searchParams.get("amount");
 
-        // ១. ករណីស្កេន U-Fund
+            // បើចាប់បាន acc គឺយើងបញ្ជូនទៅ transfer.html ផ្ទាល់តែម្តង (មិនឲ្យលោតកាត់ Login ទេ)
+            if (acc) {
+              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
+              if (amount) redirectUrl += `&amount=${amount}`;
+              window.location.href = redirectUrl;
+              return;
+            }
+          }
+        } catch (e) {
+          console.log("Not a valid URL, fallback to normal scan");
+        }
+
+        // 🌟 ដំណោះស្រាយទី២: បើវាជា Relative Link (មានពាក្យ acc= តែមិនមាន http ពីមុខ)
+        if (decodedText.includes("acc=")) {
+          try {
+            // កាត់យកតែអ្វីដែលនៅក្រោយសញ្ញា ?
+            let queryString = decodedText.includes("?")
+              ? decodedText.substring(decodedText.indexOf("?"))
+              : decodedText;
+            let urlParams = new URLSearchParams(queryString);
+            let acc = urlParams.get("acc");
+            let amount = urlParams.get("amount");
+
+            if (acc) {
+              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
+              if (amount) redirectUrl += `&amount=${amount}`;
+              window.location.href = redirectUrl;
+              return;
+            }
+          } catch (e) {}
+        }
+
+        // 🌟 ដំណោះស្រាយទី៣: ករណីស្កេន U-Fund
         if (decodedText.startsWith("UFND-")) {
           window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
           return;
         }
 
-        // ២. ករណីស្កេនចំ Link E-Commerce (Fashion Shop) ឫ Link Payment
-        // 🔥 កែឲ្យឆ្លាតជាងមុន៖ ឲ្យតែមានពាក្យ acc= ឬជា Link (http) គឺយើង Redirect តែម្តង
-        if (decodedText.includes("acc=") || decodedText.startsWith("http")) {
-          window.location.href = decodedText;
-          return;
-        }
-
-        // ៣. ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
+        // 🌟 ដំណោះស្រាយទី៤: ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
         let targetAcc = decodedText;
         let targetAmount = "";
         let lockMoney = false;
@@ -790,8 +826,9 @@
           lockMoney = true;
         }
 
-        // ៤. ករណី QR ជាលេខគណនីធម្មតា (លេខសុទ្ធចាប់ពី ៦ ខ្ទង់ឡើង)
-        if (/^\d+$/.test(targetAcc) && targetAcc.length >= 6) {
+        // 🌟 ដំណោះស្រាយទី៥: ករណី QR ជាលេខគណនីធម្មតា ឬលេខកូដវិក័យប័ត្រ (ORD-...)
+        // អនុញ្ញាតឲ្យរត់ទៅ Transfer បើប្រវែងវាលើសពី ៥ ខ្ទង់
+        if (targetAcc.length >= 5) {
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
           if (targetAmount) {
             url += `&amount=${targetAmount}`;
@@ -799,7 +836,7 @@
           }
           window.location.href = url;
         } else {
-          // បើមិនចូលលក្ខខណ្ឌណាសោះ ទើបលោត Error
+          // បើមិនចូលលក្ខខណ្ឌណាសោះ (QR មិនត្រឹមត្រូវ) ទើបលោត Error
           Swal.fire({
             icon: "error",
             title: "បរាជ័យ",
@@ -965,16 +1002,19 @@
       }
 
       // ==========================================
-      // 6. SOCKET.IO (Live Payment)
+      // 6. SOCKET.IO (Live Payment Notification)
       // ==========================================
       const socket = io("https://u-pay-bank.fly.dev");
       socket.emit("joinRoom", user.username);
+
       socket.on("paymentReceived", (data) => {
-        new Audio(
+        const ringtone = new Audio(
           "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-        )
+        );
+        ringtone
           .play()
-          .catch(() => {});
+          .catch((e) => console.log("Audio blocked by browser", e));
+
         const amountInput = document.getElementById("qrSetAmount").value;
         const isAmountSet = amountInput && parseFloat(amountInput) > 0;
         const symbol = data.currency === "USD" ? "$" : "៛";
@@ -983,23 +1023,33 @@
         });
 
         if (isAmountSet) {
+          // ករណីគេស្កេនពី QR ដែលមានកំណត់លុយ (លោតធំ ហើយរុញទៅ Dashboard)
           Swal.fire({
             icon: "success",
-            title: '<span class="kh-text">លុយចូលហើយ!</span>',
-            html: `<span class="kh-text">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
+            title: '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>',
+            html: `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
             confirmButtonText: "យល់ព្រម",
             confirmButtonColor: "#00b894",
             allowOutsideClick: false,
-          }).then(() => (window.location.href = "dashboard.html"));
+          }).then(() => {
+            window.location.href = "dashboard.html";
+          });
         } else {
-          Swal.mixin({
+          // ករណីស្កេនធម្មតា អត់កំណត់លុយ (លោត Toast តូចៗ)
+          const Toast = Swal.mixin({
             toast: true,
             position: "top-end",
             showConfirmButton: false,
             timer: 4000,
-          }).fire({
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener("mouseenter", Swal.stopTimer);
+              toast.addEventListener("mouseleave", Swal.resumeTimer);
+            },
+          });
+          Toast.fire({
             icon: "success",
-            title: `<span class="kh-text">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
+            title: `<span style="font-family: Kantumruy Pro">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
           });
         }
       });
