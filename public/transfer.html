@@ -1329,7 +1329,6 @@
           submitPin();
         }
       }
-
       async function submitPin() {
         const sel = document.getElementById("fromAccount"),
           opt = sel.options[sel.selectedIndex],
@@ -1405,7 +1404,13 @@
                 );
                 if (idx !== -1) user.subAccounts[idx].balance = d.newBalance;
               }
+
+              // ✅ [កែប្រែថ្មី] ការពារ Error "Cannot read properties of undefined (reading 'unshift')"
+              if (!user.transactions) {
+                user.transactions = [];
+              }
               user.transactions.unshift(d.slipData);
+
               sessionStorage.setItem("user", JSON.stringify(user));
               new Audio(
                 "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
@@ -1442,7 +1447,6 @@
           }
         }
       }
-
       function startSpin() {
         if (spinIsActive) return;
         spinIsActive = true;
