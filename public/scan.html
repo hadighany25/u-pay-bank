@@ -761,54 +761,23 @@
         )
           .play()
           .catch(() => {});
-        console.log("QR Data:", decodedText);
 
-        // 🌟 ដំណោះស្រាយទី១: បើវាជា Full URL (មាន http) យើងទាញយកតែ Query Params មកប្រើ
-        try {
-          if (decodedText.startsWith("http") || decodedText.includes("://")) {
-            let urlObj = new URL(decodedText);
-            let acc = urlObj.searchParams.get("acc");
-            let amount = urlObj.searchParams.get("amount");
+        console.log("QR Data:", decodedText); // ទុកសម្រាប់មើលតេស្ត
 
-            // បើចាប់បាន acc គឺយើងបញ្ជូនទៅ transfer.html ផ្ទាល់តែម្តង (មិនឲ្យលោតកាត់ Login ទេ)
-            if (acc) {
-              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              if (amount) redirectUrl += `&amount=${amount}`;
-              window.location.href = redirectUrl;
-              return;
-            }
-          }
-        } catch (e) {
-          console.log("Not a valid URL, fallback to normal scan");
-        }
-
-        // 🌟 ដំណោះស្រាយទី២: បើវាជា Relative Link (មានពាក្យ acc= តែមិនមាន http ពីមុខ)
-        if (decodedText.includes("acc=")) {
-          try {
-            // កាត់យកតែអ្វីដែលនៅក្រោយសញ្ញា ?
-            let queryString = decodedText.includes("?")
-              ? decodedText.substring(decodedText.indexOf("?"))
-              : decodedText;
-            let urlParams = new URLSearchParams(queryString);
-            let acc = urlParams.get("acc");
-            let amount = urlParams.get("amount");
-
-            if (acc) {
-              let redirectUrl = `transfer.html?acc=${acc}&source=qr`;
-              if (amount) redirectUrl += `&amount=${amount}`;
-              window.location.href = redirectUrl;
-              return;
-            }
-          } catch (e) {}
-        }
-
-        // 🌟 ដំណោះស្រាយទី៣: ករណីស្កេន U-Fund
+        // ១. ករណីស្កេន U-Fund
         if (decodedText.startsWith("UFND-")) {
           window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
           return;
         }
 
-        // 🌟 ដំណោះស្រាយទី៤: ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
+        // ២. ករណីស្កេនចំ Link E-Commerce (Fashion Shop) ឫ Link Payment
+        // 🔥 កែឲ្យឆ្លាតជាងមុន៖ ឲ្យតែមានពាក្យ acc= ឬជា Link (http) គឺយើង Redirect តែម្តង
+        if (decodedText.includes("acc=") || decodedText.startsWith("http")) {
+          window.location.href = decodedText;
+          return;
+        }
+
+        // ៣. ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
         let targetAcc = decodedText;
         let targetAmount = "";
         let lockMoney = false;
@@ -820,9 +789,8 @@
           lockMoney = true;
         }
 
-        // 🌟 ដំណោះស្រាយទី៥: ករណី QR ជាលេខគណនីធម្មតា ឬលេខកូដវិក័យប័ត្រ (ORD-...)
-        // អនុញ្ញាតឲ្យរត់ទៅ Transfer បើប្រវែងវាលើសពី ៥ ខ្ទង់
-        if (targetAcc.length >= 5) {
+        // ៤. ករណី QR ជាលេខគណនីធម្មតា (លេខសុទ្ធចាប់ពី ៦ ខ្ទង់ឡើង)
+        if (/^\d+$/.test(targetAcc) && targetAcc.length >= 6) {
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
           if (targetAmount) {
             url += `&amount=${targetAmount}`;
@@ -830,7 +798,7 @@
           }
           window.location.href = url;
         } else {
-          // បើមិនចូលលក្ខខណ្ឌណាសោះ (QR មិនត្រឹមត្រូវ) ទើបលោត Error
+          // បើមិនចូលលក្ខខណ្ឌណាសោះ ទើបលោត Error
           Swal.fire({
             icon: "error",
             title: "បរាជ័យ",
