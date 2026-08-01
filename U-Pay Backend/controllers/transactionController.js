@@ -135,6 +135,7 @@ const transfer = async (req, res) => {
     pin,
     trxMethod,
     currency,
+    orderId, // ✅ ចាប់យក orderId ដែលផ្ញើមកពី transfer.html
   } = req.body;
 
   // កុងត្រូលសុវត្ថិភាព៖ ការពារកុំឲ្យ Hacker បាញ់ API ជំនួសអ្នកដទៃ
@@ -266,7 +267,6 @@ const transfer = async (req, res) => {
         if (!juniorSenderAcc)
           return res.json({ success: false, message: "រកគណនីកូនមិនឃើញទេ!" });
 
-        // (រក្សាទុកចាស់) ឆែកទប់ Limit ពេលប៉ាម៉ាក់បញ្ជាកុងកូនតាមរយៈ SubAccount
         const dailyLimit = juniorSenderAcc.dailyLimit || 0;
         const dailySpent = juniorSenderAcc.dailySpent || 0;
         if (dailyLimit > 0) {
@@ -290,12 +290,10 @@ const transfer = async (req, res) => {
         : sender.balance || 0;
     }
 
-    // 🔥 FIX ទី១៖ ឆែកទប់ Limit ពេលកូន Login ហើយបាញ់លុយចេញដោយខ្លួនឯង (Main Sender គឺជាកូន)
     if (sender.role === "junior") {
       const dailyLimit = sender.dailyLimit || 0;
       const dailySpent = sender.dailySpent || 0;
 
-      // បំប្លែងការចំណាយទៅជា USD ដើម្បីប្រៀបធៀប (ព្រោះ Limit គិតជា USD)
       let spentUsd = isSenderKHR
         ? totalDeduction / currentFXRates.usdToKhrSell
         : totalDeduction;
@@ -408,7 +406,6 @@ const transfer = async (req, res) => {
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
         await receiver.save();
 
-        // (រក្សាទុកចាស់) ប៉ាម៉ាក់បញ្ចូលលុយឱ្យកូន ត្រូវ Sync ទិន្នន័យចូលក្នុង subAccounts របស់ប៉ាម៉ាក់វិញ
         if (receiver.role === "junior" && receiver.parentUsername) {
           let parentDoc =
             sender.username === receiver.parentUsername
@@ -477,7 +474,6 @@ const transfer = async (req, res) => {
       if (isSenderKHR) sender.balanceKHR -= totalDeduction;
       else sender.balance -= totalDeduction;
 
-      // 🔥 FIX ទី២៖ បូកលុយដែលកូនបានចាយថ្ងៃនេះចូល dailySpent ពេលកូន Login ផ្ទាល់
       if (sender.role === "junior") {
         let spentUsd = isSenderKHR
           ? totalDeduction / currentFXRates.usdToKhrSell
@@ -487,7 +483,6 @@ const transfer = async (req, res) => {
 
       await sender.save();
 
-      // 🔥 FIX ទី៣៖ Update ទិន្នន័យត្រលប់ទៅគណនីប៉ាម៉ាក់វិញ (Sync) ដើម្បីអោយប៉ាម៉ាក់ឃើញលុយកូនកាត់ភ្លាមៗ
       if (sender.role === "junior" && sender.parentUsername) {
         let parentDoc = await User.findOne({ username: sender.parentUsername });
         if (parentDoc) {
@@ -587,7 +582,6 @@ const transfer = async (req, res) => {
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
 
-    // ១. ករណីអ្នកទទួល ជាគណនីរួម (Joint Account)
     if (!isMerchant && jointReceiverAcc) {
       for (let m of jointReceiverAcc.members) {
         if (m.status === "active") {
@@ -605,7 +599,6 @@ const transfer = async (req, res) => {
             uDoc.markModified("notifications");
             await uDoc.save();
 
-            // 🔥 ថែមថ្មី៖ បាញ់សារ Telegram ទៅសមាជិកគណនីរួម
             if (bot && bot.sendUserPaymentAlert) {
               bot.sendUserPaymentAlert(uDoc._id, {
                 amount: receiverAmount,
@@ -620,7 +613,6 @@ const transfer = async (req, res) => {
     } else {
       await Transaction.create(receiverTrx);
 
-      // ២. ករណីអ្នកទទួល ជា USER ធម្មតា
       if (!isMerchant) {
         const rDoc = await User.findOne({ username: receiver.username });
         if (rDoc) {
@@ -635,7 +627,6 @@ const transfer = async (req, res) => {
           rDoc.markModified("notifications");
           await rDoc.save();
 
-          // 🔥 ថែមថ្មី៖ បាញ់សារ Telegram ទៅកាន់ USER ធម្មតា
           if (bot && bot.sendUserPaymentAlert) {
             bot.sendUserPaymentAlert(rDoc._id, {
               amount: receiverAmount,
@@ -646,7 +637,6 @@ const transfer = async (req, res) => {
           }
         }
       } else {
-        // ៣. ករណីអ្នកទទួល ជា MERCHANT
         if (bot && bot.sendMerchantPaymentAlert) {
           try {
             bot.sendMerchantPaymentAlert(receiverMerchant._id, {
@@ -682,6 +672,39 @@ const transfer = async (req, res) => {
           : receiver.username;
         io.to(targetSocketUser).emit("paymentReceived", socketPayload);
       }
+    }
+
+    // =====================================================================
+    // 🔥 [បន្ថែមថ្មី] មុខងារបាញ់ Webhook ទៅប្រាប់ E-Commerce (Fashion Shop)
+    // =====================================================================
+    try {
+      if (
+        orderId &&
+        isMerchant &&
+        receiverMerchant &&
+        receiverMerchant.webhookUrl
+      ) {
+        const webhookPayload = {
+          orderId: orderId,
+          amount: receiverAmount,
+          status: "PAID",
+          upayTransactionId: sharedRefId,
+        };
+
+        // បាញ់ Webhook ចោល (Fire and Forget) ដោយមិនបាច់រង់ចាំលទ្ធផល ដើម្បីការពារការគាំង
+        fetch(receiverMerchant.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
+        }).catch((err) => {
+          console.log(
+            "⚠️ មិនអាចបាញ់ Webhook ទៅ E-Commerce បានទេ:",
+            err.message,
+          );
+        });
+      }
+    } catch (webhookErr) {
+      console.error("⚠️ បញ្ហាក្នុងការរៀបចំ Webhook:", webhookErr);
     }
 
     // ------------------------------------------
