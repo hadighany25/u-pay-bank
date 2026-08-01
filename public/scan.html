@@ -872,10 +872,18 @@
       async function startScanner() {
         try {
           const config = {
-            fps: 20,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.77,
+            fps: 15, // ប្រើត្រឹម 15fps ដើម្បីឲ្យកាមេរ៉ាមានពេល Focus ច្បាស់ល្អ និងមិនធ្វើឲ្យទូរស័ព្ទក្តៅ
+
+            // 🚫 លុប aspectRatio ចោល! ការពារកុំឲ្យរូបភាពកាមេរ៉ាត្រូវទាញខូចទ្រង់ទ្រាយពេលមើលលើទូរស័ព្ទ
+            // ✅ កំណត់ qrbox ឲ្យ Responsive ផ្អែកតាមទំហំអេក្រង់ជាក់ស្តែង
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+              const qrSize = Math.floor(minEdgeSize * 0.75); // យកទំហំ ៧៥% នៃប្រវែងអេក្រង់
+              return { width: qrSize, height: qrSize };
+            },
           };
+
+          // ប្រើ { facingMode: "environment" } គឺត្រឹមត្រូវហើយ សម្រាប់កាមេរ៉ាក្រោយ
           await html5QrCode.start(
             { facingMode: "environment" },
             config,
@@ -884,6 +892,11 @@
           isCameraRunning = true;
         } catch (err) {
           console.log("Camera fail: ", err);
+          Swal.fire(
+            "Error",
+            "មិនអាចបើកកាមេរ៉ាបានទេ! សូមពិនិត្យមើលការអនុញ្ញាត (Camera Permission)។",
+            "error",
+          );
         }
       }
 
