@@ -763,20 +763,22 @@
           .play()
           .catch(() => {});
 
-        // Routing Logic ដូចដើម
+        console.log("QR Data:", decodedText); // ទុកសម្រាប់មើលតេស្ត
+
+        // ១. ករណីស្កេន U-Fund
         if (decodedText.startsWith("UFND-")) {
           window.location.href = `transfer.html?acc=${decodedText}&source=qr`;
           return;
         }
 
-        if (
-          decodedText.includes("transfer.html") &&
-          decodedText.includes("acc=")
-        ) {
+        // ២. ករណីស្កេនចំ Link E-Commerce (Fashion Shop) ឫ Link Payment
+        // 🔥 កែឲ្យឆ្លាតជាងមុន៖ ឲ្យតែមានពាក្យ acc= ឬជា Link (http) គឺយើង Redirect តែម្តង
+        if (decodedText.includes("acc=") || decodedText.startsWith("http")) {
           window.location.href = decodedText;
           return;
         }
 
+        // ៣. ករណីស្កេន QR គណនីមានចាក់សោលុយ (ឧ. 888888888:5.00)
         let targetAcc = decodedText;
         let targetAmount = "";
         let lockMoney = false;
@@ -788,7 +790,8 @@
           lockMoney = true;
         }
 
-        if (/^\d+$/.test(targetAcc) && targetAcc.length >= 8) {
+        // ៤. ករណី QR ជាលេខគណនីធម្មតា (លេខសុទ្ធចាប់ពី ៦ ខ្ទង់ឡើង)
+        if (/^\d+$/.test(targetAcc) && targetAcc.length >= 6) {
           let url = `transfer.html?acc=${targetAcc}&source=qr`;
           if (targetAmount) {
             url += `&amount=${targetAmount}`;
@@ -796,9 +799,13 @@
           }
           window.location.href = url;
         } else {
-          Swal.fire("បរាជ័យ", "កូដ QR មិនត្រឹមត្រូវឬមិនគាំទ្រ!", "error").then(
-            () => startSmartScanner(),
-          );
+          // បើមិនចូលលក្ខខណ្ឌណាសោះ ទើបលោត Error
+          Swal.fire({
+            icon: "error",
+            title: "បរាជ័យ",
+            text: "កូដ QR មិនត្រឹមត្រូវឬមិនគាំទ្រ!",
+            confirmButtonColor: "#00b894",
+          }).then(() => startSmartScanner());
         }
       }
 
