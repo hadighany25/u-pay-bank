@@ -910,6 +910,20 @@
         Authorization: `Bearer ${token}`,
       };
 
+      // ✅ [កែប្រែថ្មី] ទាញយក orderId និង URL Params ជាសកល
+      const urlParamsGlobal = new URLSearchParams(window.location.search);
+      const orderId =
+        urlParamsGlobal.get("orderId") || urlParamsGlobal.get("o");
+      const callbackUrl = urlParamsGlobal.get("callback");
+      const items = urlParamsGlobal.get("items");
+      const shopBuyerName = urlParamsGlobal.get("user");
+
+      let targetUserIsKHR = null,
+        currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 },
+        currentSlipData = null,
+        spinIsActive = false,
+        enteredPin = "";
+
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
         document.body.classList.add("loaded");
@@ -923,6 +937,8 @@
         } catch (e) {}
 
         const urlParams = new URLSearchParams(window.location.search);
+
+        // ✅ [កែប្រែថ្មី] ចាប់យកលេខកុង
         if (urlParams.get("acc")) {
           let ai = document.getElementById("receiverAcc");
           ai.value = urlParams.get("acc");
@@ -930,10 +946,13 @@
           ai.style.backgroundColor = "#e9ecef";
           checkName();
         }
-        if (urlParams.get("amount")) {
+
+        // ✅ [កែប្រែថ្មី] ចាប់យកចំនួនលុយ និងចាក់សោរមិនឲ្យកែ (ការពារភ្ញៀវបន្លំលុយវិក័យប័ត្រ)
+        let passedAmount = urlParams.get("amount") || urlParams.get("a");
+        if (passedAmount) {
           let amti = document.getElementById("amount");
-          amti.value = urlParams.get("amount");
-          if (urlParams.get("lockAmount") === "true") {
+          amti.value = passedAmount;
+          if (urlParams.get("lockAmount") === "true" || urlParams.has("a")) {
             amti.readOnly = true;
             amti.style.backgroundColor = "#e9ecef";
           }
@@ -950,17 +969,6 @@
         )
           document.body.classList.add("dark-mode");
       }
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get("orderId");
-      const callbackUrl = urlParams.get("callback");
-      const items = urlParams.get("items");
-      const shopBuyerName = urlParams.get("user");
-      let targetUserIsKHR = null,
-        currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 },
-        currentSlipData = null,
-        spinIsActive = false,
-        enteredPin = "";
 
       function populateSourceAccounts() {
         const select = document.getElementById("fromAccount");
@@ -1330,35 +1338,44 @@
           recAcc = document.getElementById("receiverAcc").value,
           amt = document.getElementById("amount").value,
           pin = enteredPin;
+
         if (pin.length === 4) {
           closeModal("pinModal");
           Swal.fire({
             title: "Processing...",
             didOpen: () => Swal.showLoading(),
           });
+
           let url = recAcc.startsWith("UFND-")
-              ? "/api/ufund/scan-pay"
-              : "/api/transfer",
-            body = recAcc.startsWith("UFND-")
-              ? {
-                  username: user.username,
-                  qrString: recAcc,
-                  amount: amt,
-                  pin: pin,
-                }
-              : {
-                  senderUsername: user.username,
-                  senderAccount: srcAcc,
-                  receiverAccount: recAcc,
-                  amount: amt,
-                  remark: document.getElementById("remark").value,
-                  pin: pin,
-                  trxMethod:
-                    urlParams.get("source") === "qr"
-                      ? "QR Scan"
-                      : "Account Input",
-                  currency: type,
-                };
+            ? "/api/ufund/scan-pay"
+            : "/api/transfer";
+
+          // ✅ [កែប្រែថ្មី] ភ្ជាប់ orderId ទៅ Backend
+          let body = recAcc.startsWith("UFND-")
+            ? {
+                username: user.username,
+                qrString: recAcc,
+                amount: amt,
+                pin: pin,
+              }
+            : {
+                senderUsername: user.username,
+                senderAccount: srcAcc,
+                receiverAccount: recAcc,
+                amount: amt,
+                remark:
+                  document.getElementById("remark").value ||
+                  (orderId ? `Payment for ${orderId}` : ""),
+                pin: pin,
+                trxMethod:
+                  urlParamsGlobal.get("source") === "qr" ||
+                  urlParamsGlobal.has("acc")
+                    ? "QR Scan"
+                    : "Account Input",
+                currency: type,
+                orderId: orderId, // បញ្ជូន orderId ទៅកាន់ U-Pay Backend ដើម្បីបាញ់ Webhook
+              };
+
           try {
             const res = await fetch(url, {
               method: "POST",
@@ -1493,7 +1510,7 @@
           d.partner || d.receiverName;
         document.getElementById("slipMethod").innerText =
           d.trxMethod ||
-          (urlParams.get("source") === "qr" ? "QR Scan" : "Account Input");
+          (urlParamsGlobal.has("acc") ? "QR Scan" : "Account Input");
         document.getElementById("slipDate").innerText = d.date;
         document.getElementById("slipRemark").innerText = d.remark || "-";
         document.getElementById("slipModal").style.display = "flex";
@@ -1509,9 +1526,22 @@
           document.querySelector(".slip-actions").style.display = "flex";
         });
       }
+
+      // ✅ [កែប្រែថ្មី] ត្រលប់ទៅ Fashion Shop វិញប្រសិនបើវេរលុយពីការស្កេន QR
       function returnToShopOrDashboard() {
-        if (callbackUrl) window.location.href = new URL(callbackUrl).origin;
-        else window.location.href = "dashboard.html";
+        if (callbackUrl) {
+          window.location.href = new URL(callbackUrl).origin;
+        } else if (orderId) {
+          // ដោយសារ Fashion Shop បើក U-Pay ជា Tab ថ្មី (window.open)
+          // ពេលចុច Done យើងគ្រាន់តែបិទ Tab នេះ នោះវានឹងត្រលប់ទៅ Tab ដើមវិញ!
+          window.close();
+          // បើកុំព្យូទ័រមិនឲ្យបិទ Tab វានឹងលោតទៅ Dashboard ជាជម្រើសទី ២
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 300);
+        } else {
+          window.location.href = "dashboard.html";
+        }
       }
     </script>
   </body>

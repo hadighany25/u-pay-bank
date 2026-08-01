@@ -401,18 +401,12 @@ exports.createMerchantQR = async (req, res) => {
         .status(404)
         .json({ code: "FAIL", message: "រកមិនឃើញគណនី Merchant នេះទេ" });
 
-    const rawSignature = `${merchant_id}${order_id}${amount}${merchant.apiKey}${req_time}`;
-    const hashSignature = crypto
-      .createHmac("sha256", merchant.apiSecret)
-      .update(rawSignature)
-      .digest("hex");
-    if (sign !== hashSignature)
-      return res
-        .status(401)
-        .json({ code: "FAIL", message: "សោរសម្ងាត់មិនត្រឹមត្រូវ" });
+    // ទាញយកលេខគណនី USD របស់ Merchant
+    const receiveAccount = merchant.accountNumbers.USD;
 
-    // ✅ កែប្រែត្រង់នេះ៖ ប្រើ Web Link របស់បងផ្ទាល់ ហើយភ្ជាប់ទិន្នន័យទៅជាមួយ
-    const deepLink = `https://u-pay-bank.fly.dev/transfer.html?m=${merchant_id}&o=${order_id}&a=${amount}`;
+    // ✅ កែ Link ទៅកាន់ index.html (ដើម្បីឲ្យ Login សិន)
+    // ហើយប្ដូរ `m=` ទៅជា `acc=` (លេខគណនី) វិញ
+    const deepLink = `https://u-pay-bank.fly.dev/index.html?acc=${receiveAccount}&o=${order_id}&a=${amount}`;
 
     res.status(200).json({
       code: "SUCCESS",
@@ -424,11 +418,9 @@ exports.createMerchantQR = async (req, res) => {
     });
   } catch (error) {
     console.error("Error generating Merchant QR:", error);
-    res
-      .status(500)
-      .json({
-        code: "FAIL",
-        message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធធនាគារកណ្តាល",
-      });
+    res.status(500).json({
+      code: "FAIL",
+      message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធធនាគារកណ្តាល",
+    });
   }
 };

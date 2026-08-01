@@ -490,7 +490,12 @@
         sessionStorage.getItem("userToken")
       ) {
         const u = JSON.parse(sessionStorage.getItem("user"));
-        if (currentUrlParams && currentUrlParams.includes("orderId")) {
+        // ✅ [កែប្រែត្រង់នេះ] ឆែករកពាក្យ orderId ឬ acc= ឲ្យត្រូវនឹង Link របស់ QR
+        if (
+          currentUrlParams &&
+          (currentUrlParams.includes("orderId") ||
+            currentUrlParams.includes("acc="))
+        ) {
           window.location.href = "transfer.html" + currentUrlParams;
         } else {
           if (u.role === "admin") window.location.href = "admin.html";
@@ -542,7 +547,12 @@
 
             // បញ្ជូនទៅកាន់ទំព័របន្ទាប់
             setTimeout(() => {
-              if (currentUrlParams && currentUrlParams.includes("orderId")) {
+              // ✅ [កែប្រែត្រង់នេះ] ឆែករកពាក្យ orderId ឬ acc= ឲ្យត្រូវនឹង Link របស់ QR ពេល Login ជោគជ័យ
+              if (
+                currentUrlParams &&
+                (currentUrlParams.includes("orderId") ||
+                  currentUrlParams.includes("acc="))
+              ) {
                 window.location.href = "transfer.html" + currentUrlParams;
               } else {
                 if (data.user.role === "admin")
