@@ -638,17 +638,19 @@ const transfer = async (req, res) => {
           }
         }
       } else {
+        // ៣. ករណីអ្នកទទួល ជា MERCHANT
         if (bot && bot.sendMerchantPaymentAlert) {
-          try {
-            bot.sendMerchantPaymentAlert(receiverMerchant._id, {
+          // ✅ ដោះស្រាយការគាំងដោយប្រើ .catch() ភ្ជាប់ពីក្រោយផ្ទាល់
+          bot
+            .sendMerchantPaymentAlert(receiverMerchant._id, {
               amount: receiverAmount,
               currency: isReceiverKHR ? "KHR" : "USD",
               senderName: senderMsgName,
               refId: sharedRefId,
-            });
-          } catch (teleErr) {
-            console.error("Telegram Merchant Alert Error:", teleErr);
-          }
+            })
+            .catch((teleErr) =>
+              console.error("⚠️ Telegram Alert Error:", teleErr.message),
+            );
         }
       }
     }
