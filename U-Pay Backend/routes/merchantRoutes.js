@@ -27,7 +27,7 @@ router.get(
   merchantController.getMerchantTransactions,
 );
 
-// Routes សម្រាប់ Telegram Alert (កែសម្រួលត្រង់នេះរួចរាល់)
+// Routes សម្រាប់ Telegram Alert
 router.post(
   "/generate-telegram-code",
   verifyUser,
@@ -50,5 +50,11 @@ router.get("/admin/all-merchants", verifyUser, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// ========================================================
+// 🌐 Routes សម្រាប់ Partner / API ខាងក្រៅ (ឧទាហរណ៍: Fashion Shop)
+// ========================================================
+// ចំណាំ៖ អត់មានដាក់ verifyUser ទេ ព្រោះយើងផ្ទៀងផ្ទាត់សុវត្ថិភាពតាមរយៈ Signature នៅក្នុង Controller រួចហើយ
+router.post("/qr/create", merchantController.createMerchantQR);
 
 module.exports = router;

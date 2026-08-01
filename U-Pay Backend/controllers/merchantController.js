@@ -354,7 +354,7 @@ exports.unlinkTelegram = async (req, res) => {
       try {
         const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram (Unlinked)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nគណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay ហាងរបស់អ្នកជោគជ័យ។ ចាប់ពីពេលនេះតទៅ នឹងមិនមានសារជូនដំណឹងលុយចូលទីនេះទៀតទេ។`;
 
-        // ហៅ bot មកប្រើ (ត្រូវប្រាកដថាបាន require bot មកក្នុង file Controller นี้រួចរាល់)
+        // ហៅ bot មកប្រើ (ត្រូវប្រាកដថាបាន require bot មកក្នុង file Controller នេះរួចរាល់)
         await bot.sendMessage(merchant.telegramChatId, unlinkMsg, {
           parse_mode: "HTML",
         });
@@ -376,5 +376,68 @@ exports.unlinkTelegram = async (req, res) => {
   } catch (error) {
     console.error("Unlink Merchant Error:", error);
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
+  }
+};
+
+// ========================================================
+// 💰 ៩. API សម្រាប់ Partner ឬ កម្មវិធីភាគីទី៣ ស្នើសុំ QR Code (General API)
+// ========================================================
+exports.createMerchantQR = async (req, res) => {
+  try {
+    const {
+      merchant_id,
+      order_id,
+      amount,
+      remark,
+      notify_url,
+      req_time,
+      sign,
+    } = req.body;
+
+    // ១. ស្វែងរកហាងតាម merchant_id ដែល Client បញ្ជូនមក
+    const merchant = await Merchant.findOne({ merchantId: merchant_id });
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ code: "FAIL", message: "រកមិនឃើញគណនី Merchant នេះទេ" });
+    }
+
+    // ២. ផ្ទៀងផ្ទាត់ Signature ថាពិតជាស្នើសុំពី Partner ត្រឹមត្រូវមែនឬអត់
+    const rawSignature = `${merchant_id}${order_id}${amount}${merchant.apiKey}${req_time}`;
+    const hashSignature = crypto
+      .createHmac("sha256", merchant.apiSecret)
+      .update(rawSignature)
+      .digest("hex");
+
+    // បើ Signature ខុស មានន័យថាជាការវាយប្រហារ ឬការស្នើសុំមិនត្រឹមត្រូវ
+    if (sign !== hashSignature) {
+      return res
+        .status(401)
+        .json({
+          code: "FAIL",
+          message: "សោរសម្ងាត់មិនត្រឹមត្រូវ (Invalid Signature)",
+        });
+    }
+
+    // ៣. បង្កើតតំណ DeepLink (សម្រាប់ឲ្យ App ស្កេន ឬចុចបង់លុយ)
+    const deepLink = `upay://pay?m=${merchant_id}&o=${order_id}&a=${amount}`;
+
+    // ៤. ឆ្លើយតបទៅកាន់ Partner (Client App) វិញ
+    res.status(200).json({
+      code: "SUCCESS",
+      message: "ជោគជ័យ",
+      data: {
+        qr_code_data: deepLink, // Client អាចយកទៅ Generate ជា QR Image
+        deeplink: deepLink, // Client អាចយកទៅធ្វើជា Link សម្រាប់ចុចបង់ផ្ទាល់
+      },
+    });
+  } catch (error) {
+    console.error("Error generating Merchant QR:", error);
+    res
+      .status(500)
+      .json({
+        code: "FAIL",
+        message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធធនាគារកណ្តាល",
+      });
   }
 };
