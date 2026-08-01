@@ -1437,7 +1437,8 @@
               } else showSlipData(d.slipData);
             } else Swal.fire("Failed", d.message, "error");
           } catch (e) {
-            Swal.fire("Error", "Connection Error", "error");
+            console.error("Transfer Error:", e);
+            Swal.fire("Error", "Connection Error: " + e.message, "error");
           }
         }
       }

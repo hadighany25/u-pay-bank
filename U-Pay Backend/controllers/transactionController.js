@@ -9,6 +9,7 @@ const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount"); // ធុងលុយគណនីរួម
 const bot = require("../services/telegramBot");
+const axios = require("axios");
 
 // នាំចូល Services
 const {
@@ -691,17 +692,13 @@ const transfer = async (req, res) => {
           upayTransactionId: sharedRefId,
         };
 
-        // បាញ់ Webhook ចោល (Fire and Forget) ដោយមិនបាច់រង់ចាំលទ្ធផល ដើម្បីការពារការគាំង
-        fetch(receiverMerchant.webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(webhookPayload),
-        }).catch((err) => {
-          console.log(
-            "⚠️ មិនអាចបាញ់ Webhook ទៅ E-Commerce បានទេ:",
-            err.message,
+        // ២. ប្រើ axios ជំនួស fetch ដើម្បីការពារការគាំងលើ Server
+        axios
+          .post(receiverMerchant.webhookUrl, webhookPayload)
+          .then(() => console.log("✅ Webhook បាញ់ទៅ Fashion Shop ជោគជ័យ!"))
+          .catch((err) =>
+            console.log("⚠️ មិនអាចបាញ់ Webhook បានទេ:", err.message),
           );
-        });
       }
     } catch (webhookErr) {
       console.error("⚠️ បញ្ហាក្នុងការរៀបចំ Webhook:", webhookErr);
