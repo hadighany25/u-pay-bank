@@ -771,9 +771,20 @@
         }
 
         // ២. ករណីស្កេនចំ Link E-Commerce (Fashion Shop) ឫ Link Payment
-        // 🔥 កែឲ្យឆ្លាតជាងមុន៖ ឲ្យតែមានពាក្យ acc= ឬជា Link (http) គឺយើង Redirect តែម្តង
+        // 🔥 កែឲ្យឆ្លាត៖ ចាប់យកតែផ្នែកកន្ទុយ (?acc=...&amount=...) ទៅភ្ជាប់នឹង transfer.html ផ្ទាល់ (មិនឆ្លងកាត់ Login)
         if (decodedText.includes("acc=") || decodedText.startsWith("http")) {
-          window.location.href = decodedText;
+          // ទាញយកកន្ទុយ URL
+          let queryString = decodedText.includes("?")
+            ? decodedText.substring(decodedText.indexOf("?"))
+            : "?" + decodedText; // ករណីវាមិនមានសញ្ញា ?
+
+          // បន្ថែម source=qr ដើម្បីឲ្យប្រព័ន្ធដឹងថាវាស្កេនមកពី QR
+          if (!queryString.includes("source=qr")) {
+            queryString += "&source=qr";
+          }
+
+          // បញ្ជូនទៅ transfer.html ដោយផ្ទាល់ជាមួយកន្ទុយ URL ដើមទាំងស្រុង
+          window.location.href = "transfer.html" + queryString;
           return;
         }
 
