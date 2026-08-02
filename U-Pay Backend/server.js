@@ -23,6 +23,7 @@ const communicationRoutes = require("./routes/communicationRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
 const ufundRoutes = require("./routes/ufundRoutes");
 const accountRoutes = require("./routes/accountRoutes");
+const b2bEscrowRoutes = require("./routes/b2bEscrowRouter");
 
 const PORT = process.env.PORT || 3000;
 
@@ -80,6 +81,7 @@ app.use("/api", financeRoutes);
 app.use("/api", communicationRoutes);
 app.use("/api/ufund", ufundRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
