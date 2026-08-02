@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 // នាំចូល Middleware
-const { verifyB2BSignature } = require("../middlewares/b2bAuthMiddleware");
+const { verifyB2BSignature } = require("../middleware/b2bAuthMiddleware"); // ✅ ត្រូវតាមឈ្មោះ Folder "middleware" ក្នុង Project
 
 // នាំចូល Controllers ទាំង២
 const {
