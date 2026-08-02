@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 // ផ្ទៀងផ្ទាត់ Path ឈ្មោះ Folder "middleware" (អត់มี s)
-const { verifyB2BSignature } = require("../middlewar/b2bAuthMiddleware");
+const { verifyB2BSignature } = require("../middleware/b2bAuthMiddleware");
 const {
   freezeFunds,
   releaseFunds,
