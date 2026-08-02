@@ -74,4 +74,90 @@ const freezeFunds = async (req, res) => {
   }
 };
 
-module.exports = { freezeFunds };
+// controllers/b2bEscrowController.js (បន្តពីលើ)
+
+// មុខងារជំនួយ (Helper Function) សម្រាប់បង្កើត PDF - យើងនឹងសរសេរលម្អិតពេលក្រោយ
+// បច្ចុប្បន្នប្រើជាទម្រង់ Mock សិន ដើម្បីឱ្យដំណើរការ API ដើររលូន
+const generateOfficialReceiptPDF = async (transactionData, merchantData) => {
+  // នៅទីនេះ យើងអាចប្រើ Library ដូចជា 'pdfkit' ឬ 'puppeteer'
+  // ដើម្បីគូសវិក្កយបត្រមានត្រា U-Pay រួច Upload ចូល AWS S3 ឬ Google Drive
+
+  const fakePdfUrl = `https://api.upay.com/receipts/UPAY-TXN-${transactionData._id}.pdf`;
+  return fakePdfUrl;
+};
+
+// 🔥 API: ព្រលែងប្រាក់ និងបញ្ជាក់ការទូទាត់ (Release Funds)
+const releaseFunds = async (req, res) => {
+  try {
+    const { referenceId } = req.body;
+    const merchant = req.merchant; // មកពី b2bAuthMiddleware
+
+    if (!referenceId) {
+      return res.status(400).json({
+        success: false,
+        message: "សូមបញ្ជាក់លេខប្រតិបត្តិការ (referenceId)!",
+      });
+    }
+
+    // ១. ស្វែងរកប្រតិបត្តិការដែលកំពុង "បង្កក (frozen)"
+    const transaction = await EscrowTransaction.findOne({
+      merchantId: merchant._id,
+      referenceId: referenceId,
+      status: "frozen",
+    });
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "រកមិនឃើញប្រតិបត្តិការនេះទេ ឬក៏ប្រាក់ត្រូវបានទូទាត់រួចហើយ!",
+      });
+    }
+
+    const amount = transaction.amount;
+    const currency = transaction.currency;
+
+    // ២. កាត់ប្រាក់ចេញពីគណនីបង្កក (escrowHold) របស់ក្រុមហ៊ុន
+    // (ដោយសារលុយនេះត្រូវបានផ្ទេរចូលគណនីអ្នកលក់ពិតប្រាកដរួចហើយក្នុងប្រព័ន្ធ U-Pay)
+    if (merchant.escrowHold[currency] < amount) {
+      return res.status(400).json({
+        success: false,
+        message: "ប្រព័ន្ធមានភាពរអាក់រអួល: សមតុល្យបង្កកមិនគ្រប់គ្រាន់ទេ!",
+      });
+    }
+
+    merchant.escrowHold[currency] -= amount;
+    await merchant.save();
+
+    // ៣. បង្កើតវិក្កយបត្រ PDF ផ្លូវការ (Official Receipt)
+    const pdfUrl = await generateOfficialReceiptPDF(transaction, merchant);
+
+    // ៤. ធ្វើបច្ចុប្បន្នភាពប្រតិបត្តិការទៅជា Completed
+    transaction.status = "completed";
+    transaction.completedAt = Date.now();
+    transaction.receiptPdfUrl = pdfUrl;
+    await transaction.save();
+
+    // ៥. ឆ្លើយតបជោគជ័យទៅកាន់ U-Mall វិញ
+    return res.status(200).json({
+      success: true,
+      message: "ប្រាក់ត្រូវបានទូទាត់ និងព្រលែងដោយជោគជ័យ!",
+      data: {
+        transactionId: transaction._id,
+        referenceId: transaction.referenceId,
+        amountReleased: transaction.amount,
+        status: transaction.status,
+        completedAt: transaction.completedAt,
+        receiptUrl: transaction.receiptPdfUrl, // ជូន Link PDF ទៅ U-Mall វិញ
+      },
+    });
+  } catch (error) {
+    console.error("Release Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាក្នុងការព្រលែងប្រាក់ (Internal Server Error)",
+    });
+  }
+};
+
+// កុំភ្លេច Export វាបញ្ចូលគ្នាជាមួយ freezeFunds ណា
+module.exports = { freezeFunds, releaseFunds };
