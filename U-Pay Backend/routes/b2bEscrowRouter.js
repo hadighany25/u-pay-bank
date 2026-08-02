@@ -1,15 +1,19 @@
+// routes/b2bEscrowRouter.js
 const express = require("express");
 const router = express.Router();
 
-// ផ្ទៀងផ្ទាត់ Path ឈ្មោះ Folder "middleware" (អត់มี s)
 const { verifyB2BSignature } = require("../middleware/b2bAuthMiddleware");
 const {
   freezeFunds,
   releaseFunds,
 } = require("../controllers/b2bEscrowController");
 
-// កំណត់ Route ទាំងពីរ
+// 🔍 ឆែកមើលថាតើវាជា function ពិតមែន ឬអត់?
+console.log("verifyB2BSignature:", typeof verifyB2BSignature);
+console.log("freezeFunds:", typeof freezeFunds);
+console.log("releaseFunds:", typeof releaseFunds);
+
 router.post("/freeze", verifyB2BSignature, freezeFunds);
-router.post("/release", verifyB2BSignature, releaseFunds); // បន្ទាត់ទី ១៨
+router.post("/release", verifyB2BSignature, releaseFunds);
 
 module.exports = router;
