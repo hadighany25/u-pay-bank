@@ -62,4 +62,9 @@ router.post(
 );
 router.post("/egift/open", verifyUser, transactionController.egiftOpened);
 
+// ==========================================
+// 🤝 មុខងារ B2B (Server to Server) គ្មាន verifyUser ទេ
+// ==========================================
+router.post("/b2b/transfer", transactionController.b2bTransfer);
+
 module.exports = router;

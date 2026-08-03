@@ -1386,6 +1386,84 @@ const egiftOpened = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🤖 ៩. មុខងារ B2B Transfer (សម្រាប់ U-Mall បាញ់លុយចូល)
+// ==========================================
+const b2bTransfer = async (req, res) => {
+  try {
+    // ទាញយក Tools សម្ងាត់
+    const crypto = require("crypto");
+    const { merchantId, referenceId, amount, receiverAccount, description } =
+      req.body;
+    const signature = req.headers["x-signature"];
+    const timestamp = req.headers["x-timestamp"];
+
+    // ១. ផ្ទៀងផ្ទាត់សុវត្ថិភាព (HMAC Signature)
+    const UPAY_SECRET =
+      process.env.UPAY_API_SECRET ||
+      "edb7169d82f2ba03eccc06e5d57e3576e2672979bfeea8834a963a60fa515786";
+    const dataToSign = JSON.stringify(req.body) + (timestamp || "");
+
+    const expectedSig = crypto
+      .createHmac("sha256", UPAY_SECRET)
+      .update(dataToSign)
+      .digest("hex");
+
+    if (signature !== expectedSig) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message: "ហត្ថលេខាពី U-Mall មិនត្រឹមត្រូវទេ!",
+        });
+    }
+
+    // ២. ស្វែងរកគណនី U-Pay របស់អ្នកលក់
+    const receiver = await User.findOne({ accountNumber: receiverAccount });
+    if (!receiver) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនី U-Pay របស់អ្នកលក់ទេ!" });
+    }
+
+    // ៣. បូកលុយចូលគណនីអ្នកលក់ (បងអាចថែមកូដកាត់លុយពីកុងធំ U-Mall ក៏បាន)
+    receiver.balance += parseFloat(amount);
+    await receiver.save();
+
+    // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+    await Transaction.create({
+      username: receiver.username,
+      refId: referenceId,
+      hash: "B2B_" + Date.now(),
+      date: dateStr,
+      type: "Receive",
+      amount: parseFloat(amount),
+      currency: "USD",
+      fee: 0,
+      senderName: "U-Mall Payout",
+      receiverName: receiver.fullName || receiver.username,
+      receiverAcc: receiverAccount,
+      trxMethod: "B2B Gateway",
+      remark: description,
+      status: "Success",
+    });
+
+    // ៥. ឆ្លើយតបទៅ U-Mall វិញថាជោគជ័យ
+    res.json({
+      success: true,
+      transactionId: "TX_" + Date.now(),
+      message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ!",
+    });
+  } catch (error) {
+    console.error("B2B API Error:", error);
+    res.status(500).json({ success: false, message: "U-Pay Server Error" });
+  }
+};
+
 module.exports = {
   checkAccount,
   transfer,
@@ -1395,4 +1473,5 @@ module.exports = {
   scanBankBill,
   sendEgift,
   egiftOpened,
+  b2bTransfer,
 };
