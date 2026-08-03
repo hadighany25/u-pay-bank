@@ -4,6 +4,8 @@ const path = require("path");
 const QRCode = require("qrcode");
 const crypto = require("crypto"); // សម្រាប់បង្កើត Digital Signature (SHA256)
 const EscrowTransaction = require("../models/EscrowTransaction");
+// 👇 ថែមបន្ទាត់នេះមួយទៀត ដើម្បីទាញយកប្រវត្តិដកប្រាក់ពីធនាគារ U-Pay
+const Transaction = require("../models/Transaction");
 
 // Function សម្រាប់ Format ថ្ងៃខែ (រក្សាទុកដូចដើម)
 const formatDateTime = (dateInput) => {
@@ -40,21 +42,53 @@ const formatDateTime = (dateInput) => {
 // 🔥 មុខងារថ្មី៖ Generate និង Stream PDF ទៅកាន់ Browser ផ្ទាល់ (Real-time)
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    const transaction = await EscrowTransaction.findOne({
+    // ទី១៖ សាកល្បងស្វែងរកក្នុង Escrow (សម្រាប់វិក្កយបត្រទិញលក់)
+    let transaction = await EscrowTransaction.findOne({
       $or: [
         { referenceId: transactionId },
         { transactionId: transactionId },
-        { upayTransactionId: transactionId }, // 👈 ថែមអាហ្នឹងមួយទៀត ព្រោះ DB បងប្រើឈ្មោះនេះ
+        { upayTransactionId: transactionId },
       ],
     }).populate("merchantId");
+
+    let merchant = {};
+
+    // ទី២៖ បើរកក្នុង Escrow អត់ឃើញ វាច្បាស់ជាវិក្កយបត្រ "ដកប្រាក់ (Withdrawal)" ដូច្នេះត្រូវរកក្នុង Transaction វិញ
     if (!transaction) {
-      return res.status(404).send("Transaction not found");
+      transaction = await Transaction.findOne({ transactionId: transactionId });
+
+      // បើរកទាំង ២ កន្លែងហើយនៅតែអត់ឃើញទៀត ទើបបោះបង់
+      if (!transaction) {
+        return res
+          .status(404)
+          .send(
+            "រកមិនឃើញប្រតិបត្តិការនេះក្នុងប្រព័ន្ធទេ (Transaction not found)",
+          );
+      }
+
+      // ដោយសារទិន្នន័យដកប្រាក់មាន Field ខុសពីទិញលក់ យើងត្រូវ Map វាឱ្យត្រូវជាមួយទម្រង់ PDF របស់យើង
+      merchant = {
+        name: "Merchant Wallet",
+        accountNumber: transaction.senderPhone || "U-Pay App",
+        merchantId: "WITHDRAWAL",
+      };
+
+      // តម្រូវទិន្នន័យឱ្យ PDF អាចគូរបានដោយមិន Error
+      transaction.referenceId = transaction.transactionId;
+      transaction.receiverName =
+        transaction.bankName || transaction.receiverName || "Bank Account";
+      transaction.receiverAccount =
+        transaction.accountNumber || transaction.receiverPhone || "-";
+      transaction.type = "Withdrawal / Payout";
+      transaction.remark = transaction.note || "ការដកប្រាក់ពី U-Mall";
+    } else {
+      // ករណីរកឃើញក្នុង Escrow (ការទិញលក់)
+      merchant = transaction.merchantId || {};
     }
-    const merchant = transaction.merchantId || {};
 
     const fileName = `Receipt-${transaction.referenceId}.pdf`;
 
-    // 🌟 កំណត់ Header ឱ្យ Browser ស្គាល់ថាវាជា PDF និងឱ្យបើកមើលផ្ទាល់ (inline)
+    // 🌟 កំណត់ Header ឱ្យ Browser ស្គាល់ថាវាជា PDF
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
 
