@@ -83,6 +83,13 @@ app.use("/api/ufund", ufundRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 
+// 🌟 ថែមកូដ ៥ បន្ទាត់នេះចូល (Route សម្រាប់ទាញយក PDF)
+const { streamOfficialReceiptPDF } = require("./services/pdfService");
+app.get("/api/receipt/:txId", async (req, res) => {
+  const { txId } = req.params;
+  await streamOfficialReceiptPDF(txId, res);
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });

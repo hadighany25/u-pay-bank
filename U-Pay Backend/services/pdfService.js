@@ -40,8 +40,9 @@ const formatDateTime = (dateInput) => {
 // 🔥 មុខងារថ្មី៖ Generate និង Stream PDF ទៅកាន់ Browser ផ្ទាល់ (Real-time)
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    const transaction =
-      await EscrowTransaction.findById(transactionId).populate("merchantId");
+    const transaction = await EscrowTransaction.findOne({
+      $or: [{ referenceId: transactionId }, { transactionId: transactionId }],
+    }).populate("merchantId");
     if (!transaction) {
       return res.status(404).send("Transaction not found");
     }
