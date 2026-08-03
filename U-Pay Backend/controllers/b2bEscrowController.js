@@ -2,10 +2,14 @@
 const Merchant = require("../models/Merchant");
 const EscrowTransaction = require("../models/EscrowTransaction");
 
+// 🔥 ១. ថែម Import Services ដែលយើងបានសរសេរដាច់ដោយឡែក
+const { generateOfficialReceiptPDF } = require("../services/pdfService");
+const { sendWebhookNotification } = require("../services/webhookService");
+
 const freezeFunds = async (req, res) => {
   try {
     const { referenceId, amount, currency = "USD", receiverAccount } = req.body;
-    const merchant = req.merchant; // ទិន្នន័យនេះបានមកពី b2bAuthMiddleware ដែលយើងទើបបង្កើត
+    const merchant = req.merchant;
 
     // ១. ផ្ទៀងផ្ទាត់ទិន្នន័យចាំបាច់
     if (!referenceId || !amount || !receiverAccount) {
@@ -30,7 +34,7 @@ const freezeFunds = async (req, res) => {
       });
     }
 
-    // ៣. ឆែកមើលសមតុល្យប្រាក់របស់ Merchant (តើមានលុយគ្រប់ដើម្បីបង្កកទេ?)
+    // ៣. ឆែកមើលសមតុល្យប្រាក់របស់ Merchant
     if (merchant.collected[currency] < amount) {
       return res.status(400).json({
         success: false,
@@ -74,23 +78,11 @@ const freezeFunds = async (req, res) => {
   }
 };
 
-// controllers/b2bEscrowController.js (បន្តពីលើ)
-
-// មុខងារជំនួយ (Helper Function) សម្រាប់បង្កើត PDF - យើងនឹងសរសេរលម្អិតពេលក្រោយ
-// បច្ចុប្បន្នប្រើជាទម្រង់ Mock សិន ដើម្បីឱ្យដំណើរការ API ដើររលូន
-const generateOfficialReceiptPDF = async (transactionData, merchantData) => {
-  // នៅទីនេះ យើងអាចប្រើ Library ដូចជា 'pdfkit' ឬ 'puppeteer'
-  // ដើម្បីគូសវិក្កយបត្រមានត្រា U-Pay រួច Upload ចូល AWS S3 ឬ Google Drive
-
-  const fakePdfUrl = `https://api.upay.com/receipts/UPAY-TXN-${transactionData._id}.pdf`;
-  return fakePdfUrl;
-};
-
 // 🔥 API: ព្រលែងប្រាក់ និងបញ្ជាក់ការទូទាត់ (Release Funds)
 const releaseFunds = async (req, res) => {
   try {
     const { referenceId } = req.body;
-    const merchant = req.merchant; // មកពី b2bAuthMiddleware
+    const merchant = req.merchant;
 
     if (!referenceId) {
       return res.status(400).json({
@@ -116,8 +108,7 @@ const releaseFunds = async (req, res) => {
     const amount = transaction.amount;
     const currency = transaction.currency;
 
-    // ២. កាត់ប្រាក់ចេញពីគណនីបង្កក (escrowHold) របស់ក្រុមហ៊ុន
-    // (ដោយសារលុយនេះត្រូវបានផ្ទេរចូលគណនីអ្នកលក់ពិតប្រាកដរួចហើយក្នុងប្រព័ន្ធ U-Pay)
+    // ២. កាត់ប្រាក់ចេញពីគណនីបង្កក (escrowHold)
     if (merchant.escrowHold[currency] < amount) {
       return res.status(400).json({
         success: false,
@@ -128,8 +119,8 @@ const releaseFunds = async (req, res) => {
     merchant.escrowHold[currency] -= amount;
     await merchant.save();
 
-    // ៣. បង្កើតវិក្កយបត្រ PDF ផ្លូវការ (Official Receipt)
-    const pdfUrl = await generateOfficialReceiptPDF(transaction, merchant);
+    // ៣. បង្កើតវិក្កយបត្រ PDF ផ្លូវការ (យកចេញពី pdfService ផ្ទាល់តែម្តង)
+    const pdfUrl = await generateOfficialReceiptPDF(transaction._id);
 
     // ៤. ធ្វើបច្ចុប្បន្នភាពប្រតិបត្តិការទៅជា Completed
     transaction.status = "completed";
@@ -137,7 +128,12 @@ const releaseFunds = async (req, res) => {
     transaction.receiptPdfUrl = pdfUrl;
     await transaction.save();
 
-    // ៥. ឆ្លើយតបជោគជ័យទៅកាន់ U-Mall វិញ
+    // 🔥 ៥. ថែមត្រង់នេះ: បាញ់ Webhook ទៅកាន់ U-Mall វិញ
+    // យើងហៅ Function នេះដោយមិនបាច់ដាក់ពាក្យ 'await' ទេ ដើម្បីឱ្យវាដើរនៅ Background
+    // និងមិនធ្វើឱ្យ API ឆ្លើយតបទៅ U-Mall វិញយឺត (Non-blocking)
+    sendWebhookNotification(merchant, transaction, pdfUrl);
+
+    // ៦. ឆ្លើយតបជោគជ័យទៅកាន់ U-Mall វិញ
     return res.status(200).json({
       success: true,
       message: "ប្រាក់ត្រូវបានទូទាត់ និងព្រលែងដោយជោគជ័យ!",
@@ -147,7 +143,7 @@ const releaseFunds = async (req, res) => {
         amountReleased: transaction.amount,
         status: transaction.status,
         completedAt: transaction.completedAt,
-        receiptUrl: transaction.receiptPdfUrl, // ជូន Link PDF ទៅ U-Mall វិញ
+        receiptUrl: transaction.receiptPdfUrl,
       },
     });
   } catch (error) {
@@ -159,5 +155,4 @@ const releaseFunds = async (req, res) => {
   }
 };
 
-// កុំភ្លេច Export វាបញ្ចូលគ្នាជាមួយ freezeFunds ណា
 module.exports = { freezeFunds, releaseFunds };
