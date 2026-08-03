@@ -119,8 +119,8 @@ const releaseFunds = async (req, res) => {
     merchant.escrowHold[currency] -= amount;
     await merchant.save();
 
-    // ៣. បង្កើតវិក្កយបត្រ PDF ផ្លូវការ (យកចេញពី pdfService ផ្ទាល់តែម្តង)
-    const pdfUrl = await generateOfficialReceiptPDF(transaction._id);
+    // ៣. បង្កើត Link វិក្កយបត្រ (ចង្អុលទៅ Route ថ្មី)
+    const pdfUrl = `https://u-pay-bank.fly.dev/api/receipt/${transaction._id}`;
 
     // ៤. ធ្វើបច្ចុប្បន្នភាពប្រតិបត្តិការទៅជា Completed
     transaction.status = "completed";
