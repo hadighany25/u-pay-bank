@@ -84,7 +84,7 @@ app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html")); // ប្តូរទៅ file ដែលមានពិតប្រាកដ
+  res.sendFile(path.join(__dirname, "public/upay.html"));
 });
 
 // ==========================================
