@@ -41,7 +41,11 @@ const formatDateTime = (dateInput) => {
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
     const transaction = await EscrowTransaction.findOne({
-      $or: [{ referenceId: transactionId }, { transactionId: transactionId }],
+      $or: [
+        { referenceId: transactionId },
+        { transactionId: transactionId },
+        { upayTransactionId: transactionId }, // 👈 ថែមអាហ្នឹងមួយទៀត ព្រោះ DB បងប្រើឈ្មោះនេះ
+      ],
     }).populate("merchantId");
     if (!transaction) {
       return res.status(404).send("Transaction not found");
