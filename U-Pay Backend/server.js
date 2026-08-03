@@ -30,7 +30,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.static(path.join(__dirname, "../public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
+app.use(express.static(path.join(__dirname, "public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
 app.use(cors({ origin: "*" }));
 app.use("/api/merchants", merchantRoutes);
 
@@ -84,7 +84,7 @@ app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/upay.html"));
+  res.sendFile(path.join(__dirname, "public/index.html")); // ប្តូរទៅ file ដែលមានពិតប្រាកដ
 });
 
 // ==========================================
