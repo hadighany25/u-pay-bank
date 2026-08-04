@@ -1408,46 +1408,38 @@ const b2bTransfer = async (req, res) => {
       .digest("hex");
 
     if (signature !== expectedSig) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "ហត្ថលេខាពី U-Mall មិនត្រឹមត្រូវទេ!",
-        });
+      return res.status(401).json({
+        success: false,
+        message: "ហត្ថលេខាពី U-Mall មិនត្រឹមត្រូវទេ!",
+      });
     }
 
     // ២. ស្វែងរក Profile ហាង (Merchant) របស់ U-Mall
     const merchantProfile = await Merchant.findOne({ merchantId: merchantId });
     if (!merchantProfile) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: `រកមិនឃើញគណនី Merchant: ${merchantId} ទេ!`,
-        });
+      return res.status(404).json({
+        success: false,
+        message: `រកមិនឃើញគណនី Merchant: ${merchantId} ទេ!`,
+      });
     }
 
     // ទាញយកលេខគណនីដែល U-Mall បានភ្ជាប់ (Linked Account)
     const senderAccNumber = merchantProfile.linkedAccounts.USD;
     if (!senderAccNumber) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "Merchant របស់ U-Mall មិនទាន់បានភ្ជាប់គណនី USD (Linked Account) ទេ!",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Merchant របស់ U-Mall មិនទាន់បានភ្ជាប់គណនី USD (Linked Account) ទេ!",
+      });
     }
 
     // ៣. ស្វែងរកកុងធនាគាររបស់ម្ចាស់ U-Mall នៅក្នុង User Collection
     const sender = await User.findOne({ username: merchantProfile.userId });
     if (!sender) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "រកកុងធនាគារគោលរបស់ U-Mall មិនឃើញទេ!",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "រកកុងធនាគារគោលរបស់ U-Mall មិនឃើញទេ!",
+      });
     }
 
     // ៤. ដំណើរការកាត់លុយ "ចំគណនីដែលបានភ្ជាប់"
@@ -1455,12 +1447,10 @@ const b2bTransfer = async (req, res) => {
 
     if (sender.accountNumber === senderAccNumber) {
       if (sender.balance < parseFloat(amount)) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: `គណនី U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
-          });
+        return res.status(400).json({
+          success: false,
+          message: `គណនី U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
+        });
       }
       sender.balance -= parseFloat(amount);
       isSenderDeducted = true;
@@ -1470,12 +1460,10 @@ const b2bTransfer = async (req, res) => {
       );
       if (subAcc) {
         if (subAcc.balance < parseFloat(amount)) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: `គណនីរង U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
-            });
+          return res.status(400).json({
+            success: false,
+            message: `គណនីរង U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
+          });
         }
         subAcc.balance -= parseFloat(amount);
         sender.markModified("subAccounts");
@@ -1484,12 +1472,10 @@ const b2bTransfer = async (req, res) => {
     }
 
     if (!isSenderDeducted) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: `រកមិនឃើញលេខគណនី ${senderAccNumber} នៅក្នុង User នេះទេ!`,
-        });
+      return res.status(400).json({
+        success: false,
+        message: `រកមិនឃើញលេខគណនី ${senderAccNumber} នៅក្នុង User នេះទេ!`,
+      });
     }
 
     await sender.save();
@@ -1514,12 +1500,10 @@ const b2bTransfer = async (req, res) => {
         sender.markModified("subAccounts");
       }
       await sender.save();
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "រកគណនីអ្នកលក់មិនឃើញ! ប្រាក់ត្រូវបានបង្វិលចូល U-Mall វិញ។",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "រកគណនីអ្នកលក់មិនឃើញ! ប្រាក់ត្រូវបានបង្វិលចូល U-Mall វិញ។",
+      });
     }
 
     if (receiver.accountNumber === receiverAccount) {
@@ -1597,7 +1581,7 @@ const b2bTransfer = async (req, res) => {
     // ៧. ឆ្លើយតបទៅ U-Mall វិញ
     res.json({
       success: true,
-      transactionId: shortHash, // បាញ់លេខ ៨ខ្ទង់ ទៅអោយ U-Mall វិញដើម្បីងាយស្រួលធ្វើ URL សម្រាប់ PDF
+      transactionId: shortRefId, // 👈 ប្តូរត្រង់នេះ ដើម្បីឱ្យ U-Mall ទទួលបានលេខ B2B-...
       message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ និងបានកាត់ប្រាក់រួចរាល់!",
     });
   } catch (error) {

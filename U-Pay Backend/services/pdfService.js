@@ -1,5 +1,5 @@
 // ============================================================================
-// 📦 ១. នាំចូលបណ្ណាល័យដែលចាំបាច់ (Dependencies & Models)
+// 📦 ១. នាំចូលបណ្ណាល័យដែលចាំបាច់ (Dependencies)
 // ============================================================================
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
@@ -13,11 +13,6 @@ const Transaction = require("../models/Transaction");
 // ============================================================================
 // 🛠️ ២. មុខងារជំនួយ (Helper Functions)
 // ============================================================================
-
-/**
- * មុខងារសម្រាប់បំប្លែងកាលបរិច្ឆេទទៅជាទម្រង់ងាយស្រួលអាន (ឧ. 04 Aug 2026, 01:30:00 PM)
- * @param {Date|String} dateInput - ពេលវេលាដែលចង់បំប្លែង
- */
 const formatDateTime = (dateInput) => {
   if (!dateInput) return "N/A";
   const d = new Date(dateInput);
@@ -46,7 +41,7 @@ const formatDateTime = (dateInput) => {
   const ampm = hours >= 12 ? "PM" : "AM";
 
   hours = hours % 12;
-  hours = hours ? hours : 12; // បើ hours = 0 អោយចេញ 12
+  hours = hours ? hours : 12;
 
   return `${day} ${month} ${year}, ${String(hours).padStart(2, "0")}:${minutes}:${seconds} ${ampm}`;
 };
@@ -57,33 +52,29 @@ const formatDateTime = (dateInput) => {
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
     // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.១: ស្វែងរកទិន្នន័យពី Database (Query Data)
+    // ផ្នែកទី ៣.១: ស្វែងរកទិន្នន័យ (Query Data)
     // ------------------------------------------------------------------------
     let queryConditions = [
-      { hash: transactionId }, // សំខាន់បំផុតសម្រាប់ U-Pay
-      { transactionId: transactionId },
+      { refId: transactionId }, // ចាប់យកទម្រង់ B2B-...
+      { hash: transactionId }, // ចាប់យកទម្រង់ rxh8222e...
       { referenceId: transactionId },
+      { transactionId: transactionId },
       { upayTransactionId: transactionId },
       { txId: transactionId },
-      { refId: transactionId },
     ];
 
-    // បើ ID ជាប្រភេទ ObjectId របស់ MongoDB យើងអាចស្វែងរកតាម _id បាន
     if (mongoose.Types.ObjectId.isValid(transactionId)) {
       queryConditions.push({ _id: transactionId });
     }
 
-    // ស្វែងរកក្នុង EscrowTransaction ជាមុនសិន
     let transaction = await EscrowTransaction.findOne({
       $or: queryConditions,
     }).populate("merchantId");
     let merchant = {};
 
-    // បើរាវរកក្នុង Escrow អត់ឃើញ ទៅស្វែងរកក្នុង Transaction ធម្មតាវិញ
     if (!transaction) {
       transaction = await Transaction.findOne({ $or: queryConditions });
 
-      // បើនៅតែរកមិនឃើញទៀត បង្ហាញ Error ជាទម្រង់ HTML អោយអ្នកប្រើប្រាស់ឃើញ
       if (!transaction) {
         return res.status(404).send(`
           <div style="text-align:center; padding: 50px; font-family: Arial, sans-serif;">
@@ -93,14 +84,12 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         `);
       }
 
-      // រៀបចំទិន្នន័យ Merchant លំនាំដើម បើជាប្រតិបត្តិការ B2B
       merchant = {
         name: transaction.senderName || "U-Mall Payout",
         accountNumber: "System Payout",
         merchantId: "B2B_WITHDRAWAL",
       };
 
-      // តម្រូវឈ្មោះ Field អោយត្រូវបេះបិទនឹង Database
       transaction.referenceId = transaction.refId || transactionId;
       transaction.receiverName = transaction.receiverName || "Bank Account";
       transaction.receiverAccount = transaction.receiverAcc || "N/A";
@@ -111,13 +100,19 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     }
 
     // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.២: រៀបចំឯកសារ PDF និង Header (PDF Setup)
+    // ផ្នែកទី ៣.២: រៀបចំឯកសារ PDF និង ហ្វុងអក្សរ (PDF & Fonts Setup)
     // ------------------------------------------------------------------------
-    const fileName = `Receipt-${transaction.referenceId || transactionId}.pdf`;
+    const displayTxId =
+      transaction.referenceId || transaction.hash || transactionId;
+    const fileName = `Receipt-${displayTxId}.pdf`;
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
 
-    // ទីតាំង Font និង រូបភាព
+    const doc = new PDFDocument({ size: "A4", margin: 0 });
+    doc.pipe(res);
+
+    // ទីតាំង File Fonts
     const fontKhmer = path.join(
       __dirname,
       "../public/fonts/NotoSansKhmer-Regular.ttf",
@@ -136,50 +131,70 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     const logoPath = path.join(__dirname, "../public/images/logo.png");
     const headerBgPath = path.join(__dirname, "../public/images/header-bg.png");
 
-    const doc = new PDFDocument({ size: "A4", margin: 0 });
-    doc.pipe(res); // បាញ់ PDF ទៅកាន់ Browser
+    // 🌟 ប្រព័ន្ធការពារការគាំង (Font Fallback System) 🌟
+    let hasKhmer = false,
+      hasEnReg = false,
+      hasEnMed = false,
+      hasEnSemi = false,
+      hasEnBold = false;
 
-    // ចុះឈ្មោះ Fonts បើមានក្នុង Folder ពិតប្រាកដ
-    if (fs.existsSync(fontKhmer)) doc.registerFont("Khmer", fontKhmer);
-    if (fs.existsSync(fontEnReg)) doc.registerFont("En-Reg", fontEnReg);
-    if (fs.existsSync(fontEnMedium))
+    if (fs.existsSync(fontKhmer)) {
+      doc.registerFont("Khmer", fontKhmer);
+      hasKhmer = true;
+    }
+    if (fs.existsSync(fontEnReg)) {
+      doc.registerFont("En-Reg", fontEnReg);
+      hasEnReg = true;
+    }
+    if (fs.existsSync(fontEnMedium)) {
       doc.registerFont("En-Medium", fontEnMedium);
-    if (fs.existsSync(fontEnSemiBold))
+      hasEnMed = true;
+    }
+    if (fs.existsSync(fontEnSemiBold)) {
       doc.registerFont("En-SemiBold", fontEnSemiBold);
-    if (fs.existsSync(fontEnBold)) doc.registerFont("En-Bold", fontEnBold);
+      hasEnSemi = true;
+    }
+    if (fs.existsSync(fontEnBold)) {
+      doc.registerFont("En-Bold", fontEnBold);
+      hasEnBold = true;
+    }
 
-    // ដាក់ Logo ព្រាលៗធ្វើជាផ្ទៃខាងក្រោយ (Watermark)
+    const fKhmer = hasKhmer ? "Khmer" : "Helvetica-Bold";
+    const fReg = hasEnReg ? "En-Reg" : "Helvetica";
+    const fMed = hasEnMed ? "En-Medium" : "Helvetica";
+    const fSemi = hasEnSemi ? "En-SemiBold" : "Helvetica-Bold";
+    const fBold = hasEnBold ? "En-Bold" : "Helvetica-Bold";
+
+    // ------------------------------------------------------------------------
+    // ផ្នែកទី ៣.៣: គូររចនាប័ទ្មខាងលើ (Header & Watermark)
+    // ------------------------------------------------------------------------
     doc.save();
     doc.opacity(0.05);
     if (fs.existsSync(logoPath)) doc.image(logoPath, 110, 240, { width: 380 });
     doc.restore();
 
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៣: គូររចនាប័ទ្មខាងលើ (Header Section)
-    // ------------------------------------------------------------------------
     if (fs.existsSync(headerBgPath)) {
       doc.image(headerBgPath, 0, 0, { width: 595, height: 110 });
     } else {
-      doc.rect(0, 0, 595, 110).fill("#00a86b"); // ព៌ណលំនាំដើម បើគ្មានរូប Header
+      doc.rect(0, 0, 595, 110).fill("#00a86b");
     }
 
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 40, 30, { width: 120 });
       doc
-        .font("En-Medium")
+        .font(fMed)
         .fontSize(7)
         .fillColor("#ffffff")
         .text("FAST • SECURE • TRUSTED", 40, 75, { characterSpacing: 1.5 });
     }
 
-    const khmerFont = fs.existsSync(fontKhmer) ? "Khmer" : "En-Bold";
     doc
-      .font(khmerFont)
+      .font(fKhmer)
       .fontSize(14)
       .fillColor("#ffffff")
       .text("ប័ណ្ណទទួលប្រាក់", 0, 35, { align: "right", width: 555 });
     doc
-      .font("En-Medium")
+      .font(fMed)
       .fontSize(10)
       .text("PAYMENT RECEIPT", 0, 55, { align: "right", width: 555 });
 
@@ -190,14 +205,14 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     // ផ្នែកទី ៣.៤: ព័ត៌មានប្រតិបត្តិការ (Status & Date)
     // ------------------------------------------------------------------------
     doc
-      .font(khmerFont)
+      .font(fKhmer)
       .fontSize(12)
       .fillColor("#10b981")
       .text("ទូទាត់ដោយជោគជ័យ", marginX, currentY);
 
     doc.roundedRect(marginX, currentY + 18, 85, 18, 9).fill("#10b981");
     doc
-      .font("En-Bold")
+      .font(fBold)
       .fontSize(9)
       .fillColor("#ffffff")
       .text("SUCCESSFUL", marginX, currentY + 22.5, {
@@ -206,25 +221,22 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       });
 
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fontSize(9)
       .fillColor("#4a5568")
       .text(`Reference No:`, 300, currentY);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#1a202c")
-      .text(transaction.referenceId || "N/A", 400, currentY, {
-        align: "right",
-        width: 155,
-      });
+      .text(displayTxId, 400, currentY, { align: "right", width: 155 });
 
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fillColor("#4a5568")
       .text(`Transaction Date:`, 300, currentY + 18);
     const formattedDate = formatDateTime(transaction.createdAt || Date.now());
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#1a202c")
       .text(formattedDate, 400, currentY + 18, { align: "right", width: 155 });
 
@@ -234,59 +246,59 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     // ផ្នែកទី ៣.៥: ប្រអប់អ្នកផ្ញើ និង អ្នកទទួល (From & To Boxes)
     // ------------------------------------------------------------------------
 
-    // [ប្រអប់អ្នកផ្ញើប្រាក់ - FROM]
+    // [FROM]
     doc
       .roundedRect(marginX, currentY, 245, 90, 8)
       .fillAndStroke("#ffffff", "#e2e8f0");
     doc.roundedRect(marginX, currentY, 245, 25, 8).fill("#00a86b");
     doc
-      .font(khmerFont)
+      .font(fKhmer)
       .fontSize(9)
       .fillColor("#ffffff")
       .text("អ្នកបង់ប្រាក់ FROM", marginX + 10, currentY + 7);
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fontSize(8.5)
       .fillColor("#718096")
       .text("Account Name", marginX + 10, currentY + 35);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#2d3748")
       .text(merchant.name || "N/A", marginX + 10, currentY + 47);
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fillColor("#718096")
       .text("Account Number", marginX + 10, currentY + 65);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#2d3748")
       .text(merchant.accountNumber || "-", marginX + 10, currentY + 77);
 
-    // [ប្រអប់អ្នកទទួលប្រាក់ - TO]
+    // [TO]
     doc
       .roundedRect(310, currentY, 245, 90, 8)
       .fillAndStroke("#ffffff", "#e2e8f0");
     doc.roundedRect(310, currentY, 245, 25, 8).fill("#00a86b");
     doc
-      .font(khmerFont)
+      .font(fKhmer)
       .fontSize(9)
       .fillColor("#ffffff")
       .text("អ្នកទទួលប្រាក់ TO", 320, currentY + 7);
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fontSize(8.5)
       .fillColor("#718096")
       .text("Recipient Name", 320, currentY + 35);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#2d3748")
       .text(transaction.receiverName || "N/A", 320, currentY + 47);
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fillColor("#718096")
       .text("Account Number", 320, currentY + 65);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fillColor("#2d3748")
       .text(transaction.receiverAccount || "-", 320, currentY + 77);
 
@@ -297,24 +309,21 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     // ------------------------------------------------------------------------
     doc.roundedRect(marginX, currentY, 220, 20, 4).fill("#008080");
     doc
-      .font(khmerFont)
+      .font(fKhmer)
       .fontSize(9)
       .fillColor("#ffffff")
       .text("ព័ត៌មានប្រតិបត្តិការ", marginX + 10, currentY + 4.5);
-    doc
-      .font("En-SemiBold")
-      .text("TRANSACTION DETAILS", marginX + 90, currentY + 5);
+    doc.font(fSemi).text("TRANSACTION DETAILS", marginX + 90, currentY + 5);
 
     currentY += 35;
 
-    // មុខងារគូរបន្ទាត់នីមួយៗក្នុងតារាង
     const drawRow = (label, value, isBold = false, isKhmer = false) => {
       const displayValue = String(value || "-");
-      const fontName = isKhmer ? khmerFont : isBold ? "En-Bold" : "En-Medium";
+      const fontName = isKhmer ? fKhmer : isBold ? fBold : fMed;
       const fontSize = isBold ? 11 : 9;
 
       const labelHeight = doc
-        .font("En-Reg")
+        .font(fReg)
         .fontSize(9)
         .heightOfString(label, { width: 200 });
       const valueHeight = doc
@@ -324,7 +333,7 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       const rowHeight = Math.max(labelHeight, valueHeight);
 
       doc
-        .font("En-Reg")
+        .font(fReg)
         .fontSize(9)
         .fillColor("#718096")
         .text(label, marginX, currentY, { width: 200 });
@@ -339,8 +348,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     const amount = Number(transaction.amount || 0);
     const fee = Number(transaction.fee || 0);
     const total = amount + fee;
-    const displayTxId =
-      transaction.referenceId || transaction.transactionId || transactionId;
 
     drawRow("Transaction Type", transaction.type);
     drawRow("Payment Method", transaction.paymentMethod || "U-Pay System");
@@ -359,7 +366,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     drawRow("Remark", transaction.remark, false, true);
     drawRow("Transaction ID", displayTxId);
 
-    // គូរបន្ទាត់ខណ្ឌចែក
     currentY += 5;
     doc
       .strokeColor("#e2e8f0")
@@ -372,8 +378,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     // ------------------------------------------------------------------------
     // ផ្នែកទី ៣.៧: សន្តិសុខ និង ការផ្ទៀងផ្ទាត់ (Security & Verification)
     // ------------------------------------------------------------------------
-
-    // បង្កើតហត្ថលេខាឌីជីថល (Digital Signature SHA-256)
     const rawData = `${displayTxId}|${amount}|${transaction.createdAt}`;
     const digitalSignature = crypto
       .createHash("sha256")
@@ -382,16 +386,15 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .toUpperCase();
 
     doc
-      .font("En-Medium")
+      .font(fMed)
       .fontSize(7)
       .fillColor("#a0aec0")
       .text("Digital Signature (SHA-256):", marginX, currentY);
     doc
-      .font("En-Reg")
+      .font(fReg)
       .fontSize(6)
       .text(digitalSignature, marginX, currentY + 10, { width: 350 });
 
-    // បង្កើត QR Code សម្រាប់ Scan ផ្ទៀងផ្ទាត់
     const verifyLink = `https://u-pay-bank.fly.dev/receipt/${displayTxId}`;
     const qrBuffer = await QRCode.toBuffer(verifyLink, {
       margin: 1,
@@ -400,23 +403,22 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
 
     doc.image(qrBuffer, 485, currentY - 15, { width: 70 });
     doc
-      .font("En-Medium")
+      .font(fMed)
       .fontSize(7)
       .fillColor("#718096")
       .text("Scan to verify", 485, currentY - 25);
 
-    // ត្រាបញ្ជាក់ត្រឹមត្រូវ (Verified Stamp)
     const stampX = 350;
     const stampY = currentY + 20;
     doc.circle(stampX, stampY, 28).lineWidth(2).strokeColor("#00a86b").stroke();
     doc.circle(stampX, stampY, 23).lineWidth(1).strokeColor("#00a86b").stroke();
     doc
-      .font("En-Bold")
+      .font(fBold)
       .fontSize(16)
       .fillColor("#00a86b")
       .text("U", stampX - 6, stampY - 8);
     doc
-      .font("En-SemiBold")
+      .font(fSemi)
       .fontSize(5)
       .text("★ VERIFIED ★", stampX - 18, stampY + 12);
 
@@ -426,7 +428,7 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     const bottomY = doc.page.height - 45;
     doc.rect(0, bottomY - 15, doc.page.width, 60).fill("#f8fafc");
 
-    doc.font("En-Medium").fontSize(8).fillColor("#4a5568");
+    doc.font(fMed).fontSize(8).fillColor("#4a5568");
     doc.text("Website: https://u-pay-bank.fly.dev", marginX, bottomY);
     doc.text("Phone: +855 95 40 42 42", 220, bottomY);
     doc.text("Email: support@u-pay-bank.fly.dev", 380, bottomY, {
@@ -434,7 +436,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       align: "right",
     });
 
-    // បញ្ចប់ការគូរ PDF
     doc.end();
   } catch (error) {
     // ------------------------------------------------------------------------
