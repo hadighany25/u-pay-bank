@@ -1427,7 +1427,7 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // ទាញយកលេខគណនីដែល U-Mall បានភ្ជាប់ (Linked Account) ឧ. 777 888 999
+    // ទាញយកលេខគណនីដែល U-Mall បានភ្ជាប់ (Linked Account)
     const senderAccNumber = merchantProfile.linkedAccounts.USD;
     if (!senderAccNumber) {
       return res
@@ -1450,11 +1450,10 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // ៤. ដំណើរការកាត់លុយ "ចំគណនីដែលបានភ្ជាប់" (Main ឬ Sub-Account)
+    // ៤. ដំណើរការកាត់លុយ "ចំគណនីដែលបានភ្ជាប់"
     let isSenderDeducted = false;
 
     if (sender.accountNumber === senderAccNumber) {
-      // ករណីភ្ជាប់ជាមួយគណនីគោល (Main Account)
       if (sender.balance < parseFloat(amount)) {
         return res
           .status(400)
@@ -1466,7 +1465,6 @@ const b2bTransfer = async (req, res) => {
       sender.balance -= parseFloat(amount);
       isSenderDeducted = true;
     } else {
-      // ករណីភ្ជាប់ជាមួយគណនីរង (Sub-Account ឧទាហរណ៍ 777 888 999)
       const subAcc = sender.subAccounts.find(
         (sub) => sub.accountNumber === senderAccNumber,
       );
@@ -1480,12 +1478,11 @@ const b2bTransfer = async (req, res) => {
             });
         }
         subAcc.balance -= parseFloat(amount);
-        sender.markModified("subAccounts"); // សំខាន់៖ ប្រាប់ MongoDB ថាទិន្នន័យក្នុង Array ត្រូវបានកែប្រែ
+        sender.markModified("subAccounts");
         isSenderDeducted = true;
       }
     }
 
-    // បើរកលេខកុង 777 888 999 ហ្នឹងមិនឃើញក្នុង User ទេ
     if (!isSenderDeducted) {
       return res
         .status(400)
@@ -1495,10 +1492,9 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // Save ការកាត់លុយពី U-Mall សិន
     await sender.save();
 
-    // ៥. ស្វែងរក និង បូកលុយចូលគណនីអ្នកលក់ (Seller) ឱ្យត្រូវចំកុង (Main ឬ Sub)
+    // ៥. ស្វែងរក និង បូកលុយចូលគណនីអ្នកលក់ (Seller)
     const receiver = await User.findOne({
       $or: [
         { accountNumber: receiverAccount },
@@ -1507,7 +1503,7 @@ const b2bTransfer = async (req, res) => {
     });
 
     if (!receiver) {
-      // ⚠️ បើរកអ្នកទទួលមិនឃើញ ត្រូវតែបង្វិលលុយអោយ U-Mall វិញ (Rollback System)
+      // Rollback: បង្វិលលុយអោយ U-Mall វិញបើរកអ្នកទទួលមិនឃើញ
       if (sender.accountNumber === senderAccNumber) {
         sender.balance += parseFloat(amount);
       } else {
@@ -1526,7 +1522,6 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // បូកលុយចូលកុងអ្នកលក់
     if (receiver.accountNumber === receiverAccount) {
       receiver.balance += parseFloat(amount);
     } else {
@@ -1540,24 +1535,38 @@ const b2bTransfer = async (req, res) => {
     }
     await receiver.save();
 
-    // ៦. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (ដើម្បីឱ្យ PDF រកឃើញ)
+    // 🌟 ៦. បង្កើតលេខ ID ថ្មីៗ និងខ្លីៗតាមការស្នើសុំ 🌟
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const generatedTxId = "TX_" + Date.now();
 
-    // កត់ត្រាសម្រាប់អ្នកលក់ (ទទួលបានប្រាក់)
+    // បង្កើតលេខ Hash ៨ខ្ទង់ លាយអក្សរនិងលេខ (ឧ. rxh8222e)
+    const generateShortHash = () => {
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      let result = "";
+      for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    };
+    const shortHash = generateShortHash();
+
+    // បង្កើតលេខ Ref ID មាន B2B ពីមុខ (ឧ. B2B-895421457)
+    const shortRefId =
+      "B2B-" + Math.floor(100000000 + Math.random() * 900000000);
+
+    // កត់ត្រាសម្រាប់អ្នកលក់
     await Transaction.create({
       username: receiver.username,
-      refId: referenceId,
-      hash: generatedTxId,
+      refId: shortRefId, // ដាក់លេខ B2B-... ចូល
+      hash: shortHash, // ដាក់លេខ ៨ខ្ទង់ចូល
       date: dateStr,
       type: "Receive",
       amount: parseFloat(amount),
       currency: "USD",
       fee: 0,
-      senderName: merchantProfile.name, // ឈ្មោះហាង U-Mall ពិតប្រាកដ
+      senderName: merchantProfile.name,
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
@@ -1566,11 +1575,11 @@ const b2bTransfer = async (req, res) => {
       merchantId: merchantProfile.merchantId,
     });
 
-    // កត់ត្រាសម្រាប់ U-Mall (វេរប្រាក់ចេញ)
+    // កត់ត្រាសម្រាប់ U-Mall
     await Transaction.create({
       username: sender.username,
-      refId: referenceId,
-      hash: generatedTxId,
+      refId: shortRefId, // ដាក់លេខ B2B-... ចូល
+      hash: shortHash, // ដាក់លេខ ៨ខ្ទង់ចូល
       date: dateStr,
       type: "Transfer",
       amount: parseFloat(amount),
@@ -1588,7 +1597,7 @@ const b2bTransfer = async (req, res) => {
     // ៧. ឆ្លើយតបទៅ U-Mall វិញ
     res.json({
       success: true,
-      transactionId: generatedTxId,
+      transactionId: shortHash, // បាញ់លេខ ៨ខ្ទង់ ទៅអោយ U-Mall វិញដើម្បីងាយស្រួលធ្វើ URL សម្រាប់ PDF
       message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ និងបានកាត់ប្រាក់រួចរាល់!",
     });
   } catch (error) {
