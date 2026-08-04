@@ -1416,99 +1416,180 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // ២. រកគណនីអ្នកលក់ (អ្នកទទួលលុយ)
-    const receiver = await User.findOne({ accountNumber: receiverAccount });
-    if (!receiver) {
+    // ២. ស្វែងរក Profile ហាង (Merchant) របស់ U-Mall
+    const merchantProfile = await Merchant.findOne({ merchantId: merchantId });
+    if (!merchantProfile) {
       return res
         .status(404)
-        .json({ success: false, message: "រកមិនឃើញគណនី U-Pay របស់អ្នកលក់ទេ!" });
+        .json({
+          success: false,
+          message: `រកមិនឃើញគណនី Merchant: ${merchantId} ទេ!`,
+        });
     }
 
-    // ៣. រកគណនីកុងធំ U-Mall (អ្នកផ្ញើ) ដើម្បីកាត់លុយ
-    // សន្មតថា merchantId គឺយើងប្រើវាជា username ឬ អាខោនកុងធំក្នុង U-Pay
-    const sender = await User.findOne({
-      $or: [
-        { merchantId: merchantId },
-        { username: merchantId },
-        { accountNumber: merchantId },
-      ],
-    });
+    // ទាញយកលេខគណនីដែល U-Mall បានភ្ជាប់ (Linked Account) ឧ. 777 888 999
+    const senderAccNumber = merchantProfile.linkedAccounts.USD;
+    if (!senderAccNumber) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message:
+            "Merchant របស់ U-Mall មិនទាន់បានភ្ជាប់គណនី USD (Linked Account) ទេ!",
+        });
+    }
 
+    // ៣. ស្វែងរកកុងធនាគាររបស់ម្ចាស់ U-Mall នៅក្នុង User Collection
+    const sender = await User.findOne({ username: merchantProfile.userId });
     if (!sender) {
       return res
         .status(404)
         .json({
           success: false,
-          message: "រកមិនឃើញគណនីកុងធំ U-Mall (Merchant) នៅក្នុង U-Pay ទេ!",
+          message: "រកកុងធនាគារគោលរបស់ U-Mall មិនឃើញទេ!",
         });
     }
 
-    // ឆែកមើលថាតើកុងធំ U-Mall មានលុយគ្រប់គ្រាន់សម្រាប់បើកអោយគេទេ?
-    if (sender.balance < parseFloat(amount)) {
+    // ៤. ដំណើរការកាត់លុយ "ចំគណនីដែលបានភ្ជាប់" (Main ឬ Sub-Account)
+    let isSenderDeducted = false;
+
+    if (sender.accountNumber === senderAccNumber) {
+      // ករណីភ្ជាប់ជាមួយគណនីគោល (Main Account)
+      if (sender.balance < parseFloat(amount)) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: `គណនី U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
+          });
+      }
+      sender.balance -= parseFloat(amount);
+      isSenderDeducted = true;
+    } else {
+      // ករណីភ្ជាប់ជាមួយគណនីរង (Sub-Account ឧទាហរណ៍ 777 888 999)
+      const subAcc = sender.subAccounts.find(
+        (sub) => sub.accountNumber === senderAccNumber,
+      );
+      if (subAcc) {
+        if (subAcc.balance < parseFloat(amount)) {
+          return res
+            .status(400)
+            .json({
+              success: false,
+              message: `គណនីរង U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
+            });
+        }
+        subAcc.balance -= parseFloat(amount);
+        sender.markModified("subAccounts"); // សំខាន់៖ ប្រាប់ MongoDB ថាទិន្នន័យក្នុង Array ត្រូវបានកែប្រែ
+        isSenderDeducted = true;
+      }
+    }
+
+    // បើរកលេខកុង 777 888 999 ហ្នឹងមិនឃើញក្នុង User ទេ
+    if (!isSenderDeducted) {
       return res
         .status(400)
         .json({
           success: false,
-          message: "គណនីកុងធំ U-Mall មិនមានប្រាក់គ្រប់គ្រាន់ទេ!",
+          message: `រកមិនឃើញលេខគណនី ${senderAccNumber} នៅក្នុង User នេះទេ!`,
         });
     }
 
-    // ៤. ដំណើរការកាត់លុយពី U-Mall និង បូកលុយចូលអ្នកលក់
-    sender.balance -= parseFloat(amount);
+    // Save ការកាត់លុយពី U-Mall សិន
     await sender.save();
 
-    receiver.balance += parseFloat(amount);
+    // ៥. ស្វែងរក និង បូកលុយចូលគណនីអ្នកលក់ (Seller) ឱ្យត្រូវចំកុង (Main ឬ Sub)
+    const receiver = await User.findOne({
+      $or: [
+        { accountNumber: receiverAccount },
+        { "subAccounts.accountNumber": receiverAccount },
+      ],
+    });
+
+    if (!receiver) {
+      // ⚠️ បើរកអ្នកទទួលមិនឃើញ ត្រូវតែបង្វិលលុយអោយ U-Mall វិញ (Rollback System)
+      if (sender.accountNumber === senderAccNumber) {
+        sender.balance += parseFloat(amount);
+      } else {
+        const subAcc = sender.subAccounts.find(
+          (sub) => sub.accountNumber === senderAccNumber,
+        );
+        if (subAcc) subAcc.balance += parseFloat(amount);
+        sender.markModified("subAccounts");
+      }
+      await sender.save();
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "រកគណនីអ្នកលក់មិនឃើញ! ប្រាក់ត្រូវបានបង្វិលចូល U-Mall វិញ។",
+        });
+    }
+
+    // បូកលុយចូលកុងអ្នកលក់
+    if (receiver.accountNumber === receiverAccount) {
+      receiver.balance += parseFloat(amount);
+    } else {
+      const rSub = receiver.subAccounts.find(
+        (sub) => sub.accountNumber === receiverAccount,
+      );
+      if (rSub) {
+        rSub.balance += parseFloat(amount);
+        receiver.markModified("subAccounts");
+      }
+    }
     await receiver.save();
 
-    // ៥. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (អាគមសំខាន់ដោះស្រាយបញ្ហា PDF គឺនៅទីនេះ!)
+    // ៦. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (ដើម្បីឱ្យ PDF រកឃើញ)
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-
-    // បង្កើតលេខ TX_ តែមួយគត់ ទុកប្រើទាំងសម្រាប់ U-Mall និង U-Pay Database
     const generatedTxId = "TX_" + Date.now();
 
+    // កត់ត្រាសម្រាប់អ្នកលក់ (ទទួលបានប្រាក់)
     await Transaction.create({
       username: receiver.username,
-      refId: referenceId, // លេខសម្គាល់សំណើដកប្រាក់របស់ U-Mall (_id)
-      hash: generatedTxId, // ដាក់លេខ TX_ ចូល Database (ពីមុនបងដាក់ B2B_ ទើបរវង្វេង)
+      refId: referenceId,
+      hash: generatedTxId,
       date: dateStr,
-      type: "Receive", // សម្រាប់អ្នកលក់ គឺ Receive (ទទួលបាន)
+      type: "Receive",
       amount: parseFloat(amount),
       currency: "USD",
       fee: 0,
-      senderName: sender.fullName || "U-Mall Payout",
+      senderName: merchantProfile.name, // ឈ្មោះហាង U-Mall ពិតប្រាកដ
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
-      remark: description,
+      remark: description || "ទូទាត់ប្រាក់ពី U-Mall",
       status: "Success",
+      merchantId: merchantProfile.merchantId,
     });
 
-    // បន្ថែម Record មួយទៀតសម្រាប់កុងធំ U-Mall (ស្រេចចិត្ត តែគួរតែមានដើម្បីដឹងប្រវត្តិដកលុយ)
+    // កត់ត្រាសម្រាប់ U-Mall (វេរប្រាក់ចេញ)
     await Transaction.create({
       username: sender.username,
       refId: referenceId,
       hash: generatedTxId,
       date: dateStr,
-      type: "Transfer", // សម្រាប់កុងធំ គឺវេរចេញ
+      type: "Transfer",
       amount: parseFloat(amount),
       currency: "USD",
       fee: 0,
-      senderName: sender.fullName || "U-Mall Payout",
+      senderName: merchantProfile.name,
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
-      remark: "ទូទាត់ប្រាក់ឱ្យ Seller U-Mall",
+      remark: "បើកប្រាក់អោយ Seller: " + receiverAccount,
       status: "Success",
+      merchantId: merchantProfile.merchantId,
     });
 
-    // ៦. ឆ្លើយតបទៅ U-Mall វិញ
+    // ៧. ឆ្លើយតបទៅ U-Mall វិញ
     res.json({
       success: true,
-      transactionId: generatedTxId, // បាញ់លេខដែល Save ក្នុង DB ត្រឡប់ទៅ U-Mall
-      message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ!",
+      transactionId: generatedTxId,
+      message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ និងបានកាត់ប្រាក់រួចរាល់!",
     });
   } catch (error) {
     console.error("B2B API Error:", error);
