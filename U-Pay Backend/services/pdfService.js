@@ -55,7 +55,10 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
 
     // ទី២៖ បើរកក្នុង Escrow អត់ឃើញ វាច្បាស់ជាវិក្កយបត្រ "ដកប្រាក់ (Withdrawal)" ដូច្នេះត្រូវរកក្នុង Transaction វិញ
     if (!transaction) {
-      transaction = await Transaction.findOne({ transactionId: transactionId });
+      // 🔥 កែប្រែត្រង់នេះ៖ ឱ្យវាស្វែងរកទាំងក្នុង transactionId និង referenceId
+      transaction = await Transaction.findOne({
+        $or: [{ transactionId: transactionId }, { referenceId: transactionId }],
+      });
 
       // បើរកទាំង ២ កន្លែងហើយនៅតែអត់ឃើញទៀត ទើបបោះបង់
       if (!transaction) {
@@ -74,7 +77,8 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       };
 
       // តម្រូវទិន្នន័យឱ្យ PDF អាចគូរបានដោយមិន Error
-      transaction.referenceId = transaction.transactionId;
+      transaction.referenceId =
+        transaction.transactionId || transaction.referenceId;
       transaction.receiverName =
         transaction.bankName || transaction.receiverName || "Bank Account";
       transaction.receiverAccount =
