@@ -1,5 +1,5 @@
 // ============================================================================
-// 📦 ១. នាំចូលបណ្ណាល័យដែលចាំបាច់ (Dependencies)
+// 📦 1. Dependencies
 // ============================================================================
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
@@ -11,7 +11,7 @@ const EscrowTransaction = require("../models/EscrowTransaction");
 const Transaction = require("../models/Transaction");
 
 // ============================================================================
-// 🛠️ ២. មុខងារជំនួយ (Helper Functions)
+// 🛠️ 2. Helper Functions
 // ============================================================================
 const formatDateTime = (dateInput) => {
   if (!dateInput) return "N/A";
@@ -30,33 +30,27 @@ const formatDateTime = (dateInput) => {
     "Nov",
     "Dec",
   ];
-
   const day = String(d.getDate()).padStart(2, "0");
   const month = months[d.getMonth()];
   const year = d.getFullYear();
-
   let hours = d.getHours();
   const minutes = String(d.getMinutes()).padStart(2, "0");
   const seconds = String(d.getSeconds()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
-
   hours = hours % 12;
   hours = hours ? hours : 12;
-
   return `${day} ${month} ${year}, ${String(hours).padStart(2, "0")}:${minutes}:${seconds} ${ampm}`;
 };
 
 // ============================================================================
-// 🖨️ ៣. មុខងារចម្បងសម្រាប់បង្កើត និងបញ្ចេញវិក្កយបត្រ (Main PDF Streamer)
+// 🖨️ 3. Main PDF Streamer (Targeting Exactly the Sample Design)
 // ============================================================================
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.១: ស្វែងរកទិន្នន័យ (Query Data)
-    // ------------------------------------------------------------------------
+    // --- 3.1 Data Fetching ---
     let queryConditions = [
-      { refId: transactionId }, // ចាប់យកទម្រង់ B2B-...
-      { hash: transactionId }, // ចាប់យកទម្រង់ rxh8222e...
+      { refId: transactionId },
+      { hash: transactionId },
       { referenceId: transactionId },
       { transactionId: transactionId },
       { upayTransactionId: transactionId },
@@ -77,375 +71,336 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
 
       if (!transaction) {
         return res.status(404).send(`
-          <div style="text-align:center; padding: 50px; font-family: Arial, sans-serif;">
-            <h2 style="color: red;">⚠️ រកមិនឃើញប្រតិបត្តិការទេ (Transaction Not Found)</h2>
-            <p>លេខ ID: <b>${transactionId}</b> ពុំមាននៅក្នុង Database ឡើយ។</p>
+          <div style="text-align:center; padding: 50px; font-family: Helvetica, Arial, sans-serif;">
+            <h2 style="color: red;">⚠️ Transaction Not Found</h2>
+            <p>ID: <b>${transactionId}</b> does not exist in the database.</p>
           </div>
         `);
       }
-
-      merchant = {
-        name: transaction.senderName || "U-Mall Payout",
-        accountNumber: "System Payout",
-        merchantId: "B2B_WITHDRAWAL",
-      };
-
-      transaction.referenceId = transaction.refId || transactionId;
-      transaction.receiverName = transaction.receiverName || "Bank Account";
-      transaction.receiverAccount = transaction.receiverAcc || "N/A";
-      transaction.type = "Payout / Withdrawal";
-      transaction.remark = transaction.remark || "ទូទាត់ប្រាក់ពី U-Mall";
-      transaction.amount = transaction.amount || 0;
-      transaction.createdAt = transaction.date || transaction.createdAt;
     }
 
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.២: រៀបចំឯកសារ PDF និង ហ្វុងអក្សរ (PDF & Fonts Setup)
-    // ------------------------------------------------------------------------
+    // Map Real Data from Database
     const displayTxId =
-      transaction.referenceId || transaction.hash || transactionId;
-    const fileName = `Receipt-${displayTxId}.pdf`;
+      transaction.referenceId ||
+      transaction.refId ||
+      transaction.hash ||
+      transactionId;
+    const amount = Number(transaction.amount || 0);
+    const fee = Number(transaction.fee || 0);
+    const total = amount + fee;
+    const currency = transaction.currency || "USD";
+    const dateStr = formatDateTime(
+      transaction.createdAt || transaction.date || Date.now(),
+    );
 
+    // Sender (FROM) Details
+    const senderName =
+      transaction.senderName ||
+      (transaction.merchantId ? transaction.merchantId.name : "U-MALL");
+    const senderAcc = transaction.senderAcc || "System Account";
+
+    // Receiver (TO) Details
+    const receiverName = transaction.receiverName || "Bank Account";
+    const receiverAcc =
+      transaction.receiverAccount || transaction.receiverAcc || "N/A";
+
+    const txType = transaction.type || "Fund Transfer";
+    const remark = transaction.remark || "Payment for invoice";
+    const channel =
+      transaction.trxMethod || transaction.paymentMethod || "U-Pay System";
+
+    // --- 3.2 PDF Setup (Using Standard Helvetica Only) ---
+    const fileName = `Receipt-${displayTxId}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
 
     const doc = new PDFDocument({ size: "A4", margin: 0 });
     doc.pipe(res);
 
-    // ទីតាំង File Fonts
-    const fontKhmer = path.join(
-      __dirname,
-      "../public/fonts/NotoSansKhmer-Regular.ttf",
-    );
-    const fontEnReg = path.join(__dirname, "../public/fonts/Inter-Regular.ttf");
-    const fontEnMedium = path.join(
-      __dirname,
-      "../public/fonts/Inter-Medium.ttf",
-    );
-    const fontEnSemiBold = path.join(
-      __dirname,
-      "../public/fonts/Inter-SemiBold.ttf",
-    );
-    const fontEnBold = path.join(__dirname, "../public/fonts/Inter-Bold.ttf");
-
     const logoPath = path.join(__dirname, "../public/images/logo.png");
-    const headerBgPath = path.join(__dirname, "../public/images/header-bg.png");
 
-    // 🌟 ប្រព័ន្ធការពារការគាំង (Font Fallback System) 🌟
-    let hasKhmer = false,
-      hasEnReg = false,
-      hasEnMed = false,
-      hasEnSemi = false,
-      hasEnBold = false;
+    const fReg = "Helvetica";
+    const fBold = "Helvetica-Bold";
 
-    if (fs.existsSync(fontKhmer)) {
-      doc.registerFont("Khmer", fontKhmer);
-      hasKhmer = true;
-    }
-    if (fs.existsSync(fontEnReg)) {
-      doc.registerFont("En-Reg", fontEnReg);
-      hasEnReg = true;
-    }
-    if (fs.existsSync(fontEnMedium)) {
-      doc.registerFont("En-Medium", fontEnMedium);
-      hasEnMed = true;
-    }
-    if (fs.existsSync(fontEnSemiBold)) {
-      doc.registerFont("En-SemiBold", fontEnSemiBold);
-      hasEnSemi = true;
-    }
-    if (fs.existsSync(fontEnBold)) {
-      doc.registerFont("En-Bold", fontEnBold);
-      hasEnBold = true;
-    }
+    // Define Standard Colors matching the sample
+    const colorTeal = "#00a980";
+    const colorDarkBlue = "#1d4e89";
+    const colorTextDark = "#1a202c";
+    const colorTextLight = "#718096";
+    const colorBorder = "#e2e8f0";
 
-    const fKhmer = hasKhmer ? "Khmer" : "Helvetica-Bold";
-    const fReg = hasEnReg ? "En-Reg" : "Helvetica";
-    const fMed = hasEnMed ? "En-Medium" : "Helvetica";
-    const fSemi = hasEnSemi ? "En-SemiBold" : "Helvetica-Bold";
-    const fBold = hasEnBold ? "En-Bold" : "Helvetica-Bold";
-
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៣: គូររចនាប័ទ្មខាងលើ (Header & Watermark)
-    // ------------------------------------------------------------------------
-    doc.save();
-    doc.opacity(0.05);
-    if (fs.existsSync(logoPath)) doc.image(logoPath, 110, 240, { width: 380 });
-    doc.restore();
-
-    if (fs.existsSync(headerBgPath)) {
-      doc.image(headerBgPath, 0, 0, { width: 595, height: 110 });
-    } else {
-      doc.rect(0, 0, 595, 110).fill("#00a86b");
-    }
+    // --- 3.3 Top Header (Gradient Background) ---
+    const grad = doc.linearGradient(0, 0, 595, 0);
+    grad.stop(0, "#004b93").stop(1, "#00a980"); // Blue to Teal
+    doc.rect(0, 0, 595, 80).fill(grad);
 
     if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 40, 30, { width: 120 });
-      doc
-        .font(fMed)
-        .fontSize(7)
-        .fillColor("#ffffff")
-        .text("FAST • SECURE • TRUSTED", 40, 75, { characterSpacing: 1.5 });
+      doc.image(logoPath, 30, 20, { height: 35 });
+    } else {
+      doc.font(fBold).fontSize(26).fillColor("#ffffff").text("U-PAY", 30, 25);
     }
 
     doc
-      .font(fKhmer)
-      .fontSize(14)
+      .font(fBold)
+      .fontSize(11)
       .fillColor("#ffffff")
-      .text("ប័ណ្ណទទួលប្រាក់", 0, 35, { align: "right", width: 555 });
+      .text("PAYMENT RECEIPT", 0, 35, { align: "right", width: 565 });
+
+    // --- 3.4 Status & Info Section ---
+    let currentY = 110;
+
+    // Green Checkmark icon
+    doc.circle(45, currentY + 12, 16).fill(colorTeal);
     doc
-      .font(fMed)
-      .fontSize(10)
-      .text("PAYMENT RECEIPT", 0, 55, { align: "right", width: 555 });
+      .lineWidth(3)
+      .strokeColor("#ffffff")
+      .moveTo(38, currentY + 12)
+      .lineTo(43, currentY + 17)
+      .lineTo(52, currentY + 7)
+      .stroke();
 
-    let currentY = 140;
-    const marginX = 40;
-
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៤: ព័ត៌មានប្រតិបត្តិការ (Status & Date)
-    // ------------------------------------------------------------------------
-    doc
-      .font(fKhmer)
-      .fontSize(12)
-      .fillColor("#10b981")
-      .text("ទូទាត់ដោយជោគជ័យ", marginX, currentY);
-
-    doc.roundedRect(marginX, currentY + 18, 85, 18, 9).fill("#10b981");
     doc
       .font(fBold)
-      .fontSize(9)
-      .fillColor("#ffffff")
-      .text("SUCCESSFUL", marginX, currentY + 22.5, {
-        align: "center",
-        width: 85,
-      });
+      .fontSize(13)
+      .fillColor(colorTeal)
+      .text("SUCCESSFUL", 70, currentY + 6);
 
     doc
       .font(fReg)
-      .fontSize(9)
-      .fillColor("#4a5568")
-      .text(`Reference No:`, 300, currentY);
+      .fontSize(9.5)
+      .fillColor(colorTextLight)
+      .text("Reference No.", 320, currentY);
     doc
-      .font(fSemi)
-      .fillColor("#1a202c")
-      .text(displayTxId, 400, currentY, { align: "right", width: 155 });
+      .font(fBold)
+      .fillColor(colorTextDark)
+      .text(displayTxId, 420, currentY, { align: "right", width: 145 });
 
     doc
       .font(fReg)
-      .fillColor("#4a5568")
-      .text(`Transaction Date:`, 300, currentY + 18);
-    const formattedDate = formatDateTime(transaction.createdAt || Date.now());
+      .fillColor(colorTextLight)
+      .text("Transaction Date", 320, currentY + 20);
     doc
-      .font(fSemi)
-      .fillColor("#1a202c")
-      .text(formattedDate, 400, currentY + 18, { align: "right", width: 155 });
+      .font(fBold)
+      .fillColor(colorTextDark)
+      .text(dateStr, 420, currentY + 20, { align: "right", width: 145 });
 
     currentY += 60;
 
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៥: ប្រអប់អ្នកផ្ញើ និង អ្នកទទួល (From & To Boxes)
-    // ------------------------------------------------------------------------
+    // --- 3.5 FROM and TO Boxes ---
+    const boxW = 260;
+    const boxH = 115;
+    const rowGap = 20;
 
-    // [FROM]
+    // --- FROM BOX ---
     doc
-      .roundedRect(marginX, currentY, 245, 90, 8)
-      .fillAndStroke("#ffffff", "#e2e8f0");
-    doc.roundedRect(marginX, currentY, 245, 25, 8).fill("#00a86b");
+      .roundedRect(30, currentY, boxW, boxH, 6)
+      .lineWidth(1)
+      .strokeColor(colorBorder)
+      .stroke();
+    doc.roundedRect(30, currentY, boxW, 25, 6).fill(colorDarkBlue);
+    doc.rect(30, currentY + 10, boxW, 15).fill(colorDarkBlue); // Hide bottom corners
     doc
-      .font(fKhmer)
-      .fontSize(9)
+      .font(fBold)
+      .fontSize(9.5)
       .fillColor("#ffffff")
-      .text("អ្នកបង់ប្រាក់ FROM", marginX + 10, currentY + 7);
-    doc
-      .font(fReg)
-      .fontSize(8.5)
-      .fillColor("#718096")
-      .text("Account Name", marginX + 10, currentY + 35);
-    doc
-      .font(fSemi)
-      .fillColor("#2d3748")
-      .text(merchant.name || "N/A", marginX + 10, currentY + 47);
-    doc
-      .font(fReg)
-      .fillColor("#718096")
-      .text("Account Number", marginX + 10, currentY + 65);
-    doc
-      .font(fSemi)
-      .fillColor("#2d3748")
-      .text(merchant.accountNumber || "-", marginX + 10, currentY + 77);
+      .text("FROM", 40, currentY + 8);
 
-    // [TO]
+    let innerY = currentY + 35;
+    const drawBoxRow = (label, val, xLabel, xVal) => {
+      doc
+        .font(fReg)
+        .fontSize(9)
+        .fillColor(colorTextLight)
+        .text(label, xLabel, innerY);
+      doc
+        .font(fBold)
+        .fillColor(colorTextDark)
+        .text(val, xVal, innerY, { width: 140, align: "left" });
+    };
+
+    drawBoxRow("Account Name", senderName, 40, 130);
+    innerY += rowGap;
+    drawBoxRow("Account Number", senderAcc, 40, 130);
+    innerY += rowGap;
+    drawBoxRow("Account Type", "U-Pay Account", 40, 130);
+    innerY += rowGap;
+    drawBoxRow(
+      "Wallet ID",
+      "UPAY" + displayTxId.substring(0, 8).toUpperCase(),
+      40,
+      130,
+    );
+
+    // --- TO BOX ---
+    innerY = currentY + 35; // reset Y
     doc
-      .roundedRect(310, currentY, 245, 90, 8)
-      .fillAndStroke("#ffffff", "#e2e8f0");
-    doc.roundedRect(310, currentY, 245, 25, 8).fill("#00a86b");
+      .roundedRect(305, currentY, boxW, boxH, 6)
+      .lineWidth(1)
+      .strokeColor(colorBorder)
+      .stroke();
+    doc.roundedRect(305, currentY, boxW, 25, 6).fill(colorDarkBlue);
+    doc.rect(305, currentY + 10, boxW, 15).fill(colorDarkBlue);
     doc
-      .font(fKhmer)
-      .fontSize(9)
+      .font(fBold)
+      .fontSize(9.5)
       .fillColor("#ffffff")
-      .text("អ្នកទទួលប្រាក់ TO", 320, currentY + 7);
-    doc
-      .font(fReg)
-      .fontSize(8.5)
-      .fillColor("#718096")
-      .text("Recipient Name", 320, currentY + 35);
-    doc
-      .font(fSemi)
-      .fillColor("#2d3748")
-      .text(transaction.receiverName || "N/A", 320, currentY + 47);
-    doc
-      .font(fReg)
-      .fillColor("#718096")
-      .text("Account Number", 320, currentY + 65);
-    doc
-      .font(fSemi)
-      .fillColor("#2d3748")
-      .text(transaction.receiverAccount || "-", 320, currentY + 77);
+      .text("TO", 315, currentY + 8);
 
-    currentY += 120;
+    drawBoxRow("Recipient Name", receiverName, 315, 410);
+    innerY += rowGap;
+    drawBoxRow("Account Number", receiverAcc, 315, 410);
+    innerY += rowGap;
+    drawBoxRow("Bank / Wallet", "U-Pay Account", 315, 410);
+    innerY += rowGap;
+    drawBoxRow(
+      "Wallet ID",
+      "UPAY" +
+        (transaction.receiverAccount || "WALLET").substring(0, 8).toUpperCase(),
+      315,
+      410,
+    );
 
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៦: ព័ត៌មានលម្អិតនៃប្រតិបត្តិការ (Transaction Details)
-    // ------------------------------------------------------------------------
-    doc.roundedRect(marginX, currentY, 220, 20, 4).fill("#008080");
+    currentY += 140;
+
+    // --- 3.6 Central Watermark ---
+    doc.save();
+    doc.opacity(0.03);
+    if (fs.existsSync(logoPath))
+      doc.image(logoPath, 150, currentY, { width: 300 });
+    doc.restore();
+
+    // --- 3.7 TRANSACTION DETAILS Section ---
+    doc.roundedRect(30, currentY, 535, 22, 3).fill(colorDarkBlue);
     doc
-      .font(fKhmer)
-      .fontSize(9)
+      .font(fBold)
+      .fontSize(9.5)
       .fillColor("#ffffff")
-      .text("ព័ត៌មានប្រតិបត្តិការ", marginX + 10, currentY + 4.5);
-    doc.font(fSemi).text("TRANSACTION DETAILS", marginX + 90, currentY + 5);
+      .text("TRANSACTION DETAILS", 40, currentY + 6);
 
     currentY += 35;
 
-    const drawRow = (label, value, isBold = false, isKhmer = false) => {
-      const displayValue = String(value || "-");
-      const fontName = isKhmer ? fKhmer : isBold ? fBold : fMed;
-      const fontSize = isBold ? 11 : 9;
-
-      const labelHeight = doc
-        .font(fReg)
-        .fontSize(9)
-        .heightOfString(label, { width: 200 });
-      const valueHeight = doc
-        .font(fontName)
-        .fontSize(fontSize)
-        .heightOfString(displayValue, { width: 255 });
-      const rowHeight = Math.max(labelHeight, valueHeight);
-
+    const drawDetailRow = (label, value, isGreen = false, isLarge = false) => {
       doc
         .font(fReg)
-        .fontSize(9)
-        .fillColor("#718096")
-        .text(label, marginX, currentY, { width: 200 });
-      doc
-        .font(fontName)
-        .fillColor(isBold ? "#00a86b" : "#2d3748")
-        .text(displayValue, 300, currentY, { align: "right", width: 255 });
+        .fontSize(9.5)
+        .fillColor(colorTextLight)
+        .text(label, 40, currentY);
 
-      currentY += rowHeight + 10;
+      const vFont = isLarge ? fBold : fReg;
+      const vSize = isLarge ? 12 : 9.5;
+      const vColor = isGreen ? colorTeal : colorTextDark;
+
+      doc
+        .font(vFont)
+        .fontSize(vSize)
+        .fillColor(vColor)
+        .text(value, 300, currentY - (isLarge ? 2 : 0), {
+          align: "right",
+          width: 265,
+        });
+      currentY += 20;
     };
 
-    const amount = Number(transaction.amount || 0);
-    const fee = Number(transaction.fee || 0);
-    const total = amount + fee;
+    drawDetailRow("Transaction Type", txType);
+    drawDetailRow("Amount", `${currency} ${amount.toFixed(2)}`, true, true);
+    drawDetailRow("Fee", `${currency} ${fee.toFixed(2)}`);
+    drawDetailRow("Total", `${currency} ${total.toFixed(2)}`);
+    drawDetailRow("From Account Currency", currency);
+    drawDetailRow("To Account Currency", currency);
+    drawDetailRow("Remark", remark);
+    drawDetailRow("Channel", channel);
+    drawDetailRow("Transaction ID", displayTxId);
 
-    drawRow("Transaction Type", transaction.type);
-    drawRow("Payment Method", transaction.paymentMethod || "U-Pay System");
-    drawRow("Merchant ID", merchant.merchantId || "MER000");
-    drawRow(
-      "Amount",
-      `${transaction.currency || "USD"} ${amount.toFixed(2)}`,
-      true,
-    );
-    drawRow("Fee", `${transaction.currency || "USD"} ${fee.toFixed(2)}`);
-    drawRow(
-      "Total",
-      `${transaction.currency || "USD"} ${total.toFixed(2)}`,
-      true,
-    );
-    drawRow("Remark", transaction.remark, false, true);
-    drawRow("Transaction ID", displayTxId);
-
-    currentY += 5;
+    // Bottom divider line
+    currentY += 10;
     doc
-      .strokeColor("#e2e8f0")
       .lineWidth(1)
-      .moveTo(marginX, currentY)
-      .lineTo(555, currentY)
+      .strokeColor(colorBorder)
+      .moveTo(30, currentY)
+      .lineTo(565, currentY)
       .stroke();
-    currentY += 15;
 
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៧: សន្តិសុខ និង ការផ្ទៀងផ្ទាត់ (Security & Verification)
-    // ------------------------------------------------------------------------
-    const rawData = `${displayTxId}|${amount}|${transaction.createdAt}`;
-    const digitalSignature = crypto
-      .createHash("sha256")
-      .update(rawData)
-      .digest("hex")
-      .toUpperCase();
+    // --- 3.8 Footer Section (Stamp & QR Code) ---
+    currentY += 25;
 
+    // U-PAY Verified Stamp (Exactly like the sample)
+    const stampX = 70;
+    const stampY = currentY + 35;
+    // Outer Circle
     doc
-      .font(fMed)
-      .fontSize(7)
-      .fillColor("#a0aec0")
-      .text("Digital Signature (SHA-256):", marginX, currentY);
+      .circle(stampX, stampY, 32)
+      .lineWidth(1.5)
+      .strokeColor(colorTeal)
+      .stroke();
+    // Inner Circle
+    doc
+      .circle(stampX, stampY, 28)
+      .lineWidth(0.5)
+      .strokeColor(colorTeal)
+      .stroke();
+
+    // Stamp Text
+    doc
+      .font(fBold)
+      .fontSize(6)
+      .fillColor(colorTeal)
+      .text("U-PAY", stampX - 11, stampY - 20);
+    doc
+      .font(fBold)
+      .fontSize(22)
+      .fillColor(colorTeal)
+      .text("U", stampX - 8, stampY - 12);
+    doc
+      .font(fBold)
+      .fontSize(5)
+      .text("★ VERIFIED ★", stampX - 16, stampY + 14);
+
+    // Disclaimer text
     doc
       .font(fReg)
-      .fontSize(6)
-      .text(digitalSignature, marginX, currentY + 10, { width: 350 });
+      .fontSize(9)
+      .fillColor(colorTextLight)
+      .text("This receipt is computer generated and", 120, currentY + 25);
+    doc.text("does not require signature.", 120, currentY + 37);
 
+    // QR Code
     const verifyLink = `https://u-pay-bank.fly.dev/receipt/${displayTxId}`;
     const qrBuffer = await QRCode.toBuffer(verifyLink, {
       margin: 1,
       width: 150,
     });
-
-    doc.image(qrBuffer, 485, currentY - 15, { width: 70 });
+    doc.image(qrBuffer, 480, currentY, { width: 85 });
     doc
-      .font(fMed)
+      .font(fReg)
       .fontSize(7)
-      .fillColor("#718096")
-      .text("Scan to verify", 485, currentY - 25);
+      .fillColor(colorTextLight)
+      .text("Scan to verify", 480, currentY - 10, {
+        align: "center",
+        width: 85,
+      });
 
-    const stampX = 350;
-    const stampY = currentY + 20;
-    doc.circle(stampX, stampY, 28).lineWidth(2).strokeColor("#00a86b").stroke();
-    doc.circle(stampX, stampY, 23).lineWidth(1).strokeColor("#00a86b").stroke();
-    doc
-      .font(fBold)
-      .fontSize(16)
-      .fillColor("#00a86b")
-      .text("U", stampX - 6, stampY - 8);
-    doc
-      .font(fSemi)
-      .fontSize(5)
-      .text("★ VERIFIED ★", stampX - 18, stampY + 12);
-
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៨: ជើងទំព័រ (Footer)
-    // ------------------------------------------------------------------------
+    // --- 3.9 Absolute Bottom Bar (Clean English Text, No Emojis) ---
     const bottomY = doc.page.height - 45;
-    doc.rect(0, bottomY - 15, doc.page.width, 60).fill("#f8fafc");
 
-    doc.font(fMed).fontSize(8).fillColor("#4a5568");
-    doc.text("Website: https://u-pay-bank.fly.dev", marginX, bottomY);
-    doc.text("Phone: +855 95 40 42 42", 220, bottomY);
-    doc.text("Email: support@u-pay-bank.fly.dev", 380, bottomY, {
-      width: 180,
-      align: "right",
-    });
+    // A subtle line above footer
+    doc
+      .lineWidth(0.5)
+      .strokeColor(colorBorder)
+      .moveTo(30, bottomY - 15)
+      .lineTo(565, bottomY - 15)
+      .stroke();
 
+    doc.font(fReg).fontSize(8).fillColor(colorTextLight);
+    doc.text("Website: https://u-pay-bank.fly.dev", 30, bottomY);
+    doc.text("Phone: +855 95 40 42 42", 250, bottomY);
+    doc.text("Email: support@u-pay-bank.fly.dev", 415, bottomY);
+
+    // Finalize PDF
     doc.end();
   } catch (error) {
-    // ------------------------------------------------------------------------
-    // ផ្នែកទី ៣.៩: ការគ្រប់គ្រងកំហុស (Error Handling)
-    // ------------------------------------------------------------------------
     console.error("Error Streaming PDF:", error);
     if (!res.headersSent) {
-      res
-        .status(500)
-        .send("មិនអាចបង្កើតវិក្កយបត្របានទេ / Error generating PDF");
+      res.status(500).send("Error generating PDF document.");
     }
   }
 };
