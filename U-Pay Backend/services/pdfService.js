@@ -38,27 +38,25 @@ const formatDateTime = (dateInput) => {
 
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    // 🌟 អាគមសំខាន់៖ បង្កើតលក្ខខណ្ឌស្វែងរកដ៏ឆ្លាតវៃ (រុករកគ្រប់កន្លែង)
+    // 🌟 អាគមសំខាន់៖ បន្ថែម { refId: transactionId } ចូល ព្រោះ Database បងប្រើឈ្មោះនេះ
     let queryConditions = [
       { transactionId: transactionId },
       { referenceId: transactionId },
       { upayTransactionId: transactionId },
       { txId: transactionId },
       { txnId: transactionId },
+      { refId: transactionId }, // <--- ត្រូវថែមអាសម្លាញ់នេះចូល!
     ];
 
-    // បើវាជា ObjectId របស់ Mongo (ដូចជា w._id ដែលបញ្ជូនពី U-Mall)
     if (mongoose.Types.ObjectId.isValid(transactionId)) {
       queryConditions.push({ _id: transactionId });
     }
 
-    // ទី១៖ ស្វែងរកក្នុង Escrow ជាមុន
     let transaction = await EscrowTransaction.findOne({
       $or: queryConditions,
     }).populate("merchantId");
     let merchant = {};
 
-    // ទី២៖ បើគ្មានក្នុង Escrow ទេ គឺច្បាស់ជាប្រតិបត្តិការ "ដកប្រាក់ (Withdrawal)"
     if (!transaction) {
       transaction = await Transaction.findOne({ $or: queryConditions });
 
@@ -66,37 +64,25 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         return res.status(404).send(`
           <div style="text-align:center; padding: 50px; font-family: Arial, sans-serif;">
             <h2 style="color: red;">⚠️ រកមិនឃើញប្រតិបត្តិការទេ (Transaction Not Found)</h2>
-            <p>លេខ ID: <b>${transactionId}</b> ពុំមាននៅក្នុង Database របស់ធនាគារ U-Pay ឡើយ។</p>
+            <p>លេខ ID: <b>${transactionId}</b> ពុំមាននៅក្នុង Database ឡើយ។</p>
           </div>
         `);
       }
 
-      // រៀបចំទិន្នន័យដកប្រាក់ឱ្យចូលទម្រង់ PDF
       merchant = {
-        name: "U-Mall Withdrawal (ដកប្រាក់)",
-        accountNumber: transaction.senderPhone || "System Payout",
-        merchantId: "WITHDRAWAL",
+        name: transaction.senderName || "U-Mall Payout",
+        accountNumber: "System Payout",
+        merchantId: "B2B_WITHDRAWAL",
       };
 
-      transaction.referenceId =
-        transaction.referenceId || transaction.transactionId || transactionId;
-      transaction.receiverName =
-        transaction.accountName ||
-        transaction.receiverName ||
-        transaction.bankName ||
-        "Bank Account";
-      transaction.receiverAccount =
-        transaction.accountNumber ||
-        transaction.receiverAccount ||
-        transaction.receiverPhone ||
-        "N/A";
+      // តម្រូវឈ្មោះ Field អោយត្រូវបេះបិទនឹងរូបភាព Database របស់បង
+      transaction.referenceId = transaction.refId || transactionId;
+      transaction.receiverName = transaction.receiverName || "Bank Account";
+      transaction.receiverAccount = transaction.receiverAcc || "N/A";
       transaction.type = "Payout / Withdrawal";
-      transaction.remark =
-        transaction.note || transaction.remark || "ទូទាត់ប្រាក់ពី U-Mall ទៅហាង";
+      transaction.remark = transaction.remark || "ទូទាត់ប្រាក់ពី U-Mall";
       transaction.amount = transaction.amount || 0;
-      transaction.fee = transaction.fee || 0;
-    } else {
-      merchant = transaction.merchantId || {};
+      transaction.createdAt = transaction.date || transaction.createdAt; // ព្រោះក្នុង DB បងប្រើ date
     }
 
     // --- ដំណើរការបង្កើត PDF ---
