@@ -2,13 +2,13 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 const QRCode = require("qrcode");
-const crypto = require("crypto");
-const mongoose = require("mongoose"); // ត្រូវហៅ mongoose ដើម្បីឆែក ObjectId
+const crypto = require("crypto"); // សម្រាប់បង្កើត Digital Signature (SHA256)
 const EscrowTransaction = require("../models/EscrowTransaction");
+// 👇 ថែមបន្ទាត់នេះមួយទៀត ដើម្បីទាញយកប្រវត្តិដកប្រាក់ពីធនាគារ U-Pay
 const Transaction = require("../models/Transaction");
 
+// Function សម្រាប់ Format ថ្ងៃខែ (រក្សាទុកដូចដើម)
 const formatDateTime = (dateInput) => {
-  if (!dateInput) return "N/A";
   const d = new Date(dateInput);
   const months = [
     "Jan",
@@ -27,84 +27,76 @@ const formatDateTime = (dateInput) => {
   const day = String(d.getDate()).padStart(2, "0");
   const month = months[d.getMonth()];
   const year = d.getFullYear();
+
   let hours = d.getHours();
   const minutes = String(d.getMinutes()).padStart(2, "0");
   const seconds = String(d.getSeconds()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12;
   hours = hours ? hours : 12;
-  return `${day} ${month} ${year}, ${String(hours).padStart(2, "0")}:${minutes}:${seconds} ${ampm}`;
+
+  const time = `${String(hours).padStart(2, "0")}:${minutes}:${seconds} ${ampm}`;
+  return `${day} ${month} ${year}, ${time}`;
 };
 
+// 🔥 មុខងារថ្មី៖ Generate និង Stream PDF ទៅកាន់ Browser ផ្ទាល់ (Real-time)
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    // 🌟 ១. បង្កើតលក្ខខណ្ឌស្វែងរកដ៏ឆ្លាតវៃ (ទោះជាលេខកូដបែបណាក៏រកឃើញ)
-    let queryConditions = [
-      { transactionId: transactionId },
-      { referenceId: transactionId },
-      { upayTransactionId: transactionId },
-    ];
-
-    // បើ transactionId មានទម្រង់ជា 24-character ObjectId របស់ Mongo យើងបន្ថែមការស្វែងរកតាម _id មួយទៀត
-    if (mongoose.Types.ObjectId.isValid(transactionId)) {
-      queryConditions.push({ _id: transactionId });
-    }
-
-    // 🌟 ២. ស្វែងរកក្នុង Escrow ជាមុន (សម្រាប់ទិញលក់ធម្មតា)
+    // ទី១៖ សាកល្បងស្វែងរកក្នុង Escrow (សម្រាប់វិក្កយបត្រទិញលក់)
     let transaction = await EscrowTransaction.findOne({
-      $or: queryConditions,
+      $or: [
+        { referenceId: transactionId },
+        { transactionId: transactionId },
+        { upayTransactionId: transactionId },
+      ],
     }).populate("merchantId");
+
     let merchant = {};
 
-    // 🌟 ៣. បើគ្មានក្នុង Escrow ទេ គឺច្បាស់ជាប្រតិបត្តិការ "ដកប្រាក់ (Withdrawal)"
+    // ទី២៖ បើរកក្នុង Escrow អត់ឃើញ វាច្បាស់ជាវិក្កយបត្រ "ដកប្រាក់ (Withdrawal)" ដូច្នេះត្រូវរកក្នុង Transaction វិញ
     if (!transaction) {
-      transaction = await Transaction.findOne({ $or: queryConditions });
+      // 🔥 កែប្រែត្រង់នេះ៖ ឱ្យវាស្វែងរកទាំងក្នុង transactionId និង referenceId
+      transaction = await Transaction.findOne({
+        $or: [{ transactionId: transactionId }, { referenceId: transactionId }],
+      });
 
+      // បើរកទាំង ២ កន្លែងហើយនៅតែអត់ឃើញទៀត ទើបបោះបង់
       if (!transaction) {
-        // បើនៅតែរកមិនឃើញទៀត ខ្ញុំបានធ្វើផ្ទាំងប្រាប់ច្បាស់ៗងាយស្រួលយល់
-        return res.status(404).send(`
-          <div style="text-align:center; padding: 50px; font-family: Arial, sans-serif;">
-            <h2 style="color: red;">⚠️ រកមិនឃើញប្រតិបត្តិការទេ (Transaction Not Found)</h2>
-            <p>លេខ ID: <b>${transactionId}</b> ពុំមាននៅក្នុង Database របស់ធនាគារ U-Pay ឡើយ។</p>
-            <p style="color: #666; font-size: 14px;">(វាអាចជាទិន្នន័យចាស់ដែលត្រូវបានលុប ឬ E-commerce អត់បានបាញ់ទិន្នន័យចូលមកធនាគារពិតប្រាកដ)</p>
-          </div>
-        `);
+        return res
+          .status(404)
+          .send(
+            "រកមិនឃើញប្រតិបត្តិការនេះក្នុងប្រព័ន្ធទេ (Transaction not found)",
+          );
       }
 
-      // រៀបចំទិន្នន័យដកប្រាក់ឱ្យចូលទម្រង់ PDF កុំឱ្យ Error (Cannot read properties of undefined)
+      // ដោយសារទិន្នន័យដកប្រាក់មាន Field ខុសពីទិញលក់ យើងត្រូវ Map វាឱ្យត្រូវជាមួយទម្រង់ PDF របស់យើង
       merchant = {
-        name: "U-Mall Withdrawal (ដកប្រាក់)",
-        accountNumber: transaction.senderPhone || "System Payout",
+        name: "Merchant Wallet",
+        accountNumber: transaction.senderPhone || "U-Pay App",
         merchantId: "WITHDRAWAL",
       };
 
+      // តម្រូវទិន្នន័យឱ្យ PDF អាចគូរបានដោយមិន Error
       transaction.referenceId =
-        transaction.referenceId || transaction.transactionId || transactionId;
-      // ព្យាយាមទាញយកឈ្មោះ និងលេខគណនីពី Field ណាដែលមាន
+        transaction.transactionId || transaction.referenceId;
       transaction.receiverName =
-        transaction.accountName ||
-        transaction.receiverName ||
-        transaction.bankName ||
-        "Bank Account";
+        transaction.bankName || transaction.receiverName || "Bank Account";
       transaction.receiverAccount =
-        transaction.accountNumber ||
-        transaction.receiverAccount ||
-        transaction.receiverPhone ||
-        "N/A";
-      transaction.type = "Payout / Withdrawal";
-      transaction.remark =
-        transaction.note || transaction.remark || "ទូទាត់ប្រាក់ពី U-Mall ទៅហាង";
-      transaction.amount = transaction.amount || 0;
-      transaction.fee = transaction.fee || 0;
+        transaction.accountNumber || transaction.receiverPhone || "-";
+      transaction.type = "Withdrawal / Payout";
+      transaction.remark = transaction.note || "ការដកប្រាក់ពី U-Mall";
     } else {
+      // ករណីរកឃើញក្នុង Escrow (ការទិញលក់)
       merchant = transaction.merchantId || {};
     }
 
-    // 🌟 ៤. រៀបចំបញ្ជូន PDF ទៅ Browser
-    const fileName = `Receipt-${transaction.referenceId || transactionId}.pdf`;
+    const fileName = `Receipt-${transaction.referenceId}.pdf`;
+
+    // 🌟 កំណត់ Header ឱ្យ Browser ស្គាល់ថាវាជា PDF
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
 
+    // Paths សម្រាប់ Fonts និង Images
     const fontKhmer = path.join(
       __dirname,
       "../public/fonts/NotoSansKhmer-Regular.ttf",
@@ -123,23 +115,30 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     const headerBgPath = path.join(__dirname, "../public/images/header-bg.png");
 
     const doc = new PDFDocument({ size: "A4", margin: 0 });
+
+    // 🌟 បាញ់ទិន្នន័យ PDF ចូលទៅកាន់ Response (Browser) ផ្ទាល់តែម្ដង មិនបាច់ Save File ទេ
     doc.pipe(res);
 
     // Register Fonts
-    if (fs.existsSync(fontKhmer)) doc.registerFont("Khmer", fontKhmer);
-    if (fs.existsSync(fontEnReg)) doc.registerFont("En-Reg", fontEnReg);
-    if (fs.existsSync(fontEnMedium))
-      doc.registerFont("En-Medium", fontEnMedium);
-    if (fs.existsSync(fontEnSemiBold))
-      doc.registerFont("En-SemiBold", fontEnSemiBold);
-    if (fs.existsSync(fontEnBold)) doc.registerFont("En-Bold", fontEnBold);
+    doc.registerFont("Khmer", fontKhmer);
+    doc.registerFont("En-Reg", fontEnReg);
+    doc.registerFont("En-Medium", fontEnMedium);
+    doc.registerFont("En-SemiBold", fontEnSemiBold);
+    doc.registerFont("En-Bold", fontEnBold);
 
-    // --- ចាប់ផ្តើមគូរ PDF ---
+    // ==========================================
+    // 🎨 ចាប់ផ្តើមគូរ (រក្សាទុកទម្រង់ដើម ១០០%)
+    // ==========================================
+
+    // -- 1. Watermark (ចំណុចទី ៦: ធំជាងមុន និងដាក់ចំកណ្តាលល្អ) --
     doc.save();
     doc.opacity(0.05);
-    if (fs.existsSync(logoPath)) doc.image(logoPath, 110, 240, { width: 380 });
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 110, 240, { width: 380 });
+    }
     doc.restore();
 
+    // -- Header Background & Logo --
     if (fs.existsSync(headerBgPath)) {
       doc.image(headerBgPath, 0, 0, { width: 595, height: 110 });
     } else {
@@ -155,10 +154,8 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         .text("FAST • SECURE • TRUSTED", 40, 75, { characterSpacing: 1.5 });
     }
 
-    // ប្រើ Fallback បើគ្មាន Font ខ្មែរ
-    const khmerFont = fs.existsSync(fontKhmer) ? "Khmer" : "En-Bold";
     doc
-      .font(khmerFont)
+      .font("Khmer")
       .fontSize(14)
       .fillColor("#ffffff")
       .text("ប័ណ្ណទទួលប្រាក់", 0, 35, { align: "right", width: 555 });
@@ -170,11 +167,14 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     let currentY = 140;
     const marginX = 40;
 
+    // -- 2. ស្ថានភាព និង លេខរៀង (មុខងារថ្មីទី ១: Status Badge) --
     doc
-      .font(khmerFont)
+      .font("Khmer")
       .fontSize(12)
       .fillColor("#10b981")
       .text("ទូទាត់ដោយជោគជ័យ", marginX, currentY);
+
+    // Rounded Green Badge
     doc.roundedRect(marginX, currentY + 18, 85, 18, 9).fill("#10b981");
     doc
       .font("En-Bold")
@@ -190,42 +190,44 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     doc
       .font("En-SemiBold")
       .fillColor("#1a202c")
-      .text(transaction.referenceId || "N/A", 400, currentY, {
+      .text(transaction.referenceId ?? "-", 400, currentY, {
         align: "right",
         width: 155,
       });
+
     doc
       .font("En-Reg")
       .fillColor("#4a5568")
       .text(`Transaction Date:`, 300, currentY + 18);
-
-    const formattedDate = formatDateTime(transaction.createdAt || Date.now());
+    // ប្រើ Date Formatter
+    const formattedDate = formatDateTime(transaction.createdAt);
     doc
       .font("En-SemiBold")
       .fillColor("#1a202c")
-      .text(formattedDate, 400, currentY + 18, { align: "right", width: 155 });
+      .text(formattedDate, 400, currentY + 18, {
+        align: "right",
+        width: 155,
+      });
 
     currentY += 60;
 
-    // BOX FROM
+    // -- 3. ប្រអប់ FROM និង TO --
     doc
       .roundedRect(marginX, currentY, 245, 90, 8)
       .fillAndStroke("#ffffff", "#e2e8f0");
     doc.roundedRect(marginX, currentY, 245, 25, 8).fill("#00a86b");
     doc
-      .font(khmerFont)
+      .font("Khmer")
       .fontSize(9)
       .fillColor("#ffffff")
       .text("អ្នកបង់ប្រាក់ FROM", marginX + 10, currentY + 7);
-    doc
-      .font("En-Reg")
-      .fontSize(8.5)
-      .fillColor("#718096")
-      .text("Account Name", marginX + 10, currentY + 35);
+
+    doc.font("En-Reg").fontSize(8.5).fillColor("#718096");
+    doc.text("Account Name", marginX + 10, currentY + 35);
     doc
       .font("En-SemiBold")
       .fillColor("#2d3748")
-      .text(merchant.name || "N/A", marginX + 10, currentY + 47);
+      .text(merchant.name ?? "N/A", marginX + 10, currentY + 47);
     doc
       .font("En-Reg")
       .fillColor("#718096")
@@ -233,27 +235,24 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     doc
       .font("En-SemiBold")
       .fillColor("#2d3748")
-      .text(merchant.accountNumber || "-", marginX + 10, currentY + 77);
+      .text(merchant.accountNumber ?? "-", marginX + 10, currentY + 77);
 
-    // BOX TO
     doc
       .roundedRect(310, currentY, 245, 90, 8)
       .fillAndStroke("#ffffff", "#e2e8f0");
     doc.roundedRect(310, currentY, 245, 25, 8).fill("#00a86b");
     doc
-      .font(khmerFont)
+      .font("Khmer")
       .fontSize(9)
       .fillColor("#ffffff")
       .text("អ្នកទទួលប្រាក់ TO", 320, currentY + 7);
-    doc
-      .font("En-Reg")
-      .fontSize(8.5)
-      .fillColor("#718096")
-      .text("Recipient Name", 320, currentY + 35);
+
+    doc.font("En-Reg").fontSize(8.5).fillColor("#718096");
+    doc.text("Recipient Name", 320, currentY + 35);
     doc
       .font("En-SemiBold")
       .fillColor("#2d3748")
-      .text(transaction.receiverName || "N/A", 320, currentY + 47);
+      .text(transaction.receiverName ?? "N/A", 320, currentY + 47);
     doc
       .font("En-Reg")
       .fillColor("#718096")
@@ -261,14 +260,14 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     doc
       .font("En-SemiBold")
       .fillColor("#2d3748")
-      .text(transaction.receiverAccount || "-", 320, currentY + 77);
+      .text(transaction.receiverAccount ?? "-", 320, currentY + 77);
 
     currentY += 120;
 
-    // DETAILS
+    // -- 4. TRANSACTION DETAILS --
     doc.roundedRect(marginX, currentY, 220, 20, 4).fill("#008080");
     doc
-      .font(khmerFont)
+      .font("Khmer")
       .fontSize(9)
       .fillColor("#ffffff")
       .text("ព័ត៌មានប្រតិបត្តិការ", marginX + 10, currentY + 4.5);
@@ -278,9 +277,10 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
 
     currentY += 35;
 
+    // Function គូរ Row
     const drawRow = (label, value, isBold = false, isKhmer = false) => {
-      const displayValue = String(value || "-");
-      const fontName = isKhmer ? khmerFont : isBold ? "En-Bold" : "En-Medium";
+      const displayValue = String(value ?? "-");
+      const fontName = isKhmer ? "Khmer" : isBold ? "En-Bold" : "En-Medium";
       const fontSize = isBold ? 11 : 9;
 
       const labelHeight = doc
@@ -302,18 +302,23 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         .font(fontName)
         .fillColor(isBold ? "#00a86b" : "#2d3748")
         .text(displayValue, 300, currentY, { align: "right", width: 255 });
+
       currentY += rowHeight + 10;
     };
 
     const amount = Number(transaction.amount || 0);
     const fee = Number(transaction.fee || 0);
     const total = amount + fee;
-    const displayTxId =
-      transaction.referenceId || transaction.transactionId || transactionId;
+    const displayTxId = transaction.transactionId || transaction.referenceId;
 
-    drawRow("Transaction Type", transaction.type);
-    drawRow("Payment Method", transaction.paymentMethod || "U-Pay System");
-    drawRow("Merchant ID", merchant.merchantId || "MER000");
+    const paymentMethod = transaction.paymentMethod || "U-Pay Wallet";
+    const merchantId = merchant.merchantId || "MER000000";
+    const invoiceNo = transaction.invoiceNo || "N/A";
+
+    drawRow("Transaction Type", transaction.type || "Fund Transfer");
+    drawRow("Payment Method", paymentMethod);
+    drawRow("Merchant ID", merchantId);
+    drawRow("Invoice No", invoiceNo);
     drawRow(
       "Amount",
       `${transaction.currency || "USD"} ${amount.toFixed(2)}`,
@@ -325,7 +330,12 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       `${transaction.currency || "USD"} ${total.toFixed(2)}`,
       true,
     );
-    drawRow("Remark", transaction.remark, false, true);
+    drawRow(
+      "Remark",
+      transaction.remark || "Payment via U-Pay Gateway",
+      false,
+      true,
+    );
     drawRow("Transaction ID", displayTxId);
 
     currentY += 5;
@@ -337,8 +347,8 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .stroke();
     currentY += 15;
 
-    // Digital Signature
-    const rawData = `${displayTxId}|${amount}|${transaction.createdAt}`;
+    // -- 5. Digital Signature --
+    const rawData = `${displayTxId}|${amount}|${merchantId}|${transaction.createdAt}`;
     const digitalSignature = crypto
       .createHash("sha256")
       .update(rawData)
@@ -355,12 +365,15 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fontSize(6)
       .text(digitalSignature, marginX, currentY + 10, { width: 350 });
 
-    // QR Code
-    const verifyLink = `https://u-pay-bank.fly.dev/receipt/${displayTxId}`;
+    // -- 6. QR Code (🚀 ប្រើ Buffer ជំនួស DataURL និង File) --
+    const verifyLink = `https://u-pay-bank.fly.dev/receipt/${transaction.referenceId}`;
+
+    // បង្កើត QR ជា Buffer ដោយផ្ទាល់ មិនបាច់ Save ចូល Folder ទេ
     const qrBuffer = await QRCode.toBuffer(verifyLink, {
       margin: 1,
       width: 150,
     });
+
     doc.image(qrBuffer, 485, currentY - 15, { width: 70 });
     doc
       .font("En-Medium")
@@ -368,7 +381,7 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fillColor("#718096")
       .text("Scan to verify", 485, currentY - 25);
 
-    // STAMP
+    // -- 7. គូរត្រា VERIFIED --
     const stampX = 350;
     const stampY = currentY + 20;
     doc.circle(stampX, stampY, 28).lineWidth(2).strokeColor("#00a86b").stroke();
@@ -383,10 +396,11 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fontSize(5)
       .text("★ VERIFIED ★", stampX - 18, stampY + 12);
 
-    // Footer
+    // -- 8. Footer --
     const bottomY = doc.page.height - 45;
     doc.rect(0, bottomY - 15, doc.page.width, 60).fill("#f8fafc");
     doc.font("En-Medium").fontSize(8).fillColor("#4a5568");
+
     doc.text("Website: https://u-pay-bank.fly.dev", marginX, bottomY);
     doc.text("Phone: +855 95 40 42 42", 220, bottomY);
     doc.text("Email: support@u-pay-bank.fly.dev", 380, bottomY, {
@@ -394,6 +408,7 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       align: "right",
     });
 
+    // បញ្ចប់ការគូរ (ពេលហៅ doc.end() វានឹងរុញទិន្នន័យទាំងអស់ទៅកាន់ Browser ភ្លាមៗ)
     doc.end();
   } catch (error) {
     console.error("Error Streaming PDF:", error);
@@ -405,4 +420,5 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
   }
 };
 
+// Export ឈ្មោះថ្មីយកទៅប្រើ
 module.exports = { streamOfficialReceiptPDF };
