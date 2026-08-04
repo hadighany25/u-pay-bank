@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const QRCode = require("qrcode");
 const crypto = require("crypto");
-const mongoose = require("mongoose"); // ត្រូវហៅ mongoose ដើម្បីឆែក ObjectId
+const mongoose = require("mongoose");
 const EscrowTransaction = require("../models/EscrowTransaction");
 const Transaction = require("../models/Transaction");
 
@@ -38,40 +38,40 @@ const formatDateTime = (dateInput) => {
 
 const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
-    // 🌟 ១. បង្កើតលក្ខខណ្ឌស្វែងរកដ៏ឆ្លាតវៃ (ទោះជាលេខកូដបែបណាក៏រកឃើញ)
+    // 🌟 អាគមសំខាន់៖ បង្កើតលក្ខខណ្ឌស្វែងរកដ៏ឆ្លាតវៃ (រុករកគ្រប់កន្លែង)
     let queryConditions = [
       { transactionId: transactionId },
       { referenceId: transactionId },
       { upayTransactionId: transactionId },
+      { txId: transactionId },
+      { txnId: transactionId },
     ];
 
-    // បើ transactionId មានទម្រង់ជា 24-character ObjectId របស់ Mongo យើងបន្ថែមការស្វែងរកតាម _id មួយទៀត
+    // បើវាជា ObjectId របស់ Mongo (ដូចជា w._id ដែលបញ្ជូនពី U-Mall)
     if (mongoose.Types.ObjectId.isValid(transactionId)) {
       queryConditions.push({ _id: transactionId });
     }
 
-    // 🌟 ២. ស្វែងរកក្នុង Escrow ជាមុន (សម្រាប់ទិញលក់ធម្មតា)
+    // ទី១៖ ស្វែងរកក្នុង Escrow ជាមុន
     let transaction = await EscrowTransaction.findOne({
       $or: queryConditions,
     }).populate("merchantId");
     let merchant = {};
 
-    // 🌟 ៣. បើគ្មានក្នុង Escrow ទេ គឺច្បាស់ជាប្រតិបត្តិការ "ដកប្រាក់ (Withdrawal)"
+    // ទី២៖ បើគ្មានក្នុង Escrow ទេ គឺច្បាស់ជាប្រតិបត្តិការ "ដកប្រាក់ (Withdrawal)"
     if (!transaction) {
       transaction = await Transaction.findOne({ $or: queryConditions });
 
       if (!transaction) {
-        // បើនៅតែរកមិនឃើញទៀត ខ្ញុំបានធ្វើផ្ទាំងប្រាប់ច្បាស់ៗងាយស្រួលយល់
         return res.status(404).send(`
           <div style="text-align:center; padding: 50px; font-family: Arial, sans-serif;">
             <h2 style="color: red;">⚠️ រកមិនឃើញប្រតិបត្តិការទេ (Transaction Not Found)</h2>
             <p>លេខ ID: <b>${transactionId}</b> ពុំមាននៅក្នុង Database របស់ធនាគារ U-Pay ឡើយ។</p>
-            <p style="color: #666; font-size: 14px;">(វាអាចជាទិន្នន័យចាស់ដែលត្រូវបានលុប ឬ E-commerce អត់បានបាញ់ទិន្នន័យចូលមកធនាគារពិតប្រាកដ)</p>
           </div>
         `);
       }
 
-      // រៀបចំទិន្នន័យដកប្រាក់ឱ្យចូលទម្រង់ PDF កុំឱ្យ Error (Cannot read properties of undefined)
+      // រៀបចំទិន្នន័យដកប្រាក់ឱ្យចូលទម្រង់ PDF
       merchant = {
         name: "U-Mall Withdrawal (ដកប្រាក់)",
         accountNumber: transaction.senderPhone || "System Payout",
@@ -80,7 +80,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
 
       transaction.referenceId =
         transaction.referenceId || transaction.transactionId || transactionId;
-      // ព្យាយាមទាញយកឈ្មោះ និងលេខគណនីពី Field ណាដែលមាន
       transaction.receiverName =
         transaction.accountName ||
         transaction.receiverName ||
@@ -100,7 +99,7 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       merchant = transaction.merchantId || {};
     }
 
-    // 🌟 ៤. រៀបចំបញ្ជូន PDF ទៅ Browser
+    // --- ដំណើរការបង្កើត PDF ---
     const fileName = `Receipt-${transaction.referenceId || transactionId}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
@@ -125,7 +124,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
     const doc = new PDFDocument({ size: "A4", margin: 0 });
     doc.pipe(res);
 
-    // Register Fonts
     if (fs.existsSync(fontKhmer)) doc.registerFont("Khmer", fontKhmer);
     if (fs.existsSync(fontEnReg)) doc.registerFont("En-Reg", fontEnReg);
     if (fs.existsSync(fontEnMedium))
@@ -134,7 +132,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       doc.registerFont("En-SemiBold", fontEnSemiBold);
     if (fs.existsSync(fontEnBold)) doc.registerFont("En-Bold", fontEnBold);
 
-    // --- ចាប់ផ្តើមគូរ PDF ---
     doc.save();
     doc.opacity(0.05);
     if (fs.existsSync(logoPath)) doc.image(logoPath, 110, 240, { width: 380 });
@@ -155,7 +152,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         .text("FAST • SECURE • TRUSTED", 40, 75, { characterSpacing: 1.5 });
     }
 
-    // ប្រើ Fallback បើគ្មាន Font ខ្មែរ
     const khmerFont = fs.existsSync(fontKhmer) ? "Khmer" : "En-Bold";
     doc
       .font(khmerFont)
@@ -185,8 +181,11 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
         width: 85,
       });
 
-    doc.font("En-Reg").fontSize(9).fillColor("#4a5568");
-    doc.text(`Reference No:`, 300, currentY);
+    doc
+      .font("En-Reg")
+      .fontSize(9)
+      .fillColor("#4a5568")
+      .text(`Reference No:`, 300, currentY);
     doc
       .font("En-SemiBold")
       .fillColor("#1a202c")
@@ -337,7 +336,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .stroke();
     currentY += 15;
 
-    // Digital Signature
     const rawData = `${displayTxId}|${amount}|${transaction.createdAt}`;
     const digitalSignature = crypto
       .createHash("sha256")
@@ -355,7 +353,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fontSize(6)
       .text(digitalSignature, marginX, currentY + 10, { width: 350 });
 
-    // QR Code
     const verifyLink = `https://u-pay-bank.fly.dev/receipt/${displayTxId}`;
     const qrBuffer = await QRCode.toBuffer(verifyLink, {
       margin: 1,
@@ -368,7 +365,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fillColor("#718096")
       .text("Scan to verify", 485, currentY - 25);
 
-    // STAMP
     const stampX = 350;
     const stampY = currentY + 20;
     doc.circle(stampX, stampY, 28).lineWidth(2).strokeColor("#00a86b").stroke();
@@ -383,7 +379,6 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
       .fontSize(5)
       .text("★ VERIFIED ★", stampX - 18, stampY + 12);
 
-    // Footer
     const bottomY = doc.page.height - 45;
     doc.rect(0, bottomY - 15, doc.page.width, 60).fill("#f8fafc");
     doc.font("En-Medium").fontSize(8).fillColor("#4a5568");
