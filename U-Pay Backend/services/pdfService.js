@@ -40,12 +40,12 @@ const streamOfficialReceiptPDF = async (transactionId, res) => {
   try {
     // 🌟 អាគមសំខាន់៖ បន្ថែម { refId: transactionId } ចូល ព្រោះ Database បងប្រើឈ្មោះនេះ
     let queryConditions = [
+      { hash: transactionId }, // <--- សំខាន់បំផុតគឺបន្ទាត់នេះ
       { transactionId: transactionId },
       { referenceId: transactionId },
       { upayTransactionId: transactionId },
       { txId: transactionId },
-      { txnId: transactionId },
-      { refId: transactionId }, // <--- ត្រូវថែមអាសម្លាញ់នេះចូល!
+      { refId: transactionId },
     ];
 
     if (mongoose.Types.ObjectId.isValid(transactionId)) {

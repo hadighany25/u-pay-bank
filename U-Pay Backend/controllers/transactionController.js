@@ -1391,7 +1391,6 @@ const egiftOpened = async (req, res) => {
 // ==========================================
 const b2bTransfer = async (req, res) => {
   try {
-    // ទាញយក Tools សម្ងាត់
     const crypto = require("crypto");
     const { merchantId, referenceId, amount, receiverAccount, description } =
       req.body;
@@ -1403,7 +1402,6 @@ const b2bTransfer = async (req, res) => {
       process.env.UPAY_API_SECRET ||
       "edb7169d82f2ba03eccc06e5d57e3576e2672979bfeea8834a963a60fa515786";
     const dataToSign = JSON.stringify(req.body) + (timestamp || "");
-
     const expectedSig = crypto
       .createHmac("sha256", UPAY_SECRET)
       .update(dataToSign)
@@ -1418,7 +1416,7 @@ const b2bTransfer = async (req, res) => {
         });
     }
 
-    // ២. ស្វែងរកគណនី U-Pay របស់អ្នកលក់
+    // ២. រកគណនីអ្នកលក់ (អ្នកទទួលលុយ)
     const receiver = await User.findOne({ accountNumber: receiverAccount });
     if (!receiver) {
       return res
@@ -1426,25 +1424,61 @@ const b2bTransfer = async (req, res) => {
         .json({ success: false, message: "រកមិនឃើញគណនី U-Pay របស់អ្នកលក់ទេ!" });
     }
 
-    // ៣. បូកលុយចូលគណនីអ្នកលក់ (បងអាចថែមកូដកាត់លុយពីកុងធំ U-Mall ក៏បាន)
+    // ៣. រកគណនីកុងធំ U-Mall (អ្នកផ្ញើ) ដើម្បីកាត់លុយ
+    // សន្មតថា merchantId គឺយើងប្រើវាជា username ឬ អាខោនកុងធំក្នុង U-Pay
+    const sender = await User.findOne({
+      $or: [
+        { merchantId: merchantId },
+        { username: merchantId },
+        { accountNumber: merchantId },
+      ],
+    });
+
+    if (!sender) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "រកមិនឃើញគណនីកុងធំ U-Mall (Merchant) នៅក្នុង U-Pay ទេ!",
+        });
+    }
+
+    // ឆែកមើលថាតើកុងធំ U-Mall មានលុយគ្រប់គ្រាន់សម្រាប់បើកអោយគេទេ?
+    if (sender.balance < parseFloat(amount)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "គណនីកុងធំ U-Mall មិនមានប្រាក់គ្រប់គ្រាន់ទេ!",
+        });
+    }
+
+    // ៤. ដំណើរការកាត់លុយពី U-Mall និង បូកលុយចូលអ្នកលក់
+    sender.balance -= parseFloat(amount);
+    await sender.save();
+
     receiver.balance += parseFloat(amount);
     await receiver.save();
 
-    // ៤. កត់ត្រាប្រវត្តិប្រតិបត្តិការ
+    // ៥. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (អាគមសំខាន់ដោះស្រាយបញ្ហា PDF គឺនៅទីនេះ!)
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
+
+    // បង្កើតលេខ TX_ តែមួយគត់ ទុកប្រើទាំងសម្រាប់ U-Mall និង U-Pay Database
+    const generatedTxId = "TX_" + Date.now();
+
     await Transaction.create({
       username: receiver.username,
-      refId: referenceId,
-      hash: "B2B_" + Date.now(),
+      refId: referenceId, // លេខសម្គាល់សំណើដកប្រាក់របស់ U-Mall (_id)
+      hash: generatedTxId, // ដាក់លេខ TX_ ចូល Database (ពីមុនបងដាក់ B2B_ ទើបរវង្វេង)
       date: dateStr,
-      type: "Receive",
+      type: "Receive", // សម្រាប់អ្នកលក់ គឺ Receive (ទទួលបាន)
       amount: parseFloat(amount),
       currency: "USD",
       fee: 0,
-      senderName: "U-Mall Payout",
+      senderName: sender.fullName || "U-Mall Payout",
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
@@ -1452,10 +1486,28 @@ const b2bTransfer = async (req, res) => {
       status: "Success",
     });
 
-    // ៥. ឆ្លើយតបទៅ U-Mall វិញថាជោគជ័យ
+    // បន្ថែម Record មួយទៀតសម្រាប់កុងធំ U-Mall (ស្រេចចិត្ត តែគួរតែមានដើម្បីដឹងប្រវត្តិដកលុយ)
+    await Transaction.create({
+      username: sender.username,
+      refId: referenceId,
+      hash: generatedTxId,
+      date: dateStr,
+      type: "Transfer", // សម្រាប់កុងធំ គឺវេរចេញ
+      amount: parseFloat(amount),
+      currency: "USD",
+      fee: 0,
+      senderName: sender.fullName || "U-Mall Payout",
+      receiverName: receiver.fullName || receiver.username,
+      receiverAcc: receiverAccount,
+      trxMethod: "B2B Gateway",
+      remark: "ទូទាត់ប្រាក់ឱ្យ Seller U-Mall",
+      status: "Success",
+    });
+
+    // ៦. ឆ្លើយតបទៅ U-Mall វិញ
     res.json({
       success: true,
-      transactionId: "TX_" + Date.now(),
+      transactionId: generatedTxId, // បាញ់លេខដែល Save ក្នុង DB ត្រឡប់ទៅ U-Mall
       message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ!",
     });
   } catch (error) {
