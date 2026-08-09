@@ -340,6 +340,45 @@ const translations = {
     acc_savings_title: "Fixed Deposit",
     acc_savings_desc:
       "Earn up to 6.5% p.a. with our highly secure fixed deposit accounts.",
+
+    // ====================================
+    // Payroll
+    //======================================
+    // Buttons & Actions
+    btn_pause: "Pause",
+    btn_resume: "Resume",
+    btn_delete: "Delete",
+    btn_edit: "Edit",
+    btn_retry: "Retry",
+    btn_repay: "Re-pay",
+    btn_save_template: "Save Template",
+    btn_edit_in_sheet: "Edit in Web Sheet",
+
+    // Labels
+    lbl_schedule: "Schedule",
+    lbl_frequency: "Frequency",
+    lbl_execution_time: "Execution Time",
+    lbl_payout_history: "Payout History",
+    lbl_payout_details: "Payout Details",
+    lbl_payment_date: "Payment Date",
+    lbl_select_day: "Select Day of Week",
+    lbl_select_month_day: "Select Day of Month",
+    lbl_start_date: "Start Date",
+    lbl_end_date: "End Date (Optional)",
+    lbl_total_amount: "Total Amount",
+    lbl_status: "Status",
+
+    // Frequency Options
+    opt_once: "Once",
+    opt_weekly: "Weekly",
+    opt_monthly: "Monthly",
+    opt_yearly: "Yearly",
+
+    // Statuses
+    status_active: "Active",
+    status_paused: "Paused",
+    status_completed: "Completed",
+    status_failed: "Failed",
   },
 
   // ភាសាខ្មែរ (Khmer) Translation
@@ -685,6 +724,45 @@ const translations = {
   acc_savings_title: "គណនីបញ្ញើមានកាលកំណត់",
   acc_savings_desc:
     "ទទួលអត្រាការប្រាក់ខ្ពស់រហូតដល់ 6.5% ក្នុងមួយឆ្នាំ សម្រាប់ការសន្សំដែលមានសុវត្ថិភាពខ្ពស់។",
+
+  // ====================================
+  // Payroll
+  //======================================
+  // Buttons & Actions
+  btn_pause: "ផ្អាក់",
+  btn_resume: "បន្ត",
+  btn_delete: "លុប",
+  btn_edit: "កែសម្រួល",
+  btn_retry: "ព្យាយាមម្តងទៀត",
+  btn_repay: "ទូទាត់ម្តងទៀត",
+  btn_save_template: "រក្សាទុក Template",
+  btn_edit_in_sheet: "កែសម្រួលក្នុង Web Sheet",
+
+  // Labels
+  lbl_schedule: "កាលវិភាគ",
+  lbl_frequency: "ភាពញឹកញាប់",
+  lbl_execution_time: "ម៉ោងប្រតិបត្តិការ",
+  lbl_payout_history: "ប្រវត្តិការទូទាត់",
+  lbl_payout_details: "ព័ត៌មានលម្អិតការទូទាត់",
+  lbl_payment_date: "កាលបរិច្ឆេទកាត់លុយ",
+  lbl_select_day: "ជ្រើសរើសថ្ងៃក្នុងសប្តាហ៍",
+  lbl_select_month_day: "ជ្រើសរើសថ្ងៃក្នុងខែ",
+  lbl_start_date: "កាលបរិច្ឆេទចាប់ផ្តើម",
+  lbl_end_date: "កាលបរិច្ឆេទបញ្ចប់ (ជម្រើស)",
+  lbl_total_amount: "ទឹកប្រាក់សរុប",
+  lbl_status: "ស្ថានភាព",
+
+  // Frequency Options
+  opt_once: "ម្តង",
+  opt_weekly: "ប្រចាំសប្តាហ៍",
+  opt_monthly: "ប្រចាំខែ",
+  opt_yearly: "ប្រចាំឆ្នាំ",
+
+  // Statuses
+  status_active: "កំពុងដំណើរការ",
+  status_paused: "ផ្អាក់",
+  status_completed: "ជោគជ័យ",
+  status_failed: "បរាជ័យ",
 };
 
 function applyLanguage() {

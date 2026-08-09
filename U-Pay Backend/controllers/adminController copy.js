@@ -410,9 +410,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// ========================================================
-// 💰 មុខងារបន្ថែម ឬ ដកប្រាក់ (Adjust Balance) ជាមួយនឹងអត្រាប្តូរប្រាក់
-// ========================================================
 const adjustBalance = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "adjustBal");
   if (!access.allowed)
@@ -427,40 +424,56 @@ const adjustBalance = async (req, res) => {
     if (!centralBank)
       return res.json({ success: false, message: "Central Bank not found!" });
 
-    let adjustAmount = parseFloat(amount);
+    const adjustAmount = parseFloat(amount);
     if (isNaN(adjustAmount) || adjustAmount <= 0)
       return res.json({ success: false, message: "Invalid amount!" });
 
-    // ទាញយកអត្រាប្តូរប្រាក់បច្ចុប្បន្ន
-    const { readFXRates } = require("../services/systemService");
-    const currentFXRates = readFXRates();
+    const isKHR = currency === "KHR";
+    const sign = isKHR ? "៛" : "$";
 
-    const isInputKHR = currency === "KHR";
-    const sign = isInputKHR ? "៛" : "$";
-
+    // អថេរសម្រាប់ផ្ទុកលេខគណនីពិតប្រាកដដែលត្រូវដាក់ប្រាក់ចូល
     let actualUserAcc = "";
+    // 🔥 អថេរសម្រាប់ផ្ទុកទិន្នន័យគណនីរួម បើរកឃើញ
     let targetJointAcc = null;
-    let finalAmountToAddOrDeduct = adjustAmount; // ចំនួនដែលត្រូវបូក/ដកជាក់ស្តែងក្នុងកុង
-    let destinationCurrency = ""; // ដើម្បីដឹងថាកុងគោលដៅជាលុយអី
 
-    // ១. កំណត់អត្តសញ្ញាណគណនីគោលដៅ និងប្រភេទលុយរបស់គណនីនោះ
+    // ឆែកមើលប្រភេទគណនី និងធ្វើការបូក/ដកប្រាក់តាមគណនីជាក់លាក់
     if (targetAccount === "MAIN_USD") {
       actualUserAcc = user.accountNumber;
-      destinationCurrency = "USD";
+      if (type === "deduct" && user.balance < adjustAmount) {
+        return res.json({
+          success: false,
+          message: "Insufficient USD balance!",
+        });
+      }
+      user.balance =
+        type === "add"
+          ? user.balance + adjustAmount
+          : user.balance - adjustAmount;
     } else if (targetAccount === "MAIN_KHR") {
       actualUserAcc = user.accountNumberKHR;
-      destinationCurrency = "KHR";
+      if (type === "deduct" && (user.balanceKHR || 0) < adjustAmount) {
+        return res.json({
+          success: false,
+          message: "Insufficient KHR balance!",
+        });
+      }
+      user.balanceKHR =
+        type === "add"
+          ? (user.balanceKHR || 0) + adjustAmount
+          : (user.balanceKHR || 0) - adjustAmount;
     } else {
+      // ករណីជារើសគណនី Sub-account (Premium/Saving/Pocket/Joint)
       const subIdx = user.subAccounts.findIndex(
         (s) => s.accountNumber === targetAccount,
       );
-      if (subIdx === -1)
+      if (subIdx === -1) {
         return res.json({ success: false, message: "Sub-account not found!" });
+      }
 
       actualUserAcc = targetAccount;
       const subAcc = user.subAccounts[subIdx];
-      destinationCurrency = subAcc.currency;
 
+      // 🔥 ឆែកមើលថាតើ Sub-account នេះជាគណនីរួមដែរឬទេ?
       if (
         subAcc.accountType === "joint" ||
         subAcc.accountType === "joint_member"
@@ -473,67 +486,23 @@ const adjustBalance = async (req, res) => {
             success: false,
             message: "រកគណនីរួមក្នុងប្រព័ន្ធមិនឃើញទេ!",
           });
-      }
-    }
 
-    // ២. 🔥 គណនាអត្រាប្តូរប្រាក់ (Exchange Rate Logic)
-    if (currency === "USD" && destinationCurrency === "KHR") {
-      // Input ជាដុល្លារ តែចង់ដាក់ចូលកុងលុយរៀល -> គុណនឹងអត្រាទិញចូល (Buy) របស់ធនាគារ
-      finalAmountToAddOrDeduct = adjustAmount * currentFXRates.usdToKhrBuy;
-    } else if (currency === "KHR" && destinationCurrency === "USD") {
-      // Input ជាលុយរៀល តែចង់ដាក់ចូលកុងដុល្លារ -> ចែកនឹងអត្រាលក់ចេញ (Sell) របស់ធនាគារ
-      finalAmountToAddOrDeduct = adjustAmount / currentFXRates.usdToKhrSell;
-    }
-
-    // ៣. ធ្វើការបូក/ដកប្រាក់តាមគណនីជាក់លាក់
-    if (targetAccount === "MAIN_USD") {
-      if (type === "deduct" && user.balance < finalAmountToAddOrDeduct) {
-        return res.json({
-          success: false,
-          message: "Insufficient USD balance!",
-        });
-      }
-      user.balance =
-        type === "add"
-          ? user.balance + finalAmountToAddOrDeduct
-          : user.balance - finalAmountToAddOrDeduct;
-    } else if (targetAccount === "MAIN_KHR") {
-      if (
-        type === "deduct" &&
-        (user.balanceKHR || 0) < finalAmountToAddOrDeduct
-      ) {
-        return res.json({
-          success: false,
-          message: "Insufficient KHR balance!",
-        });
-      }
-      user.balanceKHR =
-        type === "add"
-          ? (user.balanceKHR || 0) + finalAmountToAddOrDeduct
-          : (user.balanceKHR || 0) - finalAmountToAddOrDeduct;
-    } else {
-      const subIdx = user.subAccounts.findIndex(
-        (s) => s.accountNumber === targetAccount,
-      );
-      const subAcc = user.subAccounts[subIdx];
-
-      if (targetJointAcc) {
-        if (
-          type === "deduct" &&
-          targetJointAcc.balance < finalAmountToAddOrDeduct
-        ) {
+        if (type === "deduct" && targetJointAcc.balance < adjustAmount) {
           return res.json({
             success: false,
             message: "សមតុល្យក្នុងគណនីរួមមិនគ្រប់គ្រាន់ទេ!",
           });
         }
+
+        // Update លុយចូលធុងកណ្តាលរបស់ JointAccount
         targetJointAcc.balance =
           type === "add"
-            ? targetJointAcc.balance + finalAmountToAddOrDeduct
-            : targetJointAcc.balance - finalAmountToAddOrDeduct;
+            ? targetJointAcc.balance + adjustAmount
+            : targetJointAcc.balance - adjustAmount;
         await targetJointAcc.save();
       } else {
-        if (type === "deduct" && subAcc.balance < finalAmountToAddOrDeduct) {
+        // បើជា Sub-account ធម្មតា (Premium/Pocket) មិនមែន Joint ទេ
+        if (type === "deduct" && subAcc.balance < adjustAmount) {
           return res.json({
             success: false,
             message: "Insufficient balance in Sub-account!",
@@ -541,45 +510,46 @@ const adjustBalance = async (req, res) => {
         }
         user.subAccounts[subIdx].balance =
           type === "add"
-            ? subAcc.balance + finalAmountToAddOrDeduct
-            : subAcc.balance - finalAmountToAddOrDeduct;
-        user.markModified("subAccounts");
+            ? subAcc.balance + adjustAmount
+            : subAcc.balance - adjustAmount;
+        user.markModified("subAccounts"); // 🔥 Safety Lock
       }
     }
 
-    // ៤. 💰 ធ្វើការបូក/ដកប្រាក់សម្រាប់ Central Bank (Central Bank រក្សាទម្រង់ដើមតាម Currency Input)
+    // 💰 ធ្វើការបូក/ដកប្រាក់សម្រាប់ Central Bank
     if (type === "add") {
-      if (isInputKHR)
+      if (isKHR)
         centralBank.balanceKHR = (centralBank.balanceKHR || 0) - adjustAmount;
       else centralBank.balance -= adjustAmount;
     } else if (type === "deduct") {
-      if (isInputKHR)
+      if (isKHR)
         centralBank.balanceKHR = (centralBank.balanceKHR || 0) + adjustAmount;
       else centralBank.balance += adjustAmount;
     }
 
+    // 🗓 ចាប់ម៉ោងស្រុកខ្មែរ
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const refId = (type === "add" ? "DEP-" : "DED-") + Date.now().toString().slice(-10);
+    const refId =
+      (type === "add" ? "DEP-" : "DED-") + Math.floor(Math.random() * 1000000);
     const trxHash =
       "HSH" + Math.random().toString(36).substring(7).toUpperCase();
 
-    const centralBankAcc = isInputKHR
+    const centralBankAcc = isKHR
       ? centralBank.accountNumberKHR
       : centralBank.accountNumber;
 
-    // ៥. 📝 រៀបចំទិន្នន័យ Transaction សម្រាប់អតិថិជន (បង្ហាញចំនួនដែលគាត់ទទួលបានពិតប្រាកដ)
+    // 📝 រៀបចំទិន្នន័យសម្រាប់អតិថិជន
     const userTrx = {
       username: user.username,
       refId,
       hash: trxHash,
       date: dateStr,
       type: type === "add" ? "Cash Deposit" : "Cash Withdrawal",
-      amount:
-        type === "add" ? finalAmountToAddOrDeduct : -finalAmountToAddOrDeduct, // បង្ហាញលុយដែលចូលកុងមែនទែន
-      currency: destinationCurrency, // បង្ហាញ Currency របស់កុងដែលទទួល
+      amount: type === "add" ? adjustAmount : -adjustAmount,
+      currency: currency,
       fee: 0,
       senderName:
         type === "add" ? "Cash Deposit" : user.fullName || user.username,
@@ -596,21 +566,19 @@ const adjustBalance = async (req, res) => {
       trxMethod: "U-PAY System",
     };
 
-    // រៀបចំទិន្នន័យសម្រាប់ Central Bank (កត់ត្រាតាម Input ដែល Admin វាយ)
+    // 📝 រៀបចំទិន្នន័យសម្រាប់ធនាគារកណ្តាល
     const bankTrx = {
       ...userTrx,
       username: centralBank.username,
       amount: type === "add" ? -adjustAmount : adjustAmount,
-      currency: currency,
       type: type === "add" ? "Fund Disbursement" : "Fund Recovery",
     };
 
-    // ៦. បាញ់ Notification លោតទៅ User
-    const finalSign = destinationCurrency === "USD" ? "$" : "៛";
+    // 🔥 បញ្ចូល Transaction & Notification (បែងចែកបើជាគណនីរួម)
     const notifMsg =
       type === "add"
-        ? `+${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })} credited to your account (${actualUserAcc}).`
-        : `-${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })} deducted from your account (${actualUserAcc}).`;
+        ? `+${sign}${adjustAmount.toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })} credited to your account (${actualUserAcc}).`
+        : `-${sign}${adjustAmount.toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })} deducted from your account (${actualUserAcc}).`;
 
     const notifData = {
       id: "NOTIF-" + Date.now(),
@@ -621,9 +589,11 @@ const adjustBalance = async (req, res) => {
     };
 
     if (targetJointAcc) {
+      // បើជាគណនីរួម បាញ់ Transaction និង Notification អោយសមាជិកទាំងអស់
       for (let m of targetJointAcc.members) {
         if (m.status === "active") {
           await Transaction.create({ ...userTrx, username: m.username });
+
           const memberDoc = await User.findOne({ username: m.username });
           if (memberDoc) {
             if (!memberDoc.notifications) memberDoc.notifications = [];
@@ -634,7 +604,9 @@ const adjustBalance = async (req, res) => {
         }
       }
     } else {
+      // បើជាគណនីធម្មតា
       await Transaction.create(userTrx);
+
       if (!user.notifications) user.notifications = [];
       user.notifications.unshift(notifData);
       user.markModified("notifications");
@@ -648,13 +620,10 @@ const adjustBalance = async (req, res) => {
       req.admin.username,
       type === "add" ? "Add Money" : "Deduct Money",
       user.username,
-      `${type === "add" ? "+" : "-"}${sign}${adjustAmount} -> (${finalSign}${finalAmountToAddOrDeduct})`,
+      `${type === "add" ? "+" : "-"}${sign}${adjustAmount}`,
     );
 
-    res.json({
-      success: true,
-      message: `Operation Success! ទឹកប្រាក់ទទួលបានគឺ ${finalSign}${finalAmountToAddOrDeduct.toLocaleString("en-US", { minimumFractionDigits: destinationCurrency === "USD" ? 2 : 0 })}`,
-    });
+    res.json({ success: true, message: `Operation Success!` });
   } catch (err) {
     console.error("ADJUST BALANCE ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1715,16 +1684,16 @@ const searchCashierUser = async (req, res) => {
 };
 
 // =======================================================
-// 💰 ២. ដំណើរការដាក់ប្រាក់ (គាំទ្រ Main & Sub-accounts 100% រួមទាំងការប្តូរប្រាក់)
+// 💰 ២. ដំណើរការដាក់ប្រាក់ (គាំទ្រ Main & Sub-accounts 100%)
 // =======================================================
 const processCashierTransaction = async (req, res) => {
   const {
     targetUsername,
-    targetAccount, // លេខគណនីដែលបានរើសពី Frontend
+    targetAccount, // 🔥 ចាប់យកលេខគណនីដែលបានរើសពី Frontend
     depositorType,
     depositorUsername,
-    currency, // ប្រភេទលុយដែលកាន់ផ្ទាល់ (Input Currency)
-    amount, // ចំនួនលុយដែលកាន់ផ្ទាល់
+    currency,
+    amount,
     remark,
   } = req.body;
 
@@ -1758,57 +1727,21 @@ const processCashierTransaction = async (req, res) => {
     }
 
     const cashAmount = parseFloat(amount);
-    const isInputKHR = currency === "KHR";
+    const isKHR = currency === "KHR";
+    const sign = isKHR ? "៛" : "$";
 
     // ---------------------------------------------------
-    // 🔥 កំណត់ប្រភេទគណនីគោលដៅ (Destination Currency)
+    // 🔥 ១. កាត់ប្រាក់ពី Central Bank
     // ---------------------------------------------------
-    let destCurrency = "USD";
-    let actualReceiverAcc = targetAccount;
-    let subIndex = -1;
-    let isJointAccount = false;
-    let jointMembersList = [];
-    let accountName = targetUser.fullName || targetUser.username;
-
-    if (targetAccount === targetUser.accountNumber) {
-      destCurrency = "USD";
-    } else if (targetAccount === targetUser.accountNumberKHR) {
-      destCurrency = "KHR";
-    } else {
-      subIndex = targetUser.subAccounts.findIndex(
-        (s) => s.accountNumber === targetAccount,
-      );
-      if (subIndex !== -1) {
-        destCurrency = targetUser.subAccounts[subIndex].currency;
-        accountName = targetUser.subAccounts[subIndex].accountName;
-      }
-    }
-
-    // ---------------------------------------------------
-    // 🔥 គណនាអត្រាប្តូរប្រាក់ (Exchange Rate Logic)
-    // ---------------------------------------------------
-    const { readFXRates } = require("../services/systemService");
-    const currentFXRates = readFXRates();
-    let finalReceiveAmount = cashAmount;
-
-    if (currency === "USD" && destCurrency === "KHR") {
-      // យកដុល្លារ ដាក់ចូលកុងរៀល
-      finalReceiveAmount = cashAmount * currentFXRates.usdToKhrBuy;
-    } else if (currency === "KHR" && destCurrency === "USD") {
-      // យករៀល ដាក់ចូលកុងដុល្លារ
-      finalReceiveAmount = cashAmount / currentFXRates.usdToKhrSell;
-    }
-
-    // ---------------------------------------------------
-    // 🔥 ១. កាត់ប្រាក់ពី Central Bank (តាមលុយដែល Admin បញ្ចូល)
-    // ---------------------------------------------------
-    if (isInputKHR) {
+    if (isKHR) {
       centralBank.balanceKHR = (centralBank.balanceKHR || 0) - cashAmount;
     } else {
       centralBank.balance = (centralBank.balance || 0) - cashAmount;
     }
 
-    // មុខងារសម្រាប់ Update លុយគណនីរួមឱ្យស្មើគ្នា
+    // ---------------------------------------------------
+    // 🔥 មុខងារសម្រាប់ Update លុយគណនីរួមឱ្យស្មើគ្នា (ប្រើដោយ Admin)
+    // ---------------------------------------------------
     const syncJointBalance = async (accountId, amountChange) => {
       try {
         const User = require("../models/User");
@@ -1816,10 +1749,13 @@ const processCashierTransaction = async (req, res) => {
           "subAccounts.accountId": accountId,
         });
         if (!owner) return [];
+
         const acc = owner.subAccounts.find((a) => a.accountId === accountId);
         if (!acc || acc.accountType !== "joint") return [];
-        let allMembers = [owner.username];
 
+        let allMembers = [owner.username]; // រក្សាទុកឈ្មោះអ្នកដែលត្រូវលោត Transaction
+
+        // Update កុង Owner បើគាត់មិនមែនជា targetUser បច្ចុប្បន្ន (ការពារកុំឱ្យ Save ជាន់គ្នា)
         if (owner.username !== targetUser.username) {
           let ownerAccIndex = owner.subAccounts.findIndex(
             (a) => a.accountId === accountId,
@@ -1829,6 +1765,8 @@ const processCashierTransaction = async (req, res) => {
             await owner.save();
           }
         }
+
+        // Update កុង Partner
         for (let member of acc.members) {
           if (member.status === "active") {
             allMembers.push(member.username);
@@ -1846,54 +1784,83 @@ const processCashierTransaction = async (req, res) => {
             }
           }
         }
-        return allMembers;
+        return allMembers; // ត្រលប់ឈ្មោះសមាជិកទាំងអស់ ដើម្បីយកទៅកត់ Transaction ខាងក្រោម
       } catch (err) {
+        console.error("Admin Sync Joint Balance Error:", err);
         return [];
       }
     };
 
     // ---------------------------------------------------
-    // 🔥 ២. បូកប្រាក់ចូលគណនីអតិថិជន (តាមលុយដែលបានប្តូររួច)
+    // 🔥 ២. បូកប្រាក់ចូលគណនីអតិថិជន (Main ឬ Sub-account)
     // ---------------------------------------------------
+    let actualReceiverAcc = targetAccount;
+    let isReceiverSubAccount = false;
+    let subIndex = -1;
+    let isJointAccount = false;
+    let jointMembersList = [];
+    let accountName = targetUser.fullName || targetUser.username;
+
     if (targetAccount === targetUser.accountNumber) {
-      targetUser.balance = (targetUser.balance || 0) + finalReceiveAmount;
+      targetUser.balance = (targetUser.balance || 0) + cashAmount;
     } else if (targetAccount === targetUser.accountNumberKHR) {
-      targetUser.balanceKHR = (targetUser.balanceKHR || 0) + finalReceiveAmount;
-    } else if (subIndex !== -1) {
-      const targetSub = targetUser.subAccounts[subIndex];
-      targetSub.balance += finalReceiveAmount;
-      if (
-        targetSub.accountType === "joint" ||
-        targetSub.accountType === "joint_member"
-      ) {
-        isJointAccount = true;
-        jointMembersList = await syncJointBalance(
-          targetSub.accountId,
-          finalReceiveAmount,
-        );
+      targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
+    } else {
+      subIndex = targetUser.subAccounts.findIndex(
+        (s) => s.accountNumber === targetAccount,
+      );
+
+      if (subIndex !== -1) {
+        isReceiverSubAccount = true;
+        const targetSub = targetUser.subAccounts[subIndex];
+
+        // បូកលុយចូលកុង targetUser ជាមុនសិន
+        targetSub.balance += cashAmount;
+        accountName = targetSub.accountName; // យកឈ្មោះហោប៉ៅមកប្រើ
+
+        // ឆែកមើលថាបើជាគណនីរួម ត្រូវហៅមុខងារ Sync ទៅអោយដៃគូ
+        if (
+          targetSub.accountType === "joint" ||
+          targetSub.accountType === "joint_member"
+        ) {
+          isJointAccount = true;
+          jointMembersList = await syncJointBalance(
+            targetSub.accountId,
+            cashAmount,
+          );
+        }
+      } else {
+        // Fallback បើរកមិនឃើញ
+        if (isKHR) {
+          targetUser.balanceKHR = (targetUser.balanceKHR || 0) + cashAmount;
+          actualReceiverAcc = targetUser.accountNumberKHR;
+        } else {
+          targetUser.balance = (targetUser.balance || 0) + cashAmount;
+          actualReceiverAcc = targetUser.accountNumber;
+        }
       }
     }
 
-    // ---------------------------------------------------
-    // 🔥 ៣. កត់ត្រាប្រវត្តិ Transaction
-    // ---------------------------------------------------
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
+
     const refId = "DEP-" + Math.floor(100000 + Math.random() * 900000);
     const trxHash =
       "HSH" + Math.random().toString(16).substring(2, 9).toUpperCase();
 
-    // កត់ត្រាអោយអតិថិជន (បង្ហាញលុយដែលប្តូររួច)
+    // ---------------------------------------------------
+    // 🔥 ៣. កត់ត្រាប្រវត្តិ Transaction
+    // ---------------------------------------------------
     const targetTrx = {
       username: targetUser.username,
       refId,
       hash: trxHash,
       date: dateStr,
       type: "Cash Deposit",
-      amount: finalReceiveAmount,
-      currency: destCurrency,
+      amount: cashAmount,
+      currency: currency,
       fee: 0,
       senderName: "Cash Deposit",
       senderAcc: "CASH-DESK",
@@ -1901,50 +1868,47 @@ const processCashierTransaction = async (req, res) => {
       receiverAcc: actualReceiverAcc,
       remark: remark,
       status: "Success",
-      trxMethod: "U-PAY Cashier",
+      trxMethod: "U-PAY System",
       depositorName:
         depositorType === "self"
           ? targetUser.fullName || targetUser.username
           : depUser.fullName || depUser.username,
       depositorAcc:
         depositorType === "self"
-          ? isInputKHR
+          ? isKHR
             ? targetUser.accountNumberKHR
             : targetUser.accountNumber
-          : isInputKHR
+          : isKHR
             ? depUser.accountNumberKHR
             : depUser.accountNumber,
     };
 
-    // កត់ត្រាអោយ Central Bank (បង្ហាញលុយដើមដែលវាយបញ្ចូល)
     const bankTrx = {
       ...targetTrx,
       username: centralBank.username,
       amount: -cashAmount,
-      currency: currency,
       type: "Fund Disbursement",
     };
 
     await Transaction.create(bankTrx);
 
+    // 🔥 បើជាគណនីរួម ត្រូវកត់ត្រាអោយគ្រប់សមាជិក (Owner + Partner)
     if (isJointAccount && jointMembersList.length > 0) {
       for (let memberUsername of jointMembersList) {
         await Transaction.create({ ...targetTrx, username: memberUsername });
       }
     } else {
+      // គណនីធម្មតា
       await Transaction.create(targetTrx);
     }
 
     // ---------------------------------------------------
     // 🔥 ៤. លោត Notification ជូនដំណឹងដល់អតិថិជន
     // ---------------------------------------------------
-    const finalSign = destCurrency === "USD" ? "$" : "៛";
-    const formattedAmount = finalReceiveAmount.toLocaleString("en-US", {
-      minimumFractionDigits: destCurrency === "USD" ? 2 : 0,
-    });
-    const notifMessage = `+${finalSign}${formattedAmount} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នក។ ចំណាំ៖ ${remark}`;
+    const notifMessage = `+${sign}${cashAmount.toLocaleString("en-US")} ត្រូវបានបញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នក។ ចំណាំ៖ ${remark}`;
 
     if (isJointAccount && jointMembersList.length > 0) {
+      // លោតសារអោយសមាជិកគណនីរួមទាំងអស់
       const User = require("../models/User");
       for (let memberUsername of jointMembersList) {
         if (memberUsername !== targetUser.username) {
@@ -1964,6 +1928,7 @@ const processCashierTransaction = async (req, res) => {
       }
     }
 
+    // លោតសារអោយអ្នកទទួលគោល (targetUser)
     if (!targetUser.notifications) targetUser.notifications = [];
     targetUser.notifications.unshift({
       id: "NOTIF-" + Date.now(),
@@ -1975,12 +1940,13 @@ const processCashierTransaction = async (req, res) => {
     targetUser.markModified("notifications");
     await targetUser.save();
 
+    // លោតសារអោយអ្នកដាក់លុយជំនួស (តំណាង)
     if (depositorType === "other" && depUser) {
       if (!depUser.notifications) depUser.notifications = [];
       depUser.notifications.unshift({
         id: "NOTIF-" + Date.now(),
         title: "ប្រតិបត្តិការតំណាងជោគជ័យ",
-        message: `អ្នកបានដាក់ប្រាក់ជូនទៅកាន់គណនី ${targetUser.fullName} ដោយជោគជ័យ។`,
+        message: `អ្នកបានដាក់ប្រាក់ចំនួន ${sign}${cashAmount.toLocaleString("en-US")} ជូនទៅកាន់គណនី ${targetUser.fullName} ដោយជោគជ័យ។`,
         date: dateStr,
         isRead: false,
       });
@@ -1989,17 +1955,13 @@ const processCashierTransaction = async (req, res) => {
     }
 
     await centralBank.save();
-
-    // បោះសារប្រាប់ទៅ Frontend ពីចំនួនលុយពិតប្រាកដដែលអតិថិជនទទួលបាន
-    res.json({
-      success: true,
-      message: `ប្រតិបត្តិការជោគជ័យ! អតិថិជនទទួលបាន ${finalSign}${formattedAmount}`,
-    });
+    res.json({ success: true, message: "ប្រតិបត្តិការដាក់ប្រាក់ជោគជ័យ!" });
   } catch (err) {
     console.error("PROCESS CASHIER ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 // =======================================================
 // 🛡️ CUSTOMER 360° VIEW APIs (ជួសជុលជួប KYC និង Transactions)
 // =======================================================

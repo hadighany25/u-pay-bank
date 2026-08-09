@@ -1,19 +1,21 @@
 // ========================================================================
-// 👥 USER MANAGEMENT LOGIC (NO LIMITS & INSTANT RENDER)
+// 👥 ផ្នែកទី ១៖ ការគ្រប់គ្រងអ្នកប្រើប្រាស់ (USER MANAGEMENT LOGIC)
 // ========================================================================
 
-// =======================================================
-// ១. មុខងារគូរតារាង (UI ត្រង់ជួរស្អាត និងនៅកណ្តាល)
-// =======================================================
+// ------------------------------------------------------------------------
+// 📌 ១.១ មុខងារគូរតារាងបង្ហាញទិន្នន័យអ្នកប្រើប្រាស់ (Render Table)
+// ------------------------------------------------------------------------
 function renderUsersTable(users) {
   const tbody = document.querySelector("#userTable tbody");
 
+  // បើគ្មានទិន្នន័យ បង្ហាញសារទទេ
   if (!users || users.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">មិនមានទិន្នន័យទេ</td></tr>';
     return;
   }
 
+  // ឆែកមើលសិទ្ធិរបស់ Admin (Dynamic Permissions)
   const canEdit =
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.editUser);
@@ -27,16 +29,17 @@ function renderUsersTable(users) {
     adminRole === "super_admin" ||
     (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
 
+  // គូរតារាងជួរនីមួយៗ
   const rowsHtml = users
     .map((u) => {
       const uid = u._id || u.id;
       const isCentralBank = u.accountNumber === "888888888";
 
-      // 🔥 រៀបចំ HTML ដោយប្រើ Flexbox និងកំណត់កម្ពស់ (Height) ឱ្យស្មើគ្នាដើម្បីឱ្យវាត្រង់ជួរ
+      // រៀបចំ HTML គណនី និង សមតុល្យ
       let accountsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
       let balanceHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
 
-      // 1. គណនី Main USD
+      // គណនី Main USD
       accountsHtml += `
         <div class="acc-badge usd" style="height: 28px; display: flex; align-items: center;" title="Main USD">
             <span>$</span> ${u.accountNumber || "N/A"}
@@ -46,7 +49,7 @@ function renderUsersTable(users) {
             $${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
         </div>`;
 
-      // 2. គណនី Main KHR
+      // គណនី Main KHR
       if (u.accountNumberKHR) {
         accountsHtml += `
             <div class="acc-badge khr" style="height: 28px; display: flex; align-items: center;" title="Main KHR">
@@ -58,7 +61,7 @@ function renderUsersTable(users) {
             </div>`;
       }
 
-      // 3. គណនី Sub-accounts បន្ថែមពីក្រោម (បើមាន)
+      // គណនី Sub-accounts (បើមាន)
       if (u.subAccounts && u.subAccounts.length > 0) {
         u.subAccounts.forEach((sub) => {
           const sym = sub.currency === "USD" ? "$" : "៛";
@@ -86,6 +89,7 @@ function renderUsersTable(users) {
       accountsHtml += `</div>`;
       balanceHtml += `</div>`;
 
+      // ប៊ូតុងសកម្មភាព (Actions)
       let actionButtonsHtml = "";
       if (isCentralBank) {
         if (canEdit)
@@ -101,24 +105,20 @@ function renderUsersTable(users) {
           actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
       }
 
-      // 🔥 ត្រូវថែមកូដ ២ នេះចូលវិញ មុននឹង Return ព្រោះបើអត់វា កូដនឹងគាំងលែងបង្ហាញតារាង
+      // ស្ថានភាពគណនី (Freeze Status)
       const freezeHtml = isCentralBank
-        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb;">System Bank</span>`
+        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb; padding: 4px 8px; border-radius: 6px;">System Bank</span>`
         : canFreeze
           ? `<label class="switch" style="margin: 0 auto;"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
           : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
 
       const bgStyle = isCentralBank ? "background-color: #fef9c3;" : "";
-
-      // ទាញរូបពី Database (u.profileImage) មុនគេ។
-      // បើអត់មានរូប (null/empty) វាលោតមកយក /images/logo.png
       const imgSrc = u.profileImage || "/images/logo.png";
 
       return `
       <tr style="${bgStyle}">
         <td style="vertical-align: middle;">
             <div style="display: flex; align-items: center; gap: 10px">
-                <!-- កែ Path នៅកន្លែង onerror ដូចគ្នា។ បើ Link រូបក្នុង Database ខូច វាលោតមកយក /images/logo.png វិញ -->
                 <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='/images/logo.png'" />
                 <div>
                     <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
@@ -130,7 +130,7 @@ function renderUsersTable(users) {
         <td style="vertical-align: middle;">${balanceHtml}</td>
         <td style="vertical-align: middle; text-align: center;">${freezeHtml}</td>
         <td style="vertical-align: middle; text-align: center;">
-            <div style="display: flex; gap: 8px; justify-content: center;">${actionButtonsHtml}</div>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div>
         </td>
       </tr>`;
     })
@@ -139,9 +139,9 @@ function renderUsersTable(users) {
   tbody.innerHTML = rowsHtml;
 }
 
-// =======================================================
-// ២. មុខងារស្វែងរក (Instant Search គ្មានការរង់ចាំ)
-// =======================================================
+// ------------------------------------------------------------------------
+// 📌 ១.២ មុខងារស្វែងរកអ្នកប្រើប្រាស់ (Instant Search)
+// ------------------------------------------------------------------------
 function filterUsers() {
   const term = document.getElementById("searchBox").value.toLowerCase().trim();
 
@@ -175,9 +175,9 @@ function filterUsers() {
   renderUsersTable(filteredData);
 }
 
-// =======================================================
-// ៣. មុខងារបង្រួមរូបភាព (Image Compression) ដើម្បីសង្គ្រោះ Database
-// =======================================================
+// ------------------------------------------------------------------------
+// 📌 ១.៣ មុខងារបង្រួមរូបភាព និង កែប្រែគណនី (Image Compress & Edit)
+// ------------------------------------------------------------------------
 function compressImageAndPreview(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -208,15 +208,13 @@ function compressImageAndPreview(file) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
-        resolve(compressedBase64);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
     };
   });
 }
 
-async function handleProfileImageUpload(event) {
+window.handleProfileImageUpload = async function (event) {
   const file = event.target.files[0];
   if (!file) return;
 
@@ -230,12 +228,9 @@ async function handleProfileImageUpload(event) {
   document.getElementById("e-preview").src = smallBase64;
   document.getElementById("editProfileImg").value = smallBase64;
   Swal.close();
-}
+};
 
-// =======================================================
-// ៤. មុខងារលម្អិត (កែប្រែ, បញ្ចូលប្រាក់, ផ្អាក, លុប)
-// =======================================================
-function openEditModal(id) {
+window.openEditModal = function (id) {
   const u = globalUsersData.find(
     (user) => (user._id || user.id) === id || user.username === id,
   );
@@ -259,15 +254,15 @@ function openEditModal(id) {
   document
     .getElementById("editUserModal")
     .style.setProperty("display", "flex", "important");
-}
+};
 
-function closeModal(modalId) {
+window.closeModal = function (modalId) {
   document
     .getElementById(modalId)
     .style.setProperty("display", "none", "important");
-}
+};
 
-async function saveUserEdit() {
+window.saveUserEdit = async function () {
   const id = document.getElementById("editUserId").value;
   const imgInputVal = document.getElementById("editProfileImg").value;
 
@@ -309,10 +304,12 @@ async function saveUserEdit() {
   } catch (error) {
     Swal.fire("Error", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
   }
-}
+};
 
-// មុខងារដាក់ដកប្រាក់
-function openAdjustBalance(username, type) {
+// ------------------------------------------------------------------------
+// 📌 ១.៤ មុខងារបន្ថែម ឬ ដកប្រាក់ពីតារាងផ្ទាល់ (Adjust Balance)
+// ------------------------------------------------------------------------
+window.openAdjustBalance = function (username, type) {
   const isAdd = type === "add";
   const title = isAdd
     ? "ដាក់ប្រាក់ (Cash Deposit)"
@@ -323,45 +320,68 @@ function openAdjustBalance(username, type) {
   const user = globalUsersData.find((u) => u.username === username);
   if (!user) return;
 
-  let optionsHtml = `<option value="MAIN_USD" data-cur="USD">គណនី Main USD ($) - ${user.accountNumber}</option>`;
+  let optionsHtml = `<option value="MAIN_USD" data-curr="USD">គណនី Main USD ($) - ${user.accountNumber}</option>`;
   if (user.accountNumberKHR) {
-    optionsHtml += `<option value="MAIN_KHR" data-cur="KHR">គណនី Main KHR (៛) - ${user.accountNumberKHR}</option>`;
+    optionsHtml += `<option value="MAIN_KHR" data-curr="KHR">គណនី Main KHR (៛) - ${user.accountNumberKHR}</option>`;
   }
   if (user.subAccounts && user.subAccounts.length > 0) {
     user.subAccounts.forEach((sub) => {
       const sym = sub.currency === "USD" ? "$" : "៛";
-      optionsHtml += `<option value="${sub.accountNumber}" data-cur="${sub.currency}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
+      optionsHtml += `<option value="${sub.accountNumber}" data-curr="${sub.currency}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
     });
   }
 
   const formHtml = `
     <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
-        <div style="background: #f8fafc; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-user-circle" style="color: #94a3b8; font-size: 1.5rem;"></i>
+        <div style="background: var(--bg-body); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-user-circle" style="color: var(--text-muted); font-size: 1.5rem;"></i>
             <div>
-                <div style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">សម្រាប់អតិថិជន</div>
-                <div style="color: #0f172a; font-size: 1.05rem; font-weight: bold;">@${username}</div>
+                <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">សម្រាប់អតិថិជន</div>
+                <div style="color: var(--text-main); font-size: 1.05rem; font-weight: bold;">@${username}</div>
             </div>
         </div>
+        
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ប្រភេទគណនី (Target Account)</label>
-            <select id="adjTargetAccount" class="custom-swal-input">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ប្រភេទគណនី (Target Account)</label>
+            <select id="adjTargetAccount" class="custom-swal-input" onchange="previewUserTableExchange()">
                 ${optionsHtml}
             </select>
         </div>
+
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំនួនទឹកប្រាក់ (Amount)</label>
-            <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ប្រភេទប្រាក់ដែល Admin កាន់ (Input Currency)</label>
+            <select id="adjCurrency" class="custom-swal-input" onchange="previewUserTableExchange()">
+                <option value="USD">ប្រាក់ដុល្លារ (USD)</option>
+                <option value="KHR">ប្រាក់រៀល (KHR)</option>
+            </select>
         </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ចំនួនទឹកប្រាក់ (Amount)</label>
+            <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000" oninput="previewUserTableExchange()">
+        </div>
+
+        <!-- 🔥 ប្រអប់បង្ហាញការដូរលុយអូតូ (Preview) -->
+        <div id="userTableExchangePreviewBox" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; animation: fadeIn 0.3s ease;">
+            <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #10b981; display: flex; justify-content: space-between;">
+                <span>Exchange Rate:</span>
+                <span id="userTableFxRateDisplay" style="font-weight: 600;">...</span>
+            </p>
+            <p style="margin: 0; font-size: 0.85rem; color: #10b981; display: flex; justify-content: space-between; font-weight: bold; align-items: center;">
+                <span>Receiver Gets:</span>
+                <span id="userTableExchangeResult" style="font-size: 1.15rem; font-weight: 800;">...</span>
+            </p>
+        </div>
+
         <div style="margin-bottom: 5px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ចំណាំ (Remark)</label>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ចំណាំ (Remark)</label>
             <input id="adjRemark" type="text" class="custom-swal-input" placeholder="បញ្ជាក់មូលហេតុ... (ជម្រើស)">
         </div>
         <style>
             .custom-swal-input {
                 width: 100%; box-sizing: border-box; height: 45px; padding: 0 15px;
-                font-size: 0.95rem; border: 1px solid #cbd5e1; border-radius: 8px;
-                color: #1e293b; transition: all 0.2s ease-in-out; font-family: inherit;
+                font-size: 0.95rem; border: 1px solid var(--border); border-radius: 8px;
+                color: var(--text-main); background: var(--bg-body); transition: all 0.2s ease-in-out; font-family: inherit;
             }
             .custom-swal-input:focus { border-color: ${confirmBtnColor}; box-shadow: 0 0 0 3px ${confirmBtnColor}20; outline: none; }
         </style>
@@ -369,18 +389,19 @@ function openAdjustBalance(username, type) {
   `;
 
   Swal.fire({
-    title: `<div style="color: #1e293b; font-size: 1.4rem;"><i class="fa-solid fa-${icon}" style="color: ${confirmBtnColor}; margin-right: 8px;"></i> ${title}</div>`,
+    title: `<div style="color: var(--text-main); font-size: 1.4rem;"><i class="fa-solid fa-${icon}" style="color: ${confirmBtnColor}; margin-right: 8px;"></i> ${title}</div>`,
     html: formHtml,
     showCancelButton: true,
     confirmButtonColor: confirmBtnColor,
     cancelButtonColor: "#64748b",
     confirmButtonText: "បញ្ជាក់ (Confirm)",
     cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal" },
     preConfirm: () => {
-      const select = document.getElementById("adjTargetAccount");
-      const targetAccount = select.value;
-      const currency =
-        select.options[select.selectedIndex].getAttribute("data-cur");
+      const selectAcc = document.getElementById("adjTargetAccount");
+      const targetAccount = selectAcc.value;
+      const selectCur = document.getElementById("adjCurrency");
+      const currency = selectCur.value;
       const amount = document.getElementById("adjAmount").value;
       const remark = document.getElementById("adjRemark").value.trim();
 
@@ -395,6 +416,7 @@ function openAdjustBalance(username, type) {
         title: "កំពុងដំណើរការ...",
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
+        customClass: { popup: "premium-swal" },
       });
       try {
         const res = await fetch("/api/admin/adjust-balance", {
@@ -411,28 +433,79 @@ function openAdjustBalance(username, type) {
         });
         const data = await res.json();
         if (data.success) {
-          Swal.fire(
-            "ជោគជ័យ!",
-            data.message || "ប្រតិបត្តិការជោគជ័យ",
-            "success",
-          );
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ!",
+            text: data.message || "ប្រតិបត្តិការជោគជ័យ",
+            customClass: { popup: "premium-swal" },
+          });
           if (typeof loadData === "function") loadData();
-        } else {
-          Swal.fire("បរាជ័យ", data.message, "error");
-        }
+        } else
+          Swal.fire({
+            icon: "error",
+            title: "បរាជ័យ",
+            text: data.message,
+            customClass: { popup: "premium-swal" },
+          });
       } catch (error) {
-        Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "មានបញ្ហាភ្ជាប់ទៅកាន់ Server",
+          customClass: { popup: "premium-swal" },
+        });
       }
     }
   });
-}
+};
 
-// 🔥 មុខងារលុបដែលបានកែប្រែថ្មី (មានជម្រើសលុបគណនីរង ឬអាខោនទាំងមូល និងទាមទារមូលហេតុ)
-function deleteUser(id) {
+// 🔥 មុខងារគណនាបង្ហាញលុយមុន សម្រាប់ Modal (ទាញអត្រាប្តូរប្រាក់អូតូពី Database)
+window.previewUserTableExchange = function () {
+  const targetSelect = document.getElementById("adjTargetAccount");
+  if (!targetSelect) return;
+
+  const targetCurrency =
+    targetSelect.options[targetSelect.selectedIndex].getAttribute("data-curr");
+  const inputCurrency = document.getElementById("adjCurrency").value;
+  const amountInput = document.getElementById("adjAmount");
+  const amount = parseFloat(amountInput.value) || 0;
+
+  const previewBox = document.getElementById("userTableExchangePreviewBox");
+  const rateDisplay = document.getElementById("userTableFxRateDisplay");
+  const resultText = document.getElementById("userTableExchangeResult");
+
+  // ទាញអត្រាប្តូរប្រាក់ពីអថេរសកល (ដែលបាន Update ដោយ fetchFXRates)
+  const rateBuy = window.currentFXRates
+    ? window.currentFXRates.usdToKhrBuy || 4050
+    : 4050;
+  const rateSell = window.currentFXRates
+    ? window.currentFXRates.usdToKhrSell || 4100
+    : 4100;
+
+  if (amount > 0 && targetCurrency !== inputCurrency) {
+    previewBox.style.display = "block";
+
+    if (inputCurrency === "USD" && targetCurrency === "KHR") {
+      const khrAmt = Math.round(amount * rateBuy);
+      rateDisplay.innerText = `$1 = ${rateBuy.toLocaleString("en-US")} ៛`;
+      resultText.innerText = `${khrAmt.toLocaleString("en-US")} ៛`;
+    } else if (inputCurrency === "KHR" && targetCurrency === "USD") {
+      const usdAmt = (amount / rateSell).toFixed(2);
+      rateDisplay.innerText = `$1 = ${rateSell.toLocaleString("en-US")} ៛`;
+      resultText.innerText = `$${usdAmt}`;
+    }
+  } else {
+    previewBox.style.display = "none";
+  }
+};
+
+// ------------------------------------------------------------------------
+// 📌 ១.៦ មុខងារលុប និង ផ្អាកគណនីអតិថិជន
+// ------------------------------------------------------------------------
+window.deleteUser = function (id) {
   const user = globalUsersData.find((u) => (u._id || u.id) === id);
   if (!user) return;
 
-  // រៀបចំ Dropdown Option
   let optionsHtml = `<option value="ALL">លុបគណនីអ្នកប្រើប្រាស់ទាំងមូល (Delete Entire User)</option>`;
   if (user.subAccounts && user.subAccounts.length > 0) {
     user.subAccounts.forEach((sub) => {
@@ -443,14 +516,14 @@ function deleteUser(id) {
   const formHtml = `
     <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
         <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">ជ្រើសរើសទិន្នន័យដែលត្រូវលុប</label>
-            <select id="delTarget" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ជ្រើសរើសទិន្នន័យដែលត្រូវលុប</label>
+            <select id="delTarget" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 8px; font-family: inherit;">
                 ${optionsHtml}
             </select>
         </div>
         <div style="margin-bottom: 5px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">មូលហេតុ (Reason - ចាំបាច់)</label>
-            <input id="delReason" type="text" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit;" placeholder="បញ្ជាក់មូលហេតុនៃការលុប...">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">មូលហេតុ (Reason - ចាំបាច់)</label>
+            <input id="delReason" type="text" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 8px; font-family: inherit;" placeholder="បញ្ជាក់មូលហេតុនៃការលុប...">
         </div>
     </div>
   `;
@@ -463,6 +536,7 @@ function deleteUser(id) {
     cancelButtonColor: "#64748b",
     confirmButtonText: "បាទ/ចាស, លុប!",
     cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal" },
     preConfirm: () => {
       const targetAccount = document.getElementById("delTarget").value;
       const reason = document.getElementById("delReason").value.trim();
@@ -497,19 +571,19 @@ function deleteUser(id) {
             title: "បានលុបជោគជ័យ",
             showConfirmButton: false,
             timer: 1500,
+            customClass: { popup: "premium-swal" },
           });
           if (typeof loadData === "function") loadData();
-        } else {
+        } else
           Swal.fire("Error", data.message || "មិនអាចលុបទិន្នន័យបានទេ", "error");
-        }
       } catch (e) {
         Swal.fire("Error", "បញ្ហាការតភ្ជាប់", "error");
       }
     }
   });
-}
+};
 
-async function toggleFreeze(id, isFrozen) {
+window.toggleFreeze = async function (id, isFrozen) {
   try {
     const res = await fetch("/api/admin/toggle-freeze", {
       method: "POST",
@@ -517,10 +591,8 @@ async function toggleFreeze(id, isFrozen) {
       body: JSON.stringify({ id, isFrozen }),
     });
 
-    // បន្ថែមការឆែក Status ត្រង់នេះ
-    if (!res.ok) {
+    if (!res.ok)
       throw new Error(`Serverឆ្លើយតបខុសប្រក្រតី (Status: ${res.status})`);
-    }
 
     const data = await res.json();
     if (data.success) {
@@ -531,17 +603,27 @@ async function toggleFreeze(id, isFrozen) {
         title: isFrozen ? "គណនីត្រូវបានផ្អាក" : "គណនីបានដោះសោរ",
         showConfirmButton: false,
         timer: 1500,
+        customClass: { popup: "premium-swal" },
       });
       const user = globalUsersData.find((u) => (u._id || u.id) === id);
       if (user) user.isFrozen = isFrozen;
     } else {
-      Swal.fire("បរាជ័យ", data.message || "មិនអាចប្តូរស្ថានភាពបានទេ", "error");
+      Swal.fire({
+        icon: "error",
+        title: "បរាជ័យ",
+        text: data.message || "មិនអាចប្តូរស្ថានភាពបានទេ",
+        customClass: { popup: "premium-swal" },
+      });
       if (typeof loadData === "function") loadData();
     }
   } catch (e) {
-    // កែត្រង់នេះដើម្បីមើល Error ពិតប្រាកដក្នុង Console
     console.error("TOGGLE FREEZE FRONTEND ERROR:", e);
-    Swal.fire("Error", "បញ្ហាតភ្ជាប់: " + e.message, "error");
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "បញ្ហាតភ្ជាប់: " + e.message,
+      customClass: { popup: "premium-swal" },
+    });
     if (typeof loadData === "function") loadData();
   }
-}
+};

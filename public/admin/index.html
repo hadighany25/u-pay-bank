@@ -23,8 +23,35 @@
       rel="stylesheet"
     />
 
-    <!-- CSS គោលរបស់អ្នក -->
+    <!-- CSS គោលរបស់អ្នក (រក្សាទុកដដែល) -->
     <link rel="stylesheet" href="css/admin-style.css" />
+
+    <!-- 🔥 ថែម CSS សម្រាប់ប្រអប់ Preview Cashier ដូរលុយ (Support Dark Mode) -->
+    <style>
+      /* ពណ៌ធម្មតា (Light Mode) */
+      .cashier-preview-box {
+        display: none;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 12px 15px;
+        border-radius: 12px;
+        margin-top: 15px;
+        text-align: left;
+        animation: fadeIn 0.3s ease;
+      }
+      .cashier-preview-text {
+        color: #059669; /* ពណ៌បៃតងដិតបន្តិច */
+      }
+
+      /* ពណ៌ងងឹត (Dark Mode) */
+      body.dark-mode .cashier-preview-box {
+        background: rgba(16, 185, 129, 0.05);
+        border-color: rgba(16, 185, 129, 0.2);
+      }
+      body.dark-mode .cashier-preview-text {
+        color: var(--secondary); /* ពណ៌បៃតងភ្លឺរបស់ប្រព័ន្ធ */
+      }
+    </style>
   </head>
   <body>
     <!-- ស្រមោលពណ៌ខ្មៅ សម្រាប់បិទ Sidebar លើទូរស័ព្ទដៃ -->
@@ -831,7 +858,6 @@
           padding: 20px 15px;
         "
       >
-        <!-- 🔥 បន្ថែម style ទីនេះដើម្បីពង្រីកកាតអោយធំ (max-width: 900px) និងនៅកណ្តាល -->
         <div
           class="cashier-container"
           style="
@@ -862,7 +888,6 @@
               >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
             >
             <div style="display: flex; gap: 10px">
-              <!-- 🔥 បន្ថែម onkeypress សម្រាប់ចុច Enter -->
               <input
                 type="text"
                 id="targetUserSearch"
@@ -870,7 +895,6 @@
                 placeholder="ឧ. dara123 ឬ 012345678"
                 onkeypress="if (event.key === 'Enter') searchTargetUser();"
               />
-              <!-- 🔥 បន្ថែម flex ដើម្បីអោយអក្សរនៅកណ្តាលប៊ូតុង -->
               <button
                 class="btn-primary"
                 style="
@@ -935,17 +959,18 @@
 
           <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
           <div id="transactionForm" style="display: none">
-            <!-- 🔥 ថែម Dropdown ជ្រើសរើសគណនី (កុង Main ឬ Sub) នៅទីនេះ -->
             <div class="input-group" style="margin-bottom: 20px">
               <label
                 class="input-label"
                 style="font-weight: bold; color: #0369a1"
                 >ជ្រើសរើសគណនីទទួលប្រាក់ <span style="color: red">*</span></label
               >
+              <!-- 🔥 ថែម onchange ហៅមុខងារ preview ពេលដូរកុង -->
               <select
                 id="targetAccountSelect"
                 class="custom-input"
                 style="border-color: #7dd3fc; background-color: #f0f9ff"
+                onchange="previewCashierExchange()"
               >
                 <option value="">-- សូមស្វែងរកអ្នកទទួលសិន --</option>
               </select>
@@ -999,20 +1024,68 @@
             <div style="display: flex; gap: 15px; margin-bottom: 20px">
               <div class="input-group" style="width: 40%">
                 <label class="input-label">រូបិយប័ណ្ណ (Currency)</label>
-                <select id="cashCurrency" class="custom-input">
+                <!-- 🔥 ថែម onchange ហៅមុខងារ preview ពេលដូរលុយ -->
+                <select
+                  id="cashCurrency"
+                  class="custom-input"
+                  onchange="previewCashierExchange()"
+                >
                   <option value="USD">ដុល្លារ (USD)</option>
                   <option value="KHR">រៀល (KHR)</option>
                 </select>
               </div>
               <div class="input-group" style="width: 60%">
                 <label class="input-label">ចំនួនទឹកប្រាក់</label>
+                <!-- 🔥 ថែម oninput ហៅមុខងារ preview ពេលវាយលេខ -->
                 <input
                   type="number"
                   id="cashAmount"
                   class="custom-input"
                   placeholder="ឧ. 100.00"
+                  oninput="previewCashierExchange()"
                 />
               </div>
+            </div>
+
+            <!-- 🔥 កន្លែងត្រូវបន្ថែម UI Preview Exchange Rate នៅទីនេះ (ប្រអប់ពណ៌បៃតង) -->
+            <!-- កូដ UI នឹងត្រូវបិទបើកដោយស្វ័យប្រវត្តិតាមរយៈ Javascript -->
+            <div
+              id="cashierExchangePreview"
+              class="cashier-preview-box"
+              style="margin-bottom: 20px"
+            >
+              <p
+                style="
+                  margin: 0 0 5px 0;
+                  font-size: 0.85rem;
+                  display: flex;
+                  justify-content: space-between;
+                "
+                class="cashier-preview-text"
+              >
+                <span>អត្រាប្តូរប្រាក់ (Exchange Rate):</span>
+                <span id="cashierFxRateDisplay" style="font-weight: 600"
+                  >...</span
+                >
+              </p>
+              <p
+                style="
+                  margin: 0;
+                  font-size: 0.85rem;
+                  display: flex;
+                  justify-content: space-between;
+                  font-weight: bold;
+                  align-items: center;
+                "
+                class="cashier-preview-text"
+              >
+                <span>អតិថិជនទទួលបាន (Receiver Gets):</span>
+                <span
+                  id="cashierExchangeResult"
+                  style="font-size: 1.15rem; font-weight: 800"
+                  >...</span
+                >
+              </p>
             </div>
 
             <div class="input-group" style="margin-bottom: 25px">
@@ -1025,7 +1098,6 @@
               />
             </div>
 
-            <!-- 🔥 បន្ថែម flex ដើម្បីអោយអក្សរនៅកណ្តាលប៊ូតុង -->
             <button
               class="btn-primary btn-success"
               style="

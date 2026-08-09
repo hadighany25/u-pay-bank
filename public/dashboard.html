@@ -1150,6 +1150,18 @@
             >Manage Kids</span
           >
         </button>
+
+        <!-- ទូទាត់ស្វ័យប្រវត្តិ (Auto Payout / Payroll) - លាក់សម្រាប់ក្មេង -->
+        <button
+          class="menu-item adult-feature"
+          id="m14"
+          onclick="window.location.href = 'payroll.html'"
+        >
+          <div class="icon-box" style="background: #f3e8ff; color: #7e22ce">
+            <i class="fa-solid fa-money-bill-transfer"></i>
+          </div>
+          <span class="menu-text" data-i18n="btn_auto_payout">Auto Payout</span>
+        </button>
       </div>
 
       <div
@@ -1368,6 +1380,147 @@
         updateUI(user);
         loadDashboardData(false);
       });
+
+      // ==========================================
+      // 🎁 មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code) - Premium UI
+      // ==========================================
+      async function claimPromoPopup() {
+        const { value: code, isConfirmed } = await Swal.fire({
+          title: "🎁 បញ្ចូលកូដប្រូម៉ូសិន",
+          html: `<p style="color:#64748b; font-size:0.9rem; margin-top:0;">សូមវាយបញ្ចូលកូដប្រូម៉ូសិនរបស់អ្នកនៅទីនេះ ដើម្បីទទួលបានរង្វាន់!</p>`,
+          input: "text",
+          inputPlaceholder: "ឧទាហរណ៍៖ UPAY2026",
+          inputAttributes: {
+            // រចនា Input អោយចំកណ្តាល អក្សរធំដិត និងមានគម្លាត
+            style:
+              "text-align: center; text-transform: uppercase; font-weight: 900; font-size: 1.6rem; letter-spacing: 3px; color: #0f172a; background: #f8fafc; border: 2px dashed #10b981; border-radius: 15px;",
+            maxlength: 15,
+            autocapitalize: "off",
+            autocomplete: "off",
+          },
+          showCancelButton: true,
+          confirmButtonText:
+            "<i class='fa-solid fa-gift'></i> ទទួលយកលុយរង្វាន់",
+          cancelButtonText: "បោះបង់",
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#f1f5f9",
+          customClass: { popup: "premium-swal" },
+          didOpen: () => {
+            const input = Swal.getInput();
+            // បង្ខំអោយអក្សរដែលវាយក្លាយជាអក្សរធំ (Uppercase) ភ្លាមៗ
+            input.addEventListener("input", function () {
+              this.value = this.value.toUpperCase();
+            });
+            input.focus();
+
+            // កែពណ៌ប៊ូតុង Cancel អោយស្អាត
+            const cancelBtn = Swal.getCancelButton();
+            cancelBtn.style.color = "#475569";
+            cancelBtn.style.fontWeight = "bold";
+          },
+        });
+
+        // ដំណើរការពេលអតិថិជនវាយកូដរួច ហើយចុចយល់ព្រម
+        if (isConfirmed && code) {
+          Swal.fire({
+            title: "កំពុងត្រួតពិនិត្យ...",
+            text: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទៀងផ្ទាត់កូដរបស់អ្នក",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+            customClass: { popup: "premium-swal" },
+          });
+
+          try {
+            const res = await fetch("/api/reward/promo", {
+              method: "POST",
+              headers: authHeaders,
+              body: JSON.stringify({
+                username: user.username,
+                code: code.toUpperCase(), // ធានាថាវាជាអក្សរធំបញ្ជូនទៅ Server
+              }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              // លោតលុយថ្មីចូល App ភ្លាមៗ
+              user.balance = data.newBalance;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              updateUI(user);
+
+              // 🎶 ចាក់សម្លេងអបអរ
+              new Audio(
+                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+              )
+                .play()
+                .catch(() => {});
+
+              // 🎊 បាញ់ក្រដាសអបអរសាទរ (Confetti Animation)
+              if (typeof confetti === "function") {
+                const duration = 3 * 1000;
+                const end = Date.now() + duration;
+
+                (function frame() {
+                  confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ["#10b981", "#f59e0b", "#3b82f6", "#db2777"],
+                  });
+                  confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ["#10b981", "#f59e0b", "#3b82f6", "#db2777"],
+                  });
+
+                  if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                  }
+                })();
+              }
+
+              // 🎯 ទាញយកតែតួលេខលុយពីសាររបស់ Backend មកបង្ហាញអោយធំៗ
+              const rewardAmountMatch = data.message.match(/\$[\d.]+/);
+              const rewardAmtStr = rewardAmountMatch
+                ? rewardAmountMatch[0]
+                : "រង្វាន់ធំ";
+
+              // 🌟 បង្ហាញ UI ជោគជ័យយ៉ាងស្រស់ស្អាត
+              Swal.fire({
+                html: `
+                  <div style="padding:10px; text-align:center;">
+                    <div style="width:80px; height:80px; background:#dcfce7; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
+                      <i class="fa-solid fa-check" style="font-size:3.5rem; color:#10b981;"></i>
+                    </div>
+                    <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 10px;">អបអរសាទរ! 🎉</h2>
+                    <p style="color:#64748b; font-size: 0.95rem; margin-bottom: 20px;">អ្នកបានប្រើប្រាស់កូដ <strong style="color:#004d40; background:#f1f5f9; padding:2px 8px; border-radius:6px;">${code.toUpperCase()}</strong> ដោយជោគជ័យ!</p>
+                    <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);">
+                      <span style="font-size: 0.9rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">ទឹកប្រាក់ទទួលបាន</span><br>
+                      <span style="font-size: 3.5rem; font-weight: 900; letter-spacing: -2px;">${rewardAmtStr}</span>
+                    </div>
+                  </div>
+                `,
+                confirmButtonText: "ឡូយកប់! 😎",
+                confirmButtonColor: "#004d40",
+                customClass: { popup: "premium-swal" },
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "សុំទោស!",
+                text: data.message,
+                confirmButtonColor: "#ef4444",
+                customClass: { popup: "premium-swal" },
+              });
+            }
+          } catch (e) {
+            console.error("Promo Error:", e);
+            Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
+          }
+        }
+      }
 
       // ==========================================
       // ១៣. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD)

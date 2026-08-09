@@ -5,15 +5,15 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 require("dotenv").config();
+require("./cron/payrollCron"); // 🔥 បើកដំណើរការរ៉ូបូតកាត់លុយស្វ័យប្រវត្តិ
 
-// ហៅកូដពី Folder ផ្សេងៗ
 const connectDB = require("./config/db");
-
-// ✅ Fixed: Combined the imports into a single destructuring assignment
 const { initSystem, initAdmins } = require("./services/systemService");
 const initCronJobs = require("./services/cronJobs");
 
-// ហៅ Routes ពី Folder routes
+// ==========================================
+// 📂 ហៅ Routes ទាំងអស់មកជួបគ្នានៅទីនេះ
+// ==========================================
 const authRoutes = require("./routes/authRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -24,17 +24,19 @@ const merchantRoutes = require("./routes/merchantRoutes");
 const ufundRoutes = require("./routes/ufundRoutes");
 const accountRoutes = require("./routes/accountRoutes");
 const b2bEscrowRoutes = require("./routes/b2bEscrowRouter");
+const payrollRouter = require("./routes/payrollRouter"); // 👈 ផ្លាស់ទីវាមកទីនេះ
 
 const PORT = process.env.PORT || 3000;
-
 const app = express();
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.static(path.join(__dirname, "../public"))); // ចង្អុលទៅ Folder public នៅខាងក្រៅ
+app.use(express.static(path.join(__dirname, "../public")));
 app.use(cors({ origin: "*" }));
-app.use("/api/merchants", merchantRoutes);
 
-// ភ្ជាប់ Database និងចាប់ផ្តើមប្រព័ន្ធ
+// ==========================================
+// 🗄️ ភ្ជាប់ Database និងចាប់ផ្តើមប្រព័ន្ធ
+// ==========================================
 connectDB()
   .then(() => {
     initSystem();
@@ -42,28 +44,23 @@ connectDB()
     initCronJobs();
   })
   .catch((error) => {
-    // ✅ Added a catch block to handle potential database connection failures
     console.error("❌ Database connection failed:", error);
   });
 
 // ==========================================
-// 🔥 រៀបចំ Socket.io
+// 🔌 រៀបចំ Socket.io
 // ==========================================
 const server = http.createServer(app);
-
-// ✅ រៀបចំ Socket ត្រឹមត្រូវ (ទុកតែមួយនេះគត់!)
 const io = new Server(server, {
   cors: {
-    origin: "*", // អនុញ្ញាតអោយ Frontend ភ្ជាប់មកបាន
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-// រក្សាទុក io ទៅក្នុង app ដើម្បីអាចយកទៅប្រើក្នុង Controller ផ្សេងៗបាន
 app.set("io", io);
 
 io.on("connection", (socket) => {
-  // ពេល App ទូរស័ព្ទ ឬ Web ភ្ជាប់មក វាត្រូវប្រាប់ថាខ្លួនវាជា User ណា
   socket.on("joinRoom", (username) => {
     socket.join(username);
     console.log(`User ${username} joined socket room.`);
@@ -71,8 +68,9 @@ io.on("connection", (socket) => {
 });
 
 // ==========================================
-// 🌐 ប្រើប្រាស់ Routes (ត្រូវដាក់មុនពេល Listen)
+// 🌐 ប្រើប្រាស់ Routes (Routing Registration)
 // ==========================================
+app.use("/api/merchants", merchantRoutes); // 👈 ផ្លាស់ទីវាមកទីនេះដើម្បីនៅផ្តុំគ្នា
 app.use("/api", authRoutes);
 app.use("/api", transactionRoutes);
 app.use("/api/admin", adminRoutes);
@@ -82,14 +80,16 @@ app.use("/api", communicationRoutes);
 app.use("/api/ufund", ufundRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
+app.use("/api/payroll", payrollRouter); // 👈 ដាក់វានៅទីនេះ
 
-// 🌟 ថែមកូដ ៥ បន្ទាត់នេះចូល (Route សម្រាប់ទាញយក PDF)
+// 🌟 Route សម្រាប់ទាញយក PDF
 const { streamOfficialReceiptPDF } = require("./services/pdfService");
 app.get("/api/receipt/:txId", async (req, res) => {
   const { txId } = req.params;
   await streamOfficialReceiptPDF(txId, res);
 });
 
+// Route សម្រាប់ទំព័រដើម
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/upay.html"));
 });

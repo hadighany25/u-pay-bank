@@ -969,7 +969,7 @@ const claimPromoCode = async (req, res) => {
       hour12: true,
     });
     const sharedHash = generateHash();
-    const sharedRefId = "PRM-" + Date.now().toString().slice(-6);
+    const sharedRefId = "PRM-" + Date.now().toString().slice(-10);
     const sharedRemark = `Claimed Promo Code: ${promo.code}`;
 
     const finalReceiverName = user.fullName || user.username;
@@ -988,7 +988,7 @@ const claimPromoCode = async (req, res) => {
         receiverName: finalReceiverName,
         remark: sharedRemark,
         status: "Success",
-        trxMethod: "API Endpoint",
+        trxMethod: "U-Pay Promo",
       },
       {
         username: centralBank.username,
@@ -1003,7 +1003,7 @@ const claimPromoCode = async (req, res) => {
         receiverName: finalReceiverName,
         remark: sharedRemark,
         status: "Success",
-        trxMethod: "API Endpoint",
+        trxMethod: "U-Pay Promo",
       },
     ]);
 

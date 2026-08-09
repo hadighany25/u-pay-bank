@@ -536,7 +536,6 @@ const ticketSound = new Audio(
 );
 
 async function checkAdminNotifications() {
-  if (!window.location.href.includes("admin.html")) return;
   try {
     const [chatRes, userRes] = await Promise.all([
       fetch("/api/chat/contacts", {
@@ -606,7 +605,9 @@ async function checkAdminNotifications() {
       previousOpenTickets = currentOpenTickets;
       isFirstLoadNotif = false;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Notif Error:", e);
+  }
 }
 
 function playCustomNotif(message, soundObj, iconColorHex) {
