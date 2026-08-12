@@ -105,8 +105,8 @@ const login = async (req, res) => {
     });
 
     if (user) {
-      if (user.isFrozen)
-        return res.json({ success: false, message: "Account Frozen!" });
+      // 🔥 បានលុបកូដ Block Account Frozen ចេញពីទីនេះហើយ
+      // ធ្វើឱ្យអតិថិជនអាច Login ចូលមើល Dashboard បានទោះគណនីត្រូវផ្អាកក៏ដោយ!
 
       user.isOnline = true;
       user.lastActive = new Date().toISOString();
@@ -410,7 +410,7 @@ const submitKyc = async (req, res) => {
 // ==========================================
 // 🔑 ផ្នែកទី ៦៖ ការសង្គ្រោះគណនី (Forgot Password & Recovery)
 // ==========================================
-const verifyUser = async (req, res) => {
+const verifyUserAccount = async (req, res) => {
   const { identifier } = req.body;
   try {
     const user = await User.findOne({
@@ -603,7 +603,7 @@ module.exports = {
   changeLimit,
   uploadImage,
   submitKyc,
-  verifyUser,
+  verifyUserAccount, // ប្តូរឈ្មោះពី verifyUser ជៀសវាងការជាន់គ្នាជាមួយ authMiddleware
   resetPassword,
   generateTelegramCode,
   unlinkTelegram,

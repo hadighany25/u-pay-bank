@@ -503,8 +503,8 @@
         transform: scale(0.97);
       }
       .btn-full:disabled {
-        background: #cbd5e1;
-        box-shadow: none;
+        background: #cbd5e1 !important;
+        box-shadow: none !important;
         cursor: not-allowed;
         color: white !important;
       }
@@ -554,16 +554,6 @@
       }
       body.dark-mode .nav-header {
         background-color: #00251f !important;
-      }
-      body.dark-mode .tabs {
-        background: #1e1e1e;
-      }
-      body.dark-mode .tab-btn {
-        color: #94a3b8;
-      }
-      body.dark-mode .tab-btn.active {
-        background: #2d2d2d;
-        color: #10b981;
       }
       body.dark-mode .card-section {
         background: #1e1e1e;
@@ -645,7 +635,6 @@
       body.dark-mode .dark-text-white {
         color: white !important;
       }
-
       .premium-swal {
         border-radius: 20px !important;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
@@ -654,7 +643,7 @@
   </head>
   <body>
     <div class="app-container">
-      <!-- 🌟 HEADER (DYNAMIC BACK BUTTON) -->
+      <!-- 🌟 HEADER -->
       <div class="nav-header">
         <a id="backBtn" onclick="goBack()">
           <i class="fa-solid fa-arrow-left"></i>
@@ -671,7 +660,7 @@
 
       <div class="content-body">
         <!-- =========================================================
-             🏠 STATE 0: LANDING PAGE (Choose Type)
+             🏠 STATE 0: LANDING PAGE
              ========================================================= -->
         <div id="state-landing" class="view-state active">
           <p
@@ -726,9 +715,7 @@
               <span data-i18n="lbl_source_acc">Source Account</span>
             </div>
             <div class="input-group" style="margin-bottom: 0">
-              <select id="singleSourceAcc">
-                <!-- Data will populate here automatically from JS -->
-              </select>
+              <select id="singleSourceAcc"></select>
             </div>
           </div>
 
@@ -751,8 +738,8 @@
                 id="singleNameDisplay"
                 style="display: none"
               >
-                <i class="fa-solid fa-circle-check"></i>
-                <span id="fetchedNameText"></span>
+                <i class="fa-solid fa-circle-check"></i
+                ><span id="fetchedNameText"></span>
               </div>
             </div>
             <div class="input-group" style="margin-bottom: 0">
@@ -771,7 +758,6 @@
             <div class="section-title">
               <span data-i18n="lbl_schedule">Schedule</span>
             </div>
-
             <div id="singleScheduleTarget">
               <div id="sharedScheduleUI">
                 <div class="input-group">
@@ -860,13 +846,12 @@
                       S
                     </div>
                   </div>
-                  <!-- 🔥 បន្ថែមម៉ោងសម្រាប់ Weekly -->
                   <div
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label>
-                    <input type="time" id="weeklyTime" value="08:00" />
+                    <label>Execution Time</label
+                    ><input type="time" id="weeklyTime" value="08:00" />
                   </div>
                 </div>
 
@@ -892,13 +877,12 @@
                       ><span data-i18n="lbl_last_day">Last Day</span>
                     </div>
                   </div>
-                  <!-- 🔥 បន្ថែមម៉ោងសម្រាប់ Monthly -->
                   <div
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label>
-                    <input type="time" id="monthlyTime" value="08:00" />
+                    <label>Execution Time</label
+                    ><input type="time" id="monthlyTime" value="08:00" />
                   </div>
                 </div>
 
@@ -941,13 +925,12 @@
                       ><span data-i18n="lbl_last_day">Last Day</span>
                     </div>
                   </div>
-                  <!-- 🔥 បន្ថែមម៉ោងសម្រាប់ Yearly -->
                   <div
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label>
-                    <input type="time" id="yearlyTime" value="08:00" />
+                    <label>Execution Time</label
+                    ><input type="time" id="yearlyTime" value="08:00" />
                   </div>
                 </div>
 
@@ -1106,11 +1089,10 @@
                     margin-bottom: 15px;
                   "
                 >
-                  <i class="fa-solid fa-triangle-exclamation"></i> Errors found.
-                  Please fix red boxes in template.
+                  <!-- Content injected by JS -->
                 </p>
 
-                <!-- 🔥 បន្ថែមប៊ូតុង Icon សម្រាប់ចុចនាំចូលទៅ Edit ក្នុង Web Sheet ភ្លាមៗ -->
+                <!-- ប៊ូតុង Edit In Web Sheet (បង្ហាញរហូតអោយតែមានទិន្នន័យ) -->
                 <button
                   id="btnEditInSheet"
                   onclick="jumpToEditCurrentTemplate()"
@@ -1228,48 +1210,7 @@
                   </tr>
                 </thead>
                 <tbody id="sheetBody">
-                  <tr>
-                    <td>
-                      <!-- ថែម ID អោយវាផង -->
-                      <input
-                        type="number"
-                        class="sheet-input"
-                        placeholder="Acc No"
-                        oninput="simulateSheetFetch(this, 'row1_name')"
-                      />
-                    </td>
-                    <td>
-                      <!-- ដាក់ id="row1_name" នៅទីនេះ -->
-                      <input
-                        type="text"
-                        id="row1_name"
-                        class="sheet-input"
-                        readonly
-                        style="color: #00b894; font-weight: bold"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        class="sheet-input"
-                        placeholder="0.00"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        class="sheet-input"
-                        placeholder="Remark"
-                      />
-                    </td>
-                    <td>
-                      <i
-                        class="fa-solid fa-trash"
-                        style="color: #ef4444; cursor: pointer"
-                        onclick="this.parentElement.parentElement.remove()"
-                      ></i>
-                    </td>
-                  </tr>
+                  <!-- Rows injected via JS -->
                 </tbody>
               </table>
             </div>
@@ -1278,7 +1219,9 @@
               <span data-i18n="btn_add_row">Add Row</span>
             </button>
 
+            <!-- 🔥 បន្ថែម ID ឱ្យប៊ូតុង Save ដើម្បីអាច Block ពេលកំពុង Search -->
             <button
+              id="btnSaveTemplate"
               class="btn-full"
               style="background: #10b981; margin-top: 15px"
               onclick="saveCurrentSheet()"
@@ -1444,22 +1387,25 @@
     </div>
 
     <!-- =======================================================
-         🔥 JAVASCRIPT: REAL API INTEGRATION & LOGIC
+         🔥 JAVASCRIPT: CLEANED & SECURED
          ======================================================= -->
     <script>
-      let lastUploadedRecords = []; // ទុកចាំទិន្នន័យចុងក្រោយដែលទើប Upload
-      let lastUploadedFileName = ""; // ទុកចាំឈ្មោះ Template ចុងក្រោយ
+      // === 1. GLOBAL VARIABLES ===
+      let lastUploadedFileName = "";
+      let savedTemplates = [];
+      let currentBulkRecords = [];
+      let currentState = "state-landing";
+      let editingPayrollId = null;
+      let allHistoryRecords = [];
+      let fetchTimer;
+      let sheetTimer;
+      let activeFetches = 0; // 🔥 ទប់ស្កាត់ការ Save មុនពេល Search ចប់
 
-      // 🌟 1. SETUP & AUTHENTICATION
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
       if (!user || !token) window.location.href = "index.html";
 
-      let currentState = "state-landing";
-      let savedTemplates = []; // នឹងទាញពី Database ពិតប្រាកដ
-      let currentBulkRecords = []; // ទិន្នន័យដែលកំពុងត្រៀមបញ្ជូន
-
-      // Helper សម្រាប់បាញ់ API ទៅកាន់ Backend ងាយស្រួល
+      // Helper API
       async function fetchAPI(endpoint, method = "GET", body = null) {
         const options = {
           method: method,
@@ -1473,7 +1419,6 @@
           const res = await fetch(endpoint, options);
           return await res.json();
         } catch (e) {
-          console.error("API Error:", e);
           return {
             success: false,
             message: "Network error. Please try again.",
@@ -1481,6 +1426,23 @@
         }
       }
 
+      // 🔥 មុខងារការពារ XSS (Cross-Site Scripting) ពេលបង្ហាញទិន្នន័យពី Excel
+      function escapeHTML(str) {
+        if (typeof str !== "string") return str;
+        return str.replace(
+          /[&<>'"]/g,
+          (tag) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              "'": "&#39;",
+              '"': "&quot;",
+            })[tag] || tag,
+        );
+      }
+
+      // === 2. INITIALIZATION ===
       document.addEventListener("DOMContentLoaded", () => {
         const isDark =
           localStorage.getItem("theme") === "dark" ||
@@ -1488,50 +1450,80 @@
         if (isDark) document.body.classList.add("dark-mode");
         if (typeof applyLanguage === "function") applyLanguage();
 
-        // 🔄 ចាប់ផ្តើមទាញទិន្នន័យពិតៗ
         populateSourceAccounts();
         fetchTemplatesFromDB();
-        addSheetRow(); // បង្កើតជួរទទេ ១ ជាមុនសម្រាប់ Web Sheet
+        addSheetRow();
 
         document.body.classList.add("loaded");
         updateSlider("monthSlider", "monthBubble");
         updateSlider("yearSlider", "yearBubble");
       });
 
-      // 🌟 2. ចាប់គណនីប្រភព (Source Accounts) អោយដូច Transfer
+      // === 3. UI STATE MANAGEMENT ===
+      function switchState(targetState, title) {
+        document
+          .querySelectorAll(".view-state")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById(targetState).classList.add("active");
+        document.getElementById("headerTitle").innerText = title;
+        currentState = targetState;
+
+        const sharedUI = document.getElementById("sharedScheduleUI");
+        if (sharedUI) {
+          if (targetState === "state-single") {
+            document
+              .getElementById("singleScheduleTarget")
+              .appendChild(sharedUI);
+          } else if (targetState === "state-bulk") {
+            const bulkType = document.getElementById("bulkProcessType");
+            if (bulkType && bulkType.value === "schedule") {
+              document
+                .getElementById("bulkScheduleWrapper")
+                .appendChild(sharedUI);
+            }
+          }
+        }
+      }
+
+      function goBack() {
+        if (
+          ["state-single", "state-bulk", "state-history"].includes(currentState)
+        ) {
+          switchState("state-landing", "Auto Payouts");
+        } else if (currentState === "state-sheet") {
+          switchState("state-bulk", "Bulk Payout");
+        } else {
+          window.location.href = "dashboard.html";
+        }
+      }
+
+      function openModal(id) {
+        document.getElementById(id).classList.add("active");
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.remove("active");
+      }
+
+      // === 4. DATA FETCHING ===
       function populateSourceAccounts() {
         const singleSelect = document.getElementById("singleSourceAcc");
         const bulkSelect = document.getElementById("bulkSourceAcc");
         let html = "";
         let lang = localStorage.getItem("lang") || "en";
 
-        // ១. Main Account (USD)
-        html += `<option value="MAIN_USD" data-currency="USD" data-balance="${user.balance || 0}">
-          ${lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - "} ${user.accountNumber}
-        </option>`;
+        html += `<option value="MAIN_USD" data-currency="USD" data-balance="${user.balance || 0}">${lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - "} ${user.accountNumber}</option>`;
+        html += `<option value="MAIN_KHR" data-currency="KHR" data-balance="${user.balanceKHR || 0}">${lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - "} ${user.accountNumberKHR || "N/A"}</option>`;
 
-        // ២. Main Account (KHR)
-        html += `<option value="MAIN_KHR" data-currency="KHR" data-balance="${user.balanceKHR || 0}">
-          ${lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - "} ${user.accountNumberKHR || "N/A"}
-        </option>`;
-
-        // ៣. Sub Accounts ទាំងអស់ (បើមាន)
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
             const sign = sub.currency === "USD" ? "$" : "៛";
-            html += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-balance="${sub.balance || 0}">
-              ${sub.accountName} (${sign}) - ${sub.accountNumber}
-            </option>`;
+            html += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-balance="${sub.balance || 0}">${sub.accountName} (${sign}) - ${sub.accountNumber}</option>`;
           });
         }
-
-        // ដាក់ Option បញ្ចូលទៅក្នុង Select ទាំងពីរ
         if (singleSelect) singleSelect.innerHTML = html;
         if (bulkSelect) bulkSelect.innerHTML = html;
       }
 
-      // 🌟 3. ទាញឈ្មោះពី Database ពិតៗ (ដោយប្រើ /api/check-account ដូច Transfer)
-      let fetchTimer;
       async function fetchAccountName(inputEl, displayId, textId) {
         clearTimeout(fetchTimer);
         const accNo = inputEl.value;
@@ -1564,15 +1556,13 @@
               body: JSON.stringify({ accountNumber: accNo }),
             });
             const data = await res.json();
-
             if (displayBox) {
               displayBox.style.background = "";
               displayBox.style.borderColor = "";
             }
-
             if (data.success) {
               const realName = data.username.toUpperCase();
-              if (nameText) nameText.innerHTML = `${realName}`;
+              if (nameText) nameText.innerHTML = escapeHTML(realName);
               inputEl.setAttribute("data-realname", realName);
             } else {
               if (nameText)
@@ -1586,189 +1576,12 @@
         }, 600);
       }
 
-      // 🌟 4. ទាញ Templates ពី Database (Real API Call)
       async function fetchTemplatesFromDB() {
         const data = await fetchAPI("/api/payroll/templates");
-        if (data.success && data.data) {
-          savedTemplates = data.data;
-        }
+        if (data.success && data.data) savedTemplates = data.data;
       }
 
-      // 🌟 5. បង្កើតកាលវិភាគ (SINGLE PAYOUT) ទៅកាន់ Database
-      async function confirmSingle() {
-        const acc = document.getElementById("singleAccNo").value;
-        const amount = document.getElementById("singleAmount").value;
-        const realName = document
-          .getElementById("singleAccNo")
-          .getAttribute("data-realname");
-
-        if (!acc || !amount)
-          return Swal.fire("Warning", "Please fill required fields", "warning");
-
-        const payload = {
-          type: "single",
-          name: `Single Transfer - ${acc}`,
-          sourceAccount: document.getElementById("singleSourceAcc").value,
-          totalAmount: Number(amount),
-          frequency: document.getElementById("sharedFreq").value,
-          scheduleDetails: getScheduleDetails(),
-          recipients: [
-            {
-              account: acc,
-              name: realName,
-              amount: Number(amount),
-              remark: document.getElementById("singleRemark").value,
-            },
-          ],
-        };
-
-        // 🔥 Logic Update
-        let isEditing = editingPayrollId !== null;
-        const url = isEditing
-          ? `/api/payroll/update/${editingPayrollId}`
-          : "/api/payroll/create";
-        const method = isEditing ? "PATCH" : "POST";
-
-        Swal.fire({
-          title: isEditing ? "Updating..." : "Processing...",
-          didOpen: () => Swal.showLoading(),
-        });
-        const res = await fetchAPI(url, method, payload);
-
-        if (res.success) {
-          editingPayrollId = null; // Reset ID
-          Swal.fire({ icon: "success", title: "ជោគជ័យ!", timer: 1500 });
-          goBack(); // ត្រឡប់ទៅក្រោយ
-        } else {
-          Swal.fire("Error", res.message, "error");
-        }
-      }
-      // 🌟 6. បង្កើតកាលវិភាគ (BULK PAYOUT) ទៅកាន់ Database
-      async function confirmBulk() {
-        const processType = document.getElementById("bulkProcessType").value;
-        const totalAmtStr = document
-          .getElementById("totalAmountDisplay")
-          .innerText.replace("$", "");
-
-        const payload = {
-          type: "bulk",
-          name: `Bulk Transfer - ${currentBulkRecords.length} records`,
-          sourceAccount: document.getElementById("bulkSourceAcc").value,
-          totalAmount: Number(totalAmtStr),
-          frequency:
-            processType === "now"
-              ? "once"
-              : document.getElementById("sharedFreq").value,
-          scheduleDetails: processType === "now" ? {} : getScheduleDetails(),
-          processNow: processType === "now",
-          recipients: currentBulkRecords,
-        };
-
-        Swal.fire({
-          title: "Processing Bulk...",
-          didOpen: () => Swal.showLoading(),
-        });
-        const res = await fetchAPI("/api/payroll/create", "POST", payload);
-
-        if (res.success) {
-          Swal.fire({
-            title: "Success",
-            text: res.message,
-            icon: "success",
-            confirmButtonColor: "#004d40",
-            customClass: { popup: "premium-swal" },
-          }).then(() => location.reload());
-        } else {
-          Swal.fire("Error", res.message, "error");
-        }
-      }
-
-      // 🌟 7. រក្សាទុក Template ឬ កែសម្រួលកាលវិភាគ (Update)
-      async function saveCurrentSheet() {
-        const nameInput = document.getElementById("tplNameInput");
-        const name = nameInput.value;
-        const tplId = nameInput.getAttribute("data-tpl-id");
-
-        if (!name) return Swal.fire("Warning", "Please enter Name", "warning");
-
-        const records = extractDataFromSheet();
-        if (records.length === 0)
-          return Swal.fire("Warning", "Sheet is empty", "warning");
-
-        const total = records.reduce((sum, r) => sum + Number(r.amount), 0);
-
-        // 🔥 Logic ថ្មី៖ ឆែកមើលថាយើងកំពុង Edit កាលវិភាគចាស់ (editingPayrollId) ឬ Save Template ថ្មី
-        let isEditing =
-          typeof editingPayrollId !== "undefined" && editingPayrollId !== null;
-
-        const payload = {
-          templateId: tplId,
-          type: "bulk",
-          name: name,
-          sourceAccount: "USD",
-          totalAmount: total,
-          frequency: "manual",
-          isTemplate: !isEditing, // បើ Edit កាលវិភាគគឺមិនមែនជា Template ទេ
-          recipients: records,
-        };
-
-        const url = isEditing
-          ? `/api/payroll/update/${editingPayrollId}`
-          : "/api/payroll/create";
-        const method = isEditing ? "PATCH" : "POST";
-
-        Swal.fire({
-          title: isEditing ? "Updating..." : "Saving...",
-          didOpen: () => Swal.showLoading(),
-        });
-        const res = await fetchAPI(url, method, payload);
-
-        if (res.success) {
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "success",
-            title: isEditing ? "បានកែសម្រួលជោគជ័យ!" : "Template Saved!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-
-          // Reset ក្រោយពេល Save រួច
-          nameInput.removeAttribute("data-tpl-id");
-          if (isEditing) editingPayrollId = null;
-
-          fetchTemplatesFromDB();
-          // បើបងចង់ឱ្យវាត្រលប់ទៅក្រោយវិញពេល Save រួច:
-          goBack();
-        } else {
-          Swal.fire("Error", res.message, "error");
-        }
-      }
-
-      // 🌟 8. ចាប់ទិន្នន័យ (Extract) ចេញពី Web Sheet UI
-      function extractDataFromSheet() {
-        const rows = document.querySelectorAll("#sheetBody tr");
-        let records = [];
-        rows.forEach((tr) => {
-          const inputs = tr.querySelectorAll("input");
-          const acc = inputs[0].value;
-          const name = inputs[1].value;
-          const amt = inputs[2].value;
-          const rem = inputs[3].value;
-
-          if (acc.trim() !== "" || amt.trim() !== "") {
-            records.push({
-              account: acc,
-              name: name,
-              amount: amt ? Number(amt) : 0,
-              remark: rem,
-            });
-          }
-        });
-        return records;
-      }
-
-      // 🌟 អាន File Excel ពិតប្រាកដដោយប្រើ SheetJS
+      // === 5. EXCEL UPLOAD & PARSING ===
       function handleRealExcelUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1777,41 +1590,38 @@
           title: "Reading Excel...",
           didOpen: () => Swal.showLoading(),
         });
-
         const reader = new FileReader();
         reader.onload = function (event) {
           try {
             const data = new Uint8Array(event.target.result);
             const workbook = XLSX.read(data, { type: "array" });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
             let records = [];
-            let headerRowIndex = -1;
             let colIdx = { acc: -1, name: -1, amt: -1, rem: -1 };
+            let headerRowIndex = -1;
 
             for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
               let row = jsonData[i];
               if (!row || row.length === 0) continue;
-
               for (let j = 0; j < row.length; j++) {
                 let cell = String(row[j] || "")
                   .trim()
                   .toLowerCase();
                 if (
-                  cell === "account" ||
-                  cell === "receiver account" ||
-                  cell === "account number" ||
-                  cell === "គណនី"
+                  [
+                    "account",
+                    "receiver account",
+                    "account number",
+                    "គណនី",
+                  ].includes(cell)
                 )
                   colIdx.acc = j;
-                if (cell === "name" || cell === "ឈ្មោះ") colIdx.name = j;
-                if (cell === "amount" || cell === "ទឹកប្រាក់") colIdx.amt = j;
-                if (cell === "remark" || cell === "ចំណាំ") colIdx.rem = j;
+                if (["name", "ឈ្មោះ"].includes(cell)) colIdx.name = j;
+                if (["amount", "ទឹកប្រាក់"].includes(cell)) colIdx.amt = j;
+                if (["remark", "ចំណាំ"].includes(cell)) colIdx.rem = j;
               }
-
               if (colIdx.acc !== -1) {
                 headerRowIndex = i;
                 break;
@@ -1832,7 +1642,6 @@
             for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
               let row = jsonData[i];
               if (!row || row.length === 0) continue;
-
               let acc = colIdx.acc !== -1 ? row[colIdx.acc] : "";
               let name = colIdx.name !== -1 ? row[colIdx.name] : "";
               let amt = colIdx.amt !== -1 ? row[colIdx.amt] : 0;
@@ -1847,18 +1656,16 @@
                 });
               }
             }
-
             Swal.close();
 
-            // ទុកទិន្នន័យចាំបាច់ទុកសម្រាប់ប៊ូតុង Edit in Web Sheet
-            lastUploadedRecords = records;
+            // រក្សាទុកទិន្នន័យដើម្បីប្រើក្នុង Web Sheet ចាំបាច់
+            currentBulkRecords = records;
             lastUploadedFileName = file.name.replace(/\.[^/.]+$/, "");
 
             verifyAndRenderReviewTable(records);
             saveAutoTemplate(lastUploadedFileName, records);
           } catch (err) {
             Swal.close();
-            console.error("Excel Read Error:", err);
             Swal.fire("Error", "មានបញ្ហាក្នុងការអានឯកសារ Excel នេះ!", "error");
           } finally {
             document.getElementById("realFileInput").value = "";
@@ -1867,252 +1674,11 @@
         reader.readAsArrayBuffer(file);
       }
 
-      // 🔥 មុខងារសម្រាប់ចុច Icon/Button នាំចូលទៅ Web Sheet ភ្លាមៗដើម្បីកែសម្រួល
-      function jumpToEditCurrentTemplate() {
-        switchState("state-sheet", "Template Editor");
-
-        const nameInput = document.getElementById("tplNameInput");
-        nameInput.value = lastUploadedFileName || "Imported Template";
-
-        const tbody = document.getElementById("sheetBody");
-        tbody.innerHTML = "";
-
-        if (lastUploadedRecords && lastUploadedRecords.length > 0) {
-          lastUploadedRecords.forEach((r) => {
-            const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-            tbody.innerHTML += `
-              <tr>
-                <td><input type="number" class="sheet-input" value="${r.account || ""}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
-                <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${r.name || ""}" readonly style="color: #00b894; font-weight: bold;"></td>
-                <td><input type="number" class="sheet-input" value="${r.amount || ""}"></td>
-                <td><input type="text" class="sheet-input" value="${r.remark || ""}"></td>
-                <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
-              </tr>
-            `;
-          });
-        } else {
-          addSheetRow();
-        }
-      }
-
-      // មុខងារសម្រាប់ Auto Save និង Update Saved Templates ភ្លាមៗ
-      async function saveAutoTemplate(name, records) {
-        const payload = {
-          type: "bulk",
-          name: name,
-          sourceAccount: "USD",
-          totalAmount: records.reduce((sum, r) => sum + Number(r.amount), 0),
-          frequency: "manual",
-          isTemplate: true,
-          recipients: records,
-        };
-        const res = await fetchAPI("/api/payroll/create", "POST", payload);
-        if (res.success) {
-          await fetchTemplatesFromDB();
-        }
-      }
-
-      // ==============================================
-      // 🌟 មុខងារគ្រប់គ្រង UI ទូទៅ (UI Helpers)
-      // ==============================================
-      function switchState(targetState, title) {
-        document
-          .querySelectorAll(".view-state")
-          .forEach((el) => el.classList.remove("active"));
-        document.getElementById(targetState).classList.add("active");
-        document.getElementById("headerTitle").innerText = title;
-        currentState = targetState;
-
-        const sharedUI = document.getElementById("sharedScheduleUI");
-        if (sharedUI) {
-          if (targetState === "state-single") {
-            document
-              .getElementById("singleScheduleTarget")
-              .appendChild(sharedUI);
-          } else if (targetState === "state-bulk") {
-            const bulkType = document.getElementById("bulkProcessType");
-            if (bulkType && bulkType.value === "schedule") {
-              document
-                .getElementById("bulkScheduleWrapper")
-                .appendChild(sharedUI);
-            }
-          }
-        }
-      }
-
-      function goBack() {
-        // បើស្ថិតនៅផ្ទាំង History ឬ Single ឬ Bulk គឺឱ្យថយមកផ្ទាំង Landing (Auto Payouts ដើម) វិញ
-        if (
-          currentState === "state-single" ||
-          currentState === "state-bulk" ||
-          currentState === "state-history"
-        ) {
-          switchState("state-landing", "Auto Payouts");
-        }
-        // បើស្ថិតនៅផ្ទាំង Web Sheet គឺឱ្យថយមក Bulk Payout វិញ
-        else if (currentState === "state-sheet") {
-          switchState("state-bulk", "Bulk Payout");
-        }
-        // បើស្ថិតនៅផ្ទាំង Landing (Auto Payouts) រួចស្រេចហើយ ទើបឱ្យបោះពួយទៅ Dashboard វិញ
-        else {
-          window.location.href = "dashboard.html";
-        }
-      }
-
-      function openModal(id) {
-        document.getElementById(id).classList.add("active");
-      }
-      function closeModal(id) {
-        document.getElementById(id).classList.remove("active");
-      }
-
-      function updateFreqUI() {
-        const val = document.getElementById("sharedFreq").value;
-        document
-          .querySelectorAll(".dynamic-freq-box")
-          .forEach((box) => box.classList.remove("active"));
-        document.getElementById(`freq-${val}`).classList.add("active");
-        document.getElementById("validityBox").style.display =
-          val === "once" ? "none" : "block";
-      }
-
-      function toggleBulkSchedule() {
-        const type = document.getElementById("bulkProcessType").value;
-        const wrapper = document.getElementById("bulkScheduleWrapper");
-        const sharedUI = document.getElementById("sharedScheduleUI");
-        if (type === "schedule") {
-          wrapper.appendChild(sharedUI);
-          wrapper.style.display = "block";
-        } else {
-          wrapper.style.display = "none";
-          document.getElementById("singleScheduleTarget").appendChild(sharedUI);
-        }
-      }
-
-      function toggleDay(el) {
-        el.classList.toggle("active");
-      }
-      function updateSlider(sliderId, bubbleId) {
-        const slider = document.getElementById(sliderId);
-        const bubble = document.getElementById(bubbleId);
-        bubble.innerText = `ទី ${slider.value}`;
-        const min = slider.min ? parseFloat(slider.min) : 1;
-        const max = slider.max ? parseFloat(slider.max) : 31;
-        const percent = ((slider.value - min) / (max - min)) * 100;
-        bubble.style.left = `calc(${percent}% + (${8 - percent * 0.15}px))`;
-      }
-
-      // Helpers for Parsing Schedule Configuration
-      function getScheduleDetails() {
-        const freq = document.getElementById("sharedFreq").value;
-        let details = {};
-        if (freq === "once") {
-          details.date = document.getElementById("schedDate").value;
-          details.time = document.getElementById("schedTime").value;
-        } else if (freq === "weekly") {
-          let selectedDays = [];
-          document
-            .querySelectorAll("#weeklyDays .day-circle.active")
-            .forEach((el) => selectedDays.push(el.getAttribute("data-val")));
-          details.daysOfWeek = selectedDays;
-          details.time = document.getElementById("weeklyTime").value; // 👈 យកម៉ោង Weekly
-        } else if (freq === "monthly") {
-          details.dayOfMonth = document.getElementById("monthSlider").value;
-          details.time = document.getElementById("monthlyTime").value; // 👈 យកម៉ោង Monthly
-        } else if (freq === "yearly") {
-          details.month = document.getElementById("yearMonth").value;
-          details.dayOfMonth = document.getElementById("yearSlider").value;
-          details.time = document.getElementById("yearlyTime").value; // 👈 យកម៉ោង Yearly
-        }
-        details.startDate = document.getElementById("startDate").value;
-        details.endDate = document.getElementById("endDate").value;
-        return details;
-      }
-
-      // Modals and UI List Generation
-      function openUploadOptionsModal() {
-        openModal("uploadOptionsModal");
-      }
-      function openTplListForBulk() {
-        closeModal("uploadOptionsModal");
-        renderTemplateList(true);
-        openModal("tplListModal");
-      }
-      function triggerComputerUpload() {
-        closeModal("uploadOptionsModal");
-        document.getElementById("realFileInput").click();
-      }
-      function openTplListModal(isForBulk) {
-        closeModal("uploadOptionsModal");
-        renderTemplateList(isForBulk);
-        openModal("tplListModal");
-      }
-
-      function renderTemplateList(isForBulk) {
-        const list = document.getElementById("tplListContainer");
-        list.innerHTML = "";
-        if (savedTemplates.length === 0) {
-          list.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.85rem;">គ្មានឯកសារនៅឡើយទេ (No Templates)</p>`;
-          return;
-        }
-        savedTemplates.forEach((t) => {
-          const action = isForBulk
-            ? `loadToReview('${t._id}')`
-            : `loadToSheet('${t._id}')`;
-
-          list.innerHTML += `
-            <div class="tpl-item">
-              <div style="flex:1; cursor:pointer;" onclick="${action}">
-                <h4 style="margin:0;" class="dark-text-white">${t.name}</h4>
-                <p style="margin:3px 0 0; font-size:0.75rem; color:#64748b;">${t.recipients.length} Records</p>
-              </div>
-              <div class="tpl-actions" style="display:flex; align-items:center; gap:8px;">
-                <button class="btn-outline" style="margin:0; padding:6px 12px; width:auto;" onclick="${action}">Load</button>
-                <button onclick="deleteTemplateItem('${t._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;" title="លុប Template">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          `;
-        });
-      }
-
-      // 🌟 ទាញយក Template មក Review
-      function loadToReview(id) {
-        closeModal("tplListModal");
-        const tpl = savedTemplates.find((x) => x._id === id);
-        verifyAndRenderReviewTable(tpl.recipients);
-      }
-
-      function loadToSheet(id) {
-        closeModal("tplListModal");
-        const tpl = savedTemplates.find((x) => x._id === id);
-
-        const nameInput = document.getElementById("tplNameInput");
-        nameInput.value = tpl.name;
-        nameInput.setAttribute("data-tpl-id", tpl._id);
-
-        const tbody = document.getElementById("sheetBody");
-        tbody.innerHTML = "";
-        tpl.recipients.forEach((r) => {
-          const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-          tbody.innerHTML += `
-            <tr>
-              <td><input type="number" class="sheet-input" value="${r.account}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
-              <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${r.name}" readonly style="color: #00b894; font-weight: bold;"></td>
-              <td><input type="number" class="sheet-input" value="${r.amount}"></td>
-              <td><input type="text" class="sheet-input" value="${r.remark}"></td>
-              <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
-            </tr>
-          `;
-        });
-      }
-
-      // 🔥 ផ្ទៀងផ្ទាត់គណនីទាំងអស់ ទៅកាន់ Database មុននឹងបង្ហាញ
+      // === 6. REVIEW TABLE LOGIC (DOM Performance Fixed) ===
       async function verifyAndRenderReviewTable(records) {
         Swal.fire({
           title: "កំពុងផ្ទៀងផ្ទាត់ទិន្នន័យ...",
-          text: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងឆែកលេខគណនី...",
+          text: "សូមរង់ចាំបន្តិច...",
           didOpen: () => Swal.showLoading(),
           allowOutsideClick: false,
         });
@@ -2155,21 +1721,20 @@
         renderReviewTable(verifiedRecords);
       }
 
-      // 🌟 បង្ហាញតារាង Review Data
       function renderReviewTable(records) {
-        currentBulkRecords = records;
+        currentBulkRecords = records; // កត់ត្រាទុកក្នុង RAM ជានិច្ច
         document.getElementById("reviewContainer").style.display = "block";
         document.getElementById("payoutOptionsSection").style.display = "block";
 
         const tbody = document.getElementById("reviewBody");
-        tbody.innerHTML = "";
+        let htmlStr = ""; // 🔥 បង្កើតអថេរទុក HTML ដើម្បីដោះស្រាយបញ្ហា Performance
         let totalAmt = 0;
         let hasError = false;
+        let hasWarning = false;
 
         let myAccounts = [user.accountNumber, user.accountNumberKHR];
-        if (user.subAccounts) {
+        if (user.subAccounts)
           user.subAccounts.forEach((sub) => myAccounts.push(sub.accountNumber));
-        }
         myAccounts = myAccounts.filter((acc) => acc);
 
         let accCounts = {};
@@ -2221,12 +1786,16 @@
               r.name.trim().toLowerCase() !== r.realName.trim().toLowerCase()
             ) {
               isNameMismatch = true;
-              nameTooltip = `<span class='error-tooltip'>ឈ្មោះក្នុង Excel មិនត្រូវនឹង Database (ឈ្មោះពិតគឺ: ${r.realName})</span>`;
+              hasWarning = true;
+              // 🔥 ការពារ XSS
+              nameTooltip = `<span class='error-tooltip' style='background: #f59e0b;'>ឈ្មោះក្នុង Excel មិនត្រូវនឹង Database (ឈ្មោះពិតគឺ: ${escapeHTML(r.realName)})</span>`;
             }
           }
 
-          if (errAcc || errAmt || isOwnAccount || isDuplicate || isInvalid)
+          if (errAcc || errAmt || isOwnAccount || isDuplicate || isInvalid) {
             hasError = true;
+          }
+
           totalAmt += Number(r.amount || 0);
 
           let isRowError = isOwnAccount || isDuplicate || isInvalid;
@@ -2235,7 +1804,8 @@
           let col3 = isRowError ? "class='td-error'" : errAmt;
           let col4 = isRowError ? "class='td-error'" : "";
 
-          let nameDisplayHtml = r.name || "-";
+          // 🔥 ការពារ XSS
+          let nameDisplayHtml = escapeHTML(r.name) || "-";
           if (isRowError) {
             nameDisplayHtml += ` <i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>`;
           } else if (isNameMismatch) {
@@ -2244,15 +1814,19 @@
             nameDisplayHtml += ` <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>`;
           }
 
-          tbody.innerHTML += `
+          // 🔥 ចង String ជំនួសអោយការបូកបញ្ចូលក្នុង DOM ផ្ទាល់
+          htmlStr += `
             <tr>
-              <td ${col1}>${r.account || "-"} ${accTooltip}</td>
+              <td ${col1}>${escapeHTML(r.account) || "-"} ${accTooltip}</td>
               <td ${col2}>${nameDisplayHtml}</td>
-              <td ${col3}>$${r.amount || "0.00"} ${amtTooltip}</td>
-              <td ${col4}>${r.remark || "-"}</td>
+              <td ${col3}>$${escapeHTML(String(r.amount)) || "0.00"} ${amtTooltip}</td>
+              <td ${col4}>${escapeHTML(r.remark) || "-"}</td>
             </tr>
           `;
         });
+
+        // 🔥 បញ្ចូលទិន្នន័យទៅកាន់តារាងតែម្តងគត់ (DOM Reflow Optimization)
+        tbody.innerHTML = htmlStr;
 
         document.getElementById("totalCountBadge").innerText =
           `${records.length} Records`;
@@ -2263,50 +1837,104 @@
         const errMsg = document.getElementById("errorMsg");
         const btnEditInSheet = document.getElementById("btnEditInSheet");
 
-        if (hasError || records.length === 0) {
+        if (records.length > 0) {
+          if (btnEditInSheet) btnEditInSheet.style.display = "inline-flex";
+        } else {
+          if (btnEditInSheet) btnEditInSheet.style.display = "none";
+        }
+
+        if (hasError || hasWarning || records.length === 0) {
           btnConfirm.disabled = true;
           errMsg.style.display = "block";
-          if (btnEditInSheet) btnEditInSheet.style.display = "inline-flex"; // 👈 បង្ហាញប៊ូតុង Edit ពេលមាន Error
+
+          if (hasError) {
+            errMsg.style.color = "#ef4444";
+            errMsg.innerHTML =
+              '<i class="fa-solid fa-triangle-exclamation"></i> មានកំហុសធ្ងន់ធ្ងរ! សូមចុច Edit ទៅកែទម្រង់ពណ៌ក្រហមសិន។';
+          } else if (hasWarning) {
+            errMsg.style.color = "#f59e0b";
+            errMsg.innerHTML =
+              '<i class="fa-solid fa-circle-exclamation"></i> មានឈ្មោះអតិថិជនមិនស៊ីគ្នា! សូមចុច Edit ដើម្បីកែតម្រូវសិន ទើបអាចបន្តបាន។';
+          }
         } else {
           btnConfirm.disabled = false;
           errMsg.style.display = "none";
-          if (btnEditInSheet) btnEditInSheet.style.display = "none"; // 👈 លាក់វិញបើគ្មាន Error
+        }
+      }
+
+      // === 7. WEB SHEET EDITOR (Race Condition Protection) ===
+      function jumpToEditCurrentTemplate() {
+        switchState("state-sheet", "Template Editor");
+        document.getElementById("tplNameInput").value =
+          lastUploadedFileName || "Imported Template";
+        const tbody = document.getElementById("sheetBody");
+
+        let htmlStr = ""; // DOM Performance Fix
+        if (currentBulkRecords && currentBulkRecords.length > 0) {
+          currentBulkRecords.forEach((r) => {
+            const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
+            htmlStr += `<tr>
+                <td><input type="number" class="sheet-input" value="${escapeHTML(r.account) || ""}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
+                <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name) || ""}" readonly style="color: #00b894; font-weight: bold;"></td>
+                <td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount)) || ""}"></td>
+                <td><input type="text" class="sheet-input" value="${escapeHTML(r.remark) || ""}"></td>
+                <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
+              </tr>`;
+          });
+          tbody.innerHTML = htmlStr;
+        } else {
+          tbody.innerHTML = "";
+          addSheetRow();
         }
       }
 
       function addSheetRow() {
+        const tbody = document.getElementById("sheetBody");
+        if (!tbody) return;
         const tr = document.createElement("tr");
         const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-        tr.innerHTML = `
-          <td>
-            <input type="number" class="sheet-input" placeholder="Acc No" oninput="simulateSheetFetch(this, '${uniqueId}_text')">
-          </td>
+        tr.innerHTML = `<td><input type="number" class="sheet-input" placeholder="Acc No" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
           <td><input type="text" class="sheet-input" id="${uniqueId}_text" readonly style="color: #00b894; font-weight: bold;"></td>
           <td><input type="number" class="sheet-input" placeholder="0.00"></td>
           <td><input type="text" class="sheet-input" placeholder="Remark"></td>
-          <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
-        `;
-        document.getElementById("sheetBody").appendChild(tr);
+          <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>`;
+        tbody.appendChild(tr);
       }
 
-      let sheetTimer;
+      // 🔥 គ្រប់គ្រងស្ថានភាពប៊ូតុង Save ការពារការចុចជាន់គ្នា (Race Condition)
+      function updateSaveButtonState() {
+        const btn = document.getElementById("btnSaveTemplate");
+        if (btn) {
+          if (activeFetches > 0) {
+            btn.disabled = true;
+            btn.innerHTML =
+              '<i class="fa-solid fa-spinner fa-spin"></i> រង់ចាំបន្តិច...';
+          } else {
+            btn.disabled = false;
+            btn.innerHTML =
+              '<i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn_save_template">Save Template</span>';
+          }
+        }
+      }
+
       async function simulateSheetFetch(inputEl, textId) {
         clearTimeout(sheetTimer);
         const nameInput = document.getElementById(textId);
         const accNo = inputEl.value;
 
-        // បើ Input ទំនេរ គឺលុបឈ្មោះចោល
         if (accNo.trim() === "") {
           nameInput.value = "";
           return;
         }
 
-        // បើលេខមិនគ្រប់កុំទាន់ Fetch តែរក្សាឈ្មោះចាស់ទុក
         if (accNo.length < 6) return;
 
         nameInput.value = "Searching...";
 
         sheetTimer = setTimeout(async () => {
+          activeFetches++; // 🔥 បិទប៊ូតុង Save
+          updateSaveButtonState();
+
           try {
             const res = await fetch("/api/check-account", {
               method: "POST",
@@ -2327,125 +1955,389 @@
           } catch (e) {
             nameInput.value = "Error";
             nameInput.style.color = "#ef4444";
+          } finally {
+            activeFetches--; // 🔥 បើកប៊ូតុង Save វិញក្រោយពេលរាវរកចប់
+            updateSaveButtonState();
           }
         }, 600);
       }
 
-      let allHistoryRecords = [];
+      function extractDataFromSheet() {
+        const rows = document.querySelectorAll("#sheetBody tr");
+        let records = [];
+        rows.forEach((tr) => {
+          const inputs = tr.querySelectorAll("input");
+          const acc = inputs[0].value;
+          const name = inputs[1].value;
+          const amt = inputs[2].value;
+          const rem = inputs[3].value;
 
-      // មុខងារពេលចុចរូបនាឡិកា (History Icon) នៅលើ Header
+          if (acc.trim() !== "" || amt.trim() !== "") {
+            records.push({
+              account: acc,
+              name: name,
+              amount: amt ? Number(amt) : 0,
+              remark: rem,
+            });
+          }
+        });
+        return records;
+      }
+
+      async function saveCurrentSheet() {
+        const nameInput = document.getElementById("tplNameInput");
+        const name = nameInput.value;
+        const tplId = nameInput.getAttribute("data-tpl-id");
+
+        if (!name) return Swal.fire("Warning", "Please enter Name", "warning");
+
+        const records = extractDataFromSheet();
+        if (records.length === 0)
+          return Swal.fire("Warning", "Sheet is empty", "warning");
+
+        let isEditing =
+          typeof editingPayrollId !== "undefined" && editingPayrollId !== null;
+
+        const payload = {
+          templateId: tplId,
+          type: "bulk",
+          name: name,
+          sourceAccount: "USD",
+          totalAmount: records.reduce((sum, r) => sum + Number(r.amount), 0),
+          frequency: "manual",
+          isTemplate: !isEditing,
+          recipients: records,
+        };
+
+        const url = isEditing
+          ? `/api/payroll/update/${editingPayrollId}`
+          : "/api/payroll/create";
+        const method = isEditing ? "PATCH" : "POST";
+
+        Swal.fire({
+          title: isEditing ? "Updating..." : "Saving...",
+          didOpen: () => Swal.showLoading(),
+        });
+        const res = await fetchAPI(url, method, payload);
+
+        if (res.success) {
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "success",
+            title: isEditing ? "បានកែសម្រួលជោគជ័យ!" : "Template Saved!",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+
+          nameInput.removeAttribute("data-tpl-id");
+          if (isEditing) editingPayrollId = null;
+
+          await fetchTemplatesFromDB();
+          switchState("state-bulk", "Bulk Payout");
+          verifyAndRenderReviewTable(records);
+        } else {
+          Swal.fire("Error", res.message, "error");
+        }
+      }
+
+      async function saveAutoTemplate(name, records) {
+        const payload = {
+          type: "bulk",
+          name: name,
+          sourceAccount: "USD",
+          totalAmount: records.reduce((sum, r) => sum + Number(r.amount), 0),
+          frequency: "manual",
+          isTemplate: true,
+          recipients: records,
+        };
+        const res = await fetchAPI("/api/payroll/create", "POST", payload);
+        if (res.success) await fetchTemplatesFromDB();
+      }
+
+      // === 8. PAYOUT EXECUTION (Single, Bulk) ===
+      async function confirmSingle() {
+        const acc = document.getElementById("singleAccNo").value;
+        const amount = document.getElementById("singleAmount").value;
+        const realName = document
+          .getElementById("singleAccNo")
+          .getAttribute("data-realname");
+
+        if (!acc || !amount)
+          return Swal.fire("Warning", "Please fill required fields", "warning");
+
+        const payload = {
+          type: "single",
+          name: `Single Transfer - ${acc}`,
+          sourceAccount: document.getElementById("singleSourceAcc").value,
+          totalAmount: Number(amount),
+          frequency: document.getElementById("sharedFreq").value,
+          scheduleDetails: getScheduleDetails(),
+          recipients: [
+            {
+              account: acc,
+              name: realName,
+              amount: Number(amount),
+              remark: document.getElementById("singleRemark").value,
+            },
+          ],
+        };
+
+        let isEditing = editingPayrollId !== null;
+        const url = isEditing
+          ? `/api/payroll/update/${editingPayrollId}`
+          : "/api/payroll/create";
+        const method = isEditing ? "PATCH" : "POST";
+
+        Swal.fire({
+          title: isEditing ? "Updating..." : "Processing...",
+          didOpen: () => Swal.showLoading(),
+        });
+        const res = await fetchAPI(url, method, payload);
+
+        if (res.success) {
+          editingPayrollId = null;
+          Swal.fire({ icon: "success", title: "ជោគជ័យ!", timer: 1500 });
+          goBack();
+        } else Swal.fire("Error", res.message, "error");
+      }
+
+      async function confirmBulk() {
+        const processType = document.getElementById("bulkProcessType").value;
+
+        // 🔥 ការពារសុវត្ថិភាព មិនទាញយកទិន្នន័យពី DOM ទេ គឺយកពី RAM ផ្ទាល់
+        const totalAmt = currentBulkRecords.reduce(
+          (sum, r) => sum + (Number(r.amount) || 0),
+          0,
+        );
+
+        const payload = {
+          type: "bulk",
+          name: `Bulk Transfer - ${currentBulkRecords.length} records`,
+          sourceAccount: document.getElementById("bulkSourceAcc").value,
+          totalAmount: totalAmt, // ប្រើការគណនាពី RAM
+          frequency:
+            processType === "now"
+              ? "once"
+              : document.getElementById("sharedFreq").value,
+          scheduleDetails: processType === "now" ? {} : getScheduleDetails(),
+          processNow: processType === "now",
+          recipients: currentBulkRecords,
+        };
+
+        Swal.fire({
+          title: "Processing Bulk...",
+          didOpen: () => Swal.showLoading(),
+        });
+        const res = await fetchAPI("/api/payroll/create", "POST", payload);
+
+        if (res.success)
+          Swal.fire({
+            title: "Success",
+            text: res.message,
+            icon: "success",
+            confirmButtonColor: "#004d40",
+            customClass: { popup: "premium-swal" },
+          }).then(() => location.reload());
+        else Swal.fire("Error", res.message, "error");
+      }
+
+      // === 9. SCHEDULE UI HELPERS ===
+      function updateFreqUI() {
+        const val = document.getElementById("sharedFreq").value;
+        document
+          .querySelectorAll(".dynamic-freq-box")
+          .forEach((box) => box.classList.remove("active"));
+        document.getElementById(`freq-${val}`).classList.add("active");
+        document.getElementById("validityBox").style.display =
+          val === "once" ? "none" : "block";
+      }
+
+      function toggleBulkSchedule() {
+        const type = document.getElementById("bulkProcessType").value;
+        const wrapper = document.getElementById("bulkScheduleWrapper");
+        const sharedUI = document.getElementById("sharedScheduleUI");
+        if (type === "schedule") {
+          wrapper.appendChild(sharedUI);
+          wrapper.style.display = "block";
+        } else {
+          wrapper.style.display = "none";
+          document.getElementById("singleScheduleTarget").appendChild(sharedUI);
+        }
+      }
+
+      function toggleDay(el) {
+        el.classList.toggle("active");
+      }
+      function updateSlider(sliderId, bubbleId) {
+        const slider = document.getElementById(sliderId);
+        const bubble = document.getElementById(bubbleId);
+        bubble.innerText = `ទី ${slider.value}`;
+        const min = slider.min ? parseFloat(slider.min) : 1;
+        const max = slider.max ? parseFloat(slider.max) : 31;
+        const percent = ((slider.value - min) / (max - min)) * 100;
+        bubble.style.left = `calc(${percent}% + (${8 - percent * 0.15}px))`;
+      }
+
+      function getScheduleDetails() {
+        const freq = document.getElementById("sharedFreq").value;
+        let details = {};
+        if (freq === "once") {
+          details.date = document.getElementById("schedDate").value;
+          details.time = document.getElementById("schedTime").value;
+        } else if (freq === "weekly") {
+          let selectedDays = [];
+          document
+            .querySelectorAll("#weeklyDays .day-circle.active")
+            .forEach((el) => selectedDays.push(el.getAttribute("data-val")));
+          details.daysOfWeek = selectedDays;
+          details.time = document.getElementById("weeklyTime").value;
+        } else if (freq === "monthly") {
+          details.dayOfMonth = document.getElementById("monthSlider").value;
+          details.time = document.getElementById("monthlyTime").value;
+        } else if (freq === "yearly") {
+          details.month = document.getElementById("yearMonth").value;
+          details.dayOfMonth = document.getElementById("yearSlider").value;
+          details.time = document.getElementById("yearlyTime").value;
+        }
+        details.startDate = document.getElementById("startDate").value;
+        details.endDate = document.getElementById("endDate").value;
+        return details;
+      }
+
+      // === 10. MODAL HANDLING & HISTORY ===
+      function openUploadOptionsModal() {
+        openModal("uploadOptionsModal");
+      }
+      function openTplListForBulk() {
+        closeModal("uploadOptionsModal");
+        renderTemplateList(true);
+        openModal("tplListModal");
+      }
+      function triggerComputerUpload() {
+        closeModal("uploadOptionsModal");
+        document.getElementById("realFileInput").click();
+      }
+      function openTplListModal(isForBulk) {
+        closeModal("uploadOptionsModal");
+        renderTemplateList(isForBulk);
+        openModal("tplListModal");
+      }
+
+      function renderTemplateList(isForBulk) {
+        const list = document.getElementById("tplListContainer");
+        list.innerHTML = "";
+        if (savedTemplates.length === 0) {
+          list.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.85rem;">គ្មានឯកសារនៅឡើយទេ (No Templates)</p>`;
+          return;
+        }
+
+        let htmlStr = "";
+        savedTemplates.forEach((t) => {
+          const action = isForBulk
+            ? `loadToReview('${t._id}')`
+            : `loadToSheet('${t._id}')`;
+          htmlStr += `
+            <div class="tpl-item">
+              <div style="flex:1; cursor:pointer;" onclick="${action}">
+                <h4 style="margin:0;" class="dark-text-white">${escapeHTML(t.name)}</h4>
+                <p style="margin:3px 0 0; font-size:0.75rem; color:#64748b;">${t.recipients.length} Records</p>
+              </div>
+              <div class="tpl-actions" style="display:flex; align-items:center; gap:8px;">
+                <button class="btn-outline" style="margin:0; padding:6px 12px; width:auto;" onclick="${action}">Load</button>
+                <button onclick="deleteTemplateItem('${t._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>`;
+        });
+        list.innerHTML = htmlStr;
+      }
+
+      function loadToReview(id) {
+        closeModal("tplListModal");
+        const tpl = savedTemplates.find((x) => x._id === id);
+        verifyAndRenderReviewTable(tpl.recipients);
+      }
+
+      function loadToSheet(id) {
+        closeModal("tplListModal");
+        const tpl = savedTemplates.find((x) => x._id === id);
+        const nameInput = document.getElementById("tplNameInput");
+        nameInput.value = tpl.name;
+        nameInput.setAttribute("data-tpl-id", tpl._id);
+        const tbody = document.getElementById("sheetBody");
+
+        let htmlStr = "";
+        tpl.recipients.forEach((r) => {
+          const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
+          htmlStr += `<tr>
+            <td><input type="number" class="sheet-input" value="${escapeHTML(r.account)}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
+            <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name)}" readonly style="color: #00b894; font-weight: bold;"></td>
+            <td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount))}"></td>
+            <td><input type="text" class="sheet-input" value="${escapeHTML(r.remark)}"></td>
+            <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
+          </tr>`;
+        });
+        tbody.innerHTML = htmlStr;
+      }
+
       async function showHistory() {
         switchState("state-history", "Payout History");
-
         const container = document.getElementById("historyListContainer");
         container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</p>`;
-
         const data = await fetchAPI("/api/payroll/history");
         if (data.success && data.data) {
           allHistoryRecords = data.data;
           renderHistoryList(allHistoryRecords);
-        } else {
+        } else
           container.innerHTML = `<p style="text-align:center; color:#ef4444; margin-top:30px;">បរាជ័យក្នុងការទាញយកប្រវត្តិ!</p>`;
-        }
       }
 
-      // បង្ហាញបញ្ជី History ជា Cards
-      // បង្ហាញបញ្ជី History ជា Cards (ព្រមទាំងដាក់ Action Buttons តាម Status)
       function renderHistoryList(records) {
         const container = document.getElementById("historyListContainer");
-        container.innerHTML = "";
 
         if (records.length === 0) {
           container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;">មិនទាន់មានប្រវត្តិការទូទាត់នៅឡើយទេ</p>`;
           return;
         }
 
+        let htmlStr = "";
         records.forEach((h) => {
-          let statusBadge = "";
-          let actionButtons = "";
-
-          // ១. កំណត់ Badge និង Buttons ទៅតាម Status
+          let statusBadge = "",
+            actionButtons = "";
           if (h.status === "completed") {
             statusBadge = `<span style="background:#d1fae5; color:#065f46; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Completed</span>`;
-            actionButtons = `
-              <button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ធ្វើការទូទាត់ម្តងទៀត">
-                <i class="fa-solid fa-rotate-right"></i> Re-pay
-              </button>
-              <button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="លុបចេញពីប្រវត្តិ">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            `;
+            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ធ្វើការទូទាត់ម្តងទៀត"><i class="fa-solid fa-rotate-right"></i> Re-pay</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else if (h.status === "failed") {
             statusBadge = `<span style="background:#fee2e2; color:#991b1b; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Failed</span>`;
-            actionButtons = `
-              <button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ព្យាយាមម្តងទៀត">
-                <i class="fa-solid fa-rotate-right"></i> Retry
-              </button>
-              <button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="លុបចេញពីប្រវត្តិ">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            `;
+            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ព្យាយាមម្តងទៀត"><i class="fa-solid fa-rotate-right"></i> Retry</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else if (h.status === "paused") {
             statusBadge = `<span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Paused</span>`;
-            // 🔥 បើ Paused: មានប៊ូតុង Edit, Resume, Delete
-            actionButtons = `
-              <button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="កែសម្រួល">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'active')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="បន្តដំណើរការ">
-                <i class="fa-solid fa-play"></i>
-              </button>
-              <button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="លុបចោល">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            `;
+            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'active')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-play"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else {
-            // Active
             statusBadge = `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Active</span>`;
-            // 🔥 បើ Active: មានប៊ូតុង Edit, Pause, Delete
-            actionButtons = `
-              <button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="កែសម្រួល">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'paused')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ផ្អាក់">
-                <i class="fa-solid fa-pause"></i>
-              </button>
-              <button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="លុបចោល">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            `;
+            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'paused')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pause"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           }
-
           const dateStr = new Date(h.createdAt).toLocaleString("en-US", {
             timeZone: "Asia/Phnom_Penh",
           });
-
-          container.innerHTML += `
+          htmlStr += `
             <div class="card-section" style="cursor:pointer; transition:0.2s; margin-bottom:12px;" onclick="openHistoryDetail('${h._id}')">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                <h4 style="margin:0; font-size:1rem; color:#1e293b;" class="dark-text-white">${h.name}</h4>
-                ${statusBadge}
+                <h4 style="margin:0; font-size:1rem; color:#1e293b;" class="dark-text-white">${escapeHTML(h.name)}</h4>${statusBadge}
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b;">
-                <span><i class="fa-solid fa-users"></i> ${h.recipients.length} នាក់</span>
-                <span>${dateStr}</span>
+                <span><i class="fa-solid fa-users"></i> ${h.recipients.length} នាក់</span><span>${dateStr}</span>
               </div>
               <hr style="border:0; border-top:1px solid #f1f5f9; margin:10px 0;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <span style="font-size:0.8rem; color:#64748b;">ទឹកប្រាក់សរុប:</span>
-                  <span style="color:#004d40; font-size:1.05rem; font-weight:bold; margin-left:5px;">$${h.totalAmount.toFixed(2)}</span>
-                </div>
-                <div style="display:flex; gap:6px;">
-                  ${actionButtons}
-                </div>
+                <div><span style="font-size:0.8rem; color:#64748b;">ទឹកប្រាក់សរុប:</span><span style="color:#004d40; font-size:1.05rem; font-weight:bold; margin-left:5px;">$${h.totalAmount.toFixed(2)}</span></div>
+                <div style="display:flex; gap:6px;">${actionButtons}</div>
               </div>
-            </div>
-          `;
+            </div>`;
         });
+        container.innerHTML = htmlStr;
       }
 
-      // មុខងារស្វែងរកក្នុង History
       function filterHistory() {
         const keyword = document
           .getElementById("historySearch")
@@ -2456,99 +2348,58 @@
             h.recipients.some(
               (r) =>
                 r.account.includes(keyword) ||
-                r.name.toLowerCase().includes(keyword),
+                (r.name && r.name.toLowerCase().includes(keyword)),
             ),
         );
         renderHistoryList(filtered);
       }
 
-      // បើក Modal មើលព័ត៌មានលម្អិត (បង្ហាញកាលបរិច្ឆេទ និងម៉ោងដែលបានកំណត់ទុក)
       function openHistoryDetail(id) {
         const h = allHistoryRecords.find((x) => x._id === id);
         if (!h) return;
-
         const content = document.getElementById("historyDetailContent");
-
-        // បើកុងប្រភពបង្ហាញជា Main Account ស្អាតៗ
         let sourceDisplay = h.sourceAccount;
         if (sourceDisplay === "MAIN_USD")
           sourceDisplay = `Main Account ($) - ${user.accountNumber}`;
         else if (sourceDisplay === "MAIN_KHR")
           sourceDisplay = `Main Account (៛) - ${user.accountNumberKHR || "N/A"}`;
 
-        // កាលបរិច្ឆេទបង្កើត (Created At)
         const createdDate = new Date(h.createdAt).toLocaleString("en-US", {
           timeZone: "Asia/Phnom_Penh",
         });
-
-        // 🔥 ទាញយកកាលបរិច្ឆេទ និងម៉ោងដែលបានកំណត់ទុកក្នុង scheduleDetails មកបង្ហាញ
         let scheduledExecutionText = "មិនមានកំណត់";
         if (h.scheduleDetails) {
           const sd = h.scheduleDetails;
-          if (h.frequency === "once" && sd.date) {
+          if (h.frequency === "once" && sd.date)
             scheduledExecutionText = `${sd.date} ${sd.time ? "ម៉ោង " + sd.time : ""}`;
-          } else if (h.frequency === "monthly" && sd.dayOfMonth) {
+          else if (h.frequency === "monthly" && sd.dayOfMonth)
             scheduledExecutionText = `រៀងរាល់ថ្ងៃទី ${sd.dayOfMonth} នៃខែ${sd.time ? " ម៉ោង " + sd.time : ""}`;
-          } else if (h.frequency === "weekly" && sd.daysOfWeek) {
+          else if (h.frequency === "weekly" && sd.daysOfWeek)
             scheduledExecutionText = `រៀងរាល់សប្តាហ៍${sd.time ? " ម៉ោង " + sd.time : ""}`;
-          } else if (h.frequency === "yearly") {
+          else if (h.frequency === "yearly")
             scheduledExecutionText = `រៀងរាល់ឆ្នាំ${sd.time ? " ម៉ោង " + sd.time : ""}`;
-          } else if (sd.date) {
+          else if (sd.date)
             scheduledExecutionText = `${sd.date} ${sd.time || ""}`;
-          }
         }
-
-        // បើ Status ជា Completed ឬ Failed អាចបង្ហាញថ្ងៃកាត់លុយពិតប្រាកដបន្ថែម
         if (
           (h.status === "completed" || h.status === "failed") &&
           h.lastExecutedAt
         ) {
           scheduledExecutionText = new Date(h.lastExecutedAt).toLocaleString(
             "en-US",
-            {
-              timeZone: "Asia/Phnom_Penh",
-            },
+            { timeZone: "Asia/Phnom_Penh" },
           );
         }
 
         let recipientsHtml = "";
         h.recipients.forEach((r) => {
-          recipientsHtml += `
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.85rem;">
-              <div>
-                <strong>${r.name || "N/A"}</strong><br>
-                <span style="color:#64748b; font-size:0.75rem;">${r.account}</span>
-              </div>
-              <div style="text-align:right;">
-                <span style="font-weight:bold; color:#004d40;">$${r.amount}</span><br>
-                <span style="color:#64748b; font-size:0.75rem;">${r.remark || "-"}</span>
-              </div>
-            </div>
-          `;
+          recipientsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.85rem;"><div><strong>${escapeHTML(r.name) || "N/A"}</strong><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.account)}</span></div><div style="text-align:right;"><span style="font-weight:bold; color:#004d40;">$${r.amount}</span><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.remark) || "-"}</span></div></div>`;
         });
 
-        content.innerHTML = `
-          <div style="margin-bottom:15px; font-size:0.9rem;">
-            <p style="margin:5px 0;"><strong>ឈ្មោះ:</strong> ${h.name}</p>
-            <p style="margin:5px 0;"><strong>ប្រភពទឹកប្រាក់:</strong> ${sourceDisplay}</p>
-            <p style="margin:5px 0;"><strong>កាលបរិច្ឆេទបង្កើត:</strong> ${createdDate}</p>
-            <p style="margin:5px 0; color: #004d40;"><strong>កាលបរិច្ឆេទកាត់លុយ:</strong> ${scheduledExecutionText}</p>
-            <p style="margin:5px 0;"><strong>ស្ថានភាព:</strong> ${h.status.toUpperCase()}</p>
-          </div>
-          <h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#64748b;">បញ្ជីឈ្មោះអ្នកទទួល (${h.recipients.length} នាក់):</h4>
-          <div style="max-height:200px; overflow-y:auto; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">
-            ${recipientsHtml}
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:bold; font-size:1.05rem;">
-            <span>ទឹកប្រាក់សរុប:</span>
-            <span style="color:#004d40;">$${h.totalAmount.toFixed(2)}</span>
-          </div>
-        `;
-
+        content.innerHTML = `<div style="margin-bottom:15px; font-size:0.9rem;"><p style="margin:5px 0;"><strong>ឈ្មោះ:</strong> ${escapeHTML(h.name)}</p><p style="margin:5px 0;"><strong>ប្រភពទឹកប្រាក់:</strong> ${escapeHTML(sourceDisplay)}</p><p style="margin:5px 0;"><strong>កាលបរិច្ឆេទបង្កើត:</strong> ${createdDate}</p><p style="margin:5px 0; color: #004d40;"><strong>កាលបរិច្ឆេទកាត់លុយ:</strong> ${scheduledExecutionText}</p><p style="margin:5px 0;"><strong>ស្ថានភាព:</strong> ${h.status.toUpperCase()}</p></div><h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#64748b;">បញ្ជីឈ្មោះអ្នកទទួល (${h.recipients.length} នាក់):</h4><div style="max-height:200px; overflow-y:auto; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">${recipientsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:bold; font-size:1.05rem;"><span>ទឹកប្រាក់សរុប:</span><span style="color:#004d40;">$${h.totalAmount.toFixed(2)}</span></div>`;
         openModal("historyDetailModal");
       }
 
-      // មុខងារ ផ្អាក់ (Pause) ឬ បន្ត (Resume) កាលវិភាគ
       async function togglePauseSchedule(id, newStatus) {
         const res = await fetchAPI(`/api/payroll/${id}/status`, "PATCH", {
           status: newStatus,
@@ -2565,13 +2416,10 @@
             showConfirmButton: false,
             timer: 1500,
           });
-          showHistory(); // Refresh ព័ត៌មានថ្មី
-        } else {
-          Swal.fire("Error", res.message, "error");
-        }
+          showHistory();
+        } else Swal.fire("Error", res.message, "error");
       }
 
-      // មុខងារ លុបកាលវិភាគ ឬ ប្រវត្តិចេញពីប្រព័ន្ធ
       async function deleteHistoryItem(id) {
         const confirm = await Swal.fire({
           title: "តើអ្នកពិតជាចង់លុបមែនទេ?",
@@ -2582,7 +2430,6 @@
           confirmButtonText: "យល់ព្រមលុប",
           cancelButtonText: "បោះបង់",
         });
-
         if (confirm.isConfirmed) {
           const res = await fetchAPI(`/api/payroll/${id}`, "DELETE");
           if (res.success) {
@@ -2595,35 +2442,27 @@
               timer: 1500,
             });
             showHistory();
-          } else {
-            Swal.fire("Error", res.message, "error");
-          }
+          } else Swal.fire("Error", res.message, "error");
         }
       }
 
-      // មុខងារធ្វើម្តងទៀត (Retry / Re-pay) ឱ្យរត់ទៅ Single ឬ Bulk តាមប្រភេទដើម
       function retryPayout(id) {
         const h = allHistoryRecords.find((x) => x._id === id);
         if (!h) return;
-
-        // ចំណាំ៖ ការ Re-pay គឺបង្កើតថ្មី ដូច្នេះយើងត្រូវ Clear editingPayrollId ចោល
         editingPayrollId = null;
-
         if (h.type === "single") {
-          // ទៅកាន់ Single Payout
           switchState("state-single", "Single Payout (Re-pay)");
-
           document.getElementById("singleAccNo").value =
             h.recipients[0].account;
           document.getElementById("singleAmount").value =
             h.recipients[0].amount;
           document.getElementById("singleRemark").value =
             h.recipients[0].remark || "";
-
-          const accInput = document.getElementById("singleAccNo");
-          fetchAccountName(accInput, "singleNameDisplay", "fetchedNameText");
-
-          // កំណត់ Schedule ដើម
+          fetchAccountName(
+            document.getElementById("singleAccNo"),
+            "singleNameDisplay",
+            "fetchedNameText",
+          );
           document.getElementById("sharedFreq").value = h.frequency || "once";
           updateFreqUI();
           if (h.scheduleDetails && h.scheduleDetails.date) {
@@ -2631,7 +2470,6 @@
             document.getElementById("schedTime").value =
               h.scheduleDetails.time || "";
           }
-
           Swal.fire({
             toast: true,
             position: "top",
@@ -2641,17 +2479,12 @@
             timer: 2000,
           });
         } else {
-          // ទៅកាន់ Bulk Payout (Review Table)
           switchState("state-bulk", "Bulk Payout (Re-pay)");
-
           document.getElementById("bulkSourceAcc").value =
             h.sourceAccount || "MAIN_USD";
           document.getElementById("bulkProcessType").value = "now";
           toggleBulkSchedule();
-
-          // ផ្ទៀងផ្ទាត់ និងបង្ហាញតារាង Review
           verifyAndRenderReviewTable(h.recipients);
-
           Swal.fire({
             toast: true,
             position: "top",
@@ -2663,7 +2496,6 @@
         }
       }
 
-      // មុខងារលុប Saved Template ជាមួយ SweetAlert2 សួរបញ្ជាក់
       async function deleteTemplateItem(id) {
         const confirm = await Swal.fire({
           title: "តើអ្នកពិតជាចង់លុប Template នេះមែនទេ?",
@@ -2677,7 +2509,10 @@
         });
 
         if (confirm.isConfirmed) {
-          Swal.fire({ title: "กำลังลบ...", didOpen: () => Swal.showLoading() });
+          Swal.fire({
+            title: "កំពុងលុប...",
+            didOpen: () => Swal.showLoading(),
+          });
           const res = await fetchAPI(`/api/payroll/templates/${id}`, "DELETE");
 
           if (res.success) {
@@ -2689,23 +2524,19 @@
               showConfirmButton: false,
               timer: 1500,
             });
-            await fetchTemplatesFromDB(); // ទាញយកបញ្ជី Templates មកថ្មី
-            renderTemplateList(currentState === "state-bulk"); // Refresh បង្ហាញក្នុង Modal ឡើងវិញ
+            await fetchTemplatesFromDB();
+            renderTemplateList(currentState === "state-bulk");
           } else {
             Swal.fire("Error", res.message, "error");
           }
         }
       }
 
-      let editingPayrollId = null; // ទុកចាំ ID ពេលកំពុង Edit
-
       function editPayout(id) {
         const h = allHistoryRecords.find((x) => x._id === id);
         if (!h) return;
 
-        editingPayrollId = id; // ចាំ ID ដើម្បីពេល Save គឺ Update
-
-        // ១. បើក Form តាម Type ជាមុនសិន ដើម្បីឱ្យ DOM elements បង្ហាញឡើងមកទើបយើងអាចញាត់តម្លៃចូលបាន
+        editingPayrollId = id;
         if (h.type === "single") {
           switchState("state-single", "Edit Single Payout");
 
@@ -2739,7 +2570,6 @@
           verifyAndRenderReviewTable(h.recipients);
         }
 
-        // ២. បំពេញ Schedule Details (Frequency និងម៉ោង) ក្រោយពេលប្តូរ State រួចរាល់
         if (h.frequency && h.frequency !== "manual") {
           const freqSelect = document.getElementById("sharedFreq");
           if (freqSelect) {

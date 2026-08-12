@@ -1,3 +1,4 @@
+// services/telegramBot.js
 const TelegramBot = require("node-telegram-bot-api");
 const User = require("../models/User");
 const Merchant = require("../models/Merchant");
@@ -6,6 +7,13 @@ require("dotenv").config();
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
+
+// 🔥 ការពារកុំឱ្យ Server គាំង ពេលមានបញ្ហា Polling (ឧទាហរណ៍ ដើរម៉ាស៊ីន២)
+bot.on("polling_error", (error) => {
+  console.log(
+    `⚠️ [Telegram Polling Warning]: ${error.code} - ${error.message}`,
+  );
+});
 
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
@@ -20,9 +28,9 @@ bot.on("message", async (msg) => {
       if (user) {
         user.telegramChatId = chatId.toString();
         user.linkCode = null;
-        await user.save(); // បើ Save ជោគជ័យ
+        await user.save();
 
-        bot.sendMessage(
+        await bot.sendMessage(
           chatId,
           `🎉 អបអរសាទរ! គណនី U-Pay (<b>${user.username}</b>) ត្រូវបានភ្ជាប់ជោគជ័យ!`,
           { parse_mode: "HTML" },
@@ -31,8 +39,7 @@ bot.on("message", async (msg) => {
           `✅ Linked User: Account: ${user.username}, Group: ${chatId}`,
         );
 
-        // 🔥 ថែមថ្មី៖ បាញ់សញ្ញា Socket ទៅកាន់ Frontend របស់ User ឱ្យលោតផ្ទាំង Success ភ្លាមៗ
-        const io = global.io; // ឬទាញតាមរយៈ app instance ប្រសិនបើបង configure ទុក (ឬ global.io)
+        const io = global.io;
         if (io) {
           io.to(user.username).emit("telegramLinked", {
             success: true,
@@ -40,7 +47,6 @@ bot.on("message", async (msg) => {
             message: "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ Telegram រួចរាល់!",
           });
         }
-
         return;
       }
 
@@ -52,7 +58,7 @@ bot.on("message", async (msg) => {
         const data = pendingMerchCodes[text];
 
         if (data.expiresAt < Date.now()) {
-          bot.sendMessage(
+          await bot.sendMessage(
             chatId,
             "❌ លេខកូដនេះហួសកំណត់ ៥នាទីហើយ! សូមទាញយកលេខកូដថ្មីពី App។",
           );
@@ -68,24 +74,28 @@ bot.on("message", async (msg) => {
 
         if (merchant) {
           const successMsg = `✅ <b>ការភ្ជាប់ជោគជ័យ! (Linked Successfully)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nចាប់ពីពេលនេះតទៅ រាល់ពេលមានអតិថិជនទូទាត់ប្រាក់ចូលហាងនេះ ប្រព័ន្ធនឹងលោតសារជូនដំណឹងចូលមកទីនេះភ្លាមៗ។ 🚀`;
-          bot.sendMessage(chatId, successMsg, { parse_mode: "HTML" });
+          await bot.sendMessage(chatId, successMsg, { parse_mode: "HTML" });
           console.log(`✅ Linked Merchant: ${merchant.name}, Group: ${chatId}`);
           delete pendingMerchCodes[text];
         }
         return;
       }
     } catch (err) {
-      console.error("Telegram Binding Error:", err);
-      bot.sendMessage(
-        chatId,
-        "❌ មានបញ្ហាបច្ចេកទេសក្នុងការភ្ជាប់ សូមសាកល្បងម្តងទៀត។",
-      );
+      console.error("Telegram Binding Error:", err.message);
+      try {
+        await bot.sendMessage(
+          chatId,
+          "❌ មានបញ្ហាបច្ចេកទេសក្នុងការភ្ជាប់ សូមសាកល្បងម្តងទៀត។",
+        );
+      } catch (e) {
+        /* Ignore Error បើបាញ់សារអត់ទៅទៀត */
+      }
     }
   }
 });
 
 // ========================================================
-// មុខងារទី ១៖ បាញ់សារទៅ USER ធម្មតា ពេលមានលុយចូល (🔥 ថែមថ្មីវិញ)
+// មុខងារទី ១៖ បាញ់សារទៅ USER ធម្មតា ពេលមានលុយចូល
 // ========================================================
 bot.sendUserPaymentAlert = async (userId, paymentData) => {
   try {
@@ -105,10 +115,13 @@ bot.sendUserPaymentAlert = async (userId, paymentData) => {
 🕒 ម៉ោង៖ ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Phnom_Penh" })}
 ✅ <b>ស្ថានភាព៖ ជោគជ័យ</b>`;
 
-      bot.sendMessage(user.telegramChatId, alertMsg, { parse_mode: "HTML" });
+      // 🔥 ការពារកុំអោយគាំង បើ User Block Telegram Bot
+      await bot.sendMessage(user.telegramChatId, alertMsg, {
+        parse_mode: "HTML",
+      });
     }
   } catch (error) {
-    console.error("Failed to send user telegram alert:", error);
+    console.error("⚠️ Failed to send user telegram alert:", error.message);
   }
 };
 
@@ -134,12 +147,13 @@ bot.sendMerchantPaymentAlert = async (merchantId, paymentData) => {
 🕒 កាលបរិច្ឆេទ៖ ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Phnom_Penh" })}
 ✅ <b>ស្ថានភាព៖ ជោគជ័យ</b>`;
 
-      bot.sendMessage(merchant.telegramChatId, alertMsg, {
+      // 🔥 ការពារកុំអោយគាំង បើ Merchant Block Telegram Bot
+      await bot.sendMessage(merchant.telegramChatId, alertMsg, {
         parse_mode: "HTML",
       });
     }
   } catch (error) {
-    console.error("Failed to send merchant telegram alert:", error);
+    console.error("⚠️ Failed to send merchant telegram alert:", error.message);
   }
 };
 

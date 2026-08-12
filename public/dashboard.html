@@ -2163,7 +2163,7 @@
       }
 
       // ==========================================
-      // ១៧. គូរប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS) & ICON ក្មេង
+      // ១៧. គូរប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS) & ដាក់ ICON ថ្មីៗ
       // ==========================================
       function renderTransactionsInModal(currentUser, currency, accNum) {
         const list = document.getElementById("sheetTrxList");
@@ -2220,6 +2220,7 @@
             lastDateLabel = dateLabel;
           }
 
+          // កំណត់តម្លៃ Icon និង ពណ៌ដើម
           let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
           let bgClass = isIncome
             ? "bg-green"
@@ -2232,28 +2233,71 @@
               ? "text-orange"
               : "text-red";
 
-          // 🔥 ការកំណត់ Icon រូបក្មេង តាមការស្នើសុំ
-          if (isIncome && currentUser.role === "junior") {
-            // ពេលក្មេងទទួលបានលុយ
-            iconClass = "fa-child-reaching";
-          }
+          // 🔥 ការកំណត់ Icon ថ្មីផ្អែកលើប្រភេទ Transaction
+          const tType = (t.type || "").toLowerCase();
+          const tMethod = (t.trxMethod || "").toLowerCase();
+          const tSender = (t.senderName || "").toLowerCase();
 
-          // កំណត់ Icon ផ្សេងៗទៀត
-          let isMerchantTrx =
-            t.type === "Merchant Payment" ||
-            t.trxMethod === "Merchant Payment" ||
-            t.merchantId ||
-            t.receiverType === "Merchant";
-          if (isMerchantTrx) {
+          // ១. ដាក់ប្រាក់ (Cash Deposit)
+          if (
+            tType.includes("deposit") ||
+            tMethod.includes("cashier") ||
+            tSender.includes("deposit")
+          ) {
+            iconClass = "fa-hand-holding-dollar";
+          }
+          // ២. បើកប្រាក់ខែ (Auto Payout / Payroll)
+          else if (
+            tType.includes("payroll") ||
+            tMethod.includes("payout") ||
+            tMethod.includes("payroll")
+          ) {
+            iconClass = "fa-money-bill-transfer";
+          }
+          // ៣. រង្វាន់ & ប្រូម៉ូសិន (Promo Reward / Cashback)
+          else if (
+            tType.includes("promo") ||
+            tType.includes("cashback") ||
+            tSender.includes("promo") ||
+            tSender.includes("reward") ||
+            tType.includes("reward")
+          ) {
+            iconClass = "fa-sack-dollar";
+          }
+          // ៤. ទូទាត់ទំនិញ (Merchant / U-Mall / B2B)
+          else if (
+            tType.includes("merchant") ||
+            tMethod.includes("merchant") ||
+            tMethod.includes("b2b") ||
+            t.merchantId
+          ) {
             iconClass = "fa-store";
-          } else if (t.type && t.type.includes("U-Fund")) {
-            iconClass = "fa-piggy-bank";
-          } else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received") {
-            iconClass = "fa-gift";
-          } else if (t.type === "Card Issuance Fee" || t.type.includes("Fee")) {
+          }
+          // ៥. ទូទាត់វិក្កយបត្រ (Bill Payment)
+          else if (tType.includes("bill") || tMethod.includes("bill")) {
             iconClass = "fa-file-invoice-dollar";
+          }
+          // ៦. សន្សំប្រាក់ (U-Fund / Savings)
+          else if (
+            tType.includes("u-fund") ||
+            tType.includes("saving") ||
+            tType.includes("fund")
+          ) {
+            iconClass = "fa-piggy-bank";
+          }
+          // ៧. អាំងប៉ាវ (E-Gift)
+          else if (tType.includes("e-gift") || tType.includes("gift")) {
+            iconClass = "fa-gift";
+          }
+          // ៨. កាត់សេវា (Fees)
+          else if (tType.includes("fee")) {
+            iconClass = "fa-receipt";
             bgClass = "bg-orange";
             textClass = "text-orange";
+          }
+          // ៩. គណនីកូនក្មេង (Junior Receive)
+          else if (isIncome && currentUser.role === "junior") {
+            iconClass = "fa-child-reaching";
           }
 
           let title = isIncome
