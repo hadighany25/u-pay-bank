@@ -24,6 +24,9 @@
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
 
+    <!-- 🔥 ភ្ជាប់ PIN MODULE ថ្មី -->
+    <script src="js/pin.js"></script>
+
     <style>
       :root {
         --primary: #004d40;
@@ -325,7 +328,7 @@
           </div>
         </div>
 
-        <!-- 🔥 ថែម Dropdown ជ្រើសរើសគណនី -->
+        <!-- 🔥 Dropdown ជ្រើសរើសគណនី -->
         <div class="input-group">
           <label class="kh-text">គណនីប្រភព (Source Account)</label>
           <select
@@ -400,7 +403,7 @@
             />
           </div>
 
-          <!-- 🔥 កន្លែងបង្ហាញអត្រាប្តូរប្រាក់ (លាក់ទុកតាមធម្មតា) -->
+          <!-- កន្លែងបង្ហាញអត្រាប្តូរប្រាក់ -->
           <div
             id="exchangePreview"
             class="kh-text"
@@ -458,7 +461,6 @@
       let selectedCurrency = "USD";
       let selectedTheme = "lunar";
       let currentUser = null;
-      // 🔥 បង្កើតអថេរទុកអត្រាប្តូរប្រាក់ដែលទាញបានពី Database
       let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
 
       document.addEventListener("DOMContentLoaded", async () => {
@@ -467,17 +469,13 @@
 
         if (sessionUser && token) {
           currentUser = JSON.parse(sessionUser);
-
-          // 🔥 ទាញយក FX Rates ពិតប្រាកដពី Server (ដូច Transfer)
           await fetchFXRates();
-
           populateSourceAccounts();
         } else {
           window.location.href = "index.html";
           return;
         }
 
-        // Dark Mode Setup
         const userThemeKey = "darkMode_" + currentUser.username;
         if (
           localStorage.getItem("theme") === "dark" ||
@@ -489,31 +487,26 @@
         if (typeof applyLanguage === "function") applyLanguage();
       });
 
-      // បញ្ចូលគណនីទាំងអស់ទៅក្នុង Dropdown
       function populateSourceAccounts() {
         const select = document.getElementById("sourceAccountSelect");
         select.innerHTML = "";
         let lang = localStorage.getItem("lang") || "en";
 
-        // កុង Main
         const usdLabel = lang === "kh" ? "គណនី Main ($)" : "Main Account ($)";
         const khrLabel = lang === "kh" ? "គណនី Main (៛)" : "Main Account (៛)";
 
         select.innerHTML += `<option value="MAIN_USD" data-currency="USD" data-bal="${currentUser.balance}">${usdLabel} - ${currentUser.accountNumber}</option>`;
         select.innerHTML += `<option value="MAIN_KHR" data-currency="KHR" data-bal="${currentUser.balanceKHR || 0}">${khrLabel} - ${currentUser.accountNumberKHR || "N/A"}</option>`;
 
-        // កុង Sub-Accounts
         if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
           currentUser.subAccounts.forEach((sub) => {
             const sym = sub.currency === "USD" ? "$" : "៛";
             select.innerHTML += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-bal="${sub.balance}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
           });
         }
-
         handleAccountChange();
       }
 
-      // ដូរ Theme ពណ៌ស្រោមអាំងប៉ាវ
       function selectTheme(element, theme) {
         document
           .querySelectorAll(".theme-card")
@@ -538,7 +531,6 @@
         }
       }
 
-      // ដូររូបិយប័ណ្ណកាដូ
       function setCurrency(cur) {
         selectedCurrency = cur;
         document
@@ -551,11 +543,9 @@
           cur === "USD" ? "$" : "៛";
         document.getElementById("amountInput").placeholder =
           cur === "USD" ? "0.00" : "0";
-
         calculateExchangePreview();
       }
 
-      // អាប់ដេតសមតុល្យពេលប្តូរគណនី
       function handleAccountChange() {
         const select = document.getElementById("sourceAccountSelect");
         if (!select || select.options.length === 0) return;
@@ -569,11 +559,9 @@
             ? `$${bal.toFixed(2)}`
             : `៛${bal.toLocaleString("en-US")}`;
         document.getElementById("showBal").innerText = displayBal;
-
         calculateExchangePreview();
       }
 
-      // 🔥 មុខងារទាញអត្រាប្តូរប្រាក់ពី Database (ដូច Transfer)
       async function fetchFXRates() {
         try {
           const res = await fetch("/api/fx/rates", {
@@ -584,8 +572,6 @@
           const data = await res.json();
           if (data.success) {
             currentFXRates = data.rates;
-            console.log("FX Rates Loaded:", currentFXRates);
-            // គណនាឡើងវិញក្រោយពេលទាញបានអត្រាពី DB
             calculateExchangePreview();
           }
         } catch (e) {
@@ -593,7 +579,6 @@
         }
       }
 
-      // 🔥 កែសម្រួលមុខងារគណនាអត្រាប្តូរប្រាក់ឱ្យដើរដូច Transfer
       function calculateExchangePreview() {
         const amount = parseFloat(document.getElementById("amountInput").value);
         const select = document.getElementById("sourceAccountSelect");
@@ -604,7 +589,6 @@
         const fxText = document.getElementById("fxText");
         let lang = localStorage.getItem("lang") || "en";
 
-        // បើមិនមាន amount ឬ Currency ដូចគ្នា គឺមិនបង្ហាញ
         if (!amount || amount <= 0 || sourceCur === selectedCurrency) {
           previewBox.style.display = "none";
           return;
@@ -614,7 +598,6 @@
         let result = 0;
         let rateDisplay = "";
 
-        // គណនាតាមអត្រាដែលទាញបានពី DB (currentFXRates)
         if (sourceCur === "USD" && selectedCurrency === "KHR") {
           result = amount * currentFXRates.usdToKhrBuy;
           rateDisplay = `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
@@ -629,8 +612,8 @@
             : `Rate: ${rateDisplay} | Deducted Amount: ${result.toLocaleString("en-US")}`;
       }
 
-      // ដំណើរការផ្ញើ
-      async function processEgift() {
+      // 🔥 មុខងារផ្ញើអាំងប៉ាវដែលប្រើ PIN MODULE
+      function processEgift() {
         const receiver = document.getElementById("receiverInput").value.trim();
         const amount = parseFloat(document.getElementById("amountInput").value);
         const message =
@@ -648,7 +631,6 @@
         if (!amount || amount <= 0)
           return showToast("សូមបញ្ចូលទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!", "error");
 
-        // គណនាលុយដែលត្រូវកាត់ពិតប្រាកដ
         let requiredBal = amount;
         if (sourceCur !== selectedCurrency) {
           if (sourceCur === "USD" && selectedCurrency === "KHR")
@@ -663,76 +645,72 @@
             "error",
           );
 
-        // សុំ PIN Code កាត់លុយ
-        const { value: pin } = await Swal.fire({
-          title: '<span class="kh-text">បញ្ចូលលេខសម្ងាត់ PIN</span>',
-          input: "password",
-          inputAttributes: {
-            maxlength: 4,
-            inputmode: "numeric",
-            style:
-              "text-align: center; letter-spacing: 10px; font-size: 1.5rem;",
-          },
-          showCancelButton: true,
-          confirmButtonText: "បញ្ជាក់",
-          confirmButtonColor: "#0f172a",
-          customClass: { popup: "modal-radius" },
-        });
+        // 🔥 ហៅផ្ទាំង PIN ពី pin.js មកប្រើ
+        let displayAmt =
+          selectedCurrency === "USD"
+            ? `$${amount.toFixed(2)}`
+            : `${amount.toLocaleString()} ៛`;
 
-        if (pin) {
-          Swal.fire({
-            title: "កំពុងវេចខ្ចប់កាដូ...",
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading(),
-          });
-
-          try {
-            const response = await fetch("/api/egift/send", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
-              },
-              body: JSON.stringify({
-                senderUsername: currentUser.username,
-                senderAccount: senderAccount, // បាញ់លេខគណនីទៅ Backend
-                receiverInput: receiver,
-                amount: amount,
-                currency: selectedCurrency,
-                theme: selectedTheme,
-                message: message,
-                pin: pin,
-              }),
+        requestPinVerification(
+          "បញ្ចូលលេខសម្ងាត់ PIN",
+          `បញ្ជាក់ការផ្ញើអាំងប៉ាវ ${displayAmt} ទៅកាន់ ${receiver}`,
+          async function () {
+            // 🔥 បន្ទាប់ពីអតិថិជនវាយ PIN ត្រូវ វាទម្លាក់កូដមកទីនេះ
+            Swal.fire({
+              title: "កំពុងវេចខ្ចប់កាដូ...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
             });
 
-            const data = await response.json();
+            try {
+              // ចាប់យកលេខ PIN លាក់ដែលបានវាយបញ្ចូលក្នុង Modal
+              const pinCode = document.getElementById("hiddenGlobalPin").value;
 
-            if (data.success) {
-              // កាត់លុយក្នុង RAM បណ្តោះអាសន្ន
-              if (senderAccount === "MAIN_USD")
-                currentUser.balance = data.newBalance;
-              else if (senderAccount === "MAIN_KHR")
-                currentUser.balanceKHR = data.newBalance;
-              else {
-                let subIdx = currentUser.subAccounts.findIndex(
-                  (a) => a.accountNumber === senderAccount,
-                );
-                if (subIdx !== -1)
-                  currentUser.subAccounts[subIdx].balance = data.newBalance;
+              const response = await fetch("/api/egift/send", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${sessionStorage.getItem("userToken")}`,
+                },
+                body: JSON.stringify({
+                  senderUsername: currentUser.username,
+                  senderAccount: senderAccount,
+                  receiverInput: receiver,
+                  amount: amount,
+                  currency: selectedCurrency,
+                  theme: selectedTheme,
+                  message: message,
+                  pin: pinCode, // ប្រើ PIN ដែលវាយ
+                }),
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                if (senderAccount === "MAIN_USD")
+                  currentUser.balance = data.newBalance;
+                else if (senderAccount === "MAIN_KHR")
+                  currentUser.balanceKHR = data.newBalance;
+                else {
+                  let subIdx = currentUser.subAccounts.findIndex(
+                    (a) => a.accountNumber === senderAccount,
+                  );
+                  if (subIdx !== -1)
+                    currentUser.subAccounts[subIdx].balance = data.newBalance;
+                }
+                sessionStorage.setItem("user", JSON.stringify(currentUser));
+
+                showSuccessAnimation(receiver, amount, message);
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
               }
-              sessionStorage.setItem("user", JSON.stringify(currentUser));
-
-              showSuccessAnimation(receiver, amount, message);
-            } else {
-              Swal.fire("បរាជ័យ", data.message, "error");
+            } catch (error) {
+              Swal.fire("Error", "មិនអាចតភ្ជាប់ទៅកាន់ Server បានទេ", "error");
             }
-          } catch (error) {
-            Swal.fire("Error", "មិនអាចតភ្ជាប់ទៅកាន់ Server បានទេ", "error");
-          }
-        }
+          },
+        );
       }
 
-      // Animation ជោគជ័យពេលផ្ញើចេញ
       function showSuccessAnimation(receiver, amount, message) {
         var duration = 3 * 1000;
         var end = Date.now() + duration;
@@ -751,9 +729,7 @@
             origin: { x: 1 },
             colors: ["#ff0000", "#ffd700"],
           });
-          if (Date.now() < end) {
-            requestAnimationFrame(frame);
-          }
+          if (Date.now() < end) requestAnimationFrame(frame);
         })();
 
         let curSym = selectedCurrency === "USD" ? "$" : "៛";

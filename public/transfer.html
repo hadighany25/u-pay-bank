@@ -16,6 +16,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="js/toast.js"></script>
+
+    <!-- 🔥 ភ្ជាប់ PIN MODULE នៅទីនេះ -->
+    <script src="js/pin.js"></script>
+
     <link rel="stylesheet" href="style.css" />
 
     <style>
@@ -722,6 +726,7 @@
           />
         </div>
 
+        <!-- 🔥 ប៊ូតុងបញ្ជាក់ការវេរប្រាក់ -->
         <button
           onclick="validateAndOpenPin()"
           class="confirm-btn"
@@ -732,45 +737,7 @@
       </div>
     </div>
 
-    <!-- Modals: PIN, Spin, Slip -->
-    <div id="pinModal" class="modal-overlay" style="z-index: 9999">
-      <div
-        style="
-          background: white;
-          padding: 30px;
-          border-radius: 20px;
-          text-align: center;
-          width: 300px;
-        "
-      >
-        <div style="font-size: 3rem; color: #004d40; margin-bottom: 10px">
-          <i class="fa-solid fa-lock"></i>
-        </div>
-        <h3 style="color: #1e293b; margin: 0 0 10px 0" data-lang="enter_pin">
-          បញ្ចូលលេខកូដ PIN
-        </h3>
-        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px">
-          សូមវាយលេខ PIN ៤ ខ្ទង់របស់អ្នក
-        </p>
-        <input
-          type="password"
-          id="nativePinInput"
-          class="native-pin-input"
-          maxlength="4"
-          pattern="[0-9]*"
-          inputmode="numeric"
-          oninput="handleNativePin(this.value)"
-        />
-        <button
-          class="confirm-btn"
-          onclick="closeModal('pinModal')"
-          style="background: #ef4444; margin-top: 20px"
-        >
-          បោះបង់
-        </button>
-      </div>
-    </div>
-
+    <!-- Modals: Spin, Slip -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -910,7 +877,7 @@
         Authorization: `Bearer ${token}`,
       };
 
-      // ✅ [កែប្រែថ្មី] ទាញយក orderId និង URL Params ជាសកល
+      // ✅ ទាញយក orderId និង URL Params ជាសកល
       const urlParamsGlobal = new URLSearchParams(window.location.search);
       const orderId =
         urlParamsGlobal.get("orderId") || urlParamsGlobal.get("o");
@@ -921,8 +888,7 @@
       let targetUserIsKHR = null,
         currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 },
         currentSlipData = null,
-        spinIsActive = false,
-        enteredPin = "";
+        spinIsActive = false;
 
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
@@ -938,7 +904,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
 
-        // ✅ [កែប្រែថ្មី] ចាប់យកលេខកុង
+        // ✅ ចាប់យកលេខកុង
         if (urlParams.get("acc")) {
           let ai = document.getElementById("receiverAcc");
           ai.value = urlParams.get("acc");
@@ -947,7 +913,7 @@
           checkName();
         }
 
-        // ✅ [កែប្រែថ្មី] ចាប់យកចំនួនលុយ និងចាក់សោរមិនឲ្យកែ (ការពារភ្ញៀវបន្លំលុយវិក័យប័ត្រ)
+        // ✅ ចាប់យកចំនួនលុយ
         let passedAmount = urlParams.get("amount") || urlParams.get("a");
         if (passedAmount) {
           let amti = document.getElementById("amount");
@@ -1070,7 +1036,6 @@
           const initials = c.name.substring(0, 2).toUpperCase();
           const shortName = c.name.split(" ")[0];
 
-          // វាយបញ្ចូលទម្រង់ HTML ថ្មី ដែលមានឈ្មោះពេញ និងសញ្ញា ✖ លុប
           list.innerHTML += `
           <div class="contact-item" onclick="selectContact('${c.acc}')">
             <div class="contact-avatar" style="background-color: ${bgColor};">
@@ -1089,7 +1054,6 @@
         });
       }
 
-      // ពេលចុចយកឈ្មោះទៅបំពេញ
       function selectContact(acc) {
         const input = document.getElementById("receiverAcc");
         if (!input.readOnly) {
@@ -1098,20 +1062,13 @@
         }
       }
 
-      // មុខងារពេលចុចលើសញ្ញា ✖ ពណ៌ក្រហមតូច (លុបចោល)
       function removeContact(event, accountNumber, element) {
-        // បញ្ឈប់កុំអោយវាទៅហៅ function selectContact()
         event.stopPropagation();
-
         const contactItem = element.closest(".contact-item");
-        contactItem.style.opacity = "0"; // ធ្វើអោយព្រិលបន្តិច
-
+        contactItem.style.opacity = "0";
         setTimeout(() => {
-          contactItem.remove(); // លុបចេញពីអេក្រង់
+          contactItem.remove();
         }, 200);
-
-        // (ជាជម្រើស) បើបងចង់អោយវាលុបចេញពី Database ដែរ អាចហៅ API នៅទីនេះ
-        console.log("Deleted contact:", accountNumber);
       }
       /* ========================================== */
 
@@ -1290,11 +1247,13 @@
         }
       }
 
+      // 🔥 មុខងារវាយតម្លៃ និងហៅ PIN Modal ពី pin.js
       async function validateAndOpenPin() {
         const amt = parseFloat(document.getElementById("amount").value),
           sel = document.getElementById("fromAccount"),
           bal = parseFloat(sel.options[sel.selectedIndex].dataset.balance),
           l = localStorage.getItem("lang") || "en";
+
         if (!amt || amt <= 0)
           return Swal.fire(
             "Warning",
@@ -1314,139 +1273,131 @@
           document.getElementById("nameCheck").innerText.includes("✘")
         )
           return Swal.fire("Error", "Receiver Not Found", "error");
-        document.getElementById("pinModal").style.display = "flex";
-        let pi = document.getElementById("nativePinInput");
-        pi.value = "";
-        setTimeout(() => pi.focus(), 100);
-      }
 
-      function closeModal(id) {
-        document.getElementById(id).style.display = "none";
-      }
-      function handleNativePin(val) {
-        if (val.length >= 4) {
-          enteredPin = val.substring(0, 4);
-          submitPin();
-        }
-      }
-      async function submitPin() {
-        const sel = document.getElementById("fromAccount"),
-          opt = sel.options[sel.selectedIndex],
-          type = opt.dataset.currency,
-          srcAcc = opt.value,
-          recAcc = document.getElementById("receiverAcc").value,
-          amt = document.getElementById("amount").value,
-          pin = enteredPin;
+        const recAcc = document.getElementById("receiverAcc").value;
+        const type = sel.options[sel.selectedIndex].dataset.currency;
+        const currSym = type === "USD" ? "$" : "៛";
+        const displayAmt =
+          type === "USD" ? amt.toFixed(2) : amt.toLocaleString();
 
-        if (pin.length === 4) {
-          closeModal("pinModal");
-          Swal.fire({
-            title: "Processing...",
-            didOpen: () => Swal.showLoading(),
-          });
+        // ហៅផ្ទាំង PIN ពី pin.js មកប្រើប្រាស់
+        requestPinVerification(
+          "បញ្ជាក់ការវេរប្រាក់",
+          `វេរប្រាក់ ${currSym}${displayAmt} ទៅកាន់គណនី ${recAcc}`,
+          async function () {
+            // កូដនេះនឹងដំណើរការ បន្ទាប់ពីអតិថិជនវាយ PIN ត្រូវ ៤ខ្ទង់
 
-          let url = recAcc.startsWith("UFND-")
-            ? "/api/ufund/scan-pay"
-            : "/api/transfer";
+            // ទាញយកលេខ PIN ពី Hidden Input របស់ pin.js
+            const pinCode = document.getElementById("hiddenGlobalPin").value;
+            const srcAcc = sel.value;
 
-          // ✅ [កែប្រែថ្មី] ភ្ជាប់ orderId ទៅ Backend
-          let body = recAcc.startsWith("UFND-")
-            ? {
-                username: user.username,
-                qrString: recAcc,
-                amount: amt,
-                pin: pin,
-              }
-            : {
-                senderUsername: user.username,
-                senderAccount: srcAcc,
-                receiverAccount: recAcc,
-                amount: amt,
-                remark:
-                  document.getElementById("remark").value ||
-                  (orderId ? `Payment for ${orderId}` : ""),
-                pin: pin,
-                trxMethod:
-                  urlParamsGlobal.get("source") === "qr" ||
-                  urlParamsGlobal.has("acc")
-                    ? "QR Scan"
-                    : "Account Input",
-                currency: type,
-                orderId: orderId, // បញ្ជូន orderId ទៅកាន់ U-Pay Backend ដើម្បីបាញ់ Webhook
-              };
-
-          try {
-            const res = await fetch(url, {
-              method: "POST",
-              headers: authHeaders,
-              body: JSON.stringify(body),
+            Swal.fire({
+              title: "Processing...",
+              didOpen: () => Swal.showLoading(),
             });
-            const d = await res.json();
-            Swal.close();
-            if (d.success) {
-              if (recAcc.startsWith("UFND-")) {
+
+            let url = recAcc.startsWith("UFND-")
+              ? "/api/ufund/scan-pay"
+              : "/api/transfer";
+
+            let body = recAcc.startsWith("UFND-")
+              ? {
+                  username: user.username,
+                  qrString: recAcc,
+                  amount: amt,
+                  pin: pinCode,
+                }
+              : {
+                  senderUsername: user.username,
+                  senderAccount: srcAcc,
+                  receiverAccount: recAcc,
+                  amount: amt,
+                  remark:
+                    document.getElementById("remark").value ||
+                    (orderId ? `Payment for ${orderId}` : ""),
+                  pin: pinCode,
+                  trxMethod:
+                    urlParamsGlobal.get("source") === "qr" ||
+                    urlParamsGlobal.has("acc")
+                      ? "QR Scan"
+                      : "Account Input",
+                  currency: type,
+                  orderId: orderId,
+                };
+
+            try {
+              const res = await fetch(url, {
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify(body),
+              });
+              const d = await res.json();
+              Swal.close();
+              if (d.success) {
+                if (recAcc.startsWith("UFND-")) {
+                  new Audio(
+                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                  ).play();
+                  Swal.fire({
+                    icon: "success",
+                    title: "ដាក់ប្រាក់ជោគជ័យ",
+                    text: d.message,
+                    confirmButtonColor: "#004d40",
+                  }).then(() => (window.location.href = "ufund.html"));
+                  return;
+                }
+                if (srcAcc === "MAIN_USD") user.balance = d.newBalance;
+                else if (srcAcc === "MAIN_KHR") user.balanceKHR = d.newBalance;
+                else {
+                  let idx = user.subAccounts.findIndex(
+                    (a) => a.accountNumber === srcAcc,
+                  );
+                  if (idx !== -1) user.subAccounts[idx].balance = d.newBalance;
+                }
+
+                if (!user.transactions) {
+                  user.transactions = [];
+                }
+                user.transactions.unshift(d.slipData);
+
+                sessionStorage.setItem("user", JSON.stringify(user));
                 new Audio(
                   "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                 ).play();
-                Swal.fire({
-                  icon: "success",
-                  title: "ដាក់ប្រាក់ជោគជ័យ",
-                  text: d.message,
-                  confirmButtonColor: "#004d40",
-                }).then(() => (window.location.href = "ufund.html"));
-                return;
-              }
-              if (srcAcc === "MAIN_USD") user.balance = d.newBalance;
-              else if (srcAcc === "MAIN_KHR") user.balanceKHR = d.newBalance;
-              else {
-                let idx = user.subAccounts.findIndex(
-                  (a) => a.accountNumber === srcAcc,
-                );
-                if (idx !== -1) user.subAccounts[idx].balance = d.newBalance;
-              }
-
-              // ✅ [កែប្រែថ្មី] ការពារ Error "Cannot read properties of undefined (reading 'unshift')"
-              if (!user.transactions) {
-                user.transactions = [];
-              }
-              user.transactions.unshift(d.slipData);
-
-              sessionStorage.setItem("user", JSON.stringify(user));
-              new Audio(
-                "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-              ).play();
-              if (typeof showAppNotification === "function")
-                showAppNotification(
-                  "Transfer Successful",
-                  `You transferred ${amt}`,
-                  "send",
-                );
-              if (orderId && callbackUrl)
-                fetch(callbackUrl, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    orderId: orderId,
-                    amount: amt,
-                    user: shopBuyerName,
-                    items: items,
-                  }),
-                }).catch((e) => {});
-              if (parseFloat(amt) >= (type === "USD" ? 10 : 40000)) {
-                currentSlipData = d.slipData;
-                document.getElementById("spinModal").style.display = "flex";
-                let c = document.getElementById("wheelCanvas");
-                c.style.transition = "none";
-                c.style.transform = "rotate(0deg)";
-                spinIsActive = false;
-              } else showSlipData(d.slipData);
-            } else Swal.fire("Failed", d.message, "error");
-          } catch (e) {
-            console.error("Transfer Error:", e);
-            Swal.fire("Error", "Connection Error: " + e.message, "error");
-          }
-        }
+                if (typeof showAppNotification === "function")
+                  showAppNotification(
+                    "Transfer Successful",
+                    `You transferred ${amt}`,
+                    "send",
+                  );
+                if (orderId && callbackUrl)
+                  fetch(callbackUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      orderId: orderId,
+                      amount: amt,
+                      user: shopBuyerName,
+                      items: items,
+                    }),
+                  }).catch((e) => {});
+                if (parseFloat(amt) >= (type === "USD" ? 10 : 40000)) {
+                  currentSlipData = d.slipData;
+                  document.getElementById("spinModal").style.display = "flex";
+                  let c = document.getElementById("wheelCanvas");
+                  c.style.transition = "none";
+                  c.style.transform = "rotate(0deg)";
+                  spinIsActive = false;
+                } else showSlipData(d.slipData);
+              } else Swal.fire("Failed", d.message, "error");
+            } catch (e) {
+              console.error("Transfer Error:", e);
+              Swal.fire("Error", "Connection Error: " + e.message, "error");
+            }
+          },
+        );
       }
+
       function startSpin() {
         if (spinIsActive) return;
         spinIsActive = true;
@@ -1532,15 +1483,11 @@
         });
       }
 
-      // ✅ [កែប្រែថ្មី] ត្រលប់ទៅ Fashion Shop វិញប្រសិនបើវេរលុយពីការស្កេន QR
       function returnToShopOrDashboard() {
         if (callbackUrl) {
           window.location.href = new URL(callbackUrl).origin;
         } else if (orderId) {
-          // ដោយសារ Fashion Shop បើក U-Pay ជា Tab ថ្មី (window.open)
-          // ពេលចុច Done យើងគ្រាន់តែបិទ Tab នេះ នោះវានឹងត្រលប់ទៅ Tab ដើមវិញ!
           window.close();
-          // បើកុំព្យូទ័រមិនឲ្យបិទ Tab វានឹងលោតទៅ Dashboard ជាជម្រើសទី ២
           setTimeout(() => {
             window.location.href = "dashboard.html";
           }, 300);

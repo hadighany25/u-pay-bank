@@ -19,6 +19,9 @@
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
 
+    <!-- 🔥 ភ្ជាប់ PIN MODULE (ត្រូវប្រាកដថាបងមានឯកសារ js/pin.js នៅក្នុង Folder js របស់បង) -->
+    <script src="js/pin.js"></script>
+
     <style>
       /* ==========================================
          🚀 FOUC PREVENTION & BASE (Standard)
@@ -955,12 +958,9 @@
             </div>
           </div>
 
-          <button
-            class="btn-full"
-            onclick="confirmSingle()"
-            data-i18n="btn_create_schedule"
-          >
-            Create Schedule
+          <!-- 🔥 ប្តូរឈ្មោះប៊ូតុងទៅជា Confirm Transfer តាមការស្នើសុំ -->
+          <button class="btn-full" onclick="confirmSingle()">
+            Confirm Transfer
           </button>
         </div>
 
@@ -1092,7 +1092,7 @@
                   <!-- Content injected by JS -->
                 </p>
 
-                <!-- ប៊ូតុង Edit In Web Sheet (បង្ហាញរហូតអោយតែមានទិន្នន័យ) -->
+                <!-- ប៊ូតុង Edit In Web Sheet -->
                 <button
                   id="btnEditInSheet"
                   onclick="jumpToEditCurrentTemplate()"
@@ -1219,7 +1219,6 @@
               <span data-i18n="btn_add_row">Add Row</span>
             </button>
 
-            <!-- 🔥 បន្ថែម ID ឱ្យប៊ូតុង Save ដើម្បីអាច Block ពេលកំពុង Search -->
             <button
               id="btnSaveTemplate"
               class="btn-full"
@@ -1399,7 +1398,7 @@
       let allHistoryRecords = [];
       let fetchTimer;
       let sheetTimer;
-      let activeFetches = 0; // 🔥 ទប់ស្កាត់ការ Save មុនពេល Search ចប់
+      let activeFetches = 0;
 
       let user = JSON.parse(sessionStorage.getItem("user"));
       let token = sessionStorage.getItem("userToken");
@@ -1426,7 +1425,6 @@
         }
       }
 
-      // 🔥 មុខងារការពារ XSS (Cross-Site Scripting) ពេលបង្ហាញទិន្នន័យពី Excel
       function escapeHTML(str) {
         if (typeof str !== "string") return str;
         return str.replace(
@@ -1658,7 +1656,6 @@
             }
             Swal.close();
 
-            // រក្សាទុកទិន្នន័យដើម្បីប្រើក្នុង Web Sheet ចាំបាច់
             currentBulkRecords = records;
             lastUploadedFileName = file.name.replace(/\.[^/.]+$/, "");
 
@@ -1674,7 +1671,7 @@
         reader.readAsArrayBuffer(file);
       }
 
-      // === 6. REVIEW TABLE LOGIC (DOM Performance Fixed) ===
+      // === 6. REVIEW TABLE LOGIC ===
       async function verifyAndRenderReviewTable(records) {
         Swal.fire({
           title: "កំពុងផ្ទៀងផ្ទាត់ទិន្នន័យ...",
@@ -1722,12 +1719,12 @@
       }
 
       function renderReviewTable(records) {
-        currentBulkRecords = records; // កត់ត្រាទុកក្នុង RAM ជានិច្ច
+        currentBulkRecords = records;
         document.getElementById("reviewContainer").style.display = "block";
         document.getElementById("payoutOptionsSection").style.display = "block";
 
         const tbody = document.getElementById("reviewBody");
-        let htmlStr = ""; // 🔥 បង្កើតអថេរទុក HTML ដើម្បីដោះស្រាយបញ្ហា Performance
+        let htmlStr = "";
         let totalAmt = 0;
         let hasError = false;
         let hasWarning = false;
@@ -1787,7 +1784,6 @@
             ) {
               isNameMismatch = true;
               hasWarning = true;
-              // 🔥 ការពារ XSS
               nameTooltip = `<span class='error-tooltip' style='background: #f59e0b;'>ឈ្មោះក្នុង Excel មិនត្រូវនឹង Database (ឈ្មោះពិតគឺ: ${escapeHTML(r.realName)})</span>`;
             }
           }
@@ -1804,7 +1800,6 @@
           let col3 = isRowError ? "class='td-error'" : errAmt;
           let col4 = isRowError ? "class='td-error'" : "";
 
-          // 🔥 ការពារ XSS
           let nameDisplayHtml = escapeHTML(r.name) || "-";
           if (isRowError) {
             nameDisplayHtml += ` <i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>`;
@@ -1814,7 +1809,6 @@
             nameDisplayHtml += ` <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>`;
           }
 
-          // 🔥 ចង String ជំនួសអោយការបូកបញ្ចូលក្នុង DOM ផ្ទាល់
           htmlStr += `
             <tr>
               <td ${col1}>${escapeHTML(r.account) || "-"} ${accTooltip}</td>
@@ -1825,7 +1819,6 @@
           `;
         });
 
-        // 🔥 បញ្ចូលទិន្នន័យទៅកាន់តារាងតែម្តងគត់ (DOM Reflow Optimization)
         tbody.innerHTML = htmlStr;
 
         document.getElementById("totalCountBadge").innerText =
@@ -1862,14 +1855,14 @@
         }
       }
 
-      // === 7. WEB SHEET EDITOR (Race Condition Protection) ===
+      // === 7. WEB SHEET EDITOR ===
       function jumpToEditCurrentTemplate() {
         switchState("state-sheet", "Template Editor");
         document.getElementById("tplNameInput").value =
           lastUploadedFileName || "Imported Template";
         const tbody = document.getElementById("sheetBody");
 
-        let htmlStr = ""; // DOM Performance Fix
+        let htmlStr = "";
         if (currentBulkRecords && currentBulkRecords.length > 0) {
           currentBulkRecords.forEach((r) => {
             const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
@@ -1901,7 +1894,6 @@
         tbody.appendChild(tr);
       }
 
-      // 🔥 គ្រប់គ្រងស្ថានភាពប៊ូតុង Save ការពារការចុចជាន់គ្នា (Race Condition)
       function updateSaveButtonState() {
         const btn = document.getElementById("btnSaveTemplate");
         if (btn) {
@@ -1932,7 +1924,7 @@
         nameInput.value = "Searching...";
 
         sheetTimer = setTimeout(async () => {
-          activeFetches++; // 🔥 បិទប៊ូតុង Save
+          activeFetches++;
           updateSaveButtonState();
 
           try {
@@ -1956,7 +1948,7 @@
             nameInput.value = "Error";
             nameInput.style.color = "#ef4444";
           } finally {
-            activeFetches--; // 🔥 បើកប៊ូតុង Save វិញក្រោយពេលរាវរកចប់
+            activeFetches--;
             updateSaveButtonState();
           }
         }, 600);
@@ -2055,91 +2047,125 @@
         if (res.success) await fetchTemplatesFromDB();
       }
 
-      // === 8. PAYOUT EXECUTION (Single, Bulk) ===
-      async function confirmSingle() {
+      // === 8. PAYOUT EXECUTION (Single, Bulk) WITH PIN MODULE 🔥 ===
+
+      // មុខងារ Confirm សម្រាប់ Single Transfer (ភ្ជាប់ PIN)
+      function confirmSingle() {
         const acc = document.getElementById("singleAccNo").value;
         const amount = document.getElementById("singleAmount").value;
         const realName = document
           .getElementById("singleAccNo")
           .getAttribute("data-realname");
 
-        if (!acc || !amount)
-          return Swal.fire("Warning", "Please fill required fields", "warning");
+        if (!acc || !amount) {
+          return Swal.fire(
+            "បញ្ជាក់",
+            "សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់",
+            "warning",
+          );
+        }
 
-        const payload = {
-          type: "single",
-          name: `Single Transfer - ${acc}`,
-          sourceAccount: document.getElementById("singleSourceAcc").value,
-          totalAmount: Number(amount),
-          frequency: document.getElementById("sharedFreq").value,
-          scheduleDetails: getScheduleDetails(),
-          recipients: [
-            {
-              account: acc,
-              name: realName,
-              amount: Number(amount),
-              remark: document.getElementById("singleRemark").value,
-            },
-          ],
-        };
+        // 🔥 ហៅ PIN Modal ពី pin.js
+        requestPinVerification(
+          "បញ្ជាក់ការវេរប្រាក់",
+          `វេរប្រាក់ $${amount} ទៅកាន់គណនី ${acc}`,
+          async function () {
+            // កូដនេះនឹងដើរបន្ទាប់ពីវាយ PIN ត្រូវ ៤ខ្ទង់
+            const payload = {
+              type: "single",
+              name: `Single Transfer - ${acc}`,
+              sourceAccount: document.getElementById("singleSourceAcc").value,
+              totalAmount: Number(amount),
+              frequency: document.getElementById("sharedFreq").value,
+              scheduleDetails: getScheduleDetails(),
+              recipients: [
+                {
+                  account: acc,
+                  name: realName,
+                  amount: Number(amount),
+                  remark: document.getElementById("singleRemark").value,
+                },
+              ],
+            };
 
-        let isEditing = editingPayrollId !== null;
-        const url = isEditing
-          ? `/api/payroll/update/${editingPayrollId}`
-          : "/api/payroll/create";
-        const method = isEditing ? "PATCH" : "POST";
+            let isEditing = editingPayrollId !== null;
+            const url = isEditing
+              ? `/api/payroll/update/${editingPayrollId}`
+              : "/api/payroll/create";
+            const method = isEditing ? "PATCH" : "POST";
 
-        Swal.fire({
-          title: isEditing ? "Updating..." : "Processing...",
-          didOpen: () => Swal.showLoading(),
-        });
-        const res = await fetchAPI(url, method, payload);
+            Swal.fire({
+              title: isEditing ? "កំពុងកែសម្រួល..." : "កំពុងដំណើរការ...",
+              didOpen: () => Swal.showLoading(),
+            });
+            const res = await fetchAPI(url, method, payload);
 
-        if (res.success) {
-          editingPayrollId = null;
-          Swal.fire({ icon: "success", title: "ជោគជ័យ!", timer: 1500 });
-          goBack();
-        } else Swal.fire("Error", res.message, "error");
+            if (res.success) {
+              editingPayrollId = null;
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ!",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              setTimeout(() => {
+                goBack();
+              }, 1500);
+            } else {
+              Swal.fire("Error", res.message, "error");
+            }
+          },
+        );
       }
 
-      async function confirmBulk() {
+      // មុខងារ Confirm សម្រាប់ Bulk / Payroll (ភ្ជាប់ PIN)
+      function confirmBulk() {
         const processType = document.getElementById("bulkProcessType").value;
-
-        // 🔥 ការពារសុវត្ថិភាព មិនទាញយកទិន្នន័យពី DOM ទេ គឺយកពី RAM ផ្ទាល់
         const totalAmt = currentBulkRecords.reduce(
           (sum, r) => sum + (Number(r.amount) || 0),
           0,
         );
 
-        const payload = {
-          type: "bulk",
-          name: `Bulk Transfer - ${currentBulkRecords.length} records`,
-          sourceAccount: document.getElementById("bulkSourceAcc").value,
-          totalAmount: totalAmt, // ប្រើការគណនាពី RAM
-          frequency:
-            processType === "now"
-              ? "once"
-              : document.getElementById("sharedFreq").value,
-          scheduleDetails: processType === "now" ? {} : getScheduleDetails(),
-          processNow: processType === "now",
-          recipients: currentBulkRecords,
-        };
+        // 🔥 ហៅ PIN Modal ពី pin.js
+        requestPinVerification(
+          "បញ្ជាក់ការទូទាត់រួម (Bulk)",
+          `ទឹកប្រាក់សរុប $${totalAmt.toFixed(2)}`,
+          async function () {
+            // កូដនេះនឹងដើរបន្ទាប់ពីវាយ PIN ត្រូវ ៤ខ្ទង់
+            const payload = {
+              type: "bulk",
+              name: `Bulk Transfer - ${currentBulkRecords.length} records`,
+              sourceAccount: document.getElementById("bulkSourceAcc").value,
+              totalAmount: totalAmt,
+              frequency:
+                processType === "now"
+                  ? "once"
+                  : document.getElementById("sharedFreq").value,
+              scheduleDetails:
+                processType === "now" ? {} : getScheduleDetails(),
+              processNow: processType === "now",
+              recipients: currentBulkRecords,
+            };
 
-        Swal.fire({
-          title: "Processing Bulk...",
-          didOpen: () => Swal.showLoading(),
-        });
-        const res = await fetchAPI("/api/payroll/create", "POST", payload);
+            Swal.fire({
+              title: "កំពុងដំណើរការ Bulk...",
+              didOpen: () => Swal.showLoading(),
+            });
+            const res = await fetchAPI("/api/payroll/create", "POST", payload);
 
-        if (res.success)
-          Swal.fire({
-            title: "Success",
-            text: res.message,
-            icon: "success",
-            confirmButtonColor: "#004d40",
-            customClass: { popup: "premium-swal" },
-          }).then(() => location.reload());
-        else Swal.fire("Error", res.message, "error");
+            if (res.success) {
+              Swal.fire({
+                title: "ជោគជ័យ",
+                text: res.message,
+                icon: "success",
+                confirmButtonColor: "#004d40",
+                customClass: { popup: "premium-swal" },
+              }).then(() => location.reload());
+            } else {
+              Swal.fire("Error", res.message, "error");
+            }
+          },
+        );
       }
 
       // === 9. SCHEDULE UI HELPERS ===

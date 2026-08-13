@@ -22,6 +22,9 @@
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
 
+    <!-- 🔥 ភ្ជាប់ PIN MODULE (សម្រាប់បញ្ជាក់សុវត្ថិភាព) -->
+    <script src="js/pin.js"></script>
+
     <style>
       body {
         background-color: #f2f4f6;
@@ -492,7 +495,6 @@
             ហើយបើកវាភ្លាមៗយ៉ាងងាយស្រួល។
           </p>
 
-          <!-- ១. កាត Premium -->
           <div class="account-card" onclick="startFlow('premium')">
             <div class="card-icon-box icon-premium">
               <i class="fa-solid fa-crown"></i>
@@ -508,7 +510,6 @@
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
 
-          <!-- ២. គណនីរួមគ្រួសារ (Joint Account) -->
           <div class="account-card" onclick="startFlow('joint')">
             <div class="card-icon-box icon-family">
               <i class="fa-solid fa-users"></i>
@@ -524,7 +525,6 @@
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
 
-          <!-- ៣. គណនីកុមារ (Junior Account) -->
           <div class="account-card" onclick="startFlow('junior')">
             <div class="card-icon-box icon-junior">
               <i class="fa-solid fa-child-reaching"></i>
@@ -538,7 +538,6 @@
             <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
 
-          <!-- ៤. ប្រាក់បញ្ញើ (Fixed Deposit) - ថ្មី -->
           <div
             class="account-card"
             onclick="window.location.href = 'fixed-deposit.html'"
@@ -561,7 +560,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២.១: រៀបចំគណនីកុមារ (JUNIOR SETUP) - ថ្មី
+           អេក្រង់ទី ២.១: រៀបចំគណនីកុមារ (JUNIOR SETUP)
            ========================================== -->
       <div id="screen-junior-setup" class="screen">
         <div class="nav-header" style="background: #db2777">
@@ -835,7 +834,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២.១ (ចាស់): រៀបចំគណនីរួម (JOINT SETUP)
+           អេក្រង់ទី ២.១: រៀបចំគណនីរួម (JOINT SETUP)
            ========================================== -->
       <div id="screen-joint-setup" class="screen">
         <div class="nav-header">
@@ -873,7 +872,6 @@
 
           <label class="form-label">បន្ថែមសមាជិក (សម្រាប់ ២ នាក់):</label>
           <div class="member-list-box">
-            <!-- ម្ចាស់គណនី -->
             <div class="member-item">
               <div class="member-avatar"><i class="fa-solid fa-user"></i></div>
               <div class="member-info">
@@ -882,7 +880,6 @@
               </div>
             </div>
 
-            <!-- ដៃគូ (Partner) នឹងបង្ហាញនៅទីនេះពេលបញ្ចូល -->
             <div id="joint-partner-container" style="display: none">
               <div class="member-item">
                 <div
@@ -952,7 +949,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២.២ (ចាស់): ជ្រើសរើសប្រភេទលេខគណនីរួម (JOINT NUMBER TYPE)
+           អេក្រង់ទី ២.២: ជ្រើសរើសប្រភេទលេខគណនីរួម (JOINT NUMBER TYPE)
            ========================================== -->
       <div id="screen-joint-number-type" class="screen">
         <div class="nav-header">
@@ -996,7 +993,7 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ២ (ចាស់): ស្វែងរកលេខ (SEARCH SCREEN - ប្រើរួមគ្នា)
+           អេក្រង់ទី ២: ស្វែងរកលេខ (SEARCH SCREEN - ប្រើរួមគ្នា)
            ========================================== -->
       <div id="screen-search" class="screen">
         <div class="nav-header" id="search-nav-header">
@@ -1113,41 +1110,44 @@
             </p>
           </div>
           <div class="form-group">
-            <label class="form-label">ជ្រើសរើសរូបិយប័ណ្ណ (Currency)</label>
-            <div style="display: flex; gap: 8px">
-              <button
-                class="currency-btn active"
+            <label class="form-label">ជ្រើសរើសរូបិយប័ណ្ណគណនី:</label>
+            <div class="currency-toggle-box">
+              <div
+                class="curr-tab active"
                 id="btn-curr-usd"
                 onclick="selectCurrencyOption('USD')"
               >
-                USD ($)
-              </button>
-              <button
-                class="currency-btn"
+                ដុល្លារ ($)
+              </div>
+              <div
+                class="curr-tab"
                 id="btn-curr-khr"
                 onclick="selectCurrencyOption('KHR')"
               >
-                KHR (៛)
-              </button>
-              <button
-                class="currency-btn"
+                រៀល (៛)
+              </div>
+              <div
+                class="curr-tab"
                 id="btn-curr-both"
                 onclick="selectCurrencyOption('BOTH')"
-                style="flex: 1.5"
               >
-                យកទាំង ២គណនី
-              </button>
+                ទាំងពីរ
+              </div>
             </div>
             <p
               id="curr-note"
               style="
-                font-size: 0.75rem;
-                color: #64748b;
-                margin-top: 8px;
+                font-size: 0.8rem;
+                color: #0284c7;
+                margin-top: 5px;
                 display: none;
+                background: #e0f2fe;
+                padding: 10px;
+                border-radius: 8px;
               "
             >
-              * គណនីទី២ នឹងប្រើលេខបូកថែម ឬដក១ ខ្ទង់ចុងក្រោយដោយស្វ័យប្រវត្តិ។
+              <i class="fa-solid fa-circle-info"></i> គណនីទី២
+              នឹងកែខ្ទង់ចុងក្រោយដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
           <div class="form-group">
@@ -1298,54 +1298,6 @@
       </div>
 
       <!-- ==========================================
-           អេក្រង់ទី ៤: បញ្ចូល PIN (PIN SCREEN - AUTO SUBMIT)
-           ========================================== -->
-      <div id="screen-pin" class="screen">
-        <div class="nav-header" id="pin-nav-header">
-          <i class="fa-solid fa-arrow-left" onclick="goBackFromPin()"></i>
-          <span>បញ្ជាក់លេខសម្ងាត់</span>
-        </div>
-        <div
-          class="content-body"
-          style="justify-content: center; text-align: center"
-        >
-          <i
-            class="fa-solid fa-shield-halved"
-            style="font-size: 4rem; color: #004d40; margin-bottom: 20px"
-            id="pin-icon"
-          ></i>
-          <h2 style="margin: 0 0 10px 0; color: #1e293b">សុវត្ថិភាពទូទាត់</h2>
-          <p style="color: #64748b; margin-bottom: 25px">
-            ទឹកប្រាក់ត្រូវកាត់:
-            <b id="display-total" style="color: #ef4444; font-size: 1.2rem"
-              >$0</b
-            >
-          </p>
-
-          <!-- 🔥 កន្លែងនេះបានបន្ថែម oninput ដើម្បីវាយ ៤ខ្ទង់ហើយរត់ទៅមុខដោយស្វ័យប្រវត្តិ -->
-          <input
-            type="password"
-            id="input-pin"
-            class="native-input center"
-            placeholder="****"
-            maxlength="4"
-            style="letter-spacing: 15px; font-size: 2rem"
-            oninput="checkPinLength()"
-          />
-        </div>
-        <!-- លាក់ប៊ូតុងចេញ ព្រោះយើងប្រើ Auto-submit ជំនួសវិញ -->
-        <div class="fixed-bottom-bar" style="display: none">
-          <button
-            class="btn-primary"
-            id="btn-submit-pin"
-            onclick="submitCreation()"
-          >
-            ទូទាត់ & បង្កើតគណនី
-          </button>
-        </div>
-      </div>
-
-      <!-- ==========================================
            អេក្រង់ទី ៥: ជោគជ័យ (SUCCESS SCREEN)
            ========================================== -->
       <div id="screen-success" class="screen">
@@ -1465,7 +1417,6 @@
         numberType: "",
       };
 
-      // 🔥 បន្ថែម State សម្រាប់ Junior Account
       let juniorState = {
         name: "",
         username: "",
@@ -1511,18 +1462,6 @@
           if (flowType === "junior") header.style.background = "#db2777";
           else header.style.background = "#004d40";
         }
-
-        if (screenId === "screen-pin") {
-          document.getElementById("input-pin").value = ""; // Clear old PIN
-          const header = document.getElementById("pin-nav-header");
-          if (flowType === "junior") header.style.background = "#db2777";
-          else header.style.background = "#004d40";
-
-          // 🔥 ថែមលេខកូដនេះ ដើម្បីឱ្យវា Auto-focus Cursor ចូលប្រអប់ភ្លាមៗ
-          setTimeout(() => {
-            document.getElementById("input-pin").focus();
-          }, 300); // រង់ចាំ ៣០០ មីលីវិនាទី ឱ្យផ្ទាំងលោតចេញរួចសិន សឹម Focus
-        }
       }
 
       function goBackFromSearch() {
@@ -1530,12 +1469,6 @@
         else if (flowType === "junior")
           switchScreen("screen-junior-number-type");
         else switchScreen("screen-menu");
-      }
-
-      function goBackFromPin() {
-        if (flowType === "joint") switchScreen("screen-joint-confirm");
-        else if (flowType === "junior") switchScreen("screen-junior-confirm");
-        else switchScreen("screen-details");
       }
 
       function goBackFromJointConfirm() {
@@ -1568,23 +1501,15 @@
           numStr.endsWith("99")
         )
           return 10;
-        return 5; // Base fee សម្រាប់លេខធម្មតា
+        return 5;
       }
 
       function formatAccountNumber(num) {
         return num.replace(/(\d{3})(?=\d)/g, "$1 ");
       }
 
-      // 🔥 មុខងារ Auto-submit ពេលវាយ PIN គ្រប់ ៤ខ្ទង់
-      function checkPinLength() {
-        const pinVal = document.getElementById("input-pin").value;
-        if (pinVal.length === 4) {
-          submitCreation();
-        }
-      }
-
       // ==========================================
-      // ៣. JUNIOR ACCOUNT FUNCTIONS (ថ្មី)
+      // ៣. JUNIOR ACCOUNT FUNCTIONS
       // ==========================================
       function selectJuniorCurrency(curr) {
         juniorState.currency = curr;
@@ -1620,7 +1545,6 @@
         const password = document.getElementById("input-junior-password").value;
         const limit = document.getElementById("input-junior-limit").value;
 
-        // 🔥 ដូរមកប្រើ Swal.fire វិញ ដើម្បីអោយលោតច្បាស់ៗ
         if (!name)
           return Swal.fire("ព័ត៌មានមិនគ្រប់", "សូមបញ្ចូលឈ្មោះកូន!", "warning");
         if (!username || username.includes(" "))
@@ -1652,7 +1576,7 @@
 
       function processRandomJuniorNumber() {
         juniorState.numberType = "random";
-        juniorState.price = 5; // តម្លៃគោលសម្រាប់លេខធម្មតា $5
+        juniorState.price = 5;
         juniorState.number = Math.floor(
           100000000 + Math.random() * 900000000,
         ).toString();
@@ -1685,18 +1609,22 @@
         switchScreen("screen-junior-confirm");
       }
 
+      // 🔥 កែសម្រួល៖ ហៅ PIN Modal ពី pin.js
       function processJuniorDetails() {
         const tnc = document.getElementById("junior-input-tnc").checked;
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌសិន!", "error");
 
-        document.getElementById("display-total").innerText =
-          `$${juniorState.price}`;
-        document.getElementById("pin-icon").style.color = "#db2777";
-        switchScreen("screen-pin");
+        requestPinVerification(
+          "បញ្ជាក់សុវត្ថិភាព",
+          `ទូទាត់សេវាចំនួន $${juniorState.price} ដើម្បីបង្កើតគណនី`,
+          function () {
+            submitCreation(document.getElementById("hiddenGlobalPin").value);
+          },
+        );
       }
 
       // ==========================================
-      // ៤. PREMIUM & JOINT ACCOUNT FUNCTIONS (ចាស់)
+      // ៤. PREMIUM & JOINT ACCOUNT FUNCTIONS
       // ==========================================
       function selectCurrencyOption(currencyType) {
         selectedAccountCurrency = currencyType;
@@ -1714,16 +1642,23 @@
           note.style.display = currencyType === "BOTH" ? "block" : "none";
       }
 
+      // 🔥 កែសម្រួល៖ ហៅ PIN Modal ពី pin.js
       function processDetails() {
         const name = document.getElementById("input-acc-name").value;
         const tnc = document.getElementById("input-tnc").checked;
         if (!name) return showToast("សូមបញ្ចូលឈ្មោះគណនី!", "error");
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌ!", "error");
+
         state.name = name;
-        document.getElementById("display-total").innerText =
-          state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
-        document.getElementById("pin-icon").style.color = "#004d40";
-        switchScreen("screen-pin");
+        let displayPrice = state.price === 0 ? "ឥតគិតថ្លៃ" : `$${state.price}`;
+
+        requestPinVerification(
+          "បញ្ជាក់សុវត្ថិភាព",
+          `ទូទាត់សេវាចំនួន ${displayPrice} ដើម្បីបង្កើតគណនីពិសេស`,
+          function () {
+            submitCreation(document.getElementById("hiddenGlobalPin").value);
+          },
+        );
       }
 
       function selectJointCurrency(curr) {
@@ -1821,17 +1756,25 @@
         switchScreen("screen-joint-confirm");
       }
 
+      // 🔥 កែសម្រួល៖ ហៅ PIN Modal ពី pin.js
       function processJointDetails() {
         const tnc = document.getElementById("joint-input-tnc").checked;
         if (!tnc) return showToast("សូមយល់ព្រមលើលក្ខខណ្ឌសិន!", "error");
-        document.getElementById("display-total").innerText =
-          `$${jointState.price}`;
-        document.getElementById("pin-icon").style.color = "#0284c7";
-        switchScreen("screen-pin");
+
+        let displayPrice =
+          jointState.price === 0 ? "ឥតគិតថ្លៃ" : `$${jointState.price}`;
+
+        requestPinVerification(
+          "បញ្ជាក់សុវត្ថិភាព",
+          `ទូទាត់សេវាចំនួន ${displayPrice} ដើម្បីបង្កើតគណនីរួម`,
+          function () {
+            submitCreation(document.getElementById("hiddenGlobalPin").value);
+          },
+        );
       }
 
       // ==========================================
-      // ៥. មុខងារស្វែងរកលេខ (ប្រើរួមគ្នា)
+      // ៥. មុខងារស្វែងរកលេខ
       // ==========================================
       function toggleFilter(event) {
         event.stopPropagation();
@@ -1952,13 +1895,9 @@
       }
 
       // ==========================================
-      // ៦. API SUBMIT ទៅ BACKEND
+      // ៦. API SUBMIT ទៅ BACKEND (ហៅដោយស្វ័យប្រវត្តិពីមុខងារ PIN)
       // ==========================================
-      async function submitCreation() {
-        const pin = document.getElementById("input-pin").value;
-        if (!pin || pin.length !== 4)
-          return showToast("PIN ត្រូវមាន ៤ ខ្ទង់!", "error");
-
+      async function submitCreation(verifiedPin) {
         Swal.fire({
           title: "កំពុងដំណើរការ...",
           didOpen: () => Swal.showLoading(),
@@ -1976,7 +1915,7 @@
               requestedNumber: state.number,
               accountName: state.name,
               price: state.price,
-              pin: pin,
+              pin: verifiedPin,
               currencyOption: selectedAccountCurrency,
             };
           } else if (flowType === "joint") {
@@ -1986,12 +1925,11 @@
               requestedNumber: jointState.number,
               partnerUsername: jointState.partnerUsername,
               price: jointState.price,
-              pin: pin,
+              pin: verifiedPin,
               currencyOption: jointState.currency,
               dailyLimit: 0,
             };
           } else if (flowType === "junior") {
-            // 🔥 API ថ្មីសម្រាប់បង្កើតគណនី Junior
             apiUrl = "/api/account/junior/create";
             reqBody = {
               parentUsername: user.username,
@@ -2001,7 +1939,7 @@
               dailyLimit: juniorState.limit,
               requestedNumber: juniorState.number,
               price: juniorState.price,
-              pin: pin,
+              pin: verifiedPin,
               currencyOption: juniorState.currency,
             };
           }
@@ -2049,7 +1987,6 @@
               document.getElementById("receipt-price").innerText =
                 `$${jointState.price}`;
             } else if (flowType === "junior") {
-              // 🔥 ការបង្ហាញភាពជោគជ័យសម្រាប់ Junior Account
               document.getElementById("success-icon-box").style.background =
                 "#db2777";
               document.getElementById("success-title").innerText =
@@ -2071,11 +2008,9 @@
             switchScreen("screen-success");
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
-            document.getElementById("input-pin").value = ""; // Clear PIN if failed
           }
         } catch (error) {
           Swal.fire("Error", "បញ្ហាអ៉ីនធឺណិត", "error");
-          document.getElementById("input-pin").value = ""; // Clear PIN if failed
         }
       }
     </script>

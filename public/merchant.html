@@ -28,6 +28,10 @@
     <!-- ៣. ដាក់ខួរក្បាលកណ្តាលទីបី -->
     <script src="js/u-pay-core.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- 🔥 ភ្ជាប់ PIN MODULE (ត្រូវប្រាកដថាបងមានឯកសារ js/pin.js នៅក្នុង Folder js របស់បង) -->
+    <script src="js/pin.js"></script>
+
     <style>
       /* ==========================================
        🎨 U-PAY MERCHANT GLOBAL STYLES & VARIABLES
@@ -774,39 +778,6 @@
       }
 
       /* ==========================================
-       🔐 PIN MODAL
-       ========================================== */
-      .pin-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 99999;
-        align-items: center;
-        justify-content: center;
-      }
-      .pin-box {
-        background: var(--bg-card);
-        padding: 30px;
-        border-radius: 20px;
-        width: 80%;
-        max-width: 300px;
-        text-align: center;
-      }
-      .pin-dots {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin: 20px 0;
-      }
-      .dot {
-        width: 15px;
-        height: 15px;
-        border-radius: 50%;
-        border: 2px solid var(--text-muted);
-      }
-
-      /* ==========================================
        🖨️ PRINT & PDF STYLES (Professional A4)
        ========================================== */
       #pdf-template {
@@ -823,7 +794,6 @@
         .qr-modal,
         .sidebar-overlay,
         .sidebar,
-        .pin-modal,
         .fab-add {
           display: none !important;
         }
@@ -1108,18 +1078,19 @@
             </p>
           </div>
 
+          <!-- 🔥 ហៅ PIN Modal ពេលចុចបង្កើតហាង -->
           <button
             class="btn-primary kh-text"
             onclick="showPinModal()"
             data-i18n="merch_save"
           >
-            រក្សាទុក
+            បង្កើតហាង
           </button>
         </div>
       </div>
 
       <!-- ==========================================
-           📊 STATE 3: DASHBOARD
+           📊 STATE 3: DASHBOARD (ABA STYLE)
            ========================================== -->
       <div id="state-dashboard" class="view-state">
         <div class="dash-top">
@@ -1874,7 +1845,7 @@
       </div>
 
       <!-- ==========================================
-           ☰ SIDEBAR MENU & OTHERS
+           ☰ SIDEBAR MENU
            ========================================== -->
       <div
         class="sidebar-overlay"
@@ -2011,55 +1982,6 @@
             src="images/logo-nobg.png"
             style="width: 80px; filter: brightness(0) invert(1)"
           />
-        </div>
-      </div>
-
-      <!-- PIN Modal -->
-      <div class="pin-modal" id="pinModal">
-        <div
-          class="card-box"
-          style="width: 80%; max-width: 300px; text-align: center"
-        >
-          <h3 style="margin-top: 0" class="kh-text" data-i18n="merch_pin_title">
-            បញ្ជាក់លេខកូដ
-          </h3>
-          <p
-            style="font-size: 0.85rem; color: var(--text-muted)"
-            class="kh-text"
-            data-i18n="merch_pin_desc"
-          >
-            សូមបញ្ចូលលេខកូដ PIN ដើម្បីបង្កើតហាង។
-          </p>
-          <div
-            class="pin-dots"
-            style="
-              display: flex;
-              justify-content: center;
-              gap: 15px;
-              margin: 20px 0;
-            "
-          >
-            <div class="dot" id="dot1"></div>
-            <div class="dot" id="dot2"></div>
-            <div class="dot" id="dot3"></div>
-            <div class="dot" id="dot4"></div>
-          </div>
-          <input
-            type="number"
-            id="hiddenPin"
-            style="opacity: 0; position: absolute; z-index: -1"
-            oninput="handlePinInput(this.value)"
-            pattern="[0-9]*"
-            inputmode="numeric"
-          />
-          <button
-            class="btn-primary kh-text"
-            style="background: var(--bg-main); color: var(--text-main)"
-            onclick="document.getElementById('hiddenPin').focus()"
-            data-i18n="merch_btn_pin"
-          >
-            ចុចបញ្ចូលលេខកូដ
-          </button>
         </div>
       </div>
 
@@ -2462,43 +2384,15 @@
             return;
           }
 
-          const modal = document.getElementById("pinModal");
-          modal.style.display = "flex";
-          const hiddenInput = document.getElementById("hiddenPin");
-          hiddenInput.value = "";
-          updatePinDots(0);
-          setTimeout(() => {
-            hiddenInput.focus();
-            hiddenInput.click();
-          }, 200);
-        }
-
-        function handlePinInput(val) {
-          if (val.length > 4) {
-            document.getElementById("hiddenPin").value = val.substring(0, 4);
-            val = val.substring(0, 4);
-          }
-          updatePinDots(val.length);
-          if (val.length === 4) {
-            setTimeout(() => {
-              document.getElementById("pinModal").style.display = "none";
-              document.getElementById("hiddenPin").blur();
-              saveNewMerchant(val);
-            }, 300);
-          }
-        }
-
-        function updatePinDots(len) {
-          for (let i = 1; i <= 4; i++) {
-            const dot = document.getElementById("dot" + i);
-            if (i <= len) {
-              dot.style.background = "var(--primary)";
-              dot.style.borderColor = "var(--primary)";
-            } else {
-              dot.style.background = "transparent";
-              dot.style.borderColor = "var(--text-muted)";
-            }
-          }
+          // 🔥 ហៅ PIN Modal ពី pin.js មកប្រើប្រាស់
+          requestPinVerification(
+            "បញ្ចូលលេខសម្ងាត់",
+            "ដើម្បីបង្កើតហាងថ្មី",
+            async function () {
+              const pinCode = document.getElementById("hiddenGlobalPin").value;
+              saveNewMerchant(pinCode); // បញ្ជូន PIN ដែលវាយបានទៅ Function បង្កើតហាង
+            },
+          );
         }
 
         async function saveNewMerchant(enteredPin) {

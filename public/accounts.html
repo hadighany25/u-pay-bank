@@ -1,0 +1,1167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>My Accounts - U-Pay</title>
+
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- ភ្ជាប់ឯកសារគោលដូច Dashboard -->
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="/js/slip.js"></script>
+
+    <style>
+      :root {
+        --usd-color: #10b981; /* បៃតងត្បូងមរកត សម្រាប់ USD */
+        --khr-color: #2563eb; /* ខៀវទឹកប៊ិចចាស់ សម្រាប់ KHR ដើម្បីងាយមើលដាច់គ្នា */
+      }
+
+      body {
+        background-color: #f2f4f6;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        transition: background-color 0.3s ease;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        padding-bottom: 20px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.03);
+        overflow-x: hidden;
+        transition: 0.3s;
+      }
+
+      /* Header ដើម */
+      .nav-header {
+        padding: 20px;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 1.1rem;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: 0.3s;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* ==========================================
+         ១. ផ្ទាំងសរុប (DONUT CHART OVERVIEW)
+         ========================================== */
+      .overview-card {
+        background: white;
+        margin: 20px;
+        border-radius: 20px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        border: 1px solid #e2e8f0;
+        transition: 0.3s;
+      }
+
+      @keyframes popIn {
+        0% {
+          transform: scale(0.5) rotate(-45deg);
+          opacity: 0;
+        }
+        70% {
+          transform: scale(1.1) rotate(10deg);
+        }
+        100% {
+          transform: scale(1) rotate(0deg);
+          opacity: 1;
+        }
+      }
+
+      .donut-wrapper {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        animation: popIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .donut-chart {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(
+          var(--usd-color) 0% 0%,
+          var(--khr-color) 0% 100%
+        );
+        transition: background 1s ease-in-out;
+      }
+      .donut-hole {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 60px;
+        height: 60px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: bold;
+        transition: 0.3s;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      .overview-details {
+        flex: 1;
+      }
+      .balance-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .balance-row:last-child {
+        margin-bottom: 0;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        display: inline-block;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .dot.usd {
+        background: var(--usd-color);
+      }
+      .dot.khr {
+        background: var(--khr-color);
+      }
+      .bal-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+      .bal-value {
+        font-size: 1.05rem;
+        font-weight: bold;
+        color: #1e293b;
+      }
+
+      /* ==========================================
+         ២. បញ្ជីគណនី (ACCOUNTS LIST)
+         ========================================== */
+      .section-title {
+        margin: 0 20px 10px 20px;
+        font-size: 0.95rem;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .accounts-list {
+        padding: 0 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .account-item {
+        background: white;
+        border-radius: 16px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        cursor: pointer;
+      }
+      /* Hover Animation ស្អាត */
+      .account-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        border-color: #e2e8f0;
+      }
+      .account-item:active {
+        transform: scale(0.98);
+      }
+      .account-item.sortable-ghost {
+        opacity: 0.4;
+        transform: scale(0.95);
+      }
+
+      .drag-handle {
+        color: #cbd5e1;
+        cursor: grab;
+        font-size: 1.2rem;
+        padding: 5px;
+        transition: 0.2s;
+      }
+      .drag-handle:hover {
+        color: #94a3b8;
+      }
+      .acc-color-bar {
+        width: 5px;
+        height: 40px;
+        border-radius: 5px;
+      }
+      .bar-usd {
+        background: var(--usd-color);
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+      }
+      .bar-khr {
+        background: var(--khr-color);
+        box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+      }
+
+      .acc-info {
+        flex: 1;
+      }
+      .acc-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .acc-info p {
+        margin: 4px 0 0 0;
+        font-size: 0.8rem;
+        color: #64748b;
+        font-family: monospace;
+      }
+      .acc-badge {
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-weight: bold;
+      }
+
+      .acc-amount {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1e293b;
+        text-align: right;
+      }
+
+      .more-btn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.2rem;
+        padding: 5px 10px;
+        cursor: pointer;
+        transition: 0.2s;
+        border-radius: 8px;
+      }
+      .more-btn:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+      }
+
+      /* ==========================================
+         ៣. ផ្ទាំងលម្អិត (SLIDING DETAIL VIEW)
+         ========================================== */
+      .detail-view {
+        position: fixed;
+        top: 0;
+        left: 100%;
+        width: 100%;
+        height: 100%;
+        max-width: 450px;
+        background: #f8fafc;
+        z-index: 100;
+        transition: left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
+      }
+      .detail-view.active {
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .detail-header {
+        padding: 20px 20px 30px 20px;
+        color: white;
+        position: relative;
+        transition: 0.3s;
+      }
+      .detail-header.bg-usd {
+        background: linear-gradient(135deg, #004d40, var(--usd-color));
+      }
+      .detail-header.bg-khr {
+        background: linear-gradient(135deg, #1e3a8a, var(--khr-color));
+      }
+
+      .dh-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+        font-weight: bold;
+      }
+      .dh-top i {
+        cursor: pointer;
+        padding: 5px;
+        transition: 0.2s;
+      }
+      .dh-top i:active {
+        transform: scale(0.9);
+      }
+      .dh-info {
+        text-align: center;
+      }
+      .dh-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.9;
+      }
+      .dh-info h1 {
+        margin: 5px 0;
+        font-size: 2.8rem;
+        letter-spacing: -1px;
+        text-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .dh-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 25px;
+      }
+      .dh-action-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 12px 25px;
+        border-radius: 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        backdrop-filter: blur(5px);
+        transition: 0.2s;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .dh-action-btn:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .dh-action-btn i {
+        font-size: 1.2rem;
+      }
+
+      .detail-transactions {
+        flex: 1;
+        background: #f8fafc;
+        border-radius: 25px 25px 0 0;
+        margin-top: -20px;
+        padding: 20px;
+        overflow-y: auto;
+        transition: 0.3s;
+      }
+
+      /* Transaction List */
+      .trx-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px;
+        background: white;
+        border-radius: 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: 1px solid #f1f5f9;
+        transition: 0.2s;
+      }
+      .trx-item:active {
+        transform: scale(0.98);
+      }
+      .trx-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .trx-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+      .trx-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #1e293b;
+        font-weight: 600;
+        text-transform: capitalize;
+      }
+      .trx-info p {
+        margin: 4px 0 0 0;
+        font-size: 0.75rem;
+        color: #94a3b8;
+      }
+      .trx-amount {
+        font-weight: 700;
+        font-size: 1rem;
+      }
+      .text-green {
+        color: #10b981;
+      }
+      .text-red {
+        color: #ef4444;
+      }
+      .text-orange {
+        color: #f97316;
+      }
+      .bg-green {
+        background: #ecfdf5;
+        color: #10b981;
+      }
+      .bg-red {
+        background: #fef2f2;
+        color: #ef4444;
+      }
+      .bg-orange {
+        background: #fff7ed;
+        color: #f97316;
+      }
+
+      /* ==========================================
+         ៤. ទំហំ SweetAlert (កុំអោយហៀរ) & ប៊ូតុង Menu ៣
+         ========================================== */
+      .account-options-swal {
+        width: 90% !important;
+        max-width: 400px !important;
+        border-radius: 24px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+
+      .menu-btn-custom {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 14px;
+        font-weight: bold;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: 0.2s;
+        font-family: inherit;
+      }
+      .menu-btn-custom:active {
+        transform: scale(0.97);
+      }
+      .btn-info {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+      .btn-rename {
+        background: #fff7ed;
+        color: #ea580c;
+      }
+      .btn-copy {
+        background: #ecfdf5;
+        color: #059669;
+      }
+      .btn-hide {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+
+      /* ==========================================
+         🌙 ៥. មុខងារងងឹត (DARK MODE) ពេញលេញ
+         ========================================== */
+      body.dark-mode {
+        background-color: #0f172a;
+      }
+      body.dark-mode .app-container {
+        background-color: #0f172a;
+        box-shadow: none;
+      }
+      body.dark-mode .nav-header {
+        background-color: #00251f;
+      }
+
+      body.dark-mode .overview-card {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      body.dark-mode .donut-hole {
+        background: #1e293b;
+        color: #cbd5e1;
+      }
+      body.dark-mode .bal-label {
+        color: #94a3b8;
+      }
+      body.dark-mode .bal-value {
+        color: #f8fafc;
+      }
+
+      body.dark-mode .section-title {
+        color: #94a3b8;
+      }
+      body.dark-mode .account-item {
+        background: #1e293b;
+        border-color: #334155;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+      body.dark-mode .account-item:hover {
+        background: #2a374a;
+        border-color: #475569;
+      }
+      body.dark-mode .acc-info h4,
+      body.dark-mode .acc-amount {
+        color: #f8fafc;
+      }
+      body.dark-mode .acc-badge {
+        background: #334155;
+        color: #cbd5e1;
+      }
+      body.dark-mode .more-btn:hover {
+        background: #334155;
+        color: #f8fafc;
+      }
+
+      body.dark-mode .detail-view {
+        background: #0f172a;
+        box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode .detail-transactions {
+        background: #0f172a;
+      }
+      body.dark-mode .trx-item {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      body.dark-mode .trx-info h4 {
+        color: #f8fafc;
+      }
+
+      body.dark-mode .bg-green {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+      }
+      body.dark-mode .bg-red {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+      }
+      body.dark-mode .bg-orange {
+        background: rgba(249, 115, 22, 0.15);
+        color: #fb923c;
+      }
+
+      /* Dark Mode for SweetAlert Options */
+      body.dark-mode .btn-info {
+        background: rgba(37, 99, 235, 0.2);
+        color: #60a5fa;
+      }
+      body.dark-mode .btn-rename {
+        background: rgba(234, 88, 12, 0.2);
+        color: #fb923c;
+      }
+      body.dark-mode .btn-copy {
+        background: rgba(5, 150, 105, 0.2);
+        color: #34d399;
+      }
+      body.dark-mode .btn-hide {
+        background: rgba(220, 38, 38, 0.2);
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <div class="nav-header">
+        <a onclick="goBack()"
+          ><i class="fa-solid fa-arrow-left"></i> My Accounts</a
+        >
+      </div>
+
+      <!-- ១. ផ្ទាំងសរុបលុយ (Donut Chart) -->
+      <div class="overview-card">
+        <div class="donut-wrapper">
+          <div class="donut-chart" id="donutChart"></div>
+          <div class="donut-hole">Total</div>
+        </div>
+        <div class="overview-details">
+          <div class="balance-row">
+            <div>
+              <span class="dot usd"></span
+              ><span class="bal-label">USD Accounts</span>
+            </div>
+            <div class="bal-value" id="totUSD">$0.00</div>
+          </div>
+          <div class="balance-row">
+            <div>
+              <span class="dot khr"></span
+              ><span class="bal-label">KHR Accounts</span>
+            </div>
+            <div class="bal-value" id="totKHR">0 ៛</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="section-title">All Accounts</h3>
+      <!-- ២. បញ្ជីគណនី (Draggable) -->
+      <div class="accounts-list" id="accountsList">
+        <!-- Generated by JS -->
+      </div>
+
+      <!-- ៣. ផ្ទាំង Detail View (Sliding Native App Style) -->
+      <div class="detail-view" id="detailView">
+        <div class="detail-header" id="detailHeader">
+          <div class="dh-top">
+            <!-- ប៊ូតុង Back នេះនឹងបិទផ្ទាំង Detail មិនមែនថយក្រោយ Browser ទេ -->
+            <i class="fa-solid fa-arrow-left" onclick="closeDetailView()"></i>
+            <span id="headerDetailTitle" style="text-transform: uppercase"
+              >Account Details</span
+            >
+            <i
+              class="fa-solid fa-ellipsis-vertical"
+              onclick="showAccountOptionsFromDetail()"
+            ></i>
+          </div>
+          <div class="dh-info">
+            <p id="detAccName">MAIN ACCOUNT</p>
+            <h1 id="detBalance">$0.00</h1>
+            <p id="detAccNum">000 000 000 | USD</p>
+          </div>
+          <div class="dh-actions">
+            <div
+              class="dh-action-btn"
+              onclick="window.location.href = 'transfer.html'"
+            >
+              <i class="fa-solid fa-paper-plane"></i> Transfer
+            </div>
+            <div
+              class="dh-action-btn"
+              onclick="window.location.href = 'scan.html?showQR=true'"
+            >
+              <i class="fa-solid fa-qrcode"></i> Receive
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-transactions" id="detailTransactions">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      if (!user) window.location.href = "index.html";
+
+      let allAccounts = [];
+      let currentViewingAccount = null;
+
+      // ការកំណត់ Theme (Dark Mode)
+      function applyTheme() {
+        const userThemeKey = "darkMode_" + user.username;
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
+
+        processAccountsData();
+        renderAccountsList();
+
+        // ប្រើ setTimeout អោយមាន Animation ឃើញ Donut រត់
+        setTimeout(updateDonutChart, 100);
+        setupSortable();
+      });
+
+      function goBack() {
+        window.location.href = "dashboard.html";
+      }
+
+      // ១. រៀបចំទិន្នន័យគណនីទាំងអស់បញ្ចូលគ្នា
+      function processAccountsData() {
+        allAccounts = [];
+        let tUsd = 0,
+          tKhr = 0;
+
+        // Main USD
+        if (user.accountNumber) {
+          allAccounts.push({
+            id: user.accountNumber,
+            name: "Main Account",
+            type: "Main",
+            currency: "USD",
+            balance: user.balance,
+            isMain: true,
+          });
+          tUsd += user.balance;
+        }
+        // Main KHR
+        if (user.accountNumberKHR) {
+          allAccounts.push({
+            id: user.accountNumberKHR,
+            name: "Main Account KHR",
+            type: "Main",
+            currency: "KHR",
+            balance: user.balanceKHR,
+            isMain: true,
+          });
+          tKhr += user.balanceKHR || 0;
+        }
+        // Sub Accounts
+        if (user.subAccounts) {
+          user.subAccounts.forEach((sub) => {
+            let tName =
+              sub.accountType === "joint"
+                ? "Joint"
+                : sub.accountType === "junior"
+                  ? "Junior"
+                  : "Savings";
+            allAccounts.push({
+              id: sub.accountNumber,
+              name: sub.accountName || tName,
+              type: tName,
+              currency: sub.currency,
+              balance: sub.balance,
+              isMain: false,
+            });
+            if (sub.currency === "USD") tUsd += sub.balance;
+            else tKhr += sub.balance;
+          });
+        }
+
+        document.getElementById("totUSD").innerText =
+          `$${tUsd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById("totKHR").innerText =
+          `${tKhr.toLocaleString("en-US")} ៛`;
+
+        // រក្សាទុកតម្លៃសរុបដើម្បីគូរ Donut
+        window.totalUSD = tUsd;
+        window.totalKHR = tKhr;
+      }
+
+      // គូរ Donut ជាមួយ Animation
+      function updateDonutChart() {
+        let khrToUsd = window.totalKHR / 4000;
+        let totalVal = window.totalUSD + khrToUsd;
+        let usdPercent =
+          totalVal === 0 ? 50 : (window.totalUSD / totalVal) * 100;
+
+        // ប្តូរ CSS Variable ដែលយើងបានកំណត់ពណ៌
+        const usdCol =
+          getComputedStyle(document.body)
+            .getPropertyValue("--usd-color")
+            .trim() || "#10b981";
+        const khrCol =
+          getComputedStyle(document.body)
+            .getPropertyValue("--khr-color")
+            .trim() || "#2563eb";
+
+        document.getElementById("donutChart").style.background =
+          `conic-gradient(${usdCol} 0% ${usdPercent}%, ${khrCol} ${usdPercent}% 100%)`;
+      }
+
+      // ២. គូរបញ្ជីគណនី (Draggable UI)
+      function renderAccountsList() {
+        const list = document.getElementById("accountsList");
+        list.innerHTML = "";
+
+        const savedOrder =
+          JSON.parse(localStorage.getItem(`accOrder_${user.username}`)) || [];
+        if (savedOrder.length > 0) {
+          allAccounts.sort((a, b) => {
+            let idxA = savedOrder.indexOf(a.id);
+            let idxB = savedOrder.indexOf(b.id);
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+          });
+        }
+
+        allAccounts.forEach((acc) => {
+          const isUSD = acc.currency === "USD";
+          const barClass = isUSD ? "bar-usd" : "bar-khr";
+          const balStr = isUSD
+            ? `$${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `${acc.balance.toLocaleString("en-US")} ៛`;
+          const accFmt = acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+
+          list.innerHTML += `
+              <div class="account-item" data-id="${acc.id}" onclick="openDetailView('${acc.id}')">
+                 <i class="fa-solid fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
+                 <div class="acc-color-bar ${barClass}"></div>
+                 <div class="acc-info">
+                    <h4>${acc.name} <span class="acc-badge">${acc.type}</span></h4>
+                    <p>${accFmt}</p>
+                 </div>
+                 <div class="acc-amount">${balStr}</div>
+                 <button class="more-btn" onclick="event.stopPropagation(); showAccountOptions('${acc.id}')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              </div>
+            `;
+        });
+      }
+
+      function setupSortable() {
+        new Sortable(document.getElementById("accountsList"), {
+          handle: ".drag-handle",
+          animation: 250,
+          ghostClass: "sortable-ghost",
+          onEnd: function () {
+            const items = document.querySelectorAll(".account-item");
+            const newOrder = Array.from(items).map((item) =>
+              item.getAttribute("data-id"),
+            );
+            localStorage.setItem(
+              `accOrder_${user.username}`,
+              JSON.stringify(newOrder),
+            );
+          },
+        });
+      }
+
+      // ៣. ប៊ូតុង ៣ ចុច (Colorful 3-Dot Menu)
+      function showAccountOptions(accId) {
+        currentViewingAccount = allAccounts.find((a) => a.id === accId);
+
+        let html = `<div style="text-align:left; display:flex; flex-direction:column; gap:12px; margin-top:10px;">`;
+
+        // ប៊ូតុង Account Info
+        html += `<button onclick="Swal.close()" class="menu-btn-custom btn-info"><i class="fa-solid fa-circle-info" style="font-size:1.2rem;"></i> ព័ត៌មានគណនី (Info)</button>`;
+
+        // ប៊ូតុង Copy
+        html += `<button onclick="copyAccNumber()" class="menu-btn-custom btn-copy"><i class="fa-solid fa-copy" style="font-size:1.2rem;"></i> ចម្លងលេខកុង (Copy)</button>`;
+
+        // ប៊ូតុង Rename (សម្រាប់តែ Sub-account)
+        if (!currentViewingAccount.isMain) {
+          html += `<button onclick="renameAccount()" class="menu-btn-custom btn-rename"><i class="fa-solid fa-pen" style="font-size:1.2rem;"></i> ប្តូរឈ្មោះគណនី (Rename)</button>`;
+        }
+
+        // ប៊ូតុង Hide (គ្រាន់តែ Demo UI)
+        html += `<button onclick="Swal.close()" class="menu-btn-custom btn-hide"><i class="fa-solid fa-eye-slash" style="font-size:1.2rem;"></i> លាក់គណនី (Hide)</button>`;
+
+        html += `</div>`;
+
+        Swal.fire({
+          title: `<span style="font-size:1.1rem;">${currentViewingAccount.name}</span>`,
+          html: html,
+          showConfirmButton: false,
+          showCloseButton: true,
+          customClass: { popup: "account-options-swal" }, // បន្ថែម Class ទប់ទំហំ
+        });
+      }
+
+      function showAccountOptionsFromDetail() {
+        if (currentViewingAccount) showAccountOptions(currentViewingAccount.id);
+      }
+
+      function copyAccNumber() {
+        navigator.clipboard.writeText(currentViewingAccount.id);
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "success",
+          title: "ចម្លងបានជោគជ័យ!",
+          showConfirmButton: false,
+          timer: 1500,
+          customClass: { popup: "premium-swal" },
+        });
+      }
+
+      function renameAccount() {
+        Swal.fire({
+          title: "ប្តូរឈ្មោះគណនី",
+          input: "text",
+          inputValue: currentViewingAccount.name,
+          showCancelButton: true,
+          confirmButtonText: "រក្សាទុក",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "account-options-swal" },
+        }).then((res) => {
+          if (res.isConfirmed && res.value) {
+            Swal.fire({
+              icon: "success",
+              title: "Saved!",
+              text: "ឈ្មោះត្រូវបានកែប្រែ (Demo)",
+              customClass: { popup: "premium-swal" },
+            });
+          }
+        });
+      }
+
+      // ៤. បើកផ្ទាំងលម្អិត (Slide In Detail View)
+      function openDetailView(accId) {
+        const acc = allAccounts.find((a) => a.id === accId);
+        currentViewingAccount = acc;
+
+        const header = document.getElementById("detailHeader");
+        header.className =
+          "detail-header " + (acc.currency === "USD" ? "bg-usd" : "bg-khr");
+
+        // 🔥 ប្តូរចំណងជើង Header ទៅជាឈ្មោះគណនីផ្ទាល់
+        document.getElementById("headerDetailTitle").innerText =
+          acc.name.toUpperCase();
+        document.getElementById("detAccName").innerText =
+          acc.name.toUpperCase();
+        document.getElementById("detBalance").innerText =
+          acc.currency === "USD"
+            ? `$${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `${acc.balance.toLocaleString("en-US")} ៛`;
+        document.getElementById("detAccNum").innerText =
+          `${acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")} | ${acc.currency}`;
+
+        renderDetailTransactions(acc.id, acc.currency);
+
+        document.getElementById("detailView").classList.add("active");
+      }
+
+      function closeDetailView() {
+        document.getElementById("detailView").classList.remove("active");
+        // Revert Title មកវិញ (មិនបាច់ក៏បាន ព្រោះវាលាក់បាត់ហើយ)
+      }
+
+      // ៥. ទាញ Logic ពី History មកគូរ Transaction ជាមួយ Icon ថ្មីៗ
+      function renderDetailTransactions(accId, currency) {
+        const list = document.getElementById("detailTransactions");
+        const allTrx = user.transactions || [];
+
+        let filtered = allTrx
+          .filter((t) => {
+            const matchAcc =
+              t.senderAcc === accId ||
+              t.receiverAcc === accId ||
+              t.senderAccount === accId ||
+              t.receiverAccount === accId;
+            const matchMain =
+              currency === t.currency &&
+              (accId === user.accountNumber ||
+                accId === user.accountNumberKHR) &&
+              !t.senderAcc &&
+              !t.receiverAcc;
+            return matchAcc || matchMain;
+          })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 30);
+
+        if (filtered.length === 0) {
+          list.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+          return;
+        }
+
+        let htmlStr = "";
+        let lastDateLabel = "";
+
+        filtered.forEach((t, i) => {
+          const isIncome = t.amount > 0;
+          const isPending = t.status === "Pending";
+
+          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+          let bgClass = isIncome
+            ? "bg-green"
+            : isPending
+              ? "bg-orange"
+              : "bg-red";
+          let textClass = isIncome
+            ? "text-green"
+            : isPending
+              ? "text-orange"
+              : "text-red";
+          const currSym = currency === "KHR" ? "៛" : "$";
+
+          // 🎨 ដាក់ Icon ចម្រុះដូច History ដែរ
+          const tType = (t.type || "").toLowerCase();
+          const tMethod = (t.trxMethod || "").toLowerCase();
+          const tSender = (t.senderName || "").toLowerCase();
+
+          if (
+            tType.includes("deposit") ||
+            tMethod.includes("cashier") ||
+            tSender.includes("deposit")
+          ) {
+            iconClass = "fa-hand-holding-dollar";
+          } else if (
+            tType.includes("payroll") ||
+            tMethod.includes("payout") ||
+            tMethod.includes("payroll")
+          ) {
+            iconClass = "fa-money-bill-transfer";
+          } else if (
+            tType.includes("promo") ||
+            tType.includes("cashback") ||
+            tSender.includes("promo") ||
+            tSender.includes("reward") ||
+            tType.includes("reward")
+          ) {
+            iconClass = "fa-sack-dollar";
+          } else if (
+            tType.includes("merchant") ||
+            tMethod.includes("merchant") ||
+            tMethod.includes("b2b") ||
+            t.merchantId
+          ) {
+            iconClass = "fa-store";
+          } else if (tType.includes("bill") || tMethod.includes("bill")) {
+            iconClass = "fa-file-invoice-dollar";
+          } else if (
+            tType.includes("u-fund") ||
+            tType.includes("saving") ||
+            tType.includes("fund")
+          ) {
+            iconClass = "fa-piggy-bank";
+          } else if (tType.includes("e-gift") || tType.includes("gift")) {
+            iconClass = "fa-gift";
+          } else if (tType.includes("fee")) {
+            iconClass = "fa-receipt";
+            bgClass = "bg-orange";
+            textClass = "text-orange";
+          } else if (isIncome && user.role === "junior") {
+            iconClass = "fa-child-reaching";
+          }
+
+          let title = isIncome
+            ? t.senderName || t.type || "Received"
+            : t.receiverName || t.type || "Transfer";
+          if (t.type === "E-Gift Received") title = "Received E-Gift";
+          else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
+
+          if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
+            title = t.trxMethod || t.type || "System Transaction";
+          }
+
+          // Smart Date Header
+          let dateObj = new Date(t.date);
+          if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))
+            dateObj = new Date(t.date.split(",")[0].trim());
+          if (isNaN(dateObj.getTime())) dateObj = new Date();
+
+          let d = new Date();
+          d.setHours(0, 0, 0, 0);
+          let y = new Date();
+          y.setDate(d.getDate() - 1);
+          y.setHours(0, 0, 0, 0);
+          let c = new Date(dateObj);
+          c.setHours(0, 0, 0, 0);
+
+          let dateStr = "";
+          if (c.getTime() === d.getTime()) dateStr = "TODAY";
+          else if (c.getTime() === y.getTime()) dateStr = "YESTERDAY";
+          else
+            dateStr = dateObj
+              .toLocaleDateString("en-US", {
+                month: "short",
+                day: "2-digit",
+                year: "numeric",
+              })
+              .toUpperCase();
+
+          if (dateStr !== lastDateLabel) {
+            htmlStr += `<div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${dateStr}</div>`;
+            lastDateLabel = dateStr;
+          }
+
+          let timeStr = dateObj.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          let amtDisplay =
+            currency === "USD"
+              ? Math.abs(t.amount).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : Math.abs(t.amount).toLocaleString();
+
+          // ការពារកុំអោយ XSS
+          const cleanTitle = title.replace(
+            /[&<>'"]/g,
+            (tag) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "'": "&#39;",
+                '"': "&quot;",
+              })[tag],
+          );
+          const cleanMethod = (t.trxMethod || "U-Pay").replace(
+            /[&<>'"]/g,
+            (tag) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                "'": "&#39;",
+                '"': "&quot;",
+              })[tag],
+          );
+
+          htmlStr += `
+                <div class="trx-item" onclick="openGlobalSlip(user.transactions[${i}], user.username)">
+                  <div class="trx-left">
+                    <div class="trx-icon ${bgClass}"><i class="fa-solid ${iconClass}"></i></div>
+                    <div class="trx-info">
+                      <h4>${cleanTitle}</h4>
+                      <p>${timeStr} • ${cleanMethod}</p>
+                    </div>
+                  </div>
+                  <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${amtDisplay}</div>
+                </div>
+              `;
+        });
+        list.innerHTML = htmlStr;
+      }
+    </script>
+  </body>
+</html>
