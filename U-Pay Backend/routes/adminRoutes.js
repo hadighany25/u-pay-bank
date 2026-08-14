@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
-const JointAccount = require("../models/JointAccount");
+const cardController = require("../controllers/cardController");
 const { checkRole } = require("../middleware/authMiddleware");
 
 // ==========================================
@@ -22,26 +22,31 @@ router.post(
   checkRole([ROLE_SUPER]),
   adminController.toggleSystem,
 );
+
 // លុបគណនីអតិថិជន (បើកសិទ្ធិអោយ Custom ព្រោះ controller មានឆែកសិទ្ធិលម្អិតទៀត)
 router.post(
   "/delete-user",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   adminController.deleteUser,
 );
+
 // មើលកំណត់ត្រាសកម្មភាពរបស់ Admin ទាំងអស់
 router.get("/logs", checkRole([ROLE_SUPER]), adminController.getAdminLogs);
+
 // បង្វិលលុយត្រឡប់ (Refund)
 router.post(
   "/refund-transaction",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   adminController.refundTransaction,
 );
+
 // មើលស្ថានភាពប្រព័ន្ធ
 router.get(
   "/system-status",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getSystemStatus,
 );
+
 // មើលអត្រាប្តូរប្រាក់
 router.get(
   "/fx/rates",
@@ -58,12 +63,14 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   adminController.adjustBalance,
 );
+
 // អនុម័តប្រតិបត្តិការ
 router.post(
   "/approve-transaction",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   adminController.approveTransaction,
 );
+
 // ផ្លាស់ប្តូរអត្រាប្តូរប្រាក់ (FX Rates)
 router.post(
   "/fx/update",
@@ -80,12 +87,14 @@ router.get(
   checkRole([ROLE_SUPER]),
   adminController.getAdminsList,
 );
+
 // បង្កើត ឬកែប្រែគណនី Admin
 router.post(
   "/save-admin",
   checkRole([ROLE_SUPER]),
   adminController.saveAdminAccount,
 );
+
 // លុបគណនី Admin
 router.post(
   "/delete-admin",
@@ -102,48 +111,56 @@ router.get(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getStats,
 );
+
 // របាយការណ៍បន្ថែម (Extra Dashboard)
 router.get(
   "/dashboard-extra",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getDashboardExtra,
 );
+
 // មើលប្រតិបត្តិការលម្អិត
 router.get(
   "/transaction/:id",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getTransaction,
 );
+
 // កែប្រែព័ត៌មានអតិថិជន
 router.post(
   "/edit-user",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.editUser,
 );
+
 // បិទ/បើក គណនីអតិថិជន (Freeze User)
 router.post(
   "/toggle-freeze",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.toggleFreeze,
 );
+
 // បិទ/បើក កាតអតិថិជន (Lock Card)
 router.post(
   "/toggle-card-lock",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.toggleAdminCardLock,
 );
+
 // អនុម័ត ឬបដិសេធ KYC
 router.post(
   "/kyc-action",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.kycAction,
 );
+
 // ឆ្លើយតបសំបុត្រជំនួយ (Ticket Reply)
 router.post(
   "/ticket-reply",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.ticketReply,
 );
+
 // ទាញយកព័ត៌មាន Admin ផ្ទាល់ខ្លួន
 router.get(
   "/me",
@@ -160,36 +177,42 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.broadcast,
 );
+
 // លុបសារជូនដំណឹង
 router.post(
   "/delete-broadcast",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.deleteBroadcast,
 );
+
 // មើលថ្លៃសេវា (Fee Settings)
 router.get(
   "/fees",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getFeeSettings,
 );
+
 // កែប្រែថ្លៃសេវា (Super Admin តែម្នាក់គត់)
 router.post(
   "/fees",
   checkRole([ROLE_SUPER]),
   adminController.updateFeeSettings,
 );
+
 // បង្កើតកូដប្រូម៉ូសិន (Promo Code)
 router.post(
   "/promo/create",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   adminController.createPromoCode,
 );
+
 // មើលបញ្ជីកូដប្រូម៉ូសិន
 router.get(
   "/promos",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getPromoCodes,
 );
+
 // បិទ/បើក កូដប្រូម៉ូសិន
 router.post(
   "/promo/toggle",
@@ -206,18 +229,21 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   merchantController.adminToggleMerchantFreeze,
 );
+
 // លុបហាង
 router.delete(
   "/delete-merchant/:id",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   merchantController.adminDeleteMerchant,
 );
+
 // កែប្រែព័ត៌មានហាង
 router.put(
   "/edit-merchant",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   merchantController.adminEditMerchant,
 );
+
 // បង្កើតហាងថ្មី
 router.post(
   "/create-merchant",
@@ -234,24 +260,28 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.logCustomAction,
 );
+
 // លុបកាតចោល
 router.post(
   "/delete-card",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   adminController.adminDeleteCard,
 );
+
 // បង្កើតកាតថ្មី
 router.post(
   "/create-card",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   adminController.adminCreateCard,
 );
+
 // អាប់ឡូតឯកសារ KYC
 router.post(
   "/upload-kyc",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.adminUploadKyc,
 );
+
 // បង្ខំអោយ Logout (Force Logout)
 router.post(
   "/force-logout",
@@ -268,6 +298,7 @@ router.get(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.searchCashierUser,
 );
+
 // ដំណើរការគិតប្រាក់ (Cashier Transaction)
 router.post(
   "/cashier/transaction",
@@ -284,11 +315,29 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.searchUserByAdmin,
 );
+
 // ទាញយកព័ត៌មានអតិថិជនលម្អិត
 router.post(
   "/get-user",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getUserByAdmin,
+);
+
+// ==========================================
+// 💳 ១០. មុខងារគ្រប់គ្រង NFC Card
+// ==========================================
+// ភ្ជាប់ NFC Card
+router.post(
+  "/cards/bind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  cardController.bindNfcCard,
+);
+
+// ផ្តាច់ NFC Card
+router.post(
+  "/cards/unbind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  cardController.unbindNfcCard,
 );
 
 module.exports = router;

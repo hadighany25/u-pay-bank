@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema(
         linkedAccount: { type: String },
         pin: { type: String },
         lockedByAdmin: { type: Boolean, default: false },
+        uid: { type: String, default: null },
       },
     ],
 

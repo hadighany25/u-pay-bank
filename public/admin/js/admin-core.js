@@ -303,18 +303,41 @@ async function loadData() {
             allAdminNotifs.add(n.id || n.title + n.date);
         });
 
-      // រៀបចំទិន្នន័យ Cards
-      if (u.virtualCards) {
-        u.virtualCards.forEach((c) => {
-          const statusHtml = c.isLocked
-            ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
-            : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
-          const btnHtml = c.isLocked
-            ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
-            : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
-          const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
-          cardsHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div></td><td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td><td>Virtual ${c.type || "Card"}</td><td>${statusHtml}</td><td style="text-align: right;">${btnHtml}</td></tr>`;
-        });
+      // រៀបចំទិន្នន័យ Cards (១គណនី បង្ហាញតែកាត១គត់)
+      if (u.virtualCards && u.virtualCards.length > 0) {
+        const c = u.virtualCards[0]; // 🔥 ទាញយកតែកាតទី១ មកបង្ហាញ
+
+        const statusHtml = c.isLocked
+          ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
+          : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
+
+        const freezeBtn = c.isLocked
+          ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
+          : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
+
+        let nfcBtn = "";
+        let cardType = `Virtual ${c.type || "platinum"}`;
+        let nfcIconTitle = "";
+
+        if (c.uid) {
+          // បើមានភ្ជាប់ NFC
+          nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
+          cardType = `<span style="color:#0f172a; font-weight:bold;">Physical NFC</span>`;
+          nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px;" title="NFC Active"></i>`;
+        } else {
+          // បើមិនទាន់មានភ្ជាប់ NFC
+          nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
+        }
+
+        const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
+
+        cardsHtml += `<tr>
+          <td><div style="font-weight:600; color:var(--text-main);">${u.fullName || u.username} ${nfcIconTitle}</div></td>
+          <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td>
+          <td>${cardType}</td>
+          <td>${statusHtml}</td>
+          <td style="text-align: right; white-space: nowrap;">${freezeBtn}${nfcBtn}</td>
+        </tr>`;
       }
 
       // រៀបចំទិន្នន័យ KYC

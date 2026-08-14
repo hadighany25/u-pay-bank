@@ -63,6 +63,107 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
 }
 
 // ========================================================================
+// 💳 SECTION: SECURE QUICK NFC BINDING (FLOW សុវត្ថិភាពខ្ពស់ ១០០%)
+// ========================================================================
+window.quickBindNFC = async function (username, cardId) {
+  // ជំហានទី១៖ បង្ខំឱ្យវាយ PIN រាល់ពេលចុច (មិនអនុញ្ញាតឱ្យจำកត់ត្រាទុកទេ)
+  const { value: pin } = await Swal.fire({
+    title: "🔒 បញ្ជាក់លេខសម្ងាត់ PIN កាត",
+    input: "password",
+    inputLabel: `ភ្ជាប់កាតអោយ៖ @${username}`,
+    inputPlaceholder: "សូមវាយលេខ PIN ៤ខ្ទង់",
+    inputAttributes: {
+      maxlength: 4,
+      autocapitalize: "off",
+      autocorrect: "off",
+    },
+    showCancelButton: true,
+    confirmButtonColor: "#10b981",
+    cancelButtonColor: "#94a3b8",
+    confirmButtonText: "យល់ព្រម & ស្កេន",
+    cancelButtonText: "បោះបង់",
+    inputValidator: (value) => {
+      if (!value || value.length !== 4 || isNaN(value)) {
+        return "សូមបញ្ចូលលេខសម្ងាត់ ៤ខ្ទង់អោយបានត្រឹមត្រូវ!";
+      }
+    },
+    customClass: { popup: "premium-swal" },
+  });
+
+  if (!pin) return;
+
+  if (!("NDEFReader" in window)) {
+    return Swal.fire(
+      "គ្មានមុខងារ NFC",
+      "ឧបករណ៍នេះមិនអាចស្កេនកាតបានទេ!",
+      "error",
+    );
+  }
+
+  Swal.fire({
+    title: "📡 កំពុងរង់ចាំស្កេនកាត NFC...",
+    html: '<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #0ea5e9;"></i></div><p style="color: #64748b;">សូមយកកាតមកផ្អឹបនឹងម៉ាស៊ីន</p>',
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    customClass: { popup: "premium-swal" },
+  });
+
+  try {
+    const ndef = new NDEFReader();
+    await ndef.scan();
+
+    ndef.onreading = async (event) => {
+      let serialNumber = event.serialNumber;
+      if (serialNumber) {
+        serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
+      }
+
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+      // បញ្ជូនទៅកាន់ Backend ពិនិត្យសុវត្ថិភាព
+      processCardBinding(username, cardId, pin, serialNumber);
+    };
+
+    ndef.onreadingerror = () => {
+      Swal.fire("បរាជ័យ", "មិនអាចអានកាតបានទេ សូមព្យាយាមម្តងទៀត។", "error");
+    };
+  } catch (error) {
+    console.error("NFC Scan Error:", error);
+  }
+};
+
+async function processCardBinding(username, cardId, pin, uid) {
+  try {
+    const res = await fetch("/api/admin/cards/bind-nfc", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username, cardId, pin, uid }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      Swal.fire({
+        icon: "success",
+        title: "ភ្ជាប់ជោគជ័យ!",
+        text: `កាត NFC ត្រូវបានភ្ជាប់រួចរាល់។`,
+        customClass: { popup: "premium-swal" },
+      });
+      if (typeof loadData === "function") loadData();
+    } else {
+      // បើកាតហ្នឹងមាន UID រួចហើយ ឬ គណនីហ្នឹងមានកាត NFC រួចហើយ វានឹងលោតប្រាប់ត្រង់នេះ
+      Swal.fire({
+        icon: "error",
+        title: "មិនអាចភ្ជាប់បានទេ!",
+        text: data.message || "មានកំហុសកើតឡើង!",
+        customClass: { popup: "premium-swal" },
+      });
+    }
+  } catch (e) {
+    Swal.fire("កំហុស", "មានបញ្ហាបច្ចេកទេសជាមួយ Server", "error");
+  }
+}
+
+// ========================================================================
 // 🎫 SECTION 3: TICKETS & CUSTOMER SUPPORT
 // ========================================================================
 async function replyTicket(username, ticketId) {

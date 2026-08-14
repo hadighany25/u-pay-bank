@@ -603,7 +603,8 @@ module.exports = {
   changeLimit,
   uploadImage,
   submitKyc,
-  verifyUserAccount, // ប្តូរឈ្មោះពី verifyUser ជៀសវាងការជាន់គ្នាជាមួយ authMiddleware
+  verifyUser: verifyUserAccount, // 🔥 ថែមជួរនេះ ដើម្បីកុំឱ្យ Router ចាស់ Error រកមិនឃើញ
+  verifyUserAccount,
   resetPassword,
   generateTelegramCode,
   unlinkTelegram,

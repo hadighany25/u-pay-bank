@@ -1,10 +1,9 @@
 const User = require("../models/User");
-const Transaction = require("../models/Transaction"); // 🔥 ទី១៖ ត្រូវហៅ Model ថ្មីមកប្រើ
+const Transaction = require("../models/Transaction");
 const { getFormattedDate, generateHash } = require("../services/helpers");
 
-// មុខងារជំនួយ: បង្កើតលេខកាត
+// មុខងារជំនួយ: បង្កើតលេខកាត Virtual
 const generateCardDetails = () => {
-  // លេខកាត Visa ផ្តើមដោយលេខ 4
   const number =
     "4" +
     Math.floor(Math.random() * 900000000000000)
@@ -12,7 +11,7 @@ const generateCardDetails = () => {
       .padStart(15, "0");
   const cvv = Math.floor(100 + Math.random() * 900).toString();
   const d = new Date();
-  d.setFullYear(d.getFullYear() + 4); // ផុតកំណត់ ៤ ឆ្នាំក្រោយ
+  d.setFullYear(d.getFullYear() + 4);
   const expiry =
     ("0" + (d.getMonth() + 1)).slice(-2) +
     "/" +
@@ -20,16 +19,13 @@ const generateCardDetails = () => {
   return { number, cvv, expiry };
 };
 
-// ១. បង្កើតកាតថ្មី (កាត់លុយ $5 និងបាញ់ចូល system_fee)
 const generateCard = async (req, res) => {
   const { username, cardType, pin } = req.body;
-
   if (req.user.username !== username)
     return res.status(403).json({ success: false, message: "Unauthorized!" });
 
   try {
     const user = await User.findOne({ username });
-
     if (!user) return res.json({ success: false, message: "User not found" });
     if (user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
@@ -39,14 +35,13 @@ const generateCard = async (req, res) => {
         message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់បង់សេវា $5 ទេ!",
       });
 
-    // 🔥 ស្វែងរកគណនី system_fee បើគ្មានទេ បង្កើតវាភ្លាមៗ
     let systemFeeAcc = await User.findOne({ username: "system_fee" });
     if (!systemFeeAcc) {
       systemFeeAcc = new User({
         id: "sys_" + Date.now(),
         username: "system_fee",
         fullName: "U PAY FEE",
-        accountNumber: "999999999", // លេខគណនីពិសេសសម្រាប់ Fee
+        accountNumber: "999999999",
         balance: 0.0,
         balanceKHR: 0.0,
         role: "user",
@@ -54,7 +49,6 @@ const generateCard = async (req, res) => {
       await systemFeeAcc.save();
     }
 
-    // កាត់លុយ $5 ពី User
     user.balance -= 5;
     const refId = "CARD-" + Date.now().toString().slice(-6);
     const trxHash = Math.random().toString(36).substring(2, 11);
@@ -63,10 +57,9 @@ const generateCard = async (req, res) => {
       hour12: true,
     });
 
-    // បញ្ជូន Transaction សម្រាប់អតិថិជន
     await Transaction.create({
       username: user.username,
-      refId: refId,
+      refId,
       hash: trxHash,
       date: dateStr,
       type: "Card Issuance Fee",
@@ -78,13 +71,10 @@ const generateCard = async (req, res) => {
       remark: `Issued ${cardType} Virtual Card`,
     });
 
-    // បញ្ចូលលុយទៅគណនី system_fee
     systemFeeAcc.balance += 5;
-
-    // បញ្ជូន Transaction សម្រាប់ system_fee
     await Transaction.create({
       username: systemFeeAcc.username,
-      refId: refId,
+      refId,
       hash: trxHash,
       date: dateStr,
       type: "System Income",
@@ -96,9 +86,8 @@ const generateCard = async (req, res) => {
       remark: "Card Issuance Fee",
     });
 
-    await systemFeeAcc.save(); // Save លុយថ្មីរបស់ system_fee
+    await systemFeeAcc.save();
 
-    // បង្កើតកាតថ្មី
     const details = generateCardDetails();
     const newCard = {
       id: "card_" + Date.now(),
@@ -112,6 +101,7 @@ const generateCard = async (req, res) => {
       dailyLimit: 500,
       linkedAccount: "USD",
       pin: "0000",
+      uid: null, // សម្រាប់ឈីប NFC
     };
 
     if (!user.virtualCards) user.virtualCards = [];
@@ -125,33 +115,22 @@ const generateCard = async (req, res) => {
       newBalance: user.balance,
     });
   } catch (err) {
-    console.error("GENERATE CARD ERROR:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// ២. បិទ/បើកកាត (Freeze)
 const toggleLock = async (req, res) => {
   const { cardId, isLocked } = req.body;
-
-  // ទាញយក username ពី Token របស់អតិថិជន
   const username = req.user ? req.user.username : req.body.username;
-
   try {
     const user = await User.findOne({ username });
-
-    if (!user || !user.virtualCards) {
+    if (!user || !user.virtualCards)
       return res.json({ success: false, message: "រកមិនឃើញគណនី ឬកាតទេ!" });
-    }
 
     const card = user.virtualCards.find((c) => c.id === cardId);
-    if (!card) {
+    if (!card)
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
-    }
 
-    // =======================================================
-    // 🔥 កូដអំណាច Admin (ការពារកុំអោយអតិថិជនចុច Unfreeze បាន)
-    // =======================================================
     if (isLocked === false && card.lockedByAdmin === true) {
       return res.json({
         success: false,
@@ -160,29 +139,21 @@ const toggleLock = async (req, res) => {
       });
     }
 
-    // បើកាតមិនជាប់សោរ Admin ទេ គឺអនុញ្ញាតអោយអតិថិជនបិទ/បើកកាតតាមធម្មតា
     card.isLocked = isLocked;
-
-    // បើអតិថិជនចុចបិទកាតខ្លួនឯង យើងត្រូវប្រាកដថា lockedByAdmin = false
-    if (isLocked === true) {
-      card.lockedByAdmin = false;
-    }
+    if (isLocked === true) card.lockedByAdmin = false;
 
     user.markModified("virtualCards");
     await user.save();
-
     res.json({ success: true, isLocked: card.isLocked });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-// ៣. បិទ/បើក Online Payment
 const toggleOnlinePay = async (req, res) => {
   const { username, cardId, isEnabled } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     const card = user.virtualCards.find((c) => c.id === cardId);
@@ -197,12 +168,10 @@ const toggleOnlinePay = async (req, res) => {
   }
 };
 
-// ៤. កំណត់ Daily Limit
 const updateLimit = async (req, res) => {
   const { username, cardId, newLimit } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     const card = user.virtualCards.find((c) => c.id === cardId);
@@ -217,12 +186,10 @@ const updateLimit = async (req, res) => {
   }
 };
 
-// ៥. ដកកាតចេញ (Close Card)
 const deleteCard = async (req, res) => {
-  const { username, cardId, reason } = req.body;
+  const { username, cardId } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
@@ -234,23 +201,20 @@ const deleteCard = async (req, res) => {
   }
 };
 
-// ៦. ប្តូរ PIN កាត (Reset PIN)
 const resetPin = async (req, res) => {
   const { username, cardId, oldPin, newPin } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     const card = user.virtualCards.find((c) => c.id === cardId);
     if (card) {
-      const currentPin = card.pin || "0000"; // កាតទើបបង្កើតមាន PIN 0000
+      const currentPin = card.pin || "0000";
       if (currentPin !== oldPin)
         return res.json({
           success: false,
           message: "លេខ PIN ចាស់មិនត្រឹមត្រូវទេ!",
         });
-
       card.pin = newPin;
       user.markModified("virtualCards");
       await user.save();
@@ -261,12 +225,10 @@ const resetPin = async (req, res) => {
   }
 };
 
-// ៧. ប្តូរឈ្មោះកាត (Rename)
 const renameCard = async (req, res) => {
   const { username, cardId, name } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     const card = user.virtualCards.find((c) => c.id === cardId);
@@ -281,23 +243,86 @@ const renameCard = async (req, res) => {
   }
 };
 
-// ៨. ប្តូរគណនីប្រភព (Change Linked Account)
 const changeAccount = async (req, res) => {
   const { username, cardId, linkedAccount } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
-
   try {
     const user = await User.findOne({ username });
     const card = user.virtualCards.find((c) => c.id === cardId);
     if (card) {
-      card.linkedAccount = linkedAccount; // 'USD' ឬ 'KHR'
+      card.linkedAccount = linkedAccount;
       user.markModified("virtualCards");
       await user.save();
       res.json({ success: true, cards: user.virtualCards });
     } else res.json({ success: false });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+};
+
+// ៩. ភ្ជាប់កាត NFC ទៅនឹងកាត Virtual ដែលមានស្រាប់
+const bindNfcCard = async (req, res) => {
+  try {
+    const { username, cardId, pin, uid } = req.body;
+
+    // ១. ឆែកមើលថាតើកាត Physical (UID) ນี้ ធ្លាប់មានគេយកទៅភ្ជាប់ជាមួយកាតផ្សេងរួចហើយឬยัง?
+    const existingUid = await User.findOne({ "virtualCards.uid": uid });
+    if (existingUid) {
+      return res.json({
+        success: false,
+        message:
+          "⚠️ កាត Physical នេះត្រូវបានភ្ជាប់រួចជាស្រេចជាមួយគណនីផ្សេងបាត់ទៅហើយ!",
+      });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញ!" });
+
+    // ២. ឆែកមើលថាតើកាត Virtual គោលដៅនេះ ធ្លាប់មានភ្ជាប់ NFC រួចហើយឬនៅ?
+    const targetCard = user.virtualCards.find((c) => c.id === cardId);
+    if (!targetCard)
+      return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
+
+    if (targetCard.uid && targetCard.uid !== "" && targetCard.uid !== null) {
+      return res.json({
+        success: false,
+        message:
+          "⚠️ គណនីនេះបានភ្ជាប់កាត NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន មុននឹងដាក់ភ្ជាប់កាតថ្មី។",
+      });
+    }
+
+    // ៣. បើគ្មានបញ្ហា ធ្វើការ Save ចូល Database
+    targetCard.uid = uid;
+    targetCard.pin = pin;
+
+    user.markModified("virtualCards");
+    await user.save();
+
+    res.json({ success: true, message: "ភ្ជាប់ជោគជ័យ!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ១០. ផ្តាច់កាត NFC ចេញពីកាត Virtual វិញ
+const unbindNfcCard = async (req, res) => {
+  try {
+    const { username, cardId } = req.body;
+    const user = await User.findOne({ username });
+
+    if (user) {
+      const card = user.virtualCards.find((c) => c.id === cardId);
+      if (card) {
+        card.uid = null;
+        user.markModified("virtualCards");
+        await user.save();
+        return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
+      }
+    }
+    res.json({ success: false, message: "បរាជ័យ" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -310,4 +335,6 @@ module.exports = {
   resetPin,
   renameCard,
   changeAccount,
+  bindNfcCard,
+  unbindNfcCard,
 };
