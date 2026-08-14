@@ -183,8 +183,8 @@ const transfer = async (req, res) => {
     let cashierInfo = null;
     let finalReceiverName = "";
 
-    // 💡 អថេរសម្រាប់កត់ត្រាលេខកុងមេពិតប្រាកដចូលក្នុង History Database
-    let actualLinkedAccountForHistory = receiverAccount;
+    // អថេរសម្រាប់កំណត់ថាតើត្រូវបូកលុយចូលកុងមេមួយណា
+    let actualLinkedAccountForBalance = receiverAccount;
 
     if (!receiver) {
       receiverMerchant = await Merchant.findOne({
@@ -223,8 +223,16 @@ const transfer = async (req, res) => {
         ? sender.accountNumberKHR
         : sender.accountNumber;
 
-    // 🔥 ១. ការពារមិនអោយបាញ់ពីគណនីភ្ជាប់ ចូលទៅហាងខ្លួនឯង
+    // 🔥 ១. ការពារមិនអោយបាញ់ពីគណនីភ្ជាប់ ចូលទៅហាងខ្លួនឯង (Block 100%)
     if (isMerchant) {
+      // 🌟 ប្លុកមិនអោយថៅកែហាងវេរលុយចូលហាងខ្លួនឯងដាច់ខាត (ទោះប្រើកុងណាក៏ដោយ)
+      if (sender.username === receiverMerchant.userId) {
+        return res.json({
+          success: false,
+          message: "ម្ចាស់ហាងមិនអាចវេរប្រាក់ចូលគណនីហាងរបស់ខ្លួនឯងបានទេ!",
+        });
+      }
+
       cashierInfo = receiverMerchant.cashiers.find(
         (c) =>
           c.virtualAccounts?.USD === receiverAccount ||
@@ -244,28 +252,13 @@ const transfer = async (req, res) => {
       let actualOwnerAccNum = isReceiverKHRTemp
         ? receiverMerchant.linkedAccounts.KHR
         : receiverMerchant.linkedAccounts.USD;
+
       if (!actualOwnerAccNum)
         actualOwnerAccNum =
           receiverMerchant.linkedAccounts.USD ||
           receiverMerchant.linkedAccounts.KHR;
 
-      actualLinkedAccountForHistory = actualOwnerAccNum; // កំណត់អោយ Save ចូល History ជាលេខកុងពិតរបស់ថៅកែ
-
-      // លុបដកឃ្លា (Spaces) ចោលមុននឹងប្រៀបធៀប ការពារ Error
-      const cleanSenderAcc = actualSenderAccNum
-        ? actualSenderAccNum.replace(/\s+/g, "")
-        : "";
-      const cleanOwnerAcc = actualOwnerAccNum
-        ? actualOwnerAccNum.replace(/\s+/g, "")
-        : "";
-
-      if (cleanSenderAcc === cleanOwnerAcc) {
-        return res.json({
-          success: false,
-          message:
-            "មិនអាចផ្ទេរប្រាក់ពីគណនីដែលបានភ្ជាប់ ទៅកាន់ហាងខ្លួនឯងបានទេ! (សូមប្រើគណនីផ្សេង)",
-        });
-      }
+      actualLinkedAccountForBalance = actualOwnerAccNum;
     }
 
     // គិតលុយ និងកម្រៃសេវា
@@ -296,6 +289,7 @@ const transfer = async (req, res) => {
     let jointSenderAcc = null,
       juniorSenderAcc = null;
     let senderAvailableBal = 0;
+
     if (isSenderSubAccount) {
       const sType = sender.subAccounts[senderSubIndex].accountType;
       if (sType === "joint" || sType === "joint_member") {
@@ -335,13 +329,11 @@ const transfer = async (req, res) => {
       let spentUsd = isSenderKHR
         ? totalDeduction / currentFXRates.usdToKhrSell
         : totalDeduction;
-      if (dailyLimit > 0) {
-        if (dailySpent + spentUsd > dailyLimit) {
-          return res.json({
-            success: false,
-            message: `ប្រតិបត្តិការបរាជ័យ! ចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ។`,
-          });
-        }
+      if (dailyLimit > 0 && dailySpent + spentUsd > dailyLimit) {
+        return res.json({
+          success: false,
+          message: `ប្រតិបត្តិការបរាជ័យ! ចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ។`,
+        });
       }
     }
 
@@ -394,13 +386,10 @@ const transfer = async (req, res) => {
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
-      let owner =
-        sender.username === receiverMerchant.userId
-          ? sender
-          : await User.findOne({ username: receiverMerchant.userId });
+      let owner = await User.findOne({ username: receiverMerchant.userId });
 
       if (owner) {
-        let actualOwnerAccNum = actualLinkedAccountForHistory; // ទាញយកលេខដែលរៀបចំហើយខាងលើមកប្រើ
+        let actualOwnerAccNum = actualLinkedAccountForBalance;
 
         if (actualOwnerAccNum === owner.accountNumber) {
           owner.balance += receiverAmount;
@@ -419,8 +408,7 @@ const transfer = async (req, res) => {
             else owner.balance += receiverAmount;
           }
         }
-
-        if (sender.username !== receiverMerchant.userId) await owner.save();
+        await owner.save();
         receiver = owner;
       }
     } else {
@@ -502,7 +490,7 @@ const transfer = async (req, res) => {
       username: sender.username,
     };
 
-    // 🔥 កត់ត្រាចូល History អោយចំលេខកុងពិតរបស់ថៅកែ (ទើប History ទាញឃើញ)
+    // 🔥 កត់ត្រាចូល History អោយចំលេខកុងពិតរបស់ថៅកែ (ទើប History Frontend ទាញឃើញ ១០០%)
     const receiverTrx = {
       refId: sharedRefId,
       hash: sharedHash,
@@ -513,7 +501,7 @@ const transfer = async (req, res) => {
       fee: 0,
       senderName: finalSenderName,
       receiverName: finalReceiverName,
-      receiverAcc: actualLinkedAccountForHistory, // កត់ត្រាលេខកុងមេ
+      receiverAcc: actualLinkedAccountForBalance, // 🔥 កែត្រង់នេះ: ប្រើលេខកុងមេពិតប្រាកដ (មិនមែន receiverAccount ទេ)
       senderAcc: actualSenderAccNum,
       trxMethod: isMerchant
         ? "Merchant Payment"
@@ -563,7 +551,7 @@ const transfer = async (req, res) => {
         isRead: false,
       });
       rDoc.markModified("notifications");
-      if (rDoc.username !== sender.username) await rDoc.save();
+      await rDoc.save();
 
       if (bot && bot.sendUserPaymentAlert) {
         bot.sendUserPaymentAlert(rDoc._id, {
@@ -619,6 +607,8 @@ const transfer = async (req, res) => {
     } catch (webhookErr) {}
 
     const updatedSender = await User.findOne({ username: senderUsername });
+
+    // 🔥 ឆ្លើយតបធម្មតា មិនបាច់មាន extraSlip ទៀតទេ ព្រោះយើងទាញយកពី Database ១០០% នៅ Frontend
     res.json({
       success: true,
       newBalance: isSenderKHR

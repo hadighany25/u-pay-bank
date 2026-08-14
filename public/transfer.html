@@ -1289,9 +1289,11 @@
                 body: JSON.stringify(body),
               });
               const d = await res.json();
-              Swal.close();
+
               if (d.success) {
+                // ១. ប្រសិនបើជា U-Fund (រក្សាទុកធម្មតា)
                 if (recAcc.startsWith("UFND-")) {
+                  Swal.close();
                   new Audio(
                     "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                   ).play();
@@ -1304,50 +1306,45 @@
                   return;
                 }
 
-                // 🌟 អាប់ដេតសមតុល្យអ្នកផ្ញើក្នុង Memory
-                if (srcAcc === "MAIN_USD") user.balance = d.newBalance;
-                else if (srcAcc === "MAIN_KHR") user.balanceKHR = d.newBalance;
-                else {
-                  let idx = user.subAccounts.findIndex(
-                    (a) => a.accountNumber === srcAcc,
+                // 🔥 ២. បញ្ឈប់ការ Update Memory ចាស់ ចាប់ទាញពី Database (Backend) ១០០%
+                try {
+                  const freshRes = await fetch("/api/users", {
+                    headers: authHeaders,
+                  });
+                  const freshUsers = await freshRes.json();
+                  const freshUser = freshUsers.find(
+                    (u) => u.username === user.username,
                   );
-                  if (idx !== -1) user.subAccounts[idx].balance = d.newBalance;
-                }
 
-                // 🔥 បញ្ចូលប្រវត្តិ "ផ្ញើ" ចូល Memory
-                if (!user.transactions) user.transactions = [];
-                user.transactions.unshift(d.slipData);
-
-                // 🔥 បញ្ចូលប្រវត្តិ "ទទួល" ចូល Memory ភ្លាមៗបើជាការវេរចូលកុងខ្លួនឯង (អោយ Accounts លោត Slip អូតូ)
-                if (d.extraSlip) {
-                  user.transactions.unshift(d.extraSlip);
-
-                  // Update Balance អ្នកទទួលលើទូរស័ព្ទតែមួយ
-                  const rAcc = d.extraSlip.receiverAcc;
-                  const rAmt = d.extraSlip.amount;
-                  if (rAcc === user.accountNumber) user.balance += rAmt;
-                  else if (rAcc === user.accountNumberKHR)
-                    user.balanceKHR += rAmt;
-                  else {
-                    let rIdx = user.subAccounts.findIndex(
-                      (a) => a.accountNumber === rAcc,
-                    );
-                    if (rIdx !== -1) user.subAccounts[rIdx].balance += rAmt;
+                  if (freshUser) {
+                    // Update Session Storage ជាមួយ Data ថ្មីស្រឡាងពី Database
+                    // (រួមទាំង Balance ថ្មី និង Transaction ថ្មីៗដែល Server ទើបបង្កើត)
+                    sessionStorage.setItem("user", JSON.stringify(freshUser));
+                    Object.assign(user, freshUser);
                   }
+                } catch (fetchErr) {
+                  console.error(
+                    "មិនអាចទាញយកទិន្នន័យថ្មីពី Database បានទេ:",
+                    fetchErr,
+                  );
                 }
 
-                sessionStorage.setItem("user", JSON.stringify(user));
+                Swal.close(); // បិទ Loading ពេលទាញពី Database ចប់
 
+                // ៣. ចាក់សំឡេង និងលោត Notification
                 new Audio(
                   "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                 ).play();
-                if (typeof showAppNotification === "function")
+                if (typeof showAppNotification === "function") {
                   showAppNotification(
                     "Transfer Successful",
                     `You transferred ${amt}`,
                     "send",
                   );
-                if (orderId && callbackUrl)
+                }
+
+                // ៤. ដំណើរការ Callback (បើមាន)
+                if (orderId && callbackUrl) {
                   fetch(callbackUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -1358,6 +1355,9 @@
                       items: items,
                     }),
                   }).catch((e) => {});
+                }
+
+                // ៥. លោតកងវិល (Spin) ឬ បង្ហាញ Slip
                 if (parseFloat(amt) >= (type === "USD" ? 10 : 40000)) {
                   currentSlipData = d.slipData;
                   document.getElementById("spinModal").style.display = "flex";
@@ -1365,9 +1365,15 @@
                   c.style.transition = "none";
                   c.style.transform = "rotate(0deg)";
                   spinIsActive = false;
-                } else showSlipData(d.slipData);
-              } else Swal.fire("Failed", d.message, "error");
+                } else {
+                  showSlipData(d.slipData);
+                }
+              } else {
+                Swal.close();
+                Swal.fire("Failed", d.message, "error");
+              }
             } catch (e) {
+              Swal.close();
               Swal.fire("Error", "Connection Error: " + e.message, "error");
             }
           },

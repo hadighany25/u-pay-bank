@@ -272,6 +272,14 @@ exports.confirmPayment = async (req, res) => {
     trx.status = "Hold";
     await trx.save();
 
+    // ទាញយកលេខកុងមេរបស់ម្ចាស់ហាង (Linked Account)
+    let linkedAcc = isKHR
+      ? merchant.linkedAccounts.KHR
+      : merchant.linkedAccounts.USD;
+    if (!linkedAcc)
+      linkedAcc = merchant.linkedAccounts.USD || merchant.linkedAccounts.KHR;
+
+    // ៤. កត់ត្រាប្រវត្តិ ទទួលលុយ អោយ Merchant ក៏ដាក់ Hold ដែរ
     await Transaction.create({
       username: merchant.userId,
       refId: trx.refId,
@@ -282,7 +290,7 @@ exports.confirmPayment = async (req, res) => {
       currency: trx.currency,
       senderName: user.fullName || user.username,
       receiverName: merchant.name,
-      receiverAcc: trx.receiverAcc,
+      receiverAcc: linkedAcc, // 🔥 កែត្រង់នេះ: ប្រើលេខកុងមេពិតប្រាកដ ទើប Frontend មើលឃើញ
       senderAcc: trx.senderAcc,
       trxMethod: "Card Payment",
       remark: trx.remark,
