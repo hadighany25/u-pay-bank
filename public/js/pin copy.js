@@ -59,11 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// អថេរទុកសម្រាប់ដំណើរការមុខងារបន្ទាប់ពីវាយលេខកូដចប់
+// អថេរទុកសម្រាប់ដំណើរការមុខងារបន្ទាប់ពីវាយលេខកូដត្រូវ
 let pinSuccessCallback = null;
 
 // មុខងារបង្ហាញ PIN
-// ឥឡូវនេះវាបញ្ជូន PIN ដែលវាយបានទៅឱ្យ Callback Function អូតូ
+// ឧទាហរណ៍ប្រើ៖ requestPinVerification("វេរប្រាក់", "បញ្ជាក់ការវេរប្រាក់ចំនួន $10", function() { លុយបាញ់ចេញ })
 function requestPinVerification(titleText, descText, onSuccess) {
   document.getElementById("pinModalTitle").innerText =
     titleText || "សូមបញ្ចូលលេខកូដ PIN";
@@ -91,7 +91,7 @@ function requestPinVerification(titleText, descText, onSuccess) {
 function closeGlobalPin() {
   document.getElementById("globalPinModal").style.display = "none";
   document.getElementById("hiddenGlobalPin").blur();
-  pinSuccessCallback = null;
+  pinSuccessCallback = null; // ដក Callback ចេញដើម្បីការពារ Error
 }
 
 // មុខងារចាប់លេខកូដដែលកំពុងវាយ
@@ -108,11 +108,36 @@ function handleGlobalPinInput(val) {
   if (val.length === 4) {
     const inputPin = val;
     document.getElementById("hiddenGlobalPin").blur();
+
+    // សុំផ្អាកមួយភ្លែត (Loading) ដើម្បីឆែក
     document.getElementById("globalPinModal").style.display = "none";
 
-    // 🔥 មិនបាច់ឆែក Frontend ទេ បោះ PIN ទៅឱ្យ Backend កាត់ក្តីតែម្តង!
-    if (typeof pinSuccessCallback === "function") {
-      pinSuccessCallback(inputPin);
+    // ទាញ User ពី Session ដើម្បីយក PIN ពិតប្រាកដមកផ្ទៀង
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
+    if (user && user.pin === inputPin) {
+      // បើវាយត្រូវ ហៅមុខងារ Callback មកដំណើរការ
+      if (typeof pinSuccessCallback === "function") {
+        pinSuccessCallback();
+      }
+    } else {
+      // បើវាយខុស លោតសារ ហើយអោយវាយម្តងទៀត
+      Swal.fire({
+        icon: "error",
+        title: "លេខកូដមិនត្រឹមត្រូវ!",
+        text: "សូមព្យាយាមម្តងទៀត។",
+        confirmButtonColor: "#ef4444",
+        customClass: { popup: "premium-swal" },
+      }).then(() => {
+        // លុបទិន្នន័យចាស់ រួចហៅ Modal មកវិញ
+        document.getElementById("hiddenGlobalPin").value = "";
+        updateGlobalPinDots(0);
+        document.getElementById("globalPinModal").style.display = "flex";
+        setTimeout(
+          () => document.getElementById("hiddenGlobalPin").focus(),
+          300,
+        );
+      });
     }
   }
 }

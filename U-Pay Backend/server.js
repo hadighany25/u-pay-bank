@@ -25,6 +25,7 @@ const ufundRoutes = require("./routes/ufundRoutes");
 const accountRoutes = require("./routes/accountRoutes");
 const b2bEscrowRoutes = require("./routes/b2bEscrowRouter");
 const payrollRouter = require("./routes/payrollRouter"); // 👈 ផ្លាស់ទីវាមកទីនេះ
+const gatewayRoutes = require("./routes/gatewayRoutes");
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -81,6 +82,7 @@ app.use("/api/ufund", ufundRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 app.use("/api/payroll", payrollRouter); // 👈 ដាក់វានៅទីនេះ
+app.use("/api/gateway", gatewayRoutes);
 
 // 🌟 Route សម្រាប់ទាញយក PDF
 const { streamOfficialReceiptPDF } = require("./services/pdfService");

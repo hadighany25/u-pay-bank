@@ -27,6 +27,19 @@ router.get(
   merchantController.getMerchantTransactions,
 );
 
+// Routes សម្រាប់អ្នកគិតលុយ (Cashiers)
+router.get(
+  "/cashiers/search/:accountNumber",
+  verifyUser,
+  merchantController.searchCashierAccount,
+);
+router.post("/cashiers/add", verifyUser, merchantController.addCashier);
+router.delete(
+  "/cashiers/remove/:merchantId/:cashierId",
+  verifyUser,
+  merchantController.removeCashier,
+);
+
 // Routes សម្រាប់ Telegram Alert
 router.post(
   "/generate-telegram-code",

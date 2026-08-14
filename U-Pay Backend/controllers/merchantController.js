@@ -167,16 +167,27 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // 🔥 កែត្រង់នេះ៖ លុបការស្វែងរកតាមឈ្មោះហាងចោល ដើម្បីកុំអោយវាទាញទិន្នន័យពីហាងផ្សេងដែលឈ្មោះដូចគ្នា
-    let searchConditions = [
-      { merchantId: merchant.merchantId }, // ១. ចាប់យកតាម ID ហាងតែមួយគត់ដែលយើងបានភ្ជាប់ពេលវេរលុយ
-    ];
+    // ១. ចាប់យកតាម ID ហាងតែមួយគត់ដែលយើងបានភ្ជាប់ពេលវេរលុយ
+    let searchConditions = [{ merchantId: merchant.merchantId }];
 
-    // ២. ទុកលក្ខខណ្ឌចាស់ ដើម្បីកុំអោយបាត់ប្រវត្តិហាងចាស់ៗដែលមិនមាន merchantId កាលពីមុន
+    // ២. ទុកលក្ខខណ្ឌចាស់ ដើម្បីកុំអោយបាត់ប្រវត្តិហាងចាស់ៗ
     if (merchant.accountNumbers && merchant.accountNumbers.USD)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
     if (merchant.accountNumbers && merchant.accountNumbers.KHR)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
+
+    // 🔥 ថែមលក្ខខណ្ឌអោយទាញយកប្រវត្តិ ដែលគេបាញ់ចូល Virtual Account របស់កូនចៅ
+    if (merchant.cashiers && merchant.cashiers.length > 0) {
+      merchant.cashiers.forEach((c) => {
+        if (c.virtualAccounts && c.virtualAccounts.USD)
+          searchConditions.push({ receiverAcc: c.virtualAccounts.USD });
+        if (c.virtualAccounts && c.virtualAccounts.KHR)
+          searchConditions.push({ receiverAcc: c.virtualAccounts.KHR });
+        if (c.virtualAccount)
+          // សម្រាប់ទិន្នន័យចាស់កុំអោយគាំង
+          searchConditions.push({ receiverAcc: c.virtualAccount });
+      });
+    }
 
     let transactions = await Transaction.find({
       $or: searchConditions,
@@ -219,14 +230,11 @@ exports.getMerchantTransactions = async (req, res) => {
 // ៦. ទាញយកចំណូលហាងសរុប (Revenue)
 exports.getMerchantRevenue = async (req, res) => {
   try {
-    const { merchantId } = req.params;
-    const merchant = await Merchant.findById(merchantId);
+    const merchant = await Merchant.findById(req.params.merchantId);
     if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "Shop not found" });
-
-    // ប្រើប្រាស់ merchant.collected តែម្តង ដើម្បីបង្ហាញលុយពិតប្រាកដដែលហាងទទួលបាន
     res.status(200).json({ success: true, revenue: merchant.collected });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -354,7 +362,7 @@ exports.unlinkTelegram = async (req, res) => {
       try {
         const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram (Unlinked)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nគណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay ហាងរបស់អ្នកជោគជ័យ។ ចាប់ពីពេលនេះតទៅ នឹងមិនមានសារជូនដំណឹងលុយចូលទីនេះទៀតទេ។`;
 
-        // ហៅ bot មកប្រើ (ត្រូវប្រាកដថាបាន require bot មកក្នុង file Controller នេះរួចរាល់)
+        // ហៅ bot មកប្រើ
         await bot.sendMessage(merchant.telegramChatId, unlinkMsg, {
           parse_mode: "HTML",
         });
@@ -394,7 +402,6 @@ exports.createMerchantQR = async (req, res) => {
       sign,
     } = req.body;
 
-    // ... (កូដផ្ទៀងផ្ទាត់ Merchant និង Signature នៅដដែល) ...
     const merchant = await Merchant.findOne({ merchantId: merchant_id });
     if (!merchant)
       return res
@@ -404,8 +411,6 @@ exports.createMerchantQR = async (req, res) => {
     // ទាញយកលេខគណនី USD របស់ Merchant
     const receiveAccount = merchant.accountNumbers.USD;
 
-    // ✅ កែ Link ទៅកាន់ index.html (ដើម្បីឲ្យ Login សិន)
-    // ហើយប្ដូរ `m=` ទៅជា `acc=` (លេខគណនី) វិញ
     const deepLink = `https://u-pay-bank.fly.dev/index.html?acc=${receiveAccount}&o=${order_id}&a=${amount}`;
 
     res.status(200).json({
@@ -422,5 +427,173 @@ exports.createMerchantQR = async (req, res) => {
       code: "FAIL",
       message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធធនាគារកណ្តាល",
     });
+  }
+};
+
+// ========================================================
+// 👨‍💼 Cashier Management APIs (សម្រាប់អ្នកគិតលុយ)
+// ========================================================
+
+// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ ដើម្បីបន្ថែមជាអ្នកគិតលុយ
+exports.searchCashierAccount = async (req, res) => {
+  try {
+    const { accountNumber } = req.params;
+
+    // ស្វែងរកគណនី
+    const user = await User.findOne({
+      $or: [
+        { accountNumber: accountNumber },
+        { accountNumberKHR: accountNumber },
+        { "subAccounts.accountNumber": accountNumber },
+      ],
+    });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីកូនចៅនេះទេ!" });
+    }
+
+    // ត្រឡប់ទិន្នន័យចាំបាច់
+    res.status(200).json({
+      success: true,
+      accountName: user.fullName || user.username,
+      accountNumber: accountNumber,
+    });
+  } catch (error) {
+    console.error("SEARCH CASHIER ERROR:", error);
+    res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
+  }
+};
+
+// ១០. បន្ថែមអ្នកគិតលុយចូលក្នុងហាង
+exports.addCashier = async (req, res) => {
+  try {
+    const {
+      merchantId,
+      cashierAccountNumber,
+      cashierOriginalName,
+      cashierDisplayName,
+    } = req.body;
+    const userId = req.user.username;
+
+    const merchant = await Merchant.findOne({
+      _id: merchantId,
+      userId: userId,
+    });
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
+    }
+
+    // ឆែកក្រែងលោមានកូនចៅនេះហើយ
+    const existingCashier = merchant.cashiers.find(
+      (c) => c.accountNumber === cashierAccountNumber,
+    );
+    if (existingCashier) {
+      return res
+        .status(400)
+        .json({ success: false, message: "កូនចៅម្នាក់នេះមានក្នុងហាងរួចហើយ!" });
+    }
+
+    // 🔥 បង្កើតលេខ Virtual Account អោយ Cashier ទាំង USD ទាំង KHR
+    let virtualAccounts = { USD: null, KHR: null };
+    let seq = merchant.cashiers.length + 1;
+
+    // បង្កើត Virtual USD បើមានកុង USD
+    if (merchant.accountNumbers && merchant.accountNumbers.USD) {
+      let baseAccUSD = merchant.accountNumbers.USD;
+      let vAccUSD =
+        baseAccUSD.substring(0, baseAccUSD.length - 2) +
+        seq.toString().padStart(2, "0");
+      // ការពារកុំអោយលេខជាន់គ្នា
+      while (
+        merchant.cashiers.some(
+          (c) =>
+            c.virtualAccounts?.USD === vAccUSD || c.virtualAccount === vAccUSD,
+        ) ||
+        vAccUSD === baseAccUSD
+      ) {
+        seq++;
+        vAccUSD =
+          baseAccUSD.substring(0, baseAccUSD.length - 2) +
+          seq.toString().padStart(2, "0");
+      }
+      virtualAccounts.USD = vAccUSD;
+    }
+
+    // បង្កើត Virtual KHR បើមានកុង KHR
+    if (merchant.accountNumbers && merchant.accountNumbers.KHR) {
+      let baseAccKHR = merchant.accountNumbers.KHR;
+      let vAccKHR =
+        baseAccKHR.substring(0, baseAccKHR.length - 2) +
+        seq.toString().padStart(2, "0");
+      while (
+        merchant.cashiers.some((c) => c.virtualAccounts?.KHR === vAccKHR) ||
+        vAccKHR === baseAccKHR
+      ) {
+        seq++;
+        vAccKHR =
+          baseAccKHR.substring(0, baseAccKHR.length - 2) +
+          seq.toString().padStart(2, "0");
+      }
+      virtualAccounts.KHR = vAccKHR;
+    }
+
+    // បន្ថែមចូលហាង
+    merchant.cashiers.push({
+      accountNumber: cashierAccountNumber,
+      virtualAccounts: virtualAccounts,
+      virtualAccount: virtualAccounts.USD || virtualAccounts.KHR, // Fallback
+      originalName: cashierOriginalName,
+      displayName: cashierDisplayName,
+      status: "Active",
+    });
+
+    await merchant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "បានបន្ថែមអ្នកគិតលុយជោគជ័យ!",
+      cashiers: merchant.cashiers,
+    });
+  } catch (error) {
+    console.error("ADD CASHIER ERROR:", error);
+    res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
+  }
+};
+
+// ១១. លុបអ្នកគិតលុយចេញពីហាង
+exports.removeCashier = async (req, res) => {
+  try {
+    const { merchantId, cashierId } = req.params;
+    const userId = req.user.username;
+
+    const merchant = await Merchant.findOne({
+      _id: merchantId,
+      userId: userId,
+    });
+    if (!merchant) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
+    }
+
+    // ច្រោះយកតែកូនចៅដែលមិនត្រូវនឹង ID ដែលចង់លុប
+    merchant.cashiers = merchant.cashiers.filter(
+      (c) => c._id.toString() !== cashierId,
+    );
+
+    await merchant.save();
+
+    res.status(200).json({
+      success: true,
+      message: "បានលុបអ្នកគិតលុយជោគជ័យ!",
+      cashiers: merchant.cashiers,
+    });
+  } catch (error) {
+    console.error("REMOVE CASHIER ERROR:", error);
+    res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };

@@ -34,6 +34,9 @@
     <script src="js/toast.js"></script>
     <script src="/js/slip.js"></script>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/pin.js"></script>
+
     <style>
       /* ==========================================
          ២. ការរចនាទូទៅ (GLOBAL STYLES)
@@ -564,7 +567,7 @@
         </div>
       </div>
 
-      <!-- របារជ្រើសរើស និងទាញយក (Tool Bar) -->
+      <!-- របារឧបករណ៍ និងការស្វែងរក (Tool Bar) -->
       <div class="tool-bar">
         <!-- 🔥 Custom Multi-Select Dropdown សម្រាប់គណនី -->
         <div class="custom-select-wrapper" id="accountSelectWrapper">
@@ -722,11 +725,11 @@
           localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
         ) || [];
 
-      // អថេរទុកលេខកុងដែលបាន Select
       let selectedAccountNumbers = [];
       let allAvailableAccounts = [];
+      // 🔥 រក្សាទុកលេខកុងទាំងអស់របស់ Merchant
+      let allMerchantAccounts = [];
 
-      // ការពារ XSS
       function escapeHTML(str) {
         if (typeof str !== "string") return str;
         return str.replace(
@@ -742,7 +745,6 @@
         );
       }
 
-      // ៦.២ ការកំណត់ពណ៌ងងឹត (Dark Mode Setup)
       function applyThemeHistory() {
         const userThemeKey = "darkMode_" + sessionUser.username;
         const isDark =
@@ -762,7 +764,6 @@
         applyThemeHistory();
         if (typeof applyLanguage === "function") applyLanguage();
 
-        // កំណត់ថ្ងៃខែក្នុងប្រអប់ Input
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         document.getElementById("startDate").value = firstDay
@@ -772,7 +773,31 @@
           .toISOString()
           .split("T")[0];
 
-        // បង្កើតបញ្ជីគណនី
+        // 🟢 ប្រមូលយកលេខ Merchant Accounts ទាំងអស់
+        if (
+          sessionUser.merchantProfile &&
+          sessionUser.merchantProfile.merchants
+        ) {
+          sessionUser.merchantProfile.merchants.forEach((m) => {
+            if (m.accountNumbers) {
+              if (m.accountNumbers.USD)
+                allMerchantAccounts.push(m.accountNumbers.USD);
+              if (m.accountNumbers.KHR)
+                allMerchantAccounts.push(m.accountNumbers.KHR);
+            }
+            if (m.cashiers && m.cashiers.length > 0) {
+              m.cashiers.forEach((c) => {
+                if (c.virtualAccounts?.USD)
+                  allMerchantAccounts.push(c.virtualAccounts.USD);
+                if (c.virtualAccounts?.KHR)
+                  allMerchantAccounts.push(c.virtualAccounts.KHR);
+                if (c.virtualAccount)
+                  allMerchantAccounts.push(c.virtualAccount);
+              });
+            }
+          });
+        }
+
         populateAccountCheckboxes();
       });
 
@@ -788,7 +813,6 @@
           : "rotate(0deg)";
       }
 
-      // បិទ Dropdown ពេលចុចកន្លែងផ្សេង
       document.addEventListener("click", function (event) {
         const wrapper = document.getElementById("accountSelectWrapper");
         if (wrapper && !wrapper.contains(event.target)) {
@@ -808,7 +832,6 @@
             </div>
         `;
 
-        // បញ្ចូល Main USD
         if (sessionUser.accountNumber) {
           allAvailableAccounts.push(sessionUser.accountNumber);
           htmlStr += `
@@ -819,7 +842,6 @@
             `;
         }
 
-        // បញ្ចូល Main KHR
         if (sessionUser.accountNumberKHR) {
           allAvailableAccounts.push(sessionUser.accountNumberKHR);
           htmlStr += `
@@ -830,7 +852,6 @@
             `;
         }
 
-        // បញ្ចូល Sub Accounts ទាំងអស់
         if (sessionUser.subAccounts && sessionUser.subAccounts.length > 0) {
           sessionUser.subAccounts.forEach((sub) => {
             allAvailableAccounts.push(sub.accountNumber);
@@ -868,12 +889,11 @@
           checkAllBox.checked = allChecked;
         }
 
-        // ធ្វើបច្ចុប្បន្នភាព Array លេខកុង
         selectedAccountNumbers = Array.from(itemCheckboxes)
           .filter((cb) => cb.checked)
           .map((cb) => cb.value);
         updateSelectedAccountsText();
-        renderTransactions(); // Refresh តារាង
+        renderTransactions();
       }
 
       function updateSelectedAccountsText() {
@@ -978,44 +998,86 @@
           return;
         }
 
-        // 🔥 ចម្រាញ់យកតែប្រតិបត្តិការណា ដែលពាក់ព័ន្ធនឹងគណនីដែលបាន Select
+        // 🔥 ចម្រាញ់យកតែប្រតិបត្តិការណា ដែលពាក់ព័ន្ធនឹងគណនីដែលបាន Select (បូករួមទាំង Virtual Accounts របស់ Merchant ផង)
         let filtered = fullUserTransactions.filter((t) => {
+          let isLinkedToMerchant = false;
+          let merchantRelatedAccounts = [];
+
+          if (
+            sessionUser.merchantProfile &&
+            sessionUser.merchantProfile.merchants
+          ) {
+            sessionUser.merchantProfile.merchants.forEach((m) => {
+              // បើគណនីដែលជ្រើសរើស ជា Linked Account របស់ហាងនេះ
+              if (
+                m.linkedAccounts &&
+                (selectedAccountNumbers.includes(m.linkedAccounts.USD) ||
+                  selectedAccountNumbers.includes(m.linkedAccounts.KHR))
+              ) {
+                isLinkedToMerchant = true;
+                if (m.accountNumbers.USD)
+                  merchantRelatedAccounts.push(m.accountNumbers.USD);
+                if (m.accountNumbers.KHR)
+                  merchantRelatedAccounts.push(m.accountNumbers.KHR);
+                if (m.cashiers) {
+                  m.cashiers.forEach((c) => {
+                    if (c.virtualAccounts?.USD)
+                      merchantRelatedAccounts.push(c.virtualAccounts.USD);
+                    if (c.virtualAccounts?.KHR)
+                      merchantRelatedAccounts.push(c.virtualAccounts.KHR);
+                    if (c.virtualAccount)
+                      merchantRelatedAccounts.push(c.virtualAccount);
+                  });
+                }
+              }
+            });
+          }
+
           const accsToMatch = [
             t.senderAcc,
             t.receiverAcc,
             t.senderAccount,
             t.receiverAccount,
           ];
-
-          // ឆែកមើលថាតើ Transaction ហ្នឹងមានលេខកុងត្រូវគ្នានឹងលេខកុងដែលបានរើសឬអត់
-          let isMatch = accsToMatch.some((acc) =>
+          const matchDirectAcc = accsToMatch.some((acc) =>
             selectedAccountNumbers.includes(acc),
           );
+          const matchMerchantAcc =
+            isLinkedToMerchant &&
+            merchantRelatedAccounts.includes(t.receiverAcc);
 
           // Legacy Fallback (សម្រាប់ Data ចាស់ៗដែលអត់មាន record លេខកុង)
-          if (!isMatch && !t.senderAcc && !t.receiverAcc) {
+          let matchMain = false;
+          if (
+            !matchDirectAcc &&
+            !matchMerchantAcc &&
+            !t.senderAcc &&
+            !t.receiverAcc
+          ) {
             if (
               t.currency === "USD" &&
               selectedAccountNumbers.includes(sessionUser.accountNumber)
             )
-              isMatch = true;
+              matchMain = true;
             if (
               t.currency === "KHR" &&
               selectedAccountNumbers.includes(sessionUser.accountNumberKHR)
             )
-              isMatch = true;
+              matchMain = true;
           }
-          return isMatch;
+
+          return matchDirectAcc || matchMerchantAcc || matchMain;
         });
+
+        // 🌟 ១. ទាត់ចោល Pending មិនអោយបង្ហាញ និងមិនអោយមាន Slip
+        filtered = filtered.filter((t) => t.status !== "Pending");
 
         if (currentFilterType === "in")
           filtered = filtered.filter((t) => t.amount > 0);
         if (currentFilterType === "out")
           filtered = filtered.filter((t) => t.amount < 0);
 
-        currentTransactions = filtered.sort(
-          (a, b) => new Date(b.date) - new Date(a.date),
-        );
+        currentTransactions = filtered;
 
         if (currentTransactions.length === 0) {
           list.innerHTML =
@@ -1023,29 +1085,131 @@
           return;
         }
 
-        let htmlStr = "";
-        let lastDateLabel = "";
+        // 🌟 ២. បំបែកប្រតិបត្តិការជា ២ ក្រុម: Hold (ជាប់ឃាត់) និង Success (ជោគជ័យធម្មតា)
+        let holdTrxs = currentTransactions
+          .filter((t) => t.status === "Hold")
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        let successTrxs = currentTransactions
+          .filter((t) => t.status !== "Hold")
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        currentTransactions.forEach((t, index) => {
+        let htmlStr = "";
+
+        // ==========================================
+        // 🌟 ៣. គូរ UI សម្រាប់ប្រតិបត្តិការ ON HOLD មុនគេ (ពណ៌លឿង)
+        // ==========================================
+        if (holdTrxs.length > 0) {
+          htmlStr += `<div style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">⏳ ជាប់ឃាត់ទុក (ON HOLD)</div>`;
+
+          holdTrxs.forEach((t) => {
+            // ចាប់យក Index ពិតប្រាកដចេញពី fullUserTransactions ការពារកុំអោយចុចមើល Slip ខុស
+            const originalIndex = fullUserTransactions.indexOf(t);
+            const isIncome = t.amount > 0;
+
+            let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+            const isKHR = t.currency === "KHR";
+            const currSym = isKHR ? "៛" : "$";
+
+            const tType = (t.type || "").toLowerCase();
+            const tMethod = (t.trxMethod || "").toLowerCase();
+            const tSender = (t.senderName || "").toLowerCase();
+
+            if (
+              tType.includes("deposit") ||
+              tMethod.includes("cashier") ||
+              tSender.includes("deposit")
+            ) {
+              iconClass = "fa-hand-holding-dollar";
+            } else if (
+              tType.includes("payroll") ||
+              tMethod.includes("payout") ||
+              tMethod.includes("payroll")
+            ) {
+              iconClass = "fa-money-bill-transfer";
+            } else if (
+              tType.includes("promo") ||
+              tType.includes("cashback") ||
+              tSender.includes("promo") ||
+              tSender.includes("reward") ||
+              tType.includes("reward")
+            ) {
+              iconClass = "fa-sack-dollar";
+            } else if (
+              tType.includes("merchant") ||
+              tMethod.includes("merchant") ||
+              tMethod.includes("b2b") ||
+              t.merchantId
+            ) {
+              iconClass = "fa-store";
+            } else if (tType.includes("bill") || tMethod.includes("bill")) {
+              iconClass = "fa-file-invoice-dollar";
+            } else if (
+              tType.includes("u-fund") ||
+              tType.includes("saving") ||
+              tType.includes("fund")
+            ) {
+              iconClass = "fa-piggy-bank";
+            } else if (tType.includes("e-gift") || tType.includes("gift")) {
+              iconClass = "fa-gift";
+            } else if (isIncome && sessionUser.role === "junior") {
+              iconClass = "fa-child-reaching";
+            }
+
+            let dateObj = new Date(t.date);
+            if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))
+              dateObj = new Date(t.date.split(",")[0].trim());
+            if (isNaN(dateObj.getTime())) dateObj = new Date();
+
+            let title = isIncome
+              ? t.senderName || t.merchantName || t.name || t.type || "Received"
+              : t.receiverName ||
+                t.merchantName ||
+                t.name ||
+                t.type ||
+                "Transfer";
+            if (t.type === "E-Gift Received") title = "Received E-Gift";
+            else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
+            if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
+              title = t.trxMethod || t.type || "System Transaction";
+            }
+
+            let timeStr = dateObj.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const cleanTitle = escapeHTML(title);
+            const cleanMethod = escapeHTML(t.trxMethod || "U-Pay");
+
+            // គូរប្រអប់ Hold មានស៊ុមពណ៌លឿង
+            htmlStr += `
+                <div class="trx-item" onclick="showSlip(${originalIndex})" style="border: 1px dashed #fcd34d; background: #fffbeb;">
+                  <div class="trx-left">
+                    <div class="trx-icon bg-orange text-orange"><i class="fa-solid ${iconClass}"></i></div>
+                    <div class="trx-info">
+                      <h4 style="text-transform: capitalize;">${cleanTitle}</h4>
+                      <p>${timeStr} • <span style="color:#f59e0b; font-weight:bold;">HOLD</span></p>
+                    </div>
+                  </div>
+                  <div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
+                </div>`;
+          });
+        }
+
+        // ==========================================
+        // 🌟 ៤. គូរ UI សម្រាប់ប្រតិបត្តិការជោគជ័យធម្មតា (SUCCESS)
+        // ==========================================
+        let lastDateLabel = "";
+        successTrxs.forEach((t) => {
+          const originalIndex = fullUserTransactions.indexOf(t);
           const isIncome = t.amount > 0;
-          const isPending = t.status === "Pending";
 
           let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-          let bgClass = isIncome
-            ? "bg-green"
-            : isPending
-              ? "bg-orange"
-              : "bg-red";
-          let textClass = isIncome
-            ? "text-green"
-            : isPending
-              ? "text-orange"
-              : "text-red";
+          let bgClass = isIncome ? "bg-green" : "bg-red";
+          let textClass = isIncome ? "text-green" : "text-red";
 
           const isKHR = t.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          // ការកំណត់ Icon ថ្មីៗតាមស្តង់ដារ Dashboard
           const tType = (t.type || "").toLowerCase();
           const tMethod = (t.trxMethod || "").toLowerCase();
           const tSender = (t.senderName || "").toLowerCase();
@@ -1116,7 +1280,6 @@
               "Transfer";
           if (t.type === "E-Gift Received") title = "Received E-Gift";
           else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
-
           if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
             title = t.trxMethod || t.type || "System Transaction";
           }
@@ -1125,14 +1288,16 @@
             hour: "2-digit",
             minute: "2-digit",
           });
+          const cleanTitle = escapeHTML(title);
+          const cleanMethod = escapeHTML(t.trxMethod || "U-Pay");
 
           htmlStr += `
-            <div class="trx-item" onclick="showSlip(${index})">
+            <div class="trx-item" onclick="showSlip(${originalIndex})">
               <div class="trx-left">
                 <div class="trx-icon ${bgClass}"><i class="fa-solid ${iconClass}"></i></div>
                 <div class="trx-info">
-                  <h4 style="text-transform: capitalize;">${escapeHTML(title)}</h4>
-                  <p>${timeStr} • ${escapeHTML(t.trxMethod || "U-Pay")}</p>
+                  <h4 style="text-transform: capitalize;">${cleanTitle}</h4>
+                  <p>${timeStr} • ${cleanMethod}</p>
                 </div>
               </div>
               <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
@@ -1230,6 +1395,23 @@
               displayMsg += ` <br><b style="color:#10b981; font-size: 0.8rem;">(✅ បានឆ្លើយតបរួចរាល់)</b>`;
             }
           }
+          // 💳 ការបង្ហាញសម្រាប់ សំណើទូទាត់តាមកាត (Card Payment Request) - កែតម្រូវប្រើប្រាស់ m ឱ្យត្រូវគ្នា
+          else if (m.type === "card_payment_request") {
+            iconClass = "fa-credit-card";
+            if (!m.isRead) {
+              bgClass = "background:#fff7ed; color:#ea580c;";
+              displayMsg = `<b>${m.metadata.merchantName}</b> កំពុងស្នើសុំកាត់ប្រាក់ <b style="color:red;">$${Number(m.metadata.amount).toFixed(2)}</b> ពីកាតរបស់អ្នក។`;
+              actionBtns = `
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                  <button onclick="handleCardPaymentConfirm('${m.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                  <button onclick="handleCardPaymentReject('${m.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                </div>
+              `;
+            } else {
+              bgClass = "background:#f1f5f9; color:#94a3b8;";
+              displayMsg = "✅ ការស្នើសុំទូទាត់ត្រូវបានឆ្លើយតបរួចរាល់។";
+            }
+          }
 
           htmlStr += `
             <div class="msg-card">
@@ -1299,7 +1481,6 @@
         const parentDiv = document.getElementById(`joint-action-${notifId}`);
         if (parentDiv)
           parentDiv.innerHTML = `<button style="width:100%; padding:10px; background:#64748b; color:white; border:none; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...</button>`;
-
         try {
           const res = await fetch("/api/account/joint/respond", {
             method: "POST",
@@ -1340,7 +1521,6 @@
       ) {
         if (typeof confetti === "function")
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
         const curSym = currency === "USD" ? "$" : "៛";
         const displayAmt =
           currency === "USD"
@@ -1459,11 +1639,9 @@
 
         const start = document.getElementById("startDate").value;
         const end = document.getElementById("endDate").value;
-
         if (!start || !end)
           return Swal.fire("បញ្ជាក់", "សូមជ្រើសរើសកាលបរិច្ឆេទ!", "warning");
 
-        // 🔥 បង្ហាញ Loading Animation ភ្លាមៗ និងទប់កុំអោយចុចបានទៀត
         Swal.fire({
           title: "កំពុងរៀបចំរបាយការណ៍ PDF...",
           html: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងគណនាទិន្នន័យ...",
@@ -1472,7 +1650,6 @@
           customClass: { popup: "premium-swal" },
         });
 
-        // 🔥 ប្រើ setTimeout ដើម្បិអោយ Browser មានពេល Render UI Loading មុននឹងគាំងដោយសារការគណនា PDF
         setTimeout(() => {
           try {
             const { jsPDF } = window.jspdf;
@@ -1497,30 +1674,71 @@
                 .trim();
             };
 
-            // ចម្រាញ់យកតែប្រតិបត្តិការក្នុងគណនីដែលបាន Select សម្រាប់ PDF
             const currTrx = (fullUserTransactions || []).filter((t) => {
+              let isLinkedToMerchant = false;
+              let merchantRelatedAccounts = [];
+              if (
+                sessionUser.merchantProfile &&
+                sessionUser.merchantProfile.merchants
+              ) {
+                sessionUser.merchantProfile.merchants.forEach((m) => {
+                  if (
+                    m.linkedAccounts &&
+                    (selectedAccountNumbers.includes(m.linkedAccounts.USD) ||
+                      selectedAccountNumbers.includes(m.linkedAccounts.KHR))
+                  ) {
+                    isLinkedToMerchant = true;
+                    if (m.accountNumbers.USD)
+                      merchantRelatedAccounts.push(m.accountNumbers.USD);
+                    if (m.accountNumbers.KHR)
+                      merchantRelatedAccounts.push(m.accountNumbers.KHR);
+                    if (m.cashiers) {
+                      m.cashiers.forEach((c) => {
+                        if (c.virtualAccounts?.USD)
+                          merchantRelatedAccounts.push(c.virtualAccounts.USD);
+                        if (c.virtualAccounts?.KHR)
+                          merchantRelatedAccounts.push(c.virtualAccounts.KHR);
+                        if (c.virtualAccount)
+                          merchantRelatedAccounts.push(c.virtualAccount);
+                      });
+                    }
+                  }
+                });
+              }
+
               const accsToMatch = [
                 t.senderAcc,
                 t.receiverAcc,
                 t.senderAccount,
                 t.receiverAccount,
               ];
-              let isMatch = accsToMatch.some((acc) =>
+              const matchDirectAcc = accsToMatch.some((acc) =>
                 selectedAccountNumbers.includes(acc),
               );
-              if (!isMatch && !t.senderAcc && !t.receiverAcc) {
+              const matchMerchantAcc =
+                isLinkedToMerchant &&
+                merchantRelatedAccounts.includes(t.receiverAcc);
+
+              let matchMain = false;
+              if (
+                !matchDirectAcc &&
+                !matchMerchantAcc &&
+                !t.senderAcc &&
+                !t.receiverAcc
+              ) {
                 if (
                   t.currency === "USD" &&
                   selectedAccountNumbers.includes(sessionUser.accountNumber)
                 )
-                  isMatch = true;
+                  matchMain = true;
                 if (
                   t.currency === "KHR" &&
                   selectedAccountNumbers.includes(sessionUser.accountNumberKHR)
                 )
-                  isMatch = true;
+                  matchMain = true;
               }
-              return isMatch;
+
+              return matchDirectAcc || matchMerchantAcc || matchMain;
             });
 
             const allTrxAsc = [...currTrx].sort(
@@ -1595,7 +1813,6 @@
             if (endUSD) endingUSD = num(endUSD.computedBalance);
             if (endKHR) endingKHR = num(endKHR.computedBalance);
 
-            // ជម្រើសទី ១៖ បន្ថែមកម្ពស់ឱ្យរាងខ្ពស់បន្តិច
             doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 70, 32);
             doc.setFont("helvetica", "bold");
             doc.setFontSize(20);
@@ -1644,7 +1861,6 @@
             doc.setFont("helvetica", "bold");
             doc.setTextColor(44, 62, 80);
             doc.text("ACCOUNT DETAILS", rightColX, detailY);
-
             doc.setFontSize(9);
             doc.setFont("helvetica", "normal");
 
@@ -1675,7 +1891,6 @@
             let summaryY = detailY + 30;
             doc.setFont("helvetica", "bold");
             doc.text("ACCOUNT SUMMARY", rightColX, summaryY);
-
             let summary = [];
 
             if (!isMultipleAccounts) {
@@ -1684,7 +1899,6 @@
               const enBal = currDisplay === "KHR" ? endingKHR : endingUSD;
               const inBal = currDisplay === "KHR" ? totalInKHR : totalInUSD;
               const outBal = currDisplay === "KHR" ? totalOutKHR : totalOutUSD;
-
               const formatFn = (val) =>
                 currDisplay === "KHR"
                   ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
@@ -1771,30 +1985,21 @@
                   "SYSTEM"
                 ).toUpperCase(),
               );
-
-              let detailsText = "";
-              if (isIn) {
-                detailsText = `RECEIVED FROM ${sender}`;
-              } else {
-                detailsText =
-                  t.type === "Merchant Payment" || t.type === "Scan"
-                    ? `PAYMENT TO ${receiver}`
-                    : `TRANSFER TO ${receiver}`;
-              }
+              let detailsText = isIn
+                ? `RECEIVED FROM ${sender}`
+                : t.type === "Merchant Payment" || t.type === "Scan"
+                  ? `PAYMENT TO ${receiver}`
+                  : `TRANSFER TO ${receiver}`;
 
               if (
                 detailsText.includes("U-PAY CENTRAL BANK") ||
                 detailsText.includes("U-PAY BANK")
-              ) {
+              )
                 detailsText = sanitizeForPDF(
                   (t.trxMethod || t.type || "SYSTEM TRANSACTION").toUpperCase(),
                 );
-              }
-
-              if (isMultipleAccounts) {
+              if (isMultipleAccounts)
                 detailsText += `\nACC: ${t.senderAcc || t.receiverAcc || "MAIN"}`;
-              }
-
               detailsText += `\nREF# ${t.refId || "N/A"}`;
               if (t.remark)
                 detailsText += `\nREMARK: ${sanitizeForPDF(t.remark)}`;
@@ -1802,7 +2007,6 @@
               const balStr = isMultipleAccounts
                 ? ""
                 : formatRowMoney(num(t.computedBalance)) + rowSym;
-
               return [
                 ds + "\n" + ts,
                 detailsText,
@@ -1899,8 +2103,6 @@
             });
 
             doc.save(`Statement_${sessionUser.username}_${start}.pdf`);
-
-            // 🔥 បិទ Loading និងបង្ហាញសារជោគជ័យ
             Swal.close();
             Swal.fire({
               toast: true,
@@ -1916,7 +2118,92 @@
             Swal.close();
             Swal.fire("Error", "បញ្ហាក្នុងការទាញយក PDF: " + e.message, "error");
           }
-        }, 300); // ទុកពេល 300ms អោយ UI រត់បង្ហាញ Loading មុននឹងគាំងដោយសារ CPU
+        }, 300);
+      }
+
+      // ==========================================
+      // មុខងារ កាត់លុយតាមកាត (Card Payment Confirm/Reject)
+      // ==========================================
+      async function handleCardPaymentConfirm(transactionId, notifId) {
+        if (typeof requestPinVerification === "function") {
+          requestPinVerification(
+            "បញ្ចូលលេខសម្ងាត់",
+            "បញ្ជាក់ការទូទាត់កាត",
+            async function (pinCode) {
+              Swal.fire({
+                title: "កំពុងដំណើរការ...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                customClass: { popup: "premium-swal" },
+              });
+              try {
+                const res = await fetch(
+                  "/api/gateway/payment-request/confirm",
+                  {
+                    method: "POST",
+                    headers: authHeadersFetch,
+                    body: JSON.stringify({
+                      transactionId: transactionId,
+                      pin: pinCode,
+                    }),
+                  },
+                );
+                const data = await res.json();
+                if (data.success) {
+                  await fetch(`/api/user/notifications/read/${notifId}`, {
+                    method: "POST",
+                    headers: authHeadersFetch,
+                  }).catch(() => {});
+                  Swal.fire({
+                    icon: "success",
+                    title: "ជោគជ័យ",
+                    text: "ការទូទាត់បានជោគជ័យ និងប្រាក់បានកាត់រួចរាល់!",
+                    customClass: { popup: "premium-swal" },
+                  }).then(() => window.location.reload());
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: "បរាជ័យ",
+                    text: data.message,
+                    customClass: { popup: "premium-swal" },
+                  });
+                }
+              } catch (e) {
+                Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
+              }
+            },
+          );
+        } else {
+          Swal.fire("Error", "មិនអាចស្វែងរកមុខងារវាយ PIN ឃើញទេ", "error");
+        }
+      }
+
+      async function handleCardPaymentReject(transactionId, notifId) {
+        Swal.fire({
+          title: "កំពុងបដិសេធ...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+        try {
+          await fetch("/api/gateway/payment-request/reject", {
+            method: "POST",
+            headers: authHeadersFetch,
+            body: JSON.stringify({ transactionId: transactionId }),
+          });
+          await fetch(`/api/user/notifications/read/${notifId}`, {
+            method: "POST",
+            headers: authHeadersFetch,
+          }).catch(() => {});
+
+          Swal.fire({
+            icon: "info",
+            title: "បដិសេធជោគជ័យ",
+            text: "អ្នកបានបដិសេធសំណើនេះរួចរាល់",
+            customClass: { popup: "premium-swal" },
+          }).then(() => window.location.reload());
+        } catch (e) {
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
+        }
       }
     </script>
   </body>

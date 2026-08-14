@@ -2114,7 +2114,7 @@
         }
 
         // ==========================================
-        // 🚀 SOCKET.IO (REAL-TIME ALERTS)
+        // 🚀 SOCKET.IO
         // ==========================================
         const socket = io("https://u-pay-bank.fly.dev");
         socket.emit("joinRoom", window.currentUser.username);
@@ -2159,8 +2159,6 @@
                   linkedAccount: m.linkedAccount,
                   balance: m.balance || 0,
                   apiKey: m.apiKey,
-                  telegramChatId: m.telegramChatId,
-                  cashiers: m.cashiers || [],
                 }),
               );
               sessionStorage.setItem(
@@ -2173,7 +2171,7 @@
         }
 
         // ==========================================
-        // 🏬 MERCHANT LIST (បញ្ជីហាង)
+        // 🏬 MERCHANT LIST
         // ==========================================
         function renderMerchantList() {
           const container = document.getElementById("merchantListContainer");
@@ -2327,10 +2325,10 @@
         }
 
         // ==========================================
-        // 📝 CREATE MERCHANT (បង្កើតហាងថ្មី)
+        // 🌟 មុខងារបង្កើតហាងថ្មី (LINK 2 ACCOUNTS)
         // ==========================================
         function openCreateMerchantState() {
-          populateLinkedAccounts();
+          populateLinkedAccounts(); // បញ្ចូលទិន្នន័យគណនីចូល Dropdown ពេលចូលផ្ទាំងនេះ
           switchState("state-create");
         }
 
@@ -2342,11 +2340,13 @@
           khrSelect.innerHTML =
             '<option value="">-- មិនភ្ជាប់ (None) --</option>';
 
+          // Main Accounts
           usdSelect.innerHTML += `<option value="${window.currentUser.accountNumber}">Main Account ($) - ${window.currentUser.accountNumber}</option>`;
           if (window.currentUser.accountNumberKHR) {
             khrSelect.innerHTML += `<option value="${window.currentUser.accountNumberKHR}">Main Account (៛) - ${window.currentUser.accountNumberKHR}</option>`;
           }
 
+          // Sub Accounts
           if (
             window.currentUser.subAccounts &&
             window.currentUser.subAccounts.length > 0
@@ -2368,27 +2368,31 @@
           const linkedAccKHR =
             document.getElementById("storeLinkedAccKHR").value;
 
-          if (!name)
-            return Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
+          if (!name) {
+            Swal.fire("បញ្ជាក់", "សូមបញ្ចូលឈ្មោះហាង", "warning");
+            return;
+          }
           if (!linkedAccUSD && !linkedAccKHR) {
-            return Swal.fire(
+            let isKh = window.currentLang === "kh";
+            Swal.fire(
               "បញ្ជាក់",
-              "សូមភ្ជាប់គណនីយ៉ាងហោចណាស់មួយ!",
+              isKh
+                ? "សូមភ្ជាប់គណនីយ៉ាងហោចណាស់មួយ (USD ឬ KHR)!"
+                : "Please link at least one account!",
               "warning",
             );
+            return;
           }
 
-          if (typeof requestPinVerification === "function") {
-            requestPinVerification(
-              "បញ្ចូលលេខសម្ងាត់",
-              "ដើម្បីបង្កើតហាងថ្មី",
-              async function (pinCode) {
-                saveNewMerchant(pinCode);
-              },
-            );
-          } else {
-            Swal.fire("Error", "មិនអាចហៅ PIN Module បានទេ", "error");
-          }
+          // 🔥 ហៅ PIN Modal ពី pin.js មកប្រើប្រាស់
+          requestPinVerification(
+            "បញ្ចូលលេខសម្ងាត់",
+            "ដើម្បីបង្កើតហាងថ្មី",
+            async function () {
+              const pinCode = document.getElementById("hiddenGlobalPin").value;
+              saveNewMerchant(pinCode); // បញ្ជូន PIN ដែលវាយបានទៅ Function បង្កើតហាង
+            },
+          );
         }
 
         async function saveNewMerchant(enteredPin) {
@@ -2399,14 +2403,16 @@
             document.getElementById("storeLinkedAccUSD").value;
           const linkedAccKHR =
             document.getElementById("storeLinkedAccKHR").value;
+          let isKh = window.currentLang === "kh";
 
           Swal.fire({
-            title: "កំពុងបង្កើតហាង...",
+            title: isKh ? "កំពុងបង្កើតហាង..." : "Creating Shop...",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading(),
           });
 
           try {
+            // 🔥 បាញ់ទៅ Backend ជាមួយ Field ថ្មី២ ជំនួស linkedAccount ចាស់
             const response = await fetch("/api/merchants/create", {
               method: "POST",
               headers: window.authHeaders,
@@ -2432,7 +2438,6 @@
                 balance: data.merchant.balance || 0,
                 apiKey: data.merchant.apiKey,
                 apiSecret: data.merchant.apiSecret,
-                cashiers: [],
               };
               window.currentUser.merchantProfile.merchants.push(newMerchant);
               sessionStorage.setItem(
@@ -2443,8 +2448,10 @@
 
               Swal.fire({
                 icon: "success",
-                title: "ជោគជ័យ",
-                text: "ហាងត្រូវបានបង្កើត!",
+                title: isKh ? "ជោគជ័យ" : "Success",
+                text: isKh
+                  ? "ហាងត្រូវបានបង្កើត!"
+                  : "Shop created successfully!",
                 timer: 1500,
                 showConfirmButton: false,
               }).then(() => {
@@ -2453,27 +2460,29 @@
                   .classList.remove("active");
                 openMerchant(newMerchant.id);
               });
-            } else {
+            } else
               Swal.fire(
-                "បរាជ័យ",
+                isKh ? "បរាជ័យ" : "Error",
                 data.message || "Failed to create merchant",
                 "error",
               );
-            }
           } catch (error) {
-            Swal.fire("បរាជ័យ", "Server Error", "error");
+            Swal.fire(
+              window.currentLang === "kh" ? "បរាជ័យ" : "Error",
+              "Server Error",
+              "error",
+            );
           }
         }
 
         // ==========================================
-        // 📊 DASHBOARD (ABA STYLE)
+        // មុខងារបើកមើលផ្ទាំងគ្រប់គ្រងហាង (DASHBOARD)
         // ==========================================
         async function openMerchant(id) {
           currentMerchant = window.currentUser.merchantProfile.merchants.find(
             (m) => m.id === id,
           );
           if (!currentMerchant) return;
-
           document.getElementById("dashStoreName").innerText =
             currentMerchant.name;
           document.getElementById("recvStoreName").innerText =
@@ -2483,13 +2492,11 @@
           document.getElementById("sbName").innerText = currentMerchant.name;
           document.getElementById("sbId").innerText =
             currentMerchant.merchantId;
-
           const avatarEl = document.getElementById("sbAvatar");
           if (avatarEl)
             avatarEl.innerText = currentMerchant.name
               .substring(0, 1)
               .toUpperCase();
-
           document.getElementById("dashBalUSD").innerText = "$0.00";
           document.getElementById("dashBalKHR").innerText = "៛0";
           fetchMerchantRevenue();
@@ -2552,12 +2559,16 @@
           if (tabName === "branches") {
             renderMerchantList();
             fabBtn.style.display = "flex";
-            fabBtn.onclick = openCreateMerchantState;
           } else if (tabName === "cashiers") {
-            // 🔥 បង្ហាញ UI សម្រាប់អ្នកគិតលុយ
-            renderCashierList();
-            fabBtn.style.display = "flex";
-            fabBtn.onclick = openAddCashierModal;
+            let title = isKh ? "មុខងារអ្នកគិតលុយ" : "Cashier Management";
+            let desc = isKh ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
+            container.innerHTML = `
+            <div style="text-align:center; margin-top:60px; opacity:0.6; animation: fadeIn 0.3s ease;">
+              <i class="fa-solid fa-users-gear" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
+              <h4 style="margin:0; font-size:1.1rem; color:var(--text-main); font-family:'Kantumruy Pro', 'Inter', sans-serif;">${title}</h4>
+              <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;" class="kh-text">${desc}</p>
+            </div>`;
+            fabBtn.style.display = "none";
           } else if (tabName === "reports") {
             let title = isKh ? "របាយការណ៍អាជីវកម្ម" : "Business Reports";
             let desc = isKh ? "កំពុងអភិវឌ្ឍ (Coming Soon)" : "Coming Soon...";
@@ -2571,30 +2582,8 @@
           }
         }
 
-        function switchToPersonal() {
-          document.getElementById("accSlider").classList.add("move-left");
-          document.getElementById("btnPersonal").classList.add("active");
-          document.getElementById("btnMerchant").classList.remove("active");
-          setTimeout(() => {
-            window.location.href = "dashboard.html";
-          }, 300);
-        }
-
-        function showComingSoon() {
-          let isKh = window.currentLang === "kh";
-          Swal.fire({
-            title: isKh ? "សូមរង់ចាំ!" : "Coming Soon!",
-            text: isKh
-              ? "មុខងារនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍នៅឡើយ។"
-              : "This feature is currently under development.",
-            icon: "info",
-            confirmButtonText: "OK",
-            confirmButtonColor: "var(--primary)",
-          });
-        }
-
         // ==========================================
-        // 🧮 RECEIVE MONEY (CALCULATOR)
+        // 🧮 CALCULATOR
         // ==========================================
         function setCalcCur(cur) {
           calcCurrency = cur;
@@ -2626,9 +2615,13 @@
 
         function generateQRFromCalc() {
           if (!calcValue || parseInt(calcValue) <= 0) {
+            let warnMsg =
+              window.currentLang === "kh"
+                ? "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល"
+                : "Please enter amount to receive";
             Swal.fire(
-              "បញ្ជាក់",
-              "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រូវទទួល",
+              window.currentLang === "kh" ? "បញ្ជាក់" : "Notice",
+              warnMsg,
               "warning",
             );
             return;
@@ -2639,26 +2632,29 @@
         }
 
         // ==========================================
-        // 📱 MAIN MERCHANT QR (QR ហាងផ្ទាល់ - បៃតង)
+        // 📱 QR MODAL (UPDATED FOR 2 ACCOUNTS)
         // ==========================================
         function openQRModal(amount, currency = null) {
           const modal = document.getElementById("qrModal");
-
           document.getElementById("qrUserName").textContent =
-            currentMerchant.name.toUpperCase();
-          document.getElementById("qrUserName").style.color = "#1e293b"; // Reset to standard dark
+            currentMerchant.name;
           document.getElementById("qrMerchantID").textContent =
             "MID: " + currentMerchant.merchantId;
 
           const btnUSD = document.getElementById("btnQRUSD");
           const btnKHR = document.getElementById("btnQRKHR");
+
           const hasUSD = !!currentMerchant.accountNumbers?.USD;
           const hasKHR = !!currentMerchant.accountNumbers?.KHR;
 
           btnUSD.style.display = hasUSD ? "block" : "none";
           btnKHR.style.display = hasKHR ? "block" : "none";
 
-          let targetCur = currency || (hasUSD ? "USD" : "KHR");
+          let targetCur = currency;
+          if (!targetCur) {
+            targetCur = hasUSD ? "USD" : "KHR";
+          }
+
           if (
             (targetCur === "USD" && !hasUSD) ||
             (targetCur === "KHR" && !hasKHR)
@@ -2671,7 +2667,6 @@
           if (amount) document.getElementById("qrSetAmount").value = amount;
           else document.getElementById("qrSetAmount").value = "";
 
-          window.isCashierQR = false; // ប្រាប់ថាជា QR ហាង
           updateMyQR();
           modal.style.display = "flex";
         }
@@ -2701,29 +2696,12 @@
             document.getElementById("qrCurrencySymbol").innerText = "៛";
           }
 
-          // ប្ដូរពណ៌លេខកុងតាម QR Type
-          if (window.isCashierQR) {
-            let vAcc = window.currentCashierObj.virtualAccounts
-              ? window.currentCashierObj.virtualAccounts[currency]
-              : window.currentCashierObj.virtualAccount;
-
-            document.getElementById("qrUserAcc").style.color = "#0284c7";
-            document.getElementById("qrUserAcc").textContent = vAcc || "N/A";
-            document.getElementById("qrAccountNum").textContent = vAcc || "N/A";
-            document.getElementById("qrMerchantID").textContent =
-              "Cashier ID: " + (vAcc || "N/A");
-          } else {
-            const targetAcc = currentMerchant.accountNumbers
-              ? currentMerchant.accountNumbers[currency]
-              : null;
-
-            document.getElementById("qrUserAcc").style.color = "#00b894";
-            document.getElementById("qrUserAcc").textContent =
-              targetAcc || "N/A";
-            document.getElementById("qrAccountNum").textContent =
-              targetAcc || "N/A";
-          }
-
+          const targetAcc = currentMerchant.accountNumbers
+            ? currentMerchant.accountNumbers[currency]
+            : null;
+          document.getElementById("qrUserAcc").textContent = targetAcc || "N/A";
+          document.getElementById("qrAccountNum").textContent =
+            targetAcc || "N/A";
           updateMyQR();
         }
 
@@ -2735,29 +2713,11 @@
 
           document.getElementById("qrCurrencySymbol").innerText =
             qrCurrency === "USD" ? "$" : "៛";
+          let qrData = targetAcc || "";
+          if (amount && parseFloat(amount) > 0)
+            qrData = `${targetAcc}:${amount}`;
 
-          let qrData = "";
-          let qrColor = "";
-
-          // បែងចែករវាង QR ហាង និង QR កូនចៅ
-          if (window.isCashierQR) {
-            qrColor = "0284c7"; // ពណ៌ខៀវ
-            let amtStr = amount && parseFloat(amount) > 0 ? amount : "0";
-            let vAcc = window.currentCashierObj.virtualAccounts
-              ? window.currentCashierObj.virtualAccounts[qrCurrency]
-              : window.currentCashierObj.virtualAccount;
-
-            if (vAcc) {
-              if (amtStr !== "0") qrData = `${vAcc}:${amtStr}`;
-              else qrData = vAcc;
-            }
-          } else {
-            qrColor = "004d40"; // ពណ៌បៃតងចាស់
-            if (amount && parseFloat(amount) > 0)
-              qrData = `${targetAcc}:${amount}`;
-            else qrData = targetAcc || "";
-          }
-
+          const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
           document.getElementById("myQrImg").src =
             `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}&color=${qrColor}`;
         }
@@ -2786,321 +2746,7 @@
         }
 
         // ==========================================
-        // 🧑‍💼 CASHIER MANAGEMENT (អ្នកគិតលុយ)
-        // ==========================================
-        function renderCashierList() {
-          const container = document.getElementById("merchantListContainer");
-          container.innerHTML = "";
-
-          let allCashiers = [];
-          window.currentUser.merchantProfile.merchants.forEach((m) => {
-            if (m.cashiers && m.cashiers.length > 0) {
-              m.cashiers.forEach((c) => {
-                allCashiers.push({
-                  ...c,
-                  merchantName: m.name,
-                  merchantId: m.id,
-                });
-              });
-            }
-          });
-
-          if (allCashiers.length === 0) {
-            let noDataTxt =
-              window.currentLang === "kh"
-                ? "មិនទាន់មានអ្នកគិតលុយទេ"
-                : "No cashiers yet";
-            container.innerHTML = `
-            <div style="text-align:center; margin-top:50px; opacity:0.7;">
-              <i class="fa-solid fa-users-slash" style="font-size:3.5rem; color:var(--text-muted); margin-bottom:15px;"></i>
-              <p style="color:var(--text-muted); font-size:0.95rem;" class="kh-text">${noDataTxt}</p>
-              <p style="color:var(--text-muted); font-size:0.8rem;" class="kh-text">សូមចុចសញ្ញា (+) ដើម្បីបន្ថែម</p>
-            </div>`;
-            return;
-          }
-
-          allCashiers.forEach((c) => {
-            const div = document.createElement("div");
-            div.className = "merchant-item";
-            div.onclick = () => showCashierQR(c, c.merchantId);
-
-            let accDisplay = "";
-            if (
-              c.virtualAccounts &&
-              (c.virtualAccounts.USD || c.virtualAccounts.KHR)
-            ) {
-              let arr = [];
-              if (c.virtualAccounts.USD)
-                arr.push("USD: " + c.virtualAccounts.USD);
-              if (c.virtualAccounts.KHR)
-                arr.push("KHR: " + c.virtualAccounts.KHR);
-              accDisplay = arr.join(" | ");
-            } else {
-              accDisplay = c.virtualAccount || "N/A";
-            }
-
-            div.innerHTML = `
-            <div class="merchant-icon" style="background:#e0f2fe; color:#0284c7;"><i class="fa-solid fa-user-tie"></i></div>
-            <div style="flex:1;">
-              <h4 style="margin:0; font-size:1.05rem; font-family:'Inter', sans-serif;">${c.originalName}</h4>
-              <p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);"><span style="color:var(--primary)">${c.merchantName}</span><br><span style="font-family:monospace; font-weight:bold; font-size: 0.7rem;">${accDisplay}</span></p>
-            </div>
-            <i class="fa-solid fa-trash" style="color:#ef4444; padding:10px 15px;" onclick="event.stopPropagation(); removeCashier('${c.merchantId}', '${c._id || c.id}')"></i>
-            `;
-            container.appendChild(div);
-          });
-        }
-
-        async function openAddCashierModal() {
-          if (window.currentUser.merchantProfile.merchants.length === 0) {
-            return Swal.fire(
-              "បញ្ជាក់",
-              "សូមបង្កើតហាង/សាខាជាមុនសិន!",
-              "warning",
-            );
-          }
-
-          let shopOptions = {};
-          window.currentUser.merchantProfile.merchants.forEach((m) => {
-            shopOptions[m.id] = m.name;
-          });
-
-          const { value: formValues } = await Swal.fire({
-            title: '<span class="kh-text">បន្ថែមអ្នកគិតលុយ</span>',
-            html: `
-                    <select id="swal-shop-id" class="swal2-input kh-text" style="width: 85%; margin: 10px auto; padding: 10px;">
-                        ${Object.entries(shopOptions)
-                          .map(
-                            ([id, name]) =>
-                              `<option value="${id}">${name}</option>`,
-                          )
-                          .join("")}
-                    </select>
-                    <input id="swal-cashier-acc" class="swal2-input kh-text" placeholder="វាយលេខគណនី U-Pay កូនចៅ" style="width: 85%; margin: 10px auto; text-align: center; letter-spacing: 2px;" type="number">
-                `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: "ស្វែងរក",
-            confirmButtonColor: "var(--primary)",
-            customClass: { popup: "premium-swal" },
-            preConfirm: () => {
-              return [
-                document.getElementById("swal-shop-id").value,
-                document.getElementById("swal-cashier-acc").value,
-              ];
-            },
-          });
-
-          if (formValues) {
-            const [merchantId, accNum] = formValues;
-            if (!accNum || accNum.length < 6)
-              return Swal.fire("កំហុស", "លេខគណនីមិនត្រឹមត្រូវ", "error");
-
-            searchAndConfirmCashier(merchantId, accNum);
-          }
-        }
-
-        // ២. ស្វែងរកលេខកុង រួច Generate ឈ្មោះកាត់ (Initials) ដោយស្វ័យប្រវត្តិ
-        async function searchAndConfirmCashier(merchantId, accNum) {
-          Swal.fire({
-            title: "កំពុងស្វែងរក...",
-            didOpen: () => Swal.showLoading(),
-          });
-          try {
-            const res = await fetch(
-              `/api/merchants/cashiers/search/${accNum}`,
-              { headers: window.authHeaders },
-            );
-            const data = await res.json();
-
-            if (data.success) {
-              const originalName = data.accountName;
-
-              // 🔥 បង្កើតឈ្មោះកាត់ (Initials) ឧទាហរណ៍ SINA SAK => S.S
-              let initials = "";
-              if (originalName) {
-                const nameParts = originalName.trim().split(/\s+/);
-                if (nameParts.length >= 2) {
-                  initials =
-                    nameParts[0][0].toUpperCase() +
-                    "." +
-                    nameParts[nameParts.length - 1][0].toUpperCase();
-                } else {
-                  initials = originalName.substring(0, 2).toUpperCase(); // បើមានតែ១ម៉ាត់ យក២អក្សរដំបូង
-                }
-              }
-
-              // លែងអោយវាយកែទៀតហើយ បង្ហាញតែឈ្មោះពិត និងសុំ Confirm
-              const confirmAdd = await Swal.fire({
-                title: "រកឃើញគណនី!",
-                html: `<span class="kh-text">ឈ្មោះពិត៖ <b style="color:var(--primary);">${originalName}</b><br><br>តើអ្នកចង់បន្ថែមបុគ្គលនេះជាអ្នកគិតលុយមែនទេ?</span>`,
-                showCancelButton: true,
-                confirmButtonText: "បាទ/ចាស",
-                cancelButtonText: "បដិសេធ",
-                confirmButtonColor: "var(--primary)",
-                customClass: { popup: "premium-swal" },
-              });
-
-              if (confirmAdd.isConfirmed) {
-                // ប្រើ Initials ជា displayName ដើម្បី Save ចូល Database
-                saveCashierToDB(merchantId, accNum, originalName, initials);
-              }
-            } else {
-              Swal.fire("បរាជ័យ", data.message, "error");
-            }
-          } catch (e) {
-            Swal.fire("Error", "បញ្ហាបណ្តាញទាក់ទង", "error");
-          }
-        }
-
-        async function saveCashierToDB(
-          merchantId,
-          accNum,
-          originalName,
-          displayName,
-        ) {
-          Swal.fire({
-            title: "កំពុងរក្សាទុក...",
-            didOpen: () => Swal.showLoading(),
-          });
-          try {
-            const res = await fetch("/api/merchants/cashiers/add", {
-              method: "POST",
-              headers: window.authHeaders,
-              body: JSON.stringify({
-                merchantId: merchantId,
-                cashierAccountNumber: accNum,
-                cashierOriginalName: originalName,
-                cashierDisplayName: displayName,
-              }),
-            });
-            const data = await res.json();
-
-            if (data.success) {
-              const shopIdx =
-                window.currentUser.merchantProfile.merchants.findIndex(
-                  (m) => m.id === merchantId,
-                );
-              if (shopIdx !== -1) {
-                window.currentUser.merchantProfile.merchants[shopIdx].cashiers =
-                  data.cashiers;
-                sessionStorage.setItem(
-                  "user",
-                  JSON.stringify(window.currentUser),
-                );
-              }
-              Swal.fire({
-                icon: "success",
-                title: "ជោគជ័យ",
-                text: "បានបន្ថែមអ្នកគិតលុយរួចរាល់!",
-                confirmButtonColor: "var(--primary)",
-              });
-              renderCashierList();
-            } else {
-              Swal.fire("បរាជ័យ", data.message, "error");
-            }
-          } catch (e) {
-            Swal.fire("Error", "បញ្ហា Server", "error");
-          }
-        }
-
-        function removeCashier(merchantId, cashierId) {
-          Swal.fire({
-            title: "តើអ្នកចង់លុបមែនទេ?",
-            text: "អ្នកគិតលុយនេះនឹងលែងអាចទទួលប្រាក់ចូលហាងបានទៀតហើយ!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#ef4444",
-            confirmButtonText: "លុបចេញ",
-            customClass: { popup: "premium-swal" },
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              Swal.fire({
-                title: "កំពុងលុប...",
-                didOpen: () => Swal.showLoading(),
-              });
-              try {
-                const res = await fetch(
-                  `/api/merchants/cashiers/remove/${merchantId}/${cashierId}`,
-                  {
-                    method: "DELETE",
-                    headers: window.authHeaders,
-                  },
-                );
-                const data = await res.json();
-                if (data.success) {
-                  const shopIdx =
-                    window.currentUser.merchantProfile.merchants.findIndex(
-                      (m) => m.id === merchantId,
-                    );
-                  if (shopIdx !== -1) {
-                    window.currentUser.merchantProfile.merchants[
-                      shopIdx
-                    ].cashiers = data.cashiers;
-                    sessionStorage.setItem(
-                      "user",
-                      JSON.stringify(window.currentUser),
-                    );
-                  }
-                  Swal.fire("លុបរួចរាល់", "", "success");
-                  renderCashierList();
-                }
-              } catch (e) {
-                Swal.fire("Error", "បញ្ហា Server", "error");
-              }
-            }
-          });
-        }
-
-        // ៥. បង្ហាញ QR Code កូនចៅ
-        function showCashierQR(cashierObj, merchantId) {
-          const m = window.currentUser.merchantProfile.merchants.find(
-            (x) => x.id === merchantId,
-          );
-          if (!m) return;
-
-          currentMerchant = m;
-
-          const shopNameWithCashier = `${m.name.toUpperCase()} BY ${cashierObj.displayName.toUpperCase()}`;
-
-          document.getElementById("qrUserName").textContent =
-            shopNameWithCashier;
-          document.getElementById("qrUserName").style.color = "#0284c7";
-
-          const btnUSD = document.getElementById("btnQRUSD");
-          const btnKHR = document.getElementById("btnQRKHR");
-
-          const hasUSD = !!(
-            cashierObj.virtualAccounts && cashierObj.virtualAccounts.USD
-          );
-          const hasKHR = !!(
-            cashierObj.virtualAccounts && cashierObj.virtualAccounts.KHR
-          );
-
-          btnUSD.style.display = hasUSD ? "block" : "none";
-          btnKHR.style.display = hasKHR ? "block" : "none";
-
-          qrCurrency = hasUSD ? "USD" : "KHR";
-
-          window.isCashierQR = true;
-          window.currentCashierObj = cashierObj;
-
-          let defaultVAcc = cashierObj.virtualAccounts
-            ? cashierObj.virtualAccounts[qrCurrency]
-            : cashierObj.virtualAccount;
-          document.getElementById("qrMerchantID").textContent =
-            "Cashier ID: " + (defaultVAcc || "N/A");
-
-          switchQRCurrency(qrCurrency);
-
-          document.getElementById("qrSetAmount").value = "";
-          document.getElementById("qrModal").style.display = "flex";
-
-          updateMyQR();
-        }
-
-        // ==========================================
-        // 📈 TRANSACTIONS & EXPORTS
+        // 📊 TRANSACTIONS & REPORT LOGIC
         // ==========================================
         async function loadTransactions() {
           const filter = document.getElementById("reportFilter").value;
@@ -3341,8 +2987,31 @@
         }
 
         // ==========================================
-        // 🤖 TELEGRAM ALERT
+        // មុខងារដទៃទៀត
         // ==========================================
+        function switchToPersonal() {
+          document.getElementById("accSlider").classList.add("move-left");
+          document.getElementById("btnPersonal").classList.add("active");
+          document.getElementById("btnMerchant").classList.remove("active");
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 300);
+        }
+
+        function showComingSoon() {
+          let isKh = window.currentLang === "kh";
+          Swal.fire({
+            title: isKh ? "សូមរង់ចាំ!" : "Coming Soon!",
+            text: isKh
+              ? "មុខងារនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍នៅឡើយ។"
+              : "This feature is currently under development.",
+            icon: "info",
+            confirmButtonText: isKh ? "យល់ព្រម" : "OK",
+            confirmButtonColor: "var(--primary)",
+            customClass: { popup: "kh-text" },
+          });
+        }
+
         let telePollingInterval;
 
         function openTelegramState() {
@@ -3353,6 +3022,7 @@
           document.getElementById("teleMerchantId").innerText =
             "MID: " + currentMerchant.merchantId;
 
+          // Reset UI
           document.getElementById("btnGenTele").style.display = "block";
           document.getElementById("btnGenTele").innerHTML =
             '<i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដភ្ជាប់';
@@ -3364,6 +3034,7 @@
 
           if (telePollingInterval) clearInterval(telePollingInterval);
 
+          // ឆែកមើលថាហាងនេះភ្ជាប់ហើយឬនៅ (ត្រូវប្រាកដថា Backend ផ្តល់ telegramChatId មកអោយ)
           if (currentMerchant.telegramChatId) {
             showTeleSuccessUI();
           }
@@ -3378,10 +3049,11 @@
           btn.disabled = true;
 
           try {
+            // យើងបាញ់ទៅ API ថ្មីសម្រាប់ Merchant
             const res = await fetch("/api/merchants/generate-telegram-code", {
               method: "POST",
               headers: window.authHeaders,
-              body: JSON.stringify({ merchantId: currentMerchant.id }),
+              body: JSON.stringify({ merchantId: currentMerchant.id }), // បោះ ID ហាងទៅ
             });
             const data = await res.json();
 
@@ -3399,17 +3071,18 @@
               startMerchantTelePolling();
             } else {
               Swal.fire("Error", "បរាជ័យក្នុងការទាញកូដ!", "error");
-              openTelegramState();
+              openTelegramState(); // Reset
             }
           } catch (error) {
             Swal.fire("Error", "Server Error!", "error");
-            openTelegramState();
+            openTelegramState(); // Reset
           }
         }
 
         function startMerchantTelePolling() {
           telePollingInterval = setInterval(async () => {
             try {
+              // ទាញទិន្នន័យ Merchant ថ្មីមកពិនិត្យរាល់ ២វិនាទី
               const res = await fetch("/api/merchants/my-merchants", {
                 headers: window.authHeaders,
               });
@@ -3422,6 +3095,7 @@
                 if (updatedMerchant && updatedMerchant.telegramChatId) {
                   clearInterval(telePollingInterval);
 
+                  // អាប់ដេតទិន្នន័យក្នុង Session
                   currentMerchant.telegramChatId =
                     updatedMerchant.telegramChatId;
                   const idx =
@@ -3499,7 +3173,7 @@
                     );
                   }
                   Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
-                    openTelegramState();
+                    openTelegramState(); // Reset UI មកដើមវិញ
                   });
                 }
               } catch (e) {

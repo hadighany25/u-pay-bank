@@ -16,16 +16,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="js/toast.js"></script>
-
-    <!-- 🔥 ភ្ជាប់ PIN MODULE នៅទីនេះ -->
     <script src="js/pin.js"></script>
-
     <link rel="stylesheet" href="style.css" />
 
     <style>
-      /* ==========================================
-       === 1. រចនាបថទូទៅ (Base Styles) ===
-       ========================================== */
       body {
         visibility: hidden;
         opacity: 0;
@@ -92,9 +86,6 @@
         letter-spacing: 0.5px;
       }
 
-      /* ==========================================
-       === 2. រចនាបថថ្មីសម្រាប់ RECENT CONTACTS ===
-       ========================================== */
       .recent-contacts-container {
         margin-bottom: 25px;
         display: none;
@@ -110,8 +101,6 @@
       .contacts-scroll::-webkit-scrollbar {
         display: none;
       }
-
-      /* គ្រោង Contact នីមួយៗ */
       .contact-item {
         position: relative;
         display: flex;
@@ -124,9 +113,7 @@
       }
       .contact-item:hover {
         transform: translateY(-8px);
-      } /* រុញឡើងលើពេលយកម៉ៅដាក់លើ */
-
-      /* រង្វង់អក្សរ */
+      }
       .contact-avatar {
         width: 55px;
         height: 55px;
@@ -141,8 +128,6 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         border: 2px solid white;
       }
-
-      /* ប៊ូតុង ✖ សម្រាប់លុប (លាក់សិន) */
       .delete-btn {
         position: absolute;
         top: -2px;
@@ -168,8 +153,6 @@
       .delete-btn:hover {
         transform: scale(1.2);
       }
-
-      /* ព័ត៌មានឈ្មោះខាងក្រោម */
       .contact-info {
         margin-top: 8px;
         text-align: center;
@@ -186,8 +169,6 @@
         text-overflow: ellipsis;
         transition: opacity 0.2s ease;
       }
-
-      /* ព័ត៌មានលម្អិត (ឈ្មោះពេញ + លេខកុង) - បង្ហាញពេល Hover */
       .full-details {
         display: none;
         font-size: 0.65rem;
@@ -206,9 +187,6 @@
         animation: fadeIn 0.3s ease;
       }
 
-      /* ==========================================
-       === 3. ហ្វមបញ្ញើប្រាក់ និង Input ផ្សេងៗ ===
-       ========================================== */
       .receiver-box {
         text-align: center;
         margin-bottom: 25px;
@@ -296,9 +274,6 @@
         transform: scale(0.98);
       }
 
-      /* ==========================================
-       === 4. អត្រាប្តូរប្រាក់ វិក្កយបត្រ (Slip) & ផ្សេងៗ ===
-       ========================================== */
       .fx-preview-box {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -347,24 +322,6 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-      }
-      .native-pin-input {
-        width: 150px;
-        text-align: center;
-        font-size: 2.5rem;
-        letter-spacing: 15px;
-        padding: 10px;
-        border: 2px solid #e2e8f0;
-        border-radius: 15px;
-        outline: none;
-        background: #f8fafc;
-        color: #1e293b;
-        font-family: monospace;
-        transition: border-color 0.3s;
-      }
-      .native-pin-input:focus {
-        border-color: #004d40;
-        background: #fff;
       }
       .slip-container {
         width: 340px;
@@ -565,9 +522,7 @@
         z-index: 5;
       }
 
-      /* ==========================================
-       === 5. ប្រព័ន្ធងងឹត (DARK MODE) ===
-       ========================================== */
+      /* DARK MODE */
       body.dark-mode {
         background-color: #121212 !important;
         color: #fff !important;
@@ -583,8 +538,7 @@
         background-color: #1e1e1e !important;
         border-color: #333;
       }
-      body.dark-mode .main-input,
-      body.dark-mode .native-pin-input {
+      body.dark-mode .main-input {
         background: #1e1e1e !important;
         color: #fff !important;
         border-color: #444;
@@ -595,8 +549,6 @@
       body.dark-mode .section-label {
         color: #94a3b8;
       }
-
-      /* ពណ៌ Dark Mode សម្រាប់លម្អិត Recent Contacts */
       body.dark-mode .short-name {
         color: #cbd5e1;
       }
@@ -605,11 +557,10 @@
       }
       body.dark-mode .full-details .f-name {
         color: #4ade80 !important;
-      } /* បៃតងភ្លឺ */
+      }
       body.dark-mode .contact-avatar {
         border-color: #121212;
       }
-
       body.dark-mode .fx-preview-box {
         background: rgba(22, 101, 52, 0.2);
         border-color: #14532d;
@@ -637,7 +588,7 @@
       </div>
 
       <div class="transfer-form">
-        <!-- ផ្នែក RECENT CONTACTS -->
+        <!-- RECENT CONTACTS -->
         <div class="recent-contacts-container" id="recentContactsBlock">
           <p class="section-label" data-lang="recent_contacts">
             Recent Contacts
@@ -726,7 +677,6 @@
           />
         </div>
 
-        <!-- 🔥 ប៊ូតុងបញ្ជាក់ការវេរប្រាក់ -->
         <button
           onclick="validateAndOpenPin()"
           class="confirm-btn"
@@ -737,7 +687,7 @@
       </div>
     </div>
 
-    <!-- Modals: Spin, Slip -->
+    <!-- Modals -->
     <div
       id="spinModal"
       class="modal-overlay"
@@ -871,13 +821,13 @@
       const token = sessionStorage.getItem("userToken");
       if (!uPayUserString || !token)
         window.location.href = "index.html" + window.location.search;
+
       const user = JSON.parse(uPayUserString);
       const authHeaders = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       };
 
-      // ✅ ទាញយក orderId និង URL Params ជាសកល
       const urlParamsGlobal = new URLSearchParams(window.location.search);
       const orderId =
         urlParamsGlobal.get("orderId") || urlParamsGlobal.get("o");
@@ -893,7 +843,6 @@
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
         document.body.classList.add("loaded");
-        let currentLang = localStorage.getItem("lang") || "en";
         populateSourceAccounts();
 
         try {
@@ -904,16 +853,27 @@
 
         const urlParams = new URLSearchParams(window.location.search);
 
-        // ✅ ចាប់យកលេខកុង
         if (urlParams.get("acc")) {
+          let rawAcc = urlParams.get("acc");
+          let parts = rawAcc.split(":");
+
           let ai = document.getElementById("receiverAcc");
-          ai.value = urlParams.get("acc");
+          ai.value = parts[0];
           ai.readOnly = true;
           ai.style.backgroundColor = "#e9ecef";
+
+          if (
+            parts[1] &&
+            parseFloat(parts[1]) > 0 &&
+            !urlParams.get("amount") &&
+            !urlParams.get("a")
+          ) {
+            document.getElementById("amount").value = parts[1];
+          }
+
           checkName();
         }
 
-        // ✅ ចាប់យកចំនួនលុយ
         let passedAmount = urlParams.get("amount") || urlParams.get("a");
         if (passedAmount) {
           let amti = document.getElementById("amount");
@@ -948,6 +908,7 @@
           (lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - ") +
           user.accountNumber;
         select.appendChild(usdOpt);
+
         const khrOpt = document.createElement("option");
         khrOpt.value = "MAIN_KHR";
         khrOpt.dataset.currency = "KHR";
@@ -956,6 +917,7 @@
           (lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - ") +
           (user.accountNumberKHR || "N/A");
         select.appendChild(khrOpt);
+
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
             const opt = document.createElement("option");
@@ -987,9 +949,6 @@
         calculateExchangePreview();
       }
 
-      /* ==========================================
-       === 🌟 កូដថ្មីសម្រាប់ RECENT CONTACTS ===
-       ========================================== */
       function loadRecentContacts() {
         if (!user.transactions || user.transactions.length === 0) return;
         let contacts = [];
@@ -1044,13 +1003,9 @@
             </div>
             <div class="contact-info">
               <span class="short-name">${shortName}</span>
-              <div class="full-details">
-                <div class="f-name">${c.name}</div>
-                <div class="acc-num">${c.acc}</div>
-              </div>
+              <div class="full-details"><div class="f-name">${c.name}</div><div class="acc-num">${c.acc}</div></div>
             </div>
-          </div>
-        `;
+          </div>`;
         });
       }
 
@@ -1070,7 +1025,6 @@
           contactItem.remove();
         }, 200);
       }
-      /* ========================================== */
 
       let typingTimer;
       function debounceCheckName() {
@@ -1078,6 +1032,7 @@
         const accInput = document.getElementById("receiverAcc").value;
         const status = document.getElementById("nameCheck");
         const nameDisplay = document.getElementById("displayReceiverName");
+
         if (accInput.length >= 6) {
           nameDisplay.innerText = "កំពុងស្វែងរក...";
           status.innerText = "↻";
@@ -1119,7 +1074,9 @@
           calculateExchangePreview();
           return true;
         }
+
         if (acc.length < 6) return false;
+
         try {
           const res = await fetch("/api/check-account", {
             method: "POST",
@@ -1128,13 +1085,19 @@
           });
           const data = await res.json();
           if (data.success) {
-            nameDisplay.innerText = data.username.toUpperCase();
+            nameDisplay.innerHTML = `<strong>${data.username.toUpperCase()}</strong>`;
             status.innerText = "✔";
             status.className = "check-status status-ok";
             boxUI.style.borderColor = "#10b981";
             boxUI.style.background = "#ecfdf5";
             iconUI.style.background = "#10b981";
             iconUI.style.color = "white";
+
+            if (data.isMerchant && data.username.includes(" BY ")) {
+              iconUI.style.background = "#0284c7";
+              boxUI.style.borderColor = "#0284c7";
+            }
+
             if (data.isMerchant)
               iconUI.innerHTML = '<i class="fa-solid fa-store"></i>';
             else if (data.profileImage && data.profileImage !== "")
@@ -1145,6 +1108,7 @@
             )
               iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
             else iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
+
             targetUserIsKHR = data.isReceiverKHR;
             if (data.fxRates) currentFXRates = data.fxRates;
             calculateExchangePreview();
@@ -1247,7 +1211,6 @@
         }
       }
 
-      // 🔥 មុខងារវាយតម្លៃ និងហៅ PIN Modal ពី pin.js
       async function validateAndOpenPin() {
         const amt = parseFloat(document.getElementById("amount").value),
           sel = document.getElementById("fromAccount"),
@@ -1280,15 +1243,10 @@
         const displayAmt =
           type === "USD" ? amt.toFixed(2) : amt.toLocaleString();
 
-        // ហៅផ្ទាំង PIN ពី pin.js មកប្រើប្រាស់
         requestPinVerification(
           "បញ្ជាក់ការវេរប្រាក់",
           `វេរប្រាក់ ${currSym}${displayAmt} ទៅកាន់គណនី ${recAcc}`,
-          async function () {
-            // កូដនេះនឹងដំណើរការ បន្ទាប់ពីអតិថិជនវាយ PIN ត្រូវ ៤ខ្ទង់
-
-            // ទាញយកលេខ PIN ពី Hidden Input របស់ pin.js
-            const pinCode = document.getElementById("hiddenGlobalPin").value;
+          async function (pinCode) {
             const srcAcc = sel.value;
 
             Swal.fire({
@@ -1299,7 +1257,6 @@
             let url = recAcc.startsWith("UFND-")
               ? "/api/ufund/scan-pay"
               : "/api/transfer";
-
             let body = recAcc.startsWith("UFND-")
               ? {
                   username: user.username,
@@ -1346,6 +1303,8 @@
                   }).then(() => (window.location.href = "ufund.html"));
                   return;
                 }
+
+                // 🌟 អាប់ដេតសមតុល្យអ្នកផ្ញើក្នុង Memory
                 if (srcAcc === "MAIN_USD") user.balance = d.newBalance;
                 else if (srcAcc === "MAIN_KHR") user.balanceKHR = d.newBalance;
                 else {
@@ -1355,12 +1314,30 @@
                   if (idx !== -1) user.subAccounts[idx].balance = d.newBalance;
                 }
 
-                if (!user.transactions) {
-                  user.transactions = [];
-                }
+                // 🔥 បញ្ចូលប្រវត្តិ "ផ្ញើ" ចូល Memory
+                if (!user.transactions) user.transactions = [];
                 user.transactions.unshift(d.slipData);
 
+                // 🔥 បញ្ចូលប្រវត្តិ "ទទួល" ចូល Memory ភ្លាមៗបើជាការវេរចូលកុងខ្លួនឯង (អោយ Accounts លោត Slip អូតូ)
+                if (d.extraSlip) {
+                  user.transactions.unshift(d.extraSlip);
+
+                  // Update Balance អ្នកទទួលលើទូរស័ព្ទតែមួយ
+                  const rAcc = d.extraSlip.receiverAcc;
+                  const rAmt = d.extraSlip.amount;
+                  if (rAcc === user.accountNumber) user.balance += rAmt;
+                  else if (rAcc === user.accountNumberKHR)
+                    user.balanceKHR += rAmt;
+                  else {
+                    let rIdx = user.subAccounts.findIndex(
+                      (a) => a.accountNumber === rAcc,
+                    );
+                    if (rIdx !== -1) user.subAccounts[rIdx].balance += rAmt;
+                  }
+                }
+
                 sessionStorage.setItem("user", JSON.stringify(user));
+
                 new Audio(
                   "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                 ).play();
@@ -1391,7 +1368,6 @@
                 } else showSlipData(d.slipData);
               } else Swal.fire("Failed", d.message, "error");
             } catch (e) {
-              console.error("Transfer Error:", e);
               Swal.fire("Error", "Connection Error: " + e.message, "error");
             }
           },
@@ -1484,16 +1460,13 @@
       }
 
       function returnToShopOrDashboard() {
-        if (callbackUrl) {
-          window.location.href = new URL(callbackUrl).origin;
-        } else if (orderId) {
+        if (callbackUrl) window.location.href = new URL(callbackUrl).origin;
+        else if (orderId) {
           window.close();
           setTimeout(() => {
             window.location.href = "dashboard.html";
           }, 300);
-        } else {
-          window.location.href = "dashboard.html";
-        }
+        } else window.location.href = "dashboard.html";
       }
     </script>
   </body>

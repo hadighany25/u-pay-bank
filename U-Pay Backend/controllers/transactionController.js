@@ -7,11 +7,10 @@ const PromoCode = require("../models/PromoCode");
 const Merchant = require("../models/Merchant");
 const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
-const JointAccount = require("../models/JointAccount"); // ធុងលុយគណនីរួម
+const JointAccount = require("../models/JointAccount");
 const bot = require("../services/telegramBot");
 const axios = require("axios");
 
-// នាំចូល Services
 const {
   getFormattedDate,
   generateRefId,
@@ -26,7 +25,6 @@ const { readFXRates } = require("../services/systemService");
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
-    // ឆែកមើលថាតើជា User ធម្មតា (Main USD, Main KHR ឬ Sub-Account)
     let target = await User.findOne({
       $or: [
         { accountNumber: accountNumber },
@@ -40,60 +38,60 @@ const checkAccount = async (req, res) => {
     let isReceiverKHR = false;
 
     if (!target) {
-      // បើមិនមែន User ធម្មតាទេ ឆែកមើលក្រែងលោជា Merchant
       target = await Merchant.findOne({
         $or: [
           { "accountNumbers.USD": accountNumber },
           { "accountNumbers.KHR": accountNumber },
+          { "cashiers.virtualAccounts.USD": accountNumber },
+          { "cashiers.virtualAccounts.KHR": accountNumber },
+          { "cashiers.virtualAccount": accountNumber },
         ],
       });
 
       if (target) {
         isMerchant = true;
-        targetName = target.name;
-        isReceiverKHR = target.accountNumbers.KHR === accountNumber;
+        const cashier = target.cashiers.find(
+          (c) =>
+            c.virtualAccounts?.USD === accountNumber ||
+            c.virtualAccounts?.KHR === accountNumber ||
+            c.virtualAccount === accountNumber,
+        );
+
+        if (cashier && cashier.status === "Active") {
+          targetName = `${target.name.toUpperCase()} BY ${cashier.displayName.toUpperCase()}`;
+          isReceiverKHR = cashier.virtualAccounts?.KHR === accountNumber;
+        } else {
+          targetName = target.name.toUpperCase();
+          isReceiverKHR = target.accountNumbers.KHR === accountNumber;
+        }
       }
     } else {
-      // បើជា User ធម្មតា
-
-      // 🔥 កែត្រង់នេះ៖ ឆែកមើលក្រែងលោប្រព័ន្ធចាប់បានគណនីកូនផ្ទាល់ (Shadow User)
       if (target.role === "junior") {
         let childName = target.fullName || target.username;
-        // ដាក់ឈ្មោះកូន + (JUNIOR) តែម្តង
         targetName = childName.toUpperCase() + " (JUNIOR)";
-
-        if (target.accountNumberKHR === accountNumber) {
-          isReceiverKHR = true;
-        }
+        if (target.accountNumberKHR === accountNumber) isReceiverKHR = true;
       } else {
-        // បើចាប់បានគណនីប៉ាម៉ាក់ ឬគណនីធម្មតាផ្សេងៗ
         targetName = target.fullName || target.username;
-
         if (target.accountNumberKHR === accountNumber) {
           isReceiverKHR = true;
         } else if (target.subAccounts && target.subAccounts.length > 0) {
-          // ឆែកមើលក្រែងលោគាត់បាញ់ចូល Sub-Account ណាមួយ
           const subAcc = target.subAccounts.find(
             (acc) => acc.accountNumber === accountNumber,
           );
           if (subAcc) {
             if (subAcc.currency === "KHR") isReceiverKHR = true;
-
             if (
               subAcc.accountType === "joint" ||
               subAcc.accountType === "joint_member"
             ) {
-              // បើគណនីរួម បង្ហាញឈ្មោះគណនីរួម
               targetName = subAcc.accountName;
             } else if (subAcc.accountType === "junior") {
-              // 🔥 កែត្រង់នេះ៖ បើជាកុងកូនដែលនៅក្រោមម៉ាក់ប៉ា មិនបាច់យកឈ្មោះប៉ាម៉ាក់មកតភ្ជាប់ទេ
               let cleanName = subAcc.accountName.replace(
                 /\s*\(Junior\)\s*/i,
                 "",
               );
               targetName = cleanName.toUpperCase() + " (JUNIOR)";
             } else {
-              // បើ Saving ឬ Pocket ទើបយកឈ្មោះម៉ាក់ប៉ា + (ឈ្មោះ Sub Account)
               targetName = targetName + " (" + subAcc.accountName + ")";
             }
           }
@@ -102,10 +100,8 @@ const checkAccount = async (req, res) => {
     }
 
     if (target) {
-      // ទាញយកអត្រាប្តូរប្រាក់ និងកម្រិតសេវាពី System ដើម្បីឲ្យ Frontend បង្ហាញ
       const currentFXRates = readFXRates();
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-
       res.json({
         success: true,
         username: targetName,
@@ -124,7 +120,7 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// 💸 ២. មុខងារវេរលុយ (មានសេវា, ប្តូរប្រាក់, គណនីរួម, Merchant & Junior)
+// 💸 ២. មុខងារវេរលុយ (Transfer)
 // ==========================================
 const transfer = async (req, res) => {
   const {
@@ -136,10 +132,9 @@ const transfer = async (req, res) => {
     pin,
     trxMethod,
     currency,
-    orderId, // ✅ ចាប់យក orderId ដែលផ្ញើមកពី transfer.html
+    orderId,
   } = req.body;
 
-  // កុងត្រូលសុវត្ថិភាព៖ ការពារកុំឲ្យ Hacker បាញ់ API ជំនួសអ្នកដទៃ
   if (req.user.username !== senderUsername) {
     return res
       .status(403)
@@ -147,15 +142,11 @@ const transfer = async (req, res) => {
   }
 
   try {
-    // ------------------------------------------
-    // ក. ផ្ទៀងផ្ទាត់អ្នកផ្ញើ និងអ្នកទទួល
-    // ------------------------------------------
     const sender = await User.findOne({ username: senderUsername });
     if (!sender) return res.json({ success: false, message: "Account Error" });
     if (sender.isFrozen)
       return res.json({ success: false, message: "Account Frozen" });
 
-    // ឆែក PIN
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -172,7 +163,7 @@ const transfer = async (req, res) => {
         message: `Wrong PIN! Attempts left: ${3 - sender.pinAttempts}`,
       });
     }
-    sender.pinAttempts = 0; // Reset PIN ពេលវាយត្រូវ
+    sender.pinAttempts = 0;
 
     let receiver = await User.findOne({
       $or: [
@@ -189,33 +180,102 @@ const transfer = async (req, res) => {
 
     let receiverMerchant = null;
     let isMerchant = false;
+    let cashierInfo = null;
+    let finalReceiverName = "";
+
+    // 💡 អថេរសម្រាប់កត់ត្រាលេខកុងមេពិតប្រាកដចូលក្នុង History Database
+    let actualLinkedAccountForHistory = receiverAccount;
 
     if (!receiver) {
       receiverMerchant = await Merchant.findOne({
         $or: [
           { "accountNumbers.USD": receiverAccount },
           { "accountNumbers.KHR": receiverAccount },
+          { "cashiers.virtualAccounts.USD": receiverAccount },
+          { "cashiers.virtualAccounts.KHR": receiverAccount },
+          { "cashiers.virtualAccount": receiverAccount },
         ],
       });
       if (receiverMerchant) isMerchant = true;
     }
 
-    if (!receiver && !receiverMerchant) {
+    if (!receiver && !receiverMerchant)
       return res.json({ success: false, message: "Receiver not found" });
+
+    const isSenderKHR = currency === "KHR";
+    let isSenderSubAccount = false,
+      senderSubIndex = -1;
+
+    if (
+      senderAccount &&
+      senderAccount !== "MAIN_USD" &&
+      senderAccount !== "MAIN_KHR"
+    ) {
+      senderSubIndex = sender.subAccounts.findIndex(
+        (acc) => acc.accountNumber === senderAccount,
+      );
+      if (senderSubIndex !== -1) isSenderSubAccount = true;
     }
 
-    // ------------------------------------------
-    // ខ. គិតលុយ គិតអត្រាប្តូរប្រាក់ និងកម្រៃសេវា
-    // ------------------------------------------
+    const actualSenderAccNum = isSenderSubAccount
+      ? senderAccount
+      : isSenderKHR
+        ? sender.accountNumberKHR
+        : sender.accountNumber;
+
+    // 🔥 ១. ការពារមិនអោយបាញ់ពីគណនីភ្ជាប់ ចូលទៅហាងខ្លួនឯង
+    if (isMerchant) {
+      cashierInfo = receiverMerchant.cashiers.find(
+        (c) =>
+          c.virtualAccounts?.USD === receiverAccount ||
+          c.virtualAccounts?.KHR === receiverAccount ||
+          c.virtualAccount === receiverAccount,
+      );
+
+      let isReceiverKHRTemp = false;
+      if (cashierInfo && cashierInfo.status === "Active") {
+        isReceiverKHRTemp =
+          cashierInfo.virtualAccounts?.KHR === receiverAccount;
+      } else {
+        isReceiverKHRTemp =
+          receiverMerchant.accountNumbers.KHR === receiverAccount;
+      }
+
+      let actualOwnerAccNum = isReceiverKHRTemp
+        ? receiverMerchant.linkedAccounts.KHR
+        : receiverMerchant.linkedAccounts.USD;
+      if (!actualOwnerAccNum)
+        actualOwnerAccNum =
+          receiverMerchant.linkedAccounts.USD ||
+          receiverMerchant.linkedAccounts.KHR;
+
+      actualLinkedAccountForHistory = actualOwnerAccNum; // កំណត់អោយ Save ចូល History ជាលេខកុងពិតរបស់ថៅកែ
+
+      // លុបដកឃ្លា (Spaces) ចោលមុននឹងប្រៀបធៀប ការពារ Error
+      const cleanSenderAcc = actualSenderAccNum
+        ? actualSenderAccNum.replace(/\s+/g, "")
+        : "";
+      const cleanOwnerAcc = actualOwnerAccNum
+        ? actualOwnerAccNum.replace(/\s+/g, "")
+        : "";
+
+      if (cleanSenderAcc === cleanOwnerAcc) {
+        return res.json({
+          success: false,
+          message:
+            "មិនអាចផ្ទេរប្រាក់ពីគណនីដែលបានភ្ជាប់ ទៅកាន់ហាងខ្លួនឯងបានទេ! (សូមប្រើគណនីផ្សេង)",
+        });
+      }
+    }
+
+    // គិតលុយ និងកម្រៃសេវា
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
-    const isSenderKHR = currency === "KHR";
     const currentFXRates = readFXRates();
 
     let transferUsdAmount = isSenderKHR
       ? transferAmount / currentFXRates.usdToKhrSell
       : transferAmount;
-
     let appliedFeeUsd = 0;
     const feeTiers = sys ? sys.feeTiers : [];
     for (let tier of feeTiers) {
@@ -231,28 +291,10 @@ const transfer = async (req, res) => {
     let appliedFee = isSenderKHR
       ? appliedFeeUsd * currentFXRates.usdToKhrSell
       : appliedFeeUsd;
-
     const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
 
-    // ------------------------------------------
-    // គ. កំណត់អត្តសញ្ញាណគណនីប្រភព (អ្នកផ្ញើ) ថាកាត់ពីកុងណា?
-    // ------------------------------------------
-    let isSenderSubAccount = false;
-    let senderSubIndex = -1;
-    let jointSenderAcc = null;
-    let juniorSenderAcc = null;
-
-    if (
-      senderAccount &&
-      senderAccount !== "MAIN_USD" &&
-      senderAccount !== "MAIN_KHR"
-    ) {
-      senderSubIndex = sender.subAccounts.findIndex(
-        (acc) => acc.accountNumber === senderAccount,
-      );
-      if (senderSubIndex !== -1) isSenderSubAccount = true;
-    }
-
+    let jointSenderAcc = null,
+      juniorSenderAcc = null;
     let senderAvailableBal = 0;
     if (isSenderSubAccount) {
       const sType = sender.subAccounts[senderSubIndex].accountType;
@@ -260,28 +302,24 @@ const transfer = async (req, res) => {
         jointSenderAcc = await JointAccount.findOne({
           accountId: sender.subAccounts[senderSubIndex].accountId,
         });
-        if (!jointSenderAcc)
-          return res.json({ success: false, message: "រកគណនីរួមនេះមិនឃើញទេ!" });
-        senderAvailableBal = jointSenderAcc.balance;
+        senderAvailableBal = jointSenderAcc ? jointSenderAcc.balance : 0;
       } else if (sType === "junior") {
         juniorSenderAcc = await User.findOne({ accountNumber: senderAccount });
-        if (!juniorSenderAcc)
-          return res.json({ success: false, message: "រកគណនីកូនមិនឃើញទេ!" });
-
-        const dailyLimit = juniorSenderAcc.dailyLimit || 0;
-        const dailySpent = juniorSenderAcc.dailySpent || 0;
-        if (dailyLimit > 0) {
-          if (dailySpent + totalDeduction > dailyLimit) {
+        if (juniorSenderAcc) {
+          const dailyLimit = juniorSenderAcc.dailyLimit || 0;
+          if (
+            dailyLimit > 0 &&
+            (juniorSenderAcc.dailySpent || 0) + totalDeduction > dailyLimit
+          ) {
             return res.json({
               success: false,
-              message: `ប្រតិបត្តិការបរាជ័យ! កូនត្រូវបានកំណត់អោយចាយបានត្រឹម ${dailyLimit} ប៉ុណ្ណោះក្នុង១ថ្ងៃ (ថ្ងៃនេះចាយអស់ ${dailySpent} ហើយ)។`,
+              message: "ប្រតិបត្តិការបរាជ័យ! ចាយលើសដែនកំណត់។",
             });
           }
+          senderAvailableBal = isSenderKHR
+            ? juniorSenderAcc.balanceKHR || 0
+            : juniorSenderAcc.balance || 0;
         }
-
-        senderAvailableBal = isSenderKHR
-          ? juniorSenderAcc.balanceKHR || 0
-          : juniorSenderAcc.balance || 0;
       } else {
         senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
       }
@@ -294,37 +332,59 @@ const transfer = async (req, res) => {
     if (sender.role === "junior") {
       const dailyLimit = sender.dailyLimit || 0;
       const dailySpent = sender.dailySpent || 0;
-
       let spentUsd = isSenderKHR
         ? totalDeduction / currentFXRates.usdToKhrSell
         : totalDeduction;
-
       if (dailyLimit > 0) {
         if (dailySpent + spentUsd > dailyLimit) {
           return res.json({
             success: false,
-            message: `ប្រតិបត្តិការបរាជ័យ! អ្នកត្រូវបានកំណត់អោយចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ (ថ្ងៃនេះចាយអស់ $${dailySpent.toFixed(2)} ហើយ)។`,
+            message: `ប្រតិបត្តិការបរាជ័យ! ចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ។`,
           });
         }
       }
     }
 
-    if (senderAvailableBal < totalDeduction) {
+    if (senderAvailableBal < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
+
+    // កាត់លុយពីអ្នកផ្ញើ
+    if (isSenderSubAccount) {
+      if (jointSenderAcc) {
+        jointSenderAcc.balance -= totalDeduction;
+        await jointSenderAcc.save();
+      } else if (juniorSenderAcc) {
+        if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
+        else juniorSenderAcc.balance -= totalDeduction;
+        juniorSenderAcc.dailySpent =
+          (juniorSenderAcc.dailySpent || 0) + totalDeduction;
+        await juniorSenderAcc.save();
+        sender.markModified("subAccounts");
+      } else {
+        sender.subAccounts[senderSubIndex].balance -= totalDeduction;
+        sender.markModified("subAccounts");
+      }
+    } else {
+      if (isSenderKHR) sender.balanceKHR -= totalDeduction;
+      else sender.balance -= totalDeduction;
     }
 
     // ------------------------------------------
-    // ឃ. ដំណើរការបញ្ចូលលុយទៅអ្នកទទួល (បូកលុយ)
+    // ឃ. បញ្ចូលលុយទៅអ្នកទទួល
     // ------------------------------------------
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
-    let actualReceiverAccNum = receiverAccount;
-    let targetSubAccIndex = -1;
-    let isReceiverSubAccount = false;
     let jointReceiverAcc = null;
 
     if (isMerchant) {
-      isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
+      if (cashierInfo && cashierInfo.status === "Active") {
+        isReceiverKHR = cashierInfo.virtualAccounts?.KHR === receiverAccount;
+        finalReceiverName = `${receiverMerchant.name.toUpperCase()} BY ${cashierInfo.displayName.toUpperCase()}`;
+      } else {
+        isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
+        finalReceiverName = receiverMerchant.name.toUpperCase();
+      }
+
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
@@ -334,18 +394,21 @@ const transfer = async (req, res) => {
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
 
-      const owner = await User.findOne({ username: receiverMerchant.userId });
+      let owner =
+        sender.username === receiverMerchant.userId
+          ? sender
+          : await User.findOne({ username: receiverMerchant.userId });
+
       if (owner) {
-        actualReceiverAccNum = isReceiverKHR
-          ? receiverMerchant.linkedAccounts.KHR
-          : receiverMerchant.linkedAccounts.USD;
-        if (actualReceiverAccNum === owner.accountNumber) {
+        let actualOwnerAccNum = actualLinkedAccountForHistory; // ទាញយកលេខដែលរៀបចំហើយខាងលើមកប្រើ
+
+        if (actualOwnerAccNum === owner.accountNumber) {
           owner.balance += receiverAmount;
-        } else if (actualReceiverAccNum === owner.accountNumberKHR) {
+        } else if (actualOwnerAccNum === owner.accountNumberKHR) {
           owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
         } else {
           const sub = owner.subAccounts.find(
-            (s) => s.accountNumber === actualReceiverAccNum,
+            (s) => s.accountNumber === actualOwnerAccNum,
           );
           if (sub) {
             sub.balance += receiverAmount;
@@ -354,36 +417,29 @@ const transfer = async (req, res) => {
             if (isReceiverKHR)
               owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
             else owner.balance += receiverAmount;
-            actualReceiverAccNum = isReceiverKHR
-              ? owner.accountNumberKHR
-              : owner.accountNumber;
           }
         }
-        await owner.save();
+
+        if (sender.username !== receiverMerchant.userId) await owner.save();
         receiver = owner;
       }
     } else {
-      targetSubAccIndex = receiver.subAccounts.findIndex(
+      let targetSubAccIndex = receiver.subAccounts.findIndex(
         (acc) => acc.accountNumber === receiverAccount,
       );
-
-      if (receiver.accountNumberKHR === receiverAccount) {
-        isReceiverKHR = true;
-      } else if (
-        receiver.accountNumber !== receiverAccount &&
-        targetSubAccIndex !== -1
-      ) {
-        isReceiverSubAccount = true;
+      if (receiver.accountNumberKHR === receiverAccount) isReceiverKHR = true;
+      else if (targetSubAccIndex !== -1)
         isReceiverKHR =
           receiver.subAccounts[targetSubAccIndex].currency === "KHR";
-      }
 
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
       else if (isSenderKHR && !isReceiverKHR)
         receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
 
-      if (isReceiverSubAccount) {
+      finalReceiverName = receiver.fullName || receiver.username;
+
+      if (targetSubAccIndex !== -1) {
         const targetSubAcc = receiver.subAccounts[targetSubAccIndex];
         if (
           targetSubAcc.accountType === "joint" ||
@@ -395,6 +451,7 @@ const transfer = async (req, res) => {
           if (jointReceiverAcc) {
             jointReceiverAcc.balance += receiverAmount;
             await jointReceiverAcc.save();
+            finalReceiverName = jointReceiverAcc.accountName;
           }
         } else {
           targetSubAcc.balance += receiverAmount;
@@ -406,103 +463,13 @@ const transfer = async (req, res) => {
           receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
         else receiver.balance = (receiver.balance || 0) + receiverAmount;
         await receiver.save();
-
-        if (receiver.role === "junior" && receiver.parentUsername) {
-          let parentDoc =
-            sender.username === receiver.parentUsername
-              ? sender
-              : await User.findOne({ username: receiver.parentUsername });
-
-          if (parentDoc) {
-            const subIdx = parentDoc.subAccounts.findIndex(
-              (acc) => acc.accountNumber === receiverAccount,
-            );
-            if (subIdx !== -1) {
-              if (isReceiverKHR) {
-                parentDoc.subAccounts[subIdx].balanceKHR = receiver.balanceKHR;
-              } else {
-                parentDoc.subAccounts[subIdx].balance = receiver.balance;
-              }
-              parentDoc.markModified("subAccounts");
-
-              if (parentDoc.username !== sender.username) {
-                await parentDoc.save();
-              }
-            }
-          }
-        }
       }
     }
 
-    // ------------------------------------------
-    // ង. ដំណើរការកាត់លុយពីអ្នកផ្ញើ (ដកលុយចេញ)
-    // ------------------------------------------
-    if (isSenderSubAccount) {
-      const senderSubAcc = sender.subAccounts[senderSubIndex];
-      if (
-        senderSubAcc.accountType === "joint" ||
-        senderSubAcc.accountType === "joint_member"
-      ) {
-        if (jointSenderAcc) {
-          jointSenderAcc.balance -= totalDeduction;
-          await jointSenderAcc.save();
-        }
-      } else if (senderSubAcc.accountType === "junior") {
-        if (juniorSenderAcc) {
-          if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
-          else juniorSenderAcc.balance -= totalDeduction;
-
-          juniorSenderAcc.dailySpent =
-            (juniorSenderAcc.dailySpent || 0) + totalDeduction;
-          await juniorSenderAcc.save();
-
-          if (isSenderKHR) {
-            sender.subAccounts[senderSubIndex].balanceKHR =
-              juniorSenderAcc.balanceKHR;
-          } else {
-            sender.subAccounts[senderSubIndex].balance =
-              juniorSenderAcc.balance;
-          }
-          sender.markModified("subAccounts");
-          await sender.save();
-        }
-      } else {
-        senderSubAcc.balance -= totalDeduction;
-        sender.markModified("subAccounts");
-        await sender.save();
-      }
-    } else {
-      if (isSenderKHR) sender.balanceKHR -= totalDeduction;
-      else sender.balance -= totalDeduction;
-
-      if (sender.role === "junior") {
-        let spentUsd = isSenderKHR
-          ? totalDeduction / currentFXRates.usdToKhrSell
-          : totalDeduction;
-        sender.dailySpent = (sender.dailySpent || 0) + spentUsd;
-      }
-
-      await sender.save();
-
-      if (sender.role === "junior" && sender.parentUsername) {
-        let parentDoc = await User.findOne({ username: sender.parentUsername });
-        if (parentDoc) {
-          const subIdx = parentDoc.subAccounts.findIndex(
-            (acc) => acc.accountNumber === sender.accountNumber,
-          );
-          if (subIdx !== -1) {
-            parentDoc.subAccounts[subIdx].balance = sender.balance;
-            parentDoc.subAccounts[subIdx].balanceKHR = sender.balanceKHR;
-            parentDoc.subAccounts[subIdx].dailySpent = sender.dailySpent;
-            parentDoc.markModified("subAccounts");
-            await parentDoc.save();
-          }
-        }
-      }
-    }
+    await sender.save();
 
     // ------------------------------------------
-    // ច. ការកត់ត្រាប្រវត្តិ (Transaction Logging)
+    // ង. កត់ត្រាប្រវត្តិ (Transaction Logging)
     // ------------------------------------------
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
@@ -510,27 +477,10 @@ const transfer = async (req, res) => {
     });
     const sharedRefId = generateRefId();
     const sharedHash = generateHash();
-    const currentMethod = isMerchant
-      ? "Merchant Payment"
-      : trxMethod || "Account Transfer";
-    const sharedRemark = isMerchant
-      ? remark || `Payment via ${receiverMerchant.name}`
-      : remark || "General";
-
-    const actualSenderAccNum = isSenderSubAccount
-      ? senderAccount
-      : isSenderKHR
-        ? sender.accountNumberKHR
-        : sender.accountNumber;
 
     const finalSenderName = jointSenderAcc
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
-    const finalReceiverName = isMerchant
-      ? receiverMerchant.name
-      : jointReceiverAcc
-        ? jointReceiverAcc.accountName
-        : receiver.fullName || receiver.username;
 
     const senderTrx = {
       refId: sharedRefId,
@@ -542,14 +492,17 @@ const transfer = async (req, res) => {
       fee: appliedFee,
       senderName: finalSenderName,
       receiverName: finalReceiverName,
-      receiverAcc: actualReceiverAccNum,
+      receiverAcc: receiverAccount,
       senderAcc: actualSenderAccNum,
-      trxMethod: currentMethod,
-      remark: sharedRemark,
+      trxMethod: isMerchant
+        ? "Merchant Payment"
+        : trxMethod || "Account Transfer",
+      remark: remark || "General",
       status: "Success",
       username: sender.username,
     };
 
+    // 🔥 កត់ត្រាចូល History អោយចំលេខកុងពិតរបស់ថៅកែ (ទើប History ទាញឃើញ)
     const receiverTrx = {
       refId: sharedRefId,
       hash: sharedHash,
@@ -560,10 +513,12 @@ const transfer = async (req, res) => {
       fee: 0,
       senderName: finalSenderName,
       receiverName: finalReceiverName,
-      receiverAcc: actualReceiverAccNum,
+      receiverAcc: actualLinkedAccountForHistory, // កត់ត្រាលេខកុងមេ
       senderAcc: actualSenderAccNum,
-      trxMethod: currentMethod,
-      remark: sharedRemark,
+      trxMethod: isMerchant
+        ? "Merchant Payment"
+        : trxMethod || "Account Transfer",
+      remark: remark || "General",
       status: "Success",
       username: isMerchant ? receiverMerchant.userId : receiver.username,
       merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
@@ -574,84 +529,49 @@ const transfer = async (req, res) => {
         if (m.status === "active")
           await Transaction.create({ ...senderTrx, username: m.username });
       }
+    } else await Transaction.create(senderTrx);
+
+    if (!isMerchant && jointReceiverAcc) {
+      for (let m of jointReceiverAcc.members) {
+        if (m.status === "active")
+          await Transaction.create({ ...receiverTrx, username: m.username });
+      }
     } else {
-      await Transaction.create(senderTrx);
+      await Transaction.create(receiverTrx);
     }
 
+    // ------------------------------------------
+    // ច. ការផ្តល់ដំណឹង (Notifications / Socket / Telegram)
+    // ------------------------------------------
     const currencySymbol = isReceiverKHR ? "៛" : "$";
     const senderMsgName = jointSenderAcc
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
 
-    if (!isMerchant && jointReceiverAcc) {
-      for (let m of jointReceiverAcc.members) {
-        if (m.status === "active") {
-          await Transaction.create({ ...receiverTrx, username: m.username });
-          const uDoc = await User.findOne({ username: m.username });
-          if (uDoc) {
-            uDoc.notifications = uDoc.notifications || [];
-            uDoc.notifications.push({
-              title: "ទទួលបានទឹកប្រាក់ (គណនីរួម)! 💸",
-              message: `គណនីរួម ${jointReceiverAcc.accountName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`,
-              type: "transfer_receive",
-              date,
-              isRead: false,
-            });
-            uDoc.markModified("notifications");
-            await uDoc.save();
+    const rDoc = await User.findOne({ username: receiver.username });
+    if (rDoc) {
+      rDoc.notifications = rDoc.notifications || [];
+      rDoc.notifications.push({
+        title: isMerchant
+          ? "ទទួលបានទឹកប្រាក់ពីហាង! 🏪"
+          : "ទទួលបានទឹកប្រាក់! 💸",
+        message: isMerchant
+          ? `ហាង ${finalReceiverName} ទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`
+          : `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`,
+        type: "transfer_receive",
+        date,
+        isRead: false,
+      });
+      rDoc.markModified("notifications");
+      if (rDoc.username !== sender.username) await rDoc.save();
 
-            if (bot && bot.sendUserPaymentAlert) {
-              bot.sendUserPaymentAlert(uDoc._id, {
-                amount: receiverAmount,
-                currency: isReceiverKHR ? "KHR" : "USD",
-                senderName: senderMsgName,
-                refId: sharedRefId,
-              });
-            }
-          }
-        }
-      }
-    } else {
-      await Transaction.create(receiverTrx);
-
-      if (!isMerchant) {
-        const rDoc = await User.findOne({ username: receiver.username });
-        if (rDoc) {
-          rDoc.notifications = rDoc.notifications || [];
-          rDoc.notifications.push({
-            title: "ទទួលបានទឹកប្រាក់! 💸",
-            message: `អ្នកទទួលបាន ${currencySymbol}${receiverAmount.toLocaleString()} ពី ${senderMsgName}។`,
-            type: "transfer_receive",
-            date,
-            isRead: false,
-          });
-          rDoc.markModified("notifications");
-          await rDoc.save();
-
-          if (bot && bot.sendUserPaymentAlert) {
-            bot.sendUserPaymentAlert(rDoc._id, {
-              amount: receiverAmount,
-              currency: isReceiverKHR ? "KHR" : "USD",
-              senderName: senderMsgName,
-              refId: sharedRefId,
-            });
-          }
-        }
-      } else {
-        // ៣. ករណីអ្នកទទួល ជា MERCHANT
-        if (bot && bot.sendMerchantPaymentAlert) {
-          // ✅ ដោះស្រាយការគាំងដោយប្រើ .catch() ភ្ជាប់ពីក្រោយផ្ទាល់
-          bot
-            .sendMerchantPaymentAlert(receiverMerchant._id, {
-              amount: receiverAmount,
-              currency: isReceiverKHR ? "KHR" : "USD",
-              senderName: senderMsgName,
-              refId: sharedRefId,
-            })
-            .catch((teleErr) =>
-              console.error("⚠️ Telegram Alert Error:", teleErr.message),
-            );
-        }
+      if (bot && bot.sendUserPaymentAlert) {
+        bot.sendUserPaymentAlert(rDoc._id, {
+          amount: receiverAmount,
+          currency: isReceiverKHR ? "KHR" : "USD",
+          senderName: senderMsgName,
+          refId: sharedRefId,
+        });
       }
     }
 
@@ -662,24 +582,23 @@ const transfer = async (req, res) => {
         currency: isReceiverKHR ? "KHR" : "USD",
         senderName: finalSenderName,
       };
-
-      if (!isMerchant && jointReceiverAcc) {
-        for (let m of jointReceiverAcc.members) {
-          if (m.status === "active") {
-            io.to(m.username).emit("paymentReceived", socketPayload);
-          }
-        }
-      } else {
-        const targetSocketUser = isMerchant
-          ? receiverMerchant.userId
-          : receiver.username;
-        io.to(targetSocketUser).emit("paymentReceived", socketPayload);
-      }
+      const targetSocketUser = isMerchant
+        ? receiverMerchant.userId
+        : receiver.username;
+      io.to(targetSocketUser).emit("paymentReceived", socketPayload);
     }
 
-    // =====================================================================
-    // 🔥 [បន្ថែមថ្មី] មុខងារបាញ់ Webhook ទៅប្រាប់ E-Commerce (Fashion Shop)
-    // =====================================================================
+    if (isMerchant && bot && bot.sendMerchantPaymentAlert) {
+      bot
+        .sendMerchantPaymentAlert(receiverMerchant._id, {
+          amount: receiverAmount,
+          currency: isReceiverKHR ? "KHR" : "USD",
+          senderName: finalSenderName,
+          refId: sharedRefId,
+        })
+        .catch((err) => console.log(""));
+    }
+
     try {
       if (
         orderId &&
@@ -693,53 +612,18 @@ const transfer = async (req, res) => {
           status: "PAID",
           upayTransactionId: sharedRefId,
         };
-
-        // ២. ប្រើ axios ជំនួស fetch ដើម្បីការពារការគាំងលើ Server
         axios
           .post(receiverMerchant.webhookUrl, webhookPayload)
-          .then(() => console.log("✅ Webhook បាញ់ទៅ Fashion Shop ជោគជ័យ!"))
-          .catch((err) =>
-            console.log("⚠️ មិនអាចបាញ់ Webhook បានទេ:", err.message),
-          );
+          .catch((err) => console.log(""));
       }
-    } catch (webhookErr) {
-      console.error("⚠️ បញ្ហាក្នុងការរៀបចំ Webhook:", webhookErr);
-    }
+    } catch (webhookErr) {}
 
-    // ------------------------------------------
-    // ឆ. ទាញយកសមតុល្យចុងក្រោយបង្អស់មកបង្ហាញអ្នកផ្ញើវិញ
-    // ------------------------------------------
     const updatedSender = await User.findOne({ username: senderUsername });
-    let newBalanceRes = 0;
-
-    if (isSenderSubAccount) {
-      const sType = updatedSender.subAccounts[senderSubIndex].accountType;
-      if (sType === "joint" || sType === "joint_member") {
-        const updatedJoint = await JointAccount.findOne({
-          accountId: updatedSender.subAccounts[senderSubIndex].accountId,
-        });
-        newBalanceRes = updatedJoint ? updatedJoint.balance : 0;
-      } else if (sType === "junior") {
-        const updatedJunior = await User.findOne({
-          accountNumber: senderAccount,
-        });
-        newBalanceRes = updatedJunior
-          ? isSenderKHR
-            ? updatedJunior.balanceKHR
-            : updatedJunior.balance
-          : 0;
-      } else {
-        newBalanceRes = updatedSender.subAccounts[senderSubIndex].balance;
-      }
-    } else {
-      newBalanceRes = isSenderKHR
-        ? updatedSender.balanceKHR
-        : updatedSender.balance;
-    }
-
     res.json({
       success: true,
-      newBalance: newBalanceRes,
+      newBalance: isSenderKHR
+        ? updatedSender.balanceKHR
+        : updatedSender.balance,
       slipData: senderTrx,
       user: updatedSender,
     });

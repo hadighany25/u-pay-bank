@@ -27,6 +27,9 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="js/lang.js"></script>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/pin.js"></script>
+
     <style>
       /* ==========================================
          ២. ការរចនាទូទៅ និងពុម្ពអក្សរ (GLOBAL & FONTS)
@@ -1758,7 +1761,7 @@
                 }
 
                 // 🧧 ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
-                if (n.type === "egift_receive") {
+                else if (n.type === "egift_receive") {
                   icon = "fa-gift";
                   bg = "#fee2e2";
                   col = "#dc2626";
@@ -1787,7 +1790,7 @@
                 }
 
                 // 🎯 ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
-                if (n.type === "ufund_invite") {
+                else if (n.type === "ufund_invite") {
                   icon = "fa-bullseye";
                   bg = "#ecfeff";
                   col = "#0891b2";
@@ -1800,8 +1803,8 @@
                     `;
                 }
 
-                // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account) - ថ្មី
-                if (n.metadata && n.metadata.type === "joint_invite") {
+                // 🤝 ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account)
+                else if (n.metadata && n.metadata.type === "joint_invite") {
                   icon = "fa-users";
                   bg = "#e0e7ff";
                   col = "#4f46e5";
@@ -1820,6 +1823,26 @@
                         </button>
                       </div>
                     `;
+                }
+
+                // 💳 ការបង្ហាញសម្រាប់ សំណើទូទាត់តាមកាត (Card Payment Request) - បន្ថែមថ្មី
+                else if (n.type === "card_payment_request") {
+                  icon = "fa-credit-card";
+                  if (!n.isRead) {
+                    bg = "#fff7ed";
+                    col = "#ea580c";
+                    displayMsg = `<b>${n.metadata.merchantName}</b> កំពុងស្នើសុំកាត់ប្រាក់ <b style="color:red;">$${Number(n.metadata.amount).toFixed(2)}</b> ពីកាតរបស់អ្នក។`;
+                    actionBtn = `
+                      <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button onclick="handleCardPaymentConfirm('${n.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
+                        <button onclick="handleCardPaymentReject('${n.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
+                      </div>
+                    `;
+                  } else {
+                    bg = "#f1f5f9";
+                    col = "#94a3b8";
+                    displayMsg = "✅ ការស្នើសុំទូទាត់ត្រូវបានឆ្លើយតបរួចរាល់។";
+                  }
                 }
 
                 // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
@@ -1844,6 +1867,96 @@
       function readNotifications() {
         const notifModal = document.getElementById("notifModal");
         if (notifModal) notifModal.style.display = "flex";
+      }
+
+      // ==========================================
+      // មុខងារ កាត់លុយតាមកាត (Card Payment Confirm/Reject) - បន្ថែមថ្មី
+      // ==========================================
+      async function handleCardPaymentConfirm(transactionId, notifId) {
+        if (typeof requestPinVerification === "function") {
+          // បិទ Modal សារសិន មុននឹងលោតផ្ទាំង PIN
+          const notifModal = document.getElementById("notifModal");
+          if (notifModal) notifModal.style.display = "none";
+
+          requestPinVerification(
+            "បញ្ចូលលេខសម្ងាត់",
+            "បញ្ជាក់ការទូទាត់កាត",
+            async function (pinCode) {
+              Swal.fire({
+                title: "កំពុងដំណើរការ...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                customClass: { popup: "premium-swal" },
+              });
+              try {
+                const res = await fetch(
+                  "/api/gateway/payment-request/confirm",
+                  {
+                    method: "POST",
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                      transactionId: transactionId,
+                      pin: pinCode,
+                    }),
+                  },
+                );
+                const data = await res.json();
+                if (data.success) {
+                  // ប្រាប់ Server ថាអានសារនេះរួចរាល់
+                  await fetch(`/api/user/notifications/read/${notifId}`, {
+                    method: "POST",
+                    headers: authHeaders,
+                  }).catch(() => {});
+                  Swal.fire({
+                    icon: "success",
+                    title: "ជោគជ័យ",
+                    text: "ការទូទាត់បានជោគជ័យ និងប្រាក់បានកាត់រួចរាល់!",
+                    customClass: { popup: "premium-swal" },
+                  }).then(() => window.location.reload());
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: "បរាជ័យ",
+                    text: data.message,
+                    customClass: { popup: "premium-swal" },
+                  });
+                }
+              } catch (e) {
+                Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
+              }
+            },
+          );
+        } else {
+          Swal.fire("Error", "មិនអាចស្វែងរកមុខងារវាយ PIN ឃើញទេ", "error");
+        }
+      }
+
+      async function handleCardPaymentReject(transactionId, notifId) {
+        Swal.fire({
+          title: "កំពុងបដិសេធ...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+        try {
+          await fetch("/api/gateway/payment-request/reject", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ transactionId: transactionId }),
+          });
+          await fetch(`/api/user/notifications/read/${notifId}`, {
+            method: "POST",
+            headers: authHeaders,
+          }).catch(() => {});
+
+          Swal.fire({
+            icon: "info",
+            title: "បដិសេធជោគជ័យ",
+            text: "អ្នកបានបដិសេធសំណើនេះរួចរាល់",
+            customClass: { popup: "premium-swal" },
+          }).then(() => window.location.reload());
+        } catch (e) {
+          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
+        }
       }
 
       // ==========================================
@@ -2142,6 +2255,62 @@
         else if (swipeDistance > 30 && isExpanded) toggleMenuExpansion();
       }
 
+      // ==========================================
+      // 🔌 ភ្ជាប់ Socket.io សម្រាប់ចាំទទួលសំណើទូទាត់តាមកាត (Card Payment Gateway)
+      // ==========================================
+      // ដាក់នៅកម្រិត Root នៃ <script> ដើម្បីអោយវា Active ភ្លាមៗពេលបើក App
+      if (window.currentUser && typeof io !== "undefined") {
+        const socket = io("https://u-pay-bank.fly.dev"); // URL ពិតប្រាកដ
+
+        socket.emit("joinRoom", window.currentUser.username);
+
+        socket.on("paymentRequest", (data) => {
+          new Audio(
+            "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+          )
+            .play()
+            .catch(() => {});
+
+          Swal.fire({
+            title: "សំណើទូទាត់ប្រាក់ 🔔",
+            html: `ហាង <b>${data.merchantName}</b> បានស្នើសុំកាត់ប្រាក់ <b>$${Number(data.amount).toFixed(2)}</b>`,
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: "យល់ព្រម",
+            cancelButtonText: "បដិសេធ",
+          }).then((result) => {
+            if (result.isConfirmed) {
+              if (typeof requestPinVerification === "function") {
+                requestPinVerification(
+                  "បញ្ចូលលេខសម្ងាត់",
+                  "បញ្ជាក់ការទូទាត់កាត",
+                  async function (pinCode) {
+                    Swal.fire({
+                      title: "កំពុងដំណើរការ...",
+                      didOpen: () => Swal.showLoading(),
+                    });
+                    await fetch("/api/gateway/payment-request/confirm", {
+                      method: "POST",
+                      headers: window.authHeaders, // ត្រូវប្រាកដថាប្រើ window.authHeaders ព្រោះ Dashboard អត់មាន authHeadersFetch ទេ
+                      body: JSON.stringify({
+                        transactionId: data.transactionId,
+                        pin: pinCode,
+                      }),
+                    });
+                    window.location.reload();
+                  },
+                );
+              }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+              fetch("/api/gateway/payment-request/reject", {
+                method: "POST",
+                headers: window.authHeaders,
+                body: JSON.stringify({ transactionId: data.transactionId }),
+              });
+            }
+          });
+        });
+      }
       // ហៅ Data អោយដំណើរការដោយស្វ័យប្រវត្តិ
       setInterval(() => loadDashboardData(true), 4000);
     </script>
