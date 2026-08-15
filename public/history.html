@@ -1143,6 +1143,11 @@
               iconClass = "fa-store";
             } else if (tType.includes("bill") || tMethod.includes("bill")) {
               iconClass = "fa-file-invoice-dollar";
+            } else if (tType.includes("refund") || tMethod.includes("refund")) {
+              // 🟢 ដាក់ Condition សម្រាប់ Refund ទុកទីនេះ ធានាថាមិនច្រឡំជាមួយ Savings ទេ
+              iconClass = "fa-arrow-rotate-left";
+              bgClass = "bg-green";
+              textClass = "text-green";
             } else if (
               tType.includes("u-fund") ||
               tType.includes("saving") ||

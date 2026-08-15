@@ -599,11 +599,11 @@ exports.removeCashier = async (req, res) => {
 };
 
 // =======================================================
-// 💳 ទូទាត់ប្រាក់ដោយការអូសកាត (TAP TO PAY - NFC) - FIXED VERSION
+// 💳 TAP TO PAY (STRICT CROSS-CURRENCY WITH DB EXCHANGE RATE)
 // =======================================================
 exports.processTapToPay = async (req, res) => {
   const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
-  const payAmount = parseFloat(amount);
+  const payAmount = parseFloat(amount); // ចំនួនទឹកប្រាក់ដែលហាងចង់បាន (USD ឬ KHR)
 
   try {
     const User = require("../models/User");
@@ -617,31 +617,77 @@ exports.processTapToPay = async (req, res) => {
       });
     }
 
-    // ១. ស្វែងរកអតិថិជនម្ចាស់កាត តាមរយៈលេខ UID
+    // 🟢 ទាញយក Exchange Rate ឱ្យចំពី fxRates ក្នុង Database
+    const System = require("../models/System");
+    let exchangeRate = 4110; // Default
+
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
+      }
+    } catch (e) {
+      console.log("Could not fetch FX Rate from DB, using default 4110");
+    }
+
+    // សម្រាប់ Debug មើលតម្លៃពិតប្រាកដក្នុង fly logs
+    console.log(
+      "🔥 [FX Rate Debug] Fetched usdToKhrBuy from DB:",
+      exchangeRate,
+    );
+
+    // ២. ស្វែងរកកាត និងគណនី
     const customer = await User.findOne({ "virtualCards.uid": uid });
     if (!customer)
       return res.json({
         success: false,
         message: "រកមិនឃើញកាតនេះក្នុងប្រព័ន្ធទេ!",
       });
-
     if (customer.isFrozen)
       return res.json({ success: false, message: "គណនីអតិថិជនត្រូវបានផ្អាក!" });
 
     const card = customer.virtualCards.find((c) => c.uid === uid);
     if (!card)
-      return res.json({
-        success: false,
-        message: "រកមិនឃើញព័ត៌មានកាតក្នុងគណនីនេះទេ!",
-      });
-
+      return res.json({ success: false, message: "រកមិនឃើញព័ត៌មានកាត!" });
     if (card.isLocked)
       return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
 
-    // 🔒 ២. ឆែកលក្ខខណ្ឌ No-PIN Limit
+    let cardCurrency = card.linkedAccount || card.currency || "USD";
+
+    // ៣. គណនាសមតុល្យដែលត្រូវកាត់ និងរូបិយប័ណ្ណពិតប្រាកដ
+    let deductUsd = 0;
+    let deductKhr = 0;
+    let effectiveCurrency = currency; // រូបិយប័ណ្ណដែលត្រូវកាត់ពីកុងអតិថិជន
+
+    if (cardCurrency === currency) {
+      // ករណីរូបិយប័ណ្ណដូចគ្នា (USD ទៅ USD ឬ KHR ទៅ KHR)
+      if (currency === "USD") deductUsd = payAmount;
+      else deductKhr = payAmount;
+    } else if (cardCurrency === "USD" && currency === "KHR") {
+      // 🟢 ករណីកាត USD តែហាងទារ KHR -> បម្លែង KHR ទៅជា USD (ឧ. 10000 / 4110 = 2.43$)
+      deductUsd = parseFloat((payAmount / exchangeRate).toFixed(2));
+      effectiveCurrency = "USD";
+    } else if (cardCurrency === "KHR" && currency === "USD") {
+      // ករណីកាត KHR តែហាងទារ USD -> បម្លែង USD ទៅជា KHR (គុណនឹង Exchange Rate)
+      deductKhr = payAmount * exchangeRate;
+      effectiveCurrency = "KHR";
+    } else {
+      return res.json({
+        success: false,
+        message: "ប្រភេទរូបិយប័ណ្ណមិនត្រូវគ្នាទេ!",
+      });
+    }
+
+    // ៤. PIN Check & Daily Limit
     let requiresPin = false;
-    if (currency === "USD" && payAmount > 20) requiresPin = true;
-    if (currency === "KHR" && payAmount > 80000) requiresPin = true;
+    let limitUsd =
+      cardCurrency === "USD"
+        ? deductUsd > 0
+          ? deductUsd
+          : 0
+        : deductKhr / exchangeRate;
+
+    if (limitUsd > 20) requiresPin = true;
 
     if (requiresPin && !pin) {
       return res.json({
@@ -650,7 +696,6 @@ exports.processTapToPay = async (req, res) => {
           "ទឹកប្រាក់លើសកម្រិតកំណត់ សូមអតិថិជនវាយបញ្ជាក់លេខសម្ងាត់ (PIN)!",
       });
     }
-
     if (pin && card.pin !== pin) {
       return res.json({
         success: false,
@@ -658,69 +703,78 @@ exports.processTapToPay = async (req, res) => {
       });
     }
 
-    // ៣. ឆែកសមតុល្យប្រាក់
-    let hasEnoughBalance = false;
-    if (currency === "USD" && customer.balance >= payAmount)
-      hasEnoughBalance = true;
-    if (currency === "KHR" && customer.balanceKHR >= payAmount)
-      hasEnoughBalance = true;
-
-    if (!hasEnoughBalance)
+    // ៥. ឆែកសមតុល្យប្រាក់ក្នុងកុងអតិថិជន
+    if (deductUsd > 0 && customer.balance < deductUsd) {
       return res.json({
         success: false,
-        message: "អតិថិជនមានទឹកប្រាក់មិនគ្រប់គ្រាន់ទេ!",
+        message: "សមតុល្យទឹកប្រាក់ USD ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
+    }
+    if (deductKhr > 0 && customer.balanceKHR < deductKhr) {
+      return res.json({
+        success: false,
+        message: "សមតុល្យទឹកប្រាក់ KHR ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
+      });
+    }
 
-    // ៤. ស្វែងរកហាង (Merchant)
+    // ៦. ស្វែងរកហាង
     let shop = null;
-    if (merchantId.match(/^[0-9a-fA-F]{24}$/)) {
+    if (merchantId.match(/^[0-9a-fA-F]{24}$/))
       shop = await Merchant.findById(merchantId);
-    }
-    if (!shop) {
-      shop = await Merchant.findOne({ merchantId: merchantId });
-    }
-    if (!shop)
-      return res.json({
-        success: false,
-        message: "រកមិនឃើញហាងរបស់អ្នកទេក្នុងប្រព័ន្ធ!",
-      });
+    if (!shop) shop = await Merchant.findOne({ merchantId: merchantId });
+    if (!shop) return res.json({ success: false, message: "រកមិនឃើញហាងទេ!" });
 
-    if (shop.status && shop.status.toLowerCase() === "suspended")
-      return res.json({ success: false, message: "ហាងរបស់អ្នកត្រូវបានផ្អាក!" });
-
-    // ៥. កាត់លុយពីអតិថិជន
-    if (currency === "USD") customer.balance -= payAmount;
-    if (currency === "KHR") customer.balanceKHR -= payAmount;
-
-    // ៦. 💰 បន្ថែមទឹកប្រាក់ចូលក្នុង escrowHold តាមប្រភេទរូបិយប័ណ្ណ (ត្រូវនឹង Schema Object)
-    if (!shop.escrowHold) {
-      shop.escrowHold = { USD: 0.0, KHR: 0.0 };
-    }
-
-    if (currency === "USD") {
-      shop.escrowHold.USD = (shop.escrowHold.USD || 0) + payAmount;
-    } else if (currency === "KHR") {
-      shop.escrowHold.KHR = (shop.escrowHold.KHR || 0) + payAmount;
-    }
-
-    const trxRef = "TAP-" + Date.now().toString().slice(-6);
-    const trxHash =
-      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
 
-    // ៧. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Status: Hold)
+    let amtInUsdForLimit = deductUsd > 0 ? deductUsd : deductKhr / exchangeRate;
+
+    // ៧. កាត់លុយអតិថិជន
+    let updateInc = {};
+    if (deductUsd > 0) updateInc.balance = -deductUsd;
+    if (deductKhr > 0) updateInc.balanceKHR = -deductKhr;
+    updateInc["virtualCards.$.dailySpentToday"] = amtInUsdForLimit;
+
+    await User.updateOne(
+      { _id: customer._id, "virtualCards.uid": uid },
+      {
+        $inc: updateInc,
+        $push: {
+          notifications: {
+            $each: [
+              {
+                id: "NOTIF-" + Date.now(),
+                title: "ទូទាត់ប្រាក់ (Tap to Pay)",
+                message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name}។`,
+                date: dateStr,
+                isRead: false,
+              },
+            ],
+            $position: 0,
+          },
+        },
+      },
+    );
+
+    // ៨. បន្ថែមលុយចូល Escrow របស់ហាង (តាមរូបិយប័ណ្ណដែលហាងកំណត់)
+    const incEscrow =
+      currency === "USD"
+        ? { "escrowHold.USD": payAmount }
+        : { "escrowHold.KHR": payAmount };
+    await Merchant.updateOne({ _id: shop._id }, { $inc: incEscrow });
+
+    // ៩. កត់ត្រា Transaction
+    const trxRef = "TAP-" + Date.now().toString().slice(-6);
+    const trxHash =
+      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
     const cashierName = cashierAcc ? ` (Cashier: ${cashierAcc})` : "";
     const receiverDisplayName = `${shop.name}${cashierName}`;
-
-    // 🔥 សម្រាប់អតិថិជន (អ្នកបង់លុយ)៖ អោយឃើញលេខកុងហាង ឬលេខអ្នកគិតលុយ
     const customerReceiverAcc =
       cashierAcc ||
       (shop.accountNumbers ? shop.accountNumbers[currency] : "N/A");
 
-    // 🔥 សម្រាប់ថៅកែហាង (អ្នកទទួល)៖ ត្រូវ Save ជាលេខកុងមេ (Linked Account) ទើប account.html ទាញចេញភ្លាមៗ
     let merchantLinkedAcc = shop.linkedAccounts
       ? shop.linkedAccounts[currency]
       : null;
@@ -729,24 +783,24 @@ exports.processTapToPay = async (req, res) => {
         shop.linkedAccounts.USD || shop.linkedAccounts.KHR || "N/A";
     }
 
-    // ប្រវត្តិអតិថិជន
+    // ប្រវត្តិអតិថិជន (បង្ហាញចំនួនទឹកប្រាក់ដែលកាត់ចេញពិតប្រាកដ)
     await Transaction.create({
       username: customer.username,
       refId: trxRef,
       hash: trxHash,
       date: dateStr,
       type: "Tap to Pay",
-      amount: -payAmount,
-      currency: currency,
+      amount: deductUsd > 0 ? -deductUsd : -deductKhr,
+      currency: effectiveCurrency,
       senderName: customer.fullName || customer.username,
       senderAcc:
-        currency === "USD"
+        deductUsd > 0
           ? customer.accountNumber || "N/A"
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
-      receiverAcc: customerReceiverAcc, // <--- 🟢 អតិថិជនឃើញលេខហាង
+      receiverAcc: customerReceiverAcc,
       status: "Hold",
-      remark: "Payment is on hold (Escrow)",
+      remark: `Payment with Auto Exchange Rate (${exchangeRate})`,
       trxMethod: "NFC Payment",
     });
 
@@ -761,45 +815,301 @@ exports.processTapToPay = async (req, res) => {
       currency: currency,
       senderName: customer.fullName || customer.username,
       senderAcc:
-        currency === "USD"
+        deductUsd > 0
           ? customer.accountNumber || "N/A"
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
-      receiverAcc: merchantLinkedAcc, // <--- 🟢 ថៅកែហាងត្រូវ Save ចូលលេខកុងមេ ទើបអត់បាត់ Transaction
+      receiverAcc: merchantLinkedAcc,
       merchantId: shop.merchantId,
       status: "Hold",
       remark: "Tap to Pay Transaction",
       trxMethod: "NFC Payment",
     });
 
-    // ៨. ផ្ញើ Notification ទៅអតិថិជន
-    if (!customer.notifications) customer.notifications = [];
-    customer.notifications.unshift({
-      id: "NOTIF-" + Date.now(),
-      title: "ទូទាត់ប្រាក់ (Tap to Pay)",
-      message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name}។`,
-      date: dateStr,
-      isRead: false,
-    });
-
-    customer.markModified("virtualCards");
-    customer.markModified("notifications");
-
-    await customer.save();
-    await shop.save();
-
-    // 🟢 បាញ់ Socket.io ប្រាប់ Frontend អោយ Refresh លុយភ្លាមៗ
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
       global.io.to(customer.username).emit("transactionUpdated");
+      global.io.to(shop.userId).emit("paymentReceived", {
+        amount: payAmount,
+        currency: currency,
+        senderName: customer.fullName || customer.username,
+      });
     }
 
     res.json({
       success: true,
-      message: "ការទូទាត់បានកត់ត្រាចូលក្នុងប្រព័ន្ធរង់ចាំ (Escrow)!",
+      message: "ការទូទាត់ប្តូរប្រាក់អូតូតាម Rate បានជោគជ័យ!",
     });
   } catch (error) {
-    console.error("Tap to Pay Detailed Error:", error);
+    console.error("Tap to Pay Exchange Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + error.message });
+  }
+};
+
+// =======================================================
+// 💳 CHECK CARD BEFORE PAYMENT
+// =======================================================
+exports.checkCardBeforePayment = async (req, res) => {
+  const { uid, amount, currency } = req.body;
+  try {
+    const User = require("../models/User");
+
+    const customer = await User.findOne({ "virtualCards.uid": uid });
+    if (!customer)
+      return res.json({
+        success: false,
+        message: "កាតនេះមិនមានក្នុងប្រព័ន្ធ U-Pay ទេ!",
+      });
+
+    const card = customer.virtualCards.find((c) => c.uid === uid);
+    if (!card)
+      return res.json({ success: false, message: "ព័ត៌មានកាតមិនត្រឹមត្រូវ!" });
+    if (card.isLocked)
+      return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
+    if (customer.isFrozen)
+      return res.json({ success: false, message: "គណនីអតិថិជនត្រូវបានផ្អាក!" });
+    if (card.isOnlinePayEnabled === false)
+      return res.json({
+        success: false,
+        message: "កាតនេះត្រូវបានបិទមុខងារទូទាត់!",
+      });
+
+    // 🟢 ទាញយក Exchange Rate ឱ្យចំពី fxRates ក្នុង Database
+    const System = require("../models/System");
+    let exchangeRate = 4110; // Default
+
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
+      }
+    } catch (e) {
+      console.log("Could not fetch FX Rate from DB, using default 4110");
+    }
+
+    // សម្រាប់ Debug មើលតម្លៃពិតប្រាកដក្នុង fly logs
+    console.log(
+      "🔥 [FX Rate Debug] Fetched usdToKhrBuy from DB:",
+      exchangeRate,
+    );
+
+    let cardCurrency = card.linkedAccount || card.currency || "USD";
+    const payAmount = parseFloat(amount);
+
+    let requiredUsd = 0;
+    let requiredKhr = 0;
+
+    if (cardCurrency === currency) {
+      if (currency === "USD") requiredUsd = payAmount;
+      else requiredKhr = payAmount;
+    } else if (cardCurrency === "USD" && currency === "KHR") {
+      requiredUsd = payAmount / exchangeRate;
+    } else if (cardCurrency === "KHR" && currency === "USD") {
+      requiredKhr = payAmount * exchangeRate;
+    } else {
+      return res.json({
+        success: false,
+        message: "ប្រភេទរូបិយប័ណ្ណមិនត្រូវគ្នាទេ!",
+      });
+    }
+
+    // ឆែក Daily Limit
+    let payAmountUsd =
+      cardCurrency === "USD" ? requiredUsd : requiredKhr / exchangeRate;
+    const currentSpentToday = card.dailySpentToday || 0;
+    const allowedLimit = card.dailyLimit || 0;
+
+    if (allowedLimit > 0 && currentSpentToday + payAmountUsd > allowedLimit) {
+      return res.json({
+        success: false,
+        message: `លើសដែនកំណត់ចំណាយប្រចាំថ្ងៃ (Daily Limit: $${allowedLimit})!`,
+      });
+    }
+
+    // ឆែកសមតុល្យ
+    if (requiredUsd > 0 && customer.balance < requiredUsd) {
+      return res.json({
+        success: false,
+        message: "សមតុល្យទឹកប្រាក់ USD ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
+      });
+    }
+    if (requiredKhr > 0 && customer.balanceKHR < requiredKhr) {
+      return res.json({
+        success: false,
+        message: "សមតុល្យទឹកប្រាក់ KHR ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "កាតត្រឹមត្រូវ និងអាចទូទាត់បានតាម Exchange Rate",
+    });
+  } catch (err) {
+    console.error("Check Card Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+// =======================================================
+// ↩️ មុខងារបង្វិលប្រាក់សម្រាប់ប្រតិបត្តិការ HOLD ONLY (STRICT REFUND)
+// =======================================================
+exports.refundTransaction = async (req, res) => {
+  const { merchantId, refId, pin } = req.body;
+
+  try {
+    const User = require("../models/User");
+    const Merchant = require("../models/Merchant");
+    const Transaction = require("../models/Transaction");
+
+    // ១. ស្វែងរកហាង និងផ្ទៀងផ្ទាត់ PIN របស់ម្ចាស់ហាង
+    const shop = await Merchant.findOne({
+      $or: [{ merchantId: merchantId }, { _id: merchantId }],
+    });
+    if (!shop) return res.json({ success: false, message: "រកហាងមិនឃើញទេ!" });
+
+    const owner = await User.findOne({ username: shop.userId });
+    if (!owner)
+      return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
+
+    if (owner.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    // ២. ទាញយក Transaction ដើមតាមរយៈ refId
+    const trxs = await Transaction.find({ refId: refId });
+    if (!trxs || trxs.length === 0)
+      return res.json({ success: false, message: "រកមិនឃើញប្រវត្តិនេះទេ!" });
+
+    // ឆែកមើលថាតើវាបាន Refund រួចហ្ដេស
+    const isAlreadyRefunded = trxs.some(
+      (t) => t.status === "Refunded" || t.status === "Voided",
+    );
+    if (isAlreadyRefunded)
+      return res.json({
+        success: false,
+        message: "ប្រតិបត្តិការនេះត្រូវបានបង្វិលប្រាក់រួចហើយ!",
+      });
+
+    // ឆែកមើលថាតើវាស្ថិតក្នុងស្ថានភាព Hold ដែរឬទេ
+    const merchantTrx = trxs.find(
+      (t) => t.merchantId === shop.merchantId || t.amount > 0,
+    );
+    if (!merchantTrx || merchantTrx.status !== "Hold") {
+      return res.json({
+        success: false,
+        message:
+          "អាចធ្វើការ Refund បានតែលើប្រតិបត្តិការដែលមានស្ថានភាព Hold ប៉ុណ្ណោះ!",
+      });
+    }
+
+    // 🔥 ស្វែងរក Transaction ຝັ່ງអតិថិជន ដើម្បីយក Amount និង Currency ដើមដែលបានកាត់ជាក់ស្តែង
+    const customerTrx = trxs.find(
+      (t) => t.merchantId !== shop.merchantId && t.amount < 0,
+    );
+    if (!customerTrx)
+      return res.json({ success: false, message: "រកមិនឃើញព័ត៌មានអតិថិជន!" });
+
+    const refundAmount = Math.abs(customerTrx.amount); // ចំនួនទឹកប្រាក់ពិតប្រាកដដែលបានកាត់ពីអតិថិជន
+    const customerCurrency = customerTrx.currency; // រូបិយប័ណ្ណដើមរបស់អតិថិជន (USD ឬ KHR)
+    const merchantCurrency = merchantTrx.currency; // រូបិយប័ណ្ណរបស់ហាង
+    const customerUsername = customerTrx.username;
+
+    // ៣. ដកលុយចេញពី EscrowHold របស់ហាង ផ្អែកលើរូបិយប័ណ្ណរបស់ហាង (Atomic Update)
+    const decEscrow =
+      merchantCurrency === "USD"
+        ? { "escrowHold.USD": -merchantTrx.amount }
+        : { "escrowHold.KHR": -merchantTrx.amount };
+    await Merchant.updateOne({ _id: shop._id }, { $inc: decEscrow });
+
+    // ៤. 🟢 បូកលុយសងចូលកុងអតិថិជនវិញ ចំកុងដើមពិតប្រាកដ (USD ទៅ USD, KHR ទៅ KHR)
+    const incCustomerBalance =
+      customerCurrency === "USD"
+        ? { balance: refundAmount }
+        : { balanceKHR: refundAmount };
+
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    await User.updateOne(
+      { username: customerUsername },
+      {
+        $inc: incCustomerBalance,
+        $push: {
+          notifications: {
+            $each: [
+              {
+                id: "NOTIF-" + Date.now(),
+                title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ ↩️",
+                message: `ហាង ${shop.name} បានបង្វិលប្រាក់ ${customerCurrency === "USD" ? "$" : "៛"}${refundAmount.toLocaleString()} ជូនអ្នកវិញហើយ។`,
+                date: dateStr,
+                isRead: false,
+              },
+            ],
+            $position: 0,
+          },
+        },
+      },
+    );
+
+    // ៥. Update ស្ថានភាព Transaction ចាស់ទៅជា Refunded
+    await Transaction.updateMany(
+      { refId: refId },
+      { $set: { status: "Refunded" } },
+    );
+
+    // ៦. បង្កើត Slip ប្រវត្តិថ្មីសម្រាប់ទាំង ២ ភាគី (រក្សារូបិយប័ណ្ណរៀងខ្លួន)
+    const newRefId = "RFD-" + Date.now().toString().slice(-6);
+    const newHash =
+      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    // Slip ຝັ່ງអតិថិជន (សងចូលកុងអតិថិជនចំរូបិយប័ណ្ណដើម)
+    await Transaction.create({
+      username: customerUsername,
+      refId: newRefId,
+      hash: newHash,
+      date: dateStr,
+      type: "Refunded",
+      amount: refundAmount,
+      currency: customerCurrency,
+      senderName: shop.name,
+      receiverName: customerTrx.senderName,
+      status: "Success",
+      remark: `Refund for Hold Trx: ${refId}`,
+      trxMethod: "Refund",
+    });
+
+    // Slip ຝັ່ງហាង
+    await Transaction.create({
+      username: shop.userId,
+      merchantId: shop.merchantId,
+      refId: newRefId,
+      hash: newHash,
+      date: dateStr,
+      type: "Refund",
+      amount: -merchantTrx.amount,
+      currency: merchantCurrency,
+      senderName: shop.name,
+      receiverName: customerTrx.senderName,
+      status: "Success",
+      remark: `Refunded hold transaction (Ref: ${refId})`,
+      trxMethod: "Refund",
+    });
+
+    // ៧. បាញ់ Socket Refresh ទាំងសងខាង
+    if (global.io) {
+      global.io.to(shop.userId).emit("transactionUpdated");
+      global.io.to(customerUsername).emit("transactionUpdated");
+    }
+
+    res.json({ success: true, message: "ការបង្វិលប្រាក់ (Refund) បានជោគជ័យ!" });
+  } catch (error) {
+    console.error("Refund Error:", error);
     res
       .status(500)
       .json({ success: false, message: "Server Error: " + error.message });

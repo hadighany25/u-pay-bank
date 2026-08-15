@@ -33,6 +33,8 @@
     <!-- 🔥 ភ្ជាប់ PIN MODULE -->
     <script src="js/pin.js"></script>
 
+    <script src="js/slip.js"></script>
+
     <style>
       /* ==========================================
        🎨 U-PAY MERCHANT GLOBAL STYLES & VARIABLES
@@ -668,6 +670,46 @@
         background: #e0f2f1;
         color: #004d40;
         border: 1px solid #b2dfdb;
+      }
+
+      /* 🔥 ប៊ូតុង Voice Alert */
+      .voice-toggle-btn {
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: 0.2s;
+        position: static;
+      }
+      .voice-toggle-btn.active {
+        background: #e0f2f1;
+        color: #004d40;
+        border: 1px solid #b2dfdb; /* ពណ៌បៃតងពេលបើក */
+      }
+      .voice-toggle-btn.inactive {
+        background: #f1f5f9;
+        color: #94a3b8;
+        border: 1px solid #e2e8f0; /* ពណ៌ប្រផេះពេលបិទ */
+      }
+      .voice-toggle-btn:active {
+        transform: scale(0.9);
+      }
+
+      /* Dark Mode សម្រាប់ Voice Button */
+      body.dark-mode .voice-toggle-btn.active {
+        background: #004d40 !important;
+        border-color: #00b894 !important;
+        color: #fff !important;
+      }
+      body.dark-mode .voice-toggle-btn.inactive {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #64748b !important;
       }
 
       /* ប៊ូតុង Tap To Pay អោយពេញ Footer */
@@ -1776,18 +1818,30 @@
            📱 QR MODAL (RESPONSIVE FIX សម្រាប់ POS)
            ========================================== -->
       <div id="qrModal" class="qr-modal">
-        <!-- 🟢 ផ្នែកខាងលើ (Header) មិនហោះខុសកន្លែងទៀតទេ -->
+        <!-- 🟢 ផ្នែកខាងលើ (Header) -->
         <div class="qr-modal-header">
           <div class="close-qr-btn" onclick="closeQRModal()">
             <i class="fa-solid fa-xmark"></i>
           </div>
-          <div
-            class="save-qr-icon-btn"
-            onclick="downloadMyQR()"
-            id="btnSaveQR"
-            title="រក្សាទុក QR"
-          >
-            <i class="fa-solid fa-download"></i>
+          <div style="display: flex; gap: 10px">
+            <!-- ប៊ូតុងបើក/បិទសំឡេង -->
+            <div
+              class="voice-toggle-btn active"
+              id="btnVoiceToggle"
+              onclick="toggleVoiceAlert()"
+              title="បើក/បិទ សំឡេង"
+            >
+              <i class="fa-solid fa-volume-high" id="iconVoiceToggle"></i>
+            </div>
+            <!-- ប៊ូតុង Save QR -->
+            <div
+              class="save-qr-icon-btn"
+              onclick="downloadMyQR()"
+              id="btnSaveQR"
+              title="រក្សាទុក QR"
+            >
+              <i class="fa-solid fa-download"></i>
+            </div>
           </div>
         </div>
 
@@ -1988,6 +2042,41 @@
             ><i class="fa-brands fa-telegram" style="color: #2aabee"></i
             ><span data-i18n="merch_telegram">ភ្ជាប់ Telegram (Alert)</span></a
           >
+          <!-- 🟢 ប៊ូតុងជ្រើសរើសប្រភេទសំឡេង (Voice Type Selector) -->
+          <a
+            class="sidebar-item kh-text"
+            onclick="
+              openVoiceSelectorModal();
+              toggleSidebar();
+            "
+          >
+            <i class="fa-solid fa-user-gear" style="color: #38bdf8"></i>
+            <span
+              >ជ្រើសរើសសំឡេង:
+              <strong id="lblVoiceType" style="color: var(--primary)"
+                >Default</strong
+              ></span
+            >
+            <i
+              class="fa-solid fa-chevron-right"
+              style="margin-left: auto; font-size: 0.8rem; color: #64748b"
+            ></i>
+          </a>
+
+          <!-- 🟢 ប៊ូតុងប្តូរភាសាសំឡេង (Voice Language) -->
+          <a class="sidebar-item kh-text" onclick="toggleVoiceLang()">
+            <i class="fa-solid fa-language" style="color: #10b981"></i>
+            <span
+              >ភាសាសំឡេង:
+              <strong id="lblVoiceLang" style="color: var(--primary)"
+                >ខ្មែរ</strong
+              ></span
+            >
+            <i
+              class="fa-solid fa-rotate"
+              style="margin-left: auto; font-size: 0.9rem; color: #64748b"
+            ></i>
+          </a>
           <a
             class="sidebar-item kh-text"
             onclick="
@@ -2053,6 +2142,7 @@
                 window.currentUser.fullName || window.currentUser.username;
             }
             initApp();
+            initVoiceSettings(); // 🟢 ថែមបន្ទាត់នេះ
           }
         });
 
@@ -2075,6 +2165,7 @@
           )
             .play()
             .catch(() => {});
+          playVoiceAlert(data.amount, data.currency); // 🟢 បន្លឺសំឡេងនិយាយ
           if (typeof window.showAppNotification === "function") {
             window.showAppNotification(
               window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
@@ -3066,16 +3157,68 @@
               currentTransactions = filteredData;
               if (filteredData.length > 0) {
                 list.innerHTML = filteredData
-                  .map((t) => {
-                    const isReceived = t.type === "Received" || t.amount > 0;
-                    const colorClass = isReceived
-                      ? "var(--secondary)"
-                      : "var(--danger)";
-                    const sign = isReceived ? "+" : "-";
+                  .map((t, index) => {
+                    // 🟢 ថែម index ត្រង់នេះដើម្បីអោយ Slip ស្គាល់
+                    const isReceived = t.amount > 0;
+
+                    let statusColor = "var(--text-muted)";
+                    let statusIcon = "";
+                    if (t.status === "Success") {
+                      statusColor = "var(--secondary)";
+                      statusIcon = "🟢";
+                    } else if (t.status === "Hold") {
+                      statusColor = "#f59e0b";
+                      statusIcon = "🟠";
+                    } else if (
+                      t.status === "Refunded" ||
+                      t.status === "Voided"
+                    ) {
+                      statusColor = "var(--danger)";
+                      statusIcon = "🔴";
+                    }
+
+                    const sign = isReceived ? "+" : "";
+                    const canRefund = isReceived && t.status === "Hold";
+
                     return `
-                  <div class="card-box" style="margin: 10px 0; padding: 15px; display:flex; justify-content: space-between; align-items: center; border-left: 4px solid ${colorClass}">
-                    <div><h4 style="margin:0; font-family:'Inter', sans-serif;">${t.senderName}</h4><p style="margin:3px 0 0; font-size:0.75rem; color:var(--text-muted);">${t.date}</p></div>
-                    <div style="text-align:right;"><h4 style="margin:0; font-family:'JetBrains Mono', monospace; color:${colorClass}">${sign}${t.amount.toFixed(2)} ${t.currency}</h4><p style="margin:3px 0 0; font-size:0.75rem; font-weight: 600;">${t.status}</p></div>
+                  <div class="card-box" style="margin: 10px 0; padding: 15px; cursor: pointer; border-left: 4px solid ${isReceived ? (t.status === "Refunded" ? "#cbd5e1" : "var(--secondary)") : "var(--danger)"}"
+                       onclick="if(typeof openGlobalSlip === 'function') openGlobalSlip(currentTransactions[${index}])">
+
+                    <div style="display:flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <!-- 🟢 ផ្នែកខាងឆ្វេង៖ មាន ៣ ជួរដាច់ពីគ្នា -->
+                        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
+                            <!-- ជួរទី ១៖ ឈ្មោះ -->
+                            <h4 style="margin:0; font-family:'Inter', sans-serif; text-transform:uppercase; font-size: 1.05rem; font-weight: 700; color:var(--text-main);">${t.senderName}</h4>
+
+                            <!-- ជួរទី ២៖ ថ្ងៃខែឆ្នាំ និងម៉ោង -->
+                            <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">
+                                ${t.date}
+                            </p>
+
+                            <!-- ជួរទី ៣៖ ប្រភេទ និង Status -->
+                            <p style="margin:0; font-size:0.8rem; font-weight: 600;">
+                                <span style="color:var(--text-main);">${t.trxMethod || t.type}</span> • <strong style="color:${statusColor}">${statusIcon} ${t.status}</strong>
+                            </p>
+                        </div>
+
+                        <!-- 🟢 ផ្នែកខាងស្តាំ៖ ចំនួនទឹកប្រាក់ និងប៊ូតុង Refund (រុញទៅកៀនស្តាំដោយស្វ័យប្រវត្តិ មិនបាច់ប្រើសញ្ញា - ក៏បាន) -->
+                        <div style="text-align:right; flex-shrink: 0; margin-left: 15px;">
+                            <h4 style="margin:0; font-family:'JetBrains Mono', monospace; font-size: 1.1rem; color:${t.status === "Refunded" ? "#94a3b8" : isReceived ? "var(--secondary)" : "var(--text-main)"}; text-decoration: ${t.status === "Refunded" ? "line-through" : "none"};">
+                                ${sign}${t.currency === "KHR" ? t.amount.toLocaleString("en-US", { maximumFractionDigits: 0 }) : t.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style="font-size: 0.9rem; font-weight: 600;">${t.currency}</span>
+                            </h4>
+
+                            ${
+                              canRefund
+                                ? `
+                            <button onclick="event.stopPropagation(); promptRefund('${t.refId}', '${t.amount}', '${t.currency}', '${t.senderName}')"
+                                    style="margin-top:6px; padding: 4px 10px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.2s;">
+                                ↩️ Refund
+                            </button>
+                            `
+                                : ""
+                            }
+                        </div>
+                    </div>
                   </div>`;
                   })
                   .join("");
@@ -3085,6 +3228,142 @@
               list.innerHTML = `<div style="text-align:center; padding: 40px 20px;"><p class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p></div>`;
           } catch (error) {
             list.innerHTML = `<p style="text-align:center; color:red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ</p>`;
+          }
+        }
+
+        // ==========================================
+        // ↩️ មុខងារបញ្ជាក់ការ Refund ជាមួយ PIN
+        // ==========================================
+        function promptRefund(refId, amount, currency, senderName) {
+          Swal.fire({
+            title:
+              '<span class="kh-text">បញ្ជាក់ការបង្វិលប្រាក់ (Refund)</span>',
+            html: `<span class="kh-text">តើអ្នកពិតជាចង់បង្វិលប្រាក់ <b style="color:var(--danger);">${currency === "USD" ? "$" : "៛"}${amount}</b> ទៅកាន់ <b style="color:var(--primary);">${senderName}</b> វិញមែនទេ?</span>`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "var(--danger)",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "បាទ/ចាស បង្វិលវិញ",
+            cancelButtonText: "បោះបង់",
+            customClass: { popup: "premium-swal" },
+          }).then((result) => {
+            if (result.isConfirmed) {
+              if (typeof requestPinVerification === "function") {
+                requestPinVerification(
+                  "បញ្ជាក់លេខសម្ងាត់ PIN",
+                  "ដើម្បីអនុញ្ញាតបង្វិលប្រាក់ត្រឡប់",
+                  async function (pinCode) {
+                    executeRefund(refId, pinCode);
+                  },
+                );
+              } else {
+                Swal.fire("Error", "មិនមានមុខងារ PIN ទេ", "error");
+              }
+            }
+          });
+        }
+
+        async function executeRefund(refId, pinCode) {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            const response = await fetch("/api/merchants/refund", {
+              method: "POST",
+              headers: window.authHeaders,
+              body: JSON.stringify({
+                merchantId: currentMerchant.id,
+                refId: refId,
+                pin: pinCode,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ",
+                text: "ប្រាក់ត្រូវបានបង្វិលជូនភ្ញៀវវិញរួចរាល់!",
+                confirmButtonColor: "var(--primary)",
+              });
+              loadTransactions();
+              fetchMerchantRevenue();
+            } else {
+              Swal.fire("បរាជ័យ", data.message, "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "បញ្ហាការភ្ជាប់បណ្តាញ", "error");
+          }
+        }
+
+        // ==========================================
+        // ↩️ មុខងារបង្វិលប្រាក់ចេញ (REFUND ACTION)
+        // ==========================================
+        function promptRefund(refId, amount, currency, senderName) {
+          Swal.fire({
+            title: '<span class="kh-text">បញ្ជាក់ការបង្វិលប្រាក់</span>',
+            html: `<span class="kh-text">តើអ្នកពិតជាចង់បង្វិលប្រាក់ <b style="color:var(--danger);">${currency === "USD" ? "$" : "៛"}${amount}</b> ទៅកាន់ <b style="color:var(--primary);">${senderName}</b> វិញមែនទេ?</span>`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "var(--danger)",
+            cancelButtonColor: "#64748b",
+            confirmButtonText: "បាទ/ចាស បង្វិលវិញ",
+            cancelButtonText: "បោះបង់",
+            customClass: { popup: "premium-swal" },
+          }).then((result) => {
+            if (result.isConfirmed) {
+              if (typeof requestPinVerification === "function") {
+                // ទាមទារលេខ PIN មុននឹង Refund
+                requestPinVerification(
+                  "បញ្ជាក់លេខសម្ងាត់ (PIN)",
+                  "ដើម្បីអនុញ្ញាតបង្វិលប្រាក់ត្រឡប់",
+                  async function (pinCode) {
+                    executeRefund(refId, pinCode);
+                  },
+                );
+              } else {
+                Swal.fire("Error", "មិនមានមុខងារ PIN ទេ", "error");
+              }
+            }
+          });
+        }
+
+        async function executeRefund(refId, pinCode) {
+          Swal.fire({
+            title: "កំពុងដំណើរការ...",
+            didOpen: () => Swal.showLoading(),
+          });
+
+          try {
+            const response = await fetch("/api/merchants/refund", {
+              method: "POST",
+              headers: window.authHeaders,
+              body: JSON.stringify({
+                merchantId: currentMerchant.id,
+                refId: refId,
+                pin: pinCode,
+              }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ",
+                text: "ប្រាក់ត្រូវបានបង្វិលជូនភ្ញៀវវិញរួចរាល់!",
+                confirmButtonColor: "var(--primary)",
+              });
+              loadTransactions(); // ទាញប្រវត្តិថ្មី
+              fetchMerchantRevenue(); // Update លុយ Dashboard ថ្មី
+            } else {
+              Swal.fire("បរាជ័យ", data.message, "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", "បញ្ហាការភ្ជាប់បណ្តាញ", "error");
           }
         }
 
@@ -3391,7 +3670,11 @@
         // ==========================================
         // 💳 TAP TO PAY (NFC PAYMENT LOGIC)
         // ==========================================
+        let isProcessingNFC = false; // 🟢 ថែមសោរការពារការអានកាតផ្ទួនគ្នា (Double-Scan Lock)
+
         async function startTapToPay() {
+          if (isProcessingNFC) return; // បើកំពុងកាត់លុយ មិនអោយអានកាតម្តងទៀតទេ
+
           const amountInput = document.getElementById("qrSetAmount").value;
           const amount = parseFloat(amountInput);
 
@@ -3411,11 +3694,6 @@
             );
           }
 
-          // ⚙️ វិធានការ "No PIN Limit"
-          let requirePin = false;
-          if (qrCurrency === "USD" && amount > 20) requirePin = true;
-          if (qrCurrency === "KHR" && amount > 80000) requirePin = true;
-
           // លោតផ្ទាំងរង់ចាំស្កេន
           Swal.fire({
             title: "កំពុងរង់ចាំកាត...",
@@ -3427,6 +3705,11 @@
             showConfirmButton: false,
             allowOutsideClick: false,
             customClass: { popup: "premium-swal" },
+          }).then((result) => {
+            // 🟢 បើគេចុចបោះបង់ (Cancel) ពេលកំពុងរង់ចាំកាត ត្រូវដោះសោរចេញវិញភ្លាម
+            if (result.isDismissed) {
+              isProcessingNFC = false;
+            }
           });
 
           try {
@@ -3434,38 +3717,72 @@
             await ndef.scan();
 
             ndef.onreading = async (event) => {
+              if (isProcessingNFC && event.serialNumber) {
+                // បើកំពុងរៀបចំទូទាត់ កុំឱ្យអានកាតស្ទួន
+              }
+              isProcessingNFC = true;
+
               let serialNumber = event.serialNumber;
               if (serialNumber)
                 serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
 
               if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-              Swal.close();
 
-              // 🔒 ឆែកលក្ខខណ្ឌ PIN
-              if (requirePin) {
-                const { value: pin } = await Swal.fire({
-                  title: "បញ្ជាក់លេខសម្ងាត់ (PIN)",
-                  input: "password",
-                  inputLabel: `ទឹកប្រាក់ ${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()} លើសកម្រិត សូមអតិថិជនវាយលេខ PIN ៤ខ្ទង់`,
-                  inputPlaceholder: "****",
-                  inputAttributes: {
-                    maxlength: 4,
-                    autocapitalize: "off",
-                    autocorrect: "off",
-                  },
-                  showCancelButton: true,
-                  confirmButtonColor: "#10b981",
-                  cancelButtonText: "បោះបង់",
-                  confirmButtonText: "ទូទាត់ប្រាក់",
-                  inputValidator: (value) => {
-                    if (!value || value.length !== 4 || isNaN(value))
-                      return "សូមបញ្ចូលលេខ ៤ខ្ទង់!";
-                  },
-                  customClass: { popup: "premium-swal" },
+              // 🔍 ជំហានទី ១៖ ឆែកព័ត៌មានកាត និងសមតុល្យជាមួយ Server មុននឹងសួររក PIN
+              Swal.fire({
+                title: "កំពុងពិនិត្យកាត...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+              });
+
+              try {
+                const checkRes = await fetch("/api/merchants/check-card", {
+                  method: "POST",
+                  headers: window.authHeaders,
+                  body: JSON.stringify({
+                    uid: serialNumber,
+                    amount: amount,
+                    currency: qrCurrency,
+                  }),
                 });
+                const checkData = await checkRes.json();
 
-                if (!pin) return;
-                executeTapPayment(serialNumber, amount, qrCurrency, pin);
+                if (!checkData.success) {
+                  isProcessingNFC = false; // ដោះសោរវិញបើកាតមានបញ្ហា
+                  return Swal.fire(
+                    "មិនអាចទូទាត់បាន",
+                    checkData.message,
+                    "error",
+                  );
+                }
+              } catch (e) {
+                isProcessingNFC = false;
+                return Swal.fire(
+                  "Error",
+                  "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ",
+                  "error",
+                );
+              }
+
+              // ⚙️ វិធានការ "No PIN Limit" (យកទិន្នន័យពី Server មកសម្រេចចិត្ត ឬឆែកតាមលក្ខខណ្ឌ)
+              let requirePin = false;
+              if (qrCurrency === "USD" && amount > 20) requirePin = true;
+              if (qrCurrency === "KHR" && amount > 80000) requirePin = true;
+
+              // 🔒 ជំហានទី ២៖ ឆែកលក្ខខណ្ឌ PIN ដោយប្រើ pin.js ផ្ទាល់
+              if (requirePin) {
+                requestPinVerification(
+                  "បញ្ជាក់លេខសម្ងាត់ (PIN)",
+                  `ទឹកប្រាក់ ${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()} លើសកម្រិត សូមអតិថិជនវាយលេខ PIN ៤ខ្ទង់`,
+                  function (pin) {
+                    // យល់ព្រមវាយ PIN រួច បញ្ជូនទៅកាន់ការទូទាត់
+                    executeTapPayment(serialNumber, amount, qrCurrency, pin);
+                  },
+                  function () {
+                    // 🟢 បើអតិថិជនចុច Cancel លើផ្ទាំង PIN ត្រូវដោះសោរ (Unlock) វិញភ្លាម កុំឲ្យគាំងម៉ាស៊ីន
+                    isProcessingNFC = false;
+                  },
+                );
               } else {
                 executeTapPayment(serialNumber, amount, qrCurrency, null);
               }
@@ -3477,6 +3794,7 @@
                 "មិនអាចអានកាតបានទេ សូមព្យាយាមម្តងទៀត។",
                 "error",
               );
+              isProcessingNFC = false; // ដោះសោរ
             };
           } catch (error) {
             if (error.name !== "AbortError") {
@@ -3486,6 +3804,7 @@
                 "error",
               );
             }
+            isProcessingNFC = false; // ដោះសោរ
           }
         }
 
@@ -3524,6 +3843,7 @@
               )
                 .play()
                 .catch(() => {});
+              playVoiceAlert(amount, currency);
               Swal.fire({
                 icon: "success",
                 title: "ទូទាត់ជោគជ័យ!",
@@ -3541,7 +3861,355 @@
             }
           } catch (err) {
             Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+          } finally {
+            // 🟢 ដោះសោរវិញពេលកាត់លុយចប់ មិនថាជោគជ័យ ឬ Error ទេ
+            isProcessingNFC = false;
           }
+        }
+
+        // ==========================================
+        // 🔊 VOICE ALERT SYSTEM (TEXT-TO-SPEECH)
+        // ==========================================
+        let isVoiceAlertOn = localStorage.getItem("voiceAlertOn") !== "false";
+        let voiceAlertLang = localStorage.getItem("voiceAlertLang") || "kh";
+
+        function initVoiceSettings() {
+          updateVoiceToggleButton();
+          updateVoiceLangLabel();
+        }
+
+        function toggleVoiceAlert() {
+          isVoiceAlertOn = !isVoiceAlertOn;
+          localStorage.setItem("voiceAlertOn", isVoiceAlertOn);
+          updateVoiceToggleButton();
+          if (isVoiceAlertOn) playVoiceAlert("0", "TEST"); // លោតសំឡេងតេស្តពេលបើក
+        }
+
+        function updateVoiceToggleButton() {
+          const btn = document.getElementById("btnVoiceToggle");
+          const icon = document.getElementById("iconVoiceToggle");
+          if (btn && icon) {
+            if (isVoiceAlertOn) {
+              btn.className = "voice-toggle-btn active";
+              icon.className = "fa-solid fa-volume-high";
+            } else {
+              btn.className = "voice-toggle-btn inactive";
+              icon.className = "fa-solid fa-volume-xmark";
+            }
+          }
+        }
+
+        function toggleVoiceLang() {
+          voiceAlertLang = voiceAlertLang === "kh" ? "en" : "kh";
+          localStorage.setItem("voiceAlertLang", voiceAlertLang);
+          updateVoiceLangLabel();
+          if (isVoiceAlertOn) playVoiceAlert("0", "TEST"); // លោតសំឡេងតេស្តពេលដូរភាសា
+        }
+
+        function updateVoiceLangLabel() {
+          const lbl = document.getElementById("lblVoiceLang");
+          if (lbl)
+            lbl.innerText = voiceAlertLang === "kh" ? "ខ្មែរ" : "English";
+        }
+
+        function playVoiceAlert(amount, currency) {
+          if (!isVoiceAlertOn || !("speechSynthesis" in window)) return;
+
+          let textToSpeak = "";
+          let langCode = "en-US"; // ប្រើ en-US ដើម្បីអោយអានអក្សរខ្មែរចេញពាក្យ "ដុល្លារ" ស្រួល
+
+          if (currency === "TEST") {
+            textToSpeak =
+              voiceAlertLang === "kh"
+                ? "សំឡេងត្រូវបានបើក"
+                : "Voice alert enabled";
+          } else {
+            let numAmt = parseFloat(amount.toString().replace(/,/g, ""));
+            let dollars = Math.floor(numAmt);
+            let cents = Math.round((numAmt - dollars) * 100);
+
+            if (voiceAlertLang === "kh") {
+              if (currency === "USD") {
+                if (cents > 0) {
+                  textToSpeak = `ទទួលបាន ${dollars} ដុល្លារ និង ${cents} សេន`;
+                } else {
+                  textToSpeak = `ទទួលបាន ${dollars} ដុល្លារ`;
+                }
+              } else {
+                textToSpeak = `ទទួលបាន ${Math.floor(numAmt)} រៀល`;
+              }
+            } else {
+              if (currency === "USD") {
+                if (cents > 0) {
+                  textToSpeak = `Payment received, ${dollars} dollars and ${cents} cents`;
+                } else {
+                  textToSpeak = `Payment received, ${dollars} dollars`;
+                }
+              } else {
+                textToSpeak = `Payment received, ${Math.floor(numAmt)} Riel`;
+              }
+            }
+          }
+
+          window.speechSynthesis.cancel();
+          let msg = new SpeechSynthesisUtterance();
+          msg.text = textToSpeak;
+          msg.lang = langCode;
+
+          // 🔥 ចំណុចសំខាន់៖ បញ្ជាក់ប្រាប់អោយវាប្រើប្រាស់សំឡេងដែលថៅកែបានជ្រើសរើស (Voice Index)
+          if (availableVoices.length === 0) {
+            availableVoices = window.speechSynthesis.getVoices();
+          }
+          if (availableVoices[selectedVoiceIndex]) {
+            msg.voice = availableVoices[selectedVoiceIndex];
+          }
+
+          msg.rate = 0.9;
+          window.speechSynthesis.speak(msg);
+        }
+
+        // ==========================================
+        // 🎙️ CUSTOM VOICE SELECTION (៣ ប្រុស, ៣ ស្រី)
+        // ==========================================
+        let selectedVoiceName = localStorage.getItem("selectedVoiceName") || "";
+        let availableVoices = [];
+
+        function loadVoices() {
+          if (!("speechSynthesis" in window)) return;
+          availableVoices = window.speechSynthesis.getVoices();
+          updateVoiceTypeLabel();
+        }
+
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.onvoiceschanged = loadVoices;
+          loadVoices();
+        }
+
+        function updateVoiceTypeLabel() {
+          const lbl = document.getElementById("lblVoiceType");
+          if (lbl) {
+            if (!selectedVoiceName) {
+              lbl.innerText = "ស្វ័យប្រវត្ត (Default)";
+            } else {
+              let shortName = selectedVoiceName
+                .split("-")[0]
+                .split("(")[0]
+                .trim();
+              lbl.innerText = shortName;
+            }
+          }
+        }
+
+        const presetVoices = [
+          {
+            name: "ស្រីតូច - Srey Touch",
+            keyword: [
+              "Sreymom",
+              "Srey",
+              "Leakena",
+              "Female",
+              "Zira",
+              "Google ស្រី",
+            ],
+            gender: "👩 ស្រី",
+          },
+          {
+            name: "ស្រីម៉ាច - Srey Mach",
+            keyword: ["Sreyneath", "Kanya", "Victoria", "Natural"],
+            gender: "👩 ស្រី",
+          },
+          {
+            name: "ស្រីលក្ខណ៍ - Srey Leak",
+            keyword: ["Samnang", "Vanny", "Standard"],
+            gender: "👩 ស្រី",
+          },
+          {
+            name: "តារា - Dara",
+            keyword: ["Dara", "Piseth", "Male", "David", "Google ប្រុស"],
+            gender: "👨 ប្រុស",
+          },
+          {
+            name: "វណ្ណៈ - Vannak",
+            keyword: ["Vannak", "Borey", "Mark", "George"],
+            gender: "👨 ប្រុស",
+          },
+          {
+            name: "វិចិត្រ - Vichit",
+            keyword: ["Vichit", "Ratanak", "Oliver"],
+            gender: "👨 ប្រុស",
+          },
+        ];
+
+        // 🟢 មុខងារថ្មី៖ ចុចលើ Radio ភ្លាម អានតេស្តភ្លាមៗ
+        // 🟢 មុខងារថ្មី៖ ចុចលើ Radio ភ្លាម អានតេស្តភ្លាមៗ (Fix បញ្ហាស្ងាត់លើ Windows)
+        window.previewSelectedVoice = function (idx) {
+          let chosenPreset = presetVoices[idx];
+          let matchedVoice = availableVoices.find((v) =>
+            chosenPreset.keyword.some((kw) =>
+              v.name.toLowerCase().includes(kw.toLowerCase()),
+            ),
+          );
+
+          if (!matchedVoice && availableVoices.length > 0) {
+            matchedVoice = availableVoices[idx % availableVoices.length];
+          }
+
+          let msg = new SpeechSynthesisUtterance();
+
+          // 💡 ការពារការស្ងាត់នៅលើ Windows: បើវាជាសំឡេង English វាអត់ស្គាល់អក្សរខ្មែរទេ
+          if (matchedVoice && matchedVoice.lang.includes("en")) {
+            msg.text = "Test Voice, 10 dollars";
+            msg.lang = "en-US";
+          } else {
+            msg.text = "ទទួលបាន ១០ ដុល្លារ";
+            msg.lang = "km-KH";
+          }
+
+          if (matchedVoice) msg.voice = matchedVoice;
+          msg.rate = 0.9;
+
+          window.speechSynthesis.cancel(); // បិទសំឡេងចាស់ដែលកំពុងអានសិន
+          window.speechSynthesis.speak(msg);
+        };
+
+        async function openVoiceSelectorModal() {
+          if (!("speechSynthesis" in window)) {
+            return Swal.fire(
+              "មិនគាំទ្រ",
+              "ឧបករណ៍នេះមិនមានមុខងារអានសំឡេងទេ",
+              "error",
+            );
+          }
+
+          availableVoices = window.speechSynthesis.getVoices();
+
+          let htmlList = `<div style="text-align: left; display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">`;
+
+          presetVoices.forEach((pv, idx) => {
+            let isChecked =
+              selectedVoiceName === pv.name || (!selectedVoiceName && idx === 0)
+                ? "checked"
+                : "";
+
+            // 🔥 ថែម onchange="previewSelectedVoice('${idx}')" នៅលើ input
+            htmlList += `
+                    <label style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: 0.2s;">
+                        <input type="radio" name="voicePreset" value="${idx}" ${isChecked} onchange="previewSelectedVoice('${idx}')" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <span class="kh-text" style="font-size: 0.95rem; font-weight: 600;">${pv.gender} : ${pv.name}</span>
+                    </label>
+                `;
+          });
+          htmlList += `</div>`;
+
+          const { isConfirmed } = await Swal.fire({
+            title:
+              '<span class="kh-text" style="font-size:1.1rem; font-weight:700; color:var(--primary);">🎙️ ជ្រើសរើសសំឡេងអ្នកគិតលុយ</span>',
+            html: htmlList,
+            showCancelButton: true,
+            confirmButtonText: "យល់ព្រម",
+            cancelButtonText: "បោះបង់",
+            confirmButtonColor: "var(--primary)",
+            customClass: { popup: "account-options-swal" },
+          });
+
+          if (isConfirmed) {
+            const selectedRadio = document.querySelector(
+              'input[name="voicePreset"]:checked',
+            );
+            if (selectedRadio) {
+              let chosenIdx = selectedRadio.value;
+              let chosenPreset = presetVoices[chosenIdx];
+              let matchedVoice = availableVoices.find((v) =>
+                chosenPreset.keyword.some((kw) =>
+                  v.name.toLowerCase().includes(kw.toLowerCase()),
+                ),
+              );
+              if (!matchedVoice && availableVoices.length > 0) {
+                matchedVoice =
+                  availableVoices[chosenIdx % availableVoices.length];
+              }
+
+              selectedVoiceName = matchedVoice
+                ? matchedVoice.name
+                : chosenPreset.name;
+              localStorage.setItem("selectedVoiceName", selectedVoiceName);
+
+              updateVoiceTypeLabel();
+
+              Swal.fire({
+                toast: true,
+                position: "top",
+                icon: "success",
+                title: `បានជ្រើសរើស៖ ${chosenPreset.name}`,
+                showConfirmButton: false,
+                timer: 2000,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+          }
+        }
+
+        // 🔊 មុខងារអានសំឡេងដែលភ្ជាប់ជាមួយ Voice ឈ្មោះមនុស្ស
+        function playVoiceAlert(amount, currency) {
+          if (!isVoiceAlertOn || !("speechSynthesis" in window)) return;
+
+          let textToSpeak = "";
+          let langCode = "en-US";
+
+          if (currency === "TEST") {
+            textToSpeak =
+              voiceAlertLang === "kh"
+                ? "សំឡេងត្រូវបានបើក"
+                : "Voice alert enabled";
+          } else {
+            let numAmt = parseFloat(amount.toString().replace(/,/g, ""));
+            let dollars = Math.floor(numAmt);
+            let cents = Math.round((numAmt - dollars) * 100);
+
+            if (voiceAlertLang === "kh") {
+              if (currency === "USD") {
+                if (cents > 0) {
+                  textToSpeak = `ទទួលបាន ${dollars} ដុល្លារ និង ${cents} សេន`;
+                } else {
+                  textToSpeak = `ទទួលបាន ${dollars} ដុល្លារ`;
+                }
+              } else {
+                textToSpeak = `ទទួលបាន ${Math.floor(numAmt)} រៀល`;
+              }
+            } else {
+              if (currency === "USD") {
+                if (cents > 0) {
+                  textToSpeak = `Payment received, ${dollars} dollars and ${cents} cents`;
+                } else {
+                  textToSpeak = `Payment received, ${dollars} dollars`;
+                }
+              } else {
+                textToSpeak = `Payment received, ${Math.floor(numAmt)} Riel`;
+              }
+            }
+          }
+
+          window.speechSynthesis.cancel();
+          let msg = new SpeechSynthesisUtterance();
+          msg.text = textToSpeak;
+          msg.lang = langCode;
+
+          if (availableVoices.length === 0) {
+            availableVoices = window.speechSynthesis.getVoices();
+          }
+
+          // ស្វែងរក Voice តាមឈ្មោះដែលថៅកែបានជ្រើសរើសពីមុន
+          if (selectedVoiceName) {
+            let foundVoice = availableVoices.find(
+              (v) => v.name === selectedVoiceName,
+            );
+            if (foundVoice) {
+              msg.voice = foundVoice;
+            }
+          }
+
+          msg.rate = 0.9;
+          window.speechSynthesis.speak(msg);
         }
       </script>
     </div>

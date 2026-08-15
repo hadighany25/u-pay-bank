@@ -1201,7 +1201,10 @@
             tType.includes("reward")
           )
             iconClass = "fa-sack-dollar";
-          else if (
+          // 🟢 ថែមលក្ខខណ្ឌសម្រាប់ Refund នៅទីនេះ ដើម្បីកុំឱ្យវាធ្លាក់ទៅច្រឡំជាមួយ Savings
+          else if (tType.includes("refund") || tMethod.includes("refund")) {
+            iconClass = "fa-arrow-rotate-left"; // ជារូបសញ្ញាបង្វិលប្រាក់ត្រឡប់ (Return Icon)
+          } else if (
             tType.includes("merchant") ||
             tMethod.includes("merchant") ||
             tMethod.includes("b2b") ||
@@ -1229,11 +1232,12 @@
             tMethod.includes("merchant") ||
             tMethod.includes("b2b") ||
             t.merchantId ||
-            tType.includes("tap to pay") || // 🟢 ថែមអាវានេះ
-            tMethod.includes("nfc") // 🟢 ថែមអាវានេះ
+            tType.includes("tap to pay") ||
+            tMethod.includes("nfc")
           ) {
             iconClass = "fa-store";
           }
+
           let title = isIncome
             ? t.senderName || t.type || "Received"
             : t.receiverName || t.type || "Transfer";

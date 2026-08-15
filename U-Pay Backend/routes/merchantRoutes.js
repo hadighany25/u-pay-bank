@@ -74,4 +74,13 @@ router.post("/qr/create", merchantController.createMerchantQR);
 // 🔥 បន្ថែមផ្លូវនេះសម្រាប់ការអូសកាត (NFC Tap to Pay)
 router.post("/tap-to-pay", verifyUser, merchantController.processTapToPay);
 
+router.post("/refund", verifyUser, merchantController.refundTransaction);
+
+// 🟢 កែត្រង់នេះ៖ ត្រូវប្រើ checkCardBeforePayment (មិនមែន refundTransaction ទេ)
+router.post(
+  "/check-card",
+  verifyUser,
+  merchantController.checkCardBeforePayment,
+);
+
 module.exports = router;

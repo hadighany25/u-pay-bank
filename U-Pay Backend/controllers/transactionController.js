@@ -563,17 +563,27 @@ const transfer = async (req, res) => {
       }
     }
 
-    const io = req.app.get("io");
+    // ------------------------------------------
+    // 🟢 កែតម្រូវប្រព័ន្ធ Socket.io (លោតសំឡេង និង Refresh ប្រវត្តិ)
+    // ------------------------------------------
+    const io = req.app.get("io") || global.io; // ប្រើមួយណាក៏បានឲ្យតែស្គាល់
     if (io) {
       const socketPayload = {
         amount: receiverAmount,
         currency: isReceiverKHR ? "KHR" : "USD",
         senderName: finalSenderName,
       };
+
       const targetSocketUser = isMerchant
         ? receiverMerchant.userId
         : receiver.username;
+
+      // ១. បាញ់ទៅប្រាប់ POS/ទូរស័ព្ទថៅកែ ឲ្យបន្លឺសំឡេង "ទទួលបាន..." និងលោត Notification
       io.to(targetSocketUser).emit("paymentReceived", socketPayload);
+
+      // ២. បាញ់ទៅប្រាប់ទាំងសងខាង (អ្នកផ្ញើ និង អ្នកទទួល) ឲ្យ Refresh ទាញប្រវត្តិថ្មីភ្លាមៗ
+      io.to(targetSocketUser).emit("transactionUpdated");
+      io.to(senderUsername).emit("transactionUpdated");
     }
 
     if (isMerchant && bot && bot.sendMerchantPaymentAlert) {
