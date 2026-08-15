@@ -25,6 +25,7 @@
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
     <script src="/js/slip.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <style>
       :root {
@@ -447,6 +448,7 @@
         font-weight: 700;
         font-size: 1rem;
       }
+
       .text-green {
         color: #10b981;
       }
@@ -654,7 +656,6 @@
             ></i>
           </div>
           <div class="dh-info">
-            <!-- បានលុប id="detAccName" ចេញកុំអោយជាន់គ្នា -->
             <p
               id="detAccNum"
               style="
@@ -666,7 +667,6 @@
             >
               000 000 000 | USD
             </p>
-
             <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px">
               សមតុល្យគណនីអាចប្រើបាន
             </p>
@@ -709,9 +709,51 @@
 
       let allAccounts = [];
       let currentViewingAccount = null;
-
-      // 🔥 រក្សាទុកលេខកុងទាំងអស់របស់ Merchant (ដើម្បីអោយ History ស្គាល់)
       let allMerchantAccounts = [];
+
+      // 🔄 Socket.IO សម្រាប់ Update Real-time
+      const socket = io();
+      socket.emit("joinRoom", user.username);
+
+      socket.on("paymentReceived", () => {
+        fetchLatestUserData(); // ទាញទិន្នន័យថ្មីភ្លាមៗ ពេលមានអ្នកវេរលុយចូល
+      });
+      socket.on("transactionUpdated", () => {
+        fetchLatestUserData(); // ទាញទិន្នន័យថ្មីភ្លាមៗ ពេលលុយ Hold ធ្លាក់ចូល
+      });
+
+      // 🔄 អនុគមន៍សម្រាប់ហៅទិន្នន័យថ្មីពី Server (Auto Fetch)
+      async function fetchLatestUserData() {
+        try {
+          const res = await fetch("/api/users/me", {
+            headers: window.authHeaders,
+          });
+          const data = await res.json();
+          if (data.success) {
+            user = data.user;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            processAccountsData();
+            renderAccountsList();
+            updateDonutChart();
+
+            // បើកំពុងបើកមើលផ្ទាំង Detail ត្រូវ Update លុយ និងប្រវត្តិអោយវាភ្លាមៗ
+            if (currentViewingAccount) {
+              const updatedAcc = allAccounts.find(
+                (a) => a.id === currentViewingAccount.id,
+              );
+              if (updatedAcc) {
+                currentViewingAccount = updatedAcc;
+                renderDetailTransactions(
+                  currentViewingAccount.id,
+                  currentViewingAccount.currency,
+                );
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching latest user data:", e);
+        }
+      }
 
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
@@ -727,7 +769,6 @@
         applyTheme();
         if (typeof applyLanguage === "function") applyLanguage();
 
-        // 🟢 ប្រមូលយកលេខ Merchant Accounts ទាំងអស់របស់អ្នកប្រើប្រាស់ (ថៅកែ) មកទុកសិន
         if (user.merchantProfile && user.merchantProfile.merchants) {
           user.merchantProfile.merchants.forEach((m) => {
             if (m.accountNumbers) {
@@ -753,6 +794,16 @@
         renderAccountsList();
         setTimeout(updateDonutChart, 100);
         setupSortable();
+
+        // 🟢 ឆែកមើល URL ក្រែងលោមាន ?id=... (សម្រាប់ទប់កុំអោយវាលោតទៅដើមពេល Refresh)
+        const urlParams = new URLSearchParams(window.location.search);
+        const accIdParam = urlParams.get("id");
+        if (accIdParam) {
+          setTimeout(() => openDetailView(accIdParam), 100);
+        }
+
+        // 🟢 ហៅទាញទិន្នន័យថ្មី១ដងពេលបើកទំព័រ ដើម្បីធានាថាទិន្នន័យពិតជាថ្មីជានិច្ច
+        fetchLatestUserData();
       });
 
       function goBack() {
@@ -944,34 +995,31 @@
 
       function openDetailView(accId) {
         const acc = allAccounts.find((a) => a.id === accId);
+        if (!acc) return;
         currentViewingAccount = acc;
+
+        // 🟢 Update URL ដើម្បីកុំអោយបាត់ពេល Refresh
+        history.pushState(null, "", "?id=" + accId);
 
         const header = document.getElementById("detailHeader");
         header.className =
           "detail-header " + (acc.currency === "USD" ? "bg-usd" : "bg-khr");
 
-        // កែឈ្មោះនៅលើ Header
         document.getElementById("headerDetailTitle").innerText =
           acc.name.toUpperCase();
-
-        // ❌ យើងបានលុបកូដ document.getElementById("detAccName").innerText ចេញ ដើម្បីកុំអោយគាំង
-
-        // រៀបចំលេខគណនី
         document.getElementById("detAccNum").innerText =
           `${acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")} | ${acc.currency}`;
 
-        // ហៅមុខងារគណនាលុយ Hold និងបង្ហាញប្រវត្តិ
         renderDetailTransactions(acc.id, acc.currency);
-
-        // លាតផ្ទាំង Detail View
         document.getElementById("detailView").classList.add("active");
       }
 
       function closeDetailView() {
         document.getElementById("detailView").classList.remove("active");
+        // 🟢 លុប URL Parameter ចេញពេលបិទផ្ទាំង Detail
+        history.pushState(null, "", window.location.pathname);
       }
 
-      // ៥. 🔥 ទាញប្រវត្តិ Transaction អោយត្រូវ (បូករួមទាំង Virtual Accounts របស់ Merchant ផង)
       function renderDetailTransactions(accId, currency) {
         const list = document.getElementById("detailTransactions");
         const allTrx = user.transactions || [];
@@ -1020,18 +1068,13 @@
           return matchDirectAcc || matchMerchantAcc || matchMain;
         });
 
-        // 🌟 ១. ទាត់ចោលរាល់សំណើដែល Pending មិនអោយបង្ហាញ និងមិនអាចមើល Slip
         filtered = filtered.filter((t) => t.status !== "Pending");
 
-        // 🌟 ២. គណនាលុយ Hold សរុប (រាប់តែចំណូលចូលដែលជាប់ឃាត់)
         let totalHoldAmount = 0;
         filtered.forEach((t) => {
-          if (t.status === "Hold") {
-            totalHoldAmount += Math.abs(t.amount);
-          }
+          if (t.status === "Hold") totalHoldAmount += Math.abs(t.amount);
         });
 
-        // 🌟 Update UI បង្ហាញលុយ Total & Available ផ្តាច់ពីគ្នា
         const acc = allAccounts.find((a) => a.id === accId);
         const availBal = acc.balance;
         const totalBal = availBal + totalHoldAmount;
@@ -1045,12 +1088,10 @@
             ? `$${totalBal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : `${totalBal.toLocaleString("en-US")} ៛`;
 
-        // បាញ់តម្លៃចូល HTML
         document.getElementById("detBalance").innerHTML = fmtAvail;
         document.getElementById("detTotalBalance").innerHTML =
           `សមតុល្យគណនីសរុប ${fmtTotal}`;
 
-        // 🌟 ៣. បំបែកប្រតិបត្តិការជា ២ ក្រុម (Hold និង Success)
         let holdTrxs = filtered
           .filter((t) => t.status === "Hold")
           .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1066,12 +1107,8 @@
 
         let htmlStr = "";
 
-        // ==========================================
-        // 🌟 ៤. គូរ UI សម្រាប់ប្រតិបត្តិការ ON HOLD មុនគេ (ពណ៌ផ្កាឈូកព្រាល តាមគំរូ)
-        // ==========================================
         if (holdTrxs.length > 0) {
           htmlStr += `<div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">⏳ ប្រតិបត្តិការបង្កក (ON HOLD)</div>`;
-
           holdTrxs.forEach((t) => {
             const originalIndex = allTrx.indexOf(t);
             const isIncome = t.amount > 0;
@@ -1116,7 +1153,6 @@
               minute: "2-digit",
             });
 
-            // គូរប្រអប់ Hold មាន Background ពណ៌ផ្កាឈូកព្រាល
             htmlStr += `
                 <div class="trx-item" onclick="openGlobalSlip(user.transactions[${originalIndex}], user.username)" style="background: #fdf2f8; border: 1px solid #fbcfe8;">
                   <div class="trx-left">
@@ -1131,9 +1167,6 @@
           });
         }
 
-        // ==========================================
-        // 🌟 ៥. គូរ UI សម្រាប់ប្រតិបត្តិការជោគជ័យធម្មតា (SUCCESS)
-        // ==========================================
         let lastDateLabel = "";
 
         successTrxs.forEach((t) => {
@@ -1152,55 +1185,62 @@
             tType.includes("deposit") ||
             tMethod.includes("cashier") ||
             tSender.includes("deposit")
-          ) {
+          )
             iconClass = "fa-hand-holding-dollar";
-          } else if (
+          else if (
             tType.includes("payroll") ||
             tMethod.includes("payout") ||
             tMethod.includes("payroll")
-          ) {
+          )
             iconClass = "fa-money-bill-transfer";
-          } else if (
+          else if (
             tType.includes("promo") ||
             tType.includes("cashback") ||
             tSender.includes("promo") ||
             tSender.includes("reward") ||
             tType.includes("reward")
-          ) {
+          )
             iconClass = "fa-sack-dollar";
-          } else if (
+          else if (
             tType.includes("merchant") ||
             tMethod.includes("merchant") ||
             tMethod.includes("b2b") ||
             t.merchantId
-          ) {
+          )
             iconClass = "fa-store";
-          } else if (tType.includes("bill") || tMethod.includes("bill")) {
+          else if (tType.includes("bill") || tMethod.includes("bill"))
             iconClass = "fa-file-invoice-dollar";
-          } else if (
+          else if (
             tType.includes("u-fund") ||
             tType.includes("saving") ||
             tType.includes("fund")
-          ) {
+          )
             iconClass = "fa-piggy-bank";
-          } else if (tType.includes("e-gift") || tType.includes("gift")) {
+          else if (tType.includes("e-gift") || tType.includes("gift"))
             iconClass = "fa-gift";
-          } else if (tType.includes("fee")) {
+          else if (tType.includes("fee")) {
             iconClass = "fa-receipt";
             bgClass = "bg-orange";
             textClass = "text-orange";
-          } else if (isIncome && user.role === "junior") {
+          } else if (isIncome && user.role === "junior")
             iconClass = "fa-child-reaching";
+          else if (
+            tType.includes("merchant") ||
+            tMethod.includes("merchant") ||
+            tMethod.includes("b2b") ||
+            t.merchantId ||
+            tType.includes("tap to pay") || // 🟢 ថែមអាវានេះ
+            tMethod.includes("nfc") // 🟢 ថែមអាវានេះ
+          ) {
+            iconClass = "fa-store";
           }
-
           let title = isIncome
             ? t.senderName || t.type || "Received"
             : t.receiverName || t.type || "Transfer";
           if (t.type === "E-Gift Received") title = "Received E-Gift";
           else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
-          if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
+          if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
             title = t.trxMethod || t.type || "System Transaction";
-          }
 
           let dateObj = new Date(t.date);
           if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))

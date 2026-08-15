@@ -597,3 +597,211 @@ exports.removeCashier = async (req, res) => {
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
+
+// =======================================================
+// 💳 ទូទាត់ប្រាក់ដោយការអូសកាត (TAP TO PAY - NFC) - FIXED VERSION
+// =======================================================
+exports.processTapToPay = async (req, res) => {
+  const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
+  const payAmount = parseFloat(amount);
+
+  try {
+    const User = require("../models/User");
+    const Merchant = require("../models/Merchant");
+    const Transaction = require("../models/Transaction");
+
+    if (!uid || !amount || !currency || !merchantId) {
+      return res.json({
+        success: false,
+        message: "ទិន្នន័យផ្ញើមកមិនគ្រប់គ្រាន់ទេ!",
+      });
+    }
+
+    // ១. ស្វែងរកអតិថិជនម្ចាស់កាត តាមរយៈលេខ UID
+    const customer = await User.findOne({ "virtualCards.uid": uid });
+    if (!customer)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញកាតនេះក្នុងប្រព័ន្ធទេ!",
+      });
+
+    if (customer.isFrozen)
+      return res.json({ success: false, message: "គណនីអតិថិជនត្រូវបានផ្អាក!" });
+
+    const card = customer.virtualCards.find((c) => c.uid === uid);
+    if (!card)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញព័ត៌មានកាតក្នុងគណនីនេះទេ!",
+      });
+
+    if (card.isLocked)
+      return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
+
+    // 🔒 ២. ឆែកលក្ខខណ្ឌ No-PIN Limit
+    let requiresPin = false;
+    if (currency === "USD" && payAmount > 20) requiresPin = true;
+    if (currency === "KHR" && payAmount > 80000) requiresPin = true;
+
+    if (requiresPin && !pin) {
+      return res.json({
+        success: false,
+        message:
+          "ទឹកប្រាក់លើសកម្រិតកំណត់ សូមអតិថិជនវាយបញ្ជាក់លេខសម្ងាត់ (PIN)!",
+      });
+    }
+
+    if (pin && card.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខសម្ងាត់កាត (PIN) មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    // ៣. ឆែកសមតុល្យប្រាក់
+    let hasEnoughBalance = false;
+    if (currency === "USD" && customer.balance >= payAmount)
+      hasEnoughBalance = true;
+    if (currency === "KHR" && customer.balanceKHR >= payAmount)
+      hasEnoughBalance = true;
+
+    if (!hasEnoughBalance)
+      return res.json({
+        success: false,
+        message: "អតិថិជនមានទឹកប្រាក់មិនគ្រប់គ្រាន់ទេ!",
+      });
+
+    // ៤. ស្វែងរកហាង (Merchant)
+    let shop = null;
+    if (merchantId.match(/^[0-9a-fA-F]{24}$/)) {
+      shop = await Merchant.findById(merchantId);
+    }
+    if (!shop) {
+      shop = await Merchant.findOne({ merchantId: merchantId });
+    }
+    if (!shop)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញហាងរបស់អ្នកទេក្នុងប្រព័ន្ធ!",
+      });
+
+    if (shop.status && shop.status.toLowerCase() === "suspended")
+      return res.json({ success: false, message: "ហាងរបស់អ្នកត្រូវបានផ្អាក!" });
+
+    // ៥. កាត់លុយពីអតិថិជន
+    if (currency === "USD") customer.balance -= payAmount;
+    if (currency === "KHR") customer.balanceKHR -= payAmount;
+
+    // ៦. 💰 បន្ថែមទឹកប្រាក់ចូលក្នុង escrowHold តាមប្រភេទរូបិយប័ណ្ណ (ត្រូវនឹង Schema Object)
+    if (!shop.escrowHold) {
+      shop.escrowHold = { USD: 0.0, KHR: 0.0 };
+    }
+
+    if (currency === "USD") {
+      shop.escrowHold.USD = (shop.escrowHold.USD || 0) + payAmount;
+    } else if (currency === "KHR") {
+      shop.escrowHold.KHR = (shop.escrowHold.KHR || 0) + payAmount;
+    }
+
+    const trxRef = "TAP-" + Date.now().toString().slice(-6);
+    const trxHash =
+      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    // ៧. កត់ត្រាប្រវត្តិប្រតិបត្តិការ (Status: Hold)
+    const cashierName = cashierAcc ? ` (Cashier: ${cashierAcc})` : "";
+    const receiverDisplayName = `${shop.name}${cashierName}`;
+
+    // 🔥 សម្រាប់អតិថិជន (អ្នកបង់លុយ)៖ អោយឃើញលេខកុងហាង ឬលេខអ្នកគិតលុយ
+    const customerReceiverAcc =
+      cashierAcc ||
+      (shop.accountNumbers ? shop.accountNumbers[currency] : "N/A");
+
+    // 🔥 សម្រាប់ថៅកែហាង (អ្នកទទួល)៖ ត្រូវ Save ជាលេខកុងមេ (Linked Account) ទើប account.html ទាញចេញភ្លាមៗ
+    let merchantLinkedAcc = shop.linkedAccounts
+      ? shop.linkedAccounts[currency]
+      : null;
+    if (!merchantLinkedAcc && shop.linkedAccounts) {
+      merchantLinkedAcc =
+        shop.linkedAccounts.USD || shop.linkedAccounts.KHR || "N/A";
+    }
+
+    // ប្រវត្តិអតិថិជន
+    await Transaction.create({
+      username: customer.username,
+      refId: trxRef,
+      hash: trxHash,
+      date: dateStr,
+      type: "Tap to Pay",
+      amount: -payAmount,
+      currency: currency,
+      senderName: customer.fullName || customer.username,
+      senderAcc:
+        currency === "USD"
+          ? customer.accountNumber || "N/A"
+          : customer.accountNumberKHR || "N/A",
+      receiverName: receiverDisplayName,
+      receiverAcc: customerReceiverAcc, // <--- 🟢 អតិថិជនឃើញលេខហាង
+      status: "Hold",
+      remark: "Payment is on hold (Escrow)",
+      trxMethod: "NFC Payment",
+    });
+
+    // ប្រវត្តិហាង
+    await Transaction.create({
+      username: shop.userId,
+      refId: trxRef,
+      hash: trxHash,
+      date: dateStr,
+      type: "Received",
+      amount: payAmount,
+      currency: currency,
+      senderName: customer.fullName || customer.username,
+      senderAcc:
+        currency === "USD"
+          ? customer.accountNumber || "N/A"
+          : customer.accountNumberKHR || "N/A",
+      receiverName: receiverDisplayName,
+      receiverAcc: merchantLinkedAcc, // <--- 🟢 ថៅកែហាងត្រូវ Save ចូលលេខកុងមេ ទើបអត់បាត់ Transaction
+      merchantId: shop.merchantId,
+      status: "Hold",
+      remark: "Tap to Pay Transaction",
+      trxMethod: "NFC Payment",
+    });
+
+    // ៨. ផ្ញើ Notification ទៅអតិថិជន
+    if (!customer.notifications) customer.notifications = [];
+    customer.notifications.unshift({
+      id: "NOTIF-" + Date.now(),
+      title: "ទូទាត់ប្រាក់ (Tap to Pay)",
+      message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name}។`,
+      date: dateStr,
+      isRead: false,
+    });
+
+    customer.markModified("virtualCards");
+    customer.markModified("notifications");
+
+    await customer.save();
+    await shop.save();
+
+    // 🟢 បាញ់ Socket.io ប្រាប់ Frontend អោយ Refresh លុយភ្លាមៗ
+    if (global.io) {
+      global.io.to(shop.userId).emit("transactionUpdated");
+      global.io.to(customer.username).emit("transactionUpdated");
+    }
+
+    res.json({
+      success: true,
+      message: "ការទូទាត់បានកត់ត្រាចូលក្នុងប្រព័ន្ធរង់ចាំ (Escrow)!",
+    });
+  } catch (error) {
+    console.error("Tap to Pay Detailed Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + error.message });
+  }
+};

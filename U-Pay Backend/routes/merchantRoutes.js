@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const merchantController = require("../controllers/merchantController");
 const { verifyUser } = require("../middleware/authMiddleware");
+const Merchant = require("../models/Merchant");
 
 // Routes សម្រាប់ម្ចាស់ហាង (Merchant End-User)
 router.post("/create", verifyUser, merchantController.createMerchant);
@@ -49,7 +50,7 @@ router.post(
 router.post("/unlink-telegram", verifyUser, merchantController.unlinkTelegram);
 
 // Routes សម្រាប់ Admin
-const Merchant = require("../models/Merchant");
+
 router.get("/admin/all-merchants", verifyUser, async (req, res) => {
   try {
     if (req.user.role !== "super_admin") {
@@ -69,5 +70,8 @@ router.get("/admin/all-merchants", verifyUser, async (req, res) => {
 // ========================================================
 // ចំណាំ៖ អត់មានដាក់ verifyUser ទេ ព្រោះយើងផ្ទៀងផ្ទាត់សុវត្ថិភាពតាមរយៈ Signature នៅក្នុង Controller រួចហើយ
 router.post("/qr/create", merchantController.createMerchantQR);
+
+// 🔥 បន្ថែមផ្លូវនេះសម្រាប់ការអូសកាត (NFC Tap to Pay)
+router.post("/tap-to-pay", verifyUser, merchantController.processTapToPay);
 
 module.exports = router;

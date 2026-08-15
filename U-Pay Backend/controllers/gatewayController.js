@@ -482,17 +482,17 @@ exports.releaseHoldPayment = async (req, res) => {
 // setInterval(autoReleaseEscrow, 3600000);
 
 // =======================================================
-// ប្រព័ន្ធទម្លាក់លុយអូតូ (Auto Release Escrow)
+// ប្រព័ន្ធទម្លាក់លុយអូតូ (Auto Release Escrow) - 🔴 FIXED
 // =======================================================
 const autoReleaseEscrow = async () => {
   try {
     // ⏳ កន្លែងកែម៉ោង: 2 * 60 * 1000 គឺស្មើនឹង "២ នាទី" (សម្រាប់តេស្ត)
-    // 💡 ពេលតេស្តចប់ ចង់បាន ២៤ម៉ោងវិញ សូមដូរទៅជា: 24 * 60 * 60 * 1000
     const timeLimit = new Date(Date.now() - 2 * 60 * 1000);
 
+    // 🔥 កែចំណុច Type ដើម្បីឱ្យវាចាប់បានទាំង U-Mall ("Receive") និង NFC ("Received")
     const holdTrxs = await Transaction.find({
       status: "Hold",
-      type: "Receive",
+      type: { $in: ["Receive", "Received"] }, // ប្រើ $in ដើម្បីចាប់យកពាក្យទាំង ២
     });
 
     for (let trx of holdTrxs) {
@@ -501,18 +501,22 @@ const autoReleaseEscrow = async () => {
       // បើប្រតិបត្តិការនោះ ហួស ២ នាទី វានឹងចូលមកធ្វើការទម្លាក់លុយ
       if (trxDate <= timeLimit) {
         const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
+        if (!merchant) continue;
+
         const user = await User.findOne({ username: merchant.userId }); // ថៅកែហាង
 
         if (merchant && user) {
           const amount = Math.abs(trx.amount);
           const isKHR = trx.currency === "KHR";
 
-          // ដកពី Escrow បញ្ចូលទៅ Balance កុងធំវិញ
+          // ដកពី Escrow បញ្ចូលទៅ Balance កុងធំ និង Update ចំណូលហាង (Collected)
           if (isKHR) {
-            merchant.escrowHold.KHR -= amount;
+            merchant.escrowHold.KHR = (merchant.escrowHold.KHR || 0) - amount;
+            merchant.collected.KHR = (merchant.collected.KHR || 0) + amount;
             user.balanceKHR += amount;
           } else {
-            merchant.escrowHold.USD -= amount;
+            merchant.escrowHold.USD = (merchant.escrowHold.USD || 0) - amount;
+            merchant.collected.USD = (merchant.collected.USD || 0) + amount;
             user.balance += amount;
           }
 
@@ -528,7 +532,7 @@ const autoReleaseEscrow = async () => {
           await merchant.save();
           await user.save();
           console.log(
-            `✅ Auto-Released: ប្រាក់ $${amount} ត្រូវបានទម្លាក់ចូលកុង ${merchant.name} រួចរាល់!`,
+            `✅ Auto-Released: ប្រាក់ ${isKHR ? "៛" : "$"}${amount} ត្រូវបានទម្លាក់ចូលកុង ${merchant.name} រួចរាល់!`,
           );
         }
       }
@@ -538,6 +542,5 @@ const autoReleaseEscrow = async () => {
   }
 };
 
-// ⏳ សម្រាប់តេស្ត៖ អោយវាដើរឆែករៀងរាល់ "៣០ វិនាទី" ម្តង (30000ms)
-// 💡 ពេលតេស្តចប់ ចង់បាន ១ម៉ោងឆែកម្តង សូមដូរទៅជា: 3600000
+// ⏳ សម្រាប់តេស្ត៖ ដើររាល់ ៣០ វិនាទីម្តង
 setInterval(autoReleaseEscrow, 30000);

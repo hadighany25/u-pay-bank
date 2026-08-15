@@ -164,6 +164,42 @@ async function processCardBinding(username, cardId, pin, uid) {
 }
 
 // ========================================================================
+// 🗑️ មុខងារផ្តាច់កាត NFC (UNBIND NFC CARD)
+// ========================================================================
+window.unbindNFC = function (username, cardId) {
+  Swal.fire({
+    title: "ផ្តាច់កាត NFC នេះ?",
+    text: "កាត Physical នេះនឹងត្រូវបានលុបការភ្ជាប់ចោល!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#94a3b8",
+    confirmButtonText: "បាទ, ផ្តាច់ចោល",
+    customClass: { popup: "premium-swal" },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      Swal.fire({ title: "កំពុងផ្តាច់...", didOpen: () => Swal.showLoading() });
+      try {
+        const res = await fetch("/api/admin/cards/unbind-nfc", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ username, cardId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire("ជោគជ័យ", "បានផ្តាច់កាត NFC ចេញវិញហើយ!", "success");
+          if (typeof loadData === "function") loadData(); // Refresh តារាង
+        } else {
+          Swal.fire("បរាជ័យ", data.message || "មានបញ្ហា", "error");
+        }
+      } catch (e) {
+        Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+      }
+    }
+  });
+};
+
+// ========================================================================
 // 🎫 SECTION 3: TICKETS & CUSTOMER SUPPORT
 // ========================================================================
 async function replyTicket(username, ticketId) {

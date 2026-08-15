@@ -320,13 +320,15 @@ async function loadData() {
         let nfcIconTitle = "";
 
         if (c.uid) {
-          // បើមានភ្ជាប់ NFC
-          nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
+          // បើកាតនេះបានភ្ជាប់ NFC ហើយ ចេញប៊ូតុងផ្តាច់ (ពណ៌ក្រហម)
+          // 🔥 ថែម event.stopPropagation();
+          nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
           cardType = `<span style="color:#0f172a; font-weight:bold;">Physical NFC</span>`;
           nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px;" title="NFC Active"></i>`;
         } else {
-          // បើមិនទាន់មានភ្ជាប់ NFC
-          nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
+          // បើមិនទាន់ភ្ជាប់ ចេញប៊ូតុងភ្ជាប់ (ពណ៌ខ្មៅ)
+          // 🔥 ថែម event.stopPropagation();
+          nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
         }
 
         const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
