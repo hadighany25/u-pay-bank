@@ -303,43 +303,42 @@ async function loadData() {
             allAdminNotifs.add(n.id || n.title + n.date);
         });
 
-      // រៀបចំទិន្នន័យ Cards (១គណនី បង្ហាញតែកាត១គត់)
+      // រៀបចំទិន្នន័យ Cards (បង្ហាញគ្រប់កាតទាំងអស់របស់ User ម្នាក់ៗ)
       if (u.virtualCards && u.virtualCards.length > 0) {
-        const c = u.virtualCards[0]; // 🔥 ទាញយកតែកាតទី១ មកបង្ហាញ
+        // 🟢 បន្ថែម forEach ដើម្បីរង្វិលជុំយកកាតទាំងអស់
+        u.virtualCards.forEach((c) => {
+          const statusHtml = c.isLocked
+            ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
+            : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
 
-        const statusHtml = c.isLocked
-          ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
-          : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
+          const freezeBtn = c.isLocked
+            ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
+            : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
 
-        const freezeBtn = c.isLocked
-          ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
-          : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
+          let nfcBtn = "";
+          let cardType = c.name || `Virtual ${c.type || "Standard"}`; // ទាញឈ្មោះកាតពិតប្រាកដមកបង្ហាញ (ឧ. FIFA World Cup)
+          let nfcIconTitle = "";
 
-        let nfcBtn = "";
-        let cardType = `Virtual ${c.type || "platinum"}`;
-        let nfcIconTitle = "";
+          if (c.uid || c.isPhysical) {
+            // បើកាតនេះបានភ្ជាប់ NFC ហើយ ចេញប៊ូតុងផ្តាច់ (ពណ៌ក្រហម)
+            nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
+            cardType = `<span style="color:#0f172a; font-weight:bold;">Physical NFC</span> <br><span style="font-size:0.7rem; color:#64748b;">${cardType}</span>`;
+            nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px;" title="NFC Active"></i>`;
+          } else {
+            // បើមិនទាន់ភ្ជាប់ ចេញប៊ូតុងភ្ជាប់ (ពណ៌ខ្មៅ)
+            nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
+          }
 
-        if (c.uid) {
-          // បើកាតនេះបានភ្ជាប់ NFC ហើយ ចេញប៊ូតុងផ្តាច់ (ពណ៌ក្រហម)
-          // 🔥 ថែម event.stopPropagation();
-          nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
-          cardType = `<span style="color:#0f172a; font-weight:bold;">Physical NFC</span>`;
-          nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px;" title="NFC Active"></i>`;
-        } else {
-          // បើមិនទាន់ភ្ជាប់ ចេញប៊ូតុងភ្ជាប់ (ពណ៌ខ្មៅ)
-          // 🔥 ថែម event.stopPropagation();
-          nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
-        }
+          const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
 
-        const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
-
-        cardsHtml += `<tr>
-          <td><div style="font-weight:600; color:var(--text-main);">${u.fullName || u.username} ${nfcIconTitle}</div></td>
-          <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td>
-          <td>${cardType}</td>
-          <td>${statusHtml}</td>
-          <td style="text-align: right; white-space: nowrap;">${freezeBtn}${nfcBtn}</td>
-        </tr>`;
+          cardsHtml += `<tr>
+              <td><div style="font-weight:600; color:var(--text-main);">${u.fullName || u.username} ${nfcIconTitle}</div></td>
+              <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td>
+              <td>${cardType}</td>
+              <td>${statusHtml}</td>
+              <td style="text-align: right; white-space: nowrap;">${freezeBtn}${nfcBtn}</td>
+            </tr>`;
+        }); // 🟢 បញ្ចប់ Loop កាត
       }
 
       // រៀបចំទិន្នន័យ KYC

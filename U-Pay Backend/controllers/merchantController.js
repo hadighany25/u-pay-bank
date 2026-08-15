@@ -1104,12 +1104,27 @@ exports.refundTransaction = async (req, res) => {
     // ៧. បាញ់ Socket Refresh ទាំងសងខាង
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
-      global.io.to(customerUsername).emit("transactionUpdated");
+      global.io.to(customer.username).emit("transactionUpdated");
+      global.io.to(shop.userId).emit("paymentReceived", {
+        amount: payAmount,
+        currency: currency,
+        senderName: customer.fullName || customer.username,
+        // 🟢 បន្ថែម ២ នេះចូល Socket ដែរការពារ проកំហុស
+        refId: trxRef,
+        hash: trxHash,
+      });
     }
 
-    res.json({ success: true, message: "ការបង្វិលប្រាក់ (Refund) បានជោគជ័យ!" });
+    // 🟢 កន្លែងសំខាន់៖ បោះទិន្នន័យពិតប្រាកដទៅឱ្យអេក្រង់ POS វិញ
+    res.json({
+      success: true,
+      message: "ការទូទាត់បានសម្រេចជោគជ័យ!",
+      refId: trxRef,
+      hash: trxHash,
+      senderName: customer.fullName || customer.username,
+    });
   } catch (error) {
-    console.error("Refund Error:", error);
+    console.error("Tap to Pay Strict Error:", error);
     res
       .status(500)
       .json({ success: false, message: "Server Error: " + error.message });

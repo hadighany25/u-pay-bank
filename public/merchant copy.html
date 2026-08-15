@@ -3809,7 +3809,6 @@
         }
 
         async function executeTapPayment(uid, amount, currency, pin) {
-          // លោតផ្ទាំង Loading ពេលកំពុងកាត់លុយ
           Swal.fire({
             title: "កំពុងទូទាត់ប្រាក់...",
             allowOutsideClick: false,
@@ -3824,7 +3823,6 @@
                 ? window.currentCashierObj.cashierAccountNumber
                 : null;
 
-            // ហៅទៅកាន់ API ដើម្បីកាត់លុយ
             const res = await fetch("/api/merchants/tap-to-pay", {
               method: "POST",
               headers: window.authHeaders,
@@ -3840,43 +3838,24 @@
             const data = await res.json();
 
             if (data.success) {
-              // 🟢 ១. បិទផ្ទាំង Loading
-              Swal.close();
-
-              // 🟢 ២. បន្លឺសំឡេងជោគជ័យ
               new Audio(
                 "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
               )
                 .play()
                 .catch(() => {});
               playVoiceAlert(amount, currency);
-
-              // 🟢 ៣. បិទផ្ទាំងកាមេរ៉ាស្កេន NFC
-              closeQRModal();
-
-              // 🟢 ៤. ហៅផ្ទាំង POS Slip មកបង្ហាញអូតូ (មានប៊ូតុង Print)
-              openPosSlip(
-                {
-                  amount: amount, // ចំនួនទឹកប្រាក់
-                  currency: currency, // រូបិយប័ណ្ណ
-                  senderName: data.senderName || "Customer",
-                  receiverName: currentMerchant.name,
-                  refId: data.refId || "TAP-" + Date.now().toString().slice(-6),
-                  hash: data.hash || "N/A",
-                  date: new Date().toLocaleString("en-US", {
-                    timeZone: "Asia/Phnom_Penh",
-                    hour12: true,
-                  }),
-                  remark: "NFC Tap to Pay",
-                  trxMethod: "NFC Payment",
-                },
-                window.currentUser.username,
-              );
-
-              // 🟢 ៥. ទាញប្រវត្តិ និងទឹកប្រាក់ថ្មីមក Update លើ Dashboard
-              if (typeof loadTransactions === "function") loadTransactions();
-              if (typeof fetchMerchantRevenue === "function")
-                fetchMerchantRevenue();
+              Swal.fire({
+                icon: "success",
+                title: "ទូទាត់ជោគជ័យ!",
+                text: `ទទួលបាន ${currency === "USD" ? "$" : "៛"}${amount.toLocaleString()} ពីអតិថិជន។`,
+                confirmButtonColor: "#10b981",
+                customClass: { popup: "premium-swal" },
+              }).then(() => {
+                closeQRModal();
+                if (typeof loadTransactions === "function") loadTransactions();
+                if (typeof fetchMerchantRevenue === "function")
+                  fetchMerchantRevenue();
+              });
             } else {
               Swal.fire("ប្រតិបត្តិការបរាជ័យ!", data.message, "error");
             }

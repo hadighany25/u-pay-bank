@@ -15,13 +15,13 @@ const userSchema = new mongoose.Schema(
 
     // 🔥 បន្ថែម Fields សម្រាប់ Junior Account (Parental Control)
     role: { type: String, default: "user" },
-    parentUsername: { type: String, default: null }, // សម្គាល់ថា ID នេះជាកូនរបស់អ្នកណា
-    dailyLimit: { type: Number, default: 0 }, // ដែនកំណត់ចាយប្រចាំថ្ងៃរបស់កូន
-    dailySpent: { type: Number, default: 0 }, // កត់ត្រាលុយដែលបានចាយថ្ងៃនេះ
+    parentUsername: { type: String, default: null },
+    dailyLimit: { type: Number, default: 0 },
+    dailySpent: { type: Number, default: 0 },
 
     trxLimit: { type: Number, default: 1000.0 },
     profileImage: { type: String, default: "" },
-    isFrozen: { type: Boolean, default: false }, // មានស្រាប់ ងាយស្រួលឱ្យប៉ាម៉ាក់ Freeze កុងកូនពីចម្ងាយ
+    isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
     pinAttempts: { type: Number, default: 0 },
     notifications: { type: Array, default: [] },
@@ -49,10 +49,12 @@ const userSchema = new mongoose.Schema(
         isLocked: { type: Boolean, default: false },
         isOnlinePayEnabled: { type: Boolean, default: true },
         dailyLimit: { type: Number },
+        dailyTxCountLimit: { type: Number }, // 🟢 បន្ថែមសម្រាប់កំណត់ចំនួនដងចាយ
         linkedAccount: { type: String },
         pin: { type: String },
         lockedByAdmin: { type: Boolean, default: false },
-        uid: { type: String, default: null },
+        uid: { type: String, default: null }, // លេខកូដ NFC Physical Card
+        isPhysical: { type: Boolean, default: false }, // 🟢 បន្ថែមដើម្បី Show Icon Wi-Fi
       },
     ],
 
@@ -62,16 +64,10 @@ const userSchema = new mongoose.Schema(
         accountId: { type: String, default: () => Date.now().toString() },
         accountNumber: { type: String },
         accountName: { type: String },
-        accountType: { type: String, default: "premium" }, // premium, joint, junior
-
-        // ចំណាំ៖ balance នេះនឹងប្រើសម្រាប់តែគណនី premium ប៉ុណ្ណោះ
-        // បើជាគណនី joint យើងនឹងទាញយកលុយពី JointAccount Collection វិញ
+        accountType: { type: String, default: "premium" },
         balance: { type: Number, default: 0.0 },
         currency: { type: String, default: "USD" },
         isLocked: { type: Boolean, default: false },
-
-        // ក្រុមសមាជិកនេះនៅរក្សាទុក ដើម្បីកុំឱ្យ Error កូដ Frontend ចាស់
-        // តែទិន្នន័យពិតប្រាកដសម្រាប់គណនីរួម គឺស្ថិតនៅ JointAccount
         members: [
           {
             username: { type: String },
@@ -82,7 +78,6 @@ const userSchema = new mongoose.Schema(
             status: { type: String, default: "pending" },
           },
         ],
-
         metadata: { type: Object, default: {} },
         createdAt: { type: Date, default: Date.now },
       },

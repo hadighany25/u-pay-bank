@@ -46,9 +46,20 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
         
-        <!-- ផ្ទាំងប៊ូតុងខាងក្រោម ៣ (មានភ្ជាប់ ID សម្រាប់ប្តូរ) -->
-        <div id="slipActionButtons" style="display:flex; justify-content:center; gap:35px; margin-top: 25px;">
-          <!-- Default Buttons -->
+        <!-- ផ្ទាំងប៊ូតុងខាងក្រោម ៣ -->
+        <div style="display:flex; justify-content:center; gap:35px; margin-top: 25px;">
+          <div onclick="shareSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+            <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-share-nodes"></i></div>
+            <span style="font-size:0.85rem; font-weight:600;">Share</span>
+          </div>
+          <div onclick="downloadSlipPDF()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+            <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-file-pdf"></i></div>
+            <span style="font-size:0.85rem; font-weight:600;">PDF</span>
+          </div>
+          <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+            <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-xmark"></i></div>
+            <span style="font-size:0.85rem; font-weight:600;">Done</span>
+          </div>
         </div>
       </div>
     `;
@@ -58,9 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 window.currentSlipData = null;
 
-// ==========================================
-// ២. មុខងារបង្ហាញ Slip ធម្មតា (Global History)
-// ==========================================
+// ២. មុខងារបង្ហាញ Slip
 function openGlobalSlip(t, currentUsername) {
   if (!t) return;
   window.currentSlipData = t; // កត់ត្រាទុកអោយ PDF
@@ -174,89 +183,7 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipRemark").innerText = t.remark || "-";
   document.getElementById("slipFee").innerText = currSym + formattedFee;
 
-  // 🟢 រៀបចំប៊ូតុងដើម (Share/PDF/Done) ឡើងវិញរាល់ពេលហៅចេញពីប្រវត្តិ
-  const actionBtns = document.getElementById("slipActionButtons");
-  if (actionBtns) {
-    actionBtns.innerHTML = `
-      <div onclick="shareSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-share-nodes"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">Share</span>
-      </div>
-      <div onclick="downloadSlipPDF()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-file-pdf"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">PDF</span>
-      </div>
-      <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-xmark"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">Done</span>
-      </div>
-    `;
-  }
-
   document.getElementById("slipModal").style.display = "flex";
-}
-
-// ==========================================
-// 🧾 មុខងារពិសេសសម្រាប់ POS (Tap to Pay)
-// ==========================================
-function openPosSlip(t, currentUsername) {
-  // ហៅ function បង្ហាញ Slip ធម្មតាដើម្បីទាញទិន្នន័យ
-  openGlobalSlip(t, currentUsername);
-
-  // 🟢 ប្តូរប៊ូតុងខាងក្រោមទៅជា Print និង Done
-  setTimeout(() => {
-    const actionBtns = document.getElementById("slipActionButtons");
-    if (actionBtns) {
-      actionBtns.innerHTML = `
-        <div onclick="printPosReceipt()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-          <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-print"></i></div>
-          <span style="font-size:0.85rem; font-weight:600;">Print</span>
-        </div>
-        <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-          <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-xmark"></i></div>
-          <span style="font-size:0.85rem; font-weight:600;">Done</span>
-        </div>
-      `;
-    }
-  }, 50);
-}
-
-// ==========================================
-// 🖨️ មុខងារបញ្ជាម៉ាស៊ីនព្រីន (Smart Detection Fix សម្រាប់ Sunmi Web)
-// ==========================================
-function printPosReceipt() {
-  // ១. ឆែកមើលថាតើវាជា Native App ដែរឬទេ (អនាគតបើបងបម្លែងវាជា App)
-  if (window.Android && typeof window.Android.printReceipt === "function") {
-    if (window.currentSlipData && window.currentSlipData.refId) {
-      window.Android.printReceipt(window.currentSlipData.refId);
-      return;
-    }
-  }
-
-  // ២. សម្រាប់អ្នកប្រើលើ Web Browser (Computer ឬ Sunmi POS)
-  // យើងបោះទម្រង់ html ទៅឱ្យ window.print() ដំណើរការ (Sunmi នឹងលោតផ្ទាំង Print របស់ Android មក)
-  const captureAreaHtml = document.getElementById("captureArea").innerHTML;
-  const originalContents = document.body.innerHTML;
-
-  // រៀបចំទម្រង់សម្រាប់ព្រីន (ដាក់ទំហំតូចល្មមប៉ុនក្រដាស POS)
-  document.body.innerHTML = `
-    <div style="padding: 10px; width: 100%; max-width: 100%; margin: 0 auto; background: white; color: black;">
-      ${captureAreaHtml}
-    </div>
-  `;
-
-  // លាក់ប៊ូតុង Print/Done ចេញពីក្រដាសព្រីន
-  const actions = document.getElementById("slipActionButtons");
-  if (actions) actions.style.display = "none";
-
-  // ហៅផ្ទាំង Print របស់ប្រព័ន្ធ
-  window.print();
-
-  // ក្រោយពីព្រីនរួច ទាញ UI ចាស់មកវិញ និង Refresh ទំព័រ
-  document.body.innerHTML = originalContents;
-  setTimeout(() => {
-    window.location.reload();
-  }, 500);
 }
 
 // ៣. មុខងារ Share ពិតៗ (Web Share API)
