@@ -24,6 +24,9 @@
     <script src="js/pin.js"></script>
     <script src="js/slip.js"></script>
 
+    <!-- 🟢 បន្ថែម SortableJS សម្រាប់មុខងារអូសកាត (Drag & Drop) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
     <style>
       /* ==========================================
          🚀 GLOBAL & FOUC PREVENTION
@@ -124,6 +127,8 @@
         -webkit-overflow-scrolling: touch;
         padding-bottom: 10px;
         gap: 15px;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
       }
       .cards-slider::-webkit-scrollbar {
         display: none;
@@ -231,13 +236,15 @@
         background-position: center !important;
       }
 
-      /* 6. Gamer Pro (រូប Gaming/Neon) */
+      /* 6. Gamer Pro (Gamer Edition) */
       .theme-gamer .card-front,
       .theme-gamer .card-back,
       .tier-preview.theme-gamer {
         background:
-          linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.9)),
-          url("https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80");
+          linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.85)),
+          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10") !important;
+        background-size: cover !important;
+        background-position: center !important;
       }
 
       /* 7. Eco Green (រូបភាពបែបធម្មជាតិ) */
@@ -252,12 +259,75 @@
       }
 
       /* 8. Platinum Premium (ខ្មៅ Carbon ស៊ីវិល័យបំផុត) */
+      /* បង្កើតចលនារលកពន្លឺ (Shimmer Animation) ពីស្តាំលើ -> ឆ្វេងក្រោម */
+      @keyframes platinumWave {
+        0% {
+          background-position:
+            100% 0%,
+            center;
+        }
+        100% {
+          background-position:
+            0% 100%,
+            center;
+        }
+      }
+
+      /* =======================================
+         ✨ 8. Platinum Premium (Pure Black + Moving Wave)
+         ======================================= */
+
+      /* 1. បិទពន្លឺកញ្ចក់ចាស់ដែលនៅទ្រឹង */
+      .theme-platinum .card-front::after {
+        display: none !important;
+      }
+
+      /* 2. ដាក់ពណ៌ Background ជាខ្មៅដិតសុទ្ធ (Pure Black) ដូចក្នុងរូប ១០០% */
       .theme-platinum .card-front,
       .theme-platinum .card-back,
       .tier-preview.theme-platinum {
-        background:
-          linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(0, 0, 0, 0.95)),
-          url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80") !important;
+        background: #000000 !important;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* 3. បង្កើតចលនារលកពន្លឺរត់បញ្ឆិត ពីឆ្វេងទៅស្តាំ */
+      @keyframes platinumWave {
+        0% {
+          transform: translateX(-150%) skewX(-30deg);
+        }
+        100% {
+          transform: translateX(250%) skewX(-30deg);
+        }
+      }
+
+      /* 4. បញ្ចូលខ្សែពន្លឺ (Shimmer) ទៅលើកាតពណ៌ខ្មៅ */
+      .theme-platinum .card-front::before,
+      .theme-platinum .card-back::before,
+      .tier-preview.theme-platinum::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.12) 50%,
+          /* កម្រិតពន្លឺរលកពណ៌ប្រាក់ */ rgba(255, 255, 255, 0) 100%
+        );
+        z-index: 1;
+        animation: platinumWave 2.5s infinite; /* ល្បឿនរត់ 2.5s */
+        pointer-events: none;
+      }
+
+      /* 5. ធានាថាអក្សរ លេខកាត និង Logo ស្ថិតនៅពីលើពន្លឺជានិច្ច */
+      .theme-platinum .card-front > *,
+      .theme-platinum .card-back > *,
+      .tier-preview.theme-platinum > * {
+        position: relative;
+        z-index: 2;
       }
 
       /* 🟡 Fix colors for Metal Gold (អក្សរខ្មៅ/ត្នោតលើមាស) */
@@ -976,6 +1046,45 @@
         font-family: inherit;
       }
 
+      .sortable-ghost {
+        opacity: 0.3;
+        transform: scale(0.95);
+      }
+      .sortable-drag {
+        cursor: grabbing !important;
+      }
+
+      /* Styles for Reorder List */
+      .reorder-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 12px 15px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: grab;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+      .reorder-item:active {
+        cursor: grabbing;
+        background: #f8fafc;
+      }
+      .reorder-ghost {
+        opacity: 0.5;
+        background: #e2e8f0;
+      }
+      body.dark-mode .reorder-item {
+        background: #121212;
+        border-color: #2d2d2d;
+      }
+      body.dark-mode .reorder-item:active {
+        background: #1e1e1e;
+      }
+      body.dark-mode .reorder-ghost {
+        background: #000;
+      }
+
       /* ==========================================
          🌙 DARK MODE OVERRIDES
          ========================================== */
@@ -1123,6 +1232,26 @@
               ></i>
             </div>
             <div class="history-list" id="cardTrxList"></div>
+
+            <!-- ប៊ូតុងរៀបចំទីតាំងកាត -->
+            <div class="setting-item" onclick="openReorderModal()">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="background: #f1f5f9; color: #475569"
+                >
+                  <i class="fa-solid fa-list-ul"></i>
+                </div>
+                <div class="setting-info">
+                  <h4>Reorder Cards</h4>
+                  <p class="kh-text">រៀបចំទីតាំងកាតតាមចំណូលចិត្ត</p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #cbd5e1; font-size: 0.9rem"
+              ></i>
+            </div>
 
             <div class="setting-item">
               <div class="setting-left">
@@ -1371,6 +1500,48 @@
         </div>
       </div>
 
+      <!-- REORDER CARDS MODAL -->
+      <div class="custom-modal" id="reorderModal">
+        <div class="modal-content" style="max-height: 80vh">
+          <h3 style="margin: 0 0 10px; text-align: center" class="kh-text">
+            រៀបចំទីតាំងកាត
+          </h3>
+          <p
+            style="
+              text-align: center;
+              font-size: 0.8rem;
+              color: #64748b;
+              margin-bottom: 20px;
+            "
+            class="kh-text"
+          >
+            ចុចសង្កត់លើសញ្ញា
+            <i class="fa-solid fa-bars"></i> រួចអូសឡើងលើឬចុះក្រោម
+          </p>
+
+          <!-- កន្លែងបង្ហាញបញ្ជីកាតសម្រាប់អូស -->
+          <div
+            id="reorderList"
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              margin-bottom: 20px;
+              overflow-y: auto;
+              max-height: 45vh;
+              padding-bottom: 10px;
+            "
+          ></div>
+
+          <button class="btn-full kh-text" onclick="saveReorderedCards()">
+            <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកទីតាំង
+          </button>
+          <button class="btn-full btn-cancel kh-text" onclick="closeModals()">
+            បោះបង់
+          </button>
+        </div>
+      </div>
+
       <!-- DELETE MODAL -->
       <div class="custom-modal" id="deleteModal">
         <div class="modal-content">
@@ -1562,7 +1733,7 @@
             }
 
             slider.innerHTML += `
-              <div class="card-perspective" onclick="flipCurrentCardWithPin()">
+              <div class="card-perspective" data-id="${c.id}" onclick="flipCurrentCardWithPin()">
                 <div class="card-inner ${theme} ${c.isLocked ? "locked" : ""} ${isFlip ? "flipped" : ""}" id="cardInner_${c.id}">
                   
                   <!-- 💳 FRONT CARD -->
@@ -1643,6 +1814,7 @@
               </div>`;
             dots.innerHTML += `<div class="dot ${i === currentCardIndex ? "active" : ""}"></div>`;
           });
+
           syncToggles();
           renderCardHistory();
         } else {
@@ -1673,6 +1845,7 @@
           document
             .querySelectorAll(".dot")
             .forEach((d, i) => d.classList.toggle("active", i === index));
+
           syncToggles();
           renderCardHistory();
         }
@@ -2171,6 +2344,92 @@
           } else console.error("slip.js not loaded");
         } catch (e) {
           console.error(e);
+        }
+      }
+
+      // ==========================================
+      // 🖐️ VERTICAL DRAG & DROP REORDERING
+      // ==========================================
+      let listSortable = null;
+
+      function openReorderModal() {
+        const listContainer = document.getElementById("reorderList");
+        listContainer.innerHTML = "";
+
+        // បង្កើតបញ្ជីកាតតូចៗបញ្ឈរ
+        user.virtualCards.forEach((c) => {
+          let cardName = c.name || `Virtual ${c.type || "Card"}`;
+          let num = c.number ? c.number.slice(-4) : "XXXX";
+
+          // 🟢 ចាប់យក Theme ពិតប្រាកដរបស់កាតនីមួយៗ (ឧ. theme-fifa, theme-anime)
+          let themeClass = c.type ? `theme-${c.type}` : "theme-standard";
+
+          listContainer.innerHTML += `
+            <div class="reorder-item" data-id="${c.id}">
+              <div style="display: flex; align-items: center; gap: 15px;">
+                
+                <!-- 🟢 ប្រអប់រូបកាតតូច (ប្រើ class tier-preview ដើម្បិទាញរូប និង gradient មកអូតូ) -->
+                <div class="tier-preview ${themeClass}" style="width: 50px; height: 32px; margin: 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);"></div>
+                
+                <div>
+                  <div style="font-weight: bold; font-size: 0.9rem; color: var(--text-main);">${cardName}</div>
+                  <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">**** ${num}</div>
+                </div>
+              </div>
+              <i class="fa-solid fa-bars" style="color: #cbd5e1; font-size: 1.2rem;"></i>
+            </div>
+          `;
+        });
+
+        document.getElementById("reorderModal").style.display = "flex";
+
+        // បើកមុខងារអូសបញ្ឈរ (Vertical Drag)
+        if (listSortable) listSortable.destroy();
+        listSortable = new Sortable(listContainer, {
+          animation: 200,
+          handle: ".reorder-item", // ចុចកន្លែងណាក៏អូសបាន
+          ghostClass: "reorder-ghost",
+        });
+      }
+
+      async function saveReorderedCards() {
+        const itemEls = Array.from(
+          document.getElementById("reorderList").children,
+        );
+        const orderedIds = itemEls.map((el) => el.getAttribute("data-id"));
+
+        // រៀបចំកាតក្នុង Memory តាមលំដាប់ថ្មី
+        const newCardsArray = orderedIds
+          .map((id) => user.virtualCards.find((c) => c.id === id))
+          .filter(Boolean);
+
+        user.virtualCards = newCardsArray;
+        cards = newCardsArray;
+        currentCardIndex = 0; // ទាញមកមើលកាតទី១វិញ
+        sessionStorage.setItem("user", JSON.stringify(user));
+
+        closeModals();
+        renderCards(); // គូរ UI កាតឡើងវិញ
+
+        Swal.fire({ title: "Saving...", didOpen: () => Swal.showLoading() });
+
+        // បាញ់ទៅ Backend ដែលយើងបានសរសេរកាលពីជំហានមុន
+        const data = await fetchAPI("/api/card/reorder", {
+          username: user.username,
+          orderedIds: orderedIds,
+        });
+
+        if (data.success) {
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "success",
+            title: "Cards Reordered!",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        } else {
+          Swal.fire("Error", "Failed to save order to server", "error");
         }
       }
     </script>

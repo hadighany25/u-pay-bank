@@ -8,14 +8,14 @@ const { getFormattedDate, generateHash } = require("../services/helpers");
 // 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config)
 // =======================================================
 const cardTiersConfig = {
-  standard: { name: "U PAY STANDARD", price: 2.0 },
-  platinum: { name: "U PAY PLATINUM", price: 5.0 },
-  metal: { name: "U PAY METAL GOLD", price: 15.0 },
-  celebrity: { name: "U PAY CELEBRITY", price: 10.0 },
-  anime: { name: "U PAY ANIME ED.", price: 8.0 },
-  gamer: { name: "U PAY GAMER PRO", price: 8.0 },
-  eco: { name: "U PAY ECO GREEN", price: 3.0 },
-  custom: { name: "U PAY CUSTOM VIP", price: 25.0 },
+  standard: { name: "STANDARD", price: 2.0 },
+  fifa: { name: "FIFA WORLD CUP", price: 10.0 },
+  metal: { name: "METAL GOLD", price: 15.0 },
+  celebrity: { name: "BTS EDITION", price: 10.0 },
+  anime: { name: "NARUTO ED.", price: 8.0 },
+  gamer: { name: "GAMER PRO", price: 8.0 },
+  eco: { name: "ECO GREEN", price: 3.0 },
+  platinum: { name: "PLATINUM PREMIUM", price: 25.0 },
 };
 
 // មុខងារជំនួយ: បង្កើតលេខកាត Virtual
@@ -363,6 +363,41 @@ const unbindNfcCard = async (req, res) => {
   }
 };
 
+// =======================================================
+// ១០. រៀបចំទីតាំងកាតឡើងវិញ (Drag & Drop Reorder)
+// =======================================================
+const reorderCards = async (req, res) => {
+  const { username, orderedIds } = req.body;
+  if (req.user.username !== username)
+    return res.status(403).json({ success: false });
+
+  try {
+    const user = await User.findOne({ username });
+    if (user && user.virtualCards) {
+      // តម្រៀបកាតចាស់ ឱ្យទៅតាមលំដាប់ ID ថ្មីដែល Frontend បោះមក
+      const newCardsArray = orderedIds
+        .map((id) => user.virtualCards.find((c) => c.id === id))
+        .filter(Boolean);
+
+      // ការពារក្រែងលោមានកាតណាមួយធ្លាក់ជ្រុះ ក៏យកមកតពីក្រោយគេ
+      const existingIds = newCardsArray.map((c) => c.id);
+      const missedCards = user.virtualCards.filter(
+        (c) => !existingIds.includes(c.id),
+      );
+
+      user.virtualCards = [...newCardsArray, ...missedCards];
+      user.markModified("virtualCards");
+      await user.save();
+
+      res.json({ success: true, cards: user.virtualCards });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 module.exports = {
   generateCard,
   toggleLock,
@@ -373,4 +408,5 @@ module.exports = {
   renameCard,
   bindNfcCard,
   unbindNfcCard,
+  reorderCards,
 };

@@ -24,5 +24,5 @@ router.post("/reset-pin", verifyUser, cardController.resetPin); // ប្តូ�
 // 📡 ៣. ការភ្ជាប់ជាមួយកាតពិត (Physical NFC Card)
 router.post("/bind-nfc", verifyUser, cardController.bindNfcCard); // ភ្ជាប់កាតពិត (NFC) ចូលកាត Virtual
 router.post("/unbind-nfc", verifyUser, cardController.unbindNfcCard); // ផ្តាច់កាតពិត (NFC) ចេញវិញ
-
+router.post("/reorder", verifyUser, cardController.reorderCards);
 module.exports = router;
