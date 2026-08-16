@@ -8,14 +8,16 @@ const { getFormattedDate, generateHash } = require("../services/helpers");
 // 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config)
 // =======================================================
 const cardTiersConfig = {
-  standard: { name: "STANDARD", price: 2.0 },
-  fifa: { name: "FIFA WORLD CUP", price: 10.0 },
-  metal: { name: "METAL GOLD", price: 15.0 },
-  celebrity: { name: "BTS EDITION", price: 10.0 },
-  anime: { name: "NARUTO ED.", price: 8.0 },
-  gamer: { name: "GAMER PRO", price: 8.0 },
-  eco: { name: "ECO GREEN", price: 3.0 },
+  standard: { name: "STANDARD", price: 5.0 },
+  fifa: { name: "FIFA WORLD CUP", price: 15.0 },
+  metal: { name: "METAL GOLD", price: 5.0 },
+  celebrity: { name: "BTS EDITION", price: 15.0 },
+  anime: { name: "NARUTO EDITION", price: 15.0 },
+  gamer: { name: "GAMER PRO", price: 15.0 },
+  eco: { name: "ECO GREEN", price: 5.0 },
   platinum: { name: "PLATINUM PREMIUM", price: 25.0 },
+  animal: { name: "ANIMAL EDITION", price: 15.0 },
+  custom: { name: "CUSTOM VIP", price: 25.0 }, // 🟢 កាតរើសរូបបាន
 };
 
 // មុខងារជំនួយ: បង្កើតលេខកាត Virtual
@@ -40,7 +42,7 @@ const generateCardDetails = () => {
 // =======================================================
 const generateCard = async (req, res) => {
   // 🟢 ទទួលយក linkedAccount ពី Frontend បន្ថែម
-  const { username, cardType, linkedAccount, pin } = req.body;
+  const { username, cardType, customBgUrl, linkedAccount, pin } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false, message: "Unauthorized!" });
 
@@ -63,7 +65,7 @@ const generateCard = async (req, res) => {
     let systemFeeAcc = await User.findOne({ username: "system_fee" });
     if (!systemFeeAcc) {
       systemFeeAcc = new User({
-        id: "sys_" + Date.now(),
+        id: "FEE_" + Date.now(),
         username: "system_fee",
         fullName: "U PAY FEE",
         accountNumber: "999999999",
@@ -131,6 +133,7 @@ const generateCard = async (req, res) => {
       pin: "0000",
       uid: null,
       isPhysical: false, // 🟢 សម្គាល់ថាវាគ្រាន់តែជា Virtual (គ្មានសញ្ញា NFC)
+      customBgUrl: cardType === "custom" ? customBgUrl : "", // 🟢 Save Link រូបភាព
     };
 
     if (!user.virtualCards) user.virtualCards = [];

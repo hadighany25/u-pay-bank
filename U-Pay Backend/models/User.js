@@ -55,6 +55,7 @@ const userSchema = new mongoose.Schema(
         lockedByAdmin: { type: Boolean, default: false },
         uid: { type: String, default: null }, // លេខកូដ NFC Physical Card
         isPhysical: { type: Boolean, default: false }, // 🟢 បន្ថែមដើម្បី Show Icon Wi-Fi
+        customBgUrl: { type: String, default: "" }, // 🟢 ថែមមួយជួរនេះ ដើម្បីទុក Link រូបភាព
       },
     ],
 

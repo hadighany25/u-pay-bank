@@ -110,7 +110,8 @@ function openGlobalSlip(t, currentUsername) {
   } else if (
     tType.includes("merchant") ||
     tType.includes("scan") ||
-    t.merchantId
+    t.merchantId ||
+    t.trxMethod === "NFC Payment"
   ) {
     bgColor = "#8b5cf6";
     iconColor = "#8b5cf6";
@@ -146,6 +147,15 @@ function openGlobalSlip(t, currentUsername) {
     titleText = isIncome ? "E-Gift Received" : "E-Gift Sent";
   }
 
+  if (tType.includes("refund")) {
+    bgColor = "#10b981";
+    iconColor = "#10b981";
+    iconClass = "fa-arrow-rotate-left";
+    titleText = "Refund Received";
+    lblSenderText = "Refund From";
+    lblReceiverText = "Refunded To";
+  }
+
   document.getElementById("slipHeaderBg").style.background = bgColor;
   document.getElementById("slipIconBox").style.color = iconColor;
   document.getElementById("slipIcon").className = `fa-solid ${iconClass}`;
@@ -156,13 +166,46 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipHash").innerText = t.hash || "N/A";
   document.getElementById("slipDate").innerText = t.date;
 
+  // 🔥 មុខងារឆ្លាតវៃ៖ កំណត់លេខកាត និង លេខហាង (Merchant ID)
+  let displaySenderAcc = t.senderAcc || "";
+  let displayReceiverAcc = t.receiverAcc || "";
+
+  // ១. បើមានលេខកាត យកលេខកាតមក Mask
+  if (t.cardNumber) {
+    const maskedCard = `(${t.cardNumber.substring(0, 4)} **** **** ${t.cardNumber.slice(-4)})`;
+    if (tType.includes("refund")) {
+      displayReceiverAcc = maskedCard;
+    } else {
+      displaySenderAcc = maskedCard;
+    }
+  }
+
+  // ណែនាំ៖ បើជាប្រតិបត្តិការទូទាត់ឱ្យហាង (Payment / NFC Payment) ហើយភ្ញៀវជាអ្នកមើល (isIncome = false)
+  // គឺត្រូវលុបលេខកុង/លេខហាងចេញ (មិនបាច់បង្ហាញទេ ទុកជា string ទទេ)
+  if (
+    (tType.includes("merchant") ||
+      tType.includes("scan") ||
+      t.merchantId ||
+      t.trxMethod === "NFC Payment") &&
+    !isIncome
+  ) {
+    displayReceiverAcc = "";
+  } else if (t.merchantId) {
+    // សម្រាប់ម្ចាស់ហាងមើល (isIncome = true) ទើបបង្ហាញ Merchant ID
+    if (tType.includes("refund")) {
+      displaySenderAcc = isIncome ? `(${t.merchantId})` : "";
+    } else {
+      displayReceiverAcc = isIncome ? `(${t.merchantId})` : "";
+    }
+  }
+
   let senderNameFull = t.senderName || "SYSTEM";
   let receiverNameFull = t.receiverName || "SYSTEM";
 
-  if (!isIncome && t.senderAcc)
-    senderNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${t.senderAcc}</span>`;
-  if (isIncome && t.receiverAcc)
-    receiverNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${t.receiverAcc}</span>`;
+  if (displaySenderAcc)
+    senderNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${displaySenderAcc}</span>`;
+  if (displayReceiverAcc)
+    receiverNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${displayReceiverAcc}</span>`;
 
   document.getElementById("lblSender").innerText = lblSenderText;
   document.getElementById("lblReceiver").innerText = lblReceiverText;
@@ -174,7 +217,6 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipRemark").innerText = t.remark || "-";
   document.getElementById("slipFee").innerText = currSym + formattedFee;
 
-  // 🟢 រៀបចំប៊ូតុងដើម (Share/PDF/Done) ឡើងវិញរាល់ពេលហៅចេញពីប្រវត្តិ
   const actionBtns = document.getElementById("slipActionButtons");
   if (actionBtns) {
     actionBtns.innerHTML = `
@@ -200,10 +242,8 @@ function openGlobalSlip(t, currentUsername) {
 // 🧾 មុខងារពិសេសសម្រាប់ POS (Tap to Pay)
 // ==========================================
 function openPosSlip(t, currentUsername) {
-  // ហៅ function បង្ហាញ Slip ធម្មតាដើម្បីទាញទិន្នន័យ
   openGlobalSlip(t, currentUsername);
 
-  // 🟢 ប្តូរប៊ូតុងខាងក្រោមទៅជា Print និង Done
   setTimeout(() => {
     const actionBtns = document.getElementById("slipActionButtons");
     if (actionBtns) {
@@ -225,7 +265,6 @@ function openPosSlip(t, currentUsername) {
 // 🖨️ មុខងារបញ្ជាម៉ាស៊ីនព្រីន (Smart Detection Fix សម្រាប់ Sunmi Web)
 // ==========================================
 function printPosReceipt() {
-  // ១. ឆែកមើលថាតើវាជា Native App ដែរឬទេ (អនាគតបើបងបម្លែងវាជា App)
   if (window.Android && typeof window.Android.printReceipt === "function") {
     if (window.currentSlipData && window.currentSlipData.refId) {
       window.Android.printReceipt(window.currentSlipData.refId);
@@ -233,26 +272,20 @@ function printPosReceipt() {
     }
   }
 
-  // ២. សម្រាប់អ្នកប្រើលើ Web Browser (Computer ឬ Sunmi POS)
-  // យើងបោះទម្រង់ html ទៅឱ្យ window.print() ដំណើរការ (Sunmi នឹងលោតផ្ទាំង Print របស់ Android មក)
   const captureAreaHtml = document.getElementById("captureArea").innerHTML;
   const originalContents = document.body.innerHTML;
 
-  // រៀបចំទម្រង់សម្រាប់ព្រីន (ដាក់ទំហំតូចល្មមប៉ុនក្រដាស POS)
   document.body.innerHTML = `
     <div style="padding: 10px; width: 100%; max-width: 100%; margin: 0 auto; background: white; color: black;">
       ${captureAreaHtml}
     </div>
   `;
 
-  // លាក់ប៊ូតុង Print/Done ចេញពីក្រដាសព្រីន
   const actions = document.getElementById("slipActionButtons");
   if (actions) actions.style.display = "none";
 
-  // ហៅផ្ទាំង Print របស់ប្រព័ន្ធ
   window.print();
 
-  // ក្រោយពីព្រីនរួច ទាញ UI ចាស់មកវិញ និង Refresh ទំព័រ
   document.body.innerHTML = originalContents;
   setTimeout(() => {
     window.location.reload();
@@ -361,16 +394,12 @@ async function downloadSlipPDF() {
         const isIncome = t.amount > 0;
         const tType = (t.type || "").toLowerCase();
 
-        // 🛠️ អនុគមន៍សម្រាប់លុបអក្សរខ្មែរចេញពី PDF ដើម្បីកុំអោយចេញ Š¶€... ខូចជួរ
         const cleanKhmer = (str) => {
           if (!str) return "N/A";
-          // Regex នេះនឹងលុបអក្សរខ្មែរទាំងអស់ចេញ រក្សាទុកតែអង់គ្លេស និងលេខ
           let cleaned = str.replace(/[\u1780-\u17FF\u200B]/g, "").trim();
           return cleaned.length > 0 ? cleaned : "-";
         };
 
-        // ១. ក្បាលទំព័រ (Header & Logo)
-        // ប្រើទំហំ 90x24 ដើម្បីអោយ logo វែងល្មម មិនកន្តឿ
         doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 90, 24);
 
         doc.setFont("helvetica", "bold");
@@ -387,37 +416,62 @@ async function downloadSlipPDF() {
           { align: "right" },
         );
 
-        // គូរបន្ទាត់កាត់
         doc.setDrawColor(220, 220, 220);
         doc.setLineWidth(1);
         doc.line(40, 85, pageWidth - 40, 85);
 
-        // ២. ACCOUNT DETAILS (ក្បាលដែលភ្លេច)
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(100, 116, 139);
-        doc.text("ACCOUNT DETAILS", 40, 110);
+        let lblSenderText = "Sender";
+        let lblReceiverText = "Receiver";
 
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.text("Account holder:", 40, 130);
-        doc.text("Account No:", 40, 145);
+        if (tType.includes("deposit")) {
+          lblSenderText = "Deposited By";
+          lblReceiverText = "Credited To";
+        } else if (tType.includes("payroll")) {
+          lblSenderText = "Company / Payer";
+          lblReceiverText = "Employee";
+        } else if (
+          tType.includes("merchant") ||
+          tType.includes("scan") ||
+          t.merchantId ||
+          t.trxMethod === "NFC Payment"
+        ) {
+          lblSenderText = "Paid By";
+          lblReceiverText = "Paid To (Merchant)";
+        } else if (tType.includes("bill")) {
+          lblSenderText = "Paid By";
+          lblReceiverText = "Biller / Company";
+        } else if (tType.includes("promo") || tType.includes("cashback")) {
+          lblSenderText = "Reward From";
+          lblReceiverText = "Credited To";
+        } else if (tType.includes("fund") || tType.includes("saving")) {
+          lblSenderText = "Contributor";
+          lblReceiverText = "U-Fund Goal";
+        } else if (tType.includes("refund")) {
+          lblSenderText = "Refund From";
+          lblReceiverText = "Refunded To";
+        }
 
-        doc.setTextColor(30, 41, 59);
-        doc.setFont("helvetica", "bold");
-        let sessionUser = JSON.parse(sessionStorage.getItem("user")) || {
-          fullName: "USER",
-        };
-        let myName = (
-          sessionUser.fullName || sessionUser.username
-        ).toUpperCase();
-        doc.text(myName, 130, 130);
+        let displaySenderAcc = t.senderAcc || "";
+        let displayReceiverAcc = t.receiverAcc || "";
 
-        let ownerAcc =
-          (isIncome ? t.receiverAcc : t.senderAcc) || "MAIN ACCOUNT";
-        doc.text(ownerAcc, 130, 145);
+        if (t.cardNumber) {
+          const maskedCard = `(${t.cardNumber.substring(0, 4)} **** **** ${t.cardNumber.slice(-4)})`;
+          if (tType.includes("refund")) displayReceiverAcc = maskedCard;
+          else displaySenderAcc = maskedCard;
+        }
 
-        // ៣. ចំណងជើងប្រតិបត្តិការ និងលុយ (ធំៗ)
+        // 🟢 កែសម្រួល PDF ឱ្យលាក់ Merchant ID សម្រាប់ភ្ញៀវដូចគ្នា
+        if (t.merchantId) {
+          if (tType.includes("refund")) {
+            displaySenderAcc = isIncome ? `(${t.merchantId})` : "";
+          } else {
+            displayReceiverAcc = isIncome ? `(${t.merchantId})` : "";
+          }
+        }
+
+        let sName = t.senderName || "SYSTEM";
+        let rName = t.receiverName || "SYSTEM";
+
         let displayTitle =
           (isIncome ? t.senderName : t.receiverName) || "SYSTEM";
         if (tType.includes("deposit")) displayTitle = "CASH DEPOSIT";
@@ -425,10 +479,11 @@ async function downloadSlipPDF() {
           displayTitle = isIncome ? "SALARY" : "PAYROLL";
         else if (tType.includes("fund") || tType.includes("saving"))
           displayTitle = "U-FUND";
-        else if (t.type === "Merchant Payment")
+        else if (t.type === "Merchant Payment" || t.trxMethod === "NFC Payment")
           displayTitle = t.receiverName || t.merchantName || "MERCHANT PAYMENT";
         else if (tType.includes("gift"))
           displayTitle = isIncome ? "E-GIFT RECEIVED" : "E-GIFT SENT";
+        else if (tType.includes("refund")) displayTitle = "REFUND RECEIVED";
 
         doc.setFontSize(14);
         doc.text(displayTitle.toUpperCase(), 40, 190);
@@ -441,18 +496,17 @@ async function downloadSlipPDF() {
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(100, 116, 139);
-        doc.text(t.date || "N/A", 40, 205); // Date ដាក់ពីក្រោមចំណងជើង
+        doc.text(t.date || "N/A", 40, 205);
 
         doc.setDrawColor(230, 230, 230);
         doc.line(40, 215, pageWidth - 40, 215);
 
-        // ៤. ព័ត៌មានលម្អិត (Details Grid - តម្រង់ជួរត្រឹមត្រូវ)
         let startY = 235;
         const leftX = 40;
         const rightX = pageWidth - 40;
 
         const drawRow = (label, value) => {
-          if (!value || value === "N/A" || value === "-") return; // រំលងបើគ្មានទិន្នន័យ
+          if (!value || value === "N/A" || value === "-") return;
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
           doc.setTextColor(100, 116, 139);
@@ -461,7 +515,7 @@ async function downloadSlipPDF() {
           doc.setFont("helvetica", "bold");
           doc.setTextColor(30, 41, 59);
 
-          const cleanVal = cleanKhmer(value); // លុបអក្សរខ្មែរការពារខូចជួរ
+          const cleanVal = cleanKhmer(value);
           const splitText = doc.splitTextToSize(cleanVal, 260);
           doc.text(splitText, rightX, startY, { align: "right" });
 
@@ -470,24 +524,19 @@ async function downloadSlipPDF() {
           doc.line(40, startY - 10, pageWidth - 40, startY - 10);
         };
 
-        let otherName = (isIncome ? t.senderName : t.receiverName) || "SYSTEM";
-
-        // ដាក់ទិន្នន័យ
-        drawRow("Transaction ID", t.refId || "N/A"); // ប្រើលេខ RefID ពិតៗ
+        drawRow("Transaction ID", t.refId || "N/A");
         drawRow("Payment Method", t.trxMethod || "U-Pay Transfer");
 
-        drawRow("Sender", isIncome ? otherName.toUpperCase() : myName);
-        if (!isIncome && t.senderAcc) drawRow("Sender Account", t.senderAcc);
+        drawRow(lblSenderText, sName.toUpperCase());
+        if (displaySenderAcc) drawRow("Sender Account", displaySenderAcc);
 
-        drawRow("Receiver", isIncome ? myName : otherName.toUpperCase());
-        if (isIncome && t.receiverAcc)
-          drawRow("Receiver Account", t.receiverAcc);
+        drawRow(lblReceiverText, rName.toUpperCase());
+        if (displayReceiverAcc) drawRow("Receiver Account", displayReceiverAcc);
 
         drawRow("Blockchain Hash", t.hash || "N/A");
         drawRow("Transaction Fee", "0.00" + currSym);
         drawRow("Remark", t.remark || "-");
 
-        // ៥. កន្ទុយទំព័រ (Footer)
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.setFont("helvetica", "normal");
@@ -502,7 +551,6 @@ async function downloadSlipPDF() {
           pageHeight - 35,
         );
 
-        // Logo តូចខាងស្តាំ
         doc.addImage(
           "images/logo-nobg.png",
           "PNG",
@@ -523,6 +571,6 @@ async function downloadSlipPDF() {
   } catch (err) {
     console.error(err);
     iconBox.innerHTML = originalIcon;
-    alert("មានបញ្ហាក្នុងការទាញយក Library!");
+    alert("មានបញ្ហាក្នុងការទាញយកសារ!");
   }
 }

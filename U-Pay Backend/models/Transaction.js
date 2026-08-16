@@ -17,6 +17,9 @@ const transactionSchema = new mongoose.Schema(
     date: { type: String },
     remark: { type: String },
     status: { type: String },
+    // 🟢 ថែម ២ ជួរនេះចូល ដើម្បីឱ្យ Database អនុញ្ញាតឱ្យ Save ទុក
+    cardId: { type: String },
+    cardNumber: { type: String },
   },
   { timestamps: true },
 );

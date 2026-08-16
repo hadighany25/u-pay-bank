@@ -597,6 +597,8 @@ exports.removeCashier = async (req, res) => {
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
+// 🛑 អថេរសម្រាប់ចាក់សោការពារការឈូតកាតត្រួតគ្នា (Double Tap Cooldown ៥ វិនាទី)
+const activeTaps = new Set();
 
 // =======================================================
 // 💳 TAP TO PAY (STRICT CROSS-CURRENCY WITH DB EXCHANGE RATE)
@@ -604,6 +606,16 @@ exports.removeCashier = async (req, res) => {
 exports.processTapToPay = async (req, res) => {
   const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
   const payAmount = parseFloat(amount); // ចំនួនទឹកប្រាក់ដែលហាងចង់បាន (USD ឬ KHR)
+
+  // 🛑 ទី១: ការពារការកាត់លុយ ២ដងក្នុងពេលតែមួយ (Lock ៥វិនាទី)
+  const tapLockKey = `${uid}_${merchantId}_${payAmount}`;
+  if (activeTaps.has(tapLockKey)) {
+    return res.json({
+      success: false,
+      message: "កំពុងដំណើរការទូទាត់ សូមរង់ចាំបន្តិច!",
+    });
+  }
+  activeTaps.add(tapLockKey);
 
   try {
     const User = require("../models/User");
@@ -783,7 +795,7 @@ exports.processTapToPay = async (req, res) => {
         shop.linkedAccounts.USD || shop.linkedAccounts.KHR || "N/A";
     }
 
-    // ប្រវត្តិអតិថិជន (បង្ហាញចំនួនទឹកប្រាក់ដែលកាត់ចេញពិតប្រាកដ)
+    // ប្រវត្តិអតិថិជន
     await Transaction.create({
       username: customer.username,
       refId: trxRef,
@@ -799,12 +811,17 @@ exports.processTapToPay = async (req, res) => {
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
       receiverAcc: customerReceiverAcc,
+
+      // 🟢 ថែមលេខកាត និង ID កាត ចូលទៅក្នុងប្រវត្តិ (សម្រាប់បង្ហាញ Slip ភ្ញៀវជាលេខកាត)
+      cardId: card.id,
+      cardNumber: card.number,
+
       status: "Hold",
       remark: `Payment with Auto Exchange Rate (${exchangeRate})`,
       trxMethod: "NFC Payment",
     });
 
-    // ប្រវត្តិហាង
+    // ប្រវត្តិហាង (🟢 មិនបាច់ដាក់ merchantId ក្នុង Transaction ຝັ່ງអតិថិជនទេ ឬដាក់ត្រឹមហាងបានហើយ តែសម្រាប់ Slip ភ្ញៀវ យើងបានទប់កុំឱ្យវាបង្ហាញ ID ហាងរួចរាល់ហើយក្នុង slip.js)
     await Transaction.create({
       username: shop.userId,
       refId: trxRef,
@@ -820,7 +837,11 @@ exports.processTapToPay = async (req, res) => {
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
       receiverAcc: merchantLinkedAcc,
-      merchantId: shop.merchantId,
+      merchantId: shop.merchantId, // ហាងនៅតែត្រូវការ merchantId នេះដើម្បីទាញប្រវត្តិចូលផ្ទាំង Dashbaord ហាង
+
+      cardId: card.id,
+      cardNumber: card.number,
+
       status: "Hold",
       remark: "Tap to Pay Transaction",
       trxMethod: "NFC Payment",
@@ -845,6 +866,9 @@ exports.processTapToPay = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server Error: " + error.message });
+  } finally {
+    // 🟢 ដោះសោរការពារវិញបន្ទាប់ពី ៥ វិនាទី
+    setTimeout(() => activeTaps.delete(tapLockKey), 5000);
   }
 };
 
@@ -1082,6 +1106,10 @@ exports.refundTransaction = async (req, res) => {
       status: "Success",
       remark: `Refund for Hold Trx: ${refId}`,
       trxMethod: "Refund",
+
+      // 🟢 ថែមលេខកាត និង ID កាត ចូលទៅក្នុងប្រវត្តិ Refund វិញដែរ
+      cardId: customerTrx.cardId,
+      cardNumber: customerTrx.cardNumber,
     });
 
     // Slip ຝັ່ງហាង
@@ -1104,24 +1132,23 @@ exports.refundTransaction = async (req, res) => {
     // ៧. បាញ់ Socket Refresh ទាំងសងខាង
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
-      global.io.to(customer.username).emit("transactionUpdated");
+      global.io.to(customerUsername).emit("transactionUpdated"); // 🟢 កែពី customer.username មក customerUsername
       global.io.to(shop.userId).emit("paymentReceived", {
-        amount: payAmount,
-        currency: currency,
-        senderName: customer.fullName || customer.username,
-        // 🟢 បន្ថែម ២ នេះចូល Socket ដែរការពារ проកំហុស
-        refId: trxRef,
-        hash: trxHash,
+        amount: Math.abs(merchantTrx.amount), // 🟢 ប្រើទឹកប្រាក់របស់ហាង
+        currency: merchantCurrency, // 🟢 ប្រើរូបិយប័ណ្ណរបស់ហាង
+        senderName: customerTrx.senderName, // 🟢 ប្រើឈ្មោះអតិថិជនពី Trx ចាស់
+        refId: newRefId, // 🟢 ប្រើ RefId ថ្មី
+        hash: newHash, // 🟢 ប្រើ Hash ថ្មី
       });
     }
 
     // 🟢 កន្លែងសំខាន់៖ បោះទិន្នន័យពិតប្រាកដទៅឱ្យអេក្រង់ POS វិញ
     res.json({
       success: true,
-      message: "ការទូទាត់បានសម្រេចជោគជ័យ!",
-      refId: trxRef,
-      hash: trxHash,
-      senderName: customer.fullName || customer.username,
+      message: "ការបង្វិលប្រាក់បានសម្រេចជោគជ័យ!",
+      refId: newRefId, // 🟢 ប្រើ RefId ថ្មី
+      hash: newHash, // 🟢 ប្រើ Hash ថ្មី
+      senderName: customerTrx.senderName, // 🟢 ប្រើឈ្មោះអតិថិជនពី Trx ចាស់
     });
   } catch (error) {
     console.error("Tap to Pay Strict Error:", error);

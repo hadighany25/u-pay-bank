@@ -84,18 +84,21 @@
         flex-direction: column;
         overflow-x: hidden;
       }
-
       /* --- NO CARD STATE --- */
       #noCardState {
         text-align: center;
         margin-top: 50px;
         padding: 20px;
       }
-      #noCardState i {
+
+      /* 🟢 រូបកាតខាងលើគេ ឱ្យធំធម្មតា */
+      #noCardState > i {
         font-size: 5rem;
         color: #cbd5e1;
         margin-bottom: 20px;
       }
+
+      /* 🟢 រក្សាទំហំដដែលរបស់ប៊ូតុងបង្កើតកាត */
       .btn-create {
         background: #10b981;
         color: white;
@@ -114,6 +117,12 @@
         transform: scale(0.96);
       }
 
+      /* 🟢 ដាក់ Class ឬទំហំជាក់លាក់សម្រាប់សញ្ញាបូកក្នុងប៊ូតុង */
+      .btn-create i {
+        font-size: 1rem;
+        margin-right: 8px;
+      }
+
       /* --- CAROUSEL (MULTI-CARDS) --- */
       #hasCardState {
         width: 100%;
@@ -122,13 +131,16 @@
       .cards-slider {
         display: flex;
         overflow-x: auto;
+        overflow-y: hidden;
         scroll-snap-type: x mandatory;
         scroll-behavior: smooth;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 10px;
+        padding-top: 10px;
+        padding-bottom: 25px;
         gap: 15px;
         touch-action: pan-x;
         overscroll-behavior-x: contain;
+        align-items: center;
       }
       .cards-slider::-webkit-scrollbar {
         display: none;
@@ -171,9 +183,8 @@
       }
 
       /* ==========================================
-         🎨 THE 8 CARD TIERS (IMAGES & GRADIENTS) 
+         🎨 THE CARD TIERS (IMAGES & GRADIENTS) 
          ========================================== */
-      /* ជំនួយអោយរូបភាពបង្ហាញចំកណ្តាលពេញលេញទាំងលើកាត និងក្នុង Preview */
       .card-front,
       .card-back,
       .tier-preview {
@@ -182,25 +193,28 @@
         background-repeat: no-repeat !important;
       }
 
-      /* 1. Standard (បៃតង U-Pay) */
+      /* 1. Standard */
       .theme-standard .card-front,
       .theme-standard .card-back,
       .tier-preview.theme-standard {
-        background: linear-gradient(135deg, #149a83 0%, #004d40 100%);
+        background: linear-gradient(
+          135deg,
+          #149a83 0%,
+          #004d40 100%
+        ) !important;
       }
 
-      /* 2. FIFA World Cup (រូបកីឡដ្ឋាន ឬបាល់ទាត់) */
+      /* 2. FIFA World Cup */
       .theme-fifa .card-front,
       .theme-fifa .card-back,
       .tier-preview.theme-fifa {
         background:
           linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)),
-          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10") !important;
-        background-size: cover !important;
-        background-position: center !important;
+          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10")
+            center/cover no-repeat !important;
       }
 
-      /* 3. Metal Gold (ពណ៌មាសប្រណិត) */
+      /* 3. Metal Gold */
       .theme-metal .card-front,
       .theme-metal .card-back,
       .tier-preview.theme-metal {
@@ -211,87 +225,50 @@
           #b38728 50%,
           #fbf5b7 75%,
           #aa771c 100%
-        );
+        ) !important;
       }
 
-      /* 4. Celebrity (BTS Edition) */
+      /* 4. BTS Edition */
       .theme-celebrity .card-front,
       .theme-celebrity .card-back,
       .tier-preview.theme-celebrity {
         background:
           linear-gradient(rgba(88, 28, 135, 0.4), rgba(0, 0, 0, 0.8)),
-          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2RxvoEe_j52IEh_8Fu_DZ0aupMrDFYak0tD3k4Ee_ug&s=10") !important;
-        background-size: cover !important;
-        background-position: center !important;
+          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2RxvoEe_j52IEh_8Fu_DZ0aupMrDFYak0tD3k4Ee_ug&s=10")
+            center/cover no-repeat !important;
       }
 
-      /* 5. Anime Ed. (Naruto Edition) */
+      /* 5. Naruto Ed. */
       .theme-anime .card-front,
       .theme-anime .card-back,
       .tier-preview.theme-anime {
         background:
           linear-gradient(rgba(185, 28, 28, 0.5), rgba(0, 0, 0, 0.85)),
-          url("https://static0.cbrimages.com/wordpress/wp-content/uploads/2024/01/sasuke-naruto-and-sakura.jpg") !important;
-        background-size: cover !important;
-        background-position: center !important;
+          url("https://static0.cbrimages.com/wordpress/wp-content/uploads/2024/01/sasuke-naruto-and-sakura.jpg")
+            center/cover no-repeat !important;
       }
 
-      /* 6. Gamer Pro (Gamer Edition) */
+      /* 6. Gamer Pro */
       .theme-gamer .card-front,
       .theme-gamer .card-back,
       .tier-preview.theme-gamer {
         background:
           linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.85)),
-          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10") !important;
-        background-size: cover !important;
-        background-position: center !important;
+          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10")
+            center/cover no-repeat !important;
       }
 
-      /* 7. Eco Green (រូបភាពបែបធម្មជាតិ) */
+      /* 7. Eco Green */
       .theme-eco .card-front,
       .theme-eco .card-back,
       .tier-preview.theme-eco {
         background:
           linear-gradient(rgba(21, 128, 61, 0.4), rgba(0, 0, 0, 0.8)),
-          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmfmcQbkrZqkkSWfuTzzuFZNf65-nxTieNggbtUhV_vw&s=10") !important;
-        background-size: cover !important;
-        background-position: center !important;
+          url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmfmcQbkrZqkkSWfuTzzuFZNf65-nxTieNggbtUhV_vw&s=10")
+            center/cover no-repeat !important;
       }
 
       /* 8. Platinum Premium (ខ្មៅ Carbon ស៊ីវិល័យបំផុត) */
-      /* បង្កើតចលនារលកពន្លឺ (Shimmer Animation) ពីស្តាំលើ -> ឆ្វេងក្រោម */
-      @keyframes platinumWave {
-        0% {
-          background-position:
-            100% 0%,
-            center;
-        }
-        100% {
-          background-position:
-            0% 100%,
-            center;
-        }
-      }
-
-      /* =======================================
-         ✨ 8. Platinum Premium (Pure Black + Moving Wave)
-         ======================================= */
-
-      /* 1. បិទពន្លឺកញ្ចក់ចាស់ដែលនៅទ្រឹង */
-      .theme-platinum .card-front::after {
-        display: none !important;
-      }
-
-      /* 2. ដាក់ពណ៌ Background ជាខ្មៅដិតសុទ្ធ (Pure Black) ដូចក្នុងរូប ១០០% */
-      .theme-platinum .card-front,
-      .theme-platinum .card-back,
-      .tier-preview.theme-platinum {
-        background: #000000 !important;
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* 3. បង្កើតចលនារលកពន្លឺរត់បញ្ឆិត ពីឆ្វេងទៅស្តាំ */
       @keyframes platinumWave {
         0% {
           transform: translateX(-150%) skewX(-30deg);
@@ -300,8 +277,16 @@
           transform: translateX(250%) skewX(-30deg);
         }
       }
-
-      /* 4. បញ្ចូលខ្សែពន្លឺ (Shimmer) ទៅលើកាតពណ៌ខ្មៅ */
+      .theme-platinum .card-front::after {
+        display: none !important;
+      }
+      .theme-platinum .card-front,
+      .theme-platinum .card-back,
+      .tier-preview.theme-platinum {
+        background: #000000 !important;
+        position: relative;
+        overflow: hidden;
+      }
       .theme-platinum .card-front::before,
       .theme-platinum .card-back::before,
       .tier-preview.theme-platinum::before {
@@ -315,14 +300,12 @@
           to right,
           rgba(255, 255, 255, 0) 0%,
           rgba(255, 255, 255, 0.12) 50%,
-          /* កម្រិតពន្លឺរលកពណ៌ប្រាក់ */ rgba(255, 255, 255, 0) 100%
+          rgba(255, 255, 255, 0) 100%
         );
         z-index: 1;
-        animation: platinumWave 2.5s infinite; /* ល្បឿនរត់ 2.5s */
+        animation: platinumWave 2.5s infinite;
         pointer-events: none;
       }
-
-      /* 5. ធានាថាអក្សរ លេខកាត និង Logo ស្ថិតនៅពីលើពន្លឺជានិច្ច */
       .theme-platinum .card-front > *,
       .theme-platinum .card-back > *,
       .tier-preview.theme-platinum > * {
@@ -330,43 +313,22 @@
         z-index: 2;
       }
 
-      /* 🟡 Fix colors for Metal Gold (អក្សរខ្មៅ/ត្នោតលើមាស) */
-      .theme-metal .card-number,
-      .theme-metal .card-value,
-      .theme-metal .card-type-small,
-      .theme-metal .back-text {
-        color: #451a03 !important;
-        text-shadow: none !important;
-      }
-      .theme-metal .card-label,
-      .theme-metal .nfc-icon {
-        color: rgba(69, 26, 3, 0.7) !important;
-      }
-      .theme-metal .logo-upay-top,
-      .theme-metal .logo-upay-back {
-        filter: none !important;
-        opacity: 0.9;
+      /* 9. Animal Edition */
+      .theme-animal .card-front,
+      .theme-animal .card-back,
+      .tier-preview.theme-animal {
+        background:
+          linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)),
+          url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80")
+            center/cover no-repeat !important;
       }
 
-      /* Glossy Overlay */
-      .card-front::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          115deg,
-          rgba(255, 255, 255, 0) 0%,
-          rgba(255, 255, 255, 0.05) 40%,
-          rgba(255, 255, 255, 0.2) 50%,
-          rgba(255, 255, 255, 0) 51%,
-          rgba(255, 255, 255, 0) 100%
-        );
-        pointer-events: none;
-        border-radius: 20px;
-        z-index: 1;
+      /* 10. Custom VIP (Default Fallback Theme) */
+      .theme-custom .card-front,
+      .theme-custom .card-back,
+      .tier-preview.theme-custom {
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.8))
+          center/cover no-repeat !important;
       }
 
       /* ==========================================
@@ -389,7 +351,6 @@
         align-items: center;
         gap: 10px;
       }
-
       .chip {
         width: 45px;
         height: 32px;
@@ -546,7 +507,6 @@
         background: #111;
         margin-top: 25px;
       }
-
       .back-text {
         font-size: 0.65rem;
         color: rgba(255, 255, 255, 0.95);
@@ -555,7 +515,6 @@
         font-weight: 400;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       }
-
       .cvv-container {
         display: flex;
         align-items: center;
@@ -587,7 +546,6 @@
         letter-spacing: 3px;
         font-size: 1.15rem;
       }
-
       .logo-upay-back {
         height: 35px;
         filter: brightness(0) invert(1);
@@ -670,7 +628,6 @@
         align-items: center;
         gap: 15px;
       }
-
       .setting-icon {
         width: 40px;
         height: 40px;
@@ -908,7 +865,6 @@
         box-shadow: 0 4px 10px rgba(16, 185, 129, 0.1);
       }
 
-      /* 🟢 ផ្នែក Preview ក្នុង Modal ក៏ត្រូវតែចេញរូបភាពដូចកាតដែរ */
       .tier-preview {
         width: 100%;
         height: 60px;
@@ -1054,7 +1010,6 @@
         cursor: grabbing !important;
       }
 
-      /* Styles for Reorder List */
       .reorder-item {
         background: white;
         border: 1px solid #e2e8f0;
@@ -1074,15 +1029,43 @@
         opacity: 0.5;
         background: #e2e8f0;
       }
-      body.dark-mode .reorder-item {
-        background: #121212;
-        border-color: #2d2d2d;
+
+      /* ==========================================
+         💥 CARD DELETE ANIMATION (ញ័រប្រេះបែក តែមិនផុសមកមុខ)
+         ========================================== */
+      @keyframes shatterAndVanish {
+        0% {
+          transform: scale(1) translate(0, 0);
+          filter: brightness(1);
+        }
+        10% {
+          transform: scale(1) translate(-4px, 2px) rotate(-1deg) skewX(2deg);
+          filter: brightness(1.5) contrast(1.2);
+        }
+        20% {
+          transform: scale(1) translate(4px, -2px) rotate(1deg) skewX(-2deg);
+          filter: brightness(1.5) grayscale(50%);
+        }
+        30% {
+          transform: scale(1) translate(-4px, 2px) rotate(-1deg);
+          filter: grayscale(80%) sepia(1) hue-rotate(-50deg);
+          opacity: 0.9;
+        }
+        50% {
+          transform: scale(0.9) translateY(30px) rotate(-5deg);
+          opacity: 0.7;
+          filter: blur(2px);
+        }
+        100% {
+          transform: scale(0.4) translateY(200px) rotate(20deg);
+          opacity: 0;
+          filter: blur(15px);
+          display: none;
+        }
       }
-      body.dark-mode .reorder-item:active {
-        background: #1e1e1e;
-      }
-      body.dark-mode .reorder-ghost {
-        background: #000;
+      .card-shatter {
+        animation: shatterAndVanish 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+        pointer-events: none;
       }
 
       /* ==========================================
@@ -1119,7 +1102,6 @@
         background: #2d2d2d;
         color: #94a3b8;
       }
-
       body.dark-mode input:checked + .slider {
         background-color: #10b981 !important;
       }
@@ -1181,6 +1163,16 @@
       body.dark-mode .history-item:hover {
         background: #2d2d2d;
       }
+      body.dark-mode .reorder-item {
+        background: #121212;
+        border-color: #2d2d2d;
+      }
+      body.dark-mode .reorder-item:active {
+        background: #1e1e1e;
+      }
+      body.dark-mode .reorder-ghost {
+        background: #000;
+      }
     </style>
   </head>
   <body>
@@ -1233,7 +1225,6 @@
             </div>
             <div class="history-list" id="cardTrxList"></div>
 
-            <!-- ប៊ូតុងរៀបចំទីតាំងកាត -->
             <div class="setting-item" onclick="openReorderModal()">
               <div class="setting-left">
                 <div
@@ -1470,6 +1461,7 @@
           <h3 style="margin: 0 0 20px; text-align: center" class="kh-text">
             កំណត់ព័ត៌មានកាតថ្មី
           </h3>
+
           <p
             class="kh-text"
             style="margin: 0 0 10px; font-weight: 600; font-size: 0.9rem"
@@ -1489,6 +1481,31 @@
           </p>
           <div class="card-types-grid" id="cardTypesGrid">
             <!-- Generate via JS -->
+          </div>
+
+          <!-- 🟢 ប្រអប់ដាក់ Link រូបភាព (សម្រាប់កាត Custom) លោតចេញតែពេលរើសកាត Custom -->
+          <div
+            id="customBgContainer"
+            style="display: none; margin-bottom: 20px; text-align: left"
+          >
+            <label
+              class="kh-text"
+              style="font-size: 0.85rem; color: #64748b; font-weight: bold"
+              >បញ្ចូល Link រូបភាពអនឡាញ (Online Image URL):</label
+            >
+            <input
+              type="text"
+              id="customBgInput"
+              class="account-select-box"
+              placeholder="ឧទាហរណ៍: https://image.com/myphoto.jpg"
+              style="
+                margin-bottom: 0;
+                margin-top: 5px;
+                padding: 12px;
+                font-family: monospace;
+                font-size: 0.85rem;
+              "
+            />
           </div>
 
           <button class="btn-full kh-text" onclick="confirmGenerateCard()">
@@ -1518,8 +1535,6 @@
             ចុចសង្កត់លើសញ្ញា
             <i class="fa-solid fa-bars"></i> រួចអូសឡើងលើឬចុះក្រោម
           </p>
-
-          <!-- កន្លែងបង្ហាញបញ្ជីកាតសម្រាប់អូស -->
           <div
             id="reorderList"
             style="
@@ -1532,7 +1547,6 @@
               padding-bottom: 10px;
             "
           ></div>
-
           <button class="btn-full kh-text" onclick="saveReorderedCards()">
             <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកទីតាំង
           </button>
@@ -1562,7 +1576,6 @@
           >
             សូមប្រាប់យើងពីមូលហេតុដែលអ្នកចង់បិទកាតនេះ។
           </p>
-
           <label class="radio-label-block kh-text">
             <input
               type="radio"
@@ -1580,7 +1593,6 @@
             <input type="radio" name="delReason" value="Creating new one" />
             <span>ខ្ញុំចង់ប្តូរយកប្រភេទកាតថ្មី</span>
           </label>
-
           <button
             class="btn-full btn-danger kh-text"
             style="margin-top: 10px"
@@ -1611,7 +1623,7 @@
       let isFlippedList = {};
       let currentCardIndex = 0;
 
-      // 💳 8 CARD TIERS CONFIGURATION (🟢 កែឈ្មោះឱ្យត្រូវតាមការស្នើសុំថ្មី)
+      // 💳 10 CARD TIERS CONFIGURATION (🟢 ថែម Animal និង Custom VIP)
       const cardTiers = [
         {
           id: "standard",
@@ -1639,7 +1651,7 @@
         },
         {
           id: "anime",
-          name: "Naruto Ed.",
+          name: "Naruto Edition",
           price: 8.0,
           styleClass: "theme-anime",
         },
@@ -1655,6 +1667,18 @@
           name: "Platinum Premium",
           price: 25.0,
           styleClass: "theme-platinum",
+        },
+        {
+          id: "animal",
+          name: "Animal Edition",
+          price: 8.0,
+          styleClass: "theme-animal",
+        },
+        {
+          id: "custom",
+          name: "Custom VIP",
+          price: 25.0,
+          styleClass: "theme-custom",
         },
       ];
       let selectedCardType = "standard";
@@ -1691,8 +1715,8 @@
         if (cards.length > 0) {
           document.getElementById("noCardState").style.display = "none";
           document.getElementById("hasCardState").style.display = "block";
-          // កំណត់ចំនួនកាតដែលអាចបង្កើតបាន
-          fab.style.display = cards.length < 8 ? "flex" : "none";
+          // អនុញ្ញាតឱ្យបង្កើតដល់ ១០ កាត
+          fab.style.display = cards.length < 10 ? "flex" : "none";
 
           cards.forEach((c, i) => {
             let isRev = isRevealedList[c.id] || false;
@@ -1732,12 +1756,18 @@
               else linkedNum = c.linkedAccount;
             }
 
+            // 🟢 Custom Background Logic សម្រាប់កាត Custom
+            let customBgStyle = "";
+            if (c.type === "custom" && c.customBgUrl) {
+              customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
+            }
+
             slider.innerHTML += `
-              <div class="card-perspective" data-id="${c.id}" onclick="flipCurrentCardWithPin()">
+              <div class="card-perspective" data-id="${c.id}">
                 <div class="card-inner ${theme} ${c.isLocked ? "locked" : ""} ${isFlip ? "flipped" : ""}" id="cardInner_${c.id}">
                   
                   <!-- 💳 FRONT CARD -->
-                  <div class="card-front">
+                  <div class="card-front" ${customBgStyle} onclick="flipCurrentCardWithPin()">
                     <div class="locked-overlay"><div class="locked-text">FROZEN</div></div>
                     
                     <div class="card-top">
@@ -1769,49 +1799,36 @@
                   </div>
 
                  <!-- 💳 BACK CARD -->
-                  <div class="card-back">
+                  <div class="card-back" ${customBgStyle} onclick="flipCurrentCardWithPin()">
                         <div class="locked-overlay"><div class="locked-text">FROZEN</div></div>
-                        
-                        <!-- ឆ្នូតខ្មៅ -->
                         <div class="magnetic-strip"></div>
-                        
-                        <!-- ផ្នែកកណ្តាល -->
                         <div class="back-middle" style="padding: 15px 25px 5px; display: flex; justify-content: space-between; align-items: flex-start;">
-                            
-                            <!-- ខាងឆ្វេង៖ អក្សរលក្ខខណ្ឌ -->
                             <div class="back-text" style="max-width: 55%;">
                                 <span style="font-weight: 800; color: #fff;">AUTHORIZED SIGNATURE - NOT VALID UNLESS SIGNED</span><br>
                                 This card is issued by <span style="font-weight: 700; color: #fff;">U-Pay PLC</span>. Use is governed by the cardholder agreement.
                             </div>
-                            
-                            <!-- ខាងស្តាំ៖ CVV និង LINKED -->
-                            <div style="display: flex; flex-direction: column; align-items: center; z-index: 2;">
-                                
-                                <div class="cvv-container" onclick="copyDataWithPin('${c.cvv}', 'CVV Code', event)" style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                                <div class="cvv-container" onclick="event.stopPropagation(); copyDataWithPin('${c.cvv}', 'CVV Code', event)" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                                     ${nfcBackIconHtml}
                                     <div class="cvv-section" style="display: flex; flex-direction: column; align-items: center;">
                                         <span class="cvv-label" style="font-size: 0.7rem; color: #fff; font-weight: bold; margin-bottom: 3px;">CVV</span>
                                         <div class="cvv-box" style="background: #fff; color: #000; padding: 4px 12px; border-radius: 4px; font-family: monospace; font-weight: bold; font-size: 1.1rem; letter-spacing: 2px;">${isFlip ? c.cvv : "***"}</div>
                                     </div>
                                 </div>
-                                
                                 <div style="margin-top: 10px; text-align: center;">
                                     <span style="color:#fff; font-weight:800; font-size: 0.6rem; letter-spacing: 1px;">LINKED</span><br>
                                     <span style="font-family: monospace; font-size: 0.75rem; font-weight: bold; color: #10b981; margin-top: 2px; display: inline-block;">
                                         ${c.linkedAccount ? c.linkedAccount.replace("_", " ") : "USD"} : ${linkedNum}
                                     </span>
                                 </div>
-
                             </div>
-                            
                         </div>
-                        
-                        <!-- ផ្នែកបាត៖ Logo -->
                         <div class="back-footer" style="padding: 0 25px 20px;">
                             <img src="images/logo-nobg.png" class="logo-upay-back" onerror="this.style.display='none'">
                         </div>
                     </div>
-              </div>`;
+              </div>
+            </div>`;
             dots.innerHTML += `<div class="dot ${i === currentCardIndex ? "active" : ""}"></div>`;
           });
 
@@ -1845,7 +1862,6 @@
           document
             .querySelectorAll(".dot")
             .forEach((d, i) => d.classList.toggle("active", i === index));
-
           syncToggles();
           renderCardHistory();
         }
@@ -1865,11 +1881,37 @@
       }
 
       // ==========================================
-      // 🔒 SECURITY: PIN PROTECTION & COPY LOGIC
+      // 🔒 SECURITY: PIN PROTECTION & GRACE PERIOD
       // ==========================================
-      function requireSecurityPin(title, desc, successCallback) {
+      let cachedPin = null;
+      let lastAuthTime = 0;
+      const GRACE_PERIOD_MS = 3 * 60 * 1000; // ៣ នាទី (គិតជាមិល្លីវិនាទី)
+
+      function requireSecurityPin(
+        title,
+        desc,
+        successCallback,
+        forceRequire = false,
+      ) {
+        const now = Date.now();
+
+        // 🟢 ប្រព័ន្ធឆ្លាតវៃ៖ បើមាន PIN ចងចាំ ហើយមិនទាន់ហួស ៣នាទី និងមិនមែនជាមុខងារបង្ខំ (Force)
+        if (
+          !forceRequire &&
+          cachedPin &&
+          now - lastAuthTime < GRACE_PERIOD_MS
+        ) {
+          // បន្តអាយុកាល ៣នាទីទៀត រាល់ពេលដែលគាត់នៅតែបន្តចុចប្រើប្រាស់
+          lastAuthTime = now;
+          successCallback(cachedPin);
+          return;
+        }
+
         if (typeof requestPinVerification === "function") {
           requestPinVerification(title, desc, function (pin) {
+            // 🟢 សន្សំ PIN ទុកប្រើយ៉ាងមានសុវត្ថិភាព ក្នុង Memory នៃ Browser
+            cachedPin = pin;
+            lastAuthTime = Date.now();
             successCallback(pin);
           });
         } else {
@@ -1912,6 +1954,7 @@
         }
       }
 
+      // 🟢 មិនបាច់សួរ PIN ពេល Copy លេខកាត (បើកបង្ហាញហើយ Copy ភ្លាម) តែបើមិនទាន់បង្ហាញ ត្រូវសួរ PIN ជាមុន
       function copyCardNumberLogic(number, cardId, e) {
         e.stopPropagation();
         if (isRevealedList[cardId]) {
@@ -1925,27 +1968,38 @@
             timer: 1500,
           });
         } else {
-          copyDataWithPin(number, "Card Number", e);
+          requireSecurityPin(
+            "View Card Number",
+            "Please enter 4-digit PIN to reveal card details",
+            (pin) => {
+              isRevealedList[cardId] = true;
+              renderCards();
+              navigator.clipboard.writeText(number);
+              Swal.fire({
+                toast: true,
+                position: "top",
+                icon: "success",
+                title: `Card Number Copied!`,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+            },
+          );
         }
       }
 
+      // 🟢 លុបការសួរ PIN ចេញសម្រាប់ EXPIRES និង CVV (ចុច Copy ចូល Clipboard ភ្លាមៗ)
       function copyDataWithPin(data, typeName, e) {
         e.stopPropagation();
-        requireSecurityPin(
-          `Copy ${typeName}`,
-          `Enter PIN to copy your ${typeName}`,
-          (pin) => {
-            navigator.clipboard.writeText(data);
-            Swal.fire({
-              toast: true,
-              position: "top",
-              icon: "success",
-              title: `${typeName} Copied!`,
-              showConfirmButton: false,
-              timer: 1500,
-            });
-          },
-        );
+        navigator.clipboard.writeText(data);
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "success",
+          title: `${typeName} Copied!`,
+          showConfirmButton: false,
+          timer: 1500,
+        });
       }
 
       // ==========================================
@@ -2012,11 +2066,10 @@
               title:
                 '<i class="fa-solid fa-gauge-high" style="color:#d97706; font-size:2rem;"></i><br>Card Limits',
               html: `
-                <div style="text-align:left; margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:bold; color:#64748b;">Daily Amount Limit ($)</label></div>
-                <input id="swal-limit-amt" class="swal2-input" type="number" value="${currentCard.dailyLimit || 500}" style="margin: 0 auto 15px; width:90%;">
-                
-                <div style="text-align:left; margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:bold; color:#64748b;">Daily Trx Count Limit</label></div>
-                <input id="swal-limit-count" class="swal2-input" type="number" value="${currentCard.dailyTxCountLimit || 10}" style="margin: 0 auto; width:90%;">
+              <div style="text-align:left; margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:bold; color:#64748b;">Daily Amount Limit ($)</label></div>
+              <input id="swal-limit-amt" class="swal2-input" type="number" value="${currentCard.dailyLimit || 500}" style="margin: 0 auto 15px; width:90%;">
+              <div style="text-align:left; margin-bottom:10px;"><label style="font-size:0.8rem; font-weight:bold; color:#64748b;">Daily Trx Count Limit</label></div>
+              <input id="swal-limit-count" class="swal2-input" type="number" value="${currentCard.dailyTxCountLimit || 10}" style="margin: 0 auto; width:90%;">
             `,
               showCancelButton: true,
               confirmButtonColor: "#10b981",
@@ -2029,7 +2082,6 @@
                 };
               },
             });
-
             if (formValues) {
               Swal.fire({
                 title: "Updating...",
@@ -2082,7 +2134,6 @@
                 return val;
               },
             });
-
             if (newPin) {
               Swal.fire({
                 title: "Updating...",
@@ -2104,6 +2155,7 @@
               else Swal.fire("Error", data.message, "error");
             }
           },
+          true, // 🔥 បង្ខំទារ PIN ពេលប្តូរលេខសម្ងាត់!
         );
       }
 
@@ -2155,6 +2207,10 @@
       function showTypeModal() {
         document.getElementById("termsModal").style.display = "none";
 
+        // 🟢 លុប Link រូបភាពចាស់ៗចោល និងលាក់ប្រអប់ Link
+        document.getElementById("customBgInput").value = "";
+        document.getElementById("customBgContainer").style.display = "none";
+
         const accSelect = document.getElementById("newCardLinkedAcc");
         accSelect.innerHTML = `<option value="USD">Main Account ($) - ${user.accountNumber || "N/A"}</option>`;
         if (user.accountNumberKHR)
@@ -2191,6 +2247,13 @@
           .querySelectorAll(".tier-option")
           .forEach((el) => el.classList.remove("selected"));
         document.getElementById(`tier_${typeId}`).classList.add("selected");
+
+        // 🟢 បើកប្រអប់បញ្ចូល Link រូបភាព ពេល User រើសយកកាត Custom VIP
+        if (typeId === "custom") {
+          document.getElementById("customBgContainer").style.display = "block";
+        } else {
+          document.getElementById("customBgContainer").style.display = "none";
+        }
       }
 
       async function confirmGenerateCard() {
@@ -2199,24 +2262,26 @@
         let chosenCurrency = linkedAccVal.includes("_")
           ? linkedAccVal.split("_")[0]
           : linkedAccVal;
-
-        // 🟢 កែសម្រួលត្រង់នេះ៖ បំបែកចំណងជើង និងអត្ថបទលម្អិតស្អាតៗ ដោយប្រើសញ្ញាធម្មតា ឬ HTML ឱ្យត្រូវជាមួយ SweetAlert2
+        const customUrl = document.getElementById("customBgInput").value;
         const feeMessage = `You are creating a ${selectedCardType.toUpperCase()} card. Fee: $${selectedCardPrice.toFixed(2)}. Enter PIN to confirm payment.`;
 
         requireSecurityPin(
           "Card Issuance Fee",
-          feeMessage, // ប្រើអត្ថបទគ្មាន tag ឆៅ ដើម្បីការពារកុំឱ្យវាលោតចេញ code html
+          feeMessage,
           async (pin) => {
             Swal.fire({
               title: "Processing Payment...",
               didOpen: () => Swal.showLoading(),
             });
+
             const data = await fetchAPI("/api/card/generate", {
               username: user.username,
               cardType: selectedCardType,
               linkedAccount: chosenCurrency,
+              customBgUrl: selectedCardType === "custom" ? customUrl : "",
               pin: pin,
             });
+
             if (data.success) {
               user.virtualCards = data.cards;
               user.balance = data.newBalance;
@@ -2230,45 +2295,77 @@
               }).then(() => location.reload());
             } else Swal.fire("Failed", data.message, "error");
           },
+          true, // 🔥 បង្ខំទារ PIN ពេលកាត់លុយ!
         );
       }
 
       function openDeleteModal() {
         document.getElementById("deleteModal").style.display = "flex";
       }
+
       async function confirmDeleteCard() {
         const reason = document.querySelector(
           'input[name="delReason"]:checked',
         ).value;
         const cardId = cards[currentCardIndex].id;
         closeModals();
+
+        // 🟢 កត់សម្គាល់ពាក្យ true នៅខាងចុងបង្អស់នៃអនុគមន៍
         requireSecurityPin(
           "Close Card",
           "Enter PIN to permanently close this card.",
           async (pin) => {
             Swal.fire({
-              title: "Closing Card...",
+              title: "Destroying Card...",
+              html: "កំពុងកម្ទេចទិន្នន័យកាត...",
               didOpen: () => Swal.showLoading(),
+              allowOutsideClick: false,
             });
+
             const data = await fetchAPI("/api/card/delete", {
               username: user.username,
               cardId,
               reason,
               pin,
             });
+
             if (data.success) {
-              user.virtualCards = data.cards;
-              sessionStorage.setItem("user", JSON.stringify(user));
-              Swal.fire({
-                icon: "success",
-                title: "Closed!",
-                timer: 1500,
-                showConfirmButton: false,
-              }).then(() => location.reload());
-            } else Swal.fire("Error", data.message, "error");
+              Swal.close();
+              try {
+                const shatterSound = new Audio(
+                  "https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=glass-shatter-4-104285.mp3",
+                );
+                shatterSound.volume = 0.6;
+                shatterSound.play();
+              } catch (e) {}
+
+              const activeCardObj = document.querySelector(
+                `.card-perspective[data-id="${cardId}"]`,
+              );
+              if (activeCardObj) activeCardObj.classList.add("card-shatter");
+
+              setTimeout(() => {
+                user.virtualCards = data.cards;
+                sessionStorage.setItem("user", JSON.stringify(user));
+                currentCardIndex = Math.max(0, currentCardIndex - 1);
+                renderCards();
+                Swal.fire({
+                  icon: "success",
+                  title: "Card Destroyed!",
+                  text: "កាតត្រូវបានកម្ទេចចោលដោយសុវត្ថិភាព!",
+                  timer: 2000,
+                  showConfirmButton: false,
+                  customClass: { popup: "premium-swal" },
+                });
+              }, 850);
+            } else {
+              Swal.fire("Error", data.message, "error");
+            }
           },
+          true, // 🔥 នេះជាចំណុចដែលបញ្ជាឱ្យវាសួរ PIN ដាច់ខាត!
         );
       }
+
       function closeModals() {
         document
           .querySelectorAll(".custom-modal")
@@ -2304,14 +2401,39 @@
 
         trxs.forEach((t) => {
           const isIncome = t.amount > 0;
-          const isRefund = t.status === "Refunded" || t.type.includes("Refund");
+
+          // 🟢 កំណត់ឈ្មោះដែលត្រូវបង្ហាញ (បើចំណាយចេញ បង្ហាញឈ្មោះហាង | បើលុយចូល/Refund បង្ហាញអ្នកផ្ញើ)
+          const displayName = isIncome
+            ? t.senderName || t.receiverName
+            : t.receiverName || t.senderName;
+
+          // 🟢 កំណត់ Icon និងពណ៌ តាមលក្ខខណ្ឌ (ដូចរូបទី២)
+          let icon = "fa-store";
+          let iconBg = "#fee2e2"; // ផ្ទៃពណ៌ក្រហមស្រាល (ចំណាយ)
+          let iconColor = "#ef4444"; // ពណ៌ក្រហម (ចំណាយ)
+
+          if (isIncome) {
+            iconBg = "#ecfdf5"; // ផ្ទៃពណ៌បៃតងស្រាល (ចំណូល)
+            iconColor = "#10b981"; // ពណ៌បៃតង (ចំណូល)
+            if (t.type.includes("Refund")) {
+              icon = "fa-arrow-rotate-left"; // Icon លុយបង្វិលចូលពីការ Refund
+            } else {
+              icon = "fa-arrow-down"; // Icon លុយចូលទូទៅ
+            }
+          } else {
+            // សម្រាប់ប្រតិបត្តិការចំណាយ (ទោះបីជាវាត្រូវ Refunded វិញ ក៏នៅរក្សារូបហាងដដែល)
+            iconBg = "#fee2e2";
+            iconColor = "#ef4444";
+            icon = "fa-store";
+          }
+
+          // ឆែកមើលថាវាជាប្រតិបត្តិការដែលជាប់ពាក់ព័ន្ធនឹងការ Refund ដែរឬទេ
+          const isRefundedStatus =
+            t.status === "Refunded" || t.type.includes("Refund");
+
           const sign = isIncome ? "+" : "-";
-          const colorClass = isRefund
-            ? "#10b981"
-            : isIncome
-              ? "#10b981"
-              : "#1e293b";
-          const icon = isRefund ? "fa-arrow-rotate-left" : "fa-store";
+          const amountColor = isIncome ? "#10b981" : "#ef4444"; // ពណ៌លុយ (បៃតងបើចូល, ក្រហមបើចេញ)
+
           const currSym = t.currency === "KHR" ? "៛" : "$";
           const amtFormat = Math.abs(t.amount).toLocaleString("en-US", {
             minimumFractionDigits: t.currency === "USD" ? 2 : 0,
@@ -2322,15 +2444,17 @@
           container.innerHTML += `
             <div class="history-item" onclick="openSlipFromData('${trxJson}')">
               <div style="display:flex; align-items:center; gap:12px;">
-                <div class="history-icon" style="${isRefund ? "background:#ecfdf5; color:#10b981;" : ""}"><i class="fa-solid ${icon}"></i></div>
+                <div class="history-icon" style="background:${iconBg}; color:${iconColor};">
+                  <i class="fa-solid ${icon}"></i>
+                </div>
                 <div>
-                  <h4 style="margin:0; font-size:0.9rem; color:#1e293b;">${t.receiverName || t.senderName || t.type}</h4>
+                  <h4 style="margin:0; font-size:0.9rem; color:#1e293b;">${displayName || t.type}</h4>
                   <p style="margin:2px 0 0; font-size:0.7rem; color:#94a3b8;">${t.date}</p>
                 </div>
               </div>
-              <div style="font-weight:700; font-size:1rem; color:${colorClass}; text-align:right;">
+              <div style="font-weight:700; font-size:1rem; color:${amountColor}; text-align:right;">
                  ${sign}${currSym}${amtFormat}
-                 ${isRefund ? '<br><span style="font-size:0.6rem; color:#10b981; font-weight:bold;">REFUND</span>' : ""}
+                 ${isRefundedStatus ? '<br><span style="font-size:0.6rem; color:#10b981; font-weight:bold;">REFUND</span>' : ""}
               </div>
             </div>`;
         });
@@ -2339,9 +2463,8 @@
       function openSlipFromData(encodedJson) {
         try {
           const trx = JSON.parse(decodeURIComponent(encodedJson));
-          if (typeof openGlobalSlip === "function") {
+          if (typeof openGlobalSlip === "function")
             openGlobalSlip(trx, user.username);
-          } else console.error("slip.js not loaded");
         } catch (e) {
           console.error(e);
         }
@@ -2356,38 +2479,41 @@
         const listContainer = document.getElementById("reorderList");
         listContainer.innerHTML = "";
 
-        // បង្កើតបញ្ជីកាតតូចៗបញ្ឈរ
         user.virtualCards.forEach((c) => {
           let cardName = c.name || `Virtual ${c.type || "Card"}`;
           let num = c.number ? c.number.slice(-4) : "XXXX";
-
-          // 🟢 ចាប់យក Theme ពិតប្រាកដរបស់កាតនីមួយៗ (ឧ. theme-fifa, theme-anime)
           let themeClass = c.type ? `theme-${c.type}` : "theme-standard";
 
+          // 🟢 ទី១៖ ប្តូរយកត្រឹមតែទម្រង់ CSS (លុបពាក្យ style="" ចេញពីទីនេះ)
+          let customBgCss = "";
+          if (c.type === "custom" && c.customBgUrl) {
+            customBgCss = `background: url('${c.customBgUrl}') center/cover no-repeat !important;`;
+          }
+
+          // 🟢 ទី២៖ បញ្ចូល customBgCss ទៅក្នុងប្រអប់ style តែមួយ (និងថែម flex-shrink: 0 ដើម្បីទប់រូបកុំឱ្យខូចរាង)
           listContainer.innerHTML += `
             <div class="reorder-item" data-id="${c.id}">
-              <div style="display: flex; align-items: center; gap: 15px;">
+              <div style="display: flex; align-items: center; gap: 15px; overflow: hidden; width: 100%;">
                 
-                <!-- 🟢 ប្រអប់រូបកាតតូច (ប្រើ class tier-preview ដើម្បិទាញរូប និង gradient មកអូតូ) -->
-                <div class="tier-preview ${themeClass}" style="width: 50px; height: 32px; margin: 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);"></div>
+                <div class="tier-preview ${themeClass}" style="${customBgCss} width: 50px; height: 32px; flex-shrink: 0; margin: 0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.1);"></div>
                 
-                <div>
-                  <div style="font-weight: bold; font-size: 0.9rem; color: var(--text-main);">${cardName}</div>
+                <div style="display: flex; flex-direction: column; justify-content: center; overflow: hidden; white-space: nowrap;">
+                  <div style="font-weight: bold; font-size: 0.9rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis;">${cardName}</div>
                   <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">**** ${num}</div>
                 </div>
+
               </div>
-              <i class="fa-solid fa-bars" style="color: #cbd5e1; font-size: 1.2rem;"></i>
+              <i class="fa-solid fa-bars" style="color: #cbd5e1; font-size: 1.2rem; flex-shrink: 0; margin-left: 10px;"></i>
             </div>
           `;
         });
 
         document.getElementById("reorderModal").style.display = "flex";
 
-        // បើកមុខងារអូសបញ្ឈរ (Vertical Drag)
         if (listSortable) listSortable.destroy();
         listSortable = new Sortable(listContainer, {
           animation: 200,
-          handle: ".reorder-item", // ចុចកន្លែងណាក៏អូសបាន
+          handle: ".reorder-item",
           ghostClass: "reorder-ghost",
         });
       }
@@ -2397,28 +2523,22 @@
           document.getElementById("reorderList").children,
         );
         const orderedIds = itemEls.map((el) => el.getAttribute("data-id"));
-
-        // រៀបចំកាតក្នុង Memory តាមលំដាប់ថ្មី
         const newCardsArray = orderedIds
           .map((id) => user.virtualCards.find((c) => c.id === id))
           .filter(Boolean);
 
         user.virtualCards = newCardsArray;
         cards = newCardsArray;
-        currentCardIndex = 0; // ទាញមកមើលកាតទី១វិញ
+        currentCardIndex = 0;
         sessionStorage.setItem("user", JSON.stringify(user));
-
         closeModals();
-        renderCards(); // គូរ UI កាតឡើងវិញ
-
+        renderCards();
         Swal.fire({ title: "Saving...", didOpen: () => Swal.showLoading() });
 
-        // បាញ់ទៅ Backend ដែលយើងបានសរសេរកាលពីជំហានមុន
         const data = await fetchAPI("/api/card/reorder", {
           username: user.username,
           orderedIds: orderedIds,
         });
-
         if (data.success) {
           Swal.fire({
             toast: true,
@@ -2428,9 +2548,7 @@
             showConfirmButton: false,
             timer: 1500,
           });
-        } else {
-          Swal.fire("Error", "Failed to save order to server", "error");
-        }
+        } else Swal.fire("Error", "Failed to save order to server", "error");
       }
     </script>
   </body>
