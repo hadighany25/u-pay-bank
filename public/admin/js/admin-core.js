@@ -1,18 +1,18 @@
+// admin-core.js
+
 // ========================================================================
 // ⚙️ SECTION 1: GLOBAL VARIABLES & AUTHENTICATION
 // ========================================================================
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
 let myAdminPermissions = null;
-let myChart = null; // សម្រាប់គូរក្រាហ្វចាស់ (បើនៅប្រើ)
+let myChart = null;
 let globalUsersData = [];
 
-// ទប់ស្កាត់មិនឱ្យចូលដោយគ្មានការ Login
 if (!adminToken || !adminRole) {
   window.location.href = "admin-login.html";
 }
 
-// មុខងារបង្កើត Header ស្តង់ដារសម្រាប់បាញ់ API ទាំងអស់
 const getAuthHeaders = () => {
   return {
     "Content-Type": "application/json",
@@ -20,7 +20,6 @@ const getAuthHeaders = () => {
   };
 };
 
-// បង្ហាញឈ្មោះ និងតួនាទី Admin នៅលើ Sidebar
 document.getElementById("adminNameDisplay").innerText =
   "U-PAY " + adminRole.split("_")[0].toUpperCase();
 document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
@@ -43,27 +42,23 @@ function applyTheme() {
   const body = document.body;
   if (isDarkMode) {
     body.classList.add("dark-mode");
-    // ដូរ Icon គ្រប់ប៊ូតុង Theme ទាំងអស់ទៅជាព្រះអាទិត្យ (ពេលកំពុងងងឹត)
     document.querySelectorAll(".theme-icon").forEach((icon) => {
       icon.className = "fa-solid fa-sun theme-icon";
-      icon.style.color = "#f59e0b"; // ពណ៍លឿង
+      icon.style.color = "#f59e0b";
     });
   } else {
     body.classList.remove("dark-mode");
-    // ដូរ Icon ទៅជាព្រះចន្ទ (ពេលកំពុងភ្លឺ)
     document.querySelectorAll(".theme-icon").forEach((icon) => {
       icon.className = "fa-solid fa-moon theme-icon";
-      icon.style.color = "#64748b"; // ពណ៍ប្រផេះ
+      icon.style.color = "#64748b";
     });
   }
 }
 
-// ដំណើរការវាពេលទំព័រដើរភ្លាម
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme();
 });
 
-// មុខងារបិទ/បើក Sidebar (Mobile Responsiveness)
 function toggleSidebar(force) {
   const sb = document.getElementById("sidebar");
   const ov = document.querySelector(".overlay");
@@ -81,7 +76,6 @@ function toggleSidebar(force) {
 // ========================================================================
 function showSection(id, btn) {
   sessionStorage.setItem("activeSection", id);
-
   const sections = [
     "dashboard",
     "users",
@@ -103,23 +97,18 @@ function showSection(id, btn) {
     "system",
   ];
 
-  // លាក់គ្រប់ផ្ទាំងទាំងអស់សិន
   sections.forEach((sec) => {
     const el = document.getElementById("sec-" + sec);
     if (el) el.style.display = "none";
   });
-
-  // បង្ហាញតែផ្ទាំងដែលបានជ្រើសរើស
   document.getElementById("sec-" + id).style.display = "block";
 
-  // ហៅទិន្នន័យបន្ថែមពេលបើកចូលផ្ទាំងជាក់លាក់
   if (id === "broadcast-history" && typeof loadBroadcastHistory === "function")
     loadBroadcastHistory();
   if (id === "fx" && typeof fetchFXRates === "function") fetchFXRates();
   if (id === "logs" && typeof loadAdminLogs === "function") loadAdminLogs();
   if (id === "promo" && typeof loadPromoCodes === "function") loadPromoCodes();
 
-  // Highlight Menu ដែលកំពុង Active
   document
     .querySelectorAll(".menu-item")
     .forEach((m) => m.classList.remove("active"));
@@ -142,22 +131,20 @@ function logout() {
     if (result.isConfirmed) {
       sessionStorage.removeItem("adminToken");
       sessionStorage.removeItem("adminRole");
-      // បង្ខំឱ្យលោតទៅកាន់ Domain ដើមបូកនឹង /admin-login.html ជានិច្ច
       window.location.href = window.location.origin + "/admin-login.html";
     }
   });
 }
 
 // ========================================================================
-// 📊 SECTION 4: DASHBOARD CHART RENDERER (ថ្មី)
+// 📊 SECTION 4: DASHBOARD CHART RENDERER
 // ========================================================================
-let trxChartInstance = null; // អថេរ Global ការពារក្រាហ្វជាន់គ្នា
+let trxChartInstance = null;
 
 function renderDashboardChart(usersData) {
   const canvas = document.getElementById("trxChart");
-  if (!canvas) return; // បើគ្មានកន្លែងគូរទេ រំលងវាសិន
+  if (!canvas) return;
 
-  // បង្កើតតារាងកាលបរិច្ឆេទ ៧ថ្ងៃចុងក្រោយ
   const last7DaysLabels = [];
   const dailyDataCounts = [0, 0, 0, 0, 0, 0, 0];
 
@@ -167,7 +154,6 @@ function renderDashboardChart(usersData) {
     last7DaysLabels.push(d.toLocaleDateString());
   }
 
-  // ប្រមូលយក Transaction ទាំងអស់ពី Users គ្រប់គ្នា
   let allTransactions = [];
   usersData.forEach((user) => {
     if (user.transactions && Array.isArray(user.transactions)) {
@@ -175,19 +161,17 @@ function renderDashboardChart(usersData) {
     }
   });
 
-  // រាប់ចំនួន Transaction តាមថ្ងៃនីមួយៗ
   allTransactions.forEach((trx) => {
     const trxDateStr = trx.date || trx.createdAt;
     if (trxDateStr) {
       const justDate = new Date(trxDateStr).toLocaleDateString();
       const index = last7DaysLabels.indexOf(justDate);
       if (index !== -1) {
-        dailyDataCounts[index] += 1; // 💡 (បើចង់បូកជាលុយប្តូរទៅប្រើ += parseFloat(trx.amount))
+        dailyDataCounts[index] += 1;
       }
     }
   });
 
-  // ចាប់ផ្តើមគូរក្រាហ្វ (Update ឬ បង្កើតថ្មី)
   if (trxChartInstance) {
     trxChartInstance.data.labels = last7DaysLabels;
     trxChartInstance.data.datasets[0].data = dailyDataCounts;
@@ -208,7 +192,7 @@ function renderDashboardChart(usersData) {
             pointBackgroundColor: "#10b981",
             pointBorderColor: "#fff",
             pointRadius: 4,
-            tension: 0.3, // ធ្វើឱ្យបន្ទាត់កោង (Smooth curve)
+            tension: 0.3,
             fill: true,
           },
         ],
@@ -217,17 +201,11 @@ function renderDashboardChart(usersData) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { precision: 0 },
-          },
-        },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
       },
     });
   }
 }
-
 // ========================================================================
 // 🔄 SECTION 5: CORE DATA FETCHING (Load Data)
 // ========================================================================
@@ -246,14 +224,10 @@ async function loadData() {
     globalUsersData = users;
     const clients = users.filter((u) => u.role !== "admin");
 
-    // បាញ់ទិន្នន័យទៅឱ្យ User Management Table
     if (typeof renderUsersTable === "function")
       renderUsersTable(globalUsersData);
-
-    // 💡 ហៅមុខងារគូរ Chart ថ្មីនៅទីនេះដើម្បីឱ្យវាយកទិន្នន័យចុងក្រោយមកបង្ហាញ
     renderDashboardChart(globalUsersData);
 
-    let cardsHtml = "";
     let kycHtml = "";
     let ticketsHtml = "";
 
@@ -263,14 +237,16 @@ async function loadData() {
       totalFixedDeposits = 0;
     let totalTrxCount = 0,
       pendingCount = 0,
-      totalWithdrawals = 0;
-    let totalTransfers = 0,
+      totalWithdrawals = 0,
+      totalTransfers = 0,
       frozenCount = 0;
     let allAdminNotifs = new Set();
     const todayStr = new Date().toISOString().split("T")[0];
 
+    // 🟢 ១. បង្កើត Array សម្រាប់ផ្ទុកកាតទាំងអស់សិន (មិនទាន់គូរចេញជា HTML ទេ)
+    let allIssuedCards = [];
+
     clients.forEach((u) => {
-      // រាប់ចំនួនតួលេខ (Stats)
       if (u.isOnline) activeToday++;
       if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
       if (u.isFrozen) frozenCount++;
@@ -303,50 +279,19 @@ async function loadData() {
             allAdminNotifs.add(n.id || n.title + n.date);
         });
 
-      // រៀបចំទិន្នន័យ Cards (បង្ហាញគ្រប់កាតទាំងអស់របស់ User ម្នាក់ៗ)
+      // 💳 🟢 ២. ប្រមូលកាតទាំងអស់យកមកតម្រៀបចូល Array សិន
       if (u.virtualCards && u.virtualCards.length > 0) {
-        // 🟢 បន្ថែម forEach ដើម្បីរង្វិលជុំយកកាតទាំងអស់
         u.virtualCards.forEach((c) => {
-          const statusHtml = c.isLocked
-            ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
-            : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
-
-          const freezeBtn = c.isLocked
-            ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
-            : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
-
-          let nfcBtn = "";
-          let cardType = c.name || `Virtual ${c.type || "Standard"}`; // ទាញឈ្មោះកាតពិតប្រាកដមកបង្ហាញ (ឧ. FIFA World Cup)
-          let nfcIconTitle = "";
-
-          if (c.uid || c.isPhysical) {
-            // បើកាតនេះបានភ្ជាប់ NFC ហើយ ចេញប៊ូតុងផ្តាច់ (ពណ៌ក្រហម)
-            nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
-            cardType = `<span style="color:#0f172a; font-weight:bold;">Physical NFC</span> <br><span style="font-size:0.7rem; color:#64748b;">${cardType}</span>`;
-            nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px;" title="NFC Active"></i>`;
-          } else {
-            // បើមិនទាន់ភ្ជាប់ ចេញប៊ូតុងភ្ជាប់ (ពណ៌ខ្មៅ)
-            nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
-          }
-
-          const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
-
-          cardsHtml += `<tr>
-              <td><div style="font-weight:600; color:var(--text-main);">${u.fullName || u.username} ${nfcIconTitle}</div></td>
-              <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td>
-              <td>${cardType}</td>
-              <td>${statusHtml}</td>
-              <td style="text-align: right; white-space: nowrap;">${freezeBtn}${nfcBtn}</td>
-            </tr>`;
-        }); // 🟢 បញ្ចប់ Loop កាត
+          allIssuedCards.push({ user: u, card: c });
+        });
       }
 
-      // រៀបចំទិន្នន័យ KYC
+      // KYC
       if (u.kycStatus === "pending") {
         kycHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td><td>Identity Document</td><td>${u.kycSubmittedAt || "Recent"}</td><td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td><td style="text-align: right;"><button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button><button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button><button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button></td></tr>`;
       }
 
-      // រៀបចំទិន្នន័យ Support Tickets
+      // Support Tickets
       if (u.tickets) {
         u.tickets.forEach((t) => {
           const statusColor =
@@ -358,10 +303,12 @@ async function loadData() {
       }
     });
 
-    // បញ្ចូលទិន្នន័យទៅក្នុង HTML Tables
-    document.getElementById("cardTableBody").innerHTML =
-      cardsHtml ||
-      '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
+    // 🟢 ៣. បោះទិន្នន័យកាតទាំងអស់ទៅឱ្យមុខងារ Pagination រៀបចំបង្ហាញវិញ
+    window.globalCardsData = allIssuedCards;
+    if (!window.currentCardPage) window.currentCardPage = 1;
+    renderCardTablePage();
+
+    // បញ្ចូលទិន្នន័យផ្សេងៗទៅ HTML
     document.getElementById("kycTableBody").innerHTML =
       kycHtml ||
       '<tr><td colspan="5" style="text-align:center; padding: 20px;">No pending KYC requests.</td></tr>';
@@ -369,7 +316,6 @@ async function loadData() {
       ticketsHtml ||
       '<tr><td colspan="6" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
 
-    // បញ្ចូលទិន្នន័យទៅក្នុង Dashboard Cards
     document.getElementById("d-users").innerText = clients.length;
     document.getElementById("d-active").innerText = activeToday;
     document.getElementById("d-new-users").innerText = newUsers;
@@ -387,7 +333,7 @@ async function loadData() {
     document.getElementById("d-transfers").innerText = totalTransfers;
     document.getElementById("d-frozen").innerText = frozenCount;
 
-    // គ្រប់គ្រងទិន្នន័យ Activity Feed
+    // Activity Feed
     try {
       if (extraData.success || extraData.revenue !== undefined) {
         document.getElementById("d-revenue").innerText =
@@ -433,11 +379,129 @@ async function loadData() {
 }
 
 // ========================================================================
+// 💳 SECTION: CARD PAGINATION RENDERER (៨កាត/ទំព័រ)
+// ========================================================================
+const CARDS_PER_PAGE = 8;
+
+function renderCardTablePage() {
+  const tbody = document.getElementById("cardTableBody");
+  // បើកំពុងស្វែងរក (Search) យើងបង្ហាញទាំងអស់សិន ដើម្បីអោយ Filter ដើរស្រួល បើមិនចឹងយើងកាត់ជាទំព័រ
+  const searchBox = document.getElementById("searchCardBox");
+  const isSearching = searchBox && searchBox.value.trim().length > 0;
+
+  const cardsList = window.globalCardsData || [];
+
+  if (cardsList.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
+    // លាក់ប៊ូតុង Pagination ពេលគ្មានទិន្នន័យ
+    const pg = document.getElementById("cardPaginationFooter");
+    if (pg) pg.style.display = "none";
+    return;
+  }
+
+  let pageItems = cardsList;
+  let totalPages = 1;
+
+  if (!isSearching) {
+    totalPages = Math.ceil(cardsList.length / CARDS_PER_PAGE);
+    if (window.currentCardPage > totalPages)
+      window.currentCardPage = totalPages;
+    if (window.currentCardPage < 1) window.currentCardPage = 1;
+
+    const startIndex = (window.currentCardPage - 1) * CARDS_PER_PAGE;
+    const endIndex = startIndex + CARDS_PER_PAGE;
+    pageItems = cardsList.slice(startIndex, endIndex);
+  }
+
+  let cardsHtml = "";
+  pageItems.forEach((item) => {
+    const u = item.user;
+    const c = item.card;
+
+    const statusHtml = c.isLocked
+      ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
+      : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
+
+    const freezeBtn = c.isLocked
+      ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
+      : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
+
+    let nfcBtn = "";
+    let cardType = c.name || `Virtual ${c.type || "Standard"}`;
+    let nfcIconTitle = "";
+
+    if (c.uid || c.isPhysical) {
+      nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
+      cardType = `<span style="color:var(--text-main); font-weight:bold;">Physical NFC</span> <br><span style="font-size:0.7rem; color:var(--text-muted);">${cardType}</span>`;
+
+      nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px; cursor:pointer;" onclick="event.stopPropagation(); Swal.fire({title: 'NFC UID របស់កាតនេះ', html: '<b style=\\'font-size: 1.2rem; color: #3b82f6; font-family: monospace;\\'>${c.uid || "N/A"}</b>', icon: 'info', customClass: { popup: 'premium-swal' }})" title="NFC UID: ${c.uid || "N/A"}"></i>`;
+    } else {
+      nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
+    }
+
+    const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
+
+    // បង្កប់ទិន្នន័យ Search (CVV, Phone, Acc)
+    let allUserAccounts = [u.accountNumber || "", u.accountNumberKHR || ""];
+    if (u.subAccounts && Array.isArray(u.subAccounts)) {
+      u.subAccounts.forEach((sub) => allUserAccounts.push(sub.accountNumber));
+    }
+    let searchKeywords =
+      `${c.cvv || ""} ${u.phone || ""} ${c.number || ""} ${u.username || ""} ${u.fullName || ""} ${c.linkedAccount || ""} ${allUserAccounts.join(" ")}`.toLowerCase();
+
+    cardsHtml += `<tr data-search="${searchKeywords}">
+        <td><div style="font-weight:600; color:var(--text-main);">${u.fullName || u.username} ${nfcIconTitle}</div></td>
+        <td style="font-family:monospace; font-size:1rem; color:var(--accent);">**** **** **** ${cardNumSlice}</td>
+        <td>${cardType}</td>
+        <td>${statusHtml}</td>
+        <td style="text-align: right; white-space: nowrap;">${freezeBtn}${nfcBtn}</td>
+      </tr>`;
+  });
+
+  tbody.innerHTML = cardsHtml;
+
+  // គូរ Pagination UI ខាងក្រោមតារាង
+  let paginationContainer = document.getElementById("cardPaginationFooter");
+  if (!paginationContainer) {
+    paginationContainer = document.createElement("div");
+    paginationContainer.id = "cardPaginationFooter";
+    paginationContainer.style.cssText =
+      "display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0;";
+    tbody.closest(".table-container").after(paginationContainer);
+  }
+
+  if (isSearching || cardsList.length <= CARDS_PER_PAGE) {
+    paginationContainer.style.display = "none"; // លាក់ពេល Search ឬមានកាតតិចតួច
+  } else {
+    paginationContainer.style.display = "flex";
+    paginationContainer.innerHTML = `
+        <button onclick="changeCardPage(-1)" ${window.currentCardPage === 1 ? "disabled" : ""} style="height: 40px; padding: 0 20px; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold;">
+          <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+        </button>
+        <span style="font-weight: bold; color: var(--text-main);">ទំព័រទី ${window.currentCardPage} / ${totalPages}</span>
+        <button onclick="changeCardPage(1)" ${window.currentCardPage >= totalPages ? "disabled" : ""} style="height: 40px; padding: 0 20px; background: #0f172a; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+          បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      `;
+  }
+}
+
+function changeCardPage(step) {
+  const cardsList = window.globalCardsData || [];
+  const totalPages = Math.ceil(cardsList.length / CARDS_PER_PAGE);
+  window.currentCardPage += step;
+  if (window.currentCardPage < 1) window.currentCardPage = 1;
+  if (window.currentCardPage > totalPages) window.currentCardPage = totalPages;
+  renderCardTablePage();
+}
+
+// ========================================================================
 // 🔐 SECTION 6: PERMISSIONS & ROLES MANAGEMENT
 // ========================================================================
 async function applyDynamicPermissions() {
   if (adminRole === "super_admin") {
-    setInterval(loadData, 15000); // ទាញទិន្នន័យរាល់ 15 វិនាទី
+    setInterval(loadData, 15000);
     loadData();
     return;
   }
@@ -448,7 +512,6 @@ async function applyDynamicPermissions() {
       myAdminPermissions = data.admin.permissions;
       const menus = data.admin.permissions.menus;
 
-      // លាក់ Menu ណាដែលគ្មានសិទ្ធិ
       if (!menus.users)
         document.getElementById("menu-users").style.display = "none";
       if (!menus.checktrx)
@@ -465,7 +528,6 @@ async function applyDynamicPermissions() {
       if (!menus.chat)
         document.getElementById("menu-chat").style.display = "none";
 
-      // លាក់ចំណងជើងធំៗ (Labels) បើគ្មាន Menu ខាងក្នុងសោះ
       if (!menus.checktrx && !menus.broadcast)
         document.getElementById("label-ops").style.display = "none";
       if (!menus.fx && !menus.cards)
@@ -473,7 +535,6 @@ async function applyDynamicPermissions() {
       if (!menus.kyc && !menus.tickets && !menus.chat)
         document.getElementById("label-security").style.display = "none";
 
-      // ដូរឈ្មោះ Role បើជា Custom Role
       if (
         data.admin.role === "custom" &&
         data.admin.permissions.customRoleName
@@ -482,7 +543,6 @@ async function applyDynamicPermissions() {
           data.admin.permissions.customRoleName.toUpperCase();
       }
 
-      // លាក់ Menu សំខាន់ៗ ដែលសម្រាប់តែ Super Admin ប៉ុណ្ណោះ
       document.getElementById("menu-super-only").style.display = "none";
       document.getElementById("menu-admins").style.display = "none";
       document.getElementById("menu-logs").style.display = "none";
@@ -494,7 +554,6 @@ async function applyDynamicPermissions() {
   loadData();
 }
 
-// មុខងារផ្អាកប្រព័ន្ធទាំងមូល (System Freeze)
 async function toggleSystemFreeze() {
   try {
     const res = await fetch("/api/admin/system-status", {
@@ -542,13 +601,12 @@ async function toggleSystemFreeze() {
 // ========================================================================
 // 🔔 SECTION 7: NOTIFICATIONS & SOUND ALERTS POLLING
 // ========================================================================
-let previousTotalUnread = 0;
-let previousQueueLength = 0;
-let previousPendingKyc = 0;
-let previousOpenTickets = 0;
+let previousTotalUnread = 0,
+  previousQueueLength = 0,
+  previousPendingKyc = 0,
+  previousOpenTickets = 0;
 let isFirstLoadNotif = true;
 
-// ឯកសារសំឡេងលោតតឿន (Notification Sounds)
 const chatSound = new Audio(
   "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
 );
@@ -575,8 +633,8 @@ async function checkAdminNotifications() {
 
     if (chatData.success && Array.isArray(userData)) {
       let currentTotalUnread = 0,
-        currentQueueLength = chatData.contacts.length;
-      let currentPendingKyc = 0,
+        currentQueueLength = chatData.contacts.length,
+        currentPendingKyc = 0,
         currentOpenTickets = 0;
 
       chatData.contacts.forEach((c) => {
@@ -590,7 +648,6 @@ async function checkAdminNotifications() {
           });
       });
 
-      // បាញ់ Alert តែពេលមានទិន្នន័យកើនឡើង (មិនលោតរំខានរាល់ដងទេ)
       if (!isFirstLoadNotif) {
         let shouldRefreshTable = false;
         if (currentQueueLength > previousQueueLength)
@@ -622,20 +679,17 @@ async function checkAdminNotifications() {
         if (shouldRefreshTable && typeof loadData === "function") loadData();
       }
 
-      // Update តួលេខចាស់ ទុកចាំផ្ទៀងផ្ទាត់លើកក្រោយ
       previousQueueLength = currentQueueLength;
       previousTotalUnread = currentTotalUnread;
       previousPendingKyc = currentPendingKyc;
       previousOpenTickets = currentOpenTickets;
       isFirstLoadNotif = false;
     }
-  } catch (e) {
-    console.error("Notif Error:", e);
-  }
+  } catch (e) {}
 }
 
 function playCustomNotif(message, soundObj, iconColorHex) {
-  soundObj.play().catch(() => {}); // ទប់ Error ក្រែង Browser បិទសំឡេង
+  soundObj.play().catch(() => {});
   Swal.fire({
     toast: true,
     position: "top-end",
@@ -650,14 +704,12 @@ function playCustomNotif(message, soundObj, iconColorHex) {
   });
 }
 
-// ឆែកមើលសារថ្មីៗរាល់ 3 វិនាទី
 setInterval(checkAdminNotifications, 3000);
 
 // ========================================================================
-// 🎬 SECTION 8: EVENT LISTENERS (ពេលវេបសាយដើរពេញលេញ)
+// 🎬 SECTION 8: EVENT LISTENERS
 // ========================================================================
 window.addEventListener("DOMContentLoaded", () => {
-  // ចងចាំផ្ទាំងចាស់ដែល Admin ធ្លាប់បើកមើលចុងក្រោយ
   const savedSection = sessionStorage.getItem("activeSection");
   if (savedSection) {
     const menuItems = document.querySelectorAll(".menu-item");
@@ -666,14 +718,12 @@ window.addEventListener("DOMContentLoaded", () => {
       if (
         item.getAttribute("onclick") &&
         item.getAttribute("onclick").includes(`'${savedSection}'`)
-      ) {
+      )
         targetBtn = item;
-      }
     });
     showSection(savedSection, targetBtn);
   }
 
-  // ឱ្យអ្នកប្រើចុច "Enter" ដើម្បីស្វែងរក Transaction តែម្តង
   const searchInput = document.getElementById("searchTrxId");
   if (searchInput) {
     searchInput.addEventListener("keypress", function (event) {
@@ -684,6 +734,5 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ចាប់ផ្តើមបាញ់ API យកទិន្នន័យ
   applyDynamicPermissions();
 });

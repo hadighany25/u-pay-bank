@@ -3,6 +3,8 @@ const router = express.Router();
 const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
 const cardController = require("../controllers/cardController");
+// 🤖 1. Import aiController ចូលទីនេះ
+const aiController = require("../controllers/aiController");
 const { checkRole } = require("../middleware/authMiddleware");
 
 // ==========================================
@@ -169,7 +171,7 @@ router.get(
 );
 
 // ==========================================
-// 📢 ៥. មុខងារផ្សព្វផ្សាយ និងរង្វាន់ (Broadcast & Promo)
+// 📢 ៥. មុខងារផ្សព្វផ្សាយ រង្វាន់ និង AI Support (Broadcast, Promo & AI)
 // ==========================================
 // ផ្ញើសារជូនដំណឹង (Broadcast)
 router.post(
@@ -218,6 +220,13 @@ router.post(
   "/promo/toggle",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   adminController.togglePromoCode,
+);
+
+// 🤖 2. បន្ថែម Route សម្រាប់ AI Smart Reply (ឱ្យទាំង Super, Support និង Custom ប្រើបាន)
+router.post(
+  "/ai-reply",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  aiController.generateAdminAIReply,
 );
 
 // ==========================================

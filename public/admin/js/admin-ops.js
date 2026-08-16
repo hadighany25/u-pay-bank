@@ -1,3 +1,5 @@
+// admin-ops.js
+
 // ========================================================================
 // 📂 SECTION 1: KYC & DOCUMENTS MANAGEMENT
 // ========================================================================
@@ -33,8 +35,10 @@ async function kycAction(username, action) {
 }
 
 // ========================================================================
-// 💳 SECTION 2: CARDS MANAGEMENT
+// 💳 SECTION 2: CARDS MANAGEMENT & NFC BINDING
 // ========================================================================
+
+// ១. ផ្អាកឬបើកកាត (Freeze/Unfreeze)
 async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   const actionText = isCurrentlyLocked ? "Unblock" : "Freeze";
   const confirm = await Swal.fire({
@@ -62,36 +66,117 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   }
 }
 
+// ២. ស្វែងរកកាត (Search Filtering) - ថ្មី!
+function filterCards() {
+  const searchInput = document
+    .getElementById("searchCardBox")
+    .value.toLowerCase();
+  const tableRows = document.querySelectorAll("#cardTableBody tr");
+
+  tableRows.forEach((row) => {
+    if (row.cells.length <= 1) return; // រំលងជួរ Loading...
+
+    const visibleText = row.innerText.toLowerCase();
+    const hiddenData = row.getAttribute("data-search")
+      ? row.getAttribute("data-search").toLowerCase()
+      : "";
+
+    if (visibleText.includes(searchInput) || hiddenData.includes(searchInput)) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+// ៣. មុខងារភ្ជាប់កាត NFC
 // ========================================================================
 // 💳 SECTION: SECURE QUICK NFC BINDING (FLOW សុវត្ថិភាពខ្ពស់ ១០០%)
 // ========================================================================
 window.quickBindNFC = async function (username, cardId) {
-  // ជំហានទី១៖ បង្ខំឱ្យវាយ PIN រាល់ពេលចុច (មិនអនុញ្ញាតឱ្យจำកត់ត្រាទុកទេ)
-  const { value: pin } = await Swal.fire({
-    title: "🔒 បញ្ជាក់លេខសម្ងាត់ PIN កាត",
-    input: "password",
-    inputLabel: `ភ្ជាប់កាតអោយ៖ @${username}`,
-    inputPlaceholder: "សូមវាយលេខ PIN ៤ខ្ទង់",
-    inputAttributes: {
-      maxlength: 4,
-      autocapitalize: "off",
-      autocorrect: "off",
-    },
+  // 🟢 ជំហានទី១៖ ទាញយកទិន្នន័យអតិថិជន និងកាត ពី globalUsersData
+  const targetUser = globalUsersData.find((u) => u.username === username);
+  if (!targetUser)
+    return Swal.fire("កំហុស", "រកមិនឃើញគណនីអតិថិជននេះទេ!", "error");
+
+  const targetCard = targetUser.virtualCards?.find((c) => c.id === cardId);
+  if (!targetCard) return Swal.fire("កំហុស", "រកមិនឃើញកាតមួយនេះទេ!", "error");
+
+  // 🟢 ជំហានទី២៖ រៀបចំទិន្នន័យសម្រាប់បង្ហាញអោយស្អាត
+  const fullName = (targetUser.fullName || targetUser.username).toUpperCase();
+  const rawNum = targetCard.number || "0000000000000000";
+  const formattedNum = rawNum.match(/.{1,4}/g)?.join(" ") || rawNum;
+  const cardType = (
+    targetCard.name ||
+    targetCard.type ||
+    "Standard"
+  ).toUpperCase();
+
+  // កំណត់រូបិយប័ណ្ណ និង លេខគណនីដែលភ្ជាប់
+  let currency = targetCard.linkedAccount === "KHR" ? "KHR" : "USD";
+  let linkedAccNum = "N/A";
+  if (targetCard.linkedAccount === "USD") {
+    linkedAccNum = targetUser.accountNumber || "N/A";
+  } else if (targetCard.linkedAccount === "KHR") {
+    linkedAccNum = targetUser.accountNumberKHR || "N/A";
+  } else {
+    currency = targetCard.linkedAccount?.split("_")[0] || "USD";
+    linkedAccNum =
+      targetCard.linkedAccount?.split("_")[1] || targetCard.linkedAccount;
+  }
+
+  // 🔥 ចាប់យក PIN ចាស់របស់គាត់ផ្ទាល់ (បើគ្មាន ទើបយក 0000 ជា Default)
+  const currentCardPin = targetCard.pin || "0000";
+
+  // 🟢 ជំហានទី៣៖ បង្ហាញផ្ទាំង UI (SweetAlert2) យ៉ាងស្រស់ស្អាត ដោយគ្មានការវាយ PIN
+  const confirm = await Swal.fire({
+    title:
+      '<i class="fa-solid fa-address-card" style="color: #3b82f6; font-size: 2.5rem; margin-bottom: 10px;"></i><br><span style="font-family: \'Kantumruy Pro\'; font-weight: 700;">ផ្ទៀងផ្ទាត់ព័ត៌មានកាត</span>',
+    html: `
+      <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
+         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+            
+            <!-- ឈ្មោះម្ចាស់កាត -->
+            <div style="margin-bottom: 15px;">
+               <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;"><i class="fa-solid fa-user"></i> ឈ្មោះម្ចាស់កាត (Card Holder)</span><br>
+               <span style="font-size: 1.1rem; color: #0f172a; font-weight: 700;">${fullName}</span>
+            </div>
+            
+            <!-- លេខកាត -->
+            <div style="margin-bottom: 15px;">
+               <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;"><i class="fa-regular fa-credit-card"></i> ភ្ជាប់ទៅកាតលេខ (Card Number)</span><br>
+               <span style="font-size: 1.25rem; color: #3b82f6; font-weight: 800; font-family: 'Courier New', monospace; letter-spacing: 1px;">${formattedNum}</span>
+            </div>
+            
+            <!-- ប្រភេទ និង គណនី -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px dashed #cbd5e1; padding-top: 12px;">
+               <div>
+                  <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">ប្រភេទកាត (Type)</span><br>
+                  <span style="font-size: 0.95rem; color: #0f172a; font-weight: 700;">${cardType}</span>
+               </div>
+               <div style="text-align: right;">
+                  <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">គណនីភ្ជាប់ (${currency})</span><br>
+                  <span style="font-size: 0.95rem; color: #10b981; font-weight: 800; font-family: monospace;">${linkedAccNum}</span>
+               </div>
+            </div>
+            
+         </div>
+         <p style="text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 15px; font-weight: 600;">
+            <i class="fa-solid fa-circle-exclamation"></i> សូមត្រួតពិនិត្យព័ត៌មានឱ្យបានត្រឹមត្រូវមុនពេលស្កេនកាត!
+         </p>
+      </div>
+    `,
     showCancelButton: true,
     confirmButtonColor: "#10b981",
     cancelButtonColor: "#94a3b8",
-    confirmButtonText: "យល់ព្រម & ស្កេន",
+    confirmButtonText: '<i class="fa-solid fa-wifi"></i> ចាប់ផ្តើមស្កេន',
     cancelButtonText: "បោះបង់",
-    inputValidator: (value) => {
-      if (!value || value.length !== 4 || isNaN(value)) {
-        return "សូមបញ្ចូលលេខសម្ងាត់ ៤ខ្ទង់អោយបានត្រឹមត្រូវ!";
-      }
-    },
     customClass: { popup: "premium-swal" },
   });
 
-  if (!pin) return;
+  if (!confirm.isConfirmed) return;
 
+  // 🟢 ជំហានទី៤៖ ដំណើរការមុខងារស្កេន NFC ដដែល
   if (!("NDEFReader" in window)) {
     return Swal.fire(
       "គ្មានមុខងារ NFC",
@@ -102,7 +187,7 @@ window.quickBindNFC = async function (username, cardId) {
 
   Swal.fire({
     title: "📡 កំពុងរង់ចាំស្កេនកាត NFC...",
-    html: '<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #0ea5e9;"></i></div><p style="color: #64748b;">សូមយកកាតមកផ្អឹបនឹងម៉ាស៊ីន</p>',
+    html: '<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #0ea5e9;"></i></div><p style="color: #64748b; font-family: \'Kantumruy Pro\';">សូមយកកាតមកផ្អឹបនឹងផ្នែកខាងក្រោយទូរស័ព្ទ ឬម៉ាស៊ីន POS</p>',
     showConfirmButton: false,
     allowOutsideClick: false,
     customClass: { popup: "premium-swal" },
@@ -120,8 +205,8 @@ window.quickBindNFC = async function (username, cardId) {
 
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
 
-      // បញ្ជូនទៅកាន់ Backend ពិនិត្យសុវត្ថិភាព
-      processCardBinding(username, cardId, pin, serialNumber);
+      // 🟢 ជំហានទី៥៖ បញ្ជូនទៅ Backend ដោយប្រើ PIN ដើមរបស់អតិថិជន (មិនប៉ះពាល់លេខសម្ងាត់គាត់ទេ)
+      processCardBinding(username, cardId, currentCardPin, serialNumber);
     };
 
     ndef.onreadingerror = () => {
@@ -129,9 +214,11 @@ window.quickBindNFC = async function (username, cardId) {
     };
   } catch (error) {
     console.error("NFC Scan Error:", error);
+    Swal.fire("កំហុស", "មិនអាចបើកមុខងារ NFC របស់ម៉ាស៊ីនបានទេ!", "error");
   }
 };
 
+// ៤. Process Card Binding Backend Request
 async function processCardBinding(username, cardId, pin, uid) {
   try {
     const res = await fetch("/api/admin/cards/bind-nfc", {
@@ -140,7 +227,6 @@ async function processCardBinding(username, cardId, pin, uid) {
       body: JSON.stringify({ username, cardId, pin, uid }),
     });
     const data = await res.json();
-
     if (data.success) {
       Swal.fire({
         icon: "success",
@@ -150,7 +236,6 @@ async function processCardBinding(username, cardId, pin, uid) {
       });
       if (typeof loadData === "function") loadData();
     } else {
-      // បើកាតហ្នឹងមាន UID រួចហើយ ឬ គណនីហ្នឹងមានកាត NFC រួចហើយ វានឹងលោតប្រាប់ត្រង់នេះ
       Swal.fire({
         icon: "error",
         title: "មិនអាចភ្ជាប់បានទេ!",
@@ -163,9 +248,7 @@ async function processCardBinding(username, cardId, pin, uid) {
   }
 }
 
-// ========================================================================
-// 🗑️ មុខងារផ្តាច់កាត NFC (UNBIND NFC CARD)
-// ========================================================================
+// ៥. មុខងារផ្តាច់កាត NFC
 window.unbindNFC = function (username, cardId) {
   Swal.fire({
     title: "ផ្តាច់កាត NFC នេះ?",
@@ -188,7 +271,7 @@ window.unbindNFC = function (username, cardId) {
         const data = await res.json();
         if (data.success) {
           Swal.fire("ជោគជ័យ", "បានផ្តាច់កាត NFC ចេញវិញហើយ!", "success");
-          if (typeof loadData === "function") loadData(); // Refresh តារាង
+          if (typeof loadData === "function") loadData();
         } else {
           Swal.fire("បរាជ័យ", data.message || "មានបញ្ហា", "error");
         }
@@ -297,30 +380,10 @@ async function searchTrx() {
         t.receiverName || t.receiver || t.toName || t.receiverPhone || "System";
       let rAcc = t.receiverAcc || t.receiverAccount || t.toAccount || "N/A";
 
-      const mockDevices = [
-        "iPhone 14 Pro Max",
-        "Samsung Galaxy S23 Ultra",
-        "iPhone 13",
-        "Samsung Galaxy A54",
-        "iPhone 15 Pro",
-        "Oppo Reno 10",
-      ];
-      let sDevice =
-        t.senderDevice ||
-        t.device ||
-        mockDevices[Math.floor(Math.random() * mockDevices.length)];
-      let rDevice =
-        t.receiverDevice ||
-        t.device ||
-        mockDevices[Math.floor(Math.random() * mockDevices.length)];
-      let sIp =
-        t.senderIp ||
-        t.ip ||
-        `119.82.${Math.floor(Math.random() * 200) + 10}.${Math.floor(Math.random() * 250)}`;
-      let rIp =
-        t.receiverIp ||
-        t.ip ||
-        `175.100.${Math.floor(Math.random() * 200) + 10}.${Math.floor(Math.random() * 250)}`;
+      let sDevice = t.senderDevice || "Mobile Device";
+      let rDevice = t.receiverDevice || "Mobile Device";
+      let sIp = t.senderIp || "127.0.0.1";
+      let rIp = t.receiverIp || "127.0.0.1";
 
       let sKyc = t.senderKyc || t.kycStatus || "Unverified";
       let rKyc = t.receiverKyc || t.kycStatus || "Unverified";
@@ -335,7 +398,6 @@ async function searchTrx() {
 
       let depositorHtml = "";
 
-      // ទី១៖ ឆែកមើលក្រែងលោជា Cash Deposit ឬ Withdrawal
       if (t.type === "Cash Deposit") {
         sName = "Cash Deposit (ដាក់ប្រាក់)";
         sAcc = "CASH-DESK";
@@ -346,27 +408,16 @@ async function searchTrx() {
         sKycColor = "#3b82f6";
 
         let dName = t.depositorName;
-        if (!dName) {
-          if (
-            (t.remark && t.remark.includes("អ្នកផ្សេង")) ||
-            t.remark.includes("ដោយ")
-          ) {
-            dName = t.remark;
-          } else {
-            dName = "ម្ចាស់គណនីផ្ទាល់ (Self)";
-          }
-        }
+        if (!dName)
+          dName =
+            t.remark && t.remark.includes("អ្នកផ្សេង")
+              ? t.remark
+              : "ម្ចាស់គណនីផ្ទាល់ (Self)";
         let dAcc =
           t.depositorAcc && t.depositorAcc !== "N/A"
             ? `(${t.depositorAcc})`
             : "";
-        depositorHtml = `
-          <div class="t-row">
-            <span class="t-label">Deposited By</span> 
-            <span class="t-value" style="font-weight: 900; color: #d97706; background: #fffbeb; padding: 3px 10px; border-radius: 6px; border: 1px dashed #fcd34d;">
-              ${dName} ${dAcc}
-            </span>
-          </div>`;
+        depositorHtml = `<div class="t-row"><span class="t-label">Deposited By</span><span class="t-value" style="font-weight: 900; color: #d97706; background: #fffbeb; padding: 3px 10px; border-radius: 6px; border: 1px dashed #fcd34d;">${dName} ${dAcc}</span></div>`;
       } else if (t.type === "Cash Withdrawal") {
         rName = "Cash Withdrawal (ដកប្រាក់)";
         rAcc = "CASH-DESK";
@@ -375,9 +426,7 @@ async function searchTrx() {
         t.receiverType = "System";
         rKyc = "System";
         rKycColor = "#3b82f6";
-      }
-      // ទី២៖ ដោះស្រាយបញ្ហា Receiver Details ពេលកាត់ថ្លៃសេវា (Fee / Service)
-      else if (
+      } else if (
         t.type === "Card Issuance Fee" ||
         (t.type && t.type.includes("Fee")) ||
         (rName && rName.toLowerCase().includes("service"))
@@ -390,7 +439,6 @@ async function searchTrx() {
         rKycColor = "#3b82f6";
       }
 
-      // ទី៣៖ បើមានពាក្យ System ត្រូវទម្លាក់វាជាប្រព័ន្ធទាំងអស់
       if (sName.toLowerCase().includes("system")) {
         sAcc = "SYSTEM-WALLET";
         sDevice = "System Server";
@@ -408,7 +456,6 @@ async function searchTrx() {
         rKycColor = "#3b82f6";
       }
 
-      // រៀបចំ Merchant ID
       let mId = t.merchantId || t.receiverMerchantId;
       let merchantHtml = mId
         ? `<div class="t-row"><span class="t-label">Merchant ID</span> <span class="t-value" style="font-family: monospace; color: #8b5cf6; font-weight: 900; background: #f5f3ff; padding: 3px 10px; border-radius: 6px; border: 1px dashed #ddd6fe;">${mId}</span></div>`
@@ -435,7 +482,6 @@ async function searchTrx() {
             <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${sKycColor}">${sKyc}</span></div>
             <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.senderNote || t.remark || "General"}</span></div>
           </div>
-          
           <div class="trx-box">
             <h4><i class="fa-solid fa-arrow-down-to-bracket"></i> Receiver Details</h4>
             <div class="t-row"><span class="t-label">Name</span> <span class="t-value">${rName}</span></div>
@@ -447,7 +493,6 @@ async function searchTrx() {
             <div class="t-row"><span class="t-label">KYC Status</span> <span class="t-value" style="font-weight: 600; color: ${rKycColor}">${rKyc}</span></div>
             <div class="t-row"><span class="t-label">Remark</span> <span class="t-value">${t.receiverNote || t.remark || "General"}</span></div>
           </div>
-          
           <div class="trx-box full">
             <h4><i class="fa-solid fa-circle-info"></i> Transaction Information</h4>
             <div class="t-row"><span class="t-label">Transaction Type</span> <span class="t-value" style="font-weight: 600; color: #3b82f6;">${t.type || "Platform Transfer"}</span></div>
@@ -462,11 +507,7 @@ async function searchTrx() {
             <div class="t-row" style="align-items: center;"><span class="t-label">Action</span><span class="t-value">${refundHtml}</span></div>
           </div>
         </div>
-        ${
-          isPending
-            ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve Only</button></div>`
-            : ""
-        }
+        ${isPending ? `<div class="trx-r-footer"><button class="btn-action-lg btn-approve" onclick="handleAdminAction('approve', '${t.refId || t.id}')"><i class="fa-solid fa-check"></i> Approve Only</button></div>` : ""}
       `;
     } else {
       box.style.display = "none";
@@ -482,65 +523,48 @@ async function searchTrx() {
 }
 
 async function handleAdminAction(action, id) {
-  if (!id || id === "undefined") {
+  if (!id || id === "undefined")
     return Swal.fire(
       "Error",
       "រកមិនឃើញលេខសម្គាល់ប្រតិបត្តិការ (ID) ទេ!",
       "error",
     );
-  }
-
   let reason = "Admin Action";
-
-  // ១. បើចុច Refund លោតសុំតែមូលហេតុប៉ុណ្ណោះ
   if (action === "refund") {
     const { value: text, isDismissed } = await Swal.fire({
       title: "បញ្ជាក់ការ Refund",
       input: "textarea",
       inputLabel: "សូមបញ្ជាក់មូលហេតុដែលដកលុយឱ្យអ្នកផ្ញើវិញ៖",
-      inputPlaceholder: "ឧទាហរណ៍: ផ្ញើខុសគណនី...",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#94a3b8",
       confirmButtonText: "យល់ព្រម Refund",
-      cancelButtonText: "បោះបង់",
       inputValidator: (value) => {
-        if (!value || value.trim() === "") {
+        if (!value || value.trim() === "")
           return "អ្នកត្រូវតែសរសេរមូលហេតុជាដាច់ខាត!";
-        }
       },
     });
-
     if (isDismissed || !text) return;
     reason = text;
   }
-
-  // កំណត់ Endpoint ទៅកាន់ API ដែលទើបបង្កើត
   const endpoint =
     action === "approve"
       ? "/api/admin/approve-transaction"
       : "/api/admin/refund-transaction";
-
   try {
     Swal.fire({
       title: "កំពុងដំណើរការ...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
-
-    // ២. បាញ់សំណើទៅកាន់ Backend
     const res = await fetch(endpoint, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ refId: id, reason: reason }), // បញ្ជូន ID និង មូលហេតុ
+      body: JSON.stringify({ refId: id, reason: reason }),
     });
-
     const data = await res.json();
-
     if (res.ok && data.success) {
       Swal.fire("ជោគជ័យ!", data.message, "success");
-
-      // Refresh ទិន្នន័យនៅលើតារាងឡើងវិញ (បើបងមាន function នេះ)
       if (typeof searchTrx === "function") searchTrx();
       else location.reload();
     } else {
@@ -551,7 +575,6 @@ async function handleAdminAction(action, id) {
       );
     }
   } catch (err) {
-    console.error("Action Error:", err);
     Swal.fire("Error", "បញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server", "error");
   }
 }
@@ -646,124 +669,7 @@ async function deleteBroadcast(notifId) {
 }
 
 // ========================================================================
-// 💬 SECTION 6: LIVE CHAT SUPPORT
-// ========================================================================
-let adminCurrentChat = null;
-let adminChatInterval = null;
-
-async function fetchAdminContacts() {
-  try {
-    const res = await fetch("/api/chat/contacts", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ myAcc: "ADMIN" }),
-    });
-    const data = await res.json();
-    const list = document.getElementById("adminContactList");
-    if (data.success && data.contacts.length > 0) {
-      list.innerHTML = data.contacts
-        .map(
-          (c) =>
-            `<div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" style="display:flex; align-items:center; gap:12px; padding:15px; background:white; border-radius:12px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); border: 1px solid ${adminCurrentChat === c.accountNumber ? "#3b82f6" : "transparent"};"><div style="width:40px; height:40px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:1.2rem;"><i class="fa-solid fa-user"></i></div><div style="flex:1; overflow:hidden;"><h4 style="margin:0; font-size:0.95rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4><p style="margin:3px 0 0 0; font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.lastMessage}</p></div>${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}</div>`,
-        )
-        .join("");
-    } else
-      list.innerHTML =
-        '<div style="text-align:center; padding:20px; color:var(--text-muted);">គ្មានសារចូលទេ</div>';
-  } catch (e) {}
-}
-
-function openAdminChat(accNum, name) {
-  adminCurrentChat = accNum;
-  document.getElementById("adminChatHeader").innerHTML =
-    `<h3 style="margin: 0; color: var(--text-main);"><i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} (${accNum})</h3><button onclick="endAdminChat()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">បញ្ចប់ការសន្ទនា (End Chat)</button>`;
-  document.getElementById("adminChatInputBox").style.display = "flex";
-  fetchAdminMessages();
-  if (adminChatInterval) clearInterval(adminChatInterval);
-  adminChatInterval = setInterval(fetchAdminMessages, 2000);
-}
-
-let adminLastMsgCount = 0;
-async function fetchAdminMessages() {
-  if (!adminCurrentChat) return;
-  const res = await fetch("/api/chat/history", {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ user1Acc: "ADMIN", user2Acc: adminCurrentChat }),
-  });
-  const data = await res.json();
-  if (data.success && data.history.length !== adminLastMsgCount) {
-    const body = document.getElementById("adminChatBody");
-    body.innerHTML = "";
-    data.history.forEach((m) => {
-      const isSent = m.senderAcc === "ADMIN";
-      body.innerHTML += `<div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;"><div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${isSent ? "var(--primary)" : "white"}; color: ${isSent ? "white" : "var(--text-main)"}; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${m.message}</div><div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px;">${m.time.split(",")[1] || m.time}</div></div>`;
-    });
-    body.scrollTop = body.scrollHeight;
-    adminLastMsgCount = data.history.length;
-  }
-}
-
-async function sendAdminChat() {
-  const input = document.getElementById("adminChatInput");
-  const text = input.value.trim();
-  if (!text || !adminCurrentChat) return;
-  input.value = "";
-  const body = document.getElementById("adminChatBody");
-  body.innerHTML += `<div style="align-self: flex-end; max-width: 75%;"><div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">${text}</div><div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px;">Sending...</div></div>`;
-  body.scrollTop = body.scrollHeight;
-  let roleDisplayName = document.getElementById("adminRoleDisplay").innerText;
-  const currentAdminName = "U-PAY " + roleDisplayName;
-  await fetch("/api/chat/send", {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      senderAcc: "ADMIN",
-      receiverAcc: adminCurrentChat,
-      message: text,
-      adminName: currentAdminName,
-    }),
-  });
-  fetchAdminMessages();
-}
-
-function endAdminChat() {
-  Swal.fire({
-    title: "បញ្ចប់ការសន្ទនា?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "បាទ, បញ្ចប់",
-  }).then(async (res) => {
-    if (res.isConfirmed) {
-      let roleDisplayName =
-        document.getElementById("adminRoleDisplay").innerText;
-      const currentAdminName = "U-PAY " + roleDisplayName;
-      await fetch("/api/chat/send", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          senderAcc: "ADMIN",
-          receiverAcc: adminCurrentChat,
-          message:
-            "ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin។ អរគុណដែលបានទាក់ទងមកកាន់ភ្នាក់ងារ U-PAY! សូមគោរពលា 🙏",
-          adminName: currentAdminName,
-        }),
-      });
-      adminCurrentChat = null;
-      document.getElementById("adminChatHeader").innerHTML =
-        `<h3 style="margin: 0; color: var(--text-main);">ជ្រើសរើសអតិថិជនដើម្បីឆាត</h3>`;
-      document.getElementById("adminChatBody").innerHTML =
-        '<div style="text-align:center; color: var(--text-muted); margin-top: 50px;"><i class="fa-regular fa-comments" style="font-size: 3rem; margin-bottom: 10px; opacity:0.5;"></i><br>សូមជ្រើសរើសសារពីបញ្ជីខាងឆ្វេង</div>';
-      document.getElementById("adminChatInputBox").style.display = "none";
-      if (adminChatInterval) clearInterval(adminChatInterval);
-    }
-  });
-}
-setInterval(fetchAdminContacts, 3000);
-fetchAdminContacts();
-
-// ========================================================================
-// 🧑‍💼 SECTION 7: ADMIN ACCOUNTS MANAGEMENT
+// 🧑‍💼 SECTION 6 ADMIN ACCOUNTS MANAGEMENT
 // ========================================================================
 async function loadAdminList() {
   if (adminRole !== "super_admin") return;
@@ -845,11 +751,11 @@ async function saveAdminAccount() {
     },
   };
   const payload = {
-    id: id,
+    id,
     username: document.getElementById("manageAdminUser").value,
     password: document.getElementById("manageAdminPass").value,
-    role: role,
-    permissions: permissions,
+    role,
+    permissions,
   };
   const res = await fetch("/api/admin/save-admin", {
     method: "POST",
@@ -885,25 +791,21 @@ async function deleteAdminAcc(id) {
 }
 
 // ========================================================================
-// 🛡️ SECTION 8: ADMIN AUDIT LOGS (Pagination & Filters) - ថ្មី!
+// 🛡️ SECTION 8: ADMIN AUDIT LOGS (Pagination & Filters)
 // ========================================================================
+let allAuditLogs = [];
+let filteredAuditLogs = [];
+let currentLogPage = 1;
+const LOGS_PER_PAGE = 15;
 
-// ប្រកាសអថេរសម្រាប់ផ្ទុកទិន្នន័យ និងកំណត់ទំព័រ
-let allAuditLogs = []; // ទុកទិន្នន័យ Logs សរុបពី Server
-let filteredAuditLogs = []; // ទុកទិន្នន័យក្រោយពេល Search រួច
-let currentLogPage = 1; // ទំព័របច្ចុប្បន្ន
-const LOGS_PER_PAGE = 15; // ចំនួនកំណត់ក្នុងមួយទំព័រ
-
-// មុខងារទាញទិន្នន័យពី Server
 async function loadAdminLogs() {
   if (adminRole !== "super_admin") return;
   try {
     const res = await fetch("/api/admin/logs", { headers: getAuthHeaders() });
     const data = await res.json();
-
     if (data.success && data.logs && data.logs.length > 0) {
-      allAuditLogs = data.logs; // រក្សាទុកទិន្នន័យដើម
-      applyLogFilters(); // ហៅមុខងារ Filter និង Render ឱ្យចេញជាទម្រង់ ១៥/ទំព័រ
+      allAuditLogs = data.logs;
+      applyLogFilters();
     } else {
       allAuditLogs = [];
       filteredAuditLogs = [];
@@ -916,9 +818,8 @@ async function loadAdminLogs() {
   }
 }
 
-// មុខងារចម្រាញ់ទិន្នន័យ (ស្វែងរកតាម ថ្ងៃខែ, ឈ្មោះ, សកម្មភាព)
 function applyLogFilters() {
-  const filterDate = document.getElementById("filterLogDate").value; // Format: YYYY-MM-DD
+  const filterDate = document.getElementById("filterLogDate").value;
   const filterAdmin = document
     .getElementById("filterLogAdmin")
     .value.toLowerCase()
@@ -929,7 +830,6 @@ function applyLogFilters() {
     .trim();
 
   filteredAuditLogs = allAuditLogs.filter((log) => {
-    // ឆែកថ្ងៃខែ (តម្រូវ Format ទាំង DD/MM/YYYY និង YYYY-MM-DD)
     let matchDate = true;
     if (filterDate) {
       const [year, month, day] = filterDate.split("-");
@@ -937,28 +837,21 @@ function applyLogFilters() {
       const format2 = `${day}/${month}/${year}`;
       matchDate = log.date.includes(format1) || log.date.includes(format2);
     }
-
-    // ឆែកឈ្មោះ Admin
     const matchAdmin =
       !filterAdmin ||
       (log.admin && log.admin.toLowerCase().includes(filterAdmin));
-
-    // ឆែកសកម្មភាព Action
     const matchAction =
       !filterAction ||
       (log.action && log.action.toLowerCase().includes(filterAction));
-
     return matchDate && matchAdmin && matchAction;
   });
 
-  currentLogPage = 1; // ពេល Search ថ្មី ត្រូវលោតមកទំព័រទី ១ ជានិច្ច
+  currentLogPage = 1;
   renderAuditLogs();
 }
 
-// មុខងារគូរតារាង និងកាត់យកម្តង ១៥ មកបង្ហាញ (Pagination)
 function renderAuditLogs() {
   const tbody = document.getElementById("logsTableBody");
-
   if (filteredAuditLogs.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">រកមិនឃើញទិន្នន័យដែលអ្នកស្វែងរកទេ</td></tr>';
@@ -967,49 +860,28 @@ function renderAuditLogs() {
     document.getElementById("btnNextLogs").disabled = true;
     return;
   }
-
-  // គណនាចំនួនទំព័រសរុប
   const totalPages = Math.ceil(filteredAuditLogs.length / LOGS_PER_PAGE);
-
-  // កំណត់គោលដៅកាត់ទិន្នន័យ
   const startIndex = (currentLogPage - 1) * LOGS_PER_PAGE;
   const endIndex = startIndex + LOGS_PER_PAGE;
-
-  // កាត់យកទិន្នន័យតាមចំនួនកំណត់ (slice)
   const logsToShow = filteredAuditLogs.slice(startIndex, endIndex);
 
-  // បង្ហាញក្នុងតារាង
   tbody.innerHTML = logsToShow
     .map(
       (l) =>
-        `<tr>
-           <td style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${l.date}</td>
-           <td style="font-weight: bold; color: var(--primary);">@${l.admin}</td>
-           <td><span style="background: #f1f5f9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td>
-           <td style="font-family: monospace; font-size: 0.95rem;">${l.target || "-"}</td>
-           <td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td>
-         </tr>`,
+        `<tr><td style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-regular fa-clock"></i> ${l.date}</td><td style="font-weight: bold; color: var(--primary);">@${l.admin}</td><td><span style="background: #f1f5f9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">${l.action}</span></td><td style="font-family: monospace; font-size: 0.95rem;">${l.target || "-"}</td><td style="color: var(--text-muted); font-size: 0.9rem;">${l.details || "-"}</td></tr>`,
     )
     .join("");
-
-  // Update អក្សរបង្ហាញទំព័រទីប៉ុន្មាន
   document.getElementById("logPageInfo").innerText =
     `ទំព័រទី ${currentLogPage} / ${totalPages}`;
-
-  // បើក/បិទ ប៊ូតុង Next / Prev
   document.getElementById("btnPrevLogs").disabled = currentLogPage === 1;
   document.getElementById("btnNextLogs").disabled =
     currentLogPage === totalPages;
 }
 
-// មុខងារចុចប្តូរទំព័រ (Next / Prev)
 function changeLogPage(step) {
   const totalPages = Math.ceil(filteredAuditLogs.length / LOGS_PER_PAGE);
   currentLogPage += step;
-
-  // ការពារកុំឱ្យចុចហួសទំព័រ
   if (currentLogPage < 1) currentLogPage = 1;
   if (currentLogPage > totalPages) currentLogPage = totalPages;
-
   renderAuditLogs();
 }
