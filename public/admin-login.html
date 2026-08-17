@@ -395,8 +395,14 @@
           if (data.success) {
             sessionStorage.setItem("adminToken", data.token);
             sessionStorage.setItem("adminRole", data.user.role);
-            sessionStorage.setItem("adminFullName", data.user.fullName); // 🟢 ត្រូវតែមាន
-            sessionStorage.setItem("adminStaffId", data.user.staffId); // 🟢 ត្រូវតែមាន
+            sessionStorage.setItem("adminFullName", data.user.fullName);
+            sessionStorage.setItem("adminStaffId", data.user.staffId);
+
+            // 🟢 ថែមបន្ទាត់នេះ ដើម្បីផ្ទុក Nickname សម្រាប់យកไปប្រើក្នុង Chat
+            sessionStorage.setItem(
+              "adminNickname",
+              data.user.nickname || data.user.fullName,
+            );
 
             Swal.fire({
               icon: "success",
@@ -501,6 +507,12 @@
                 sessionStorage.setItem("adminRole", data.user.role);
                 sessionStorage.setItem("adminFullName", data.user.fullName); // 🟢 ត្រូវតែមាន
                 sessionStorage.setItem("adminStaffId", data.user.staffId); // 🟢 ត្រូវតែមាន
+
+                // 🟢 ថែមបន្ទាត់នេះ ដើម្បីផ្ទុក Nickname សម្រាប់យកไปប្រើក្នុង Chat
+                sessionStorage.setItem(
+                  "adminNickname",
+                  data.user.nickname || data.user.fullName,
+                );
 
                 Swal.fire({
                   icon: "success",

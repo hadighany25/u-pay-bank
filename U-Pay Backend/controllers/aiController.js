@@ -63,12 +63,11 @@ Response: សួស្តីបង! បងអាចធ្វើការវេ�
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "llama-3.1-8b-instant", // ឬ gemma2-9b-it
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage },
           ],
-          // 🟢 Temperature 0.5 គឺល្អបំផុតសម្រាប់ខ្មែរ (អាចដូរពាក្យបាន តែមិនបែកវេយ្យាករណ៍)
           temperature: 0.5,
           max_tokens: 500,
         }),

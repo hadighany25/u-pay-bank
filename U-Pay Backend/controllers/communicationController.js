@@ -230,12 +230,14 @@ const sendChat = async (req, res) => {
       }
     }
 
+    // ត្រង់កន្លែងបង្កើត newMessage ក្នុង sendChat៖
     const newMessage = new Chat({
       id: "MSG-" + Date.now(),
       senderAcc: sender.accountNumber || "ADMIN",
       receiverAcc: receiver.accountNumber || "ADMIN",
       message: message,
-      adminName: adminName || null,
+      // 🟢 បើ senderAcc ជា ADMIN ត្រូវบังคับឱ្យវាប្រើ adminName ដែលផ្ញើមក (ពោលគឺ Nickname) បើគ្មានទើបប្រើ Support Agent
+      adminName: senderAcc === "ADMIN" ? adminName || "Support Agent" : null,
       time: getFormattedDate(),
       timestamp: Date.now(),
       isRead: false,

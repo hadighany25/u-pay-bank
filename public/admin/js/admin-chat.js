@@ -1,9 +1,18 @@
 // admin-chat.js
+
 // ========================================================================
-// 💬 SECTION: LIVE CHAT SUPPORT MANAGEMENT
+// 💬 SECTION: LIVE CHAT SUPPORT MANAGEMENT (Cleaned & Updated)
 // ========================================================================
 let adminCurrentChat = null;
 let adminChatInterval = null;
+let adminLastMsgCount = 0;
+
+// 🟢 ជំនួយការ៖ ទាញយក Nickname ឬឈ្មោះប្រើប្រាស់ពី Session
+function getAdminDisplayInfo() {
+  const nickname = sessionStorage.getItem("adminNickname") || "Support Agent";
+  const fullName = sessionStorage.getItem("adminFullName") || "U-PAY Admin";
+  return { nickname, fullName };
+}
 
 // ទាញយកបញ្ជីអ្នកដែលបានឆាតមក (Contact List)
 async function fetchAdminContacts() {
@@ -17,47 +26,41 @@ async function fetchAdminContacts() {
     const list = document.getElementById("adminContactList");
 
     if (data.success && data.contacts.length > 0) {
-      list.innerHTML = data.contacts // 🟢 កែមកត្រឹមប៉ុណ្ណេះវិញ
+      list.innerHTML = data.contacts
         .map((c) => {
           let isSelected = adminCurrentChat === c.accountNumber;
+          let moodEmoji =
+            c.sentiment === "angry"
+              ? "😡"
+              : c.sentiment === "happy"
+                ? "😍"
+                : "😐";
 
-          // 🤖 កំណត់ Emoji តាមអារម្មណ៍អតិថិជន (Sentiment)
-          let moodEmoji = "😐"; // ធម្មតា (Default)
-          if (c.sentiment === "angry")
-            moodEmoji = "😡"; // ខឹង
-          else if (c.sentiment === "happy") moodEmoji = "😍"; // ពេញចិត្ត
+          let statusBadge =
+            c.status === "urgent"
+              ? `<span style="background:#ef4444; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">បន្ទាន់ 🚨</span>`
+              : c.status === "resolved"
+                ? `<span style="background:#10b981; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">ដោះស្រាយរួច ✅</span>`
+                : `<span style="background:#f59e0b; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">រង់ចាំ ⏳</span>`;
 
-          // 🏷️ កំណត់ពណ៌ Tag តាមស្ថានភាព (Status)
-          let statusBadge = "";
-          if (c.status === "urgent") {
-            statusBadge = `<span style="background:#ef4444; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">បន្ទាន់ 🚨</span>`;
-          } else if (c.status === "resolved") {
-            statusBadge = `<span style="background:#10b981; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">ដោះស្រាយរួច ✅</span>`;
-          } else {
-            statusBadge = `<span style="background:#f59e0b; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">រង់ចាំ ⏳</span>`;
-          }
-
-          return `<div onclick="openAdminChat('${c.accountNumber}', '${c.name}', '${c.status}')" class="chat-contact-item ${isSelected ? "active" : ""}" style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; background-color: ${isSelected ? "rgba(255, 255, 255, 0.1)" : "transparent"}; border: 1px solid rgba(255, 255, 255, 0.05); transition: background-color 0.2s;">
-            
-            <div class="chat-contact-avatar" style="min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.08); font-size: 1.2rem;">
-              ${moodEmoji}
-            </div>
-            
-            <div style="flex:1; overflow:hidden;">
-              <h4 class="chat-contact-name" style="margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">
-                ${c.name} ${statusBadge}
-              </h4>
-              <p class="chat-contact-msg" style="margin: 4px 0 0 0; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Kantumruy Pro', sans-serif; color: #94a3b8;">${c.lastMessage}</p>
-            </div>
-            
-            ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
-            
-          </div>`;
+          return `
+            <div onclick="openAdminChat('${c.accountNumber}', '${c.name}', '${c.status}')" 
+                 class="chat-contact-item ${isSelected ? "active" : ""}" 
+                 style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; background-color: ${isSelected ? "rgba(255, 255, 255, 0.1)" : "transparent"}; border: 1px solid rgba(255, 255, 255, 0.05);">
+              <div style="min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.08); font-size: 1.2rem;">${moodEmoji}</div>
+              <div style="flex:1; overflow:hidden;">
+                <h4 style="margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">
+                  ${c.name} ${statusBadge}
+                </h4>
+                <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8; font-family: 'Kantumruy Pro', sans-serif;">${c.lastMessage}</p>
+              </div>
+              ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
+            </div>`;
         })
         .join("");
     } else {
       list.innerHTML =
-        "<div style=\"text-align:center; padding:20px; color:var(--text-muted); font-family: 'Inter', sans-serif;\">No incoming messages</div>";
+        '<div style="text-align:center; padding:20px; color:var(--text-muted);">No incoming messages</div>';
     }
   } catch (e) {
     console.error("Error fetching contacts:", e);
@@ -67,20 +70,22 @@ async function fetchAdminContacts() {
 function openAdminChat(accNum, name, currentStatus = "pending") {
   adminCurrentChat = accNum;
 
-  // 🟢 បន្ថែមប្រអប់ Select សម្រាប់ប្តូរ Status
+  // 🟢 ដាក់ប្រអប់ Select Status មកវិញ នៅក្បែរឈ្មោះអតិថិជនយ៉ាងស្អាត
   document.getElementById("adminChatHeader").innerHTML = `
-    <div style="display:flex; align-items:center; gap: 15px;">
-      <h3 style="margin: 0; color: var(--text-main); font-family: 'Inter', sans-serif;">
-        <i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} 
-        <span style="font-size: 0.9rem; color: var(--text-muted);">(${accNum})</span>
-      </h3>
-      <select onchange="updateChatStatus('${accNum}', this.value)" style="padding: 4px 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 0.8rem; outline: none; cursor: pointer;">
-        <option value="pending" ${currentStatus === "pending" ? "selected" : ""} style="color: black;">⏳ កំពុងរង់ចាំ</option>
-        <option value="urgent" ${currentStatus === "urgent" ? "selected" : ""} style="color: black;">🚨 បន្ទាន់</option>
-        <option value="resolved" ${currentStatus === "resolved" ? "selected" : ""} style="color: black;">✅ ដោះស្រាយរួច</option>
-      </select>
+    <div style="display:flex; align-items:center; gap: 15px; width: 100%; justify-content: space-between;">
+      <div style="display:flex; align-items:center; gap: 10px;">
+        <h3 style="margin: 0; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 1.05rem;">
+          <i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} 
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">(${accNum})</span>
+        </h3>
+        <select onchange="updateChatStatus('${accNum}', this.value)" style="padding: 5px 10px; background: var(--input-bg, rgba(255,255,255,0.1)); color: var(--text-main, white); border: 1px solid var(--border, rgba(255,255,255,0.2)); border-radius: 8px; font-size: 0.85rem; outline: none; cursor: pointer; font-family: 'Kantumruy Pro', sans-serif;">
+          <option value="pending" ${currentStatus === "pending" ? "selected" : ""} style="color: black;">⏳ កំពុងរង់ចាំ</option>
+          <option value="urgent" ${currentStatus === "urgent" ? "selected" : ""} style="color: black;">🚨 បន្ទាន់</option>
+          <option value="resolved" ${currentStatus === "resolved" ? "selected" : ""} style="color: black;">✅ ដោះស្រាយរួច</option>
+        </select>
+      </div>
+      <button onclick="endAdminChat()" class="btn-end-chat" style="font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-xmark"></i> End Chat</button>
     </div>
-    <button onclick="endAdminChat()" class="btn-end-chat" style="font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-xmark"></i> End Chat</button>
   `;
 
   document.getElementById("adminChatInputBox").style.display = "flex";
@@ -89,9 +94,7 @@ function openAdminChat(accNum, name, currentStatus = "pending") {
   adminChatInterval = setInterval(fetchAdminMessages, 2000);
 }
 
-let adminLastMsgCount = 0;
-
-// មុខងារទី១៖ ទាញយកសារមកបង្ហាញ
+// 🟢 មុខងារបង្ហាញសារ (លុបអត្ថបទខាងលើចេញ និងប្តូរឈ្មោះ Admin ទៅកៀកខាងស្តាំក្រោមនៃប្រអប់សារ)
 async function fetchAdminMessages() {
   if (!adminCurrentChat) return;
   const res = await fetch("/api/chat/history", {
@@ -101,45 +104,51 @@ async function fetchAdminMessages() {
   });
   const data = await res.json();
 
+  // ទាញយក Nickname របស់ Admin ផ្ទាល់ពី SessionStorage
+  const myNickname =
+    sessionStorage.getItem("adminNickname") ||
+    sessionStorage.getItem("adminFullName") ||
+    "Support Agent";
+
   if (data.success && data.history.length !== adminLastMsgCount) {
     const body = document.getElementById("adminChatBody");
     body.innerHTML = "";
     data.history.forEach((m) => {
       const isSent = m.senderAcc === "ADMIN";
-      let msgBg = isSent ? "var(--primary)" : "var(--bg-body, white)";
-      let msgColor = isSent ? "white" : "var(--text-main)";
 
-      // 🟢 ថែម word-break: break-word; overflow-wrap: break-word; និង white-space: pre-wrap; ត្រង់នេះ
-      body.innerHTML += `<div style="align-self: ${isSent ? "flex-end" : "flex-start"}; max-width: 75%;">
-        <div style="padding: 12px 18px; border-radius: ${isSent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"}; background: ${msgBg}; color: ${msgColor}; font-size: 0.95rem; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); font-family: 'Kantumruy Pro', sans-serif; line-height: 1.5; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;">${m.message}</div>
-        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: ${isSent ? "right" : "left"}; margin-top: 4px; font-family: 'Inter', sans-serif;">${m.time.split(",")[1] || m.time}</div>
-      </div>`;
+      // ឈ្មោះ Admin ដែលត្រូវបង្ហាញ (បើគ្មាន m.adminName ប្រើ myNickname)
+      const senderDisplay = isSent ? m.adminName || myNickname : "";
+
+      body.innerHTML += `
+        <div style="display: flex; flex-direction: column; align-items: ${isSent ? "flex-end" : "flex-start"}; margin-bottom: 10px;">
+          <!-- ប្រអប់សារ (Bubble) -->
+          <div style="max-width: 75%; padding: 12px 18px; border-radius: 18px; background: ${isSent ? "var(--primary)" : "var(--bg-body)"}; color: ${isSent ? "white" : "var(--text-main)"}; font-family: 'Kantumruy Pro'; word-break: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            ${m.message}
+          </div>
+          
+          <!-- ព័ត៌មានពេលម៉ោង និង ឈ្មោះ Admin อยู่ខាងស្តាំក្រោមប្រអប់សារ -->
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; display: flex; gap: 8px; align-items: center; font-family: 'Inter', sans-serif;">
+            <span>${m.time.split(",")[1] || m.time}</span>
+            ${isSent ? `<span style="font-weight: 600; color: var(--accent);">${senderDisplay}</span>` : ""}
+          </div>
+        </div>`;
     });
     body.scrollTop = body.scrollHeight;
     adminLastMsgCount = data.history.length;
   }
 }
 
-// មុខងារទី២៖ ពេល Admin វាយបញ្ជូនសារ
 async function sendAdminChat() {
   const input = document.getElementById("adminChatInput");
   const text = input.value.trim();
   if (!text || !adminCurrentChat) return;
   input.value = "";
 
-  const body = document.getElementById("adminChatBody");
-  // 🟢 ថែម word-break: break-word; overflow-wrap: break-word; និង white-space: pre-wrap; ត្រង់នេះដូចគ្នា
-  body.innerHTML += `<div style="align-self: flex-end; max-width: 75%;">
-    <div style="padding: 12px 18px; border-radius: 18px 18px 4px 18px; background: var(--primary); color: white; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: 'Kantumruy Pro', sans-serif; line-height: 1.5; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap;">${text}</div>
-    <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 4px; font-family: 'Inter', sans-serif;">Sending...</div>
-  </div>`;
-  body.scrollTop = body.scrollHeight;
-
-  // 🟢 យក Username ពិតប្រាកដរបស់ Admin ពេល Login (បងអាចប្តូរឈ្មោះ variable តាមកូដ Login របស់បង ប្រសិនបើរក្សាទុកផ្សេង)
-  let currentAdminName =
-    localStorage.getItem("adminUsername") ||
-    localStorage.getItem("username") ||
-    "Admin";
+  // 🟢 យក Nickname ផ្ទាល់ខ្លួនរបស់ Admin ផ្ញើទៅជាមួយ
+  const myNickname =
+    sessionStorage.getItem("adminNickname") ||
+    sessionStorage.getItem("adminFullName") ||
+    "Support Agent";
 
   await fetch("/api/chat/send", {
     method: "POST",
@@ -148,7 +157,7 @@ async function sendAdminChat() {
       senderAcc: "ADMIN",
       receiverAcc: adminCurrentChat,
       message: text,
-      adminName: currentAdminName, // 🟢 ផ្ញើឈ្មោះ Username ពិត
+      adminName: myNickname, // 🟢 ផ្ញើ Nickname មិនឱ្យខុសទេ។
     }),
   });
   fetchAdminMessages();

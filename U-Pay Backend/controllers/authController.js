@@ -565,6 +565,7 @@ const adminLogin = async (req, res) => {
         role: finalRole,
         fullName: fullName, // 🟢 បោះឈ្មោះពេញទៅ Frontend
         staffId: staffId, // 🟢 បោះលេខ ID បុគ្គលិកទៅ Frontend
+        nickname: newAdminAcc?.nickname || fullName, // 🟢 ថែម Nickname នេះចូលទីនេះ (បើគ្មាន ប្រើ fullName ជំនួស)
       },
     });
   } catch (err) {
