@@ -1,3 +1,5 @@
+//authRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -109,6 +111,12 @@ router.get(
 router.get(
   "/migrate-trx",
   safeHandler(authController.migrateTransactions, "migrateTransactions"),
+);
+
+// 🟢 ផ្លូវថ្មីសម្រាប់ Login ដោយស្កេនកាត NFC
+router.post(
+  "/admin/nfc-login",
+  safeHandler(authController.adminNfcLogin, "adminNfcLogin"),
 );
 
 module.exports = router;

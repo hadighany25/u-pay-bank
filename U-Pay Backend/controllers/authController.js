@@ -501,16 +501,30 @@ const adminLogin = async (req, res) => {
     let isValid = false;
     let finalRole = "support_agent";
     let adminId = "";
+    let fullName = username;
+    let staffId = "UPAY-SYSTEM";
+    let isActive = true;
 
     const newAdminAcc = await Admin.findOne({ username: username });
 
     if (newAdminAcc) {
+      // 🛑 ឆែកមើលថាតើគណនីនេះត្រូវបានបិទ (Inactive) ឬអត់
+      if (newAdminAcc.isActive === false) {
+        return res.json({
+          success: false,
+          message: "គណនីរបស់អ្នកត្រូវបានបិទដោយ Super Admin!",
+        });
+      }
+
       isValid = await bcrypt.compare(password, newAdminAcc.password);
       if (!isValid && newAdminAcc.password === password) isValid = true;
 
       if (isValid) {
         finalRole = newAdminAcc.role;
         adminId = newAdminAcc.id || newAdminAcc._id;
+        fullName = newAdminAcc.fullName || newAdminAcc.username;
+        staffId = newAdminAcc.staffId || "UPAY-SYSTEM";
+        isActive = newAdminAcc.isActive !== false;
       }
     } else {
       const legacyAdmin = await User.findOne({
@@ -525,6 +539,8 @@ const adminLogin = async (req, res) => {
         finalRole =
           legacyAdmin.role === "admin" ? "super_admin" : legacyAdmin.role;
         adminId = legacyAdmin.id || legacyAdmin._id;
+        fullName = legacyAdmin.fullName || legacyAdmin.username;
+        staffId = legacyAdmin.staffId || "UPAY-SUPER";
       }
     }
 
@@ -547,12 +563,70 @@ const adminLogin = async (req, res) => {
       user: {
         username: username,
         role: finalRole,
+        fullName: fullName, // 🟢 បោះឈ្មោះពេញទៅ Frontend
+        staffId: staffId, // 🟢 បោះលេខ ID បុគ្គលិកទៅ Frontend
       },
     });
   } catch (err) {
     res
       .status(500)
       .json({ success: false, message: "Server Error ពេល Admin login" });
+  }
+};
+
+// 🟢 មុខងារ Login ចូលដោយប្រើកាត NFC
+const adminNfcLogin = async (req, res) => {
+  const { nfcUid } = req.body;
+  try {
+    if (!nfcUid) {
+      return res.json({ success: false, message: "រកមិនឃើញលេខកូដកាត NFC ទេ!" });
+    }
+
+    // ស្វែងរក Admin តាមរយៈលេខ UID កាត NFC
+    const adminAcc = await Admin.findOne({
+      nfcUid: nfcUid.trim().toUpperCase(),
+    });
+
+    if (!adminAcc) {
+      return res.json({
+        success: false,
+        message: "កាត NFC នេះមិនត្រូវបានចុះបញ្ជីក្នុងប្រព័ន្ធទេ!",
+      });
+    }
+
+    // 🛑 ឆែកមើលថាតើគណនី NFC នេះត្រូវបានបិទ (Inactive) ឬអត់
+    if (adminAcc.isActive === false) {
+      return res.json({
+        success: false,
+        message: "គណនីកាត NFC នេះត្រូវបានបិទដោយ Super Admin!",
+      });
+    }
+
+    const finalRole = adminAcc.role;
+    const adminId = adminAcc.id || adminAcc._id;
+
+    // បង្កើត Token បញ្ជាក់ការ Login
+    const token = jwt.sign(
+      { id: adminId, username: adminAcc.username, role: finalRole },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+
+    res.json({
+      success: true,
+      token: token,
+      user: {
+        username: adminAcc.username,
+        role: finalRole,
+        fullName: adminAcc.fullName || adminAcc.username, // 🟢 បោះឈ្មោះពេញ
+        staffId: adminAcc.staffId || "UPAY-SYSTEM", // 🟢 បោះលេខ ID បុគ្គលិក
+      },
+    });
+  } catch (err) {
+    console.error("NFC Login Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error ពេល Admin NFC login" });
   }
 };
 
@@ -610,5 +684,6 @@ module.exports = {
   unlinkTelegram,
   verifyAccount,
   adminLogin,
+  adminNfcLogin,
   migrateTransactions,
 };

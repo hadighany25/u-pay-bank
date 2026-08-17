@@ -1,3 +1,5 @@
+// adminController.js
+
 const {
   readSystemStatus,
   writeSystemStatus,
@@ -7,7 +9,7 @@ const {
 
 const Admin = require("../models/Admin");
 const AdminLog = require("../models/AdminLog");
-const Transaction = require("../models/Transaction"); // 🔥 កុំភ្លេចហៅវាមកប្រើ
+const Transaction = require("../models/Transaction");
 const System = require("../models/System");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -562,7 +564,8 @@ const adjustBalance = async (req, res) => {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const refId = (type === "add" ? "DEP-" : "DED-") + Date.now().toString().slice(-10);
+    const refId =
+      (type === "add" ? "DEP-" : "DED-") + Date.now().toString().slice(-10);
     const trxHash =
       "HSH" + Math.random().toString(36).substring(7).toUpperCase();
 
@@ -1071,8 +1074,33 @@ const deleteBroadcast = async (req, res) => {
 };
 
 const saveAdminAccount = async (req, res) => {
-  const { id, username, password, role, permissions } = req.body;
+  const {
+    id,
+    staffId,
+    fullName,
+    nickname,
+    phone,
+    email,
+    department,
+    remarks,
+    nfcUid,
+    username,
+    password,
+    role,
+    permissions,
+  } = req.body;
   try {
+    // 🛡️ ១. ពិនិត្យមើលថាតើ NFC នេះមានគេប្រើហើយឬនៅ
+    if (nfcUid && nfcUid.trim() !== "") {
+      const existingNfcUser = await Admin.findOne({ nfcUid: nfcUid });
+      if (existingNfcUser && existingNfcUser._id.toString() !== id) {
+        return res.json({
+          success: false,
+          message: `កាត NFC នេះត្រូវបានភ្ជាប់ជាមួយបុគ្គលិកឈ្មោះ ${existingNfcUser.username} រួចហើយ! សូមផ្តាច់ពីគណនីនោះសិន ឬប្រើកាតថ្មី។`,
+        });
+      }
+    }
+
     if (id) {
       const adminToUpdate = await Admin.findById(id);
       if (!adminToUpdate)
@@ -1080,6 +1108,14 @@ const saveAdminAccount = async (req, res) => {
 
       adminToUpdate.username = username;
       adminToUpdate.role = role;
+      adminToUpdate.fullName = fullName;
+      adminToUpdate.nickname = nickname;
+      adminToUpdate.phone = phone;
+      adminToUpdate.email = email;
+      adminToUpdate.department = department;
+      adminToUpdate.remarks = remarks;
+      adminToUpdate.nfcUid = nfcUid;
+
       if (permissions) adminToUpdate.permissions = permissions;
       if (password && password.trim() !== "")
         adminToUpdate.password = await bcrypt.hash(password, 10);
@@ -1104,6 +1140,14 @@ const saveAdminAccount = async (req, res) => {
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const newAdmin = new Admin({
+        staffId,
+        fullName,
+        nickname,
+        phone,
+        email,
+        department,
+        remarks,
+        nfcUid,
         username,
         password: hashedPassword,
         role,
@@ -1127,6 +1171,31 @@ const saveAdminAccount = async (req, res) => {
   }
 };
 
+// 🟢 មុខងារឆែកមើលថាតើ NFC នេះមានគេប្រើហើយឬនៅ (ភ្លាមៗ)
+const checkAdminNfcUid = async (req, res) => {
+  const { nfcUid, adminId } = req.body;
+  try {
+    if (!nfcUid)
+      return res.json({ available: false, message: "គ្មានទិន្នន័យ NFC" });
+
+    const existingAdmin = await Admin.findOne({ nfcUid: nfcUid });
+
+    // បើរកឃើញថាមានគេប្រើ ហើយមិនមែនជា Account ដែលកំពុង Edit នេះទេ
+    if (existingAdmin && existingAdmin._id.toString() !== adminId) {
+      return res.json({
+        available: false,
+        owner: existingAdmin.username || existingAdmin.fullName,
+      });
+    }
+
+    // បើគ្មានអ្នកប្រើទេ គឺអាចយកបាន
+    return res.json({ available: true });
+  } catch (error) {
+    console.error("NFC Check Error:", error);
+    res.status(500).json({ available: false, message: "Server Error" });
+  }
+};
+
 const deleteAdminAccount = async (req, res) => {
   const { id } = req.body;
   try {
@@ -1147,6 +1216,87 @@ const deleteAdminAccount = async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+};
+
+// 🟢 មុខងារឱ្យ Super Admin Reset Password របស់បុគ្គលិក
+const adminResetPassword = async (req, res) => {
+  const { adminId, newPassword } = req.body;
+  try {
+    if (!adminId || !newPassword) {
+      return res.json({ success: false, message: "ទិន្នន័យមិនគ្រប់គ្រាន់ទេ!" });
+    }
+
+    const targetAdmin = await Admin.findById(adminId);
+    if (!targetAdmin) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីបុគ្គលិកនេះទេ!",
+      });
+    }
+
+    // មិនអនុញ្ញាតឱ្យ Reset គណនី Master Admin "admin" តាមរបៀបនេះទេ (ដើម្បីសុវត្ថិភាព)
+    if (targetAdmin.username === "admin" && req.admin.username !== "admin") {
+      return res.json({
+        success: false,
+        message: "អ្នកគ្មានសិទ្ធិ Reset Password របស់ Master Admin ទេ!",
+      });
+    }
+
+    // Hash លេខសម្ងាត់ថ្មី
+    targetAdmin.password = await bcrypt.hash(newPassword, 10);
+    await targetAdmin.save();
+
+    // កត់ត្រាសកម្មភាពចូល Audit Log
+    await logAdminAction(
+      req.admin.username,
+      "Reset Admin Password",
+      targetAdmin.username,
+      `Password successfully reset by Super Admin`,
+    );
+
+    res.json({
+      success: true,
+      message: `ពាក្យសម្ងាត់របស់ @${targetAdmin.username} ត្រូវបានប្តូរថ្មីដោយជោគជ័យ!`,
+    });
+  } catch (err) {
+    console.error("Admin Reset Password Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 🟢 មុខងារបិទ/បើកសិទ្ធិ Login របស់ Admin (Toggle Status)
+const toggleAdminStatus = async (req, res) => {
+  const { adminId } = req.body;
+  try {
+    const targetAdmin = await Admin.findById(adminId);
+    if (!targetAdmin) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីបុគ្គលិកនេះទេ!",
+      });
+    }
+
+    // មិនអនុញ្ញាតឱ្យបិទគណនី Master Admin "admin" ខ្លួនឯងទេ
+    if (targetAdmin.username === "admin") {
+      return res.json({
+        success: false,
+        message: "មិនអាចបិទគណនី Master Admin បានទេ។",
+      });
+    }
+
+    // ប្តូរស្ថានភាព (បើ true ទៅ false, បើ false ទៅ true)
+    targetAdmin.isActive = !targetAdmin.isActive;
+    await targetAdmin.save();
+
+    res.json({
+      success: true,
+      isActive: targetAdmin.isActive,
+      message: `គណនីរបស់ @${targetAdmin.username} ត្រូវ បាន${targetAdmin.isActive ? "បើកដំណើរការ" : "បិទ"} ដោយជោគជ័យ!`,
+    });
+  } catch (err) {
+    console.error("Toggle Admin Status Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -2139,4 +2289,7 @@ module.exports = {
   processCashierTransaction,
   searchUserByAdmin,
   getUserByAdmin,
+  checkAdminNfcUid,
+  adminResetPassword,
+  toggleAdminStatus,
 };

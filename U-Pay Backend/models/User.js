@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema(
     kycDocument: { type: String, default: "" },
     kycSubmittedAt: { type: String, default: "" },
     needsSupport: { type: Boolean, default: false },
+    // 🟢 ថែម ២ ជួរនេះសម្រាប់គ្រប់គ្រង Chat Admin
+    chatStatus: { type: String, default: "pending" },
+    chatSentiment: { type: String, default: "neutral" },
     telegramChatId: { type: String, default: null },
     linkCode: { type: String, default: null },
     lastActive: { type: String, default: "" },

@@ -1,5 +1,3 @@
-<!-- index.hmtl -->
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -12,7 +10,7 @@
     <title>Admin Dashboard - U-Pay Premium</title>
 
     <!-- ======================================================= -->
-    <!-- ផ្នែកបណ្ណាល័យ (Libraries) & Fonts -->
+    <!-- 📦 ផ្នែកទី១៖ បណ្ណាល័យ (LIBRARIES) & FONTS -->
     <!-- ======================================================= -->
     <link
       rel="stylesheet"
@@ -25,329 +23,19 @@
       rel="stylesheet"
     />
 
-    <!-- CSS គោលរបស់អ្នក (រក្សាទុកដដែល) -->
+    <!-- 🎨 CSS គោលតែមួយគត់ (ទាញយកពីខាងក្រៅ) -->
     <link rel="stylesheet" href="css/admin-style.css" />
-
-    <!-- 🔥 ថែម CSS សម្រាប់ប្រអប់ Preview Cashier ដូរលុយ (Support Dark Mode) -->
-    <style>
-      /* ពណ៌ធម្មតា (Light Mode) */
-      .cashier-preview-box {
-        display: none;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 12px 15px;
-        border-radius: 12px;
-        margin-top: 15px;
-        text-align: left;
-        animation: fadeIn 0.3s ease;
-      }
-      .cashier-preview-text {
-        color: #059669; /* ពណ៌បៃតងដិតបន្តិច */
-      }
-
-      /* ពណ៌ងងឹត (Dark Mode) */
-      body.dark-mode .cashier-preview-box {
-        background: rgba(16, 185, 129, 0.05);
-        border-color: rgba(16, 185, 129, 0.2);
-      }
-      body.dark-mode .cashier-preview-text {
-        color: var(--secondary); /* ពណ៌បៃតងភ្លឺរបស់ប្រព័ន្ធ */
-      }
-      /* ==========================================
-         💬 LIVE CHAT SUPPORT UI (Responsive & Dark Mode)
-         ========================================== */
-      .chat-wrapper {
-        height: calc(100dvh - 110px);
-        min-height: 450px;
-        width: 100%;
-        max-width: 1400px;
-        margin: 0 auto;
-        box-sizing: border-box;
-        border-radius: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-        background: var(--bg-body, white);
-        border: 1px solid var(--border);
-      }
-      .chat-container {
-        display: flex;
-        height: 100%;
-        box-sizing: border-box;
-      }
-
-      /* 🟢 កូដដែលបាត់ធ្វើឱ្យខូចរាងលើកុំព្យូទ័រ គឺនៅទីនេះ */
-      .chat-sidebar {
-        width: 320px;
-        border-right: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        background: var(--bg-sidebar, #f8fafc);
-      }
-      .chat-sidebar-header {
-        padding: 20px;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-body, white);
-      }
-      .chat-contact-list {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-      }
-
-      .chat-main {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: var(--bg-body, white);
-      }
-      .chat-header {
-        padding: 20px;
-        border-bottom: 1px solid var(--border);
-        background: var(--bg-sidebar, #f8fafc);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .chat-body-area {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        background: var(--bg-light, #f1f5f9);
-      }
-      .chat-input-box {
-        padding: 15px 20px;
-        background: var(--bg-body, white);
-        border-top: 1px solid var(--border);
-        display: none;
-        align-items: center;
-        gap: 10px;
-      }
-      #adminChatInput {
-        flex: 1;
-        padding: 12px 20px;
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        outline: none;
-        font-family: inherit;
-        font-size: 1rem;
-        background: var(--bg-body, white);
-        color: var(--text-main);
-      }
-      .btn-send-chat {
-        background: var(--primary);
-        color: white;
-        border: none;
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 1.2rem;
-      }
-      .btn-end-chat {
-        background: #ef4444;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-
-      /* 🔥 ការកំណត់ Dark Mode ពិសេសសម្រាប់តែ Chat */
-      body.dark-mode .chat-wrapper {
-        background: #0f172a;
-        border-color: #1e293b;
-      }
-      body.dark-mode .chat-sidebar,
-      body.dark-mode .chat-header {
-        background: #1e293b;
-      }
-      body.dark-mode .chat-sidebar-header,
-      body.dark-mode .chat-main,
-      body.dark-mode .chat-input-box,
-      body.dark-mode #adminChatInput {
-        background: #0f172a;
-      }
-      body.dark-mode .chat-body-area {
-        background: #0b1120;
-      }
-      body.dark-mode .chat-sidebar {
-        border-color: #334155;
-      }
-      body.dark-mode .chat-header,
-      body.dark-mode .chat-sidebar-header,
-      body.dark-mode .chat-input-box,
-      body.dark-mode #adminChatInput {
-        border-color: #334155;
-      }
-
-      /* 📱 ការកំណត់ Responsive សម្រាប់ទូរស័ព្ទដៃ និងម៉ាស៊ីន POS */
-      @media (max-width: 768px) {
-        .chat-wrapper {
-          height: calc(100dvh - 90px);
-          border-radius: 10px;
-        }
-        .chat-container {
-          flex-direction: column;
-        }
-        .chat-sidebar {
-          width: 100%;
-          height: 35%;
-          border-right: none;
-          border-bottom: 2px solid var(--border);
-        }
-        .chat-main {
-          height: 65%;
-        }
-      }
-      /* ==========================================
-   ⚡ QUICK REPLIES POPOVER (LIGHT & DARK MODE)
-   ========================================== */
-      .quick-replies-popover {
-        position: absolute;
-        bottom: 65px; /* លោតពីក្រោមកន្លែងសរសេរអក្សរឡើងលើ */
-        left: 15px;
-        width: 320px;
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        padding: 15px;
-        z-index: 999;
-        animation: slideUpFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-
-      @keyframes slideUpFade {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .quick-reply-btn {
-        text-align: left;
-        padding: 10px 14px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #f8fafc;
-        color: var(--text-main);
-        cursor: pointer;
-        font-family: "Kantumruy Pro", sans-serif;
-        font-size: 0.9rem;
-        transition: 0.2s;
-        width: 100%;
-      }
-
-      .quick-reply-btn:hover {
-        background: #eff6ff;
-        border-color: #3b82f6;
-        color: #2563eb;
-      }
-      /* ⚡ ប៊ូតុងសាររហ័ស (Quick Reply Button) - កែសម្រួលឱ្យមូលស្អាត */
-      .btn-quick-reply {
-        background: var(--bg-sidebar, #f8fafc);
-        color: #3b82f6;
-        border: 1px solid var(--border);
-        width: 45px;
-        height: 45px;
-        min-width: 45px; /* ធានាមិនឱ្យវាត្រដុសរីកតូច */
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 1.1rem;
-        transition: 0.2s;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .btn-quick-reply:hover {
-        background: #3b82f6;
-        color: white;
-        border-color: #3b82f6;
-      }
-
-      /* 🔥 Dark Mode សម្រាប់ប៊ូតុងសាររហ័ស */
-      body.dark-mode .btn-quick-reply {
-        background: #1e293b;
-        color: #60a5fa;
-        border-color: #334155;
-      }
-      body.dark-mode .btn-quick-reply:hover {
-        background: #3b82f6;
-        color: white;
-      }
-      /* 🔥 Dark Mode សម្រាប់ Popover សាររហ័ស */
-      body.dark-mode .quick-replies-popover {
-        background: #1e293b;
-        border-color: #334155;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-      }
-
-      body.dark-mode .quick-reply-btn {
-        background: #0f172a;
-        border-color: #334155;
-        color: #f8fafc;
-      }
-
-      body.dark-mode .quick-reply-btn:hover {
-        background: #1d4ed8;
-        border-color: #3b82f6;
-        color: white;
-      }
-
-      /* 🤖 ប៊ូតុង AI Smart Reply */
-      .btn-ai-reply {
-        background: linear-gradient(135deg, #ede9fe, #f3e8ff);
-        color: #8b5cf6; /* ពណ៌ស្វាយ AI */
-        border: 1px solid #ddd6fe;
-        width: 45px;
-        height: 45px;
-        min-width: 45px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 1.1rem;
-        transition: 0.3s;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .btn-ai-reply:hover {
-        background: linear-gradient(135deg, #8b5cf6, #a855f7);
-        color: white;
-        border-color: #8b5cf6;
-        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
-      }
-
-      /* 🔥 Dark Mode សម្រាប់ប៊ូតុង AI */
-      body.dark-mode .btn-ai-reply {
-        background: #2e1065;
-        color: #c4b5fd;
-        border-color: #4c1d95;
-      }
-      body.dark-mode .btn-ai-reply:hover {
-        background: linear-gradient(135deg, #8b5cf6, #a855f7);
-        color: white;
-        box-shadow: 0 4px 10px rgba(139, 92, 246, 0.5);
-      }
-    </style>
   </head>
+
   <body>
     <!-- ស្រមោលពណ៌ខ្មៅ សម្រាប់បិទ Sidebar លើទូរស័ព្ទដៃ -->
     <div class="overlay" onclick="toggleSidebar()"></div>
 
     <!-- ======================================================= -->
-    <!-- ផ្នែកទី១៖ របារចំហៀងខាងឆ្វេង (SIDEBAR MENU) -->
+    <!-- 🗄️ ផ្នែកទី២៖ របារចំហៀងខាងឆ្វេង (SIDEBAR MENU) -->
     <!-- ======================================================= -->
     <div class="sidebar" id="sidebar">
-      <!-- ប្រវត្តិរូប Admin ខាងលើ -->
+      <!-- 2.1 ប្រវត្តិរូប Admin ខាងលើ -->
       <div
         style="
           padding: 0 20px 20px;
@@ -391,7 +79,7 @@
         ></div>
       </div>
 
-      <!-- ក្រុមទី១៖ ម៉ឺនុយគោល (Main Menu) -->
+      <!-- 2.2 ក្រុមទី១៖ ម៉ឺនុយគោល (Main Menu) -->
       <div class="menu-label" id="label-main" data-i18n="menu-main">
         Main Menu
       </div>
@@ -430,7 +118,7 @@
         <i class="fa-solid fa-store"></i> Merchant Management
       </div>
 
-      <!-- ក្រុមទី២៖ ប្រតិបត្តិការ (Operations) -->
+      <!-- 2.3 ក្រុមទី២៖ ប្រតិបត្តិការ (Operations) -->
       <div class="menu-label" id="label-ops" data-i18n="menu-ops">
         Operations
       </div>
@@ -479,7 +167,7 @@
         <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
-      <!-- ក្រុមទី៣៖ ហិរញ្ញវត្ថុ និងកាត (Finance & Cards) -->
+      <!-- 2.4 ក្រុមទី៣៖ ហិរញ្ញវត្ថុ និងកាត (Finance & Cards) -->
       <div class="menu-label" id="label-finance" data-i18n="menu-finance">
         Finance & Cards
       </div>
@@ -528,7 +216,7 @@
         <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
 
-      <!-- ក្រុមទី៤៖ សុវត្ថិភាព និងជំនួយ (Security & Support) -->
+      <!-- 2.5 ក្រុមទី៤៖ សុវត្ថិភាព និងជំនួយ (Security & Support) -->
       <div class="menu-label" id="label-security" data-i18n="menu-security">
         Security & Support
       </div>
@@ -566,7 +254,7 @@
         <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
-      <!-- ក្រុមទី៥៖ សម្រាប់តែ Super Admin (Super Admin Only) -->
+      <!-- 2.6 ក្រុមទី៥៖ សម្រាប់តែ Super Admin (Super Admin Only) -->
       <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
         Super Admin Only
       </div>
@@ -602,7 +290,7 @@
         Control
       </div>
 
-      <!-- ចាកចេញ (Logout) -->
+      <!-- 2.7 ចាកចេញ (Logout) -->
       <div
         class="menu-item logout-btn"
         onclick="logout()"
@@ -614,10 +302,10 @@
     </div>
 
     <!-- ======================================================= -->
-    <!-- ផ្នែកទី២៖ ផ្ទៃបង្ហាញគោលខាងស្តាំ (MAIN CONTENT) -->
+    <!-- 💻 ផ្នែកទី៣៖ ផ្ទៃបង្ហាញគោលខាងស្តាំ (MAIN CONTENT) -->
     <!-- ======================================================= -->
     <div class="main-content">
-      <!-- របារខាងលើសម្រាប់កុំព្យូទ័រ (Top Nav Actions) -->
+      <!-- 3.1 របារខាងលើសម្រាប់កុំព្យូទ័រ (Top Nav Actions) -->
       <div class="top-nav-actions">
         <button
           class="icon-btn"
@@ -639,7 +327,7 @@
         </button>
       </div>
 
-      <!-- របារខាងលើសម្រាប់ទូរស័ព្ទដៃ (Mobile Header) -->
+      <!-- 3.2 របារខាងលើសម្រាប់ទូរស័ព្ទដៃ (Mobile Header) -->
       <div class="mobile-header">
         <div
           class="brand"
@@ -679,7 +367,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៖ Dashboard Content -->
+      <!-- [ ផ្ទាំង ០១ ] Dashboard Content -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-dashboard"
@@ -711,7 +399,7 @@
             Live Sync Active
           </div>
         </div>
-        <!-- (កាតទិន្នន័យ Dashboard) -->
+        <!-- កាតទិន្នន័យ Dashboard -->
         <div class="dash-stats">
           <div class="dash-card stat-item">
             <div class="bg-shape" style="background: #3b82f6"></div>
@@ -834,6 +522,7 @@
             </div>
           </div>
         </div>
+        <!-- ក្រាហ្វិច និងសកម្មភាព -->
         <div class="dash-grid">
           <div class="dash-card">
             <div class="card-header">
@@ -866,7 +555,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី២៖ User Management -->
+      <!-- [ ផ្ទាំង ០២ ] User Management -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-users"
@@ -910,7 +599,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៣៖ Transaction Verification (Trx Check) -->
+      <!-- [ ផ្ទាំង ០៣ ] Transaction Verification (Trx Check) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-check-trx"
@@ -944,7 +633,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៤៖ Customer 360 View -->
+      <!-- [ ផ្ទាំង ០៤ ] Customer 360 View -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-customer-360"
@@ -1131,7 +820,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៥៖ បេឡាករ (Cashier) ដាក់/ដកប្រាក់ -->
+      <!-- [ ផ្ទាំង ០៥ ] បេឡាករ (Cashier) ដាក់/ដកប្រាក់ -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-cashier"
@@ -1168,7 +857,6 @@
             <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
           </div>
 
-          <!-- ១. ផ្នែកស្វែងរកអ្នកទទួល -->
           <div class="input-group" style="margin-bottom: 25px">
             <label class="input-label"
               >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
@@ -1197,7 +885,6 @@
             </div>
           </div>
 
-          <!-- ២. កាតព័ត៌មានអ្នកទទួល (លាក់សិន) -->
           <div
             id="targetUserCard"
             class="user-card"
@@ -1243,7 +930,6 @@
             </div>
           </div>
 
-          <!-- ៣. ទម្រង់ប្រតិបត្តិការ (លាក់សិន) -->
           <div id="transactionForm" style="display: none">
             <div class="input-group" style="margin-bottom: 20px">
               <label
@@ -1251,7 +937,6 @@
                 style="font-weight: bold; color: #0369a1"
                 >ជ្រើសរើសគណនីទទួលប្រាក់ <span style="color: red">*</span></label
               >
-              <!-- 🔥 ថែម onchange ហៅមុខងារ preview ពេលដូរកុង -->
               <select
                 id="targetAccountSelect"
                 class="custom-input"
@@ -1310,7 +995,6 @@
             <div style="display: flex; gap: 15px; margin-bottom: 20px">
               <div class="input-group" style="width: 40%">
                 <label class="input-label">រូបិយប័ណ្ណ (Currency)</label>
-                <!-- 🔥 ថែម onchange ហៅមុខងារ preview ពេលដូរលុយ -->
                 <select
                   id="cashCurrency"
                   class="custom-input"
@@ -1322,7 +1006,6 @@
               </div>
               <div class="input-group" style="width: 60%">
                 <label class="input-label">ចំនួនទឹកប្រាក់</label>
-                <!-- 🔥 ថែម oninput ហៅមុខងារ preview ពេលវាយលេខ -->
                 <input
                   type="number"
                   id="cashAmount"
@@ -1333,8 +1016,6 @@
               </div>
             </div>
 
-            <!-- 🔥 កន្លែងត្រូវបន្ថែម UI Preview Exchange Rate នៅទីនេះ (ប្រអប់ពណ៌បៃតង) -->
-            <!-- កូដ UI នឹងត្រូវបិទបើកដោយស្វ័យប្រវត្តិតាមរយៈ Javascript -->
             <div
               id="cashierExchangePreview"
               class="cashier-preview-box"
@@ -1404,7 +1085,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៦៖ Broadcast History -->
+      <!-- [ ផ្ទាំង ០៦ ] Broadcast History -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-broadcast-history"
@@ -1463,7 +1144,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៧៖ Merchant Management -->
+      <!-- [ ផ្ទាំង ០៧ ] Merchant Management -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchants"
@@ -1525,7 +1206,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៨៖ Merchant History -->
+      <!-- [ ផ្ទាំង ០៨ ] Merchant History -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchant-history"
@@ -1561,7 +1242,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី៩៖ FX Settings (អត្រាប្តូរប្រាក់) -->
+      <!-- [ ផ្ទាំង ០៩ ] FX Settings (អត្រាប្តូរប្រាក់) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-fx"
@@ -1631,7 +1312,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១០៖ Fees & Limits -->
+      <!-- [ ផ្ទាំង ១០ ] Fees & Limits -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-fees"
@@ -1766,7 +1447,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១១៖ Promo Codes -->
+      <!-- [ ផ្ទាំង ១១ ] Promo Codes -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-promo"
@@ -1822,7 +1503,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១២៖ Card Management -->
+      <!-- [ ផ្ទាំង ១២ ] Card Management -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-cards"
@@ -1844,8 +1525,6 @@
               Monitor and manage issued Virtual/Physical cards.
             </p>
           </div>
-
-          <!-- 🟢 ដាក់ប្រអប់ Search និងប៊ូតុង Refresh ឱ្យនៅជាមួយគ្នាផ្នែកខាងស្តាំ -->
           <div style="display: flex; align-items: center; gap: 10px">
             <div class="search-box" style="margin: 0">
               <i class="fa-solid fa-magnifying-glass"></i>
@@ -1856,8 +1535,6 @@
                 onkeyup="filterCards()"
               />
             </div>
-
-            <!-- ប៊ូតុង Refresh នៅខាងក្រោយប្រអប់ Search -->
             <button
               onclick="
                 loadData();
@@ -1892,7 +1569,6 @@
             </button>
           </div>
         </div>
-
         <div class="table-container">
           <table>
             <thead>
@@ -1916,7 +1592,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៣៖ KYC Approvals -->
+      <!-- [ ផ្ទាំង ១៣ ] KYC Approvals -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-kyc"
@@ -1962,7 +1638,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៤៖ Support Tickets -->
+      <!-- [ ផ្ទាំង ១៤ ] Support Tickets -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-tickets"
@@ -2004,11 +1680,10 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៥៖ Live Chat Support -->
+      <!-- [ ផ្ទាំង ១៥ ] Live Chat Support -->
       <!-- ------------------------------------------------------- -->
       <div id="sec-live-chat" class="chat-wrapper" style="display: none">
         <div class="chat-container">
-          <!-- ផ្នែកខាងឆ្វេង៖ បញ្ជីអ្នកឆាត -->
           <div class="chat-sidebar">
             <div class="chat-sidebar-header">
               <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main)">
@@ -2029,8 +1704,6 @@
               </div>
             </div>
           </div>
-
-          <!-- ផ្នែកខាងស្តាំ៖ កន្លែងវាយឆាត -->
           <div class="chat-main">
             <div id="adminChatHeader" class="chat-header">
               <h3
@@ -2048,7 +1721,6 @@
                 បញ្ចប់ការសន្ទនា
               </button>
             </div>
-
             <div id="adminChatBody" class="chat-body-area">
               <div
                 style="
@@ -2067,9 +1739,7 @@
                 >
               </div>
             </div>
-
             <div id="adminChatInputBox" class="chat-input-box">
-              <!-- 🟢 ប៊ូតុងសាររហ័ស (Quick Replies) -->
               <button
                 onclick="openQuickReplies()"
                 class="btn-quick-reply"
@@ -2077,8 +1747,6 @@
               >
                 <i class="fa-solid fa-bolt"></i>
               </button>
-
-              <!-- 🤖 ប៊ូតុង AI Smart Reply -->
               <button
                 onclick="generateAIReply()"
                 class="btn-ai-reply"
@@ -2086,7 +1754,6 @@
               >
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
               </button>
-
               <input
                 type="text"
                 id="adminChatInput"
@@ -2102,7 +1769,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៦៖ Admin Management -->
+      <!-- [ ផ្ទាំង ១៦ ] Admin Management -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-admins"
@@ -2124,7 +1791,16 @@
               គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
             </p>
           </div>
-          <button class="btn-primary" onclick="openAdminModal()">
+          <button
+            class="btn-primary"
+            onclick="openAdminModal()"
+            style="
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              font-size: 0.95rem;
+              font-weight: 600;
+              border-radius: 10px;
+            "
+          >
             <i class="fa-solid fa-plus"></i>
             <span data-i18n="create-new-admin">បង្កើតគណនីបុគ្គលិកថ្មី</span>
           </button>
@@ -2133,10 +1809,10 @@
           <table>
             <thead>
               <tr>
-                <th data-i18n="username">Username</th>
+                <th data-i18n="name">NAME</th>
                 <th data-i18n="role">តួនាទី (Role)</th>
                 <th data-i18n="working-hours">ម៉ោងធ្វើការ</th>
-                <th data-i18n="created-date">ថ្ងៃបង្កើត</th>
+                <th data-i18n="status">STATUS</th>
                 <th style="text-align: right" data-i18n="action">
                   សកម្មភាព (Action)
                 </th>
@@ -2162,7 +1838,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- ផ្ទាំងទី១៧៖ Audit Logs -->
+      <!-- [ ផ្ទាំង ១៧ ] Audit Logs -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-logs"
@@ -2189,8 +1865,7 @@
             <span data-i18n="reload-data">ទាញយកទិន្នន័យថ្មី</span>
           </button>
         </div>
-
-        <!-- ផ្នែកបន្ថែមថ្មី៖ ប្រអប់ស្វែងរក (Filters) -->
+        <!-- ប្រអប់ស្វែងរក (Filters) -->
         <div
           style="
             display: flex;
@@ -2256,7 +1931,6 @@
             <i class="fa-solid fa-filter"></i> ស្វែងរក
           </button>
         </div>
-
         <div class="table-container">
           <table>
             <thead>
@@ -2281,8 +1955,7 @@
             </tbody>
           </table>
         </div>
-
-        <!-- ផ្នែកបន្ថែមថ្មី៖ ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
         <div
           style="
             display: flex;
@@ -2309,11 +1982,9 @@
           >
             <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
           </button>
-
           <span id="logPageInfo" style="font-weight: bold; color: #1e293b"
             >ទំព័រទី 1</span
           >
-
           <button
             id="btnNextLogs"
             onclick="changeLogPage(1)"
@@ -2333,13 +2004,13 @@
         </div>
       </div>
     </div>
-    <!-- បញ្ចប់ Main Content (ទី២) -->
+    <!-- បញ្ចប់ Main Content -->
 
     <!-- ======================================================= -->
-    <!-- ផ្នែកទី៣៖ ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
+    <!-- [ ផ្នែកទី៣ ] ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
     <!-- ======================================================= -->
 
-    <!-- ១. Modal សម្រាប់កែប្រែគណនីអ្នកប្រើប្រាស់ (Edit User) -->
+    <!-- 3.1 Modal កែប្រែគណនីអ្នកប្រើប្រាស់ -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -2377,16 +2048,16 @@
             <input type="hidden" id="editProfileImg" />
           </div>
           <div class="form-group">
-            <label data-i18n="full-name-username">Full Name / Username</label>
-            <input id="editUsername" class="form-input" />
+            <label data-i18n="full-name-username">Full Name / Username</label
+            ><input id="editUsername" class="form-input" />
           </div>
           <div class="form-group">
-            <label data-i18n="account-number-usd">Account Number (USD)</label>
-            <input id="editAccNum" class="form-input" type="number" />
+            <label data-i18n="account-number-usd">Account Number (USD)</label
+            ><input id="editAccNum" class="form-input" type="number" />
           </div>
           <div class="form-group">
-            <label data-i18n="account-number-khr">Account Number (KHR)</label>
-            <input
+            <label data-i18n="account-number-khr">Account Number (KHR)</label
+            ><input
               type="number"
               id="editAccNumKHR"
               class="form-input"
@@ -2394,8 +2065,8 @@
             />
           </div>
           <div class="form-group">
-            <label data-i18n="reset-pin">Reset PIN</label>
-            <input
+            <label data-i18n="reset-pin">Reset PIN</label
+            ><input
               id="editPin"
               type="text"
               maxlength="4"
@@ -2404,8 +2075,8 @@
             />
           </div>
           <div class="form-group">
-            <label data-i18n="change-password">Change Password</label>
-            <input
+            <label data-i18n="change-password">Change Password</label
+            ><input
               id="editPassword"
               type="text"
               class="form-input"
@@ -2432,272 +2103,562 @@
       </div>
     </div>
 
-    <!-- ២. Modal សម្រាប់គ្រប់គ្រងគណនីបុគ្គលិក (Admin Account) -->
+    <!-- 3.2 Modal គ្រប់គ្រងគណនីបុគ្គលិក (Admin Account WIZARD) -->
     <div id="adminAccModal" class="modal-overlay">
-      <div class="modal-card">
+      <div class="modal-card" style="max-width: 650px">
         <div class="modal-header">
-          <i class="fa-solid fa-user-shield" style="font-size: 1.2rem"></i>
-          <h3 id="adminModalTitle" data-i18n="add-new-admin">
-            បន្ថែមបុគ្គលិកថ្មី
+          <i class="fa-solid fa-user-tie" style="font-size: 1.2rem"></i>
+          <h3 id="adminModalTitle" data-i18n="admin-profile-setup">
+            គ្រប់គ្រងគណនីបុគ្គលិក
           </h3>
         </div>
-        <div class="modal-body">
+
+        <div class="modal-body" style="padding-top: 15px">
+          <!-- 🟢 Progress Indicator -->
+          <div class="wizard-header">
+            <div class="wizard-step-indicator active" id="ind-step-1">
+              <div class="step-circle">1</div>
+              <span class="step-label" data-i18n="info">ព័ត៌មាន</span>
+            </div>
+            <div class="wizard-step-indicator" id="ind-step-2">
+              <div class="step-circle">2</div>
+              <span class="step-label" data-i18n="roles">សិទ្ធិ</span>
+            </div>
+            <div class="wizard-step-indicator" id="ind-step-3">
+              <div class="step-circle">3</div>
+              <span class="step-label" data-i18n="nfc-card">កាត NFC</span>
+            </div>
+            <div class="wizard-step-indicator" id="ind-step-4">
+              <div class="step-circle">4</div>
+              <span class="step-label" data-i18n="verify">បញ្ជាក់</span>
+            </div>
+          </div>
+
           <input type="hidden" id="manageAdminId" />
-          <div class="form-group">
-            <label data-i18n="username">Username (ឈ្មោះចូលប្រើ)</label>
-            <input
-              id="manageAdminUser"
-              class="form-input"
-              placeholder="ឧទាហរណ៍: admin_sok"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="password">Password (លេខសម្ងាត់)</label>
-            <input
-              id="manageAdminPass"
-              type="password"
-              class="form-input"
-              placeholder="ទុកទទេបើមិនចង់ដូរលេខសម្ងាត់ (សម្រាប់ពេល Edit)"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="role">Role (តួនាទី និងសិទ្ធិ)</label>
-            <select
-              id="manageAdminRole"
-              class="form-input"
-              onchange="toggleCustomPermissions(this.value)"
-            >
-              <option value="super_admin">
-                Super Admin (មេធំ គ្រប់គ្រងទាំងអស់)
-              </option>
-              <option value="finance_admin">
-                Finance Admin (ផ្នែកហិរញ្ញវត្ថុ វេរលុយ)
-              </option>
-              <option value="support_agent">
-                Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
-              </option>
-              <option value="custom" data-i18n="custom-role">
-                Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)
-              </option>
-            </select>
-          </div>
-          <div
-            class="form-group"
-            id="customRoleInputGroup"
-            style="
-              display: none;
-              background: #f0fdfa;
-              padding: 15px;
-              border-radius: 10px;
-              border: 1px dashed #10b981;
-              margin-top: -5px;
-            "
-          >
-            <label style="color: #047857" data-i18n="custom-role-title"
-              >ឈ្មោះតួនាទីនេះ (Custom Role Title)</label
-            >
-            <input
-              id="customRoleName"
-              class="form-input"
-              placeholder="ឧទាហរណ៍: អ្នកគ្រប់គ្រងកាត"
-              style="border-color: #34d399"
-            />
-          </div>
-          <div
-            id="customPermissionBox"
-            style="
-              display: none;
-              border-top: 1px solid var(--border);
-              padding-top: 15px;
-              margin-top: 15px;
-            "
-          >
-            <label
+
+          <!-- 🟢 STEP 1: ព័ត៌មានផ្ទាល់ខ្លួន -->
+          <div id="wizard-step-1" class="wizard-content active">
+            <div
+              class="perm-grid"
               style="
-                font-size: 0.9rem;
-                font-weight: 700;
-                color: var(--text-main);
-                margin-bottom: 10px;
-                display: block;
+                grid-template-columns: 1fr 1fr;
+                padding: 0;
+                border: none;
+                gap: 15px;
               "
-              data-i18n="working-hours"
-              >ម៉ោងធ្វើការ (Working Hours)</label
             >
-            <div style="display: flex; gap: 10px; margin-bottom: 20px">
-              <input
-                type="time"
-                id="permWorkStart"
-                class="form-input"
-                value="08:00"
-              />
-              <span
-                style="
-                  display: flex;
-                  align-items: center;
-                  color: var(--text-muted);
-                  font-weight: bold;
-                "
-                >ដល់</span
+              <div class="form-group">
+                <label data-i18n="staff-id">Staff ID (កូដសម្គាល់)</label>
+                <input
+                  id="staffId"
+                  class="form-input wizard-input"
+                  readonly
+                  style="background: #e2e8f0; font-weight: bold; color: #475569"
+                />
+              </div>
+              <div class="form-group">
+                <label data-i18n="username"
+                  >Username (ឈ្មោះចូលប្រព័ន្ធ)
+                  <span style="color: red">*</span></label
+                >
+                <input
+                  id="manageAdminUser"
+                  class="form-input wizard-input"
+                  placeholder="ឧ. admin_dara"
+                />
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1">
+                <label data-i18n="full-name"
+                  >Full Name (ឈ្មោះពេញ) <span style="color: red">*</span></label
+                >
+                <input
+                  id="adminFullName"
+                  class="form-input uppercase-input wizard-input"
+                  placeholder="ឧ. SOK DARA"
+                />
+              </div>
+              <div class="form-group">
+                <label data-i18n="nickname">Nickname (ឈ្មោះហៅក្រៅ)</label>
+                <input
+                  id="adminNickname"
+                  class="form-input wizard-input"
+                  placeholder="ឧ. Dara"
+                />
+              </div>
+              <div class="form-group">
+                <label data-i18n="password">Password (លាក់ពេលកែប្រែ)</label>
+                <input
+                  id="manageAdminPass"
+                  type="password"
+                  class="form-input wizard-input"
+                  placeholder="********"
+                />
+              </div>
+              <div class="form-group">
+                <label data-i18n="phone">Phone (លេខទូរស័ព្ទ)</label>
+                <input
+                  id="adminPhone"
+                  class="form-input wizard-input"
+                  placeholder="ឧ. 012345678"
+                />
+              </div>
+              <div class="form-group">
+                <label data-i18n="email">Email (អ៊ីមែល)</label>
+                <input
+                  id="adminEmail"
+                  type="email"
+                  class="form-input wizard-input"
+                  placeholder="dara@u-pay.com"
+                />
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1">
+                <label data-i18n="department"
+                  >Department / Branch (នាយកដ្ឋាន / សាខា)</label
+                >
+                <select id="adminDept" class="form-input wizard-input">
+                  <option value="Customer Support (CS)">
+                    Customer Support (CS)
+                  </option>
+                  <option value="Finance & Accounting">
+                    Finance & Accounting
+                  </option>
+                  <option value="IT & Tech Support">IT & Tech Support</option>
+                  <option value="Branch Manager">Branch Manager</option>
+                  <option value="Head Office">Head Office (HQ)</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column: 1 / -1">
+                <label data-i18n="remarks"
+                  >Admin Notes (ចំណាំផ្ទាល់ខ្លួន)</label
+                >
+                <input
+                  id="adminRemarks"
+                  class="form-input wizard-input"
+                  placeholder="ឧ. បុគ្គលិកជាប់កិច្ចសន្យា ៦ខែ..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 🟢 STEP 2: តួនាទី និងសិទ្ធិ (Role & Permissions) -->
+          <div id="wizard-step-2" class="wizard-content">
+            <div class="form-group">
+              <label data-i18n="role">Role (តួនាទី និងសិទ្ធិគោល)</label>
+              <select
+                id="manageAdminRole"
+                class="form-input wizard-input"
+                onchange="toggleCustomPermissions(this.value)"
+              >
+                <option value="super_admin">
+                  Super Admin (មេធំ គ្រប់គ្រងទាំងអស់)
+                </option>
+                <option value="finance_admin">
+                  Finance Admin (ផ្នែកហិរញ្ញវត្ថុ វេរលុយ)
+                </option>
+                <option value="support_agent">
+                  Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
+                </option>
+                <option value="custom" data-i18n="custom-role">
+                  Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)
+                </option>
+              </select>
+            </div>
+
+            <div
+              class="form-group"
+              id="customRoleInputGroup"
+              style="
+                display: none;
+                background: #f0fdfa;
+                padding: 15px;
+                border-radius: 10px;
+                border: 1px dashed #10b981;
+              "
+            >
+              <label style="color: #047857" data-i18n="custom-role-title"
+                >ឈ្មោះតួនាទីនេះ (Custom Role Title)</label
               >
               <input
-                type="time"
-                id="permWorkEnd"
-                class="form-input"
-                value="17:00"
+                id="customRoleName"
+                class="form-input wizard-input"
+                placeholder="ឧທាហរណ៍: អ្នកគ្រប់គ្រងកាត"
+                style="border-color: #34d399"
               />
             </div>
-            <label
-              style="
-                font-size: 0.9rem;
-                font-weight: 700;
-                color: var(--text-main);
-                margin-bottom: 10px;
-                display: block;
-              "
-              data-i18n="menu-access"
-              >សិទ្ធិចូលមើល (Menu Access)</label
+
+            <div
+              id="customPermissionBox"
+              style="display: none; margin-top: 15px"
             >
-            <div class="perm-grid" style="margin-bottom: 20px">
-              <div class="perm-item">
-                <span data-i18n="user-mgmt">User Mgmt</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_users" checked /><span
-                    class="slider"
-                  ></span
-                ></label>
+              <label
+                style="
+                  font-size: 0.9rem;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 10px;
+                  display: block;
+                "
+                data-i18n="working-hours"
+                >ម៉ោងធ្វើការ (Working Hours)</label
+              >
+              <div style="display: flex; gap: 10px; margin-bottom: 20px">
+                <input
+                  type="time"
+                  id="permWorkStart"
+                  class="form-input wizard-input"
+                  value="08:00"
+                />
+                <span
+                  style="
+                    display: flex;
+                    align-items: center;
+                    color: var(--text-muted);
+                    font-weight: bold;
+                  "
+                  >ដល់</span
+                >
+                <input
+                  type="time"
+                  id="permWorkEnd"
+                  class="form-input wizard-input"
+                  value="17:00"
+                />
               </div>
-              <div class="perm-item">
-                <span data-i18n="trx-check">Trx Check</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_checktrx" checked /><span
-                    class="slider"
-                  ></span
-                ></label>
+
+              <label
+                style="
+                  font-size: 0.9rem;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 10px;
+                  display: block;
+                "
+                data-i18n="menu-access"
+                >សិទ្ធិចូលមើល (Menu Access)</label
+              >
+              <div class="perm-grid" style="margin-bottom: 20px">
+                <div class="perm-item">
+                  <span>User Mgmt</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_users" checked /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Merchant Mgmt</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_merchant" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Cashier</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_cashier" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Trx Check</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_checktrx" checked /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Exchange Rates</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_fx" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Cards Mgmt</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_cards" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Promos/Fees</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_promos" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Broadcast</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_broadcast" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>KYC</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_kyc" checked /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Tickets</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_tickets" checked /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Live Chat</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_chat" checked /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span>Audit Logs</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_logs" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
               </div>
-              <div class="perm-item">
-                <span data-i18n="broadcast">Broadcast</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_broadcast" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="exchange-rates">Exchange Rates</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_fx" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="cards-mgmt">Cards Mgmt</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_cards" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="kyc">KYC</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_kyc" checked /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="tickets">Tickets</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_tickets" checked /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="live-chat">Live Chat</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_chat" checked /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-            </div>
-            <label
-              style="
-                font-size: 0.9rem;
-                font-weight: 700;
-                color: var(--text-main);
-                margin-bottom: 10px;
-                display: block;
-              "
-              data-i18n="action-permissions"
-              >សិទ្ធិអនុវត្ត (Action Permissions)</label
-            >
-            <div class="perm-grid">
-              <div class="perm-item">
-                <span data-i18n="edit-profile">កែប្រែ Profile</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_edit_user" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="delete-account">លុបគណនី</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_delete_user" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="freeze-account">ផ្អាកគណនី</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_freeze_user" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="adjust-balance">បន្ថែម/ដកលុយ</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_adjust_bal" /><span
-                    class="slider"
-                  ></span
-                ></label>
-              </div>
-              <div class="perm-item">
-                <span data-i18n="refund">Refund លុយ</span
-                ><label class="switch"
-                  ><input type="checkbox" id="p_refund" /><span
-                    class="slider"
-                  ></span
-                ></label>
+
+              <label
+                style="
+                  font-size: 0.9rem;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 10px;
+                  display: block;
+                "
+                data-i18n="action-permissions"
+                >សិទ្ធិអនុវត្ត (Action Permissions)</label
+              >
+              <div class="perm-grid">
+                <div class="perm-item">
+                  <span data-i18n="edit-profile">កែប្រែ Profile</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_edit_user" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span data-i18n="delete-account">លុបគណនី</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_delete_user" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span data-i18n="freeze-account">ផ្អាកគណនី</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_freeze_user" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span data-i18n="adjust-balance">បន្ថែម/ដកលុយ</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_adjust_bal" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="perm-item">
+                  <span data-i18n="refund">Refund លុយ</span
+                  ><label class="switch"
+                    ><input type="checkbox" id="p_refund" /><span
+                      class="slider"
+                    ></span
+                  ></label>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- 🟢 STEP 3: ការភ្ជាប់ NFC (សុវត្ថិភាព) -->
+          <div id="wizard-step-3" class="wizard-content">
+            <div style="text-align: center; padding: 20px 0">
+              <i
+                class="fa-solid fa-id-badge"
+                style="
+                  font-size: 5rem;
+                  color: var(--accent);
+                  margin-bottom: 20px;
+                "
+              ></i>
+              <h3 data-i18n="bind-staff-card">
+                ភ្ជាប់កាតសន្តិសុខ (Staff NFC Card)
+              </h3>
+              <p
+                style="color: var(--text-muted); font-size: 0.9rem"
+                data-i18n="nfc-desc"
+              >
+                បុគ្គលិកអាចប្រើកាត NFC នេះដើម្បីវាយកាតចូលធ្វើការ ឬ Log in
+                ចូលប្រព័ន្ធ។<br />អ្នកអាចចុច "រំលង (Skip)"
+                ប្រសិនបើមិនទាន់មានកាតឥឡូវនេះ។
+              </p>
+
+              <div
+                id="nfcStatusBox"
+                style="
+                  background: #f1f5f9;
+                  border: 1px dashed var(--border);
+                  padding: 15px;
+                  border-radius: 12px;
+                  margin: 20px 0;
+                  font-family: monospace;
+                  font-size: 1.1rem;
+                  color: var(--text-main);
+                  font-weight: bold;
+                "
+              >
+                <span style="color: #94a3b8">NO CARD LINKED</span>
+              </div>
+              <input type="hidden" id="adminNfcUid" value="" />
+
+              <!-- កន្លែងសម្រាប់ប្តូរប៊ូតុង ភ្ជាប់ / ផ្តាច់ ស្វ័យប្រវត្តិ -->
+              <div id="nfcActionBtnContainer"></div>
+            </div>
+          </div>
+
+          <!-- 🟢 STEP 4: ការបញ្ជាក់ (Summary) -->
+          <div id="wizard-step-4" class="wizard-content">
+            <h4
+              style="
+                margin-top: 0;
+                color: var(--text-main);
+                border-bottom: 2px solid var(--border);
+                padding-bottom: 10px;
+              "
+            >
+              សូមពិនិត្យមើលទិន្នន័យឡើងវិញ
+            </h4>
+            <div class="summary-box">
+              <div class="summary-row">
+                <span class="summary-label">Staff ID:</span>
+                <span class="summary-value" id="sum-id">...</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Full Name:</span>
+                <span class="summary-value" id="sum-name">...</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Username:</span>
+                <span class="summary-value" id="sum-user">...</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">Department:</span>
+                <span class="summary-value" id="sum-dept">...</span>
+              </div>
+            </div>
+            <div class="summary-box">
+              <div class="summary-row">
+                <span class="summary-label">Role:</span>
+                <span
+                  class="summary-value"
+                  id="sum-role"
+                  style="color: var(--accent)"
+                  >...</span
+                >
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">NFC Status:</span>
+                <span class="summary-value" id="sum-nfc">...</span>
+              </div>
+            </div>
+            <p
+              style="
+                text-align: center;
+                color: #ef4444;
+                font-size: 0.85rem;
+                font-weight: 600;
+              "
+            >
+              <i class="fa-solid fa-circle-info"></i> សូមចុច "Confirm & Save"
+              ដើម្បីបញ្ជាក់!
+            </p>
+          </div>
         </div>
-        <div class="modal-footer">
+
+        <div class="modal-footer" style="justify-content: space-between">
           <button
             class="btn-cancel"
+            id="btnWizBack"
+            onclick="changeAdminStep(-1)"
+            style="
+              display: none;
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              font-size: 0.95rem;
+              font-weight: 600;
+            "
+          >
+            <i class="fa-solid fa-arrow-left"></i> ថយក្រោយ
+          </button>
+          <button
+            class="btn-cancel"
+            id="btnWizCancel"
             onclick="closeModal('adminAccModal')"
-            data-i18n="cancel"
+            style="
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              font-size: 0.95rem;
+              font-weight: 600;
+            "
           >
             បោះបង់
           </button>
-          <button
-            class="btn-save btn-primary"
-            onclick="saveAdminAccount()"
-            data-i18n="save"
-          >
-            រក្សាទុក
-          </button>
+
+          <div style="display: flex; gap: 10px">
+            <button
+              class="btn-primary"
+              id="btnWizNext"
+              onclick="changeAdminStep(1)"
+              style="
+                background: var(--accent);
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                font-size: 0.95rem;
+                font-weight: 600;
+                border-radius: 10px;
+              "
+            >
+              បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button
+              class="btn-save btn-primary"
+              id="btnWizSave"
+              onclick="saveAdminAccount()"
+              style="
+                display: none;
+                background: var(--secondary);
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                font-size: 0.95rem;
+                font-weight: 600;
+                border-radius: 10px;
+              "
+            >
+              <i class="fa-solid fa-check-circle"></i> Confirm & Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ៣. Modal សម្រាប់បង្កើតកូដប្រូម៉ូសិន (Promo Modal) -->
+    <!-- 3.3 Modal សម្រាប់បង្កើតកូដប្រូម៉ូសិន (Promo Modal) -->
     <div id="promoModal" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-header">
@@ -2706,8 +2667,8 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label data-i18n="promo-code">ឈ្មោះកូដ (Promo Code)</label>
-            <input
+            <label data-i18n="promo-code">ឈ្មោះកូដ (Promo Code)</label
+            ><input
               id="prmCode"
               class="form-input"
               placeholder="ឧទាហរណ៍: UPAY2026"
@@ -2721,8 +2682,7 @@
           <div class="form-group">
             <label data-i18n="promo-reward"
               >ទឹកប្រាក់រង្វាន់ (Reward Value in $)</label
-            >
-            <input
+            ><input
               id="prmReward"
               type="number"
               class="form-input"
@@ -2732,8 +2692,7 @@
           <div class="form-group">
             <label data-i18n="promo-max-usage"
               >ចំនួនអ្នកអាចប្រើបានអតិបរមា (Max Usage)</label
-            >
-            <input
+            ><input
               id="prmMax"
               type="number"
               class="form-input"
@@ -2744,8 +2703,7 @@
           <div class="form-group">
             <label data-i18n="promo-expiry"
               >ថ្ងៃផុតកំណត់ (Expiry Date) - មិនដាក់ក៏បាន</label
-            >
-            <input id="prmExpiry" type="date" class="form-input" />
+            ><input id="prmExpiry" type="date" class="form-input" />
           </div>
         </div>
         <div class="modal-footer">
@@ -2768,7 +2726,7 @@
     </div>
 
     <!-- ======================================================= -->
-    <!-- ផ្នែកទី៤៖ តំណភ្ជាប់ File JavaScript (SCRIPTS) -->
+    <!-- [ ផ្នែកទី៤ ] តំណភ្ជាប់ File JavaScript (SCRIPTS) -->
     <!-- ======================================================= -->
     <script src="js/admin-lang.js"></script>
     <script src="js/admin-core.js?v=99"></script>
@@ -2778,5 +2736,6 @@
     <script src="js/admin-merchants.js?v=99"></script>
     <script src="js/admin-customer360.js?v=99"></script>
     <script src="js/admin-chat.js"></script>
+    <script src="js/admin-management.js"></script>
   </body>
 </html>

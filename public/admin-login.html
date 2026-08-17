@@ -29,7 +29,6 @@
       body {
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
-        /* Premium Dark Background with Glowing Orbs */
         background-color: var(--primary);
         background-image:
           radial-gradient(
@@ -43,15 +42,14 @@
             transparent 25%
           );
         min-height: 100vh;
-        height: 100dvh; /* ការពារកុំឱ្យអេក្រង់លោតពេលលោត Keyboard លើទូរស័ព្ទ */
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--text-main);
-        overflow: hidden; /* បិទ Scrollbar កុំឱ្យលោត */
+        overflow: hidden;
       }
 
-      /* Glassmorphism Card */
       .login-container {
         background: rgba(255, 255, 255, 0.98);
         backdrop-filter: blur(20px);
@@ -109,14 +107,13 @@
       p.subtitle {
         color: var(--text-muted);
         font-size: 0.95rem;
-        margin-bottom: 35px;
+        margin-bottom: 30px;
         font-weight: 500;
       }
 
-      /* Premium Inputs */
       .input-group {
         text-align: left;
-        margin-bottom: 22px;
+        margin-bottom: 20px;
         position: relative;
       }
       .input-group label {
@@ -162,20 +159,20 @@
         color: var(--secondary);
       }
 
-      /* Premium Button */
+      /* Login Buttons */
       .btn-login {
         width: 100%;
         background: linear-gradient(135deg, var(--secondary) 0%, #059669 100%);
         color: white;
         border: none;
-        padding: 16px;
+        padding: 15px;
         border-radius: 12px;
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         cursor: pointer;
         transition: all 0.3s ease;
         font-family: inherit;
-        margin-top: 15px;
+        margin-top: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -186,18 +183,104 @@
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
       }
-      .btn-login:active {
-        transform: translateY(1px);
-        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+
+      /* NFC Login Button (Secondary style) */
+      .btn-nfc-login {
+        width: 100%;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+      }
+      .btn-nfc-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
       }
 
-      /* Custom SweetAlert */
+      /* Divider "OR" */
+      .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin: 20px 0;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid var(--border);
+      }
+      .divider::before {
+        margin-right: 12px;
+      }
+      .divider::after {
+        margin-left: 12px;
+      }
+
+      /* NFC Radar Animation inside SweetAlert */
+      .nfc-radar-box {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 20px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nfc-radar-box i {
+        position: relative;
+        z-index: 2;
+      }
+      .nfc-radar-box::before,
+      .nfc-radar-box::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #3b82f6;
+        opacity: 0;
+        z-index: 1;
+        animation: radarWave 2s infinite cubic-bezier(0.36, 0.11, 0.89, 0.32);
+      }
+      .nfc-radar-box::after {
+        animation-delay: 1s;
+      }
+      @keyframes radarWave {
+        0% {
+          width: 40px;
+          height: 40px;
+          opacity: 0.8;
+        }
+        100% {
+          width: 150px;
+          height: 150px;
+          opacity: 0;
+        }
+      }
+
       .premium-swal {
         border-radius: 20px !important;
         font-family: "Kantumruy Pro", sans-serif;
       }
 
-      /* Mobile Responsiveness */
       @media (max-width: 480px) {
         .login-container {
           padding: 35px 25px;
@@ -247,10 +330,15 @@
       <button class="btn-login" id="loginBtn" onclick="attemptLogin()">
         Secure Login <i class="fa-solid fa-arrow-right-to-bracket"></i>
       </button>
+
+      <!-- 🟢 ប៊ូតុង Login តាមរយៈកាត NFC -->
+      <div class="divider">OR</div>
+      <button class="btn-nfc-login" onclick="attemptNfcLogin()">
+        <i class="fa-solid fa-wifi"></i> Login with NFC Card
+      </button>
     </div>
 
     <script>
-      // 🔥 ប្តូរ Path អោយលោតចូល Folder ថ្មី "admin/index.html"
       if (sessionStorage.getItem("adminToken")) {
         window.location.href = "admin/index.html";
       }
@@ -273,6 +361,7 @@
           }
         });
 
+      // 🟢 មុខងារ Login ធម្មតា
       async function attemptLogin() {
         const user = document.getElementById("username").value.trim();
         const pass = document.getElementById("password").value.trim();
@@ -306,6 +395,8 @@
           if (data.success) {
             sessionStorage.setItem("adminToken", data.token);
             sessionStorage.setItem("adminRole", data.user.role);
+            sessionStorage.setItem("adminFullName", data.user.fullName); // 🟢 ត្រូវតែមាន
+            sessionStorage.setItem("adminStaffId", data.user.staffId); // 🟢 ត្រូវតែមាន
 
             Swal.fire({
               icon: "success",
@@ -317,7 +408,6 @@
               scrollbarPadding: false,
               heightAuto: false,
             }).then(() => {
-              // 🔥 លោតចូលទៅកាន់ទំព័រ Dashboard ក្នុង Folder ថ្មី
               window.location.href = "admin/index.html";
             });
           } else {
@@ -345,6 +435,112 @@
           });
           btn.innerHTML = originalText;
           btn.disabled = false;
+        }
+      }
+
+      // 🟢 មុខងារ Scan NFC និង Auto Login
+      async function attemptNfcLogin() {
+        if (!("NDEFReader" in window)) {
+          return Swal.fire({
+            icon: "error",
+            title: "មិនគាំទ្រមុខងារ NFC",
+            text: "ឧបករណ៍ ឬ Browser របស់អ្នកមិនមាន Hardware NFC សម្រាប់ស្កេនទេ។",
+            customClass: { popup: "premium-swal" },
+            confirmButtonColor: "#ef4444",
+          });
+        }
+
+        const abortController = new AbortController();
+
+        Swal.fire({
+          title: "📡 កំពុងរង់ចាំស្កេនកាត NFC...",
+          html: `
+            <div class="nfc-radar-box">
+              <i class="fa-solid fa-wifi fa-fade" style="font-size: 3.5rem; color: #3b82f6;"></i>
+            </div>
+            <p style="color: #64748b; font-size: 0.95rem; font-family: 'Kantumruy Pro';">សូមយកកាតបុគ្គលិកមកផ្អឹបនឹងឧបករណ៍ដើម្បី Login ចូលប្រព័ន្ធ</p>
+          `,
+          showCancelButton: true,
+          cancelButtonText: "បោះបង់",
+          cancelButtonColor: "#ef4444",
+          showConfirmButton: false,
+          allowOutsideClick: false,
+          customClass: { popup: "premium-swal" },
+        }).then((result) => {
+          if (result.isDismissed) abortController.abort();
+        });
+
+        try {
+          const ndef = new NDEFReader();
+          await ndef.scan({ signal: abortController.signal });
+
+          ndef.onreading = async (event) => {
+            let serialNumber = event.serialNumber
+              .replaceAll(":", "")
+              .toUpperCase();
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+            // បង្ហាញ Loading ផ្ទៀងផ្ទាត់កាត
+            Swal.fire({
+              title: "កំពុងផ្ទៀងផ្ទាត់កាត...",
+              allowOutsideClick: false,
+              didOpen: () => Swal.showLoading(),
+              customClass: { popup: "premium-swal" },
+            });
+
+            try {
+              const res = await fetch("/api/admin/nfc-login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nfcUid: serialNumber }),
+              });
+              const data = await res.json();
+
+              if (data.success) {
+                sessionStorage.setItem("adminToken", data.token);
+                sessionStorage.setItem("adminRole", data.user.role);
+                sessionStorage.setItem("adminFullName", data.user.fullName); // 🟢 ត្រូវតែមាន
+                sessionStorage.setItem("adminStaffId", data.user.staffId); // 🟢 ត្រូវតែមាន
+
+                Swal.fire({
+                  icon: "success",
+                  title: "NFC Login ជោគជ័យ!",
+                  text: `សូមស្វាគមន៍ការវិលត្រឡប់មកវិញ, ${data.user.fullName}!`,
+                  showConfirmButton: false,
+                  timer: 1500,
+                  customClass: { popup: "premium-swal" },
+                }).then(() => {
+                  window.location.href = "admin/index.html";
+                });
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "បដិសេធការចូល",
+                  text: data.message,
+                  customClass: { popup: "premium-swal" },
+                  confirmButtonColor: "#ef4444",
+                });
+              }
+            } catch (error) {
+              Swal.fire({
+                icon: "error",
+                title: "Server Error",
+                text: "មានបញ្ហាបច្ចេកទេសក្នុងការតភ្ជាប់ទៅកាន់ Server!",
+                customClass: { popup: "premium-swal" },
+                confirmButtonColor: "#ef4444",
+              });
+            }
+          };
+        } catch (error) {
+          if (error.name !== "AbortError") {
+            Swal.fire({
+              icon: "error",
+              title: "NFC Error",
+              text: "មិនអាចបើកមុខងារ NFC របស់ឧបករណ៍បានទេ!",
+              customClass: { popup: "premium-swal" },
+              confirmButtonColor: "#ef4444",
+            });
+          }
         }
       }
     </script>

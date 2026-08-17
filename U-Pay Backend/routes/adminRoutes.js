@@ -1,3 +1,4 @@
+// adminRoutes.js
 const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
@@ -104,6 +105,12 @@ router.post(
   adminController.deleteAdminAccount,
 );
 
+router.post(
+  "/toggle-admin-status",
+  checkRole([ROLE_SUPER]),
+  adminController.toggleAdminStatus,
+);
+
 // ==========================================
 // 📊 ៤. មុខងារទូទៅ និងការគ្រប់គ្រងអតិថិជន
 // ==========================================
@@ -168,6 +175,20 @@ router.get(
   "/me",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   adminController.getMe,
+);
+
+// ឆែកមើល NFC ជាន់គ្នាភ្លាមៗ
+router.post(
+  "/check-nfc",
+  checkRole([ROLE_SUPER]),
+  adminController.checkAdminNfcUid,
+);
+
+// 🟢 Super Admin Reset Password បុគ្គលិក
+router.post(
+  "/reset-admin-password",
+  checkRole([ROLE_SUPER]),
+  adminController.adminResetPassword,
 );
 
 // ==========================================

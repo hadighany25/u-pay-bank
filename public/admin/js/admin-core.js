@@ -1,4 +1,4 @@
-// admin-core.js
+// js/admin-core.js
 
 // ========================================================================
 // ⚙️ SECTION 1: GLOBAL VARIABLES & AUTHENTICATION
@@ -20,12 +20,14 @@ const getAuthHeaders = () => {
   };
 };
 
-document.getElementById("adminNameDisplay").innerText =
-  "U-PAY " + adminRole.split("_")[0].toUpperCase();
-document.getElementById("adminRoleDisplay").innerText = adminRole.replace(
-  "_",
-  " ",
-);
+// 🟢 យកទិន្នន័យ Profile មកបង្ហាញលើ Sidebar ឱ្យចេញជា "FULL NAME" និង "ID : UPAY-xxxxxx"
+const adminFullName =
+  sessionStorage.getItem("adminFullName") ||
+  "U-PAY " + (adminRole ? adminRole.split("_")[0].toUpperCase() : "ADMIN");
+const adminStaffId = sessionStorage.getItem("adminStaffId") || "UPAY-SYSTEM";
+
+document.getElementById("adminNameDisplay").innerText = adminFullName;
+document.getElementById("adminRoleDisplay").innerText = "ID : " + adminStaffId;
 
 // ========================================================================
 // 🌙 SECTION 2: UI & THEME MANAGEMENT (DARK / LIGHT MODE)
@@ -206,6 +208,7 @@ function renderDashboardChart(usersData) {
     });
   }
 }
+
 // ========================================================================
 // 🔄 SECTION 5: CORE DATA FETCHING (Load Data)
 // ========================================================================
@@ -243,7 +246,6 @@ async function loadData() {
     let allAdminNotifs = new Set();
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // 🟢 ១. បង្កើត Array សម្រាប់ផ្ទុកកាតទាំងអស់សិន (មិនទាន់គូរចេញជា HTML ទេ)
     let allIssuedCards = [];
 
     clients.forEach((u) => {
@@ -279,7 +281,6 @@ async function loadData() {
             allAdminNotifs.add(n.id || n.title + n.date);
         });
 
-      // 💳 🟢 ២. ប្រមូលកាតទាំងអស់យកមកតម្រៀបចូល Array សិន
       if (u.virtualCards && u.virtualCards.length > 0) {
         u.virtualCards.forEach((c) => {
           allIssuedCards.push({ user: u, card: c });
@@ -303,12 +304,10 @@ async function loadData() {
       }
     });
 
-    // 🟢 ៣. បោះទិន្នន័យកាតទាំងអស់ទៅឱ្យមុខងារ Pagination រៀបចំបង្ហាញវិញ
     window.globalCardsData = allIssuedCards;
     if (!window.currentCardPage) window.currentCardPage = 1;
     renderCardTablePage();
 
-    // បញ្ចូលទិន្នន័យផ្សេងៗទៅ HTML
     document.getElementById("kycTableBody").innerHTML =
       kycHtml ||
       '<tr><td colspan="5" style="text-align:center; padding: 20px;">No pending KYC requests.</td></tr>';
@@ -379,13 +378,12 @@ async function loadData() {
 }
 
 // ========================================================================
-// 💳 SECTION: CARD PAGINATION RENDERER (៨កាត/ទំព័រ)
+// 💳 SECTION 6: CARD PAGINATION RENDERER (៨កាត/ទំព័រ)
 // ========================================================================
 const CARDS_PER_PAGE = 8;
 
 function renderCardTablePage() {
   const tbody = document.getElementById("cardTableBody");
-  // បើកំពុងស្វែងរក (Search) យើងបង្ហាញទាំងអស់សិន ដើម្បីអោយ Filter ដើរស្រួល បើមិនចឹងយើងកាត់ជាទំព័រ
   const searchBox = document.getElementById("searchCardBox");
   const isSearching = searchBox && searchBox.value.trim().length > 0;
 
@@ -394,7 +392,6 @@ function renderCardTablePage() {
   if (cardsList.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align:center; padding: 20px;">No issued cards found.</td></tr>';
-    // លាក់ប៊ូតុង Pagination ពេលគ្មានទិន្នន័យ
     const pg = document.getElementById("cardPaginationFooter");
     if (pg) pg.style.display = "none";
     return;
@@ -422,7 +419,6 @@ function renderCardTablePage() {
     const statusHtml = c.isLocked
       ? `<span style="background:#fee2e2; color:#ef4444; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">BLOCKED</span>`
       : `<span style="background:#dcfce7; color:#10b981; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">ACTIVE</span>`;
-
     const freezeBtn = c.isLocked
       ? `<button class="btn-action" style="background:#10b981;" onclick="toggleCardLock('${u.username}', '${c.id}', true)" title="Unblock"><i class="fa-solid fa-unlock"></i></button>`
       : `<button class="btn-action" style="background:#f59e0b;" onclick="toggleCardLock('${u.username}', '${c.id}', false)" title="Freeze"><i class="fa-solid fa-snowflake"></i></button>`;
@@ -434,7 +430,6 @@ function renderCardTablePage() {
     if (c.uid || c.isPhysical) {
       nfcBtn = `<button class="btn-action" style="background:#ef4444; margin-left:5px;" onclick="event.stopPropagation(); unbindNFC('${u.username}', '${c.id}')" title="ផ្តាច់កាត NFC"><i class="fa-solid fa-trash"></i></button>`;
       cardType = `<span style="color:var(--text-main); font-weight:bold;">Physical NFC</span> <br><span style="font-size:0.7rem; color:var(--text-muted);">${cardType}</span>`;
-
       nfcIconTitle = `<i class="fa-solid fa-wifi" style="color:#3b82f6; margin-left:5px; cursor:pointer;" onclick="event.stopPropagation(); Swal.fire({title: 'NFC UID របស់កាតនេះ', html: '<b style=\\'font-size: 1.2rem; color: #3b82f6; font-family: monospace;\\'>${c.uid || "N/A"}</b>', icon: 'info', customClass: { popup: 'premium-swal' }})" title="NFC UID: ${c.uid || "N/A"}"></i>`;
     } else {
       nfcBtn = `<button class="btn-action" style="background:#0f172a; margin-left:5px;" onclick="event.stopPropagation(); quickBindNFC('${u.username}', '${c.id}')" title="ភ្ជាប់កាត NFC"><i class="fa-solid fa-wifi"></i></button>`;
@@ -442,7 +437,6 @@ function renderCardTablePage() {
 
     const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
 
-    // បង្កប់ទិន្នន័យ Search (CVV, Phone, Acc)
     let allUserAccounts = [u.accountNumber || "", u.accountNumberKHR || ""];
     if (u.subAccounts && Array.isArray(u.subAccounts)) {
       u.subAccounts.forEach((sub) => allUserAccounts.push(sub.accountNumber));
@@ -461,7 +455,6 @@ function renderCardTablePage() {
 
   tbody.innerHTML = cardsHtml;
 
-  // គូរ Pagination UI ខាងក្រោមតារាង
   let paginationContainer = document.getElementById("cardPaginationFooter");
   if (!paginationContainer) {
     paginationContainer = document.createElement("div");
@@ -472,7 +465,7 @@ function renderCardTablePage() {
   }
 
   if (isSearching || cardsList.length <= CARDS_PER_PAGE) {
-    paginationContainer.style.display = "none"; // លាក់ពេល Search ឬមានកាតតិចតួច
+    paginationContainer.style.display = "none";
   } else {
     paginationContainer.style.display = "flex";
     paginationContainer.innerHTML = `
@@ -497,44 +490,17 @@ function changeCardPage(step) {
 }
 
 // ========================================================================
-// 🔐 SECTION 6: PERMISSIONS & ROLES MANAGEMENT
+// 🔐 SECTION 7: DYNAMIC MENU PERMISSION ENFORCER (CSS Injection)
 // ========================================================================
 async function applyDynamicPermissions() {
-  if (adminRole === "super_admin") {
-    setInterval(loadData, 15000);
-    loadData();
-    return;
-  }
   try {
     const res = await fetch("/api/admin/me", { headers: getAuthHeaders() });
     const data = await res.json();
+
     if (data.success && data.admin && data.admin.permissions) {
-      myAdminPermissions = data.admin.permissions;
-      const menus = data.admin.permissions.menus;
+      window.myAdminPermissions = data.admin.permissions;
 
-      if (!menus.users)
-        document.getElementById("menu-users").style.display = "none";
-      if (!menus.checktrx)
-        document.getElementById("menu-checktrx").style.display = "none";
-      if (!menus.broadcast)
-        document.getElementById("menu-broadcast").style.display = "none";
-      if (!menus.fx) document.getElementById("menu-fx").style.display = "none";
-      if (!menus.cards)
-        document.getElementById("menu-cards").style.display = "none";
-      if (!menus.kyc)
-        document.getElementById("menu-kyc").style.display = "none";
-      if (!menus.tickets)
-        document.getElementById("menu-tickets").style.display = "none";
-      if (!menus.chat)
-        document.getElementById("menu-chat").style.display = "none";
-
-      if (!menus.checktrx && !menus.broadcast)
-        document.getElementById("label-ops").style.display = "none";
-      if (!menus.fx && !menus.cards)
-        document.getElementById("label-finance").style.display = "none";
-      if (!menus.kyc && !menus.tickets && !menus.chat)
-        document.getElementById("label-security").style.display = "none";
-
+      // បង្ហាញឈ្មោះ Custom Role លើ Header
       if (
         data.admin.role === "custom" &&
         data.admin.permissions.customRoleName
@@ -543,12 +509,80 @@ async function applyDynamicPermissions() {
           data.admin.permissions.customRoleName.toUpperCase();
       }
 
-      document.getElementById("menu-super-only").style.display = "none";
-      document.getElementById("menu-admins").style.display = "none";
-      document.getElementById("menu-logs").style.display = "none";
-      document.getElementById("menu-system").style.display = "none";
+      // 🔴 ប្រព័ន្ធលាក់ម៉ឺនុយដ៏រឹងមាំ (បាញ់ CSS)
+      if (adminRole !== "super_admin") {
+        const menus = data.admin.permissions.menus || {};
+        let cssRules = "";
+
+        if (!menus.users)
+          cssRules +=
+            "#menu-users, #menu-customer-360 { display: none !important; }\n";
+        if (!menus.merchant)
+          cssRules += "#menu-merchants { display: none !important; }\n";
+        if (!menus.cashier)
+          cssRules += "#menu-cashier { display: none !important; }\n";
+        if (!menus.checktrx)
+          cssRules += "#menu-checktrx { display: none !important; }\n";
+        if (!menus.fx) cssRules += "#menu-fx { display: none !important; }\n";
+        if (!menus.promos)
+          cssRules += "#menu-promo, #menu-fees { display: none !important; }\n";
+        if (!menus.cards)
+          cssRules += "#menu-cards { display: none !important; }\n";
+        if (!menus.broadcast)
+          cssRules += "#menu-broadcast { display: none !important; }\n";
+        if (!menus.kyc) cssRules += "#menu-kyc { display: none !important; }\n";
+        if (!menus.tickets)
+          cssRules += "#menu-tickets { display: none !important; }\n";
+        if (!menus.chat)
+          cssRules += "#menu-chat { display: none !important; }\n";
+
+        // លាក់ម៉ឺនុយ Super Admin ជានិច្ច
+        cssRules +=
+          "#menu-super-only, #menu-admins, #menu-system, #menu-logs { display: none !important; }\n";
+
+        let style = document.createElement("style");
+        style.innerHTML = cssRules;
+        document.head.appendChild(style);
+
+        // លាក់ Title Group បើកូនៗវាបាត់អស់
+        setTimeout(() => {
+          const checkGroupLabel = (labelId, menuIds) => {
+            const label = document.getElementById(labelId);
+            if (!label) return;
+            const hasVisibleChild = menuIds.some((id) => {
+              const el = document.getElementById(id);
+              return el && window.getComputedStyle(el).display !== "none";
+            });
+            label.style.display = hasVisibleChild ? "" : "none";
+          };
+          checkGroupLabel("label-main", [
+            "menu-dashboard",
+            "menu-users",
+            "menu-merchants",
+          ]);
+          checkGroupLabel("label-ops", [
+            "menu-customer-360",
+            "menu-cashier",
+            "menu-checktrx",
+            "menu-broadcast",
+          ]);
+          checkGroupLabel("label-finance", [
+            "menu-fx",
+            "menu-fees",
+            "menu-promo",
+            "menu-cards",
+          ]);
+          checkGroupLabel("label-security", [
+            "menu-kyc",
+            "menu-tickets",
+            "menu-chat",
+          ]);
+        }, 100);
+      }
     }
-  } catch (err) {}
+  } catch (err) {
+    console.error("Error fetching permissions:", err);
+  }
 
   setInterval(loadData, 15000);
   loadData();
@@ -599,7 +633,7 @@ async function toggleSystemFreeze() {
 }
 
 // ========================================================================
-// 🔔 SECTION 7: NOTIFICATIONS & SOUND ALERTS POLLING
+// 🔔 SECTION 8: NOTIFICATIONS & SOUND ALERTS POLLING
 // ========================================================================
 let previousTotalUnread = 0,
   previousQueueLength = 0,
@@ -675,7 +709,6 @@ async function checkAdminNotifications() {
           );
           shouldRefreshTable = true;
         }
-
         if (shouldRefreshTable && typeof loadData === "function") loadData();
       }
 
@@ -707,7 +740,7 @@ function playCustomNotif(message, soundObj, iconColorHex) {
 setInterval(checkAdminNotifications, 3000);
 
 // ========================================================================
-// 🎬 SECTION 8: EVENT LISTENERS
+// 🎬 SECTION 9: EVENT LISTENERS
 // ========================================================================
 window.addEventListener("DOMContentLoaded", () => {
   const savedSection = sessionStorage.getItem("activeSection");
@@ -734,5 +767,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ហៅមុខងារអានសិទ្ធិពេល Load ទំព័រ
   applyDynamicPermissions();
 });

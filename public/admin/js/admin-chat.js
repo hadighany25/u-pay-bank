@@ -17,18 +17,41 @@ async function fetchAdminContacts() {
     const list = document.getElementById("adminContactList");
 
     if (data.success && data.contacts.length > 0) {
-      list.innerHTML = data.contacts
+      list.innerHTML = data.contacts // 🟢 កែមកត្រឹមប៉ុណ្ណេះវិញ
         .map((c) => {
           let isSelected = adminCurrentChat === c.accountNumber;
 
-          // 🟢 ប្រើ style ផ្ទាល់ខ្លះៗការពារកុំឱ្យបែករាង (Fix Broken Flexbox Layout)
-          return `<div onclick="openAdminChat('${c.accountNumber}', '${c.name}')" class="chat-contact-item ${isSelected ? "active" : ""}" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-            <div class="chat-contact-avatar" style="min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%;"><i class="fa-solid fa-user"></i></div>
-            <div style="flex:1; overflow:hidden;">
-              <h4 class="chat-contact-name" style="margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">${c.name}</h4>
-              <p class="chat-contact-msg" style="margin: 3px 0 0 0; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Kantumruy Pro', sans-serif;">${c.lastMessage}</p>
+          // 🤖 កំណត់ Emoji តាមអារម្មណ៍អតិថិជន (Sentiment)
+          let moodEmoji = "😐"; // ធម្មតា (Default)
+          if (c.sentiment === "angry")
+            moodEmoji = "😡"; // ខឹង
+          else if (c.sentiment === "happy") moodEmoji = "😍"; // ពេញចិត្ត
+
+          // 🏷️ កំណត់ពណ៌ Tag តាមស្ថានភាព (Status)
+          let statusBadge = "";
+          if (c.status === "urgent") {
+            statusBadge = `<span style="background:#ef4444; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">បន្ទាន់ 🚨</span>`;
+          } else if (c.status === "resolved") {
+            statusBadge = `<span style="background:#10b981; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">ដោះស្រាយរួច ✅</span>`;
+          } else {
+            statusBadge = `<span style="background:#f59e0b; color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:5px; font-weight:bold;">រង់ចាំ ⏳</span>`;
+          }
+
+          return `<div onclick="openAdminChat('${c.accountNumber}', '${c.name}', '${c.status}')" class="chat-contact-item ${isSelected ? "active" : ""}" style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; background-color: ${isSelected ? "rgba(255, 255, 255, 0.1)" : "transparent"}; border: 1px solid rgba(255, 255, 255, 0.05); transition: background-color 0.2s;">
+            
+            <div class="chat-contact-avatar" style="min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.08); font-size: 1.2rem;">
+              ${moodEmoji}
             </div>
+            
+            <div style="flex:1; overflow:hidden;">
+              <h4 class="chat-contact-name" style="margin: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Inter', sans-serif;">
+                ${c.name} ${statusBadge}
+              </h4>
+              <p class="chat-contact-msg" style="margin: 4px 0 0 0; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Kantumruy Pro', sans-serif; color: #94a3b8;">${c.lastMessage}</p>
+            </div>
+            
             ${c.unreadCount > 0 ? `<div style="background:#ef4444; color:white; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:10px;">${c.unreadCount}</div>` : ""}
+            
           </div>`;
         })
         .join("");
@@ -36,15 +59,30 @@ async function fetchAdminContacts() {
       list.innerHTML =
         "<div style=\"text-align:center; padding:20px; color:var(--text-muted); font-family: 'Inter', sans-serif;\">No incoming messages</div>";
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error("Error fetching contacts:", e);
+  }
 }
 
-function openAdminChat(accNum, name) {
+function openAdminChat(accNum, name, currentStatus = "pending") {
   adminCurrentChat = accNum;
-  // 🟢 ដូរអក្សរ "បញ្ចប់ការសន្ទនា" ទៅជា "End Chat" និងថែម Icon អោយស្អាត
-  document.getElementById("adminChatHeader").innerHTML =
-    `<h3 style="margin: 0; color: var(--text-main); font-family: 'Inter', sans-serif;"><i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} <span style="font-size: 0.9rem; color: var(--text-muted);">(${accNum})</span></h3>
-     <button onclick="endAdminChat()" class="btn-end-chat" style="font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-xmark"></i> End Chat</button>`;
+
+  // 🟢 បន្ថែមប្រអប់ Select សម្រាប់ប្តូរ Status
+  document.getElementById("adminChatHeader").innerHTML = `
+    <div style="display:flex; align-items:center; gap: 15px;">
+      <h3 style="margin: 0; color: var(--text-main); font-family: 'Inter', sans-serif;">
+        <i class="fa-solid fa-user" style="color:var(--accent);"></i> ${name} 
+        <span style="font-size: 0.9rem; color: var(--text-muted);">(${accNum})</span>
+      </h3>
+      <select onchange="updateChatStatus('${accNum}', this.value)" style="padding: 4px 8px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; font-size: 0.8rem; outline: none; cursor: pointer;">
+        <option value="pending" ${currentStatus === "pending" ? "selected" : ""} style="color: black;">⏳ កំពុងរង់ចាំ</option>
+        <option value="urgent" ${currentStatus === "urgent" ? "selected" : ""} style="color: black;">🚨 បន្ទាន់</option>
+        <option value="resolved" ${currentStatus === "resolved" ? "selected" : ""} style="color: black;">✅ ដោះស្រាយរួច</option>
+      </select>
+    </div>
+    <button onclick="endAdminChat()" class="btn-end-chat" style="font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-circle-xmark"></i> End Chat</button>
+  `;
+
   document.getElementById("adminChatInputBox").style.display = "flex";
   fetchAdminMessages();
   if (adminChatInterval) clearInterval(adminChatInterval);
@@ -97,7 +135,12 @@ async function sendAdminChat() {
   </div>`;
   body.scrollTop = body.scrollHeight;
 
-  let roleDisplayName = document.getElementById("adminRoleDisplay").innerText;
+  // 🟢 យក Username ពិតប្រាកដរបស់ Admin ពេល Login (បងអាចប្តូរឈ្មោះ variable តាមកូដ Login របស់បង ប្រសិនបើរក្សាទុកផ្សេង)
+  let currentAdminName =
+    localStorage.getItem("adminUsername") ||
+    localStorage.getItem("username") ||
+    "Admin";
+
   await fetch("/api/chat/send", {
     method: "POST",
     headers: getAuthHeaders(),
@@ -105,7 +148,7 @@ async function sendAdminChat() {
       senderAcc: "ADMIN",
       receiverAcc: adminCurrentChat,
       message: text,
-      adminName: "U-PAY " + roleDisplayName,
+      adminName: currentAdminName, // 🟢 ផ្ញើឈ្មោះ Username ពិត
     }),
   });
   fetchAdminMessages();
@@ -123,8 +166,12 @@ function endAdminChat() {
     customClass: { popup: "premium-swal" },
   }).then(async (res) => {
     if (res.isConfirmed) {
-      let roleDisplayName =
-        document.getElementById("adminRoleDisplay").innerText;
+      // 🟢 យក Username ពិតប្រាកដសម្រាប់ពេលបញ្ចប់ឆាត
+      let currentAdminName =
+        localStorage.getItem("adminUsername") ||
+        localStorage.getItem("username") ||
+        "Admin";
+
       await fetch("/api/chat/send", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -133,7 +180,7 @@ function endAdminChat() {
           receiverAcc: adminCurrentChat,
           message:
             "Chat session ended by Admin. Thank you for contacting U-PAY Support! 🙏",
-          adminName: "U-PAY " + roleDisplayName,
+          adminName: currentAdminName, // 🟢 ផ្ញើឈ្មោះ Username ពិត
         }),
       });
       adminCurrentChat = null;
@@ -161,7 +208,7 @@ function openQuickReplies() {
   }
 
   const templates = [
-    "សួស្តីបង! តើមានអ្វីឱ្យភ្នាក់ងារ U-PAY ជួយទេ?",
+    "សួស្តីបង! តើមានអ្វីឱ្យភ្នាក់ងារ U-PAY យើងជួយបាន?",
     "សូមរង់ចាំបន្តិច ប្អូនកំពុងត្រួតពិនិត្យទិន្នន័យជូន...",
     "ប្រតិបត្តិការរបស់បងត្រូវបានដោះស្រាយរួចរាល់ហើយ។",
     "សូមអភ័យទោសចំពោះភាពរអាក់រអួលនេះ។",
@@ -275,7 +322,14 @@ async function generateAIReply() {
 
   // ទាញយកសារចុងក្រោយរបស់អតិថិជន
   const lastUserMessageBlock = userMessages[userMessages.length - 1];
-  const lastUserText = lastUserMessageBlock.innerText;
+  let lastUserText = lastUserMessageBlock.innerText;
+
+  // 🛡️ មុននឹងបញ្ជូនទៅ AI, យើងត្រូវលាក់លេខទូរស័ព្ទ និងលេខគណនីចេញសិន
+  lastUserText = lastUserText.replace(/\b\d{6,}\b/g, "[លេខត្រូវបានលាក់]");
+  lastUserText = lastUserText.replace(
+    /(0\d{2}[-\s]?\d{3}[-\s]?\d{3,4})/g,
+    "[លេខទូរស័ព្ទត្រូវបានលាក់]",
+  );
 
   // បង្ហាញ Loading ថា Gemini កំពុងគិត
   Swal.fire({
@@ -293,7 +347,7 @@ async function generateAIReply() {
   });
 
   try {
-    // 🧠 ហៅ API ទៅកាន់ Backend របស់បង (ដែលភ្ជាប់ជាមួយ Gemini រួចរាល់)
+    // 🧠 ហៅ API ទៅកាន់ Backend របស់បង (បញ្ជូនសារដែលបានលាក់លេខសម្ងាត់រួច)
     const res = await fetch("/api/admin/ai-reply", {
       method: "POST",
       headers: getAuthHeaders(),

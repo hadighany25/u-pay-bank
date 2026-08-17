@@ -1,6 +1,19 @@
+// controllers/communicationController.js
+
 const User = require("../models/User");
 const Chat = require("../models/Chat");
 const { getFormattedDate } = require("../services/helpers");
+
+// 🛡️ មុខងារបិទបាំងទិន្នន័យសម្ងាត់ (ការពារមិនឱ្យ AI ដឹងលេខកាត ឬ លេខទូរស័ព្ទ)
+const maskSensitiveData = (text) => {
+  if (!text) return text;
+  let safeText = text.replace(/\b\d{6,}\b/g, "[លេខត្រូវបានលាក់]");
+  safeText = safeText.replace(
+    /(0\d{2}[-\s]?\d{3}[-\s]?\d{3,4})/g,
+    "[លេខទូរស័ព្ទត្រូវបានលាក់]",
+  );
+  return safeText;
+};
 
 // === ផ្នែក TICKET ===
 const createTicket = async (req, res) => {
@@ -44,7 +57,7 @@ const createTicket = async (req, res) => {
 
 // === ផ្នែក NOTIFICATIONS & BROADCAST ===
 const getNotifications = async (req, res) => {
-  /* កូដ session ក្នុង file ដើមមានបញ្ហា (មិនប្រើ) យើងឆ្លងកាត់សិន */ res.json({
+  res.json({
     hasNew: false,
     count: 0,
   });
@@ -122,6 +135,7 @@ const sendChat = async (req, res) => {
     if (!sender || !receiver)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
 
+    // ១. បើ Admin ជាអ្នកផ្ញើ
     if (
       senderAcc === "ADMIN" &&
       message.includes("ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin")
@@ -131,19 +145,87 @@ const sendChat = async (req, res) => {
       });
       if (realUser) {
         realUser.needsSupport = false;
+        realUser.chatStatus = "resolved"; // 🟢 ដោះស្រាយរួចពេល Admin បិទ Chat
         await realUser.save();
       }
-    } else if (senderAcc !== "ADMIN") {
+    }
+    // ២. បើ User ជាអ្នកផ្ញើទៅកាន់ Admin
+    else if (senderAcc !== "ADMIN") {
       const realUser = await User.findOne({
         accountNumber: sender.accountNumber,
       });
-      if (
-        realUser &&
-        !realUser.needsSupport &&
-        (message.toLowerCase().includes("human") ||
-          message.includes("ភ្នាក់ងារ"))
-      ) {
-        realUser.needsSupport = true;
+
+      if (realUser) {
+        if (
+          !realUser.needsSupport &&
+          (message.toLowerCase().includes("human") ||
+            message.includes("ភ្នាក់ងារ"))
+        ) {
+          realUser.needsSupport = true;
+        }
+
+        // 🤖 --- ចាប់ផ្តើម AI SENTIMENT ANALYSIS (វិភាគអារម្មណ៍) ---
+        if (receiverAcc === "ADMIN") {
+          try {
+            const apiKey = process.env.GROQ_API_KEY
+              ? process.env.GROQ_API_KEY.trim().replace(/^["'](.+)["']$/, "$1")
+              : "";
+
+            if (apiKey) {
+              // 🛡️ បិទបាំងទិន្នន័យ មុនបញ្ជូនទៅ AI
+              const safeMessageForAI = maskSensitiveData(message);
+
+              const aiRes = await fetch(
+                "https://api.groq.com/openai/v1/chat/completions",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify({
+                    model: "llama-3.1-8b-instant",
+                    messages: [
+                      {
+                        role: "system",
+                        content: `You are a sentiment analyzer for U-PAY bank. Read the message and reply with EXACTLY ONE WORD:
+                      - 'angry' (If user complains, urgent, angry. Keywords: "បាត់លុយ", "គាំង", "យឺត", "ខឹង", "អត់ដើរ", "លុយអត់ចូល", "កាត់លុយ", "ជួយផង")
+                      - 'happy' (If user is satisfied. Keywords: "អរគុណ", "ល្អ", "ok", "បានហើយ")
+                      - 'neutral' (Normal chat. Keywords: "សួស្តី", "សួរតិច")
+                      
+                      User Message: "${safeMessageForAI}"`,
+                      },
+                    ],
+                    temperature: 0.1,
+                    max_tokens: 10,
+                  }),
+                },
+              );
+
+              const aiData = await aiRes.json();
+              if (aiData.choices && aiData.choices.length > 0) {
+                let mood = aiData.choices[0].message.content
+                  .trim()
+                  .toLowerCase();
+
+                if (mood.includes("angry")) {
+                  realUser.chatSentiment = "angry";
+                  realUser.chatStatus = "urgent"; // 🟢 បើខឹង ដាក់ Status ជាបន្ទាន់(Urgent) ស្វ័យប្រវត្តិ
+                } else if (mood.includes("happy")) {
+                  realUser.chatSentiment = "happy";
+                  realUser.chatStatus = "pending";
+                } else {
+                  realUser.chatSentiment = "neutral";
+                  realUser.chatStatus = "pending";
+                }
+              }
+            }
+          } catch (e) {
+            console.error("AI Sentiment Error:", e);
+          }
+        }
+        // 🤖 --- បញ្ចប់ការវិភាគ ---
+
         await realUser.save();
       }
     }
@@ -199,7 +281,9 @@ const chatContacts = async (req, res) => {
       const partnerAcc = c.senderAcc === myAcc ? c.receiverAcc : c.senderAcc;
       let isValidToDisplay = true,
         pName = "Unknown",
-        pImg = "";
+        pImg = "",
+        pStatus = "pending",
+        pSentiment = "neutral";
 
       if (partnerAcc === "ADMIN") {
         pName = "U-PAY Support";
@@ -210,6 +294,9 @@ const chatContacts = async (req, res) => {
         if (partnerInfo) {
           pName = partnerInfo.fullName || partnerInfo.username;
           pImg = partnerInfo.profileImage;
+          pStatus = partnerInfo.chatStatus || "pending";
+          pSentiment = partnerInfo.chatSentiment || "neutral";
+
           if (myAcc === "ADMIN" && !partnerInfo.needsSupport)
             isValidToDisplay = false;
         }
@@ -234,6 +321,8 @@ const chatContacts = async (req, res) => {
             time: c.time,
             timestamp: c.timestamp,
             unreadCount: unreadCount,
+            status: pStatus,
+            sentiment: pSentiment,
           };
         }
       }
@@ -319,14 +408,12 @@ const deleteConvo = async (req, res) => {
 const forceStartChat = async (req, res) => {
   const { receiverAcc, adminName } = req.body;
   try {
-    // ពិនិត្យមើលថា User មានមែនអត់
     const user = await User.findOne({
       $or: [{ accountNumber: receiverAcc }, { accountNumberKHR: receiverAcc }],
     });
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
 
-    // ដាក់ឱ្យ User ចូលក្នុងស្ថានភាព Support ដើម្បីឱ្យ Admin ងាយស្រួលរកក្នុងបញ្ជី
     user.needsSupport = true;
     await user.save();
 
@@ -335,6 +422,23 @@ const forceStartChat = async (req, res) => {
       message: "Chat បានត្រៀមរួចរាល់",
       userAcc: user.accountNumber,
     });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+// 🟢 មុខងារសម្រាប់ Update Status ពេល Admin ចុចដូរនៅលើ Dashboard
+const updateChatStatus = async (req, res) => {
+  const { userAcc, status } = req.body;
+  try {
+    const user = await User.findOne({ accountNumber: userAcc });
+    if (user) {
+      user.chatStatus = status;
+      await user.save();
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញគណនី!" });
+    }
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -353,4 +457,5 @@ module.exports = {
   deleteMsg,
   deleteConvo,
   forceStartChat,
+  updateChatStatus,
 };
