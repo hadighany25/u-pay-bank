@@ -225,7 +225,7 @@
          🔍 SEARCH HIGHLIGHT UI
          ========================================== */
       .highlight-text {
-        background-color: #fef08a;
+        background-color: #fef08a; /* ពណ៌លឿង */
         color: #000;
         padding: 0 2px;
         border-radius: 3px;
@@ -237,6 +237,16 @@
         color: #64748b;
         background: #f8fafc;
         border-bottom: 1px solid #e2e8f0;
+      }
+      body.dark-mode .search-section-title {
+        background: #121212;
+        color: #94a3b8;
+        border-bottom-color: #1e1e1e;
+        border-top: 1px solid #1e1e1e;
+      }
+      body.dark-mode .highlight-text {
+        background-color: #ca8a04;
+        color: #fff;
       }
 
       /* ==========================================
@@ -303,6 +313,7 @@
         align-items: flex-end;
       }
 
+      /* 🔥 ថែម -webkit-touch-callout ដើម្បីការពារកុំឱ្យ Browser លួចលោត Menu ដើម */
       .msg {
         padding: 10px 14px;
         font-size: 0.95rem;
@@ -372,6 +383,11 @@
         border-color: #045e4d;
         color: white;
       }
+      body.dark-mode .reaction-badge {
+        background: #1e1e1e;
+        border-color: #2d2d2d;
+        color: white;
+      }
       .msg-time {
         font-size: 0.65rem;
         color: #94a3b8;
@@ -402,46 +418,6 @@
           filter: blur(4px);
           margin-bottom: -30px;
         }
-      }
-
-      /* ==========================================
-         🔥 BOT BUTTONS STYLES
-         ========================================== */
-      .bot-quick-btn {
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #10b981;
-        background: #ecfdf5;
-        color: #047857;
-        cursor: pointer;
-        font-family: "Kantumruy Pro", sans-serif;
-        font-weight: 600;
-        text-align: left;
-        width: 100%;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-      }
-      .bot-quick-btn:active {
-        transform: scale(0.95);
-      }
-      .bot-human-btn {
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #0ea5e9;
-        background: #e0f2fe;
-        color: #0369a1;
-        cursor: pointer;
-        font-family: "Kantumruy Pro", sans-serif;
-        font-weight: 600;
-        text-align: left;
-        width: 100%;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-      }
-      .bot-human-btn:active {
-        transform: scale(0.95);
       }
 
       /* ==========================================
@@ -565,16 +541,13 @@
         background: #0ea5e9;
       }
 
-      /* ==========================================
-         🔥 ការរចនាប្រអប់ Input ថ្មី (Style ដូច Telegram)
-         ========================================== */
       .convo-input-container {
         position: relative;
         z-index: 10;
         background: white;
       }
       .convo-input {
-        padding: 10px 15px;
+        padding: 12px 15px;
         display: flex;
         align-items: center;
         gap: 12px;
@@ -593,29 +566,19 @@
         color: #004d40;
         transform: scale(0.9);
       }
-
-      .input-wrapper {
-        display: flex;
-        align-items: center;
-        flex: 1;
-        background: #f1f5f9;
-        border-radius: 25px;
-        padding: 0 15px;
-        border: 1px solid transparent;
-        transition: 0.2s;
-      }
-      .input-wrapper:focus-within {
-        border-color: #004d40;
-        background: white;
-      }
       .convo-input input[type="text"] {
         flex: 1;
-        background: transparent !important;
-        border: none !important;
-        padding: 12px 0;
+        background: #f1f5f9;
+        border: 1px solid transparent;
+        padding: 12px 18px;
+        border-radius: 25px;
         outline: none;
         font-size: 0.95rem;
-        width: 100%;
+        transition: 0.2s;
+      }
+      .convo-input input[type="text"]:focus {
+        border-color: #004d40;
+        background: white;
       }
       .convo-input button {
         width: 42px;
@@ -636,88 +599,9 @@
         transform: scale(0.9);
       }
 
-      /* 🔥 ម៉ឺនុយលោតពេលសង្កត់ប៊ូតុង Send យូរ (Set a Reminder) */
-      .send-popup-menu {
-        position: absolute;
-        bottom: 70px;
-        right: 15px;
-        background: white;
-        border-radius: 14px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        border: 1px solid #e2e8f0;
-        display: none;
-        z-index: 100;
-        overflow: hidden;
-        animation: popUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-      .send-popup-menu.show {
-        display: block;
-      }
-      .send-menu-item {
-        padding: 12px 20px;
-        font-size: 0.95rem;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: 0.2s;
-        white-space: nowrap;
-      }
-      .send-menu-item:active {
-        background: #f1f5f9;
-      }
-      @keyframes popUp {
-        from {
-          opacity: 0;
-          transform: translateY(10px) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-
-      .recording-ui {
-        display: none;
-        flex: 1;
-        align-items: center;
-        justify-content: space-between;
-        background: #fee2e2;
-        padding: 10px 15px;
-        border-radius: 25px;
-        animation: slideIn 0.3s;
-      }
-      .recording-dot {
-        width: 10px;
-        height: 10px;
-        background: #ef4444;
-        border-radius: 50%;
-        animation: pulse 1s infinite;
-      }
-      @keyframes pulse {
-        0% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-        100% {
-          opacity: 1;
-        }
-      }
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateX(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
+      /* ==========================================
+         😊 EMOJI PICKER UI
+         ========================================== */
       .emoji-picker-container {
         position: absolute;
         bottom: 70px;
@@ -772,7 +656,6 @@
         background: #f1f5f9;
         transform: scale(0.9);
       }
-
       .system-notice {
         text-align: center;
         font-size: 0.75rem;
@@ -793,7 +676,6 @@
         align-items: center;
         justify-content: center;
       }
-
       .typing {
         display: flex;
         gap: 4px;
@@ -813,7 +695,20 @@
       .typing span:nth-child(2) {
         animation-delay: -0.16s;
       }
+      @keyframes typing {
+        0%,
+        80%,
+        100% {
+          transform: scale(0);
+        }
+        40% {
+          transform: scale(1);
+        }
+      }
 
+      /* ==========================================
+         4️⃣ ផ្នែក TELEGRAM CONTEXT MENU (OVERLAY)
+         ========================================== */
       .msg-overlay {
         position: fixed;
         top: 0;
@@ -837,7 +732,7 @@
         box-sizing: border-box;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        pointer-events: none;
+        pointer-events: none; /* 🔥 ការពារកុំឱ្យវារារាំងការចុចបិទ Menu */
       }
       .reaction-pill {
         position: absolute;
@@ -903,6 +798,9 @@
         color: #ef4444;
       }
 
+      /* ==========================================
+         5️⃣ ផ្នែក FORWARD MODAL (BOTTOM SHEET)
+         ========================================== */
       .forward-modal-overlay {
         position: fixed;
         top: 0;
@@ -936,6 +834,15 @@
         align-items: center;
         border-bottom: 1px solid #e2e8f0;
       }
+      .fm-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      .fm-close {
+        font-size: 1.2rem;
+        color: #64748b;
+        cursor: pointer;
+      }
       .fm-search {
         padding: 15px 20px;
       }
@@ -960,8 +867,13 @@
         cursor: pointer;
         transition: 0.2s;
       }
+      .fm-contact:active {
+        background: #f8fafc;
+      }
 
-      /* Dark Mode Overrides */
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES
+         ========================================== */
       body.dark-mode {
         background-color: #000000 !important;
       }
@@ -1000,26 +912,15 @@
       body.dark-mode .convo-input,
       body.dark-mode .pinned-message-banner,
       body.dark-mode .reply-preview-bar,
-      body.dark-mode .forward-modal,
-      body.dark-mode .send-popup-menu {
+      body.dark-mode .forward-modal {
         background-color: #1e1e1e !important;
-        border-color: #2d2d2d !important;
-      }
-      body.dark-mode .input-wrapper {
-        background-color: #121212 !important;
         border-color: #2d2d2d !important;
       }
       body.dark-mode .convo-input input[type="text"],
       body.dark-mode .fm-search input {
-        background-color: transparent !important;
+        background-color: #121212 !important;
         color: #fff !important;
-        border: none !important;
-      }
-      body.dark-mode .send-menu-item {
-        color: #e2e8f0;
-      }
-      body.dark-mode .send-menu-item:active {
-        background: #2d2d2d;
+        border: 1px solid #2d2d2d;
       }
       body.dark-mode .system-notice {
         background: rgba(255, 255, 255, 0.05);
@@ -1037,29 +938,23 @@
         background: #1e1e1e;
         border-color: #2d2d2d;
       }
-      body.dark-mode .recording-ui {
-        background: rgba(239, 68, 68, 0.1);
-      }
-
-      body.dark-mode .bot-quick-btn {
-        background: #064e3b;
-        border-color: #059669;
-        color: #34d399;
-      }
-      body.dark-mode .bot-human-btn {
-        background: #0c4a6e;
-        border-color: #0284c7;
-        color: #38bdf8;
-      }
-
       .premium-swal {
         border-radius: 24px !important;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
+      .bottom-sheet-swal {
+        border-radius: 24px 24px 0 0 !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 20px;
+      }
+      .swal2-container.swal2-bottom {
+        align-items: flex-end;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
+      <!-- 📌 ផ្នែកទី ១: CHAT LIST & HEADER -->
       <div class="chat-header">
         <h2 onclick="window.location.href = 'dashboard.html'">
           <i class="fa-solid fa-chevron-left"></i>
@@ -1104,6 +999,7 @@
         <i class="fa-solid fa-plus"></i>
       </div>
 
+      <!-- 📌 ផ្នែកទី ២: CONVERSATION VIEW -->
       <div class="convo-view" id="convoView">
         <div class="convo-header" id="convoHeader">
           <i
@@ -1135,34 +1031,6 @@
               >Online</span
             >
           </div>
-          <div
-            style="
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              cursor: pointer;
-              padding: 5px;
-            "
-            onclick="window.toggleTimerCycle()"
-            title="Auto-Delete Timer"
-          >
-            <i
-              class="fa-solid fa-stopwatch"
-              id="autoDeleteIcon"
-              style="font-size: 1.4rem; color: white; transition: 0.2s"
-            ></i>
-            <span
-              id="timerLabel"
-              style="
-                font-size: 0.6rem;
-                font-weight: bold;
-                color: white;
-                margin-top: 1px;
-                line-height: 1;
-              "
-              >Off</span
-            >
-          </div>
         </div>
 
         <div class="pinned-message-banner" id="pinnedBanner">
@@ -1187,11 +1055,11 @@
 
         <div class="convo-body" id="convoBody"></div>
 
+        <!-- 📌 ផ្នែកទី ៣: ប្រអប់វាយសារ និង UI -->
         <div class="convo-input-container">
           <div class="reply-preview-bar" id="replyPreviewBar">
             <i
               class="fa-solid fa-reply"
-              id="replyPreviewIcon"
               style="color: #0ea5e9; font-size: 1.2rem"
             ></i>
             <div class="pinned-indicator"></div>
@@ -1211,93 +1079,43 @@
             <div class="emoji-grid" id="emojiGrid"></div>
           </div>
 
-          <div class="send-popup-menu" id="sendPopupMenu">
-            <div
-              class="send-menu-item kh-text"
-              onclick="window.openReminderModal()"
-            >
-              <i
-                class="fa-regular fa-clock"
-                style="color: #0ea5e9; font-size: 1.1rem"
-              ></i>
-              Set a Reminder
-            </div>
-          </div>
-
           <div class="convo-input">
+            <!-- 🔥 Hidden File Input សម្រាប់ Upload រូបភាព -->
             <input
               type="file"
-              id="fileInput"
-              accept="*/*"
+              id="imageInput"
+              accept="image/*"
               style="display: none"
-              onchange="window.handleFileUpload(event)"
+              onchange="window.handleImageUpload(event)"
             />
+
+            <!-- ចុចលើរូបកៀប វានឹងហៅ File Input -->
             <i
               class="fa-solid fa-paperclip action-icon"
-              id="attachBtn"
-              onclick="document.getElementById('fileInput').click()"
+              onclick="document.getElementById('imageInput').click()"
             ></i>
 
-            <div class="input-wrapper" id="inputWrapper">
-              <input
-                type="text"
-                id="msgInput"
-                class="kh-text"
-                placeholder="Message..."
-                oninput="toggleSendIcon()"
-                onkeypress="if (event.key === 'Enter') handleSendClick();"
-              />
-
-              <i
-                class="fa-solid fa-clock-rotate-left action-icon"
-                id="scheduledIconBtn"
-                style="
-                  display: none;
-                  color: #10b981;
-                  margin-right: 12px;
-                  font-size: 1.1rem;
-                "
-                onclick="window.openScheduledList()"
-                title="Scheduled Messages"
-              ></i>
-
-              <i
-                class="fa-regular fa-face-smile action-icon"
-                id="smileIconBtn"
-                onclick="toggleEmojiPicker(event)"
-              ></i>
-            </div>
-
-            <div id="recordingUI" class="recording-ui">
-              <div style="display: flex; align-items: center; gap: 10px">
-                <div class="recording-dot"></div>
-                <span
-                  id="recordTimer"
-                  style="color: #ef4444; font-weight: bold; font-size: 0.95rem"
-                  >00:00</span
-                >
-              </div>
-              <i
-                class="fa-solid fa-trash-can"
-                style="
-                  color: #ef4444;
-                  cursor: pointer;
-                  font-size: 1.2rem;
-                  padding: 5px;
-                "
-                onclick="cancelRecording()"
-              ></i>
-            </div>
-
-            <button id="sendBtn">
-              <i class="fa-solid fa-microphone" id="sendBtnIcon"></i>
+            <input
+              type="text"
+              id="msgInput"
+              class="kh-text"
+              placeholder="វាយសាររបស់អ្នក..."
+              onkeypress="if (event.key === 'Enter') sendMessage();"
+            />
+            <i
+              class="fa-regular fa-face-smile action-icon"
+              id="smileIconBtn"
+              onclick="toggleEmojiPicker(event)"
+            ></i>
+            <button onclick="sendMessage()">
+              <i class="fa-solid fa-paper-plane"></i>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 📌 MSG OVERLAY & MODALS -->
+    <!-- 📌 ផ្នែកទី ៤: TELEGRAM MSG OVERLAY -->
     <div id="msgOverlay" class="msg-overlay" onclick="closeMessageMenu()">
       <div id="reactionPill" class="reaction-pill">
         <span>👍</span><span>❤️</span><span>😂</span><span>😮</span
@@ -1306,6 +1124,7 @@
       <div id="contextMenu" class="context-menu"></div>
     </div>
 
+    <!-- 📌 ផ្នែកទី ៥: FORWARD MODAL -->
     <div
       class="forward-modal-overlay"
       id="forwardModalOverlay"
@@ -1344,6 +1163,7 @@
       </div>
     </div>
 
+    <!-- 📌 ផ្នែកទី ៦: IMAGE VIEWER (មើលរូបភាពពេញអេក្រង់) -->
     <div
       id="imageViewer"
       style="
@@ -1390,62 +1210,6 @@
       />
     </div>
 
-    <div
-      id="docViewer"
-      style="
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: white;
-        z-index: 100000;
-        flex-direction: column;
-        opacity: 0;
-        transition: opacity 0.2s;
-      "
-    >
-      <div
-        style="
-          width: 100%;
-          padding: 15px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: #004d40;
-          color: white;
-          box-sizing: border-box;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-          z-index: 2;
-        "
-      >
-        <span
-          id="docViewerTitle"
-          class="kh-text"
-          style="
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 80%;
-          "
-          >Document</span
-        >
-        <i
-          class="fa-solid fa-xmark"
-          style="font-size: 1.5rem; cursor: pointer; padding: 5px"
-          onclick="closeDocViewer()"
-          title="បិទ"
-        ></i>
-      </div>
-      <iframe
-        id="viewerIframe"
-        src=""
-        style="width: 100%; flex: 1; border: none; background: #f2f4f6"
-      ></iframe>
-    </div>
-
     <script>
       // ==========================================
       // 🛡️ ១. SESSION & INITIALIZATION
@@ -1464,12 +1228,11 @@
       let replyingToMsgText = null;
       let replyingToMsgName = null;
       let activePinnedMsgId = null;
+
       window.pendingForwardText = null;
       window.pendingForwardFrom = null;
       window.pendingForwardFromAcc = null;
       window.editingMsgId = null;
-      window.currentAutoDeleteTimer = 0;
-      window.pendingMediaData = null;
 
       function applyTheme() {
         const userThemeKey = "darkMode_" + user.username;
@@ -1487,359 +1250,17 @@
         fetchContacts();
         setInterval(fetchContacts, 3000);
         initEmojiPicker();
-        startAutoDeleteCountdown();
-        initSendButtonLongPress();
       });
 
       // ==========================================
-      // 🔥 មុខងារ BOT ជំនាន់មុន (ប៊ូតុងស្វាគមន៍)
-      // ==========================================
-      window.sendQuickReply = function (text) {
-        document.getElementById("msgInput").value = text;
-        sendMessage();
-      };
-
-      window.requestHumanAgent = function () {
-        document.getElementById("msgInput").value = "Human";
-        sendMessage();
-      };
-
-      function showBotGreeting() {
-        const body = document.getElementById("convoBody");
-        if (document.getElementById("bot-welcome-msg")) return; // ការពារកុំឱ្យលោតជាន់គ្នា
-        const wrap = document.createElement("div");
-        wrap.className = "msg-wrap received";
-        wrap.id = "bot-welcome-msg";
-        wrap.innerHTML = `
-            <div class="msg msg-received kh-text" style="border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-              សួស្តីបង! ខ្ញុំគឺ <b>U-PAY Smart Bot</b> 🤖<br>តើថ្ងៃនេះលោកអ្នកមានអ្វីឱ្យខ្ញុំជួយ?<br><br>
-              <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
-                <button onclick="window.sendQuickReply('របៀបវេរលុយ')" class="bot-quick-btn">
-                  <i class="fa-solid fa-money-bill-transfer" style="margin-right: 8px;"></i> របៀបវេរលុយ
-                </button>
-                <button onclick="window.sendQuickReply('របៀបស្កេន QR')" class="bot-quick-btn">
-                  <i class="fa-solid fa-qrcode" style="margin-right: 8px;"></i> របៀបស្កេន QR
-                </button>
-                <button onclick="window.requestHumanAgent()" class="bot-human-btn">
-                  <i class="fa-solid fa-headset" style="margin-right: 8px;"></i> ភ្ជាប់ទៅភ្នាក់ងារ (Human)
-                </button>
-              </div>
-            </div>
-            <div class="msg-time-wrapper"><span class="msg-time">Now</span></div>
-          `;
-        body.appendChild(wrap);
-        body.scrollTop = body.scrollHeight;
-      }
-
-      // ==========================================
-      // 🔥 SCHEDULED MESSAGE & LONG PRESS LOGIC
-      // ==========================================
-      function initSendButtonLongPress() {
-        const sendBtn = document.getElementById("sendBtn");
-        const menu = document.getElementById("sendPopupMenu");
-        let pressTimer;
-        let isLongPress = false;
-
-        const startPress = (e) => {
-          isLongPress = false;
-          const icon = document.getElementById("sendBtnIcon");
-          if (isRecording || icon.classList.contains("fa-microphone")) return;
-
-          pressTimer = setTimeout(() => {
-            isLongPress = true;
-            if (navigator.vibrate) navigator.vibrate(50);
-            menu.classList.add("show");
-          }, 500);
-        };
-
-        const cancelPress = () => clearTimeout(pressTimer);
-
-        sendBtn.addEventListener("mousedown", startPress);
-        sendBtn.addEventListener("mouseup", cancelPress);
-        sendBtn.addEventListener("mouseleave", cancelPress);
-
-        sendBtn.addEventListener("touchstart", startPress, { passive: true });
-        sendBtn.addEventListener("touchend", cancelPress);
-        sendBtn.addEventListener("touchcancel", cancelPress);
-
-        document.addEventListener("click", (e) => {
-          if (!sendBtn.contains(e.target) && !menu.contains(e.target)) {
-            menu.classList.remove("show");
-          }
-        });
-
-        sendBtn.onclick = (e) => {
-          if (isLongPress) {
-            e.preventDefault();
-            return;
-          }
-          if (menu.classList.contains("show")) {
-            menu.classList.remove("show");
-            return;
-          }
-          handleSendClick();
-        };
-      }
-
-      window.openReminderModal = function () {
-        document.getElementById("sendPopupMenu").classList.remove("show");
-
-        Swal.fire({
-          title:
-            '<span class="kh-text" style="font-size:1.1rem; font-weight:700;">Set a Reminder</span>',
-          html: `
-                 <div style="text-align: left; margin-top: 15px;">
-                    <label class="kh-text" style="font-size: 0.85rem; color: #64748b; font-weight: 600;">រើសថ្ងៃខែ និងម៉ោងផ្ញើ៖</label>
-                    <input type="datetime-local" id="reminderDatetime" class="kh-text" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 12px; border: 1.5px solid #e2e8f0; margin-top: 8px; font-size: 1rem; outline: none;">
-                 </div>
-              `,
-          showCancelButton: true,
-          confirmButtonText: "កំណត់ពេល (Schedule)",
-          cancelButtonText: "បោះបង់",
-          customClass: { popup: "premium-swal" },
-          didOpen: () => {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() + 2); // ដាក់លើស ២នាទី ដើម្បីកុំឱ្យខុស
-
-            // 🔥 ដោះស្រាយបញ្ហា Timezone
-            const tzOffset = now.getTimezoneOffset() * 60000;
-            const localISOTime = new Date(now.getTime() - tzOffset)
-              .toISOString()
-              .slice(0, 16);
-
-            document.getElementById("reminderDatetime").value = localISOTime;
-          },
-          preConfirm: () => {
-            const val = document.getElementById("reminderDatetime").value;
-            if (!val) {
-              Swal.showValidationMessage("សូមរើសថ្ងៃនិងម៉ោងសិន!");
-            }
-            return val;
-          },
-        }).then((result) => {
-          if (result.isConfirmed && result.value) {
-            window.scheduleCurrentMessage(new Date(result.value).getTime());
-          }
-        });
-      };
-
-      window.scheduleCurrentMessage = async function (targetTime) {
-        const input = document.getElementById("msgInput");
-        const text = input.value.trim();
-        if (!text && !window.pendingMediaData) return;
-
-        const displayTime = new Date(targetTime).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-
-        let payload = {
-          senderAcc: user.accountNumber,
-          receiverAcc: currentChatAcc,
-          message:
-            text ||
-            (window.pendingMediaData ? window.pendingMediaData.msgText : ""),
-          scheduledFor: targetTime,
-          isScheduled: true,
-          time: displayTime,
-          autoDeleteTimer: window.currentAutoDeleteTimer,
-          ...(window.pendingMediaData || {}),
-        };
-
-        Swal.fire({
-          title: "កំពុងកំណត់ពេល...",
-          didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
-        });
-
-        const res = await fetch("/api/chat/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          Swal.close();
-          input.value = "";
-          window.pendingMediaData = null;
-          const previewBar = document.getElementById("replyPreviewBar");
-          if (previewBar) previewBar.classList.remove("show");
-
-          toggleSendIcon();
-          document.getElementById("scheduledIconBtn").style.display = "block";
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "success",
-            title: "បានកំណត់ពេលផ្ញើសារជោគជ័យ!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        } else {
-          Swal.fire("បរាជ័យ", "មិនអាចកំណត់ពេលបានទេ", "error");
-        }
-      };
-
-      window.openScheduledList = function () {
-        Swal.fire({
-          title:
-            '<span class="kh-text" style="font-weight:700;">សាររង់ចាំផ្ញើ (Scheduled)</span>',
-          html: `<div id="scheduledListContainer" style="max-height: 350px; overflow-y: auto; text-align: left; margin-top: 15px;">
-                   <div style="text-align: center; color: #94a3b8; padding: 20px;" class="kh-text"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</div>
-                 </div>`,
-          showConfirmButton: true,
-          confirmButtonText: "បិទ",
-          customClass: { popup: "premium-swal" },
-          didOpen: async () => {
-            try {
-              const res = await fetch("/api/chat/scheduled", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  userAcc: user.accountNumber,
-                  partnerAcc: currentChatAcc,
-                }),
-              });
-              const data = await res.json();
-              const container = document.getElementById(
-                "scheduledListContainer",
-              );
-
-              if (data.success && data.history && data.history.length > 0) {
-                container.innerHTML = data.history
-                  .map((m) => {
-                    const dt = new Date(m.scheduledFor).toLocaleString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      },
-                    );
-                    return `
-                    <div style="background: #f8fafc; padding: 12px 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                      <div style="overflow: hidden; flex: 1; margin-right: 15px;">
-                        <div style="font-size: 0.75rem; color: #10b981; font-weight: bold; margin-bottom: 4px;">
-                          <i class="fa-regular fa-clock"></i> ផ្ញើនៅ: ${dt}
-                        </div>
-                        <div class="kh-text" style="font-size: 0.9rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                          ${m.message || "ឯកសារភ្ជាប់ 📁"}
-                        </div>
-                      </div>
-                      <div style="background: #fee2e2; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;" onclick="window.deleteScheduledMsg('${m.id}')" title="លុបសារនេះ">
-                        <i class="fa-solid fa-trash-can" style="color: #ef4444; font-size: 1rem;"></i>
-                      </div>
-                    </div>
-                  `;
-                  })
-                  .join("");
-              } else {
-                container.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 20px;" class="kh-text"><i class="fa-regular fa-folder-open" style="font-size: 2rem; opacity: 0.5; margin-bottom: 10px; display: block;"></i> គ្មានសាររង់ចាំទេ</div>`;
-                document.getElementById("scheduledIconBtn").style.display =
-                  "none";
-              }
-            } catch (e) {
-              document.getElementById("scheduledListContainer").innerHTML =
-                `<div style="color: #ef4444; text-align: center;" class="kh-text">មានបញ្ហាក្នុងការទាញយកទិន្នន័យ</div>`;
-            }
-          },
-        });
-      };
-
-      window.deleteScheduledMsg = async function (msgId) {
-        Swal.fire({
-          title: "កំពុងលុប...",
-          didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
-        });
-        await fetch("/api/chat/delete-msg", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            msgId: msgId,
-            deleteType: "everyone",
-            reqAcc: user.accountNumber,
-          }),
-        });
-        window.openScheduledList();
-      };
-
-      // ==========================================
-      // 🔥 SECRET CHAT LOGIC
-      // ==========================================
-      const timerLevels = [
-        { seconds: 0, label: "Off" },
-        { seconds: 3, label: "3s" },
-        { seconds: 5, label: "5s" },
-        { seconds: 10, label: "10s" },
-        { seconds: 60, label: "1m" },
-      ];
-      let currentTimerIndex = 0;
-
-      window.toggleTimerCycle = function () {
-        currentTimerIndex = (currentTimerIndex + 1) % timerLevels.length;
-        const currentLevel = timerLevels[currentTimerIndex];
-        window.currentAutoDeleteTimer = currentLevel.seconds;
-        const icon = document.getElementById("autoDeleteIcon");
-        const label = document.getElementById("timerLabel");
-        label.innerText = currentLevel.label;
-        if (currentLevel.seconds > 0) {
-          icon.style.color = "#10b981";
-          label.style.color = "#10b981";
-          Swal.fire({
-            toast: true,
-            position: "top",
-            title: `លុបសារស្វ័យប្រវត្តិ៖ ${currentLevel.label}`,
-            icon: "success",
-            timer: 1200,
-            showConfirmButton: false,
-          });
-        } else {
-          icon.style.color = "white";
-          label.style.color = "white";
-          Swal.fire({
-            toast: true,
-            position: "top",
-            title: `បានបិទមុខងារលុបសារ`,
-            icon: "info",
-            timer: 1200,
-            showConfirmButton: false,
-          });
-        }
-      };
-
-      function startAutoDeleteCountdown() {
-        setInterval(() => {
-          document
-            .querySelectorAll(".msg-wrap[data-expires-at]")
-            .forEach((wrap) => {
-              const expiresAt = parseInt(wrap.dataset.expiresAt);
-              const now = Date.now();
-              const remaining = Math.ceil((expiresAt - now) / 1000);
-              const timerSpan = wrap.querySelector(".timer-badge");
-              if (remaining <= 0) {
-                wrap.removeAttribute("data-expires-at");
-                wrap.classList.add("msg-deleted");
-                setTimeout(() => wrap.remove(), 400);
-              } else if (timerSpan) {
-                timerSpan.innerText = `⏱ ${remaining}s`;
-              }
-            });
-        }, 1000);
-      }
-
-      // ==========================================
-      // 🟢 ២. HEADER & STATUS
+      // 🟢 ២. HEADER STATUS (ONLINE / OFFLINE / BOT)
       // ==========================================
       function updateHeaderUI() {
         if (currentChatAcc !== "ADMIN") return;
         const nameEl = document.getElementById("cvName");
         const statusEl = document.getElementById("cvStatus");
         const avatarEl = document.getElementById("cvAvatar");
+
         if (
           supportMode === "agent" &&
           currentAgentName &&
@@ -1867,14 +1288,17 @@
         const partnerMsgs = history.filter(
           (m) => m.senderAcc === currentChatAcc,
         );
+
         if (partnerMsgs.length === 0) {
           statusEl.innerText = "Offline";
           statusEl.style.color = "#94a3b8";
           return;
         }
+
         const lastMsg = partnerMsgs[partnerMsgs.length - 1];
         const diffMs = Date.now() - lastMsg.timestamp;
         const diffMins = Math.floor(diffMs / 60000);
+
         if (diffMins < 3) {
           statusEl.innerText = "Online";
           statusEl.style.color = "#10b981";
@@ -1894,12 +1318,7 @@
       function openChat(accountNumber, name, avatarUrl = "") {
         currentChatAcc = accountNumber;
         lastMsgCount = -1;
-        botGreetingShown = false;
         document.getElementById("cvName").innerText = name;
-        document.getElementById("msgInput").value = "";
-        toggleSendIcon();
-        window.pendingMediaData = null;
-        document.getElementById("scheduledIconBtn").style.display = "none";
 
         if (accountNumber === "ADMIN") {
           updateHeaderUI();
@@ -1915,9 +1334,9 @@
           document.getElementById("cvStatus").innerText = "Checking status...";
           document.getElementById("cvStatus").style.color = "#94a3b8";
         }
+
         document.getElementById("convoBody").innerHTML =
           '<div class="system-notice kh-text"><i class="fa-solid fa-lock"></i> ការសន្ទនាត្រូវបានរក្សាសុវត្ថិភាព End-to-End Encryption</div>';
-
         fetchMessages();
         if (pollInterval) clearInterval(pollInterval);
         pollInterval = setInterval(fetchMessages, 2000);
@@ -1932,7 +1351,7 @@
       }
 
       // ==========================================
-      // 💬 ៣. CHAT RENDERING
+      // 💬 ៣. CHAT RENDERING & FETCHING
       // ==========================================
       function appendMsg(
         id,
@@ -1948,9 +1367,6 @@
         wrap.className = `msg-wrap ${type}`;
         wrap.id = `msg-${id}`;
 
-        if (dataObj.expiresAt) {
-          wrap.dataset.expiresAt = new Date(dataObj.expiresAt).getTime();
-        }
         if (dataObj.isEdited) {
           wrap.dataset.isEdited = "true";
           if (dataObj.editedAt) wrap.dataset.editedAt = dataObj.editedAt;
@@ -1962,32 +1378,13 @@
               ? `<i class="fa-solid fa-check-double read-receipt"></i>`
               : `<i class="fa-solid fa-check read-receipt"></i>`
             : "";
+
         let extraHtml = "";
 
         if (dataObj.imageUrl) {
-          let uploadingHtml = dataObj.isUploading
-            ? `<div id="loader-${id}" class="image-uploading-overlay"><div class="image-uploading-spinner"></div></div>`
-            : "";
-          extraHtml += `<div class="msg-image" style="position:relative; margin-bottom: 8px;"><img id="img-${id}" src="${dataObj.imageUrl}" style="max-width: 100%; border-radius: 8px; cursor: pointer; display: block; -webkit-touch-callout: none; pointer-events: auto;" onclick="window.openImageViewer('${dataObj.imageUrl}')">${uploadingHtml}</div>`;
-        }
-
-        if (dataObj.audioUrl) {
-          let uploadingHtml = dataObj.isUploading
-            ? `<div id="loader-${id}" style="margin-left: 10px;"><div class="image-uploading-spinner" style="width:15px; height:15px; border-width:2px; border-top-color:#004d40;"></div></div>`
-            : "";
-          extraHtml += `<div class="custom-audio-player"><audio id="audio-${id}" src="${dataObj.audioUrl}" preload="metadata" onloadedmetadata="document.getElementById('time-${id}').innerText = window.formatAudioTime(this.duration)"></audio><div class="play-btn" onclick="window.togglePlay('${id}')"><i class="fa-solid fa-play" id="icon-${id}"></i></div><div class="audio-track"><input type="range" min="0" max="100" value="0" class="audio-slider" id="slider-${id}" oninput="window.seekAudio('${id}')"><div class="audio-time" id="time-${id}">0:00</div></div>${uploadingHtml}</div>`;
-        }
-
-        if (dataObj.fileUrl) {
-          let uploadingHtml = dataObj.isUploading
-            ? `<span style="display:inline-block; width:12px; height:12px; border:2px solid rgba(0,0,0,0.2); border-top-color:#0ea5e9; border-radius:50%; animation:spin 1s linear infinite; margin-left:5px;"></span>`
-            : "";
-          let ext = dataObj.fileName
-            ? dataObj.fileName.split(".").pop().substring(0, 4).toUpperCase()
-            : "FILE";
-          let iconColor = type === "sent" ? "rgba(255,255,255,0.2)" : "#e0f2fe";
-          let textColor = type === "sent" ? "white" : "#0ea5e9";
-          extraHtml += `<div class="msg-file" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding: 5px 0; cursor:pointer;" onclick="window.openDocViewer('${dataObj.fileUrl}', '${dataObj.fileName}')"><div style="width: 42px; height: 42px; background: ${iconColor}; border-radius: 8px; display:flex; justify-content:center; align-items:center; color:${textColor}; font-weight:bold; font-size:0.75rem; flex-shrink:0;">${ext}</div><div style="display:flex; flex-direction:column; overflow:hidden;"><span style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 160px;">${dataObj.fileName}</span><span style="font-size:0.75rem; opacity:0.8; margin-top:2px;">${dataObj.fileSize} ${uploadingHtml}</span></div></div>`;
+          extraHtml += `<div class="msg-image" style="margin-bottom: 8px;">
+                <img src="${dataObj.imageUrl}" style="max-width: 100%; border-radius: 8px; cursor: pointer; display: block; -webkit-touch-callout: none; pointer-events: auto;" onclick="window.openImageViewer('${dataObj.imageUrl}')">
+            </div>`;
         }
 
         if (dataObj.forwardedFrom) {
@@ -2012,6 +1409,7 @@
             counts[r.emoji] = (counts[r.emoji] || 0) + 1;
             if (r.userAcc === user.accountNumber) userReacted[r.emoji] = true;
           });
+
           let badges = Object.keys(counts)
             .map((e) => {
               let activeStyle = userReacted[e]
@@ -2027,26 +1425,30 @@
         }
 
         let displayText = text;
-        if (
-          (text === "រូបភាព 🖼️" && dataObj.imageUrl) ||
-          (text === "សំឡេង 🎤" && dataObj.audioUrl) ||
-          (text === "ឯកសារ 📄" && dataObj.fileUrl)
-        ) {
+        if (text === "រូបភាព 🖼️" && dataObj.imageUrl) {
           displayText = "";
         }
 
         let editedHtml = dataObj.isEdited
           ? `<span class="edited-tag" style="font-size:0.65rem; color:#94a3b8; font-style:italic; margin-right:5px;">edited</span>`
           : "";
-        let timerBadgeHtml =
-          dataObj.autoDeleteTimer > 0
-            ? `<span class="timer-badge">⏱ ${dataObj.autoDeleteTimer}s</span>`
-            : "";
 
-        wrap.innerHTML = `<div class="msg msg-${type} kh-text">${extraHtml}<span class="msg-text-content">${displayText}</span></div>${reactionsHtml}<div class="msg-time-wrapper">${timerBadgeHtml}${editedHtml}<span class="msg-time">${time}</span>${readReceipt}</div>`;
+        wrap.innerHTML = `
+          <div class="msg msg-${type} kh-text">
+            ${extraHtml}
+            <span class="msg-text-content">${displayText}</span>
+          </div>
+          ${reactionsHtml}
+          <div class="msg-time-wrapper">
+            ${editedHtml}
+            <span class="msg-time">${time}</span>
+            ${readReceipt}
+          </div>`;
 
         if (currentChatAcc !== "ADMIN") {
           const msgBox = wrap.querySelector(".msg");
+
+          // 🔥 ធានាថាមុខងារ Long Press (សង្កត់យូរ) ដើរ ១០០% លើគ្រប់ទូរស័ព្ទ (iOS & Android)
           let pressTimer;
           let isLongPress = false;
 
@@ -2055,11 +1457,10 @@
             if (
               e.target.closest(".inline-reply") ||
               e.target.closest(".forwarded-tag") ||
-              e.target.closest("img") ||
-              e.target.closest(".custom-audio-player") ||
-              e.target.closest(".msg-file")
+              e.target.closest("img")
             )
               return;
+
             pressTimer = setTimeout(() => {
               isLongPress = true;
               if (navigator.vibrate) navigator.vibrate(50);
@@ -2075,12 +1476,16 @@
               );
             }, 500);
           };
+
           const cancelPress = () => clearTimeout(pressTimer);
 
+          // Touch Events សម្រាប់ទូរស័ព្ទ
           msgBox.addEventListener("touchstart", startPress, { passive: true });
           msgBox.addEventListener("touchend", cancelPress);
           msgBox.addEventListener("touchmove", cancelPress);
           msgBox.addEventListener("touchcancel", cancelPress);
+
+          // Right Click សម្រាប់កុំព្យូទ័រ
           msgBox.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             openMessageMenu(
@@ -2094,19 +1499,21 @@
               dataObj.forwardedFromAcc,
             );
           });
+
+          // Single Click មើលម៉ោង
           msgBox.addEventListener("click", (e) => {
+            if (isLongPress) return; // មិនធ្វើអ្វីទេ បើវាជាការសង្កត់យូរ
             if (
-              isLongPress ||
               e.target.closest(".inline-reply") ||
               e.target.closest(".forwarded-tag") ||
-              e.target.closest("img") ||
-              e.target.closest(".custom-audio-player") ||
-              e.target.closest(".msg-file")
+              e.target.closest("img")
             )
               return;
+
             const timeSpan = wrap.querySelector(".msg-time");
             const shortTime = time;
             let longTime = fullTime || time;
+
             if (wrap.dataset.isEdited === "true") {
               let eTimeStr = "";
               if (
@@ -2124,6 +1531,7 @@
                 ? `${eTimeStr} • ${longTime}`
                 : `• ${longTime}`;
             }
+
             if (timeSpan.innerText === shortTime) {
               timeSpan.style.opacity = "0";
               setTimeout(() => {
@@ -2142,6 +1550,7 @@
             }
           });
         }
+
         body.appendChild(wrap);
         body.scrollTop = body.scrollHeight;
       }
@@ -2159,13 +1568,8 @@
         const data = await res.json();
 
         if (data.success) {
-          // 🔥 បន្ថែមការបង្ហាញ/លាក់ Icon Scheduled នៅទីនេះ
-          const schIconBtn = document.getElementById("scheduledIconBtn");
-          if (schIconBtn) {
-            schIconBtn.style.display = data.hasScheduled ? "block" : "none";
-          }
-
           updateUserStatusUI(data.history);
+
           if (data.history.length !== lastMsgCount) {
             const body = document.getElementById("convoBody");
             body.innerHTML =
@@ -2185,6 +1589,7 @@
                 m.senderAcc === user.accountNumberKHR
                   ? "sent"
                   : "received";
+
               let displayTime = "";
               let fullTime = "";
               if (m.timestamp) {
@@ -2194,7 +1599,10 @@
                   minute: "2-digit",
                   hour12: true,
                 });
-                fullTime = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}, ${displayTime}`;
+                const day = String(d.getDate()).padStart(2, "0");
+                const month = String(d.getMonth() + 1).padStart(2, "0");
+                const year = d.getFullYear();
+                fullTime = `${day}/${month}/${year}, ${displayTime}`;
               } else {
                 displayTime = (m.time.split(",")[1] || m.time)
                   .trim()
@@ -2244,12 +1652,13 @@
                 const origMsg = data.history.find((x) => x.id === m.replyToId);
                 if (origMsg) {
                   replyTxt = origMsg.message;
-                  replyNm =
+                  const origIsMine =
                     origMsg.senderAcc === user.accountNumber ||
-                    origMsg.senderAcc === user.accountNumberKHR
-                      ? "You"
-                      : origMsg.adminName ||
-                        document.getElementById("cvName").innerText;
+                    origMsg.senderAcc === user.accountNumberKHR;
+                  replyNm = origIsMine
+                    ? "You"
+                    : origMsg.adminName ||
+                      document.getElementById("cvName").innerText;
                 }
               }
 
@@ -2270,12 +1679,6 @@
                   isEdited: m.isEdited,
                   editedAt: m.editedAt,
                   imageUrl: m.imageUrl,
-                  audioUrl: m.audioUrl,
-                  fileUrl: m.fileUrl,
-                  fileName: m.fileName,
-                  fileSize: m.fileSize,
-                  autoDeleteTimer: m.autoDeleteTimer,
-                  expiresAt: m.expiresAt,
                   reactions: m.reactions,
                 },
                 fullTime,
@@ -2290,8 +1693,6 @@
               supportMode = tempMode;
               currentAgentName = tempAgentName;
               updateHeaderUI();
-
-              // 🔥 បង្ហាញសារ Bot Welcome ជំនាន់មុន
               if (supportMode === "bot") {
                 let shouldShowGreeting = false;
                 const lastMsg = data.history[data.history.length - 1];
@@ -2300,12 +1701,17 @@
                   if (
                     Date.now() - lastMsg.timestamp > 60 * 60 * 1000 ||
                     lastMsg.message.includes("ការសន្ទនាត្រូវបានបញ្ចប់")
-                  ) {
+                  )
                     shouldShowGreeting = true;
-                  }
                 }
                 if (shouldShowGreeting && !botGreetingShown) {
-                  showBotGreeting();
+                  if (!document.getElementById("temp-greeting")) {
+                    const wrap = document.createElement("div");
+                    wrap.className = `msg-wrap received`;
+                    wrap.id = "temp-greeting";
+                    wrap.innerHTML = `<div class="msg msg-received kh-text" style="background:var(--bg-highlight, #e0f2fe); border: 1px solid var(--border-highlight, #bae6fd);">សួស្តី! ខ្ញុំគឺ <b>U-PAY Smart Bot</b> 🤖។<br>តើមានអ្វីឱ្យខ្ញុំជួយអ្នកថ្ងៃនេះ?<br><br>👉 បើចង់ជួបភ្នាក់ងារផ្ទាល់ សូមវាយពាក្យថា <b>"Human"</b> ឬ <b>"ភ្នាក់ងារ"</b>។</div><div class="msg-time-wrapper"><span class="msg-time">Now</span></div>`;
+                    document.getElementById("convoBody").appendChild(wrap);
+                  }
                   botGreetingShown = true;
                 }
               }
@@ -2319,7 +1725,7 @@
               body.scrollTop = body.scrollHeight;
             }
           } else {
-            // Update UI ( Reactions, Read Receipt... )
+            // Update តែគ្រីស, Reaction និងការ Edit
             data.history.forEach((m) => {
               const msgWrap = document.getElementById(`msg-${m.id}`);
               if (msgWrap) {
@@ -2330,16 +1736,12 @@
                     icon.classList.add("fa-check-double");
                   }
                 }
-                if (m.expiresAt && !msgWrap.dataset.expiresAt) {
-                  msgWrap.dataset.expiresAt = new Date(m.expiresAt).getTime();
-                }
+
                 const textNode = msgWrap.querySelector(".msg-text-content");
                 if (
                   textNode &&
                   textNode.innerHTML !== m.message &&
-                  m.message !== "រូបភាព 🖼️" &&
-                  m.message !== "សំឡេង 🎤" &&
-                  m.message !== "ឯកសារ 📄"
+                  m.message !== "រូបភាព 🖼️"
                 ) {
                   textNode.innerHTML = m.message;
                 }
@@ -2408,217 +1810,47 @@
       }
 
       // ==========================================
-      // 🚀 ៤. SENDING LOGIC (FILES & MEDIA PREVIEW)
+      // 🚀 ៤. SENDING LOGIC (បញ្ជូនរូបភាព, សារ, និង Edit)
       // ==========================================
-      function toggleSendIcon() {
-        const input = document.getElementById("msgInput");
-        const icon = document.getElementById("sendBtnIcon");
-        if (
-          input.value.trim().length > 0 ||
-          window.pendingForwardText ||
-          window.pendingMediaData
-        ) {
-          icon.className = "fa-solid fa-paper-plane";
-          icon.style.color = "white";
-        } else {
-          icon.className = "fa-solid fa-microphone";
-          icon.style.color = "white";
-        }
-      }
 
-      function handleSendClick() {
-        const icon = document.getElementById("sendBtnIcon");
-        if (isRecording) {
-          stopRecordingAndSend();
-        } else if (icon.classList.contains("fa-paper-plane")) {
-          sendMessage();
-        } else {
-          startRecording();
-        }
-      }
-
-      window.handleFileUpload = async function (e) {
+      window.handleImageUpload = async function (e) {
         const file = e.target.files[0];
         if (!file) return;
+
         const CLOUD_NAME = "jp9yg3dj";
         const UPLOAD_PRESET = "iaxuqmpb";
-        const isImage = file.type.startsWith("image/");
 
-        Swal.fire({
-          title: "កំពុងរៀបចំឯកសារ...",
-          didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
-        });
         const formData = new FormData();
         formData.append("file", file);
         formData.append("upload_preset", UPLOAD_PRESET);
+
+        Swal.fire({
+          title: "កំពុងបញ្ជូនរូបភាព...",
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
+          customClass: { popup: "premium-swal" },
+        });
+
         try {
           const res = await fetch(
-            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
             { method: "POST", body: formData },
           );
           const data = await res.json();
+
           if (data.secure_url) {
             Swal.close();
-            if (isImage) {
-              window.pendingMediaData = {
-                imageUrl: data.secure_url,
-                msgText: "រូបភាព 🖼️",
-              };
-              document.getElementById("replyPreviewTitle").innerText =
-                "Image Preview";
-              document.getElementById("replyPreviewText").innerText = file.name;
-              document.getElementById("replyPreviewIcon").className =
-                "fa-regular fa-image";
-            } else {
-              const sizeInMB = (file.size / (1024 * 1024)).toFixed(2) + " MB";
-              window.pendingMediaData = {
-                fileUrl: data.secure_url,
-                fileName: file.name,
-                fileSize: sizeInMB,
-                msgText: "ឯកសារ 📄",
-              };
-              document.getElementById("replyPreviewTitle").innerText =
-                "Document Preview";
-              document.getElementById("replyPreviewText").innerText = file.name;
-              document.getElementById("replyPreviewIcon").className =
-                "fa-regular fa-file-pdf";
-            }
-            document.getElementById("replyPreviewBar").classList.add("show");
-            toggleSendIcon();
+            window.sendImageMessage(data.secure_url);
           } else {
-            Swal.fire("បរាជ័យ", "មិនអាច Upload បានទេ", "error");
+            Swal.fire("បរាជ័យ", "មិនអាចបញ្ជូនរូបភាពបានទេ", "error");
           }
         } catch (err) {
-          Swal.fire("បរាជ័យ", "មានបញ្ហាពេលភ្ជាប់ទៅ Cloud", "error");
+          Swal.fire("បរាជ័យ", "មានបញ្ហាពេលភ្ជាប់ទៅកាន់ Cloud", "error");
         }
         e.target.value = "";
       };
 
-      // Voice Logic
-      let mediaRecorder;
-      let audioChunks = [];
-      let recordTimerInterval;
-      let recordSeconds = 0;
-      let isRecording = false;
-      async function startRecording() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-          });
-          mediaRecorder = new MediaRecorder(stream);
-          audioChunks = [];
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) audioChunks.push(event.data);
-          };
-          mediaRecorder.onstop = async () => {
-            if (audioChunks.length > 0) {
-              const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-              window.uploadAudioToCloudinary(audioBlob);
-            }
-          };
-          mediaRecorder.start();
-          isRecording = true;
-
-          document.getElementById("inputWrapper").style.display = "none";
-          document.getElementById("attachBtn").style.display = "none";
-          document.getElementById("recordingUI").style.display = "flex";
-          document.getElementById("sendBtnIcon").className =
-            "fa-solid fa-paper-plane";
-          recordSeconds = 0;
-          updateTimerUI();
-          recordTimerInterval = setInterval(() => {
-            recordSeconds++;
-            updateTimerUI();
-          }, 1000);
-        } catch (err) {
-          Swal.fire("បរាជ័យ", "សូមអនុញ្ញាត (Allow) Microphone!", "error");
-        }
-      }
-      function updateTimerUI() {
-        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, "0");
-        const secs = String(recordSeconds % 60).padStart(2, "0");
-        document.getElementById("recordTimer").innerText = `${mins}:${secs}`;
-      }
-      function stopRecordingAndSend() {
-        if (mediaRecorder && isRecording) {
-          mediaRecorder.stop();
-          resetRecordingUI();
-        }
-      }
-      function cancelRecording() {
-        if (mediaRecorder && isRecording) {
-          audioChunks = [];
-          mediaRecorder.stop();
-          resetRecordingUI();
-        }
-      }
-      function resetRecordingUI() {
-        isRecording = false;
-        clearInterval(recordTimerInterval);
-        if (mediaRecorder && mediaRecorder.stream) {
-          mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-        }
-        document.getElementById("recordingUI").style.display = "none";
-        document.getElementById("inputWrapper").style.display = "flex";
-        document.getElementById("attachBtn").style.display = "block";
-        toggleSendIcon();
-      }
-
-      window.uploadAudioToCloudinary = async function (audioBlob) {
-        const CLOUD_NAME = "jp9yg3dj";
-        const UPLOAD_PRESET = "iaxuqmpb";
-        const formData = new FormData();
-        formData.append("file", audioBlob, "voice.webm");
-        formData.append("upload_preset", UPLOAD_PRESET);
-        formData.append("resource_type", "video");
-        const displayTime = new Date().toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-        const d = new Date();
-        const fullTimeStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}, ${displayTime}`;
-        const tempMsgId = "MSG-VOICE-UPL-" + Date.now();
-        appendMsg(
-          tempMsgId,
-          "សំឡេង 🎤",
-          "sent",
-          displayTime,
-          user.accountNumber,
-          {
-            isRead: false,
-            audioUrl: "#",
-            isUploading: true,
-            autoDeleteTimer: window.currentAutoDeleteTimer,
-          },
-          fullTimeStr,
-        );
-        scrollToMsg(tempMsgId);
-        try {
-          const res = await fetch(
-            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
-            { method: "POST", body: formData },
-          );
-          const data = await res.json();
-          if (data.secure_url) {
-            document.getElementById(`msg-${tempMsgId}`).remove();
-            window.sendMediaMessage("សំឡេង 🎤", { audioUrl: data.secure_url });
-          } else {
-            document.getElementById(`loader-${tempMsgId}`).innerHTML =
-              `<i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i>`;
-          }
-        } catch (err) {
-          document.getElementById(`loader-${tempMsgId}`).innerHTML =
-            `<i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i>`;
-        }
-      };
-
-      window.sendMediaMessage = async function (
-        msgText,
-        mediaData,
-        scheduledTime = null,
-      ) {
+      window.sendImageMessage = async function (imgUrl) {
         const displayTime = new Date().toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
@@ -2627,22 +1859,17 @@
         const d = new Date();
         const fullTimeStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}, ${displayTime}`;
         const fakeId =
-          "MSG-MEDIA-" + Date.now() + Math.floor(Math.random() * 1000);
+          "MSG-IMG-" + Date.now() + Math.floor(Math.random() * 1000);
 
-        if (!scheduledTime)
-          appendMsg(
-            fakeId,
-            msgText,
-            "sent",
-            displayTime,
-            user.accountNumber,
-            {
-              isRead: false,
-              autoDeleteTimer: window.currentAutoDeleteTimer,
-              ...mediaData,
-            },
-            fullTimeStr,
-          );
+        appendMsg(
+          fakeId,
+          "រូបភាព 🖼️",
+          "sent",
+          displayTime,
+          user.accountNumber,
+          { isRead: false, imageUrl: imgUrl },
+          fullTimeStr,
+        );
 
         await fetch("/api/chat/send", {
           method: "POST",
@@ -2650,55 +1877,30 @@
           body: JSON.stringify({
             senderAcc: user.accountNumber,
             receiverAcc: currentChatAcc,
-            message: msgText,
-            autoDeleteTimer: window.currentAutoDeleteTimer,
-            scheduledFor: scheduledTime,
-            isScheduled: !!scheduledTime,
-            ...mediaData,
+            message: "រូបភាព 🖼️",
+            imageUrl: imgUrl,
           }),
         });
-        if (scheduledTime) {
-          document.getElementById("scheduledIconBtn").style.display = "block";
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "success",
-            title: "បានកំណត់ពេលផ្ញើសារជោគជ័យ!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        }
       };
 
-      async function sendMessage(scheduledTime = null) {
+      async function sendMessage() {
         const input = document.getElementById("msgInput");
         const text = input.value.trim();
-
-        if (window.pendingMediaData) {
-          const mData = { ...window.pendingMediaData };
-          const mText = text ? text : mData.msgText;
-          delete mData.msgText;
-          window.pendingMediaData = null;
-          document.getElementById("replyPreviewBar").classList.remove("show");
-          document.getElementById("replyPreviewIcon").className =
-            "fa-solid fa-reply";
-          window.sendMediaMessage(mText, mData, scheduledTime);
-          input.value = "";
-          toggleSendIcon();
-          return;
-        }
 
         if (window.editingMsgId) {
           if (!text) return;
           const newText = text;
           const editId = window.editingMsgId;
           window.cancelReply();
+
           const msgWrap = document.getElementById(`msg-${editId}`);
           if (msgWrap) {
             msgWrap.dataset.isEdited = "true";
             msgWrap.dataset.editedAt = Date.now();
+
             const textNode = msgWrap.querySelector(".msg-text-content");
             if (textNode) textNode.innerHTML = newText;
+
             const timeWrap = msgWrap.querySelector(".msg-time-wrapper");
             if (timeWrap && !timeWrap.querySelector(".edited-tag")) {
               timeWrap.insertAdjacentHTML(
@@ -2707,6 +1909,7 @@
               );
             }
           }
+
           fetch("/api/chat/edit-msg", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2720,18 +1923,19 @@
         }
 
         if (!text && !window.pendingForwardText) return;
+
         const replyIdToSend = replyingToMsgId;
         const replyTextToSend = replyingToMsgText;
         const replyNameToSend = replyingToMsgName;
+
         const forwardTextToSend = window.pendingForwardText;
         const forwardFromToSend = window.pendingForwardFrom;
         const forwardFromAccToSend = window.pendingForwardFromAcc;
 
         input.value = "";
-        toggleSendIcon();
         window.cancelReply();
 
-        const tempG = document.getElementById("bot-welcome-msg");
+        const tempG = document.getElementById("temp-greeting");
         if (tempG) tempG.remove();
         botGreetingShown = true;
 
@@ -2741,26 +1945,28 @@
           minute: "2-digit",
           hour12: true,
         });
-        const fullTimeStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}, ${displayTime}`;
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        const fullTimeStr = `${day}/${month}/${year}, ${displayTime}`;
 
         if (forwardTextToSend) {
           const fwdFakeId =
             "MSG-FWD-" + Date.now() + Math.floor(Math.random() * 1000);
-          if (!scheduledTime)
-            appendMsg(
-              fwdFakeId,
-              forwardTextToSend,
-              "sent",
-              displayTime,
-              user.accountNumber,
-              {
-                isRead: false,
-                forwardedFrom: forwardFromToSend,
-                forwardedFromAcc: forwardFromAccToSend,
-                autoDeleteTimer: window.currentAutoDeleteTimer,
-              },
-              fullTimeStr,
-            );
+          appendMsg(
+            fwdFakeId,
+            forwardTextToSend,
+            "sent",
+            displayTime,
+            user.accountNumber,
+            {
+              isRead: false,
+              forwardedFrom: forwardFromToSend,
+              forwardedFromAcc: forwardFromAccToSend,
+            },
+            fullTimeStr,
+          );
+
           await fetch("/api/chat/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2770,31 +1976,28 @@
               message: forwardTextToSend,
               forwardedFrom: forwardFromToSend,
               forwardedFromAcc: forwardFromAccToSend,
-              autoDeleteTimer: window.currentAutoDeleteTimer,
-              scheduledFor: scheduledTime,
-              isScheduled: !!scheduledTime,
             }),
           });
         }
+
         if (text) {
           const txtFakeId =
             "MSG-TXT-" + Date.now() + Math.floor(Math.random() * 1000);
-          if (!scheduledTime)
-            appendMsg(
-              txtFakeId,
-              text,
-              "sent",
-              displayTime,
-              user.accountNumber,
-              {
-                replyToId: replyIdToSend,
-                replyToText: replyTextToSend,
-                replyToName: replyNameToSend,
-                isRead: false,
-                autoDeleteTimer: window.currentAutoDeleteTimer,
-              },
-              fullTimeStr,
-            );
+          appendMsg(
+            txtFakeId,
+            text,
+            "sent",
+            displayTime,
+            user.accountNumber,
+            {
+              replyToId: replyIdToSend,
+              replyToText: replyTextToSend,
+              replyToName: replyNameToSend,
+              isRead: false,
+            },
+            fullTimeStr,
+          );
+
           await fetch("/api/chat/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2803,27 +2006,10 @@
               receiverAcc: currentChatAcc,
               message: text,
               replyToId: replyIdToSend,
-              autoDeleteTimer: window.currentAutoDeleteTimer,
-              scheduledFor: scheduledTime,
-              isScheduled: !!scheduledTime,
             }),
           });
         }
 
-        if (scheduledTime) {
-          document.getElementById("scheduledIconBtn").style.display = "block";
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "success",
-            title: "បានកំណត់ពេលផ្ញើសារជោគជ័យ!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          return;
-        }
-
-        // 🤖 មុខងារ Bot Auto-Reply
         if (currentChatAcc === "ADMIN" && supportMode === "bot") {
           const body = document.getElementById("convoBody");
           const typingId = "typing-" + Date.now();
@@ -2850,14 +2036,9 @@
             } else if (lowerText.match(/សួស្តី|hello|hi|សួរស្ដី/)) {
               reply =
                 "សួស្តី! ខ្ញុំគឺ U-PAY Smart Bot 🤖។ តើថ្ងៃនេះលោកអ្នកមានអ្វីឱ្យខ្ញុំជួយ?";
-            } else if (lowerText.match(/របៀបវេរលុយ|វេរលុយ/)) {
-              reply =
-                "ដើម្បីវេរលុយ សូមចូលទៅទំព័រដើម រួចចុចប៊ូតុង 'Transfer' បន្ទាប់មកវាយលេខគណនី និងចំនួនប្រាក់ រួចបញ្ចូលលេខ PIN ជាការស្រេច។";
-            } else if (lowerText.match(/របៀបស្កេន|ស្កេន/)) {
-              reply =
-                "ដើម្បីស្កេន សូមចុចប៊ូតុង 'Scan' នៅខាងក្រោមអេក្រង់ រួចដាក់កាមេរ៉ាទៅកាន់ QR Code។";
             } else {
-              reply = `សុំទោស ខ្ញុំកំពុងរៀនសូត្រនៅឡើយ 🤖។ បើបងចង់ជជែកជាមួយបុគ្គលិកផ្ទាល់ សូមចុចប៊ូតុងខាងក្រោម ឬវាយពាក្យ <b>'Human'</b>។<br><br><button onclick="window.requestHumanAgent()" class="bot-human-btn" style="margin-top: 5px;"><i class="fa-solid fa-headset" style="margin-right: 8px;"></i> ភ្ជាប់ទៅភ្នាក់ងារ (Human)</button>`;
+              reply =
+                "សុំទោស ខ្ញុំកំពុងរៀនសូត្រនៅឡើយ 🤖។ បើបងចង់សួរលម្អិត សូមវាយពាក្យ <b>'Human'</b>។";
             }
 
             await fetch("/api/chat/send", {
@@ -2882,8 +2063,9 @@
       // ==========================================
       let selectedMsgId = null;
       let selectedMsgSender = null;
-      let selectedMsgText = null;
+      let selectedMsgText = "";
       let clonedMsgEl = null;
+
       function openMessageMenu(
         event,
         msgElement,
@@ -2899,6 +2081,7 @@
         selectedMsgText = text;
         window.selectedMsgForwardedFrom = forwardedFrom;
         window.selectedMsgForwardedFromAcc = forwardedFromAcc;
+
         renderReactionPill();
         const overlay = document.getElementById("msgOverlay");
         const reactionPill = document.getElementById("reactionPill");
@@ -2910,13 +2093,18 @@
         const pinText = isPinned ? "ដោះខ្ទាស់ (Unpin)" : "ខ្ទាស់សារ (Pin)";
 
         let editBtn =
-          isMine &&
-          text !== "រូបភាព 🖼️" &&
-          text !== "សំឡេង 🎤" &&
-          text !== "ឯកសារ 📄"
+          isMine && text !== "រូបភាព 🖼️"
             ? `<div class="menu-item kh-text" onclick="window.initEdit()"><i class="fa-solid fa-pen"></i> កែប្រែ (Edit)</div>`
             : "";
-        contextMenu.innerHTML = `<div class="menu-item kh-text" onclick="window.initReply()"><i class="fa-solid fa-reply"></i> ឆ្លើយតប (Reply)</div>${editBtn}<div class="menu-item kh-text" onclick="window.copyMessageText()"><i class="fa-regular fa-copy"></i> ចម្លង (Copy)</div><div class="menu-item kh-text" onclick="window.showInlinePinMenu(${isMine}, '${partnerName}', ${isPinned})"><i class="fa-solid fa-thumbtack"></i> ${pinText}</div><div class="menu-item kh-text" onclick="window.openForwardModal()"><i class="fa-solid fa-share"></i> បញ្ជូនបន្ត (Forward)</div><div class="menu-item menu-item-danger kh-text" onclick="window.showInlineDeleteMenu(${isMine}, '${partnerName}')"><i class="fa-regular fa-trash-can"></i> លុប (Delete)</div>`;
+
+        contextMenu.innerHTML = `
+          <div class="menu-item kh-text" onclick="window.initReply()"><i class="fa-solid fa-reply"></i> ឆ្លើយតប (Reply)</div>
+          ${editBtn}
+          <div class="menu-item kh-text" onclick="window.copyMessageText()"><i class="fa-regular fa-copy"></i> ចម្លង (Copy)</div>
+          <div class="menu-item kh-text" onclick="window.showInlinePinMenu(${isMine}, '${partnerName}', ${isPinned})"><i class="fa-solid fa-thumbtack"></i> ${pinText}</div>
+          <div class="menu-item kh-text" onclick="window.openForwardModal()"><i class="fa-solid fa-share"></i> បញ្ជូនបន្ត (Forward)</div>
+          <div class="menu-item menu-item-danger kh-text" onclick="window.showInlineDeleteMenu(${isMine}, '${partnerName}')"><i class="fa-regular fa-trash-can"></i> លុប (Delete)</div>
+        `;
 
         const rect = msgElement.getBoundingClientRect();
         if (clonedMsgEl) clonedMsgEl.remove();
@@ -2928,6 +2116,7 @@
         clonedMsgEl.style.height = rect.height + "px";
         clonedMsgEl.style.margin = "0";
         clonedMsgEl.style.transform = "scale(1)";
+
         overlay.appendChild(clonedMsgEl);
         overlay.classList.add("active");
 
@@ -2942,6 +2131,7 @@
           reactionPill.style.left = rect.left + "px";
           reactionPill.style.right = "auto";
         }
+
         let menuTop = rect.bottom + 10;
         if (menuTop + 280 > window.innerHeight) menuTop = rect.top - 290;
         contextMenu.style.top = menuTop + "px";
@@ -2954,12 +2144,14 @@
           contextMenu.style.right = "auto";
           contextMenu.style.transformOrigin = "top left";
         }
+
         setTimeout(() => {
           clonedMsgEl.style.transform = "scale(1.03)";
           reactionPill.style.transform = "scale(1)";
           contextMenu.style.transform = "scale(1)";
         }, 10);
       }
+
       function closeMessageMenu() {
         const overlay = document.getElementById("msgOverlay");
         const reactionPill = document.getElementById("reactionPill");
@@ -2977,6 +2169,7 @@
           }, 200);
         }, 50);
       }
+
       window.copyMessageText = function () {
         navigator.clipboard.writeText(selectedMsgText);
         closeMessageMenu();
@@ -2990,6 +2183,7 @@
           customClass: { popup: "premium-swal" },
         });
       };
+
       window.showInlineDeleteMenu = function (isMine, partnerName) {
         const contextMenu = document.getElementById("contextMenu");
         event.stopPropagation();
@@ -2999,6 +2193,7 @@
         html += `<div class="menu-item menu-item-danger kh-text" onclick="window.executeDeleteMsg('${selectedMsgId}', 'me'); closeMessageMenu();">លុបសម្រាប់តែខ្ញុំ</div>`;
         contextMenu.innerHTML = html;
       };
+
       window.showInlinePinMenu = function (isMine, partnerName, isPinned) {
         const contextMenu = document.getElementById("contextMenu");
         event.stopPropagation();
@@ -3008,6 +2203,7 @@
         html += `<div class="menu-item kh-text" onclick="window.executePinMsg(); closeMessageMenu();" style="color: #0ea5e9;">${actionTxt}សម្រាប់តែខ្ញុំ</div>`;
         contextMenu.innerHTML = html;
       };
+
       window.executeDeleteMsg = async function (msgId, type) {
         const msgEl = document.getElementById(`msg-${msgId}`);
         if (msgEl) msgEl.classList.add("msg-deleted");
@@ -3027,6 +2223,7 @@
           fetchMessages();
         }, 350);
       };
+
       window.executePinMsg = async function () {
         window.preventAutoScroll =
           document.getElementById("convoBody").scrollTop;
@@ -3040,20 +2237,17 @@
       };
 
       // ==========================================
-      // 🔥 ៦. UI ACTIONS: VIEWERS, REPLY, FORWARD
+      // 🔥 ៦. UI ACTIONS: REPLY, PIN, FORWARD, EDIT
       // ==========================================
       window.handlePreviewIconClick = function () {
-        if (window.pendingMediaData) {
-          window.pendingMediaData = null;
-          document.getElementById("replyPreviewBar").classList.remove("show");
-          toggleSendIcon();
-        } else if (window.pendingForwardText) {
+        if (window.pendingForwardText) {
           selectedMsgText = window.pendingForwardText;
           window.openForwardModal();
         } else if (replyingToMsgId) {
           scrollToMsg(replyingToMsgId);
         }
       };
+
       window.openImageViewer = function (url) {
         const viewer = document.getElementById("imageViewer");
         const img = document.getElementById("viewerImg");
@@ -3064,6 +2258,7 @@
           img.style.transform = "scale(1)";
         }, 10);
       };
+
       window.closeImageViewer = function () {
         const viewer = document.getElementById("imageViewer");
         const img = document.getElementById("viewerImg");
@@ -3074,29 +2269,7 @@
           img.src = "";
         }, 200);
       };
-      window.openDocViewer = function (url, fileName) {
-        const ext = fileName ? fileName.split(".").pop().toLowerCase() : "";
-        if (ext === "pdf") {
-          const viewer = document.getElementById("docViewer");
-          document.getElementById("docViewerTitle").innerText =
-            fileName || "PDF Document";
-          document.getElementById("viewerIframe").src = url;
-          viewer.style.display = "flex";
-          setTimeout(() => {
-            viewer.style.opacity = "1";
-          }, 10);
-        } else {
-          window.open(url, "_blank");
-        }
-      };
-      window.closeDocViewer = function () {
-        const viewer = document.getElementById("docViewer");
-        viewer.style.opacity = "0";
-        setTimeout(() => {
-          viewer.style.display = "none";
-          document.getElementById("viewerIframe").src = "";
-        }, 200);
-      };
+
       window.initEdit = function () {
         closeMessageMenu();
         window.cancelReply();
@@ -3115,8 +2288,8 @@
         const input = document.getElementById("msgInput");
         input.value = selectedMsgText;
         input.focus();
-        toggleSendIcon();
       };
+
       window.initReply = function () {
         closeMessageMenu();
         replyingToMsgId = selectedMsgId;
@@ -3134,8 +2307,6 @@
           replyingToMsgName;
         document.getElementById("replyPreviewText").innerText =
           replyingToMsgText;
-        document.getElementById("replyPreviewIcon").className =
-          "fa-solid fa-reply";
         const previewBar = document.getElementById("replyPreviewBar");
         const icon = previewBar.querySelector("i:not(.pinned-close)");
         if (icon) {
@@ -3146,8 +2317,8 @@
         }
         previewBar.classList.add("show");
         document.getElementById("msgInput").focus();
-        toggleSendIcon();
       };
+
       window.cancelReply = function () {
         replyingToMsgId = null;
         replyingToMsgText = null;
@@ -3156,15 +2327,12 @@
         window.pendingForwardFrom = null;
         window.pendingForwardFromAcc = null;
         window.editingMsgId = null;
-        window.pendingMediaData = null;
-        document.getElementById("replyPreviewIcon").className =
-          "fa-solid fa-reply";
         const previewBar = document.getElementById("replyPreviewBar");
         if (previewBar) previewBar.classList.remove("show");
         document.getElementById("msgInput").value = "";
-        toggleSendIcon();
       };
 
+      // --- PIN BANNER ---
       let activePinnedMsgs = [];
       let currentPinIndex = 0;
       window.showPinnedBanner = function (pinnedMsgs) {
@@ -3201,6 +2369,7 @@
         document.getElementById("pinnedBanner").classList.remove("show");
       };
 
+      // --- FORWARD MODAL ---
       let forwardContacts = [];
       window.openForwardModal = async function () {
         let originalSenderName =
@@ -3242,6 +2411,7 @@
           window.renderForwardList(forwardContacts);
         }
       };
+
       window.closeForwardModal = function () {
         document.getElementById("forwardModal").classList.remove("show");
         setTimeout(
@@ -3251,6 +2421,7 @@
           300,
         );
       };
+
       window.renderForwardList = function (list) {
         const container = document.getElementById("forwardContactList");
         container.innerHTML = "";
@@ -3265,6 +2436,7 @@
           container.innerHTML += `<div class="fm-contact" onclick="window.executeForward('${c.accountNumber}', '${safeName}', '${c.profileImage || ""}')"><div class="chat-avatar" style="width:40px; height:40px; font-size:1.2rem; margin-right:15px; ${c.profileImage ? "background:transparent; border:none;" : ""}">${avatarHtml}</div><div class="kh-text" style="font-weight:600; color:var(--text-main, #1e293b);">${displayName}</div></div>`;
         });
       };
+
       window.filterForwardList = function () {
         const q = document.getElementById("forwardSearch").value.toLowerCase();
         const filtered = forwardContacts.filter((c) => {
@@ -3278,6 +2450,7 @@
         });
         window.renderForwardList(filtered);
       };
+
       window.executeForward = async function (
         targetAcc,
         targetName,
@@ -3299,8 +2472,8 @@
         }
         previewBar.classList.add("show");
         document.getElementById("msgInput").focus();
-        toggleSendIcon();
       };
+
       window.startChatFromForward = async function (accNum) {
         if (accNum === "ADMIN") {
           openChat("ADMIN", "U-PAY Support");
@@ -3350,6 +2523,7 @@
           return;
         const searchInput = document.getElementById("globalSearchInput");
         if (searchInput && searchInput.value.trim().length > 0) return;
+
         try {
           const res = await fetch("/api/chat/contacts", {
             method: "POST",
@@ -3393,6 +2567,7 @@
           }
         } catch (err) {}
       }
+
       async function startNewChat() {
         const { value: accNum } = await Swal.fire({
           html: `<style>#newChatAccInput::-webkit-outer-spin-button, #newChatAccInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } #newChatAccInput[type=number] { -moz-appearance: textfield; } .modern-swal-popup { border-radius: 28px !important; padding: 25px 20px 20px !important; max-width: 360px !important; } .modern-swal-actions { width: 100% !important; display: flex !important; gap: 12px; margin-top: 25px !important; } .btn-modern { flex: 1; margin: 0 !important; border-radius: 16px !important; padding: 14px 0 !important; font-family: 'Kantumruy Pro', sans-serif !important; font-weight: 600 !important; font-size: 1rem !important; cursor: pointer; border: none; transition: 0.2s; } .btn-modern:active { transform: scale(0.95); }</style><div style="text-align:center;"><div style="width: 65px; height: 65px; background: #ecfdf5; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 1px solid #d1fae5;"><i class="fa-solid fa-user-plus" style="font-size: 1.8rem; color: #10b981;"></i></div><h3 class="kh-text" style="margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--text-main, #1e293b);">ការសន្ទនាថ្មី</h3><p class="kh-text" style="margin: 6px 0 24px; font-size: 0.85rem; color: #64748b;">ស្វែងរកតាមរយៈលេខគណនី U-PAY</p><div style="position: relative; width: 100%; text-align: left;"><div style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #004d40; font-weight: bold; font-size: 1rem;">ID</div><input type="number" id="newChatAccInput" class="kh-text" placeholder="ឧ. 12345678" style="width: 100%; box-sizing: border-box; padding: 16px 15px 16px 45px; border-radius: 18px; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #1e293b; font-size: 1.05rem; outline: none; transition: all 0.2s ease-in-out; font-family: 'Inter', sans-serif;"></div></div>`,
@@ -3439,6 +2614,7 @@
             return inputVal;
           },
         });
+
         if (accNum) {
           if (accNum === user.accountNumber || accNum === user.accountNumberKHR)
             return Swal.fire({
@@ -3536,6 +2712,7 @@
             )
             .join("");
       }
+
       window.toggleEmojiPicker = function (event) {
         if (event) event.stopPropagation();
         const picker = document.getElementById("emojiPicker");
@@ -3547,12 +2724,12 @@
           setTimeout(() => picker.classList.add("show"), 10);
         }
       };
+
       window.addEmoji = function (emoji) {
         const input = document.getElementById("msgInput");
         input.value += emoji;
         input.focus();
         saveRecentEmoji(emoji);
-        toggleSendIcon();
       };
       window.sendReaction = function (emoji) {
         saveRecentEmoji(emoji);
@@ -3577,6 +2754,7 @@
           fetchMessages();
         } catch (e) {}
       };
+
       document.addEventListener("click", function (e) {
         const picker = document.getElementById("emojiPicker");
         const smileBtn = document.getElementById("smileIconBtn");
@@ -3613,6 +2791,7 @@
           executeSearch(keyword);
         }, 500);
       }
+
       async function executeSearch(keyword) {
         const list = document.getElementById("chatList");
         list.innerHTML = `<div style="text-align: center; padding: 40px; color: #94a3b8" class="kh-text">កំពុងស្វែងរក...</div>`;
@@ -3687,6 +2866,7 @@
           list.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444" class="kh-text">មានបញ្ហាពេលស្វែងរក!</div>`;
         }
       }
+
       window.openChatAndScroll = function (acc, name, avatar, msgId) {
         document.getElementById("globalSearchInput").value = "";
         document.getElementById("clearSearchBtn").style.display = "none";
@@ -3703,59 +2883,6 @@
           attempts++;
           if (attempts > 30) clearInterval(findMsgInterval);
         }, 100);
-      };
-
-      // ==========================================
-      // 🎧 CUSTOM AUDIO PLAYER LOGIC
-      // ==========================================
-      let currentAudio = null;
-      let currentAudioId = null;
-      window.formatAudioTime = function (seconds) {
-        if (!seconds || isNaN(seconds) || seconds === Infinity) return "0:00";
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60)
-          .toString()
-          .padStart(2, "0");
-        return `${m}:${s}`;
-      };
-      window.togglePlay = function (id) {
-        const audio = document.getElementById(`audio-${id}`);
-        const icon = document.getElementById(`icon-${id}`);
-        if (currentAudio && currentAudio !== audio) {
-          currentAudio.pause();
-          const oldIcon = document.getElementById(`icon-${currentAudioId}`);
-          if (oldIcon) oldIcon.className = "fa-solid fa-play";
-        }
-        if (audio.paused) {
-          audio.play();
-          icon.className = "fa-solid fa-pause";
-          currentAudio = audio;
-          currentAudioId = id;
-        } else {
-          audio.pause();
-          icon.className = "fa-solid fa-play";
-        }
-        audio.ontimeupdate = () => {
-          const slider = document.getElementById(`slider-${id}`);
-          const timeDisplay = document.getElementById(`time-${id}`);
-          if (audio.duration) {
-            slider.value = (audio.currentTime / audio.duration) * 100;
-            timeDisplay.innerText = window.formatAudioTime(audio.currentTime);
-          }
-        };
-        audio.onended = () => {
-          icon.className = "fa-solid fa-play";
-          document.getElementById(`slider-${id}`).value = 0;
-          document.getElementById(`time-${id}`).innerText =
-            window.formatAudioTime(audio.duration);
-        };
-      };
-      window.seekAudio = function (id) {
-        const audio = document.getElementById(`audio-${id}`);
-        const slider = document.getElementById(`slider-${id}`);
-        if (audio.duration) {
-          audio.currentTime = (slider.value / 100) * audio.duration;
-        }
       };
     </script>
   </body>

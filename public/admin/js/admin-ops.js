@@ -66,6 +66,22 @@ async function toggleCardLock(username, cardId, isCurrentlyLocked) {
   }
 }
 
+// => 🔴 PASTE កូដ normalizeUID នៅត្រង់នេះ 🔴 <=
+function normalizeUID(uid) {
+  if (!uid) return "";
+  uid = String(uid).trim().toUpperCase();
+  if (/^\d{10}$/.test(uid)) {
+    let hex = parseInt(uid, 10).toString(16).toUpperCase();
+    hex = hex.padStart(8, "0");
+    let byte1 = hex.substring(6, 8);
+    let byte2 = hex.substring(4, 6);
+    let byte3 = hex.substring(2, 4);
+    let byte4 = hex.substring(0, 2);
+    return byte1 + byte2 + byte3 + byte4;
+  }
+  return uid;
+}
+
 // ២. ស្វែងរកកាត (Search Filtering) - ថ្មី!
 function filterCards() {
   const searchInput = document
@@ -176,45 +192,113 @@ window.quickBindNFC = async function (username, cardId) {
 
   if (!confirm.isConfirmed) return;
 
-  // 🟢 ជំហានទី៤៖ ដំណើរការមុខងារស្កេន NFC ដដែល
-  if (!("NDEFReader" in window)) {
-    return Swal.fire(
-      "គ្មានមុខងារ NFC",
-      "ឧបករណ៍នេះមិនអាចស្កេនកាតបានទេ!",
-      "error",
-    );
-  }
+  // 🟢 ជំហានទី៤៖ ដំណើរការមុខងារស្កេន NFC (គាំទ្រទាំង Web NFC និង USB Scanner)
+  let isScanning = true;
+  let scanBuffer = "";
 
   Swal.fire({
     title: "📡 កំពុងរង់ចាំស្កេនកាត NFC...",
-    html: '<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #0ea5e9;"></i></div><p style="color: #64748b; font-family: \'Kantumruy Pro\';">សូមយកកាតមកផ្អឹបនឹងផ្នែកខាងក្រោយទូរស័ព្ទ ឬម៉ាស៊ីន POS</p>',
+    html: `
+      <div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #0ea5e9;"></i></div>
+      <p style="color: #64748b; font-family: 'Kantumruy Pro';">សូមយកកាតមកផ្អឹបនឹងផ្នែកខាងក្រោយទូរស័ព្ទ ឬម៉ាស៊ីន POS / USB Scanner</p>
+      <!-- 🔴 ប្រអប់លាក់មុខ សម្រាប់ចាប់សញ្ញា Hardware Keyboard របស់ USB Scanner -->
+      <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1; top: 0; left: 0;" autocomplete="off">
+    `,
     showConfirmButton: false,
+    showCancelButton: true,
+    cancelButtonText: "បោះបង់ (Cancel)",
+    cancelButtonColor: "#ef4444",
     allowOutsideClick: false,
     customClass: { popup: "premium-swal" },
+    didOpen: () => {
+      const hiddenInput = document.getElementById("hiddenUsbScannerInput");
+      if (hiddenInput) {
+        hiddenInput.focus();
+
+        hiddenInput.addEventListener("blur", () => {
+          if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
+        });
+
+        hiddenInput.addEventListener("keydown", function (e) {
+          e.preventDefault();
+
+          if (e.code === "Enter" || e.code === "NumpadEnter") {
+            if (scanBuffer.length >= 4) {
+              isScanning = false;
+              Swal.close();
+              // សម្រាប់ USB Scanner
+              processCardBinding(
+                username,
+                cardId,
+                currentCardPin,
+                normalizeUID(scanBuffer),
+              );
+            }
+            scanBuffer = "";
+          } else {
+            if (e.code.startsWith("Digit")) {
+              scanBuffer += e.code.replace("Digit", "");
+            } else if (e.code.startsWith("Numpad")) {
+              scanBuffer += e.code.replace("Numpad", "");
+            } else if (e.code.startsWith("Key")) {
+              scanBuffer += e.code.replace("Key", "");
+            }
+          }
+        });
+      }
+    },
+    didClose: () => {
+      isScanning = false;
+    },
   });
 
-  try {
-    const ndef = new NDEFReader();
-    await ndef.scan();
+  if ("NDEFReader" in window) {
+    const abortController = new AbortController();
 
-    ndef.onreading = async (event) => {
-      let serialNumber = event.serialNumber;
-      if (serialNumber) {
-        serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
+    Swal.getPopup().addEventListener("cancel", () => {
+      abortController.abort();
+    });
+
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
+
+      ndef.onreading = async (event) => {
+        if (!isScanning) return;
+
+        isScanning = false;
+        abortController.abort();
+        Swal.close();
+
+        let serialNumber = event.serialNumber;
+        if (serialNumber) {
+          serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
+        }
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+        // សម្រាប់ Web NFC
+        processCardBinding(
+          username,
+          cardId,
+          currentCardPin,
+          normalizeUID(serialNumber), // ✅ ត្រូវហើយ! ប្រើអថេរដែលលុបសញ្ញា : ចេញរួចរាល់
+        );
+      };
+
+      ndef.onreadingerror = () => {
+        if (isScanning) {
+          Swal.fire("បរាជ័យ", "មិនអាចអានកាតបានទេ សូមព្យាយាមម្តងទៀត។", "error");
+          isScanning = false;
+        }
+      };
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.warn(
+          "NFC Sensor error, fallback to USB scanner active.",
+          error,
+        );
       }
-
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
-      // 🟢 ជំហានទី៥៖ បញ្ជូនទៅ Backend ដោយប្រើ PIN ដើមរបស់អតិថិជន (មិនប៉ះពាល់លេខសម្ងាត់គាត់ទេ)
-      processCardBinding(username, cardId, currentCardPin, serialNumber);
-    };
-
-    ndef.onreadingerror = () => {
-      Swal.fire("បរាជ័យ", "មិនអាចអានកាតបានទេ សូមព្យាយាមម្តងទៀត។", "error");
-    };
-  } catch (error) {
-    console.error("NFC Scan Error:", error);
-    Swal.fire("កំហុស", "មិនអាចបើកមុខងារ NFC របស់ម៉ាស៊ីនបានទេ!", "error");
+    }
   }
 };
 

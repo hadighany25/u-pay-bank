@@ -27,7 +27,7 @@ async function loadAdminList() {
         return;
       }
 
-      // 🔄 កែសម្រួលក្បាលតារាង HTML (ធានាថា Header ក្នុង HTML ត្រូវនឹងលំដាប់នេះដែរ៖ Name | Role | ម៉ោងធ្វើការ | Status | Action)
+      // 🔄 កែសម្រួលក្បាលតារាង HTML
       tbody.innerHTML = globalAdminsData
         .map((a) => {
           let displayRole =
@@ -35,7 +35,6 @@ async function loadAdminList() {
               ? a.permissions.customRoleName
               : a.role || "support_agent";
 
-          // កំណត់ស្ថានភាព Status ត្រឹមត្រូវ (Default គឺ active ប្រសិនបើអត់ទាន់មាន Field)
           const isActive = a.isActive !== false;
 
           return `
@@ -60,7 +59,7 @@ async function loadAdminList() {
               <!-- 3. ម៉ោងធ្វើការ -->
               <td>${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
 
-              <!-- 4. STATUS & TOGGLE SWITCH (ជំនួសថ្ងៃបង្កើត) -->
+              <!-- 4. STATUS & TOGGLE SWITCH -->
               <td>
                 <label style="position: relative; display: inline-block; width: 46px; height: 24px; cursor: pointer;">
                   <input type="checkbox" ${isActive ? "checked" : ""} 
@@ -129,22 +128,18 @@ function toggleCustomPermissions(role) {
 
 // 🟢 មុខងារបង្ហាញ Wizard តាមទំព័រ
 function showAdminStep(step) {
-  // លាក់ទំព័រចាស់
   document
     .querySelectorAll(".wizard-content")
     .forEach((el) => el.classList.remove("active"));
   document.querySelectorAll(".wizard-step-indicator").forEach((el) => {
     el.classList.remove("active");
-    // បើជំហានដែលឆ្លងកាត់ហើយ អោយវាចេញសញ្ញា Completed (បៃតង)
     if (parseInt(el.id.split("-")[2]) < step) el.classList.add("completed");
     else el.classList.remove("completed");
   });
 
-  // បង្ហាញទំព័រថ្មី
   document.getElementById(`wizard-step-${step}`).classList.add("active");
   document.getElementById(`ind-step-${step}`).classList.add("active");
 
-  // រៀបចំប៊ូតុងខាងក្រោម
   document.getElementById("btnWizBack").style.display =
     step === 1 ? "none" : "block";
   document.getElementById("btnWizCancel").style.display =
@@ -153,7 +148,7 @@ function showAdminStep(step) {
   if (step === TOTAL_STEPS) {
     document.getElementById("btnWizNext").style.display = "none";
     document.getElementById("btnWizSave").style.display = "flex";
-    generateWizardSummary(); // ទាញទិន្នន័យមក Review ផ្ទាំងទី៤
+    generateWizardSummary();
   } else {
     document.getElementById("btnWizNext").style.display = "block";
     document.getElementById("btnWizNext").innerHTML =
@@ -165,7 +160,6 @@ function showAdminStep(step) {
 }
 
 function changeAdminStep(dir) {
-  // ការពារការចុច Next បើមិនទាន់បំពេញប្រអប់សំខាន់ៗនៅផ្ទាំងទី ១
   if (dir === 1 && currentAdminStep === 1) {
     const usr = document.getElementById("manageAdminUser").value.trim();
     const fn = document.getElementById("adminFullName").value.trim();
@@ -218,10 +212,8 @@ function openAdminModal(id = "") {
       document.getElementById("permWorkEnd").value =
         admin.permissions?.workEnd || "17:00";
 
-      // ហៅមុខងាររៀបចំ UI សម្រាប់ NFC
       renderNfcUiBox(admin.nfcUid || "");
 
-      // Menus & Actions
       const m = admin.permissions?.menus || {};
       document.getElementById("p_users").checked = m.users ?? true;
       document.getElementById("p_merchant").checked = m.merchant ?? false;
@@ -249,7 +241,6 @@ function openAdminModal(id = "") {
     }
     document.getElementById("adminModalTitle").innerText = "កែប្រែគណនីបុគ្គលិក";
   } else {
-    // បង្កើតថ្មី Clear ទិន្នន័យ
     document.getElementById("staffId").value = generateAutoStaffId();
     document.getElementById("manageAdminUser").value = "";
     document.getElementById("adminFullName").value = "";
@@ -263,7 +254,6 @@ function openAdminModal(id = "") {
     document.getElementById("permWorkStart").value = "08:00";
     document.getElementById("permWorkEnd").value = "17:00";
 
-    // ហៅមុខងាររៀបចំ UI សម្រាប់ NFC
     renderNfcUiBox("");
 
     document.getElementById("p_users").checked = true;
@@ -320,11 +310,10 @@ function generateWizardSummary() {
     : `<span style="color:#ef4444;">🔴 Not Linked</span>`;
 }
 
-// 🟢 មុខងារចុច Enter លោតអូតូ (Auto Focus Next Input)
+// 🟢 មុខងារចុច Enter លោតអូតូ
 document.addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
     const modal = document.getElementById("adminAccModal");
-    // បើ Modal កំពុងបើកទើបដំណើរការមុខងារនេះ
     if (window.getComputedStyle(modal).display !== "none") {
       const activeStep = document.querySelector(".wizard-content.active");
       if (!activeStep) return;
@@ -335,11 +324,10 @@ document.addEventListener("keydown", function (e) {
       const currentIndex = inputs.indexOf(document.activeElement);
 
       if (currentIndex > -1) {
-        e.preventDefault(); // កុំអោយ Form Submit ផ្តេសផ្តាស
+        e.preventDefault();
         if (currentIndex < inputs.length - 1) {
-          inputs[currentIndex + 1].focus(); // លោតទៅ Input បន្ទាប់
+          inputs[currentIndex + 1].focus();
         } else {
-          // បើដល់ Input ចុងក្រោយនៃ Step ហ្នឹងហើយ គឺចុចប៊ូតុង Next តែម្តង
           if (currentAdminStep < TOTAL_STEPS)
             document.getElementById("btnWizNext").click();
           else document.getElementById("btnWizSave").click();
@@ -349,11 +337,27 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+// => 🔴 PASTE កូដ normalizeUID នៅត្រង់នេះ 🔴 <=
+function normalizeUID(uid) {
+  if (!uid) return "";
+  uid = String(uid).trim().toUpperCase();
+  if (/^\d{10}$/.test(uid)) {
+    let hex = parseInt(uid, 10).toString(16).toUpperCase();
+    hex = hex.padStart(8, "0");
+    let byte1 = hex.substring(6, 8);
+    let byte2 = hex.substring(4, 6);
+    let byte3 = hex.substring(2, 4);
+    let byte4 = hex.substring(0, 2);
+    return byte1 + byte2 + byte3 + byte4;
+  }
+  return uid;
+}
+
 // ========================================================================
 // 📡 NFC SCANNING & MANAGEMENT
 // ========================================================================
 
-// 🟢 មុខងារសម្រាប់ Update ផ្ទាំង UI ប៊ូតុង NFC (កែប្រែ Font និង ពណ៌ឱ្យ Premium)
+// 🟢 មុខងារសម្រាប់ Update ផ្ទាំង UI ប៊ូតុង NFC
 function renderNfcUiBox(uid) {
   const box = document.getElementById("nfcStatusBox");
   const btnContainer = document.getElementById("nfcActionBtnContainer");
@@ -362,7 +366,6 @@ function renderNfcUiBox(uid) {
   if (uid && uid.trim() !== "") {
     adminNfcInput.value = uid;
 
-    // UI ពេលភ្ជាប់កាតជោគជ័យ
     box.style.border = "1px solid rgba(16, 185, 129, 0.4)";
     box.style.background = "rgba(16, 185, 129, 0.05)";
     box.innerHTML = `
@@ -375,7 +378,6 @@ function renderNfcUiBox(uid) {
       </div>
     `;
 
-    // ប៊ូតុងផ្តាច់កាត
     if (btnContainer) {
       btnContainer.innerHTML = `
         <button class="btn-primary" onclick="removeAdminNfc()" style="background: #ef4444; width: 100%; justify-content: center; padding: 14px; border-radius: 12px; font-family: 'Kantumruy Pro', sans-serif; font-size: 1.05rem; font-weight: 600; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); transition: all 0.3s ease;">
@@ -386,7 +388,6 @@ function renderNfcUiBox(uid) {
   } else {
     adminNfcInput.value = "";
 
-    // UI ពេលមិនទាន់មានកាត
     box.style.border = "1px dashed var(--border)";
     box.style.background = "transparent";
     box.innerHTML = `
@@ -395,7 +396,6 @@ function renderNfcUiBox(uid) {
       </div>
     `;
 
-    // ប៊ូតុងចាប់ផ្តើមស្កេន
     if (btnContainer) {
       btnContainer.innerHTML = `
         <button class="btn-primary" onclick="scanAdminNfc()" style="background: #3b82f6; width: 100%; justify-content: center; padding: 14px; border-radius: 12px; font-family: 'Kantumruy Pro', sans-serif; font-size: 1.05rem; font-weight: 600; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); transition: all 0.3s ease;">
@@ -419,7 +419,7 @@ function removeAdminNfc() {
     customClass: { popup: "premium-swal" },
   }).then((result) => {
     if (result.isConfirmed) {
-      renderNfcUiBox(""); // ដកតម្លៃចេញ និងប្តូរទៅប៊ូតុងពណ៌ខៀវវិញ
+      renderNfcUiBox("");
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -432,16 +432,62 @@ function removeAdminNfc() {
   });
 }
 
-// 🟢 មុខងារ Scan NFC បុគ្គលិក (ឆែកកាតជាន់គ្នាភ្លាមៗ)
-async function scanAdminNfc() {
-  if (!("NDEFReader" in window))
-    return Swal.fire(
-      "គ្មានមុខងារ NFC",
-      "ឧបករណ៍នេះមិនអាចស្កេនកាតបានទេ!",
-      "error",
-    );
+// 🟢 មុខងារជំនួយបញ្ជូនទិន្នន័យស្កេនរួចទៅកាន់ Server
+async function processScannedUID(serialNumber) {
+  // លុបសញ្ញា : និងដកឃ្លាចេញ ដើម្បីឱ្យកូដកាតស្អាត
+  const cleanSerialNumber = serialNumber
+    .replaceAll(":", "")
+    .replace(/\s/g, "")
+    .toUpperCase();
 
-  const abortController = new AbortController();
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+  Swal.fire({
+    title: "កំពុងផ្ទៀងផ្ទាត់កាត...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    const currentAdminId = document.getElementById("manageAdminId").value;
+    const res = await fetch("/api/admin/check-nfc", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        nfcUid: cleanSerialNumber,
+        adminId: currentAdminId,
+      }),
+    });
+    const data = await res.json();
+
+    if (!data.available) {
+      Swal.fire({
+        title: "បដិសេធ!",
+        text: `កាតនេះត្រូវបានភ្ជាប់ជាមួយគណនី "@${data.owner}" រួចហើយ! សូមផ្តាច់វាពីគណនីនោះសិន ឬប្រើកាតផ្សេង។`,
+        icon: "error",
+        confirmButtonColor: "#ef4444",
+      });
+      return;
+    }
+
+    renderNfcUiBox(cleanSerialNumber);
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "កាតត្រូវបានភ្ជាប់!",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+  } catch (e) {
+    Swal.fire("កំហុស", "មិនអាចផ្ទៀងផ្ទាត់កាតបានទេ (Server Error)!", "error");
+  }
+}
+
+// 🟢 មុខងារ Scan NFC គាំទ្រទាំង POS (Web NFC API) និង USB Scanner (ការពារបញ្ហាខុសភាសា Keyboard)
+async function scanAdminNfc() {
+  let isScanning = true;
+  let scanBuffer = ""; // បង្កើតអថេរទុកលេខកូដកាតដោយផ្ទាល់
 
   Swal.fire({
     title: "កំពុងស្វែងរកកាត...",
@@ -449,7 +495,11 @@ async function scanAdminNfc() {
       <div class="nfc-radar-box">
         <i class="fa-solid fa-wifi fa-fade" style="font-size: 3.5rem; color: #3b82f6;"></i>
       </div>
-      <p style="color: #64748b; font-size: 0.95rem; font-family: 'Kantumruy Pro';">សូមយកកាត NFC របស់បុគ្គលិកមកផ្អឹបនឹងផ្នែកខាងក្រោយទូរស័ព្ទ ឬម៉ាស៊ីន POS</p>
+      <p style="color: #64748b; font-size: 0.95rem; font-family: 'Kantumruy Pro';">
+        សូមផ្អឹបកាត NFC លើទូរស័ព្ទ ម៉ាស៊ីន POS ឬ <b>ម៉ាស៊ីន USB Scanner</b>
+      </p>
+      <!-- 🔴 ប្រអប់លាក់មុខ សម្រាប់ចាប់សញ្ញា Hardware Keyboard -->
+      <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1; top: 0; left: 0;" autocomplete="off">
     `,
     showCancelButton: true,
     cancelButtonText: "បោះបង់ (Cancel)",
@@ -457,69 +507,74 @@ async function scanAdminNfc() {
     showConfirmButton: false,
     allowOutsideClick: false,
     customClass: { popup: "premium-swal" },
-  }).then((result) => {
-    if (result.isDismissed) abortController.abort();
+    didOpen: () => {
+      const hiddenInput = document.getElementById("hiddenUsbScannerInput");
+      if (hiddenInput) {
+        hiddenInput.focus();
+
+        hiddenInput.addEventListener("blur", () => {
+          if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
+        });
+
+        // 🔴 ប្រើ keydown និង e.code ដើម្បីចាប់យក Hardware Key មិនខ្វល់ពីភាសាខ្មែរឬអង់គ្លេស
+        hiddenInput.addEventListener("keydown", function (e) {
+          e.preventDefault(); // បិទមិនឱ្យវាយចេញជាអក្សរចូលប្រអប់ (ការពារការលោតអក្សរខ្មែរ)
+
+          if (e.code === "Enter" || e.code === "NumpadEnter") {
+            if (scanBuffer.length >= 4) {
+              isScanning = false;
+              Swal.close();
+              // សម្រាប់ USB Scanner
+              processScannedUID(normalizeUID(scanBuffer));
+            }
+            scanBuffer = ""; // Clear ទុកស្កេនម្តងទៀតបើ Error
+          } else {
+            // ទាញយកតែលេខ និងអក្សរអង់គ្លេសចេញពី e.code (ឧទាហរណ៍: "Digit1" ទៅជា "1", "KeyA" ទៅជា "A")
+            if (e.code.startsWith("Digit")) {
+              scanBuffer += e.code.replace("Digit", "");
+            } else if (e.code.startsWith("Numpad")) {
+              scanBuffer += e.code.replace("Numpad", "");
+            } else if (e.code.startsWith("Key")) {
+              scanBuffer += e.code.replace("Key", "");
+            }
+          }
+        });
+      }
+    },
+    didClose: () => {
+      isScanning = false;
+    },
   });
 
-  try {
-    const ndef = new NDEFReader();
-    await ndef.scan({ signal: abortController.signal });
+  // ដំណើរការ Web NFC (សម្រាប់ POS / Android) ស្របពេលគ្នា
+  if ("NDEFReader" in window) {
+    const abortController = new AbortController();
 
-    ndef.onreading = async (event) => {
-      let serialNumber = event.serialNumber.replaceAll(":", "").toUpperCase();
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    Swal.getPopup().addEventListener("cancel", () => {
+      abortController.abort();
+    });
 
-      // 🔴 ពេលស្កេនប៉ាច់ភ្លាម លោត Loading សិន ដើម្បីបាញ់ទៅសួរ Server
-      Swal.fire({
-        title: "កំពុងផ្ទៀងផ្ទាត់កាត...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-      });
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
 
-      try {
-        const currentAdminId = document.getElementById("manageAdminId").value;
-        const res = await fetch("/api/admin/check-nfc", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            nfcUid: serialNumber,
-            adminId: currentAdminId,
-          }),
-        });
-        const data = await res.json();
+      ndef.onreading = async (event) => {
+        if (!isScanning) return;
 
-        // 🔴 បើកាតហ្នឹងមានអ្នកប្រើហើយ បោះ Error ដេញចេញភ្លាម! មិនអោយភ្ជាប់ទេ
-        if (!data.available) {
-          Swal.fire({
-            title: "បដិសេធ!",
-            text: `កាតនេះត្រូវបានភ្ជាប់ជាមួយគណនី "@${data.owner}" រួចហើយ! សូមផ្តាច់វាពីគណនីនោះសិន ឬប្រើកាតផ្សេង។`,
-            icon: "error",
-            confirmButtonColor: "#ef4444",
-          });
-          return;
-        }
+        isScanning = false;
+        abortController.abort();
+        Swal.close();
 
-        // 🟢 បើកាតទំនេរ អាចភ្ជាប់បាន
-        renderNfcUiBox(serialNumber);
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "កាតត្រូវបានភ្ជាប់!",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      } catch (e) {
-        Swal.fire(
-          "កំហុស",
-          "មិនអាចផ្ទៀងផ្ទាត់កាតបានទេ (Server Error)!",
-          "error",
+        // សម្រាប់ Web NFC
+        processScannedUID(normalizeUID(event.serialNumber));
+      };
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.warn(
+          "NFC Sensor error, fallback to USB scanner active.",
+          error,
         );
       }
-    };
-  } catch (error) {
-    if (error.name !== "AbortError") {
-      Swal.fire("កំហុស", "មិនអាចបើកមុខងារ NFC បានទេ!", "error");
     }
   }
 }
@@ -629,7 +684,7 @@ async function deleteAdminAcc(id) {
   }
 }
 
-// 🟢 មុខងារបើក SweetAlert ឱ្យ Super Admin រိုက် Password ថ្មី (គ្មានការដាក់លក្ខខណ្ឌរញ៉េរញ៉ៃ)
+// 🟢 មុខងារបើក SweetAlert ឱ្យ Super Admin រိုက် Password ថ្មី
 async function promptResetAdminPassword(adminId, username) {
   const { value: newPassword } = await Swal.fire({
     title: `<span style="font-family: 'Kantumruy Pro', sans-serif;">Reset Password ជូន @${username}</span>`,
@@ -645,7 +700,6 @@ async function promptResetAdminPassword(adminId, username) {
     cancelButtonColor: "#64748b",
     customClass: { popup: "premium-swal" },
     inputValidator: (value) => {
-      // ត្រឹមតែឆែកមើលថាតើមានការវាយបញ្ចូលអក្សរអត់ (ទោះ១តតួអក្សរក៏បាន)
       if (!value || value.trim() === "") {
         return "សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី!";
       }
@@ -657,7 +711,7 @@ async function promptResetAdminPassword(adminId, username) {
   }
 }
 
-// 🟢 មុខងារបញ្ជូន Password ថ្មីទៅកាន់ API (រៀបចំ Dark/Light Mode ស្អាត)
+// 🟢 មុខងារបញ្ជូន Password ថ្មីទៅកាន់ API
 async function executeResetAdminPassword(adminId, newPassword) {
   try {
     Swal.fire({
@@ -701,7 +755,7 @@ async function executeResetAdminPassword(adminId, newPassword) {
   }
 }
 
-// 🟢 មុខងារបង្ហាញ UID ពេលចុចលើ icon Wi-Fi (គាំទ្រទាំង Dark & Light Mode មិនបារម្ភរឿងមើលអត់ឃើញ)
+// 🟢 មុខងារបង្ហាញ UID ពេលចុចលើ icon Wi-Fi
 function showNfcUid(uid) {
   Swal.fire({
     title:
@@ -740,7 +794,7 @@ async function toggleAdminStatusAccount(adminId) {
         showConfirmButton: false,
         timer: 2000,
       });
-      loadData(); // Reload ព័ត៌មានឡើងវិញ
+      loadData();
       loadAdminList();
     } else {
       Swal.fire({
@@ -749,7 +803,7 @@ async function toggleAdminStatusAccount(adminId) {
         icon: "error",
         customClass: { popup: "premium-swal" },
       });
-      loadAdminList(); // Revert UI វិញបើមាន Error
+      loadAdminList();
     }
   } catch (err) {
     Swal.fire({

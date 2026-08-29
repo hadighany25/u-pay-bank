@@ -1,10 +1,8 @@
-// controllers/communicationController.js
-
 const User = require("../models/User");
 const Chat = require("../models/Chat");
 const { getFormattedDate } = require("../services/helpers");
 
-// 🛡️ មុខងារបិទបាំងទិន្នន័យសម្ងាត់ (ការពារមិនឱ្យ AI ដឹងលេខកាត ឬ លេខទូរស័ព្ទ)
+// 🛡️ មុខងារបិទបាំងទិន្នន័យសម្ងាត់
 const maskSensitiveData = (text) => {
   if (!text) return text;
   let safeText = text.replace(/\b\d{6,}\b/g, "[លេខត្រូវបានលាក់]");
@@ -15,7 +13,7 @@ const maskSensitiveData = (text) => {
   return safeText;
 };
 
-// === ផ្នែក TICKET ===
+// === ផ្នែក TICKET & NOTIFICATIONS ===
 const createTicket = async (req, res) => {
   const { username, subject, description, priority } = req.body;
   try {
@@ -55,13 +53,10 @@ const createTicket = async (req, res) => {
   }
 };
 
-// === ផ្នែក NOTIFICATIONS & BROADCAST ===
 const getNotifications = async (req, res) => {
-  res.json({
-    hasNew: false,
-    count: 0,
-  });
+  res.json({ hasNew: false, count: 0 });
 };
+
 const readNotifications = async (req, res) => {
   const { username } = req.body;
   try {
@@ -122,7 +117,24 @@ const deleteBroadcast = async (req, res) => {
 
 // === ផ្នែក CHAT SYSTEM ===
 const sendChat = async (req, res) => {
-  const { senderAcc, receiverAcc, message, adminName } = req.body;
+  const {
+    senderAcc,
+    receiverAcc,
+    message,
+    adminName,
+    replyToId,
+    forwardedFrom,
+    forwardedFromAcc,
+    imageUrl,
+    audioUrl,
+    fileUrl,
+    fileName,
+    fileSize,
+    autoDeleteTimer,
+    isScheduled,
+    scheduledFor,
+  } = req.body;
+
   try {
     const getAcc = async (acc) => {
       if (acc === "ADMIN") return { accountNumber: "ADMIN" };
@@ -135,7 +147,6 @@ const sendChat = async (req, res) => {
     if (!sender || !receiver)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
 
-    // ១. បើ Admin ជាអ្នកផ្ញើ
     if (
       senderAcc === "ADMIN" &&
       message.includes("ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin")
@@ -145,16 +156,13 @@ const sendChat = async (req, res) => {
       });
       if (realUser) {
         realUser.needsSupport = false;
-        realUser.chatStatus = "resolved"; // 🟢 ដោះស្រាយរួចពេល Admin បិទ Chat
+        realUser.chatStatus = "resolved";
         await realUser.save();
       }
-    }
-    // ២. បើ User ជាអ្នកផ្ញើទៅកាន់ Admin
-    else if (senderAcc !== "ADMIN") {
+    } else if (senderAcc !== "ADMIN") {
       const realUser = await User.findOne({
         accountNumber: sender.accountNumber,
       });
-
       if (realUser) {
         if (
           !realUser.needsSupport &&
@@ -163,18 +171,16 @@ const sendChat = async (req, res) => {
         ) {
           realUser.needsSupport = true;
         }
-
-        // 🤖 --- ចាប់ផ្តើម AI SENTIMENT ANALYSIS (វិភាគអារម្មណ៍) ---
         if (receiverAcc === "ADMIN") {
           try {
             const apiKey = process.env.GROQ_API_KEY
               ? process.env.GROQ_API_KEY.trim().replace(/^["'](.+)["']$/, "$1")
               : "";
-
             if (apiKey) {
-              // 🛡️ បិទបាំងទិន្នន័យ មុនបញ្ជូនទៅ AI
-              const safeMessageForAI = maskSensitiveData(message);
-
+              const safeMessageForAI =
+                typeof maskSensitiveData === "function"
+                  ? maskSensitiveData(message)
+                  : message;
               const aiRes = await fetch(
                 "https://api.groq.com/openai/v1/chat/completions",
                 {
@@ -188,12 +194,7 @@ const sendChat = async (req, res) => {
                     messages: [
                       {
                         role: "system",
-                        content: `You are a sentiment analyzer for U-PAY bank. Read the message and reply with EXACTLY ONE WORD:
-                      - 'angry' (If user complains, urgent, angry. Keywords: "បាត់លុយ", "គាំង", "យឺត", "ខឹង", "អត់ដើរ", "លុយអត់ចូល", "កាត់លុយ", "ជួយផង")
-                      - 'happy' (If user is satisfied. Keywords: "អរគុណ", "ល្អ", "ok", "បានហើយ")
-                      - 'neutral' (Normal chat. Keywords: "សួស្តី", "សួរតិច")
-                      
-                      User Message: "${safeMessageForAI}"`,
+                        content: `You are a sentiment analyzer for U-PAY bank. Read the message and reply with EXACTLY ONE WORD: - 'angry' (Keywords: "បាត់លុយ", "គាំង", "យឺត", "ខឹង", "អត់ដើរ", "លុយអត់ចូល", "កាត់លុយ", "ជួយផង") - 'happy' (Keywords: "អរគុណ", "ល្អ", "ok", "បានហើយ") - 'neutral' User Message: "${safeMessageForAI}"`,
                       },
                     ],
                     temperature: 0.1,
@@ -201,16 +202,14 @@ const sendChat = async (req, res) => {
                   }),
                 },
               );
-
               const aiData = await aiRes.json();
               if (aiData.choices && aiData.choices.length > 0) {
                 let mood = aiData.choices[0].message.content
                   .trim()
                   .toLowerCase();
-
                 if (mood.includes("angry")) {
                   realUser.chatSentiment = "angry";
-                  realUser.chatStatus = "urgent"; // 🟢 បើខឹង ដាក់ Status ជាបន្ទាន់(Urgent) ស្វ័យប្រវត្តិ
+                  realUser.chatStatus = "urgent";
                 } else if (mood.includes("happy")) {
                   realUser.chatSentiment = "happy";
                   realUser.chatStatus = "pending";
@@ -224,26 +223,54 @@ const sendChat = async (req, res) => {
             console.error("AI Sentiment Error:", e);
           }
         }
-        // 🤖 --- បញ្ចប់ការវិភាគ ---
-
         await realUser.save();
       }
     }
 
-    // ត្រង់កន្លែងបង្កើត newMessage ក្នុង sendChat៖
+    const scheduledNum = scheduledFor ? Number(scheduledFor) : null;
+    const isSch = isScheduled === true || isScheduled === "true";
+
     const newMessage = new Chat({
       id: "MSG-" + Date.now(),
       senderAcc: sender.accountNumber || "ADMIN",
       receiverAcc: receiver.accountNumber || "ADMIN",
       message: message,
-      // 🟢 បើ senderAcc ជា ADMIN ត្រូវบังคับឱ្យវាប្រើ adminName ដែលផ្ញើមក (ពោលគឺ Nickname) បើគ្មានទើបប្រើ Support Agent
       adminName: senderAcc === "ADMIN" ? adminName || "Support Agent" : null,
-      time: getFormattedDate(),
+      time:
+        typeof getFormattedDate === "function"
+          ? getFormattedDate()
+          : new Date().toLocaleString(),
       timestamp: Date.now(),
       isRead: false,
+      replyToId: replyToId || null,
+      forwardedFrom: forwardedFrom || null,
+      forwardedFromAcc: forwardedFromAcc || null,
+      imageUrl: imageUrl || null,
+      audioUrl: audioUrl || null,
+      fileUrl: fileUrl || null,
+      fileName: fileName || null,
+      fileSize: fileSize || null,
+      autoDeleteTimer: autoDeleteTimer || 0,
+      expiresAt: null,
+      isScheduled: isSch,
+      scheduledFor: scheduledNum,
     });
+
     await newMessage.save();
     res.json({ success: true, message: newMessage });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+const togglePinMsg = async (req, res) => {
+  const { msgId } = req.body;
+  try {
+    const msg = await Chat.findOne({ id: msgId });
+    if (!msg) return res.json({ success: false, message: "រកមិនឃើញសារនេះទេ!" });
+    msg.isPinned = !msg.isPinned;
+    await msg.save();
+    res.json({ success: true, isPinned: msg.isPinned });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -257,13 +284,48 @@ const chatHistory = async (req, res) => {
         { senderAcc: user1Acc, receiverAcc: user2Acc },
         { senderAcc: user2Acc, receiverAcc: user1Acc },
       ],
+      isScheduled: { $ne: true },
     });
     history = history.filter((m) => !m.deletedBy.includes(user1Acc));
-    await Chat.updateMany(
-      { receiverAcc: user1Acc, senderAcc: user2Acc, isRead: false },
-      { $set: { isRead: true } },
+
+    const unreadMsgs = await Chat.find({
+      receiverAcc: user1Acc,
+      senderAcc: user2Acc,
+      isRead: false,
+    });
+
+    for (const msg of unreadMsgs) {
+      msg.isRead = true;
+      if (msg.autoDeleteTimer > 0 && !msg.expiresAt) {
+        msg.expiresAt = new Date(Date.now() + msg.autoDeleteTimer * 1000);
+      }
+      await msg.save();
+    }
+
+    let updatedHistory = await Chat.find({
+      $or: [
+        { senderAcc: user1Acc, receiverAcc: user2Acc },
+        { senderAcc: user2Acc, receiverAcc: user1Acc },
+      ],
+      isScheduled: { $ne: true },
+    });
+    updatedHistory = updatedHistory.filter(
+      (m) => !m.deletedBy.includes(user1Acc),
     );
-    res.json({ success: true, history: history });
+
+    // 🔥 ទាញយកចំនួនសារដែល Scheduled
+    const scheduledCount = await Chat.countDocuments({
+      senderAcc: user1Acc,
+      receiverAcc: user2Acc,
+      isScheduled: true,
+    });
+
+    // ផ្ញើ hasScheduled ទៅអោយ Frontend
+    res.json({
+      success: true,
+      history: updatedHistory,
+      hasScheduled: scheduledCount > 0,
+    });
   } catch (err) {
     res.status(500).json({ success: false, history: [] });
   }
@@ -274,6 +336,7 @@ const chatContacts = async (req, res) => {
   try {
     let chats = await Chat.find({
       $or: [{ senderAcc: myAcc }, { receiverAcc: myAcc }],
+      isScheduled: { $ne: true },
     });
     chats = chats.filter((c) => !c.deletedBy.includes(myAcc));
     const users = await User.find({});
@@ -298,7 +361,6 @@ const chatContacts = async (req, res) => {
           pImg = partnerInfo.profileImage;
           pStatus = partnerInfo.chatStatus || "pending";
           pSentiment = partnerInfo.chatSentiment || "neutral";
-
           if (myAcc === "ADMIN" && !partnerInfo.needsSupport)
             isValidToDisplay = false;
         }
@@ -408,17 +470,15 @@ const deleteConvo = async (req, res) => {
 };
 
 const forceStartChat = async (req, res) => {
-  const { receiverAcc, adminName } = req.body;
+  const { receiverAcc } = req.body;
   try {
     const user = await User.findOne({
       $or: [{ accountNumber: receiverAcc }, { accountNumberKHR: receiverAcc }],
     });
     if (!user)
       return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
-
     user.needsSupport = true;
     await user.save();
-
     res.json({
       success: true,
       message: "Chat បានត្រៀមរួចរាល់",
@@ -429,7 +489,6 @@ const forceStartChat = async (req, res) => {
   }
 };
 
-// 🟢 មុខងារសម្រាប់ Update Status ពេល Admin ចុចដូរនៅលើ Dashboard
 const updateChatStatus = async (req, res) => {
   const { userAcc, status } = req.body;
   try {
@@ -438,11 +497,131 @@ const updateChatStatus = async (req, res) => {
       user.chatStatus = status;
       await user.save();
       res.json({ success: true });
-    } else {
-      res.json({ success: false, message: "រកមិនឃើញគណនី!" });
-    }
+    } else res.json({ success: false, message: "រកមិនឃើញគណនី!" });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+};
+
+const toggleReaction = async (req, res) => {
+  const { msgId, emoji, userAcc } = req.body;
+  try {
+    const msg = await Chat.findOne({ id: msgId });
+    if (!msg) return res.json({ success: false, message: "រកមិនឃើញសារ!" });
+    const existingIdx = msg.reactions.findIndex(
+      (r) => r.userAcc === userAcc && r.emoji === emoji,
+    );
+    if (existingIdx > -1) msg.reactions.splice(existingIdx, 1);
+    else msg.reactions.push({ emoji, userAcc });
+    msg.markModified("reactions");
+    await msg.save();
+    res.json({ success: true, reactions: msg.reactions });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+const globalSearch = async (req, res) => {
+  const { myAcc, keyword } = req.body;
+  try {
+    if (!keyword || keyword.trim() === "")
+      return res.json({ success: true, contacts: [], messages: [] });
+    const regex = new RegExp(keyword, "i");
+    const history = await Chat.find({
+      $or: [{ senderAcc: myAcc }, { receiverAcc: myAcc }],
+    });
+    const chattedAccs = new Set();
+    history.forEach((msg) => {
+      if (msg.senderAcc !== myAcc && msg.senderAcc !== "ADMIN")
+        chattedAccs.add(msg.senderAcc);
+      if (msg.receiverAcc !== myAcc && msg.receiverAcc !== "ADMIN")
+        chattedAccs.add(msg.receiverAcc);
+    });
+    const contacts = await User.find({
+      accountNumber: { $in: Array.from(chattedAccs) },
+      $or: [
+        { fullName: regex },
+        { name: regex },
+        { username: regex },
+        { accountNumber: regex },
+      ],
+    }).limit(10);
+    const messages = await Chat.find({
+      $and: [
+        { $or: [{ senderAcc: myAcc }, { receiverAcc: myAcc }] },
+        { message: regex },
+        { deletedFor: { $ne: myAcc } },
+      ],
+    })
+      .sort({ timestamp: -1 })
+      .limit(20);
+    const formattedMessages = await Promise.all(
+      messages.map(async (msg) => {
+        let partnerAcc =
+          msg.senderAcc === myAcc ? msg.receiverAcc : msg.senderAcc;
+        let partnerName = "Unknown",
+          partnerAvatar = "";
+        if (partnerAcc === "ADMIN") partnerName = "U-PAY Support";
+        else {
+          const partner = await User.findOne({ accountNumber: partnerAcc });
+          if (partner) {
+            partnerName =
+              partner.fullName ||
+              partner.name ||
+              partner.username ||
+              partner.accountNumber;
+            partnerAvatar = partner.profileImage || "";
+          }
+        }
+        return {
+          id: msg.id,
+          partnerAcc,
+          partnerName,
+          partnerAvatar,
+          message: msg.message,
+          time: msg.time,
+          timestamp: msg.timestamp,
+        };
+      }),
+    );
+    res.json({
+      success: true,
+      contacts: contacts,
+      messages: formattedMessages,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+const editMsg = async (req, res) => {
+  const { msgId, newText, reqAcc } = req.body;
+  try {
+    const msg = await Chat.findOne({ id: msgId });
+    if (!msg) return res.json({ success: false, message: "រកមិនឃើញសារ!" });
+    if (msg.senderAcc !== reqAcc && reqAcc !== "ADMIN")
+      return res.json({ success: false, message: "គ្មានសិទ្ធិ!" });
+    msg.message = newText;
+    msg.isEdited = true;
+    msg.editedAt = Date.now();
+    await msg.save();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+const getScheduledMessages = async (req, res) => {
+  const { userAcc, partnerAcc } = req.body;
+  try {
+    const scheduledMsgs = await Chat.find({
+      senderAcc: userAcc,
+      receiverAcc: partnerAcc,
+      isScheduled: true,
+    }).sort({ scheduledFor: 1 });
+    res.json({ success: true, history: scheduledMsgs });
+  } catch (err) {
+    res.status(500).json({ success: false, history: [] });
   }
 };
 
@@ -460,4 +639,40 @@ module.exports = {
   deleteConvo,
   forceStartChat,
   updateChatStatus,
+  togglePinMsg,
+  toggleReaction,
+  globalSearch,
+  editMsg,
+  getScheduledMessages,
 };
+
+// =======================================================
+// 🔥 កម្មវិធីរត់ស្វ័យប្រវត្តិ សម្រាប់ Scheduled Message (ល្បឿន ២ វិនាទី)
+// =======================================================
+setInterval(async () => {
+  try {
+    const now = Date.now();
+    const dueMessages = await Chat.find({
+      isScheduled: true,
+      scheduledFor: { $lte: now, $ne: null },
+    });
+
+    for (let msg of dueMessages) {
+      msg.isScheduled = false; // ដោះសោរ
+      msg.timestamp = now;
+
+      const d = new Date(now);
+      const displayTime = d.toLocaleTimeString("en-US", {
+        timeZone: "Asia/Phnom_Penh",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      msg.time = displayTime;
+
+      await msg.save();
+    }
+  } catch (err) {
+    console.error("Error checking scheduled messages:", err);
+  }
+}, 2000);
