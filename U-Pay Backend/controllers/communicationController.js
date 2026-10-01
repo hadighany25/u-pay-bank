@@ -1,5 +1,7 @@
+// controllers/communicationController.js
 const User = require("../models/User");
 const Chat = require("../models/Chat");
+const Notification = require("../models/Notification"); // 🌟 ថែម Notification Model ថ្មី
 const { getFormattedDate } = require("../services/helpers");
 
 // 🛡️ មុខងារបិទបាំងទិន្នន័យសម្ងាត់
@@ -57,14 +59,16 @@ const getNotifications = async (req, res) => {
   res.json({ hasNew: false, count: 0 });
 };
 
+// 🌟 កែប្រែ: អាប់ដេតសារទាំងអស់ទៅជា Read នៅក្នុង Notification Collection ថ្មី
 const readNotifications = async (req, res) => {
   const { username } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (user && user.notifications) {
-      user.notifications.forEach((n) => (n.isRead = true));
-      user.markModified("notifications");
-      await user.save();
+    if (user) {
+      await Notification.updateMany(
+        { userId: user._id, isRead: false },
+        { $set: { isRead: true } },
+      );
       res.json({ success: true });
     } else res.json({ success: false });
   } catch (err) {
@@ -72,43 +76,48 @@ const readNotifications = async (req, res) => {
   }
 };
 
+// 🌟 កែប្រែ: បាញ់សារ Broadcast ចូលទៅក្នុង Notification Collection ថ្មីដោយប្រើ insertMany
 const broadcast = async (req, res) => {
   const { title, message, sender } = req.body;
-  const sharedNotifId = "BC-" + Date.now();
   try {
-    const result = await User.updateMany(
-      { role: { $ne: "admin" } },
-      {
-        $push: {
-          notifications: {
-            $each: [
-              {
-                id: sharedNotifId,
-                title,
-                message,
-                sender: sender || "admin",
-                date: new Date().toLocaleString(),
-                isRead: false,
-              },
-            ],
-            $position: 0,
-          },
-        },
-      },
+    // រកអ្នកប្រើប្រាស់ដែលមិនមែនជា Admin
+    const users = await User.find({ role: { $ne: "admin" } }).select(
+      "_id username",
     );
-    res.json({ success: true, count: result.matchedCount });
+
+    if (users.length > 0) {
+      const dateStr = new Date().toLocaleString();
+      const broadcastNotifs = users.map((u) => ({
+        userId: u._id,
+        username: u.username,
+        title: title,
+        message: message,
+        type: "info", // ប្រភេទសារទូទៅ
+        date: dateStr,
+        isRead: false,
+        metadata: {
+          sender: sender || "admin",
+          broadcastId: "BC-" + Date.now(),
+        },
+      }));
+
+      // ប្រើ insertMany ដើម្បីល្បឿនលឿន (Optimization)
+      await Notification.insertMany(broadcastNotifs);
+      res.json({ success: true, count: users.length });
+    } else {
+      res.json({ success: true, count: 0 });
+    }
   } catch (error) {
+    console.error("Broadcast Error:", error);
     res.status(500).json({ success: false });
   }
 };
 
+// 🌟 កែប្រែ: លុបសារ Broadcast ពីប្រព័ន្ធថ្មី
 const deleteBroadcast = async (req, res) => {
-  const { notifId } = req.body;
+  const { notifId } = req.body; // notifId នេះគួរតែជា broadcastId បើប្រើប្រព័ន្ធថ្មី
   try {
-    await User.updateMany(
-      { "notifications.id": notifId },
-      { $pull: { notifications: { id: notifId } } },
-    );
+    await Notification.deleteMany({ "metadata.broadcastId": notifId });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });
@@ -139,7 +148,12 @@ const sendChat = async (req, res) => {
     const getAcc = async (acc) => {
       if (acc === "ADMIN") return { accountNumber: "ADMIN" };
       return await User.findOne({
-        $or: [{ accountNumber: acc }, { accountNumberKHR: acc }],
+        $or: [
+          { "mainAccounts.USD.accountNumber": acc },
+          { "mainAccounts.KHR.accountNumber": acc },
+          { accountNumber: acc },
+          { accountNumberKHR: acc },
+        ],
       });
     };
     const sender = await getAcc(senderAcc);
@@ -412,6 +426,8 @@ const checkChatUser = async (req, res) => {
   try {
     const targetUser = await User.findOne({
       $or: [
+        { "mainAccounts.USD.accountNumber": accountNumber },
+        { "mainAccounts.KHR.accountNumber": accountNumber },
         { accountNumber: accountNumber },
         { accountNumberKHR: accountNumber },
       ],
@@ -625,6 +641,36 @@ const getScheduledMessages = async (req, res) => {
   }
 };
 
+// 🌟 កែប្រែ: អាប់ដេតស្ថានភាពសារតែមួយដោយផ្ទាល់នៅលើ Notification Model
+const readSingleNotification = async (req, res) => {
+  try {
+    const { notifId } = req.params;
+
+    if (!notifId || !require("mongoose").Types.ObjectId.isValid(notifId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខសម្គាល់សារមិនត្រឹមត្រូវទេ!" });
+    }
+
+    const updatedNotif = await Notification.findByIdAndUpdate(
+      notifId,
+      { $set: { isRead: true } },
+      { new: true }, // ត្រឡប់ Document ថ្មីមកវិញ
+    );
+
+    if (updatedNotif) {
+      return res.json({ success: true, message: "បានអាប់ដេតជោគជ័យ" });
+    }
+
+    return res
+      .status(404)
+      .json({ success: false, message: "រកមិនឃើញសារក្នុងប្រព័ន្ធទេ" });
+  } catch (error) {
+    console.error("Read Single Notification Error:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 module.exports = {
   createTicket,
   getNotifications,
@@ -644,6 +690,7 @@ module.exports = {
   globalSearch,
   editMsg,
   getScheduledMessages,
+  readSingleNotification,
 };
 
 // =======================================================

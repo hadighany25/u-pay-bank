@@ -1,5 +1,5 @@
 require("dotenv").config();
-const PAYHUB_URL = process.env.PAYHUB_URL || "https://payhub-kh.onrender.com";
+const PAYHUB_URL = process.env.PAYHUB_URL || "https://payhub-kh.fly.dev";
 
 // សេវាកម្ម Scan វិក្កយបត្រ
 const checkBillFromPayHub = async (bill_id) => {

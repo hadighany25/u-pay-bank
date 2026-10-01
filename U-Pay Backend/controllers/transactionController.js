@@ -1,5 +1,17 @@
+// controllers/transactionController.js
+
+/**
+ * ============================================================================
+ * 💸 TRANSACTION CONTROLLER (CENTRAL HUB)
+ * ============================================================================
+ * តួនាទី (Role): ឯកសារនេះគ្រប់គ្រងប្រតិបត្តិការហិរញ្ញវត្ថុទាំងអស់នៅក្នុងប្រព័ន្ធ U-Pay
+ * រួមមាន៖ ការផ្ទេរប្រាក់, បង់វិក្កយបត្រ, ទទួលរង្វាន់, ផ្ញើអាំងប៉ាវ និង B2B Escrow Transfer។
+ * [បានអាប់ដេតគាំទ្រទម្រង់ User.js ថ្មី ១០០%]
+ * ============================================================================
+ */
+
 // ==========================================
-// 📦 នាំចូលម៉ូឌុល និងឯកសារដែលចាំបាច់ (Imports)
+// 📦 ១. នាំចូលម៉ូឌុល និងឯកសារដែលចាំបាច់ (Imports)
 // ==========================================
 const User = require("../models/User");
 const System = require("../models/System");
@@ -8,27 +20,43 @@ const Merchant = require("../models/Merchant");
 const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount");
+const Notification = require("../models/Notification");
 const bot = require("../services/telegramBot");
-const axios = require("axios");
+const crypto = require("crypto");
 
-const {
-  getFormattedDate,
-  generateRefId,
-  generateHash,
-  getDevice,
-} = require("../services/helpers");
+const { getFormattedDate } = require("../services/helpers");
 const { readFXRates } = require("../services/systemService");
 
 // ==========================================
-// 🔍 ១. មុខងារឆែកឈ្មោះគណនីមុនពេលវេរលុយ
+// 🛠️ ២. Function ជំនួយ (Helpers) សម្រាប់លេខ Hash & Ref ID
+// ==========================================
+const generateStandardHash = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const generateStandardRefId = (prefix) => {
+  const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
+  return `${prefix}-${random8Digits}`;
+};
+
+// ==========================================
+// 🔍 ៣. មុខងារឆែកឈ្មោះគណនីមុនពេលវេរលុយ (Check Account)
 // ==========================================
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
+    // ស្វែងរកគណនី (គាំទ្រទាំង Main USD, Main KHR, Sub-Accounts និងកុងចាស់)
     let target = await User.findOne({
       $or: [
-        { accountNumber: accountNumber },
-        { accountNumberKHR: accountNumber },
+        { "mainAccounts.USD.accountNumber": accountNumber },
+        { "mainAccounts.KHR.accountNumber": accountNumber },
+        { accountNumber: accountNumber }, // Legacy Support
+        { accountNumberKHR: accountNumber }, // Legacy Support
         { "subAccounts.accountNumber": accountNumber },
       ],
     });
@@ -37,6 +65,7 @@ const checkAccount = async (req, res) => {
     let targetName = "";
     let isReceiverKHR = false;
 
+    // ករណីរកមិនឃើញ User ធម្មតា, ឆែកមើលក្រែងលោជាកុងហាង (Merchant)
     if (!target) {
       target = await Merchant.findOne({
         $or: [
@@ -66,13 +95,22 @@ const checkAccount = async (req, res) => {
         }
       }
     } else {
+      // ករណីជាគណនី User ធម្មតា
       if (target.role === "junior") {
         let childName = target.fullName || target.username;
         targetName = childName.toUpperCase() + " (JUNIOR)";
-        if (target.accountNumberKHR === accountNumber) isReceiverKHR = true;
+        if (
+          (target.mainAccounts?.KHR?.accountNumber ||
+            target.accountNumberKHR) === accountNumber
+        ) {
+          isReceiverKHR = true;
+        }
       } else {
         targetName = target.fullName || target.username;
-        if (target.accountNumberKHR === accountNumber) {
+        if (
+          (target.mainAccounts?.KHR?.accountNumber ||
+            target.accountNumberKHR) === accountNumber
+        ) {
           isReceiverKHR = true;
         } else if (target.subAccounts && target.subAccounts.length > 0) {
           const subAcc = target.subAccounts.find(
@@ -120,7 +158,7 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// 💸 ២. មុខងារវេរលុយ (Transfer)
+// 💸 ៤. មុខងារវេរលុយ (Transfer)
 // ==========================================
 const transfer = async (req, res) => {
   const {
@@ -132,7 +170,6 @@ const transfer = async (req, res) => {
     pin,
     trxMethod,
     currency,
-    orderId,
   } = req.body;
 
   if (req.user.username !== senderUsername) {
@@ -145,8 +182,9 @@ const transfer = async (req, res) => {
     const sender = await User.findOne({ username: senderUsername });
     if (!sender) return res.json({ success: false, message: "Account Error" });
     if (sender.isFrozen)
-      return res.json({ success: false, message: "Account Frozen" });
+      return res.json({ success: false, message: "Account Frozen by Admin" });
 
+    // ផ្ទៀងផ្ទាត់ PIN Code
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -163,27 +201,23 @@ const transfer = async (req, res) => {
         message: `Wrong PIN! Attempts left: ${3 - sender.pinAttempts}`,
       });
     }
-    sender.pinAttempts = 0;
+    sender.pinAttempts = 0; // Reset PIN ក្រោយពេលវាយត្រូវ
 
+    // ស្វែងរកគណនីអ្នកទទួល
     let receiver = await User.findOne({
       $or: [
+        { "mainAccounts.USD.accountNumber": receiverAccount },
+        { "mainAccounts.KHR.accountNumber": receiverAccount },
         { accountNumber: receiverAccount },
         { accountNumberKHR: receiverAccount },
+        { "subAccounts.accountNumber": receiverAccount },
       ],
     });
-
-    if (!receiver) {
-      receiver = await User.findOne({
-        "subAccounts.accountNumber": receiverAccount,
-      });
-    }
 
     let receiverMerchant = null;
     let isMerchant = false;
     let cashierInfo = null;
     let finalReceiverName = "";
-
-    // អថេរសម្រាប់កំណត់ថាតើត្រូវបូកលុយចូលកុងមេមួយណា
     let actualLinkedAccountForBalance = receiverAccount;
 
     if (!receiver) {
@@ -206,26 +240,29 @@ const transfer = async (req, res) => {
     let isSenderSubAccount = false,
       senderSubIndex = -1;
 
+    // 🌟 កំណត់គណនីប្រភពរបស់អ្នកផ្ញើ
+    let actualSenderAccNum = senderAccount;
     if (
-      senderAccount &&
-      senderAccount !== "MAIN_USD" &&
-      senderAccount !== "MAIN_KHR"
+      senderAccount === "MAIN_USD" ||
+      senderAccount === sender.mainAccounts?.USD?.accountNumber
     ) {
+      actualSenderAccNum =
+        sender.mainAccounts?.USD?.accountNumber || sender.accountNumber;
+    } else if (
+      senderAccount === "MAIN_KHR" ||
+      senderAccount === sender.mainAccounts?.KHR?.accountNumber
+    ) {
+      actualSenderAccNum =
+        sender.mainAccounts?.KHR?.accountNumber || sender.accountNumberKHR;
+    } else {
       senderSubIndex = sender.subAccounts.findIndex(
         (acc) => acc.accountNumber === senderAccount,
       );
       if (senderSubIndex !== -1) isSenderSubAccount = true;
     }
 
-    const actualSenderAccNum = isSenderSubAccount
-      ? senderAccount
-      : isSenderKHR
-        ? sender.accountNumberKHR
-        : sender.accountNumber;
-
-    // 🔥 ១. ការពារមិនអោយបាញ់ពីគណនីភ្ជាប់ ចូលទៅហាងខ្លួនឯង (Block 100%)
+    // ឆែកមើលបើសិនអ្នកទទួលជាហាង (Merchant)
     if (isMerchant) {
-      // 🌟 ប្លុកមិនអោយថៅកែហាងវេរលុយចូលហាងខ្លួនឯងដាច់ខាត (ទោះប្រើកុងណាក៏ដោយ)
       if (sender.username === receiverMerchant.userId) {
         return res.json({
           success: false,
@@ -252,16 +289,14 @@ const transfer = async (req, res) => {
       let actualOwnerAccNum = isReceiverKHRTemp
         ? receiverMerchant.linkedAccounts.KHR
         : receiverMerchant.linkedAccounts.USD;
-
       if (!actualOwnerAccNum)
         actualOwnerAccNum =
           receiverMerchant.linkedAccounts.USD ||
           receiverMerchant.linkedAccounts.KHR;
-
       actualLinkedAccountForBalance = actualOwnerAccNum;
     }
 
-    // គិតលុយ និងកម្រៃសេវា
+    // ការគណនាថ្លៃសេវា (Fee) និងអត្រាប្តូរប្រាក់ (FX Rate)
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
     const transferAmount = parseFloat(amount);
     const currentFXRates = readFXRates();
@@ -290,6 +325,7 @@ const transfer = async (req, res) => {
       juniorSenderAcc = null;
     let senderAvailableBal = 0;
 
+    // 🌟 ការទាញយកសមតុល្យអ្នកផ្ញើ (Sender Balance)
     if (isSenderSubAccount) {
       const sType = sender.subAccounts[senderSubIndex].accountType;
       if (sType === "joint" || sType === "joint_member") {
@@ -298,76 +334,93 @@ const transfer = async (req, res) => {
         });
         senderAvailableBal = jointSenderAcc ? jointSenderAcc.balance : 0;
       } else if (sType === "junior") {
-        juniorSenderAcc = await User.findOne({ accountNumber: senderAccount });
+        juniorSenderAcc = await User.findOne({
+          $or: [
+            { "mainAccounts.USD.accountNumber": senderAccount },
+            { accountNumber: senderAccount },
+          ],
+        });
         if (juniorSenderAcc) {
-          const dailyLimit = juniorSenderAcc.dailyLimit || 0;
-          if (
-            dailyLimit > 0 &&
-            (juniorSenderAcc.dailySpent || 0) + totalDeduction > dailyLimit
-          ) {
+          const dailyLimit =
+            juniorSenderAcc.mainAccounts?.USD?.dailyLimit ||
+            juniorSenderAcc.trxLimit ||
+            0;
+          const dailySpent =
+            juniorSenderAcc.mainAccounts?.USD?.dailySpent ||
+            juniorSenderAcc.dailySpent ||
+            0;
+          if (dailyLimit > 0 && dailySpent + totalDeduction > dailyLimit) {
             return res.json({
               success: false,
               message: "ប្រតិបត្តិការបរាជ័យ! ចាយលើសដែនកំណត់។",
             });
           }
           senderAvailableBal = isSenderKHR
-            ? juniorSenderAcc.balanceKHR || 0
-            : juniorSenderAcc.balance || 0;
+            ? juniorSenderAcc.mainAccounts?.KHR?.balance ||
+              juniorSenderAcc.balanceKHR ||
+              0
+            : juniorSenderAcc.mainAccounts?.USD?.balance ||
+              juniorSenderAcc.balance ||
+              0;
         }
       } else {
         senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
       }
     } else {
       senderAvailableBal = isSenderKHR
-        ? sender.balanceKHR || 0
-        : sender.balance || 0;
-    }
-
-    if (sender.role === "junior") {
-      const dailyLimit = sender.dailyLimit || 0;
-      const dailySpent = sender.dailySpent || 0;
-      let spentUsd = isSenderKHR
-        ? totalDeduction / currentFXRates.usdToKhrSell
-        : totalDeduction;
-      if (dailyLimit > 0 && dailySpent + spentUsd > dailyLimit) {
-        return res.json({
-          success: false,
-          message: `ប្រតិបត្តិការបរាជ័យ! ចាយបានត្រឹម $${dailyLimit} ក្នុង១ថ្ងៃ។`,
-        });
-      }
+        ? sender.mainAccounts?.KHR?.balance || sender.balanceKHR || 0
+        : sender.mainAccounts?.USD?.balance || sender.balance || 0;
     }
 
     if (senderAvailableBal < totalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
 
-    // កាត់លុយពីអ្នកផ្ញើ
+    // 🌟 ការកាត់លុយពីអ្នកផ្ញើ (Deduct Funds)
     if (isSenderSubAccount) {
       if (jointSenderAcc) {
         jointSenderAcc.balance -= totalDeduction;
         await jointSenderAcc.save();
       } else if (juniorSenderAcc) {
-        if (isSenderKHR) juniorSenderAcc.balanceKHR -= totalDeduction;
-        else juniorSenderAcc.balance -= totalDeduction;
-        juniorSenderAcc.dailySpent =
-          (juniorSenderAcc.dailySpent || 0) + totalDeduction;
+        if (isSenderKHR) {
+          if (juniorSenderAcc.mainAccounts?.KHR)
+            juniorSenderAcc.mainAccounts.KHR.balance -= totalDeduction;
+          else juniorSenderAcc.balanceKHR -= totalDeduction;
+        } else {
+          if (juniorSenderAcc.mainAccounts?.USD)
+            juniorSenderAcc.mainAccounts.USD.balance -= totalDeduction;
+          else juniorSenderAcc.balance -= totalDeduction;
+        }
+
+        if (juniorSenderAcc.mainAccounts?.USD)
+          juniorSenderAcc.mainAccounts.USD.dailySpent += totalDeduction;
+        else
+          juniorSenderAcc.dailySpent =
+            (juniorSenderAcc.dailySpent || 0) + totalDeduction;
+
+        juniorSenderAcc.markModified("mainAccounts");
         await juniorSenderAcc.save();
-        sender.markModified("subAccounts");
       } else {
         sender.subAccounts[senderSubIndex].balance -= totalDeduction;
         sender.markModified("subAccounts");
       }
     } else {
-      if (isSenderKHR) sender.balanceKHR -= totalDeduction;
-      else sender.balance -= totalDeduction;
+      if (isSenderKHR) {
+        if (sender.mainAccounts?.KHR)
+          sender.mainAccounts.KHR.balance -= totalDeduction;
+        else sender.balanceKHR -= totalDeduction;
+      } else {
+        if (sender.mainAccounts?.USD)
+          sender.mainAccounts.USD.balance -= totalDeduction;
+        else sender.balance -= totalDeduction;
+      }
+      sender.markModified("mainAccounts");
     }
 
-    // ------------------------------------------
-    // ឃ. បញ្ចូលលុយទៅអ្នកទទួល
-    // ------------------------------------------
     let receiverAmount = transferAmount;
     let isReceiverKHR = false;
     let jointReceiverAcc = null;
 
+    // 🌟 ការបញ្ចូលលុយទៅអ្នកទទួល (Add Funds)
     if (isMerchant) {
       if (cashierInfo && cashierInfo.status === "Active") {
         isReceiverKHR = cashierInfo.virtualAccounts?.KHR === receiverAccount;
@@ -387,14 +440,22 @@ const transfer = async (req, res) => {
       await receiverMerchant.save();
 
       let owner = await User.findOne({ username: receiverMerchant.userId });
-
       if (owner) {
         let actualOwnerAccNum = actualLinkedAccountForBalance;
-
-        if (actualOwnerAccNum === owner.accountNumber) {
-          owner.balance += receiverAmount;
-        } else if (actualOwnerAccNum === owner.accountNumberKHR) {
-          owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
+        if (
+          actualOwnerAccNum === owner.mainAccounts?.USD?.accountNumber ||
+          actualOwnerAccNum === owner.accountNumber
+        ) {
+          if (owner.mainAccounts?.USD)
+            owner.mainAccounts.USD.balance += receiverAmount;
+          else owner.balance += receiverAmount;
+        } else if (
+          actualOwnerAccNum === owner.mainAccounts?.KHR?.accountNumber ||
+          actualOwnerAccNum === owner.accountNumberKHR
+        ) {
+          if (owner.mainAccounts?.KHR)
+            owner.mainAccounts.KHR.balance += receiverAmount;
+          else owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
         } else {
           const sub = owner.subAccounts.find(
             (s) => s.accountNumber === actualOwnerAccNum,
@@ -403,11 +464,18 @@ const transfer = async (req, res) => {
             sub.balance += receiverAmount;
             owner.markModified("subAccounts");
           } else {
-            if (isReceiverKHR)
-              owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
-            else owner.balance += receiverAmount;
+            if (isReceiverKHR) {
+              if (owner.mainAccounts?.KHR)
+                owner.mainAccounts.KHR.balance += receiverAmount;
+              else owner.balanceKHR = (owner.balanceKHR || 0) + receiverAmount;
+            } else {
+              if (owner.mainAccounts?.USD)
+                owner.mainAccounts.USD.balance += receiverAmount;
+              else owner.balance += receiverAmount;
+            }
           }
         }
+        owner.markModified("mainAccounts");
         await owner.save();
         receiver = owner;
       }
@@ -415,10 +483,15 @@ const transfer = async (req, res) => {
       let targetSubAccIndex = receiver.subAccounts.findIndex(
         (acc) => acc.accountNumber === receiverAccount,
       );
-      if (receiver.accountNumberKHR === receiverAccount) isReceiverKHR = true;
-      else if (targetSubAccIndex !== -1)
+      if (
+        receiver.mainAccounts?.KHR?.accountNumber === receiverAccount ||
+        receiver.accountNumberKHR === receiverAccount
+      ) {
+        isReceiverKHR = true;
+      } else if (targetSubAccIndex !== -1) {
         isReceiverKHR =
           receiver.subAccounts[targetSubAccIndex].currency === "KHR";
+      }
 
       if (!isSenderKHR && isReceiverKHR)
         receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
@@ -444,33 +517,41 @@ const transfer = async (req, res) => {
         } else {
           targetSubAcc.balance += receiverAmount;
           receiver.markModified("subAccounts");
-          await receiver.save();
         }
       } else {
-        if (isReceiverKHR)
-          receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
-        else receiver.balance = (receiver.balance || 0) + receiverAmount;
-        await receiver.save();
+        if (isReceiverKHR) {
+          if (receiver.mainAccounts?.KHR)
+            receiver.mainAccounts.KHR.balance += receiverAmount;
+          else
+            receiver.balanceKHR = (receiver.balanceKHR || 0) + receiverAmount;
+        } else {
+          if (receiver.mainAccounts?.USD)
+            receiver.mainAccounts.USD.balance += receiverAmount;
+          else receiver.balance = (receiver.balance || 0) + receiverAmount;
+        }
+        receiver.markModified("mainAccounts");
       }
+      await receiver.save();
     }
 
     await sender.save();
 
     // ------------------------------------------
-    // ង. កត់ត្រាប្រវត្តិ (Transaction Logging)
+    // 📝 ង. កត់ត្រាប្រវត្តិ (Transaction Logging)
     // ------------------------------------------
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const sharedRefId = generateRefId();
-    const sharedHash = generateHash();
+    const sharedRefId = generateStandardRefId("TRX");
+    const sharedHash = generateStandardHash();
 
     const finalSenderName = jointSenderAcc
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
 
     const senderTrx = {
+      userId: sender._id,
       refId: sharedRefId,
       hash: sharedHash,
       date,
@@ -490,8 +571,8 @@ const transfer = async (req, res) => {
       username: sender.username,
     };
 
-    // 🔥 កត់ត្រាចូល History អោយចំលេខកុងពិតរបស់ថៅកែ (ទើប History Frontend ទាញឃើញ ១០០%)
     const receiverTrx = {
+      userId: isMerchant ? undefined : receiver._id,
       refId: sharedRefId,
       hash: sharedHash,
       date,
@@ -501,7 +582,7 @@ const transfer = async (req, res) => {
       fee: 0,
       senderName: finalSenderName,
       receiverName: finalReceiverName,
-      receiverAcc: actualLinkedAccountForBalance, // 🔥 កែត្រង់នេះ: ប្រើលេខកុងមេពិតប្រាកដ (មិនមែន receiverAccount ទេ)
+      receiverAcc: actualLinkedAccountForBalance,
       senderAcc: actualSenderAccNum,
       trxMethod: isMerchant
         ? "Merchant Payment"
@@ -511,6 +592,8 @@ const transfer = async (req, res) => {
       username: isMerchant ? receiverMerchant.userId : receiver.username,
       merchantId: isMerchant ? receiverMerchant.merchantId : undefined,
     };
+
+    if (isMerchant && receiver) receiverTrx.userId = receiver._id;
 
     if (jointSenderAcc) {
       for (let m of jointSenderAcc.members) {
@@ -529,17 +612,17 @@ const transfer = async (req, res) => {
     }
 
     // ------------------------------------------
-    // ច. ការផ្តល់ដំណឹង (Notifications / Socket / Telegram)
+    // 🔔 ច. ការផ្តល់ដំណឹង (Notifications / Socket)
     // ------------------------------------------
     const currencySymbol = isReceiverKHR ? "៛" : "$";
     const senderMsgName = jointSenderAcc
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
 
-    const rDoc = await User.findOne({ username: receiver.username });
-    if (rDoc) {
-      rDoc.notifications = rDoc.notifications || [];
-      rDoc.notifications.push({
+    if (receiver) {
+      await Notification.create({
+        userId: receiver._id,
+        username: receiver.username,
         title: isMerchant
           ? "ទទួលបានទឹកប្រាក់ពីហាង! 🏪"
           : "ទទួលបានទឹកប្រាក់! 💸",
@@ -550,11 +633,8 @@ const transfer = async (req, res) => {
         date,
         isRead: false,
       });
-      rDoc.markModified("notifications");
-      await rDoc.save();
-
       if (bot && bot.sendUserPaymentAlert) {
-        bot.sendUserPaymentAlert(rDoc._id, {
+        bot.sendUserPaymentAlert(receiver._id, {
           amount: receiverAmount,
           currency: isReceiverKHR ? "KHR" : "USD",
           senderName: senderMsgName,
@@ -563,25 +643,17 @@ const transfer = async (req, res) => {
       }
     }
 
-    // ------------------------------------------
-    // 🟢 កែតម្រូវប្រព័ន្ធ Socket.io (លោតសំឡេង និង Refresh ប្រវត្តិ)
-    // ------------------------------------------
-    const io = req.app.get("io") || global.io; // ប្រើមួយណាក៏បានឲ្យតែស្គាល់
+    const io = req.app.get("io") || global.io;
     if (io) {
       const socketPayload = {
         amount: receiverAmount,
         currency: isReceiverKHR ? "KHR" : "USD",
         senderName: finalSenderName,
       };
-
       const targetSocketUser = isMerchant
         ? receiverMerchant.userId
         : receiver.username;
-
-      // ១. បាញ់ទៅប្រាប់ POS/ទូរស័ព្ទថៅកែ ឲ្យបន្លឺសំឡេង "ទទួលបាន..." និងលោត Notification
       io.to(targetSocketUser).emit("paymentReceived", socketPayload);
-
-      // ២. បាញ់ទៅប្រាប់ទាំងសងខាង (អ្នកផ្ញើ និង អ្នកទទួល) ឲ្យ Refresh ទាញប្រវត្តិថ្មីភ្លាមៗ
       io.to(targetSocketUser).emit("transactionUpdated");
       io.to(senderUsername).emit("transactionUpdated");
     }
@@ -594,36 +666,16 @@ const transfer = async (req, res) => {
           senderName: finalSenderName,
           refId: sharedRefId,
         })
-        .catch((err) => console.log(""));
+        .catch(() => {});
     }
-
-    try {
-      if (
-        orderId &&
-        isMerchant &&
-        receiverMerchant &&
-        receiverMerchant.webhookUrl
-      ) {
-        const webhookPayload = {
-          orderId: orderId,
-          amount: receiverAmount,
-          status: "PAID",
-          upayTransactionId: sharedRefId,
-        };
-        axios
-          .post(receiverMerchant.webhookUrl, webhookPayload)
-          .catch((err) => console.log(""));
-      }
-    } catch (webhookErr) {}
 
     const updatedSender = await User.findOne({ username: senderUsername });
 
-    // 🔥 ឆ្លើយតបធម្មតា មិនបាច់មាន extraSlip ទៀតទេ ព្រោះយើងទាញយកពី Database ១០០% នៅ Frontend
     res.json({
       success: true,
       newBalance: isSenderKHR
-        ? updatedSender.balanceKHR
-        : updatedSender.balance,
+        ? updatedSender.mainAccounts?.KHR?.balance || updatedSender.balanceKHR
+        : updatedSender.mainAccounts?.USD?.balance || updatedSender.balance,
       slipData: senderTrx,
       user: updatedSender,
     });
@@ -634,7 +686,7 @@ const transfer = async (req, res) => {
 };
 
 // ==========================================
-// 🔍 ៣. មុខងារស្វែងរកវិក្កយបត្រពីប្រព័ន្ធ PayHub
+// 🧾 ៥. មុខងារស្វែងរកវិក្កយបត្រ (Scan Bill)
 // ==========================================
 const scanBankBill = async (req, res) => {
   const { bill_id } = req.body;
@@ -650,7 +702,6 @@ const scanBankBill = async (req, res) => {
         message: data.message || "រកមិនឃើញវិក្កយបត្រនេះទេ!",
       });
   } catch (err) {
-    console.error("Scan Bill Error:", err);
     res
       .status(500)
       .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ!" });
@@ -658,7 +709,7 @@ const scanBankBill = async (req, res) => {
 };
 
 // ==========================================
-// 💳 ៤. មុខងារបង់វិក្កយបត្រ (Pay Bill)
+// 💳 ៦. មុខងារបង់វិក្កយបត្រ (Pay Bill)
 // ==========================================
 const payBankBill = async (req, res) => {
   const { bill_id, company, amount, username } = req.body;
@@ -668,12 +719,15 @@ const payBankBill = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នក!" });
-    if (payingUser.balance < amount)
+
+    const userBalance =
+      payingUser.mainAccounts?.USD?.balance || payingUser.balance || 0;
+    if (userBalance < amount)
       return res
         .status(400)
         .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
 
-    const currentRefId = `BP-${Date.now()}`;
+    const currentRefId = generateStandardRefId("BIL");
     const response = await fetch("https://payhub-kh.fly.dev/api/gateway/pay", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -682,42 +736,75 @@ const payBankBill = async (req, res) => {
 
     const payhubData = await response.json();
     if (payhubData && payhubData.success) {
-      payingUser.balance -= amount;
-      const newHash = generateHash();
+      if (payingUser.mainAccounts?.USD)
+        payingUser.mainAccounts.USD.balance -= amount;
+      else payingUser.balance -= amount;
+      payingUser.markModified("mainAccounts");
+
+      const newHash = generateStandardHash();
+      const dateStr = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Phnom_Penh",
+        hour12: true,
+      });
 
       await Transaction.create({
+        userId: payingUser._id,
         username: payingUser.username,
         refId: currentRefId,
         hash: newHash,
-        date: new Date().toLocaleString("en-US", {
-          timeZone: "Asia/Phnom_Penh",
-          hour12: true,
-        }),
+        date: dateStr,
         type: "Bill Payment",
         amount: -amount,
         senderName: payingUser.fullName || payingUser.username,
         receiverName: company,
-        senderAcc: payingUser.accountNumber,
+        senderAcc:
+          payingUser.mainAccounts?.USD?.accountNumber ||
+          payingUser.accountNumber,
         receiverAcc: bill_id,
-        remark: "ទូទាត់វិក្កយបត្រ: " + bill_id,
+        trxMethod: "Bill Payment", // 🌟 ថែម Payment Via
+        remark: `ទូទាត់វិក្កយបត្រ: ${company}`, // 🌟 កែប្រែ Remark អោយច្បាស់
         status: "Success",
       });
 
       await payingUser.save();
+
+      // 🌟 ថែម Notification ពេលបង់លុយរួច
+      await Notification.create({
+        userId: payingUser._id,
+        username: payingUser.username,
+        title: "ទូទាត់វិក្កយបត្រជោគជ័យ! 📄",
+        message: `អ្នកបានទូទាត់ទឹកប្រាក់ $${parseFloat(amount).toLocaleString()} ទៅកាន់ ${company} រួចរាល់។`,
+        type: "payment_success",
+        date: dateStr,
+        isRead: false,
+      });
+
+      // 🌟 ថែម Telegram Alert
+      if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
+        // អាចបង្កើតមុខងារ sendBillPaymentAlert ក្នុង bot ក៏បាន ឬប្រើ PaymentAlert ធម្មតា
+        bot
+          .sendUserPaymentAlert(payingUser._id, {
+            amount: -parseFloat(amount),
+            currency: "USD",
+            senderName: company,
+            refId: currentRefId,
+          })
+          .catch(() => {});
+      }
+
       res.json({
         success: true,
-        newBalance: payingUser.balance,
+        newBalance: payingUser.mainAccounts?.USD?.balance || payingUser.balance,
         transaction_id: currentRefId,
         hash: newHash,
       });
     } else {
       res.status(400).json({
         success: false,
-        message: payhubData.message || "ការទូទាត់នៅ PayHub បរាជ័យ",
+        message: payhubData.message || "ការទូទាត់បរាជ័យ",
       });
     }
   } catch (err) {
-    console.error("Pay Bill Error:", err);
     res
       .status(500)
       .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ" });
@@ -725,7 +812,7 @@ const payBankBill = async (req, res) => {
 };
 
 // ==========================================
-// 🎁 ៥. មុខងាររង្វាន់ និងការបង្វិលសង (Lucky Spin Cashback)
+// 🎁 ៧. មុខងាររង្វាន់ (Lucky Spin Cashback)
 // ==========================================
 const rewardCashback = async (req, res) => {
   const { username, amount, refId } = req.body;
@@ -736,61 +823,79 @@ const rewardCashback = async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    const centralBank =
+      (await User.findOne({ "mainAccounts.USD.accountNumber": "888888888" })) ||
+      (await User.findOne({ accountNumber: "888888888" }));
+
     if (user && centralBank) {
       const reward = parseFloat(amount);
       if (reward > 0) {
-        const date = new Date().toLocaleString("en-US", {
+        const dateStr = new Date().toLocaleString("en-US", {
           timeZone: "Asia/Phnom_Penh",
           hour12: true,
         });
-        const sharedHash = generateHash();
-        const sharedRefId = "RWD-" + Date.now().toString().slice(-6);
-        const sharedRemark = `Lucky Spin Reward (Trx: ${refId})`;
+        const newRefId = generateStandardRefId("RWD");
 
-        const finalReceiverName = user.fullName || user.username;
+        if (user.mainAccounts?.USD) user.mainAccounts.USD.balance += reward;
+        else user.balance += reward;
+        user.markModified("mainAccounts");
 
-        user.balance += reward;
-        centralBank.balance -= reward;
+        if (centralBank.mainAccounts?.USD)
+          centralBank.mainAccounts.USD.balance -= reward;
+        else centralBank.balance -= reward;
+        centralBank.markModified("mainAccounts");
 
         await Transaction.create([
           {
+            userId: user._id,
             username: user.username,
-            refId: sharedRefId,
-            hash: sharedHash,
-            date,
+            refId: newRefId,
+            hash: generateStandardHash(),
+            date: dateStr,
             type: "Cashback Reward",
             amount: reward,
             currency: "USD",
             fee: 0,
-            senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName,
-            remark: sharedRemark,
+            senderName: "U-Pay Rewards", // 🌟 ដូរឈ្មោះអ្នកផ្ញើអោយខ្លីស្តាប់ទៅឡូយ
+            receiverName: user.fullName || user.username,
+            trxMethod: "Lucky Spin", // 🌟 ថែម Payment Via
+            remark: `រង្វាន់ពីការបង្វិលកងសំណាង (Ref: ${refId})`, // 🌟 ខ្មែរ Remark
             status: "Success",
             device: "App",
             ip: req.ip || "127.0.0.1",
           },
-          {
-            username: centralBank.username,
-            refId: sharedRefId,
-            hash: sharedHash,
-            date,
-            type: "Cashback Payout",
-            amount: -reward,
-            currency: "USD",
-            fee: 0,
-            senderName: "U-Pay Cashback Reward",
-            receiverName: finalReceiverName,
-            remark: sharedRemark,
-            status: "Success",
-            device: "System",
-            ip: "127.0.0.1",
-          },
         ]);
+
+        // 🌟 ថែម Notification អោយអតិថិជនត្រេកអរ
+        await Notification.create({
+          userId: user._id,
+          username: user.username,
+          title: "អ្នកទទួលបានរង្វាន់! 🎊",
+          message: `អបអរសាទរ! ទឹកប្រាក់ $${reward.toLocaleString()} ពីការបង្វិលកងសំណាងបានបញ្ចូលទៅកាន់គណនីរបស់អ្នក។`,
+          type: "reward_receive",
+          date: dateStr,
+          isRead: false,
+        });
+
+        // 🌟 ថែម Telegram Alert
+        if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
+          bot
+            .sendUserPaymentAlert(user._id, {
+              amount: reward,
+              currency: "USD",
+              senderName: "U-Pay Lucky Spin",
+              refId: newRefId,
+            })
+            .catch(() => {});
+        }
+
         await user.save();
         await centralBank.save();
       }
-      res.json({ success: true, balance: user.balance });
+      res.json({
+        success: true,
+        balance: user.mainAccounts?.USD?.balance || user.balance,
+      });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីធនាគារកណ្តាល!" });
     }
@@ -800,7 +905,7 @@ const rewardCashback = async (req, res) => {
 };
 
 // ==========================================
-// 🚀 ៦. មុខងារទាមទាររង្វាន់ប្រូម៉ូកូដ (Redeem Promo)
+// 🚀 ៨. មុខងារទាមទាររង្វាន់ប្រូម៉ូកូដ (Redeem Promo)
 // ==========================================
 const claimPromoCode = async (req, res) => {
   const { username, code } = req.body;
@@ -837,7 +942,9 @@ const claimPromoCode = async (req, res) => {
         message: "អ្នកបានប្រើកូដនេះយកលុយរួចហើយ!",
       });
 
-    const centralBank = await User.findOne({ accountNumber: "888888888" });
+    const centralBank =
+      (await User.findOne({ "mainAccounts.USD.accountNumber": "888888888" })) ||
+      (await User.findOne({ accountNumber: "888888888" }));
     if (!centralBank)
       return res.json({
         success: false,
@@ -845,51 +952,62 @@ const claimPromoCode = async (req, res) => {
       });
 
     const rewardAmt = promo.rewardValue;
-    user.balance += rewardAmt;
-    centralBank.balance -= rewardAmt;
-
-    const date = new Date().toLocaleString("en-US", {
+    const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const sharedHash = generateHash();
-    const sharedRefId = "PRM-" + Date.now().toString().slice(-10);
-    const sharedRemark = `Claimed Promo Code: ${promo.code}`;
+    const newRefId = generateStandardRefId("PRM");
 
-    const finalReceiverName = user.fullName || user.username;
+    if (user.mainAccounts?.USD) user.mainAccounts.USD.balance += rewardAmt;
+    else user.balance += rewardAmt;
+    user.markModified("mainAccounts");
+
+    if (centralBank.mainAccounts?.USD)
+      centralBank.mainAccounts.USD.balance -= rewardAmt;
+    else centralBank.balance -= rewardAmt;
+    centralBank.markModified("mainAccounts");
 
     await Transaction.create([
       {
+        userId: user._id,
         username: user.username,
-        refId: sharedRefId,
-        hash: sharedHash,
-        date,
+        refId: newRefId,
+        hash: generateStandardHash(),
+        date: dateStr,
         type: "Promo Reward",
         amount: rewardAmt,
         currency: "USD",
         fee: 0,
-        senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName,
-        remark: sharedRemark,
+        senderName: "U-Pay Promotions", // 🌟
+        receiverName: user.fullName || user.username,
+        remark: `រង្វាន់ពីការបញ្ចូលកូដ: ${promo.code}`, // 🌟 ខ្មែរ Remark
         status: "Success",
-        trxMethod: "U-Pay Promo",
-      },
-      {
-        username: centralBank.username,
-        refId: sharedRefId,
-        hash: sharedHash,
-        date,
-        type: "Promo Expense",
-        amount: -rewardAmt,
-        currency: "USD",
-        fee: 0,
-        senderName: "U-Pay Promo Reward",
-        receiverName: finalReceiverName,
-        remark: sharedRemark,
-        status: "Success",
-        trxMethod: "U-Pay Promo",
+        trxMethod: "Promo Code", // 🌟
       },
     ]);
+
+    // 🌟 ថែម Notification
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
+      title: "បញ្ចូលកូដប្រូម៉ូសិនជោគជ័យ! 🎟️",
+      message: `អបអរសាទរ! អ្នកទទួលបាន $${rewardAmt.toFixed(2)} ពីការបញ្ចូលកូដ ${promo.code}។`,
+      type: "reward_receive",
+      date: dateStr,
+      isRead: false,
+    });
+
+    // 🌟 ថែម Telegram Alert
+    if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
+      bot
+        .sendUserPaymentAlert(user._id, {
+          amount: rewardAmt,
+          currency: "USD",
+          senderName: `Promo: ${promo.code}`,
+          refId: newRefId,
+        })
+        .catch(() => {});
+    }
 
     promo.usedCount += 1;
     promo.usedBy.push(username);
@@ -900,7 +1018,7 @@ const claimPromoCode = async (req, res) => {
     res.json({
       success: true,
       message: `អបអរសាទរ! អ្នកទទួលបាន $${rewardAmt.toFixed(2)} ពីកូដ ${promo.code}!`,
-      newBalance: user.balance,
+      newBalance: user.mainAccounts?.USD?.balance || user.balance,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -908,7 +1026,7 @@ const claimPromoCode = async (req, res) => {
 };
 
 // ==========================================
-// 🧧 ៧. មុខងារផ្ញើអាំងប៉ាវ (Send E-Gift)
+// 🧧 ៩. មុខងារផ្ញើអាំងប៉ាវ (Send E-Gift)
 // ==========================================
 const sendEgift = async (req, res) => {
   const {
@@ -952,15 +1070,26 @@ const sendEgift = async (req, res) => {
 
     let finalDeduction = giftAmount;
     let sourceCurrency = "USD";
-    let actualSenderAccNum = sender.accountNumber;
+    let actualSenderAccNum = senderAccount;
     let isSenderSubAccount = false;
     let senderSubIndex = -1;
     let jointSenderAcc = null;
 
-    if (senderAccount === "MAIN_KHR") {
+    if (
+      senderAccount === "MAIN_USD" ||
+      senderAccount === sender.mainAccounts?.USD?.accountNumber
+    ) {
+      sourceCurrency = "USD";
+      actualSenderAccNum =
+        sender.mainAccounts?.USD?.accountNumber || sender.accountNumber;
+    } else if (
+      senderAccount === "MAIN_KHR" ||
+      senderAccount === sender.mainAccounts?.KHR?.accountNumber
+    ) {
       sourceCurrency = "KHR";
-      actualSenderAccNum = sender.accountNumberKHR;
-    } else if (senderAccount !== "MAIN_USD") {
+      actualSenderAccNum =
+        sender.mainAccounts?.KHR?.accountNumber || sender.accountNumberKHR;
+    } else {
       senderSubIndex = sender.subAccounts.findIndex(
         (a) => a.accountNumber === senderAccount,
       );
@@ -998,13 +1127,15 @@ const sendEgift = async (req, res) => {
         : sender.subAccounts[senderSubIndex].balance;
     } else {
       senderAvailableBal =
-        sourceCurrency === "KHR" ? sender.balanceKHR || 0 : sender.balance;
+        sourceCurrency === "KHR"
+          ? sender.mainAccounts?.KHR?.balance || sender.balanceKHR || 0
+          : sender.mainAccounts?.USD?.balance || sender.balance || 0;
     }
 
-    if (senderAvailableBal < finalDeduction) {
+    if (senderAvailableBal < finalDeduction)
       return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់ទេ" });
-    }
 
+    // 🌟 កាត់លុយ
     if (isSenderSubAccount) {
       if (jointSenderAcc) {
         jointSenderAcc.balance -= finalDeduction;
@@ -1013,14 +1144,22 @@ const sendEgift = async (req, res) => {
         sender.subAccounts[senderSubIndex].balance -= finalDeduction;
         sender.markModified("subAccounts");
       }
-    } else if (senderAccount === "MAIN_KHR") {
-      sender.balanceKHR -= finalDeduction;
+    } else if (sourceCurrency === "KHR") {
+      if (sender.mainAccounts?.KHR)
+        sender.mainAccounts.KHR.balance -= finalDeduction;
+      else sender.balanceKHR -= finalDeduction;
+      sender.markModified("mainAccounts");
     } else {
-      sender.balance -= finalDeduction;
+      if (sender.mainAccounts?.USD)
+        sender.mainAccounts.USD.balance -= finalDeduction;
+      else sender.balance -= finalDeduction;
+      sender.markModified("mainAccounts");
     }
 
     const receiver = await User.findOne({
       $or: [
+        { "mainAccounts.USD.accountNumber": receiverInput },
+        { "mainAccounts.KHR.accountNumber": receiverInput },
         { username: receiverInput },
         { phone: receiverInput },
         { accountNumber: receiverInput },
@@ -1040,11 +1179,10 @@ const sendEgift = async (req, res) => {
     let receiverSubIndex = receiver.subAccounts.findIndex(
       (acc) => acc.accountNumber === receiverInput,
     );
-    let actualReceiverAccNum = receiver.accountNumber;
+    let actualReceiverAccNum = receiverInput;
     let jointReceiverAcc = null;
 
     if (receiverSubIndex !== -1) {
-      actualReceiverAccNum = receiverInput;
       const targetSubAcc = receiver.subAccounts[receiverSubIndex];
       let targetCur = targetSubAcc.currency;
       let receiveAmt = giftAmount;
@@ -1070,22 +1208,29 @@ const sendEgift = async (req, res) => {
         receiver.markModified("subAccounts");
       }
     } else {
-      if (receiverInput === receiver.accountNumberKHR) {
-        actualReceiverAccNum = receiver.accountNumberKHR;
-        receiver.balanceKHR = (receiver.balanceKHR || 0) + giftAmount;
+      if (
+        receiverInput === receiver.mainAccounts?.KHR?.accountNumber ||
+        receiverInput === receiver.accountNumberKHR
+      ) {
+        if (receiver.mainAccounts?.KHR)
+          receiver.mainAccounts.KHR.balance += giftAmount;
+        else receiver.balanceKHR = (receiver.balanceKHR || 0) + giftAmount;
       } else {
-        receiver.balance += giftAmount;
+        actualReceiverAccNum =
+          receiver.mainAccounts?.USD?.accountNumber || receiver.accountNumber;
+        if (receiver.mainAccounts?.USD)
+          receiver.mainAccounts.USD.balance += giftAmount;
+        else receiver.balance = (receiver.balance || 0) + giftAmount;
       }
+      receiver.markModified("mainAccounts");
     }
 
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
-    const sharedRefId = "GIFT" + Date.now().toString().slice(-6);
-    const sharedHash = Math.random().toString(36).substring(2, 11);
-    const sharedRemark = message || "E-Gift";
-
+    const sharedRefId = generateStandardRefId("GFT");
+    const sharedHash = generateStandardHash();
     const finalSenderName = jointSenderAcc
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
@@ -1094,6 +1239,7 @@ const sendEgift = async (req, res) => {
       : receiver.fullName || receiver.username;
 
     const senderTrx = {
+      userId: sender._id,
       username: sender.username,
       refId: sharedRefId,
       hash: sharedHash,
@@ -1106,11 +1252,11 @@ const sendEgift = async (req, res) => {
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
       date: dateStr,
-      remark: sharedRemark,
+      remark: message || "E-Gift",
       status: "Completed",
     };
-
     const receiverTrx = {
+      userId: receiver._id,
       username: receiver.username,
       refId: sharedRefId,
       hash: sharedHash,
@@ -1123,7 +1269,7 @@ const sendEgift = async (req, res) => {
       receiverAcc: actualReceiverAccNum,
       trxMethod: "U-Pay App",
       date: dateStr,
-      remark: sharedRemark,
+      remark: message || "E-Gift",
       status: "Completed",
     };
 
@@ -1132,24 +1278,22 @@ const sendEgift = async (req, res) => {
         if (m.status === "active")
           await Transaction.create({ ...senderTrx, username: m.username });
       }
-    } else {
-      await Transaction.create(senderTrx);
-    }
+    } else await Transaction.create(senderTrx);
 
     if (jointReceiverAcc) {
       for (let m of jointReceiverAcc.members) {
         if (m.status === "active")
           await Transaction.create({ ...receiverTrx, username: m.username });
       }
-    } else {
-      await Transaction.create(receiverTrx);
-    }
+    } else await Transaction.create(receiverTrx);
 
     const senderMsgName = jointSenderAcc
       ? `គណនីរួម ${jointSenderAcc.accountName}`
       : finalSenderName;
 
-    const giftNotification = {
+    await Notification.create({
+      userId: receiver._id,
+      username: receiver.username,
       title: "មានកាដូថ្មី! 🎁",
       message: `អ្នកទទួលបានអាំងប៉ាវពី ${senderMsgName}។ ចុចដើម្បីបើកមើល!`,
       type: "egift_receive",
@@ -1163,38 +1307,20 @@ const sendEgift = async (req, res) => {
         senderName: finalSenderName,
         senderUsername: sender.username,
       },
-    };
-
-    if (jointReceiverAcc) {
-      for (let m of jointReceiverAcc.members) {
-        if (m.status === "active") {
-          const uDoc = await User.findOne({ username: m.username });
-          if (uDoc) {
-            uDoc.notifications = uDoc.notifications || [];
-            uDoc.notifications.push(giftNotification);
-            uDoc.markModified("notifications");
-            await uDoc.save();
-          }
-        }
-      }
-    } else {
-      receiver.notifications = receiver.notifications || [];
-      receiver.notifications.push(giftNotification);
-      receiver.markModified("notifications");
-      await receiver.save();
-    }
+    });
 
     await sender.save();
+    await receiver.save();
 
     let newBalanceRes = 0;
     if (isSenderSubAccount) {
       newBalanceRes = jointSenderAcc
         ? jointSenderAcc.balance
         : sender.subAccounts[senderSubIndex].balance;
-    } else if (senderAccount === "MAIN_KHR") {
-      newBalanceRes = sender.balanceKHR;
+    } else if (sourceCurrency === "KHR") {
+      newBalanceRes = sender.mainAccounts?.KHR?.balance || sender.balanceKHR;
     } else {
-      newBalanceRes = sender.balance;
+      newBalanceRes = sender.mainAccounts?.USD?.balance || sender.balance;
     }
 
     const io = req.app.get("io");
@@ -1205,16 +1331,7 @@ const sendEgift = async (req, res) => {
         senderName: finalSenderName,
         isGift: true,
       };
-
-      if (jointReceiverAcc) {
-        for (let m of jointReceiverAcc.members) {
-          if (m.status === "active") {
-            io.to(m.username).emit("paymentReceived", socketPayload);
-          }
-        }
-      } else {
-        io.to(receiver.username).emit("paymentReceived", socketPayload);
-      }
+      io.to(receiver.username).emit("paymentReceived", socketPayload);
     }
 
     res.json({
@@ -1231,151 +1348,148 @@ const sendEgift = async (req, res) => {
 };
 
 // ==========================================
-// 🔔 ៨. មុខងារបញ្ជាក់ការបើកអាំងប៉ាវ (E-Gift Opened)
+// 🔔 ១០. មុខងារបញ្ជាក់ការបើកអាំងប៉ាវ (E-Gift Opened)
 // ==========================================
 const egiftOpened = async (req, res) => {
   const { receiverName, senderUsername, notifId } = req.body;
   try {
     if (notifId && req.user) {
-      await User.updateOne(
-        { username: req.user.username, "notifications._id": notifId },
-        { $set: { "notifications.$.isRead": true } },
-      );
+      if (mongoose.Types.ObjectId.isValid(notifId)) {
+        await Notification.findByIdAndUpdate(notifId, {
+          isRead: true,
+          responseStatus: "opened",
+        });
+      }
     }
 
     if (senderUsername) {
       const sender = await User.findOne({ username: senderUsername });
       if (sender) {
-        const dateStr = new Date().toLocaleString("en-US", {
-          timeZone: "Asia/Phnom_Penh",
-          hour12: true,
-        });
-        const openedNotification = {
+        await Notification.create({
+          userId: sender._id,
+          username: sender.username,
           title: "អាំងប៉ាវត្រូវបានបើកហើយ! 🎉",
           message: `${receiverName} បានបើកមើលអាំងប៉ាវរបស់អ្នកហើយ។`,
           type: "egift_opened",
-          date: dateStr,
+          date: new Date().toLocaleString("en-US", {
+            timeZone: "Asia/Phnom_Penh",
+            hour12: true,
+          }),
           isRead: false,
-        };
-
-        sender.notifications = sender.notifications || [];
-        sender.notifications.push(openedNotification);
-        await sender.save();
+        });
       }
     }
     res.json({ success: true });
   } catch (error) {
-    console.error("E-Gift Opened Error:", error);
     res.status(500).json({ success: false });
   }
 };
 
 // ==========================================
-// 🤖 ៩. មុខងារ B2B Transfer (សម្រាប់ U-Mall បាញ់លុយចូល)
+// 🤖 ១១. មុខងារ B2B Transfer (សម្រាប់ U-Mall បាញ់លុយចូល)
 // ==========================================
 const b2bTransfer = async (req, res) => {
   try {
-    const crypto = require("crypto");
     const { merchantId, referenceId, amount, receiverAccount, description } =
       req.body;
     const signature = req.headers["x-signature"];
     const timestamp = req.headers["x-timestamp"];
 
-    // ១. ផ្ទៀងផ្ទាត់សុវត្ថិភាព (HMAC Signature)
-    const UPAY_SECRET =
-      process.env.UPAY_API_SECRET ||
-      "edb7169d82f2ba03eccc06e5d57e3576e2672979bfeea8834a963a60fa515786";
-    const dataToSign = JSON.stringify(req.body) + (timestamp || "");
-    const expectedSig = crypto
-      .createHmac("sha256", UPAY_SECRET)
-      .update(dataToSign)
-      .digest("hex");
-
-    if (signature !== expectedSig) {
-      return res.status(401).json({
-        success: false,
-        message: "ហត្ថលេខាពី U-Mall មិនត្រឹមត្រូវទេ!",
-      });
-    }
-
-    // ២. ស្វែងរក Profile ហាង (Merchant) របស់ U-Mall
+    // 🌟 ១. ស្វែងរក Merchant ជាមុនសិន ដើម្បីយក apiSecret ពី Database
     const merchantProfile = await Merchant.findOne({ merchantId: merchantId });
-    if (!merchantProfile) {
+    if (!merchantProfile)
       return res.status(404).json({
         success: false,
         message: `រកមិនឃើញគណនី Merchant: ${merchantId} ទេ!`,
       });
-    }
 
-    // ទាញយកលេខគណនីដែល U-Mall បានភ្ជាប់ (Linked Account)
+    // 🌟 ២. ផ្ទៀងផ្ទាត់ហត្ថលេខាដោយប្រើ apiSecret របស់ Merchant ផ្ទាល់ (ដូចដែល Webhook បានធ្វើ)
+    const dataToSign = JSON.stringify(req.body) + (timestamp || "");
+    const expectedSig = crypto
+      .createHmac("sha256", merchantProfile.apiSecret)
+      .update(dataToSign)
+      .digest("hex");
+
+    if (signature !== expectedSig)
+      return res.status(401).json({
+        success: false,
+        message: "ហត្ថលេខាពី U-Mall មិនត្រឹមត្រូវទេ (Signature Mismatch)!",
+      });
+
     const senderAccNumber = merchantProfile.linkedAccounts.USD;
-    if (!senderAccNumber) {
+    if (!senderAccNumber)
       return res.status(400).json({
         success: false,
-        message:
-          "Merchant របស់ U-Mall មិនទាន់បានភ្ជាប់គណនី USD (Linked Account) ទេ!",
+        message: "Merchant របស់ U-Mall មិនទាន់បានភ្ជាប់គណនី USD ទេ!",
       });
-    }
 
-    // ៣. ស្វែងរកកុងធនាគាររបស់ម្ចាស់ U-Mall នៅក្នុង User Collection
     const sender = await User.findOne({ username: merchantProfile.userId });
-    if (!sender) {
+    if (!sender)
       return res.status(404).json({
         success: false,
         message: "រកកុងធនាគារគោលរបស់ U-Mall មិនឃើញទេ!",
       });
-    }
 
-    // ៤. ដំណើរការកាត់លុយ "ចំគណនីដែលបានភ្ជាប់"
     let isSenderDeducted = false;
+    const actualMainAccUSD =
+      sender.mainAccounts?.USD?.accountNumber || sender.accountNumber;
 
-    if (sender.accountNumber === senderAccNumber) {
-      if (sender.balance < parseFloat(amount)) {
+    // 🌟 កាត់លុយពី U-Mall
+    if (actualMainAccUSD === senderAccNumber) {
+      if (
+        (sender.mainAccounts?.USD?.balance || sender.balance) <
+        parseFloat(amount)
+      ) {
         return res.status(400).json({
           success: false,
           message: `គណនី U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
         });
       }
-      sender.balance -= parseFloat(amount);
+      if (sender.mainAccounts?.USD)
+        sender.mainAccounts.USD.balance -= parseFloat(amount);
+      else sender.balance -= parseFloat(amount);
+      sender.markModified("mainAccounts");
       isSenderDeducted = true;
     } else {
       const subAcc = sender.subAccounts.find(
         (sub) => sub.accountNumber === senderAccNumber,
       );
       if (subAcc) {
-        if (subAcc.balance < parseFloat(amount)) {
+        if (subAcc.balance < parseFloat(amount))
           return res.status(400).json({
             success: false,
             message: `គណនីរង U-Mall (${senderAccNumber}) ខ្វះប្រាក់!`,
           });
-        }
         subAcc.balance -= parseFloat(amount);
         sender.markModified("subAccounts");
         isSenderDeducted = true;
       }
     }
 
-    if (!isSenderDeducted) {
+    if (!isSenderDeducted)
       return res.status(400).json({
         success: false,
-        message: `រកមិនឃើញលេខគណនី ${senderAccNumber} នៅក្នុង User នេះទេ!`,
+        message: `រកមិនឃើញលេខគណនី ${senderAccNumber} ទេ!`,
       });
-    }
 
     await sender.save();
 
-    // ៥. ស្វែងរក និង បូកលុយចូលគណនីអ្នកលក់ (Seller)
+    // 🌟 ស្វែងរកគណនីអ្នកលក់ (Seller)
     const receiver = await User.findOne({
       $or: [
+        { "mainAccounts.USD.accountNumber": receiverAccount },
         { accountNumber: receiverAccount },
         { "subAccounts.accountNumber": receiverAccount },
       ],
     });
 
     if (!receiver) {
-      // Rollback: បង្វិលលុយអោយ U-Mall វិញបើរកអ្នកទទួលមិនឃើញ
-      if (sender.accountNumber === senderAccNumber) {
-        sender.balance += parseFloat(amount);
+      // បើមិនឃើញទេ បង្វិលលុយចូល U-Mall វិញ (Refund)
+      if (actualMainAccUSD === senderAccNumber) {
+        if (sender.mainAccounts?.USD)
+          sender.mainAccounts.USD.balance += parseFloat(amount);
+        else sender.balance += parseFloat(amount);
+        sender.markModified("mainAccounts");
       } else {
         const subAcc = sender.subAccounts.find(
           (sub) => sub.accountNumber === senderAccNumber,
@@ -1390,8 +1504,14 @@ const b2bTransfer = async (req, res) => {
       });
     }
 
-    if (receiver.accountNumber === receiverAccount) {
-      receiver.balance += parseFloat(amount);
+    // 🌟 បូកលុយអោយអ្នកលក់ (Seller)
+    const actualRecMainAccUSD =
+      receiver.mainAccounts?.USD?.accountNumber || receiver.accountNumber;
+    if (actualRecMainAccUSD === receiverAccount) {
+      if (receiver.mainAccounts?.USD)
+        receiver.mainAccounts.USD.balance += parseFloat(amount);
+      else receiver.balance += parseFloat(amount);
+      receiver.markModified("mainAccounts");
     } else {
       const rSub = receiver.subAccounts.find(
         (sub) => sub.accountNumber === receiverAccount,
@@ -1403,73 +1523,101 @@ const b2bTransfer = async (req, res) => {
     }
     await receiver.save();
 
-    // 🌟 ៦. បង្កើតលេខ ID ថ្មីៗ និងខ្លីៗតាមការស្នើសុំ 🌟
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
+    const shortRefId = generateStandardRefId("B2B");
+    const shortHash = generateStandardHash();
 
-    // បង្កើតលេខ Hash ៨ខ្ទង់ លាយអក្សរនិងលេខ (ឧ. rxh8222e)
-    const generateShortHash = () => {
-      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-      let result = "";
-      for (let i = 0; i < 8; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    };
-    const shortHash = generateShortHash();
+    // ==========================================
+    // 📝 បង្កើត Slip (Transaction) ទាំងសងខាង (អ្នកទទួល និង អ្នកវេរ)
+    // ==========================================
+    const finalRemark = description || "ទូទាត់ប្រាក់ B2B Gateway";
 
-    // បង្កើតលេខ Ref ID មាន B2B ពីមុខ (ឧ. B2B-895421457)
-    const shortRefId =
-      "B2B-" + Math.floor(100000000 + Math.random() * 900000000);
-
-    // កត់ត្រាសម្រាប់អ្នកលក់
+    // ១. សម្រាប់អ្នកទទួល (Seller) - លុយចូល
     await Transaction.create({
+      userId: receiver._id,
       username: receiver.username,
-      refId: shortRefId, // ដាក់លេខ B2B-... ចូល
-      hash: shortHash, // ដាក់លេខ ៨ខ្ទង់ចូល
+      refId: shortRefId,
+      hash: shortHash,
       date: dateStr,
       type: "Receive",
       amount: parseFloat(amount),
       currency: "USD",
       fee: 0,
       senderName: merchantProfile.name,
+      senderAcc: senderAccNumber,
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
-      remark: description || "ទូទាត់ប្រាក់ពី U-Mall",
+      remark: finalRemark, // <--- យកសារពី U-Mall មកបង្ហាញលើ Slip អ្នកទទួល
       status: "Success",
       merchantId: merchantProfile.merchantId,
     });
 
-    // កត់ត្រាសម្រាប់ U-Mall
+    // ២. សម្រាប់អ្នកវេរ (U-Mall) - លុយចេញ
     await Transaction.create({
+      userId: sender._id,
       username: sender.username,
-      refId: shortRefId, // ដាក់លេខ B2B-... ចូល
-      hash: shortHash, // ដាក់លេខ ៨ខ្ទង់ចូល
+      refId: shortRefId,
+      hash: shortHash,
       date: dateStr,
       type: "Transfer",
-      amount: parseFloat(amount),
+      amount: -parseFloat(amount),
       currency: "USD",
       fee: 0,
       senderName: merchantProfile.name,
+      senderAcc: senderAccNumber,
       receiverName: receiver.fullName || receiver.username,
       receiverAcc: receiverAccount,
       trxMethod: "B2B Gateway",
-      remark: "បើកប្រាក់អោយ Seller: " + receiverAccount,
+      remark: finalRemark, // <--- យកសារពី U-Mall មកបង្ហាញលើ Slip អ្នកវេរ
       status: "Success",
       merchantId: merchantProfile.merchantId,
     });
 
-    // ៧. ឆ្លើយតបទៅ U-Mall វិញ
+    // ==========================================
+    // 🔔 ប្រព័ន្ធផ្តល់ដំណឹង (Notification, Socket & Telegram)
+    // ==========================================
+
+    // ១. បង្កើត In-App Notification ប្រាប់អ្នកលក់
+    await Notification.create({
+      userId: receiver._id,
+      username: receiver.username,
+      title: "ទទួលបានប្រាក់ពី U-Mall! 💸",
+      message: `អ្នកទទួលបាន $${parseFloat(amount).toLocaleString()} ពី ${merchantProfile.name}។ យោង៖ ${finalRemark}`,
+      type: "transfer_receive",
+      date: dateStr,
+      isRead: false,
+    });
+
+    // ២. Refresh ប្រវត្តិប្រតិបត្តិការតាម Socket.io (លុប Popup ពណ៌បៃតងចេញតាមសំណូមពរ)
+    const io = req.app.get("io") || global.io;
+    if (io) {
+      io.to(receiver.username).emit("transactionUpdated");
+      io.to(sender.username).emit("transactionUpdated");
+    }
+
+    // ៣. បាញ់សារប្រាប់តាម Telegram Bot (បើ User បានភ្ជាប់)
+    if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
+      bot
+        .sendUserPaymentAlert(receiver._id, {
+          amount: parseFloat(amount),
+          currency: "USD",
+          senderName: merchantProfile.name,
+          refId: shortRefId,
+        })
+        .catch(() => {});
+    }
+
     res.json({
       success: true,
-      transactionId: shortRefId, // 👈 ប្តូរត្រង់នេះ ដើម្បីឱ្យ U-Mall ទទួលបានលេខ B2B-...
+      transactionId: shortRefId,
       message: "ផ្ទេរប្រាក់ B2B ជោគជ័យ និងបានកាត់ប្រាក់រួចរាល់!",
     });
   } catch (error) {
-    console.error("B2B API Error:", error);
+    console.error("B2B Transfer Error:", error);
     res.status(500).json({ success: false, message: "U-Pay Server Error" });
   }
 };

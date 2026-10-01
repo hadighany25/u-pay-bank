@@ -1,9 +1,32 @@
+// gatewayController.js
 const User = require("../models/User");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
+const Notification = require("../models/Notification"); // 🌟 ថែម Notification Model
 const crypto = require("crypto");
 const axios = require("axios");
 
+// ========================================================
+// 🛠️ Function ជំនួយ (Helpers) សម្រាប់បង្កើត Hash & Ref ID
+// ========================================================
+const generateStandardHash = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const generateStandardRefId = (prefix) => {
+  // បង្កើតលេខ ៨ខ្ទង់ចៃដន្យ (ពី 10000000 ដល់ 99999999)
+  const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
+  return `${prefix}-${random8Digits}`;
+};
+
+// ========================================================
+// 🌐 មុខងារបាញ់ Webhook ទៅកាន់ U-Mall
+// ========================================================
 const fireWebhook = async (webhookUrl, payload, apiSecret) => {
   try {
     if (!webhookUrl) return;
@@ -20,7 +43,9 @@ const fireWebhook = async (webhookUrl, payload, apiSecret) => {
   }
 };
 
-// 1. API ទទួលសំណើកាតពី U-Mall
+// ========================================================
+// ១. API ទទួលសំណើកាត់ប្រាក់ពីកាត (Request from U-Mall)
+// ========================================================
 exports.requestCardPayment = async (req, res) => {
   try {
     const {
@@ -44,6 +69,7 @@ exports.requestCardPayment = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីអាជីវកម្មនេះទេ!" });
 
+    // ផ្ទៀងផ្ទាត់សោរសម្ងាត់ (Signature)
     const dataToSign = `${merchantId}${orderId}${amount}${currency}${cardNumber}${timestamp}`;
     const expectedHash = crypto
       .createHmac("sha256", merchant.apiSecret)
@@ -76,6 +102,7 @@ exports.requestCardPayment = async (req, res) => {
     const cleanInputExpiry = String(expiry).trim();
     const cleanInputCvv = String(cvv).trim();
 
+    // ស្វែងរកកាត និងផ្ទៀងផ្ទាត់ព័ត៌មាន (Expiry, CVV)
     const card = user.virtualCards.find((c) => {
       if (!c.number || !c.expiry || !c.cvv) return false;
       const dbCardNum = String(c.number).replace(/\s+/g, "");
@@ -111,6 +138,7 @@ exports.requestCardPayment = async (req, res) => {
     let availableBalance = 0;
     let sourceAccNum = card.linkedAccount;
 
+    // ពិនិត្យប្រាក់ក្នុងគណនីដែលបានភ្ជាប់ជាមួយកាត
     if (sourceAccNum === "USD" || sourceAccNum === user.accountNumber) {
       availableBalance = user.balance;
       sourceAccNum = user.accountNumber;
@@ -134,10 +162,13 @@ exports.requestCardPayment = async (req, res) => {
       });
     }
 
+    // បង្កើត Transaction ជាប្រភេទ "Pending" ទុកសិន រង់ចាំម្ចាស់កាតយល់ព្រម
+    // 🌟 ចំណាំ៖ refId ប្រើប្រាស់ orderId ដដែល ដើម្បីអោយ Webhook របស់ U-Mall ស្គាល់វិក្កយបត្រខ្លួនឯង
     const pendingTrx = new Transaction({
+      userId: user._id, // 🌟 ថែម userId សម្រាប់សុវត្ថិភាព
       username: user.username,
-      refId: orderId,
-      hash: crypto.randomBytes(8).toString("hex"),
+      refId: orderId, // រក្សាទុក orderId ដើម្បីអោយ U-Mall ផ្ទៀងផ្ទាត់វិញបាន
+      hash: generateStandardHash(),
       type: "Online Payment",
       amount: -parseFloat(amount),
       currency: currency,
@@ -158,7 +189,10 @@ exports.requestCardPayment = async (req, res) => {
     });
     await pendingTrx.save();
 
-    const notifData = {
+    // 🌟 ប្រើប្រាស់ Notification.create ជំនួសឱ្យ user.notifications.push
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
       title: "សំណើទូទាត់ប្រាក់ 🛒",
       message: `ហាង ${merchant.name} បានស្នើសុំកាត់ប្រាក់ $${parseFloat(amount).toFixed(2)}។ សូមចុចដើម្បីបញ្ជាក់ការទូទាត់!`,
       type: "card_payment_request",
@@ -168,17 +202,13 @@ exports.requestCardPayment = async (req, res) => {
       }),
       isRead: false,
       metadata: {
-        transactionId: pendingTrx._id,
+        transactionId: pendingTrx._id.toString(), // Convert to string
         merchantName: merchant.name,
         amount: amount,
         currency: currency,
         orderId: orderId,
       },
-    };
-
-    user.notifications = user.notifications || [];
-    user.notifications.push(notifData);
-    await user.save();
+    });
 
     res.status(200).json({
       success: true,
@@ -191,7 +221,9 @@ exports.requestCardPayment = async (req, res) => {
   }
 };
 
-// 2. API ម្ចាស់កាតចុច "យល់ព្រម"
+// ========================================================
+// ២. API ម្ចាស់កាតចុច "យល់ព្រម" លើការទូទាត់ (Approve Payment)
+// ========================================================
 exports.confirmPayment = async (req, res) => {
   try {
     const { transactionId, pin } = req.body;
@@ -279,18 +311,22 @@ exports.confirmPayment = async (req, res) => {
     if (!linkedAcc)
       linkedAcc = merchant.linkedAccounts.USD || merchant.linkedAccounts.KHR;
 
+    // ទាញយក User របស់ហាងដើម្បីយក userId
+    const merchantOwner = await User.findOne({ username: merchant.userId });
+
     // ៤. កត់ត្រាប្រវត្តិ ទទួលលុយ អោយ Merchant ក៏ដាក់ Hold ដែរ
     await Transaction.create({
+      userId: merchantOwner ? merchantOwner._id : undefined, // 🌟 ថែម userId សម្រាប់ម្ចាស់ហាង
       username: merchant.userId,
-      refId: trx.refId,
-      hash: trx.hash,
+      refId: trx.refId, // រក្សា RefId ដូចម្ចាស់កាត ដើម្បីងាយផ្ទៀងផ្ទាត់
+      hash: trx.hash, // រក្សា Hash ដូចម្ចាស់កាត
       date: trx.date,
       type: "Receive",
       amount: amount,
       currency: trx.currency,
       senderName: user.fullName || user.username,
       receiverName: merchant.name,
-      receiverAcc: linkedAcc, // 🔥 កែត្រង់នេះ: ប្រើលេខកុងមេពិតប្រាកដ ទើប Frontend មើលឃើញ
+      receiverAcc: linkedAcc,
       senderAcc: trx.senderAcc,
       trxMethod: "Card Payment",
       remark: trx.remark,
@@ -316,7 +352,9 @@ exports.confirmPayment = async (req, res) => {
   }
 };
 
-// 3. API ម្ចាស់កាតចុច "បដិសេធ"
+// ========================================================
+// ៣. API ម្ចាស់កាតចុច "បដិសេធ" (Reject Payment)
+// ========================================================
 exports.rejectPayment = async (req, res) => {
   try {
     const { transactionId } = req.body;
@@ -373,7 +411,9 @@ exports.rejectPayment = async (req, res) => {
   }
 };
 
-// 🌟 4. API ថ្មី៖ សម្រាប់បញ្ចេញលុយ Hold ភ្លាមៗ (Manual Release)
+// ========================================================
+// ៤. API បញ្ចេញលុយ Hold ភ្លាមៗ (Manual Release)
+// ========================================================
 exports.releaseHoldPayment = async (req, res) => {
   try {
     const { transactionId } = req.body;
@@ -433,72 +473,23 @@ exports.releaseHoldPayment = async (req, res) => {
   }
 };
 
-// // =======================================================
-// // ប្រព័ន្ធទម្លាក់លុយអូតូ (Auto Release Escrow) ក្រោយ ២៤ម៉ោង (រក្សាទុកដដែល)
-// // =======================================================
-// const autoReleaseEscrow = async () => {
-//   try {
-//     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-//     const holdTrxs = await Transaction.find({
-//       status: "Hold",
-//       type: "Receive",
-//     });
-
-//     for (let trx of holdTrxs) {
-//       const trxDate = new Date(trx.createdAt || trx.date);
-//       if (trxDate <= twentyFourHoursAgo) {
-//         const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
-//         const user = await User.findOne({ username: merchant.userId });
-
-//         if (merchant && user) {
-//           const amount = Math.abs(trx.amount);
-//           const isKHR = trx.currency === "KHR";
-
-//           if (isKHR) {
-//             merchant.escrowHold.KHR -= amount;
-//             user.balanceKHR += amount;
-//           } else {
-//             merchant.escrowHold.USD -= amount;
-//             user.balance += amount;
-//           }
-
-//           trx.status = "Success";
-//           await trx.save();
-//           await Transaction.updateMany(
-//             { refId: trx.refId, hash: trx.hash },
-//             { status: "Success" },
-//           );
-
-//           await merchant.save();
-//           await user.save();
-//         }
-//       }
-//     }
-//   } catch (error) {
-//     console.error("Auto Release Error:", error);
-//   }
-// };
-
-// setInterval(autoReleaseEscrow, 3600000);
-
 // =======================================================
-// ប្រព័ន្ធទម្លាក់លុយអូតូ (Auto Release Escrow) - 🔴 FIXED
+// ៥. ប្រព័ន្ធទម្លាក់លុយអូតូ (Auto Release Escrow) ក្រោយ ២៤ម៉ោង
 // =======================================================
 const autoReleaseEscrow = async () => {
   try {
-    // ⏳ កន្លែងកែម៉ោង: 2 * 60 * 1000 គឺស្មើនឹង "២ នាទី" (សម្រាប់តេស្ត)
-    const timeLimit = new Date(Date.now() - 2 * 60 * 1000);
+    // ⏳ ត្រឡប់មកកំណត់ម៉ោង: ២៤ ម៉ោងវិញ (24 hours = 24 * 60 * 60 * 1000)
+    const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // 🔥 កែចំណុច Type ដើម្បីឱ្យវាចាប់បានទាំង U-Mall ("Receive") និង NFC ("Received")
     const holdTrxs = await Transaction.find({
       status: "Hold",
-      type: { $in: ["Receive", "Received"] }, // ប្រើ $in ដើម្បីចាប់យកពាក្យទាំង ២
+      type: { $in: ["Receive", "Received"] },
     });
 
     for (let trx of holdTrxs) {
       const trxDate = new Date(trx.createdAt || trx.date);
 
-      // បើប្រតិបត្តិការនោះ ហួស ២ នាទី វានឹងចូលមកធ្វើការទម្លាក់លុយ
+      // បើប្រតិបត្តិការនោះ ហួស ២៤ ម៉ោង វានឹងចូលមកធ្វើការទម្លាក់លុយ
       if (trxDate <= timeLimit) {
         const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
         if (!merchant) continue;
@@ -542,5 +533,5 @@ const autoReleaseEscrow = async () => {
   }
 };
 
-// ⏳ សម្រាប់តេស្ត៖ ដើររាល់ ៣០ វិនាទីម្តង
-setInterval(autoReleaseEscrow, 30000);
+// ⏳ កំណត់អោយប្រព័ន្ធឆែកមើលរាល់ ១ ម៉ោងម្តង (3600000 milliseconds)
+setInterval(autoReleaseEscrow, 3600000);

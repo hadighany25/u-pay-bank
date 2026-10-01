@@ -2,7 +2,25 @@
 
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
-const { getFormattedDate, generateHash } = require("../services/helpers");
+const { getFormattedDate } = require("../services/helpers");
+
+// ========================================================
+// 🛠️ Function ជំនួយ (Helpers) សម្រាប់បង្កើត Hash & Ref ID
+// ========================================================
+const generateStandardHash = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+const generateStandardRefId = (prefix) => {
+  // បង្កើតលេខ ៨ខ្ទង់ចៃដន្យ (ពី 10000000 ដល់ 99999999)
+  const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
+  return `${prefix}-${random8Digits}`;
+};
 
 // =======================================================
 // 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config)
@@ -56,36 +74,57 @@ const generateCard = async (req, res) => {
     const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
     const issuanceFee = tier.price;
 
-    if (user.balance < issuanceFee)
+    // 🌟 ឆែកសមតុល្យតាមទម្រង់ថ្មី (mainAccounts.USD.balance)
+    const userUsdBal = user.mainAccounts?.USD?.balance || user.balance || 0;
+    if (userUsdBal < issuanceFee)
       return res.json({
         success: false,
         message: `សមតុល្យ USD មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ $${issuanceFee.toFixed(2)} ទេ!`,
       });
 
-    let systemFeeAcc = await User.findOne({ username: "system_fee" });
-    if (!systemFeeAcc) {
-      systemFeeAcc = new User({
-        id: "FEE_" + Date.now(),
-        username: "system_fee",
-        fullName: "U PAY FEE",
-        accountNumber: "999999999",
-        balance: 0.0,
-        balanceKHR: 0.0,
-        role: "user",
-      });
-      await systemFeeAcc.save();
+    // 🌟 ស្វែងរក Super Admin និង Sub-Account សម្រាប់ប្រមូល Fee (888000999)
+    let superAdmin = await User.findOne({ username: "superadmin" });
+    let feeSubAcc = superAdmin?.subAccounts?.find(
+      (sub) => sub.accountNumber === "888000999",
+    );
+
+    if (!superAdmin || !feeSubAcc) {
+      // Fallback ក្រែងលោរកមិនឃើញ គឺបង្កើតជូនស្វ័យប្រវត្តិ
+      if (superAdmin) {
+        superAdmin.subAccounts = superAdmin.subAccounts || [];
+        superAdmin.subAccounts.push({
+          accountId: "SUB_FEE_" + Date.now(),
+          accountNumber: "888000999",
+          accountName: "Central Bank Fee Income",
+          accountType: "fee_collection",
+          currency: "USD",
+          balance: issuanceFee,
+        });
+        superAdmin.markModified("subAccounts");
+        await superAdmin.save();
+      }
     }
 
     // កាត់លុយថ្លៃសេវា
-    user.balance -= issuanceFee;
-    const refId = "CARD-" + Date.now().toString().slice(-6);
-    const trxHash = Math.random().toString(36).substring(2, 11).toUpperCase();
+    // 🌟 កាត់លុយពី Main Account USD ថ្មី
+    if (user.mainAccounts?.USD) {
+      user.mainAccounts.USD.balance -= issuanceFee;
+    } else {
+      user.balance -= issuanceFee; // Legacy Fallback
+    }
+
+    // 🌟 ប្រើ Helper ស្តង់ដារថ្មី
+    const refId = generateStandardRefId("CARD");
+    const trxHash = generateStandardHash();
+
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
     });
 
+    // 🧾 វិក្កយបត្រកាត់លុយ (User)
     await Transaction.create({
+      userId: user._id, // 🌟 ថែម userId
       username: user.username,
       refId,
       hash: trxHash,
@@ -99,9 +138,26 @@ const generateCard = async (req, res) => {
       remark: `Issued ${tier.name} Virtual Card`,
     });
 
-    systemFeeAcc.balance += issuanceFee;
+    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
+    if (superAdmin) {
+      let targetFeeSub = superAdmin.subAccounts?.find(
+        (sub) => sub.accountNumber === "888000999",
+      );
+      if (targetFeeSub) {
+        targetFeeSub.balance += issuanceFee;
+        superAdmin.markModified("subAccounts");
+      } else if (superAdmin.mainAccounts?.USD) {
+        superAdmin.mainAccounts.USD.balance += issuanceFee; // Fallback ទៅ Main USD
+      } else {
+        superAdmin.balance += issuanceFee;
+      }
+      await superAdmin.save();
+    }
+
+    // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
     await Transaction.create({
-      username: systemFeeAcc.username,
+      userId: superAdmin?._id,
+      username: superAdmin ? superAdmin.username : "superadmin",
       refId,
       hash: trxHash,
       date: dateStr,
@@ -109,12 +165,12 @@ const generateCard = async (req, res) => {
       amount: issuanceFee,
       currency: "USD",
       senderName: user.username,
-      receiverName: "Card Issuance Service",
+      receiverName: "Central Bank Fee Income",
+      senderAcc: user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+      receiverAcc: "888000999", // 🌟 ចង្អុលចំលេខកុង Sub-Account Fee
       status: "Success",
       remark: "Card Issuance Fee",
     });
-
-    await systemFeeAcc.save();
 
     // បង្កើតកាតថ្មី
     const details = generateCardDetails();
@@ -144,7 +200,7 @@ const generateCard = async (req, res) => {
     res.json({
       success: true,
       cards: user.virtualCards,
-      newBalance: user.balance,
+      newBalance: user.mainAccounts?.USD?.balance || user.balance,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -295,8 +351,6 @@ const renameCard = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
-
-// ❌ ចំណាំ៖ បានលុបមុខងារ changeAccount() ចេញតាមស្តង់ដារធនាគារ
 
 // =======================================================
 // ៨. ភ្ជាប់កាត NFC (Physical Card)

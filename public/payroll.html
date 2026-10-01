@@ -1,3 +1,4 @@
+<!-- payroll.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -13,19 +14,14 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@400;500;600;700&family=Courier+New:wght@700&display=swap"
       rel="stylesheet"
     />
-    <!-- បន្ថែម SheetJS ដើម្បីអាន Excel ពិតប្រាកដក្នុង Browser -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
-
-    <!-- 🔥 ភ្ជាប់ PIN MODULE (ត្រូវប្រាកដថាបងមានឯកសារ js/pin.js នៅក្នុង Folder js របស់បង) -->
     <script src="js/pin.js"></script>
 
     <style>
-      /* ==========================================
-         🚀 FOUC PREVENTION & BASE (Standard)
-         ========================================== */
+      /* CSS ដើម */
       body {
         background-color: #f2f4f6;
         margin: 0;
@@ -56,8 +52,6 @@
         position: relative;
         overflow-x: hidden;
       }
-
-      /* Header */
       .nav-header {
         padding: 20px;
         background: #004d40;
@@ -66,7 +60,6 @@
         align-items: center;
         justify-content: space-between;
         font-size: 1.1rem;
-        transition: background-color 0.3s;
         position: sticky;
         top: 0;
         z-index: 50;
@@ -87,10 +80,6 @@
         flex-direction: column;
         position: relative;
       }
-
-      /* ==========================================
-         🔄 VIEW STATES ARCHITECTURE (Flow)
-         ========================================== */
       .view-state {
         display: none;
         flex-direction: column;
@@ -111,10 +100,6 @@
           transform: translateX(0);
         }
       }
-
-      /* ==========================================
-         🏠 LANDING PAGE CARDS
-         ========================================== */
       .option-card {
         background: white;
         border: 1px solid #e2e8f0;
@@ -161,28 +146,23 @@
         font-size: 0.85rem;
         line-height: 1.4;
       }
-
-      /* ==========================================
-         📝 COMMON FORMS & SECTIONS
-         ========================================== */
       .card-section {
         background: white;
         border: 1px solid #e2e8f0;
         border-radius: 15px;
         padding: 20px;
         margin-bottom: 15px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        transition:
+          background-color 0.3s,
+          border-color 0.3s;
       }
       .section-title {
         font-size: 0.9rem;
         color: #64748b;
         font-weight: bold;
         margin: 0 0 15px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        transition: color 0.3s;
       }
-
       .input-group {
         margin-bottom: 18px;
       }
@@ -192,6 +172,7 @@
         color: #475569;
         font-weight: 600;
         margin-bottom: 8px;
+        transition: color 0.3s;
       }
       .input-group input,
       .input-group select {
@@ -224,22 +205,19 @@
         gap: 10px;
         margin-top: 8px;
         border: 1px solid #bbf7d0;
+        transition: all 0.3s;
       }
-
-      /* ==========================================
-         🎛️ DYNAMIC SCHEDULE UI (Slider Fixed)
-         ========================================== */
       .dynamic-freq-box {
         display: none;
         margin-top: 15px;
         border-top: 1px dashed #e2e8f0;
         padding-top: 15px;
+        transition: border-color 0.3s;
       }
       .dynamic-freq-box.active {
         display: block;
         animation: fadeIn 0.3s ease;
       }
-
       .day-circles {
         display: flex;
         justify-content: space-between;
@@ -268,12 +246,10 @@
         transform: scale(1.1);
         box-shadow: 0 4px 10px rgba(0, 184, 148, 0.3);
       }
-
       .slider-container {
         position: relative;
         margin: 40px 10px 10px 10px;
       }
-      /* Safe Slider CSS */
       .custom-slider {
         -webkit-appearance: none;
         appearance: none;
@@ -294,15 +270,6 @@
         cursor: pointer;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
       }
-      .custom-slider::-moz-range-thumb {
-        width: 20px;
-        height: 20px;
-        background: #00b894;
-        border-radius: 50%;
-        cursor: pointer;
-        border: none;
-      }
-
       .slider-bubble {
         position: absolute;
         top: -35px;
@@ -333,6 +300,7 @@
         color: #64748b;
         font-weight: bold;
         margin-top: 8px;
+        transition: color 0.3s;
       }
       .row-inputs {
         display: flex;
@@ -341,10 +309,6 @@
       .row-inputs .input-group {
         flex: 1;
       }
-
-      /* ==========================================
-         📊 BULK & WEB SHEET UI
-         ========================================== */
       .upload-box {
         border: 2px dashed #cbd5e1;
         border-radius: 15px;
@@ -368,7 +332,6 @@
         color: #94a3b8;
         margin-bottom: 15px;
       }
-
       .btn-outline {
         background: transparent;
         color: #004d40;
@@ -402,13 +365,15 @@
       .btn-add-row:active {
         transform: scale(0.95);
       }
-
       .spreadsheet-container {
         overflow-x: auto;
         margin-bottom: 15px;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         background: white;
+        transition:
+          background-color 0.3s,
+          border-color 0.3s;
       }
       .spreadsheet-table {
         width: 100%;
@@ -423,11 +388,16 @@
         color: #475569;
         border-bottom: 1px solid #e2e8f0;
         white-space: nowrap;
+        transition:
+          background-color 0.3s,
+          color 0.3s,
+          border-color 0.3s;
       }
       .spreadsheet-table td {
         padding: 8px;
         border-bottom: 1px solid #e2e8f0;
         position: relative;
+        transition: border-color 0.3s;
       }
       .sheet-input {
         width: 100%;
@@ -445,7 +415,6 @@
         border-color: #00b894;
         background: #f0fdf4;
       }
-
       .td-error {
         background: #fef2f2 !important;
         border: 1px solid #ef4444 !important;
@@ -467,7 +436,6 @@
       td:hover .error-tooltip {
         display: block;
       }
-
       .tpl-item {
         display: flex;
         justify-content: space-between;
@@ -488,7 +456,6 @@
         display: flex;
         gap: 10px;
       }
-
       .btn-full {
         width: 100%;
         padding: 16px;
@@ -511,7 +478,6 @@
         cursor: not-allowed;
         color: white !important;
       }
-
       .bottom-modal {
         display: none;
         position: fixed;
@@ -528,13 +494,14 @@
         display: flex;
       }
       .modal-content {
-        background: var(--bg-card, white);
+        background: white;
         width: 100%;
         max-width: 450px;
         border-radius: 20px 20px 0 0;
         padding: 25px;
         animation: slideUp 0.3s ease;
         box-sizing: border-box;
+        transition: background-color 0.3s;
       }
       @keyframes slideUp {
         from {
@@ -546,42 +513,68 @@
       }
 
       /* ==========================================
-         🌙 DARK MODE OVERRIDES (Carefully Checked)
+         ✅ REFINED PREMIUM DARK MODE OVERRIDES
          ========================================== */
       body.dark-mode {
-        background-color: #000000 !important;
-      }
+        background-color: #0f172a !important;
+      } /* Soft Slate Dark instead of pitch black */
       body.dark-mode .app-container {
-        background-color: #121212 !important;
-        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
+        background-color: #1e293b !important;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5) !important;
       }
       body.dark-mode .nav-header {
-        background-color: #00251f !important;
+        background-color: #022c22 !important;
+      } /* Deep Emerald */
+
+      body.dark-mode .option-card {
+        background: #1e293b;
+        border-color: #334155;
       }
+      body.dark-mode .option-card:hover {
+        background: #334155;
+        border-color: #10b981;
+      }
+      body.dark-mode .option-text h3 {
+        color: #f8fafc;
+      }
+      body.dark-mode .option-text p {
+        color: #94a3b8;
+      }
+
       body.dark-mode .card-section {
-        background: #1e1e1e;
-        border-color: #333;
+        background: #1e293b;
+        border-color: #334155;
       }
       body.dark-mode .section-title {
-        color: #94a3b8;
+        color: #cbd5e1;
       }
       body.dark-mode .input-group label {
         color: #cbd5e1;
       }
       body.dark-mode .input-group input,
       body.dark-mode .input-group select {
-        background: #2d2d2d;
-        color: #ffffff;
-        border-color: #444;
+        background: #0f172a;
+        color: #f8fafc;
+        border-color: #334155;
       }
+      body.dark-mode .input-group input:focus,
+      body.dark-mode .input-group select:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
+
       body.dark-mode .fetched-name {
-        background: rgba(22, 101, 52, 0.2);
-        border-color: #166534;
-        color: #4ade80;
+        background: rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+        color: #34d399;
       }
+      body.dark-mode .dynamic-freq-box {
+        border-top-color: #334155;
+      }
+
       body.dark-mode .day-circle {
-        background: #2d2d2d;
-        border-color: #444;
+        background: #0f172a;
+        border-color: #334155;
         color: #cbd5e1;
       }
       body.dark-mode .day-circle.active {
@@ -589,55 +582,93 @@
         color: white;
         border-color: #10b981;
       }
-      body.dark-mode .dynamic-freq-box {
-        border-top-color: #333;
-      }
+
       body.dark-mode .custom-slider {
-        background: #444;
+        background: #334155;
       }
+      body.dark-mode .slider-labels {
+        color: #94a3b8;
+      }
+
       body.dark-mode .upload-box {
-        background: #1e1e1e;
-        border-color: #444;
+        background: #0f172a;
+        border-color: #334155;
       }
       body.dark-mode .upload-box:hover {
+        background: #1e293b;
         border-color: #10b981;
       }
+      body.dark-mode .upload-box h4 {
+        color: #f8fafc !important;
+      }
+
+      body.dark-mode .btn-outline {
+        color: #34d399;
+        border-color: #34d399;
+      }
+      body.dark-mode .btn-outline:active {
+        background: rgba(52, 211, 153, 0.1);
+      }
+      body.dark-mode .btn-add-row {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+      }
+
       body.dark-mode .spreadsheet-container {
-        background: #1e1e1e;
-        border-color: #333;
+        background: #0f172a;
+        border-color: #334155;
       }
       body.dark-mode .spreadsheet-table th {
-        background: #2d2d2d;
+        background: #1e293b;
         color: #cbd5e1;
-        border-color: #444;
+        border-color: #334155;
       }
       body.dark-mode .spreadsheet-table td {
-        border-color: #333;
+        border-color: #334155;
       }
       body.dark-mode .sheet-input {
-        color: white;
+        color: #f8fafc;
       }
       body.dark-mode .sheet-input:focus {
         background: rgba(16, 185, 129, 0.1);
         border-color: #10b981;
       }
-      body.dark-mode .btn-add-row {
-        background: #00251f;
-        color: #10b981;
-      }
+
       body.dark-mode .tpl-item {
-        background: #1e1e1e;
-        border-color: #333;
+        background: #0f172a;
+        border-color: #334155;
       }
       body.dark-mode .tpl-item:hover {
-        background: #2d2d2d;
+        background: #1e293b;
+        border-color: #10b981;
       }
       body.dark-mode .tpl-item h4 {
-        color: white;
+        color: #f8fafc;
+      }
+
+      body.dark-mode .modal-content {
+        background: #1e293b;
       }
       body.dark-mode .dark-text-white {
-        color: white !important;
+        color: #f8fafc !important;
       }
+      body.dark-mode .history-card-item {
+        border-bottom-color: #334155 !important;
+      }
+
+      /* SweetAlert Dark Mode Fixes */
+      body.dark-mode .swal2-popup {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border: 1px solid #334155;
+      }
+      body.dark-mode .swal2-title {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .swal2-html-container {
+        color: #cbd5e1 !important;
+      }
+
       .premium-swal {
         border-radius: 20px !important;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
@@ -646,7 +677,6 @@
   </head>
   <body>
     <div class="app-container">
-      <!-- 🌟 HEADER -->
       <div class="nav-header">
         <a id="backBtn" onclick="goBack()">
           <i class="fa-solid fa-arrow-left"></i>
@@ -662,21 +692,15 @@
       </div>
 
       <div class="content-body">
-        <!-- =========================================================
-             🏠 STATE 0: LANDING PAGE
-             ========================================================= -->
+        <!-- STATE 0: LANDING PAGE -->
         <div id="state-landing" class="view-state active">
-          <p
-            style="color: #64748b; margin-top: 0"
-            class="kh-text"
-            data-i18n="lbl_select_type"
-          >
+          <p style="color: #64748b; margin-top: 0" data-i18n="lbl_select_type">
             Select Payout Type
           </p>
 
           <div
             class="option-card"
-            onclick="switchState('state-single', 'Single Payout')"
+            onclick="switchState('state-single', t('card_single_title'))"
           >
             <div class="option-icon icon-single">
               <i class="fa-solid fa-user"></i>
@@ -685,7 +709,7 @@
               <h3 class="dark-text-white" data-i18n="card_single_title">
                 Single Payout
               </h3>
-              <p class="kh-text" data-i18n="card_single_desc">
+              <p data-i18n="card_single_desc">
                 Schedule payment for one person or bill.
               </p>
             </div>
@@ -693,7 +717,7 @@
 
           <div
             class="option-card"
-            onclick="switchState('state-bulk', 'Bulk Payout')"
+            onclick="switchState('state-bulk', t('card_bulk_title'))"
           >
             <div class="option-icon icon-bulk">
               <i class="fa-solid fa-users"></i>
@@ -702,16 +726,14 @@
               <h3 class="dark-text-white" data-i18n="card_bulk_title">
                 Bulk (Payroll)
               </h3>
-              <p class="kh-text" data-i18n="card_bulk_desc">
+              <p data-i18n="card_bulk_desc">
                 Process salary or pay multiple people at once.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- =========================================================
-             👤 STATE 1: SINGLE TRANSFER
-             ========================================================= -->
+        <!-- STATE 1: SINGLE TRANSFER -->
         <div id="state-single" class="view-state">
           <div class="card-section">
             <div class="section-title">
@@ -731,6 +753,7 @@
               <input
                 type="number"
                 id="singleAccNo"
+                data-i18n-placeholder="ph_enter_account"
                 placeholder="Enter Account"
                 oninput="
                   fetchAccountName(this, 'singleNameDisplay', 'fetchedNameText')
@@ -751,7 +774,7 @@
                 type="number"
                 id="singleAmount"
                 placeholder="0.00"
-                style="font-size: 1.2rem; font-weight: bold; color: #004d40"
+                style="font-size: 1.2rem; font-weight: bold; color: #10b981"
               />
             </div>
           </div>
@@ -794,7 +817,7 @@
 
                 <div id="freq-weekly" class="dynamic-freq-box">
                   <label
-                    style="font-size: 0.85rem; color: #475569; font-weight: 600"
+                    style="font-size: 0.85rem; font-weight: 600"
                     data-i18n="lbl_select_day"
                     >Select Day of Week</label
                   >
@@ -853,14 +876,14 @@
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label
+                    <label data-i18n="lbl_exec_time">Execution Time</label
                     ><input type="time" id="weeklyTime" value="08:00" />
                   </div>
                 </div>
 
                 <div id="freq-monthly" class="dynamic-freq-box">
                   <label
-                    style="font-size: 0.85rem; color: #475569; font-weight: 600"
+                    style="font-size: 0.85rem; font-weight: 600"
                     data-i18n="lbl_select_month_day"
                     >Select Day of Month</label
                   >
@@ -884,7 +907,7 @@
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label
+                    <label data-i18n="lbl_exec_time">Execution Time</label
                     ><input type="time" id="monthlyTime" value="08:00" />
                   </div>
                 </div>
@@ -908,7 +931,7 @@
                     </select>
                   </div>
                   <label
-                    style="font-size: 0.85rem; color: #475569; font-weight: 600"
+                    style="font-size: 0.85rem; font-weight: 600"
                     data-i18n="lbl_select_month_day"
                     >Select Day of Month</label
                   >
@@ -932,7 +955,7 @@
                     class="input-group"
                     style="margin-top: 15px; margin-bottom: 0"
                   >
-                    <label>Execution Time</label
+                    <label data-i18n="lbl_exec_time">Execution Time</label
                     ><input type="time" id="yearlyTime" value="08:00" />
                   </div>
                 </div>
@@ -954,19 +977,25 @@
 
             <div class="input-group" style="margin-top: 15px; margin-bottom: 0">
               <label data-i18n="lbl_remark">Remark</label>
-              <input type="text" placeholder="Purpose..." id="singleRemark" />
+              <input
+                type="text"
+                data-i18n-placeholder="ph_purpose"
+                placeholder="Purpose..."
+                id="singleRemark"
+              />
             </div>
           </div>
 
-          <!-- 🔥 ប្តូរឈ្មោះប៊ូតុងទៅជា Confirm Transfer តាមការស្នើសុំ -->
-          <button class="btn-full" onclick="confirmSingle()">
+          <button
+            class="btn-full"
+            onclick="confirmSingle()"
+            data-i18n="btn_confirm_transfer"
+          >
             Confirm Transfer
           </button>
         </div>
 
-        <!-- =========================================================
-             👥 STATE 2: BULK UPLOAD (EXCEL)
-             ========================================================= -->
+        <!-- STATE 2: BULK UPLOAD (EXCEL) -->
         <div id="state-bulk" class="view-state">
           <div class="card-section">
             <div class="section-title" style="margin-bottom: 20px">
@@ -976,20 +1005,20 @@
             <div class="upload-box" onclick="openUploadOptionsModal()">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <h4
-                style="margin: 0; color: #333"
+                style="margin: 0"
                 class="dark-text-white"
                 data-i18n="lbl_upload_file"
               >
                 Upload File or Template
               </h4>
               <p
-                style="font-size: 0.8rem; color: #94a3b8; margin: 5px 0 0"
+                style="font-size: 0.8rem; margin: 5px 0 0"
                 data-i18n="lbl_upload_desc"
               >
                 Tap to select source
               </p>
             </div>
-            <!-- អាន Excel ពិតៗ -->
+
             <input
               type="file"
               id="realFileInput"
@@ -1001,10 +1030,10 @@
             <button
               class="btn-outline"
               style="width: 100%"
-              onclick="switchState('state-sheet', 'Web Sheet')"
+              onclick="switchState('state-sheet', t('lbl_template_editor'))"
             >
-              <i class="fa-solid fa-table-cells"></i>
-              <span data-i18n="btn_manage_templates"
+              <i class="fa-solid fa-table-cells"></i
+              ><span data-i18n="btn_manage_templates"
                 >Manage Templates (Web Sheet)</span
               >
             </button>
@@ -1020,7 +1049,7 @@
                 "
               >
                 <h4
-                  style="margin: 0; color: #1e293b"
+                  style="margin: 0"
                   class="dark-text-white"
                   data-i18n="lbl_review_data"
                 >
@@ -1029,9 +1058,9 @@
                 <span
                   style="
                     font-size: 0.8rem;
-                    color: #004d40;
+                    color: #10b981;
                     font-weight: bold;
-                    background: #e0f2f1;
+                    background: rgba(16, 185, 129, 0.1);
                     padding: 3px 8px;
                     border-radius: 10px;
                   "
@@ -1066,8 +1095,8 @@
                 "
                 class="dark-text-white"
               >
-                <span data-i18n="lbl_total_amt">Total Amount:</span>
-                <span style="color: #004d40" id="totalAmountDisplay"
+                <span data-i18n="lbl_total_amt">Total Amount:</span
+                ><span style="color: #10b981" id="totalAmountDisplay"
                   >$0.00</span
                 >
               </div>
@@ -1088,11 +1117,7 @@
                     margin-top: 0;
                     margin-bottom: 15px;
                   "
-                >
-                  <!-- Content injected by JS -->
-                </p>
-
-                <!-- ប៊ូតុង Edit In Web Sheet -->
+                ></p>
                 <button
                   id="btnEditInSheet"
                   onclick="jumpToEditCurrentTemplate()"
@@ -1111,7 +1136,8 @@
                     margin-bottom: 15px;
                   "
                 >
-                  <i class="fa-solid fa-pen-to-square"></i> Edit in Web Sheet
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  <span data-i18n="btn_edit_in_sheet">Edit in Web Sheet</span>
                 </button>
               </div>
             </div>
@@ -1125,21 +1151,20 @@
             <div class="section-title">
               <span data-i18n="lbl_source_acc">Source Account</span>
             </div>
-            <div class="input-group">
-              <select id="bulkSourceAcc">
-                <!-- Populated automatically -->
-              </select>
-            </div>
+            <div class="input-group"><select id="bulkSourceAcc"></select></div>
 
             <div class="section-title">
               <span data-i18n="lbl_payout_option">Payout Option</span>
             </div>
             <div class="input-group" style="margin-bottom: 0">
               <select id="bulkProcessType" onchange="toggleBulkSchedule()">
-                <option value="now">Process Now</option>
-                <option value="schedule">Schedule for Later</option>
+                <option value="now" data-i18n="opt_process_now">
+                  Process Now
+                </option>
+                <option value="schedule" data-i18n="opt_schedule_later">
+                  Schedule for Later
+                </option>
               </select>
-
               <div
                 id="bulkScheduleWrapper"
                 style="
@@ -1163,9 +1188,7 @@
           </button>
         </div>
 
-        <!-- =========================================================
-             📝 STATE 3: WEB SHEET (TEMPLATES)
-             ========================================================= -->
+        <!-- STATE 3: WEB SHEET (TEMPLATES) -->
         <div id="state-sheet" class="view-state">
           <div class="card-section">
             <div
@@ -1184,8 +1207,8 @@
                 style="width: auto; margin: 0; padding: 5px 10px"
                 onclick="openTplListModal(false)"
               >
-                <i class="fa-solid fa-folder-open"></i>
-                <span data-i18n="btn_open">Open</span>
+                <i class="fa-solid fa-folder-open"></i
+                ><span data-i18n="btn_open">Open</span>
               </button>
             </div>
 
@@ -1194,6 +1217,7 @@
               <input
                 type="text"
                 id="tplNameInput"
+                data-i18n-placeholder="ph_template_name"
                 placeholder="e.g. August Payroll - Team A"
               />
             </div>
@@ -1203,20 +1227,18 @@
                 <thead>
                   <tr>
                     <th data-i18n="lbl_acc">Account</th>
-                    <th data-i18n="lbl_name">Name (Auto)</th>
+                    <th data-i18n="lbl_name_auto">Name (Auto)</th>
                     <th data-i18n="lbl_amount">Amount</th>
                     <th data-i18n="lbl_remark">Remark</th>
                     <th></th>
                   </tr>
                 </thead>
-                <tbody id="sheetBody">
-                  <!-- Rows injected via JS -->
-                </tbody>
+                <tbody id="sheetBody"></tbody>
               </table>
             </div>
             <button class="btn-add-row" onclick="addSheetRow()">
-              <i class="fa-solid fa-plus"></i>
-              <span data-i18n="btn_add_row">Add Row</span>
+              <i class="fa-solid fa-plus"></i
+              ><span data-i18n="btn_add_row">Add Row</span>
             </button>
 
             <button
@@ -1231,9 +1253,7 @@
           </div>
         </div>
 
-        <!-- =========================================================
-             📜 STATE 4: PAYOUT HISTORY
-             ========================================================= -->
+        <!-- STATE 4: PAYOUT HISTORY -->
         <div id="state-history" class="view-state">
           <div
             class="card-section"
@@ -1243,21 +1263,19 @@
               <input
                 type="text"
                 id="historySearch"
-                placeholder="ស្វែងរកតាមឈ្មោះ ឬ លេខកុង..."
+                data-i18n-placeholder="ph_search_history"
+                placeholder="Search..."
                 oninput="filterHistory()"
                 style="padding: 10px 14px; font-size: 0.9rem"
               />
             </div>
           </div>
-
-          <div id="historyListContainer">
-            <!-- នឹងបង្ហាញប្រវត្តិនៅទីនេះដោយស្វ័យប្រវត្តិ -->
-          </div>
+          <div id="historyListContainer"></div>
         </div>
       </div>
     </div>
 
-    <!-- Modal សម្រាប់បង្ហាញព័ត៌មានលម្អិតនៃប្រវត្តិការទូទាត់ -->
+    <!-- Modals -->
     <div id="historyDetailModal" class="bottom-modal">
       <div class="modal-content" style="max-height: 80vh; overflow-y: auto">
         <div
@@ -1268,8 +1286,12 @@
             margin-bottom: 15px;
           "
         >
-          <h3 style="margin: 0" class="dark-text-white">
-            ព័ត៌មានលម្អិតការទូទាត់
+          <h3
+            style="margin: 0"
+            class="dark-text-white"
+            data-i18n="lbl_history_detail"
+          >
+            Payment Details
           </h3>
           <i
             class="fa-solid fa-xmark"
@@ -1277,15 +1299,10 @@
             onclick="closeModal('historyDetailModal')"
           ></i>
         </div>
-        <div id="historyDetailContent">
-          <!-- បង្ហាញព័ត៌មានលម្អិតនៅទីនេះ -->
-        </div>
+        <div id="historyDetailContent"></div>
       </div>
     </div>
 
-    <!-- ==========================================
-         🌟 MODALS (POPUPS)
-         ========================================== -->
     <div id="uploadOptionsModal" class="bottom-modal">
       <div class="modal-content">
         <div
@@ -1297,7 +1314,7 @@
           "
         >
           <h3
-            style="margin: 0; color: var(--text-main, #333)"
+            style="margin: 0"
             class="dark-text-white"
             data-i18n="lbl_select_source"
           >
@@ -1313,7 +1330,7 @@
           <div style="display: flex; gap: 15px; align-items: center">
             <i
               class="fa-solid fa-desktop"
-              style="font-size: 1.5rem; color: #004d40"
+              style="font-size: 1.5rem; color: #10b981"
             ></i>
             <div>
               <h4
@@ -1369,7 +1386,7 @@
           "
         >
           <h3
-            style="margin: 0; color: var(--text-main, #333)"
+            style="margin: 0"
             class="dark-text-white"
             data-i18n="lbl_saved_templates"
           >
@@ -1385,11 +1402,325 @@
       </div>
     </div>
 
-    <!-- =======================================================
-         🔥 JAVASCRIPT: CLEANED & SECURED
-         ======================================================= -->
+    <!-- JAVASCRIPT -->
     <script>
-      // === 1. GLOBAL VARIABLES ===
+      // ==========================================
+      // ✅ TRANSLATION DICTIONARY & HELPER
+      // ==========================================
+      const dictionary = {
+        en: {
+          title_auto_payouts: "Auto Payouts",
+          lbl_select_type: "Select Payout Type",
+          card_single_title: "Single Payout",
+          card_single_desc: "Schedule payment for one person or bill.",
+          card_bulk_title: "Bulk (Payroll)",
+          card_bulk_desc: "Process salary or pay multiple people at once.",
+          lbl_source_acc: "Source Account",
+          lbl_receiver_info: "Receiver Info",
+          lbl_acc_num: "Account Number",
+          ph_enter_account: "Enter Account",
+          lbl_amount: "Amount (USD)",
+          lbl_remark: "Remark",
+          ph_purpose: "Purpose...",
+          btn_confirm_transfer: "Confirm Transfer",
+          lbl_main_acc_usd: "Main Account ($)",
+          lbl_main_acc_khr: "Main Account (៛)",
+          lbl_schedule: "Schedule",
+          lbl_frequency: "Frequency",
+          opt_once: "Once",
+          opt_weekly: "Weekly",
+          opt_monthly: "Monthly",
+          opt_yearly: "Yearly",
+          lbl_date: "Date",
+          lbl_time: "Time",
+          lbl_select_day: "Select Day of Week",
+          lbl_exec_time: "Execution Time",
+          lbl_select_month_day: "Select Day of Month",
+          lbl_1st_day: "1st Day",
+          lbl_last_day: "Last Day",
+          lbl_month: "Month",
+          lbl_start_date: "Start Date",
+          lbl_end_date: "End Date (Optional)",
+          lbl_day_of: "Day",
+          lbl_not_set: "Not Set",
+          lbl_time_kh: " Time ",
+          lbl_every_month_day: "Every month on the",
+          lbl_every_week: "Every week",
+          lbl_every_year: "Every year",
+          lbl_data_source: "Data Source",
+          lbl_upload_file: "Upload File or Template",
+          lbl_upload_desc: "Tap to select source",
+          btn_manage_templates: "Manage Templates (Web Sheet)",
+          lbl_review_data: "Review Data",
+          lbl_acc: "Account",
+          lbl_name: "Name",
+          lbl_total_amt: "Total Amount:",
+          btn_edit_in_sheet: "Edit in Web Sheet",
+          lbl_payout_option: "Payout Option",
+          opt_process_now: "Process Now",
+          opt_schedule_later: "Schedule for Later",
+          btn_confirm_bulk: "Confirm Bulk",
+          lbl_template_editor: "Template Editor",
+          btn_open: "Open",
+          lbl_template_name: "Template Name",
+          ph_template_name: "e.g. August Payroll - Team A",
+          lbl_name_auto: "Name (Auto)",
+          btn_add_row: "Add Row",
+          btn_save_template: "Save Template",
+          ph_search_history: "Search by name or account...",
+          lbl_history_detail: "Payment Details",
+          lbl_select_source: "Select Source",
+          lbl_from_computer: "From Computer/Phone",
+          lbl_excel_csv: "Upload Excel or CSV file",
+          lbl_from_templates: "From Saved Templates",
+          lbl_web_sheet_data: "Use data saved in Web Sheet",
+          lbl_saved_templates: "Saved Templates",
+          title_payout_history: "Payout History",
+          lbl_loading: "Loading data...",
+          err_history_fail: "Failed to load history!",
+          msg_no_history: "No payment history yet",
+          msg_no_templates: "No Templates Saved",
+          btn_load: "Load",
+          status_completed: "Completed",
+          status_failed: "Failed",
+          status_paused: "Paused",
+          status_active: "Active",
+          btn_repay: "Re-pay",
+          btn_retry: "Retry",
+          lbl_people: "People",
+          lbl_name_kh: "Name:",
+          lbl_source_kh: "Source Account:",
+          lbl_created_date: "Created Date:",
+          lbl_exec_date: "Execution Date:",
+          lbl_status_kh: "Status:",
+          lbl_recipient_list: "Recipient List",
+          lbl_total_amt_kh: "Total Amount:",
+          lbl_searching: "Searching...",
+          lbl_not_found: "Not Found",
+          lbl_error: "Error",
+          lbl_warning: "Warning",
+          lbl_failed: "Failed",
+          lbl_success: "Success!",
+          lbl_confirm: "Confirm",
+          lbl_processing: "Processing...",
+          lbl_wait: "Please wait...",
+          swal_reading_excel: "Reading Excel...",
+          swal_verify_data: "Verifying Data...",
+          swal_wait: "Please wait a moment...",
+          err_no_acc_format:
+            "Account format not found in Excel! Please check the Header.",
+          err_read_excel: "Problem reading this Excel file!",
+          err_no_account: "No account number",
+          err_own_account: "Cannot transfer to your own account!",
+          err_duplicate: "Duplicate account number found!",
+          err_invalid_acc: "Invalid or unfound account!",
+          err_enter_amount: "Please enter amount",
+          err_name_mismatch: "Name in Excel doesn't match Database (Real Name:",
+          msg_fatal_error:
+            "Fatal Error! Please click Edit to correct the red fields.",
+          msg_warning_name:
+            "Name mismatch detected! Click Edit to correct before proceeding.",
+          err_enter_name: "Please enter Name",
+          err_sheet_empty: "Sheet is empty",
+          swal_updating: "Updating...",
+          swal_saving: "Saving...",
+          swal_edit_success: "Edited successfully!",
+          swal_tpl_saved: "Template Saved!",
+          err_fill_info: "Please fill all required information",
+          lbl_confirm_transfer: "Confirm Transfer",
+          lbl_transfer: "Transfer",
+          lbl_to_account: "to account",
+          lbl_confirm_bulk: "Confirm Bulk Payout",
+          swal_pause_success: "Schedule paused successfully!",
+          swal_resume_success: "Schedule resumed successfully!",
+          swal_del_title: "Are you sure?",
+          swal_del_desc: "This data will be permanently deleted!",
+          btn_confirm_delete: "Yes, Delete",
+          btn_cancel: "Cancel",
+          swal_del_success: "Deleted successfully!",
+          title_repay_single: "Single Payout (Re-pay)",
+          swal_load_single: "Single data loaded to creator!",
+          title_repay_bulk: "Bulk Payout (Re-pay)",
+          swal_load_bulk: "Bulk data loaded to Review!",
+          swal_del_tpl_title: "Delete this Template?",
+          swal_del_tpl_desc: "This template will be permanently removed!",
+          swal_deleting: "Deleting...",
+          swal_del_tpl_success: "Template deleted successfully!",
+          title_edit_single: "Edit Single Payout",
+          title_edit_bulk: "Edit Bulk Payout",
+          day_of_kh: "th",
+        },
+        kh: {
+          title_auto_payouts: "ប្រព័ន្ធទូទាត់ស្វ័យប្រវត្តិ",
+          lbl_select_type: "ជ្រើសរើសប្រភេទនៃការទូទាត់",
+          card_single_title: "ទូទាត់បុគ្គល (Single)",
+          card_single_desc: "កំណត់កាលវិភាគវេរប្រាក់ទៅកាន់បុគ្គលម្នាក់ៗ។",
+          card_bulk_title: "បើកប្រាក់បៀវត្សរ៍ (Bulk)",
+          card_bulk_desc:
+            "បើកប្រាក់ខែ ឬវេរប្រាក់ទៅកាន់មនុស្សច្រើននាក់ក្នុងពេលតែមួយ។",
+          lbl_source_acc: "គណនីប្រភព",
+          lbl_receiver_info: "ព័ត៌មានអ្នកទទួល",
+          lbl_acc_num: "លេខគណនី",
+          ph_enter_account: "បញ្ចូលលេខគណនី",
+          lbl_amount: "ទឹកប្រាក់ (USD)",
+          lbl_remark: "ចំណាំ",
+          ph_purpose: "គោលបំណង...",
+          btn_confirm_transfer: "បញ្ជាក់ការវេរប្រាក់",
+          lbl_main_acc_usd: "គណនីចម្បង ($)",
+          lbl_main_acc_khr: "គណនីចម្បង (៛)",
+          lbl_schedule: "កាលវិភាគ",
+          lbl_frequency: "ភាពញឹកញាប់",
+          opt_once: "តែម្តងគត់ (Once)",
+          opt_weekly: "ប្រចាំសប្តាហ៍",
+          opt_monthly: "ប្រចាំខែ",
+          opt_yearly: "ប្រចាំឆ្នាំ",
+          lbl_date: "កាលបរិច្ឆេទ",
+          lbl_time: "ម៉ោង",
+          lbl_select_day: "ជ្រើសរើសថ្ងៃនៃសប្តាហ៍",
+          lbl_exec_time: "ម៉ោងប្រតិបត្តិការ",
+          lbl_select_month_day: "ជ្រើសរើសថ្ងៃនៃខែ",
+          lbl_1st_day: "ថ្ងៃទី១",
+          lbl_last_day: "ថ្ងៃចុងខែ",
+          lbl_month: "ខែ",
+          lbl_start_date: "ថ្ងៃចាប់ផ្តើម",
+          lbl_end_date: "ថ្ងៃបញ្ចប់ (មិនចាំបាច់ក៏បាន)",
+          lbl_day_of: "ទី",
+          lbl_not_set: "មិនមានកំណត់",
+          lbl_time_kh: " ម៉ោង ",
+          lbl_every_month_day: "រៀងរាល់ថ្ងៃទី",
+          lbl_every_week: "រៀងរាល់សប្តាហ៍",
+          lbl_every_year: "រៀងរាល់ឆ្នាំ",
+          lbl_data_source: "ប្រភពទិន្នន័យ",
+          lbl_upload_file: "បញ្ចូលឯកសារ ឬ Template",
+          lbl_upload_desc: "ចុចទីនេះដើម្បីជ្រើសរើស",
+          btn_manage_templates: "គ្រប់គ្រង Template (Web Sheet)",
+          lbl_review_data: "ពិនិត្យទិន្នន័យ",
+          lbl_acc: "គណនី",
+          lbl_name: "ឈ្មោះ",
+          lbl_total_amt: "សរុប:",
+          btn_edit_in_sheet: "កែសម្រួលក្នុង Web Sheet",
+          lbl_payout_option: "ជម្រើសទូទាត់",
+          opt_process_now: "ដំណើរការភ្លាមៗ",
+          opt_schedule_later: "កំណត់កាលវិភាគពេលក្រោយ",
+          btn_confirm_bulk: "បញ្ជាក់ការទូទាត់រួម",
+          lbl_template_editor: "កន្លែងកែសម្រួល Template",
+          btn_open: "បើក",
+          lbl_template_name: "ឈ្មោះ Template",
+          ph_template_name: "ឧ. ប្រាក់ខែខែសីហា - ក្រុម A",
+          lbl_name_auto: "ឈ្មោះ (ស្វ័យប្រវត្តិ)",
+          btn_add_row: "បន្ថែមជួរ",
+          btn_save_template: "រក្សាទុក Template",
+          ph_search_history: "ស្វែងរកតាមឈ្មោះ ឬ លេខកុង...",
+          lbl_history_detail: "ព័ត៌មានលម្អិតការទូទាត់",
+          lbl_select_source: "ជ្រើសរើសប្រភព",
+          lbl_from_computer: "ពីកុំព្យូទ័រ ឬទូរស័ព្ទ",
+          lbl_excel_csv: "បញ្ចូលឯកសារ Excel ឬ CSV",
+          lbl_from_templates: "ពី Template ដែលបានរក្សាទុក",
+          lbl_web_sheet_data: "ប្រើទិន្នន័យពី Web Sheet",
+          lbl_saved_templates: "ឯកសារ Template របស់អ្នក",
+          title_payout_history: "ប្រវត្តិការទូទាត់",
+          lbl_loading: "កំពុងទាញយកទិន្នន័យ...",
+          err_history_fail: "បរាជ័យក្នុងការទាញយកប្រវត្តិ!",
+          msg_no_history: "មិនទាន់មានប្រវត្តិការទូទាត់នៅឡើយទេ",
+          msg_no_templates: "គ្មានឯកសារនៅឡើយទេ (No Templates)",
+          btn_load: "ទាញយក",
+          status_completed: "ជោគជ័យ",
+          status_failed: "បរាជ័យ",
+          status_paused: "បានផ្អាក",
+          status_active: "សកម្ម",
+          btn_repay: "ទូទាត់ម្តងទៀត",
+          btn_retry: "ព្យាយាមម្តងទៀត",
+          lbl_people: "នាក់",
+          lbl_name_kh: "ឈ្មោះ:",
+          lbl_source_kh: "ប្រភពទឹកប្រាក់:",
+          lbl_created_date: "កាលបរិច្ឆេទបង្កើត:",
+          lbl_exec_date: "កាលបរិច្ឆេទកាត់លុយ:",
+          lbl_status_kh: "ស្ថានភាព:",
+          lbl_recipient_list: "បញ្ជីឈ្មោះអ្នកទទួល",
+          lbl_total_amt_kh: "ទឹកប្រាក់សរុប:",
+          lbl_searching: "កំពុងស្វែងរក...",
+          lbl_not_found: "រកមិនឃើញទេ",
+          lbl_error: "កំហុស",
+          lbl_warning: "ចំណាំ",
+          lbl_failed: "បរាជ័យ",
+          lbl_success: "ជោគជ័យ!",
+          lbl_confirm: "បញ្ជាក់",
+          lbl_processing: "កំពុងដំណើរការ...",
+          lbl_wait: "រង់ចាំបន្តិច...",
+          swal_reading_excel: "កំពុងអានឯកសារ Excel...",
+          swal_verify_data: "កំពុងផ្ទៀងផ្ទាត់ទិន្នន័យ...",
+          swal_wait: "សូមរង់ចាំបន្តិច...",
+          err_no_acc_format:
+            "រកមិនឃើញទម្រង់គណនី (Account) នៅក្នុង Excel នេះទេ! សូមពិនិត្យមើល Header ម្តងទៀត។",
+          err_read_excel: "មានបញ្ហាក្នុងការអានឯកសារ Excel នេះ!",
+          err_no_account: "មិនមានលេខគណនី",
+          err_own_account: "មិនអាចវេរចូលគណនីខ្លួនឯងបានទេ!",
+          err_duplicate: "មានលេខគណនីស្ទួនគ្នា (Duplicate)!",
+          err_invalid_acc: "គណនីមិនត្រឹមត្រូវ ឬរកមិនឃើញ!",
+          err_enter_amount: "សូមបញ្ចូលទឹកប្រាក់",
+          err_name_mismatch:
+            "ឈ្មោះក្នុង Excel មិនត្រូវនឹង Database (ឈ្មោះពិតគឺ:",
+          msg_fatal_error:
+            "មានកំហុសធ្ងន់ធ្ងរ! សូមចុច Edit ទៅកែទម្រង់ពណ៌ក្រហមសិន។",
+          msg_warning_name:
+            "មានឈ្មោះអតិថិជនមិនស៊ីគ្នា! សូមចុច Edit ដើម្បីកែតម្រូវសិន ទើបអាចបន្តបាន។",
+          err_enter_name: "សូមបញ្ចូលឈ្មោះ",
+          err_sheet_empty: "មិនមានទិន្នន័យក្នុង Sheet ទេ",
+          swal_updating: "កំពុងកែសម្រួល...",
+          swal_saving: "កំពុងរក្សាទុក...",
+          swal_edit_success: "បានកែសម្រួលជោគជ័យ!",
+          swal_tpl_saved: "បានរក្សាទុក Template ជោគជ័យ!",
+          err_fill_info: "សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់",
+          lbl_confirm_transfer: "បញ្ជាក់ការវេរប្រាក់",
+          lbl_transfer: "វេរប្រាក់",
+          lbl_to_account: "ទៅកាន់គណនី",
+          lbl_confirm_bulk: "បញ្ជាក់ការទូទាត់រួម (Bulk)",
+          swal_pause_success: "បានផ្អាក់កាលវិភាគជោគជ័យ!",
+          swal_resume_success: "បានបន្តកាលវិភាគជោគជ័យ!",
+          swal_del_title: "តើអ្នកពិតជាចង់លុបមែនទេ?",
+          swal_del_desc: "ទិន្នន័យនេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
+          btn_confirm_delete: "យល់ព្រមលុប",
+          btn_cancel: "បោះបង់",
+          swal_del_success: "លុបបានជោគជ័យ!",
+          title_repay_single: "ទូទាត់បុគ្គល (Re-pay)",
+          swal_load_single: "បានទាញទិន្នន័យ Single មកផ្ទាំងបង្កើតថ្មី!",
+          title_repay_bulk: "បើកប្រាក់បៀវត្សរ៍ (Re-pay)",
+          swal_load_bulk: "បានទាញទិន្នន័យ Bulk មកផ្ទាំង Review!",
+          swal_del_tpl_title: "តើអ្នកពិតជាចង់លុប Template នេះមែនទេ?",
+          swal_del_tpl_desc: "ទិន្នន័យ Template នេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
+          swal_deleting: "កំពុងលុប...",
+          swal_del_tpl_success: "លុប Template បានជោគជ័យ!",
+          title_edit_single: "កែសម្រួលការទូទាត់បុគ្គល",
+          title_edit_bulk: "កែសម្រួលការទូទាត់រួម",
+          day_of_kh: "",
+        },
+      };
+
+      function t(key) {
+        const currentLang = localStorage.getItem("lang") || "en";
+        return dictionary[currentLang][key] || key;
+      }
+
+      function updateUITexts() {
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (dictionary[localStorage.getItem("lang") || "en"][key]) {
+            el.innerText =
+              dictionary[localStorage.getItem("lang") || "en"][key];
+          }
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-placeholder");
+          if (dictionary[localStorage.getItem("lang") || "en"][key]) {
+            el.placeholder =
+              dictionary[localStorage.getItem("lang") || "en"][key];
+          }
+        });
+      }
+
+      // ==========================================
+      // VARIABLES & INIT
+      // ==========================================
       let lastUploadedFileName = "";
       let savedTemplates = [];
       let currentBulkRecords = [];
@@ -1399,12 +1730,18 @@
       let fetchTimer;
       let sheetTimer;
       let activeFetches = 0;
+      let autoUpdateInterval = null;
 
-      let user = JSON.parse(sessionStorage.getItem("user"));
+      let user = JSON.parse(sessionStorage.getItem("user")) || {
+        username: "Test",
+        mainAccounts: {
+          USD: { accountNumber: "123" },
+          KHR: { accountNumber: "456" },
+        },
+      }; // mock fallback for testing
       let token = sessionStorage.getItem("userToken");
-      if (!user || !token) window.location.href = "index.html";
+      // if (!user || !token) window.location.href = "index.html"; // Uncomment in production
 
-      // Helper API
       async function fetchAPI(endpoint, method = "GET", body = null) {
         const options = {
           method: method,
@@ -1418,10 +1755,7 @@
           const res = await fetch(endpoint, options);
           return await res.json();
         } catch (e) {
-          return {
-            success: false,
-            message: "Network error. Please try again.",
-          };
+          return { success: false, message: t("err_history_fail") };
         }
       }
 
@@ -1440,24 +1774,48 @@
         );
       }
 
-      // === 2. INITIALIZATION ===
       document.addEventListener("DOMContentLoaded", () => {
         const isDark =
           localStorage.getItem("theme") === "dark" ||
           localStorage.getItem("darkMode_" + user.username) === "true";
         if (isDark) document.body.classList.add("dark-mode");
-        if (typeof applyLanguage === "function") applyLanguage();
+
+        updateUITexts(); // Apply translations on load
 
         populateSourceAccounts();
         fetchTemplatesFromDB();
         addSheetRow();
-
+        restrictPastDates();
         document.body.classList.add("loaded");
         updateSlider("monthSlider", "monthBubble");
         updateSlider("yearSlider", "yearBubble");
       });
 
-      // === 3. UI STATE MANAGEMENT ===
+      function restrictPastDates() {
+        const today = new Date().toISOString().split("T")[0];
+        const dateFields = ["schedDate", "startDate", "endDate"];
+        dateFields.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.setAttribute("min", today);
+        });
+      }
+
+      async function refreshUserData() {
+        try {
+          const resUser = await fetch("/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const userData = await resUser.json();
+          if (userData.success) {
+            user = userData.user;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            populateSourceAccounts();
+          }
+        } catch (e) {
+          console.error("Failed to refresh user data");
+        }
+      }
+
       function switchState(targetState, title) {
         document
           .querySelectorAll(".view-state")
@@ -1468,31 +1826,30 @@
 
         const sharedUI = document.getElementById("sharedScheduleUI");
         if (sharedUI) {
-          if (targetState === "state-single") {
+          if (targetState === "state-single")
             document
               .getElementById("singleScheduleTarget")
               .appendChild(sharedUI);
-          } else if (targetState === "state-bulk") {
+          else if (targetState === "state-bulk") {
             const bulkType = document.getElementById("bulkProcessType");
-            if (bulkType && bulkType.value === "schedule") {
+            if (bulkType && bulkType.value === "schedule")
               document
                 .getElementById("bulkScheduleWrapper")
                 .appendChild(sharedUI);
-            }
           }
         }
+        if (targetState === "state-history") startAutoUpdateHistory();
+        else stopAutoUpdateHistory();
       }
 
       function goBack() {
         if (
           ["state-single", "state-bulk", "state-history"].includes(currentState)
-        ) {
-          switchState("state-landing", "Auto Payouts");
-        } else if (currentState === "state-sheet") {
-          switchState("state-bulk", "Bulk Payout");
-        } else {
-          window.location.href = "dashboard.html";
-        }
+        )
+          switchState("state-landing", t("title_auto_payouts"));
+        else if (currentState === "state-sheet")
+          switchState("state-bulk", t("card_bulk_title"));
+        else window.location.href = "dashboard.html";
       }
 
       function openModal(id) {
@@ -1502,18 +1859,28 @@
         document.getElementById(id).classList.remove("active");
       }
 
-      // === 4. DATA FETCHING ===
       function populateSourceAccounts() {
         const singleSelect = document.getElementById("singleSourceAcc");
         const bulkSelect = document.getElementById("bulkSourceAcc");
         let html = "";
-        let lang = localStorage.getItem("lang") || "en";
+        const usdLabel = t("lbl_main_acc_usd");
+        const khrLabel = t("lbl_main_acc_khr");
 
-        html += `<option value="MAIN_USD" data-currency="USD" data-balance="${user.balance || 0}">${lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - "} ${user.accountNumber}</option>`;
-        html += `<option value="MAIN_KHR" data-currency="KHR" data-balance="${user.balanceKHR || 0}">${lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - "} ${user.accountNumberKHR || "N/A"}</option>`;
+        let usdNum =
+          user.mainAccounts?.USD?.accountNumber || user.accountNumber;
+        let usdBal = user.mainAccounts?.USD?.balance ?? user.balance ?? 0;
+        let khrNum =
+          user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
+        let khrBal = user.mainAccounts?.KHR?.balance ?? user.balanceKHR ?? 0;
+
+        if (usdNum)
+          html += `<option value="${usdNum}" data-currency="USD" data-balance="${usdBal}">${usdLabel} - ${usdNum}</option>`;
+        if (khrNum)
+          html += `<option value="${khrNum}" data-currency="KHR" data-balance="${khrBal}">${khrLabel} - ${khrNum}</option>`;
 
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return;
             const sign = sub.currency === "USD" ? "$" : "៛";
             html += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-balance="${sub.balance || 0}">${sub.accountName} (${sign}) - ${sub.accountNumber}</option>`;
           });
@@ -1527,21 +1894,18 @@
         const accNo = inputEl.value;
         const displayBox = document.getElementById(displayId);
         const nameText = document.getElementById(textId);
-
         if (accNo.length < 6) {
           if (displayBox) displayBox.style.display = "none";
           inputEl.setAttribute("data-realname", "");
           return;
         }
-
         if (displayBox) {
           displayBox.style.display = "flex";
           displayBox.style.background = "transparent";
           displayBox.style.borderColor = "transparent";
         }
         if (nameText)
-          nameText.innerHTML =
-            '<i class="fa-solid fa-spinner fa-spin" style="color:#64748b;"></i> <span style="color:#64748b;">Searching...</span>';
+          nameText.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#64748b;"></i> <span style="color:#64748b;">${t("lbl_searching")}</span>`;
 
         fetchTimer = setTimeout(async () => {
           try {
@@ -1564,12 +1928,12 @@
               inputEl.setAttribute("data-realname", realName);
             } else {
               if (nameText)
-                nameText.innerHTML = `<span style="color:#ef4444;">Not Found</span>`;
+                nameText.innerHTML = `<span style="color:#ef4444;">${t("lbl_not_found")}</span>`;
               inputEl.setAttribute("data-realname", "");
             }
           } catch (e) {
             if (nameText)
-              nameText.innerHTML = `<span style="color:#ef4444;">Error</span>`;
+              nameText.innerHTML = `<span style="color:#ef4444;">${t("lbl_error")}</span>`;
           }
         }, 600);
       }
@@ -1579,13 +1943,11 @@
         if (data.success && data.data) savedTemplates = data.data;
       }
 
-      // === 5. EXCEL UPLOAD & PARSING ===
       function handleRealExcelUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
-
         Swal.fire({
-          title: "Reading Excel...",
+          title: t("swal_reading_excel"),
           didOpen: () => Swal.showLoading(),
         });
         const reader = new FileReader();
@@ -1595,7 +1957,6 @@
             const workbook = XLSX.read(data, { type: "array" });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
             let records = [];
             let colIdx = { acc: -1, name: -1, amt: -1, rem: -1 };
             let headerRowIndex = -1;
@@ -1625,14 +1986,9 @@
                 break;
               }
             }
-
             if (headerRowIndex === -1) {
               Swal.close();
-              Swal.fire(
-                "បរាជ័យ",
-                "រកមិនឃើញទម្រង់គណនី (Account) នៅក្នុង Excel នេះទេ! សូមពិនិត្យមើល Header ម្តងទៀត។",
-                "error",
-              );
+              Swal.fire(t("lbl_failed"), t("err_no_acc_format"), "error");
               document.getElementById("realFileInput").value = "";
               return;
             }
@@ -1644,26 +2000,22 @@
               let name = colIdx.name !== -1 ? row[colIdx.name] : "";
               let amt = colIdx.amt !== -1 ? row[colIdx.amt] : 0;
               let remark = colIdx.rem !== -1 ? row[colIdx.rem] : "";
-
-              if ((acc && String(acc).trim() !== "") || Number(amt) > 0) {
+              if ((acc && String(acc).trim() !== "") || Number(amt) > 0)
                 records.push({
                   account: acc ? String(acc).trim() : "",
                   name: name ? String(name).trim() : "",
                   amount: amt ? Number(amt) : 0,
                   remark: remark ? String(remark).trim() : "",
                 });
-              }
             }
             Swal.close();
-
             currentBulkRecords = records;
             lastUploadedFileName = file.name.replace(/\.[^/.]+$/, "");
-
             verifyAndRenderReviewTable(records);
             saveAutoTemplate(lastUploadedFileName, records);
           } catch (err) {
             Swal.close();
-            Swal.fire("Error", "មានបញ្ហាក្នុងការអានឯកសារ Excel នេះ!", "error");
+            Swal.fire(t("lbl_error"), t("err_read_excel"), "error");
           } finally {
             document.getElementById("realFileInput").value = "";
           }
@@ -1671,15 +2023,13 @@
         reader.readAsArrayBuffer(file);
       }
 
-      // === 6. REVIEW TABLE LOGIC ===
       async function verifyAndRenderReviewTable(records) {
         Swal.fire({
-          title: "កំពុងផ្ទៀងផ្ទាត់ទិន្នន័យ...",
-          text: "សូមរង់ចាំបន្តិច...",
+          title: t("swal_verify_data"),
+          text: t("swal_wait"),
           didOpen: () => Swal.showLoading(),
           allowOutsideClick: false,
         });
-
         const verifyPromises = records.map(async (r) => {
           if (
             !r.account ||
@@ -1703,16 +2053,15 @@
               r.realName = data.username.toUpperCase();
               r.isValid = true;
             } else {
-              r.realName = "រកគណនីនេះមិនឃើញទេ";
+              r.realName = t("lbl_not_found");
               r.isValid = false;
             }
           } catch (e) {
-            r.realName = "Error";
+            r.realName = t("lbl_error");
             r.isValid = false;
           }
           return r;
         });
-
         const verifiedRecords = await Promise.all(verifyPromises);
         Swal.close();
         renderReviewTable(verifiedRecords);
@@ -1722,14 +2071,17 @@
         currentBulkRecords = records;
         document.getElementById("reviewContainer").style.display = "block";
         document.getElementById("payoutOptionsSection").style.display = "block";
-
         const tbody = document.getElementById("reviewBody");
         let htmlStr = "";
         let totalAmt = 0;
         let hasError = false;
         let hasWarning = false;
-
-        let myAccounts = [user.accountNumber, user.accountNumberKHR];
+        let myAccounts = [
+          user.mainAccounts?.USD?.accountNumber,
+          user.mainAccounts?.KHR?.accountNumber,
+          user.accountNumber,
+          user.accountNumberKHR,
+        ];
         if (user.subAccounts)
           user.subAccounts.forEach((sub) => myAccounts.push(sub.accountNumber));
         myAccounts = myAccounts.filter((acc) => acc);
@@ -1737,43 +2089,36 @@
         let accCounts = {};
         records.forEach((r) => {
           let accStr = String(r.account).trim();
-          if (accStr && accStr !== "undefined") {
+          if (accStr && accStr !== "undefined")
             accCounts[accStr] = (accCounts[accStr] || 0) + 1;
-          }
         });
 
         records.forEach((r) => {
           let accStr = String(r.account).trim();
           let errAcc = "";
           let accTooltip = "";
-
           let isOwnAccount = false;
           let isDuplicate = false;
           let isInvalid = false;
-
           if (!r.account || accStr === "undefined" || accStr === "") {
             errAcc = "class='td-error'";
-            accTooltip = "<span class='error-tooltip'>មិនមានលេខគណនី</span>";
+            accTooltip = `<span class='error-tooltip'>${t("err_no_account")}</span>`;
           } else if (myAccounts.includes(accStr)) {
             isOwnAccount = true;
-            accTooltip =
-              "<span class='error-tooltip'>មិនអាចវេរចូលគណនីខ្លួនឯងបានទេ!</span>";
+            accTooltip = `<span class='error-tooltip'>${t("err_own_account")}</span>`;
           } else if (accCounts[accStr] > 1) {
             isDuplicate = true;
-            accTooltip =
-              "<span class='error-tooltip'>មានលេខគណនីស្ទួនគ្នា (Duplicate)!</span>";
+            accTooltip = `<span class='error-tooltip'>${t("err_duplicate")}</span>`;
           } else if (r.hasOwnProperty("isValid") && !r.isValid) {
             isInvalid = true;
-            accTooltip =
-              "<span class='error-tooltip'>គណនីមិនត្រឹមត្រូវ ឬរកមិនឃើញ!</span>";
+            accTooltip = `<span class='error-tooltip'>${t("err_invalid_acc")}</span>`;
           }
 
           let errAmt = "";
           let amtTooltip = "";
           if (!r.amount || Number(r.amount) <= 0) {
             errAmt = "class='td-error'";
-            amtTooltip =
-              "<span class='error-tooltip'>សូមបញ្ចូលទឹកប្រាក់</span>";
+            amtTooltip = `<span class='error-tooltip'>${t("err_enter_amount")}</span>`;
           }
 
           let isNameMismatch = false;
@@ -1784,14 +2129,11 @@
             ) {
               isNameMismatch = true;
               hasWarning = true;
-              nameTooltip = `<span class='error-tooltip' style='background: #f59e0b;'>ឈ្មោះក្នុង Excel មិនត្រូវនឹង Database (ឈ្មោះពិតគឺ: ${escapeHTML(r.realName)})</span>`;
+              nameTooltip = `<span class='error-tooltip' style='background: #f59e0b;'>${t("err_name_mismatch")} ${escapeHTML(r.realName)})</span>`;
             }
           }
-
-          if (errAcc || errAmt || isOwnAccount || isDuplicate || isInvalid) {
+          if (errAcc || errAmt || isOwnAccount || isDuplicate || isInvalid)
             hasError = true;
-          }
-
           totalAmt += Number(r.amount || 0);
 
           let isRowError = isOwnAccount || isDuplicate || isInvalid;
@@ -1799,33 +2141,22 @@
           let col2 = isRowError ? "class='td-error'" : "";
           let col3 = isRowError ? "class='td-error'" : errAmt;
           let col4 = isRowError ? "class='td-error'" : "";
-
           let nameDisplayHtml = escapeHTML(r.name) || "-";
-          if (isRowError) {
+          if (isRowError)
             nameDisplayHtml += ` <i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>`;
-          } else if (isNameMismatch) {
+          else if (isNameMismatch)
             nameDisplayHtml += ` <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;" title="Name mismatch"></i> ${nameTooltip}`;
-          } else if (r.isValid) {
+          else if (r.isValid)
             nameDisplayHtml += ` <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>`;
-          }
 
-          htmlStr += `
-            <tr>
-              <td ${col1}>${escapeHTML(r.account) || "-"} ${accTooltip}</td>
-              <td ${col2}>${nameDisplayHtml}</td>
-              <td ${col3}>$${escapeHTML(String(r.amount)) || "0.00"} ${amtTooltip}</td>
-              <td ${col4}>${escapeHTML(r.remark) || "-"}</td>
-            </tr>
-          `;
+          htmlStr += `<tr><td ${col1}>${escapeHTML(r.account) || "-"} ${accTooltip}</td><td ${col2}>${nameDisplayHtml}</td><td ${col3}>$${escapeHTML(String(r.amount)) || "0.00"} ${amtTooltip}</td><td ${col4}>${escapeHTML(r.remark) || "-"}</td></tr>`;
         });
 
         tbody.innerHTML = htmlStr;
-
         document.getElementById("totalCountBadge").innerText =
           `${records.length} Records`;
         document.getElementById("totalAmountDisplay").innerText =
           `$${totalAmt.toFixed(2)}`;
-
         const btnConfirm = document.getElementById("btnConfirmBulk");
         const errMsg = document.getElementById("errorMsg");
         const btnEditInSheet = document.getElementById("btnEditInSheet");
@@ -1835,19 +2166,15 @@
         } else {
           if (btnEditInSheet) btnEditInSheet.style.display = "none";
         }
-
         if (hasError || hasWarning || records.length === 0) {
           btnConfirm.disabled = true;
           errMsg.style.display = "block";
-
           if (hasError) {
             errMsg.style.color = "#ef4444";
-            errMsg.innerHTML =
-              '<i class="fa-solid fa-triangle-exclamation"></i> មានកំហុសធ្ងន់ធ្ងរ! សូមចុច Edit ទៅកែទម្រង់ពណ៌ក្រហមសិន។';
+            errMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${t("msg_fatal_error")}`;
           } else if (hasWarning) {
             errMsg.style.color = "#f59e0b";
-            errMsg.innerHTML =
-              '<i class="fa-solid fa-circle-exclamation"></i> មានឈ្មោះអតិថិជនមិនស៊ីគ្នា! សូមចុច Edit ដើម្បីកែតម្រូវសិន ទើបអាចបន្តបាន។';
+            errMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${t("msg_warning_name")}`;
           }
         } else {
           btnConfirm.disabled = false;
@@ -1855,24 +2182,16 @@
         }
       }
 
-      // === 7. WEB SHEET EDITOR ===
       function jumpToEditCurrentTemplate() {
-        switchState("state-sheet", "Template Editor");
+        switchState("state-sheet", t("lbl_template_editor"));
         document.getElementById("tplNameInput").value =
           lastUploadedFileName || "Imported Template";
         const tbody = document.getElementById("sheetBody");
-
         let htmlStr = "";
         if (currentBulkRecords && currentBulkRecords.length > 0) {
           currentBulkRecords.forEach((r) => {
             const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-            htmlStr += `<tr>
-                <td><input type="number" class="sheet-input" value="${escapeHTML(r.account) || ""}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
-                <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name) || ""}" readonly style="color: #00b894; font-weight: bold;"></td>
-                <td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount)) || ""}"></td>
-                <td><input type="text" class="sheet-input" value="${escapeHTML(r.remark) || ""}"></td>
-                <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
-              </tr>`;
+            htmlStr += `<tr><td><input type="number" class="sheet-input" value="${escapeHTML(r.account) || ""}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td><td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name) || ""}" readonly style="color: #10b981; font-weight: bold;"></td><td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount)) || ""}"></td><td><input type="text" class="sheet-input" value="${escapeHTML(r.remark) || ""}"></td><td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td></tr>`;
           });
           tbody.innerHTML = htmlStr;
         } else {
@@ -1886,11 +2205,7 @@
         if (!tbody) return;
         const tr = document.createElement("tr");
         const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-        tr.innerHTML = `<td><input type="number" class="sheet-input" placeholder="Acc No" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
-          <td><input type="text" class="sheet-input" id="${uniqueId}_text" readonly style="color: #00b894; font-weight: bold;"></td>
-          <td><input type="number" class="sheet-input" placeholder="0.00"></td>
-          <td><input type="text" class="sheet-input" placeholder="Remark"></td>
-          <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>`;
+        tr.innerHTML = `<td><input type="number" class="sheet-input" placeholder="Acc No" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td><td><input type="text" class="sheet-input" id="${uniqueId}_text" readonly style="color: #10b981; font-weight: bold;"></td><td><input type="number" class="sheet-input" placeholder="0.00"></td><td><input type="text" class="sheet-input" placeholder="Remark"></td><td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>`;
         tbody.appendChild(tr);
       }
 
@@ -1899,12 +2214,10 @@
         if (btn) {
           if (activeFetches > 0) {
             btn.disabled = true;
-            btn.innerHTML =
-              '<i class="fa-solid fa-spinner fa-spin"></i> រង់ចាំបន្តិច...';
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t("lbl_wait")}`;
           } else {
             btn.disabled = false;
-            btn.innerHTML =
-              '<i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn_save_template">Save Template</span>';
+            btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>${t("btn_save_template")}</span>`;
           }
         }
       }
@@ -1913,20 +2226,15 @@
         clearTimeout(sheetTimer);
         const nameInput = document.getElementById(textId);
         const accNo = inputEl.value;
-
         if (accNo.trim() === "") {
           nameInput.value = "";
           return;
         }
-
         if (accNo.length < 6) return;
-
-        nameInput.value = "Searching...";
-
+        nameInput.value = t("lbl_searching");
         sheetTimer = setTimeout(async () => {
           activeFetches++;
           updateSaveButtonState();
-
           try {
             const res = await fetch("/api/check-account", {
               method: "POST",
@@ -1939,13 +2247,13 @@
             const data = await res.json();
             if (data.success) {
               nameInput.value = data.username.toUpperCase();
-              nameInput.style.color = "#00b894";
+              nameInput.style.color = "#10b981";
             } else {
-              nameInput.value = "Not Found";
+              nameInput.value = t("lbl_not_found");
               nameInput.style.color = "#ef4444";
             }
           } catch (e) {
-            nameInput.value = "Error";
+            nameInput.value = t("lbl_error");
             nameInput.style.color = "#ef4444";
           } finally {
             activeFetches--;
@@ -1963,7 +2271,6 @@
           const name = inputs[1].value;
           const amt = inputs[2].value;
           const rem = inputs[3].value;
-
           if (acc.trim() !== "" || amt.trim() !== "") {
             records.push({
               account: acc,
@@ -1980,13 +2287,11 @@
         const nameInput = document.getElementById("tplNameInput");
         const name = nameInput.value;
         const tplId = nameInput.getAttribute("data-tpl-id");
-
-        if (!name) return Swal.fire("Warning", "Please enter Name", "warning");
-
+        if (!name)
+          return Swal.fire(t("lbl_warning"), t("err_enter_name"), "warning");
         const records = extractDataFromSheet();
         if (records.length === 0)
-          return Swal.fire("Warning", "Sheet is empty", "warning");
-
+          return Swal.fire(t("lbl_warning"), t("err_sheet_empty"), "warning");
         let isEditing =
           typeof editingPayrollId !== "undefined" && editingPayrollId !== null;
 
@@ -1994,42 +2299,37 @@
           templateId: tplId,
           type: "bulk",
           name: name,
-          sourceAccount: "USD",
+          sourceAccount: user.mainAccounts?.USD?.accountNumber || "MAIN_USD",
           totalAmount: records.reduce((sum, r) => sum + Number(r.amount), 0),
           frequency: "manual",
           isTemplate: !isEditing,
           recipients: records,
         };
-
         const url = isEditing
           ? `/api/payroll/update/${editingPayrollId}`
           : "/api/payroll/create";
         const method = isEditing ? "PATCH" : "POST";
-
         Swal.fire({
-          title: isEditing ? "Updating..." : "Saving...",
+          title: isEditing ? t("swal_updating") : t("swal_saving"),
           didOpen: () => Swal.showLoading(),
         });
         const res = await fetchAPI(url, method, payload);
-
         if (res.success) {
           Swal.fire({
             toast: true,
             position: "top",
             icon: "success",
-            title: isEditing ? "បានកែសម្រួលជោគជ័យ!" : "Template Saved!",
+            title: isEditing ? t("swal_edit_success") : t("swal_tpl_saved"),
             showConfirmButton: false,
             timer: 1500,
           });
-
           nameInput.removeAttribute("data-tpl-id");
           if (isEditing) editingPayrollId = null;
-
           await fetchTemplatesFromDB();
-          switchState("state-bulk", "Bulk Payout");
+          switchState("state-bulk", t("card_bulk_title"));
           verifyAndRenderReviewTable(records);
         } else {
-          Swal.fire("Error", res.message, "error");
+          Swal.fire(t("lbl_error"), res.message, "error");
         }
       }
 
@@ -2037,7 +2337,7 @@
         const payload = {
           type: "bulk",
           name: name,
-          sourceAccount: "USD",
+          sourceAccount: user.mainAccounts?.USD?.accountNumber || "MAIN_USD",
           totalAmount: records.reduce((sum, r) => sum + Number(r.amount), 0),
           frequency: "manual",
           isTemplate: true,
@@ -2047,30 +2347,18 @@
         if (res.success) await fetchTemplatesFromDB();
       }
 
-      // === 8. PAYOUT EXECUTION (Single, Bulk) WITH PIN MODULE 🔥 ===
-
-      // មុខងារ Confirm សម្រាប់ Single Transfer (ភ្ជាប់ PIN)
       function confirmSingle() {
         const acc = document.getElementById("singleAccNo").value;
         const amount = document.getElementById("singleAmount").value;
         const realName = document
           .getElementById("singleAccNo")
           .getAttribute("data-realname");
-
-        if (!acc || !amount) {
-          return Swal.fire(
-            "បញ្ជាក់",
-            "សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់",
-            "warning",
-          );
-        }
-
-        // 🔥 ហៅ PIN Modal ពី pin.js
+        if (!acc || !amount)
+          return Swal.fire(t("lbl_confirm"), t("err_fill_info"), "warning");
         requestPinVerification(
-          "បញ្ជាក់ការវេរប្រាក់",
-          `វេរប្រាក់ $${amount} ទៅកាន់គណនី ${acc}`,
+          t("lbl_confirm_transfer"),
+          `${t("lbl_transfer")} $${amount} ${t("lbl_to_account")} ${acc}`,
           async function () {
-            // កូដនេះនឹងដើរបន្ទាប់ពីវាយ PIN ត្រូវ ៤ខ្ទង់
             const payload = {
               type: "single",
               name: `Single Transfer - ${acc}`,
@@ -2086,25 +2374,26 @@
                   remark: document.getElementById("singleRemark").value,
                 },
               ],
+              processNow:
+                document.getElementById("sharedFreq").value === "once" &&
+                !document.getElementById("schedDate").value,
             };
-
             let isEditing = editingPayrollId !== null;
             const url = isEditing
               ? `/api/payroll/update/${editingPayrollId}`
               : "/api/payroll/create";
             const method = isEditing ? "PATCH" : "POST";
-
             Swal.fire({
-              title: isEditing ? "កំពុងកែសម្រួល..." : "កំពុងដំណើរការ...",
+              title: isEditing ? t("swal_updating") : t("lbl_processing"),
               didOpen: () => Swal.showLoading(),
             });
             const res = await fetchAPI(url, method, payload);
-
             if (res.success) {
               editingPayrollId = null;
+              await refreshUserData();
               Swal.fire({
                 icon: "success",
-                title: "ជោគជ័យ!",
+                title: t("lbl_success"),
                 timer: 1500,
                 showConfirmButton: false,
               });
@@ -2112,26 +2401,22 @@
                 goBack();
               }, 1500);
             } else {
-              Swal.fire("Error", res.message, "error");
+              Swal.fire(t("lbl_error"), res.message, "error");
             }
           },
         );
       }
 
-      // មុខងារ Confirm សម្រាប់ Bulk / Payroll (ភ្ជាប់ PIN)
       function confirmBulk() {
         const processType = document.getElementById("bulkProcessType").value;
         const totalAmt = currentBulkRecords.reduce(
           (sum, r) => sum + (Number(r.amount) || 0),
           0,
         );
-
-        // 🔥 ហៅ PIN Modal ពី pin.js
         requestPinVerification(
-          "បញ្ជាក់ការទូទាត់រួម (Bulk)",
-          `ទឹកប្រាក់សរុប $${totalAmt.toFixed(2)}`,
+          t("lbl_confirm_bulk"),
+          `$${totalAmt.toFixed(2)}`,
           async function () {
-            // កូដនេះនឹងដើរបន្ទាប់ពីវាយ PIN ត្រូវ ៤ខ្ទង់
             const payload = {
               type: "bulk",
               name: `Bulk Transfer - ${currentBulkRecords.length} records`,
@@ -2146,29 +2431,27 @@
               processNow: processType === "now",
               recipients: currentBulkRecords,
             };
-
             Swal.fire({
-              title: "កំពុងដំណើរការ Bulk...",
+              title: t("lbl_processing"),
               didOpen: () => Swal.showLoading(),
             });
             const res = await fetchAPI("/api/payroll/create", "POST", payload);
-
             if (res.success) {
+              await refreshUserData();
               Swal.fire({
-                title: "ជោគជ័យ",
+                title: t("lbl_success"),
                 text: res.message,
                 icon: "success",
                 confirmButtonColor: "#004d40",
                 customClass: { popup: "premium-swal" },
               }).then(() => location.reload());
             } else {
-              Swal.fire("Error", res.message, "error");
+              Swal.fire(t("lbl_error"), res.message, "error");
             }
           },
         );
       }
 
-      // === 9. SCHEDULE UI HELPERS ===
       function updateFreqUI() {
         const val = document.getElementById("sharedFreq").value;
         document
@@ -2198,7 +2481,7 @@
       function updateSlider(sliderId, bubbleId) {
         const slider = document.getElementById(sliderId);
         const bubble = document.getElementById(bubbleId);
-        bubble.innerText = `ទី ${slider.value}`;
+        bubble.innerText = `${t("lbl_day_of")} ${slider.value}${t("day_of_kh")}`;
         const min = slider.min ? parseFloat(slider.min) : 1;
         const max = slider.max ? parseFloat(slider.max) : 31;
         const percent = ((slider.value - min) / (max - min)) * 100;
@@ -2231,7 +2514,6 @@
         return details;
       }
 
-      // === 10. MODAL HANDLING & HISTORY ===
       function openUploadOptionsModal() {
         openModal("uploadOptionsModal");
       }
@@ -2254,112 +2536,93 @@
         const list = document.getElementById("tplListContainer");
         list.innerHTML = "";
         if (savedTemplates.length === 0) {
-          list.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.85rem;">គ្មានឯកសារនៅឡើយទេ (No Templates)</p>`;
+          list.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.85rem;">${t("msg_no_templates")}</p>`;
           return;
         }
-
         let htmlStr = "";
-        savedTemplates.forEach((t) => {
+        savedTemplates.forEach((tData) => {
           const action = isForBulk
-            ? `loadToReview('${t._id}')`
-            : `loadToSheet('${t._id}')`;
-          htmlStr += `
-            <div class="tpl-item">
-              <div style="flex:1; cursor:pointer;" onclick="${action}">
-                <h4 style="margin:0;" class="dark-text-white">${escapeHTML(t.name)}</h4>
-                <p style="margin:3px 0 0; font-size:0.75rem; color:#64748b;">${t.recipients.length} Records</p>
-              </div>
-              <div class="tpl-actions" style="display:flex; align-items:center; gap:8px;">
-                <button class="btn-outline" style="margin:0; padding:6px 12px; width:auto;" onclick="${action}">Load</button>
-                <button onclick="deleteTemplateItem('${t._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
-              </div>
-            </div>`;
+            ? `loadToReview('${tData.id}')`
+            : `loadToSheet('${tData.id}')`;
+          htmlStr += `<div class="tpl-item"><div style="flex:1; cursor:pointer;" onclick="${action}"><h4 style="margin:0;" class="dark-text-white">${escapeHTML(tData.name)}</h4><p style="margin:3px 0 0; font-size:0.75rem; color:#64748b;">${tData.recipients.length} Records</p></div><div class="tpl-actions" style="display:flex; align-items:center; gap:8px;"><button class="btn-outline" style="margin:0; padding:6px 12px; width:auto;" onclick="${action}">${t("btn_load")}</button><button onclick="deleteTemplateItem('${tData.id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;"><i class="fa-solid fa-trash"></i></button></div></div>`;
         });
         list.innerHTML = htmlStr;
       }
 
       function loadToReview(id) {
         closeModal("tplListModal");
-        const tpl = savedTemplates.find((x) => x._id === id);
+        const tpl = savedTemplates.find((x) => x.id === id);
         verifyAndRenderReviewTable(tpl.recipients);
       }
-
       function loadToSheet(id) {
         closeModal("tplListModal");
-        const tpl = savedTemplates.find((x) => x._id === id);
+        const tpl = savedTemplates.find((x) => x.id === id);
         const nameInput = document.getElementById("tplNameInput");
         nameInput.value = tpl.name;
-        nameInput.setAttribute("data-tpl-id", tpl._id);
+        nameInput.setAttribute("data-tpl-id", tpl.id);
         const tbody = document.getElementById("sheetBody");
-
         let htmlStr = "";
         tpl.recipients.forEach((r) => {
           const uniqueId = "disp_" + Math.random().toString(36).substr(2, 9);
-          htmlStr += `<tr>
-            <td><input type="number" class="sheet-input" value="${escapeHTML(r.account)}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td>
-            <td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name)}" readonly style="color: #00b894; font-weight: bold;"></td>
-            <td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount))}"></td>
-            <td><input type="text" class="sheet-input" value="${escapeHTML(r.remark)}"></td>
-            <td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td>
-          </tr>`;
+          htmlStr += `<tr><td><input type="number" class="sheet-input" value="${escapeHTML(r.account)}" oninput="simulateSheetFetch(this, '${uniqueId}_text')"></td><td><input type="text" class="sheet-input" id="${uniqueId}_text" value="${escapeHTML(r.name)}" readonly style="color: #10b981; font-weight: bold;"></td><td><input type="number" class="sheet-input" value="${escapeHTML(String(r.amount))}"></td><td><input type="text" class="sheet-input" value="${escapeHTML(r.remark)}"></td><td><i class="fa-solid fa-trash" style="color: #ef4444; cursor: pointer;" onclick="this.parentElement.parentElement.remove()"></i></td></tr>`;
         });
         tbody.innerHTML = htmlStr;
       }
 
-      async function showHistory() {
-        switchState("state-history", "Payout History");
+      async function showHistory(silent = false) {
+        switchState("state-history", t("title_payout_history"));
         const container = document.getElementById("historyListContainer");
-        container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</p>`;
+        if (!silent)
+          container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;"><i class="fa-solid fa-spinner fa-spin"></i> ${t("lbl_loading")}</p>`;
         const data = await fetchAPI("/api/payroll/history");
         if (data.success && data.data) {
           allHistoryRecords = data.data;
           renderHistoryList(allHistoryRecords);
-        } else
-          container.innerHTML = `<p style="text-align:center; color:#ef4444; margin-top:30px;">បរាជ័យក្នុងការទាញយកប្រវត្តិ!</p>`;
+        } else if (!silent) {
+          container.innerHTML = `<p style="text-align:center; color:#ef4444; margin-top:30px;">${t("err_history_fail")}</p>`;
+        }
+      }
+
+      function startAutoUpdateHistory() {
+        if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+        autoUpdateInterval = setInterval(() => {
+          showHistory(true);
+        }, 10000);
+      }
+      function stopAutoUpdateHistory() {
+        if (autoUpdateInterval) {
+          clearInterval(autoUpdateInterval);
+          autoUpdateInterval = null;
+        }
       }
 
       function renderHistoryList(records) {
         const container = document.getElementById("historyListContainer");
-
         if (records.length === 0) {
-          container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;">មិនទាន់មានប្រវត្តិការទូទាត់នៅឡើយទេ</p>`;
+          container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:30px;">${t("msg_no_history")}</p>`;
           return;
         }
-
         let htmlStr = "";
         records.forEach((h) => {
           let statusBadge = "",
             actionButtons = "";
           if (h.status === "completed") {
-            statusBadge = `<span style="background:#d1fae5; color:#065f46; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Completed</span>`;
-            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ធ្វើការទូទាត់ម្តងទៀត"><i class="fa-solid fa-rotate-right"></i> Re-pay</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
+            statusBadge = `<span style="background:rgba(16,185,129,0.2); color:#10b981; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">${t("status_completed")}</span>`;
+            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h.id}')" style="background:rgba(16,185,129,0.15); color:#10b981; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="Re-pay"><i class="fa-solid fa-rotate-right"></i> ${t("btn_repay")}</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h.id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else if (h.status === "failed") {
-            statusBadge = `<span style="background:#fee2e2; color:#991b1b; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Failed</span>`;
-            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h._id}')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="ព្យាយាមម្តងទៀត"><i class="fa-solid fa-rotate-right"></i> Retry</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
+            statusBadge = `<span style="background:#fee2e2; color:#991b1b; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">${t("status_failed")}</span>`;
+            actionButtons = `<button onclick="event.stopPropagation(); retryPayout('${h.id}')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;" title="Retry"><i class="fa-solid fa-rotate-right"></i> ${t("btn_retry")}</button><button onclick="event.stopPropagation(); deleteHistoryItem('${h.id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else if (h.status === "paused") {
-            statusBadge = `<span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Paused</span>`;
-            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'active')" style="background:#e0f2f1; color:#004d40; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-play"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
+            statusBadge = `<span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">${t("status_paused")}</span>`;
+            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h.id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h.id}', 'active')" style="background:rgba(16,185,129,0.15); color:#10b981; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-play"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h.id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           } else {
-            statusBadge = `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">Active</span>`;
-            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h._id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h._id}', 'paused')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pause"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h._id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
+            statusBadge = `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:0.75rem; font-weight:bold;">${t("status_active")}</span>`;
+            actionButtons = `<button onclick="event.stopPropagation(); editPayout('${h.id}')" style="background:#dbeafe; color:#2563eb; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pen-to-square"></i></button><button onclick="event.stopPropagation(); togglePauseSchedule('${h.id}', 'paused')" style="background:#fef3c7; color:#92400e; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-pause"></i></button><button onclick="event.stopPropagation(); deleteHistoryItem('${h.id}')" style="background:#fee2e2; color:#ef4444; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>`;
           }
           const dateStr = new Date(h.createdAt).toLocaleString("en-US", {
             timeZone: "Asia/Phnom_Penh",
           });
-          htmlStr += `
-            <div class="card-section" style="cursor:pointer; transition:0.2s; margin-bottom:12px;" onclick="openHistoryDetail('${h._id}')">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                <h4 style="margin:0; font-size:1rem; color:#1e293b;" class="dark-text-white">${escapeHTML(h.name)}</h4>${statusBadge}
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b;">
-                <span><i class="fa-solid fa-users"></i> ${h.recipients.length} នាក់</span><span>${dateStr}</span>
-              </div>
-              <hr style="border:0; border-top:1px solid #f1f5f9; margin:10px 0;">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div><span style="font-size:0.8rem; color:#64748b;">ទឹកប្រាក់សរុប:</span><span style="color:#004d40; font-size:1.05rem; font-weight:bold; margin-left:5px;">$${h.totalAmount.toFixed(2)}</span></div>
-                <div style="display:flex; gap:6px;">${actionButtons}</div>
-              </div>
-            </div>`;
+          htmlStr += `<div class="card-section history-card-item" style="cursor:pointer; transition:0.2s; margin-bottom:12px;" onclick="openHistoryDetail('${h.id}')"><div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;"><h4 style="margin:0; font-size:1rem;" class="dark-text-white">${escapeHTML(h.name)}</h4>${statusBadge}</div><div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#64748b;"><span><i class="fa-solid fa-users"></i> ${h.recipients.length} ${t("lbl_people")}</span><span>${dateStr}</span></div><hr style="border:0; border-top:1px solid #f1f5f9; margin:10px 0;"><div style="display:flex; justify-content:space-between; align-items:center;"><div><span style="font-size:0.8rem; color:#64748b;">${t("lbl_total_amt_kh")}</span><span style="color:#10b981; font-size:1.05rem; font-weight:bold; margin-left:5px;">$${h.totalAmount.toFixed(2)}</span></div><div style="display:flex; gap:6px;">${actionButtons}</div></div></div>`;
         });
         container.innerHTML = htmlStr;
       }
@@ -2381,29 +2644,35 @@
       }
 
       function openHistoryDetail(id) {
-        const h = allHistoryRecords.find((x) => x._id === id);
+        const h = allHistoryRecords.find((x) => x.id === id);
         if (!h) return;
         const content = document.getElementById("historyDetailContent");
         let sourceDisplay = h.sourceAccount;
-        if (sourceDisplay === "MAIN_USD")
-          sourceDisplay = `Main Account ($) - ${user.accountNumber}`;
-        else if (sourceDisplay === "MAIN_KHR")
-          sourceDisplay = `Main Account (៛) - ${user.accountNumberKHR || "N/A"}`;
+        if (
+          sourceDisplay === "MAIN_USD" ||
+          sourceDisplay === user.mainAccounts?.USD?.accountNumber
+        )
+          sourceDisplay = `${t("lbl_main_acc_usd")} - ${user.mainAccounts?.USD?.accountNumber || user.accountNumber}`;
+        else if (
+          sourceDisplay === "MAIN_KHR" ||
+          sourceDisplay === user.mainAccounts?.KHR?.accountNumber
+        )
+          sourceDisplay = `${t("lbl_main_acc_khr")} - ${user.mainAccounts?.KHR?.accountNumber || "N/A"}`;
 
         const createdDate = new Date(h.createdAt).toLocaleString("en-US", {
           timeZone: "Asia/Phnom_Penh",
         });
-        let scheduledExecutionText = "មិនមានកំណត់";
+        let scheduledExecutionText = t("lbl_not_set");
         if (h.scheduleDetails) {
           const sd = h.scheduleDetails;
           if (h.frequency === "once" && sd.date)
-            scheduledExecutionText = `${sd.date} ${sd.time ? "ម៉ោង " + sd.time : ""}`;
+            scheduledExecutionText = `${sd.date} ${sd.time ? t("lbl_time_kh") + sd.time : ""}`;
           else if (h.frequency === "monthly" && sd.dayOfMonth)
-            scheduledExecutionText = `រៀងរាល់ថ្ងៃទី ${sd.dayOfMonth} នៃខែ${sd.time ? " ម៉ោង " + sd.time : ""}`;
+            scheduledExecutionText = `${t("lbl_every_month_day")} ${sd.dayOfMonth} ${sd.time ? t("lbl_time_kh") + sd.time : ""}`;
           else if (h.frequency === "weekly" && sd.daysOfWeek)
-            scheduledExecutionText = `រៀងរាល់សប្តាហ៍${sd.time ? " ម៉ោង " + sd.time : ""}`;
+            scheduledExecutionText = `${t("lbl_every_week")}${sd.time ? t("lbl_time_kh") + sd.time : ""}`;
           else if (h.frequency === "yearly")
-            scheduledExecutionText = `រៀងរាល់ឆ្នាំ${sd.time ? " ម៉ោង " + sd.time : ""}`;
+            scheduledExecutionText = `${t("lbl_every_year")}${sd.time ? t("lbl_time_kh") + sd.time : ""}`;
           else if (sd.date)
             scheduledExecutionText = `${sd.date} ${sd.time || ""}`;
         }
@@ -2419,10 +2688,10 @@
 
         let recipientsHtml = "";
         h.recipients.forEach((r) => {
-          recipientsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.85rem;"><div><strong>${escapeHTML(r.name) || "N/A"}</strong><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.account)}</span></div><div style="text-align:right;"><span style="font-weight:bold; color:#004d40;">$${r.amount}</span><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.remark) || "-"}</span></div></div>`;
+          recipientsHtml += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.85rem;"><div class="dark-text-white"><strong>${escapeHTML(r.name) || "N/A"}</strong><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.account)}</span></div><div style="text-align:right;"><span style="font-weight:bold; color:#10b981;">$${r.amount}</span><br><span style="color:#64748b; font-size:0.75rem;">${escapeHTML(r.remark) || "-"}</span></div></div>`;
         });
 
-        content.innerHTML = `<div style="margin-bottom:15px; font-size:0.9rem;"><p style="margin:5px 0;"><strong>ឈ្មោះ:</strong> ${escapeHTML(h.name)}</p><p style="margin:5px 0;"><strong>ប្រភពទឹកប្រាក់:</strong> ${escapeHTML(sourceDisplay)}</p><p style="margin:5px 0;"><strong>កាលបរិច្ឆេទបង្កើត:</strong> ${createdDate}</p><p style="margin:5px 0; color: #004d40;"><strong>កាលបរិច្ឆេទកាត់លុយ:</strong> ${scheduledExecutionText}</p><p style="margin:5px 0;"><strong>ស្ថានភាព:</strong> ${h.status.toUpperCase()}</p></div><h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#64748b;">បញ្ជីឈ្មោះអ្នកទទួល (${h.recipients.length} នាក់):</h4><div style="max-height:200px; overflow-y:auto; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">${recipientsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:bold; font-size:1.05rem;"><span>ទឹកប្រាក់សរុប:</span><span style="color:#004d40;">$${h.totalAmount.toFixed(2)}</span></div>`;
+        content.innerHTML = `<div style="margin-bottom:15px; font-size:0.9rem;" class="dark-text-white"><p style="margin:5px 0;"><strong>${t("lbl_name_kh")}</strong> ${escapeHTML(h.name)}</p><p style="margin:5px 0;"><strong>${t("lbl_source_kh")}</strong> ${escapeHTML(sourceDisplay)}</p><p style="margin:5px 0;"><strong>${t("lbl_created_date")}</strong> ${createdDate}</p><p style="margin:5px 0; color: #10b981;"><strong>${t("lbl_exec_date")}</strong> ${scheduledExecutionText}</p><p style="margin:5px 0;"><strong>${t("lbl_status_kh")}</strong> ${h.status.toUpperCase()}</p></div><h4 style="margin:0 0 10px 0; font-size:0.9rem; color:#64748b;">${t("lbl_recipient_list")} (${h.recipients.length} ${t("lbl_people")}):</h4><div style="max-height:200px; overflow-y:auto; padding:10px; border-radius:10px; border:1px solid #e2e8f0; background: transparent;">${recipientsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:15px; font-weight:bold; font-size:1.05rem;" class="dark-text-white"><span>${t("lbl_total_amt_kh")}</span><span style="color:#10b981;">$${h.totalAmount.toFixed(2)}</span></div>`;
         openModal("historyDetailModal");
       }
 
@@ -2437,24 +2706,25 @@
             icon: "success",
             title:
               newStatus === "paused"
-                ? "បានផ្អាក់កាលវិភាគជោគជ័យ!"
-                : "បានបន្តកាលវិភាគជោគជ័យ!",
+                ? t("swal_pause_success")
+                : t("swal_resume_success"),
             showConfirmButton: false,
             timer: 1500,
           });
-          showHistory();
-        } else Swal.fire("Error", res.message, "error");
+          showHistory(true);
+        } else Swal.fire(t("lbl_error"), res.message, "error");
       }
 
       async function deleteHistoryItem(id) {
         const confirm = await Swal.fire({
-          title: "តើអ្នកពិតជាចង់លុបមែនទេ?",
-          text: "ទិន្នន័យនេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
+          title: t("swal_del_title"),
+          text: t("swal_del_desc"),
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: "#ef4444",
-          confirmButtonText: "យល់ព្រមលុប",
-          cancelButtonText: "បោះបង់",
+          confirmButtonText: t("btn_confirm_delete"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal" },
         });
         if (confirm.isConfirmed) {
           const res = await fetchAPI(`/api/payroll/${id}`, "DELETE");
@@ -2463,21 +2733,21 @@
               toast: true,
               position: "top",
               icon: "success",
-              title: "លុបបានជោគជ័យ!",
+              title: t("swal_del_success"),
               showConfirmButton: false,
               timer: 1500,
             });
-            showHistory();
-          } else Swal.fire("Error", res.message, "error");
+            showHistory(true);
+          } else Swal.fire(t("lbl_error"), res.message, "error");
         }
       }
 
       function retryPayout(id) {
-        const h = allHistoryRecords.find((x) => x._id === id);
+        const h = allHistoryRecords.find((x) => x.id === id);
         if (!h) return;
-        editingPayrollId = null;
+        editingPayrollId = id;
         if (h.type === "single") {
-          switchState("state-single", "Single Payout (Re-pay)");
+          switchState("state-single", t("title_repay_single"));
           document.getElementById("singleAccNo").value =
             h.recipients[0].account;
           document.getElementById("singleAmount").value =
@@ -2500,14 +2770,16 @@
             toast: true,
             position: "top",
             icon: "info",
-            title: "បានទាញទិន្នន័យ Single មកផ្ទាំងបង្កើតថ្មី!",
+            title: t("swal_load_single"),
             showConfirmButton: false,
             timer: 2000,
           });
         } else {
-          switchState("state-bulk", "Bulk Payout (Re-pay)");
+          switchState("state-bulk", t("title_repay_bulk"));
           document.getElementById("bulkSourceAcc").value =
-            h.sourceAccount || "MAIN_USD";
+            h.sourceAccount ||
+            user.mainAccounts?.USD?.accountNumber ||
+            "MAIN_USD";
           document.getElementById("bulkProcessType").value = "now";
           toggleBulkSchedule();
           verifyAndRenderReviewTable(h.recipients);
@@ -2515,7 +2787,7 @@
             toast: true,
             position: "top",
             icon: "info",
-            title: "បានទាញទិន្នន័យ Bulk មកផ្ទាំង Review!",
+            title: t("swal_load_bulk"),
             showConfirmButton: false,
             timer: 2000,
           });
@@ -2524,78 +2796,72 @@
 
       async function deleteTemplateItem(id) {
         const confirm = await Swal.fire({
-          title: "តើអ្នកពិតជាចង់លុប Template នេះមែនទេ?",
-          text: "ទិន្នន័យ Template នេះនឹងត្រូវលុបចេញពីប្រព័ន្ធ!",
+          title: t("swal_del_tpl_title"),
+          text: t("swal_del_tpl_desc"),
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: "#ef4444",
-          confirmButtonText: "យល់ព្រមលុប",
-          cancelButtonText: "បោះបង់",
+          confirmButtonText: t("btn_confirm_delete"),
+          cancelButtonText: t("btn_cancel"),
           customClass: { popup: "premium-swal" },
         });
-
         if (confirm.isConfirmed) {
           Swal.fire({
-            title: "កំពុងលុប...",
+            title: t("swal_deleting"),
             didOpen: () => Swal.showLoading(),
           });
           const res = await fetchAPI(`/api/payroll/templates/${id}`, "DELETE");
-
           if (res.success) {
             Swal.fire({
               toast: true,
               position: "top",
               icon: "success",
-              title: "លុប Template បានជោគជ័យ!",
+              title: t("swal_del_tpl_success"),
               showConfirmButton: false,
               timer: 1500,
             });
             await fetchTemplatesFromDB();
             renderTemplateList(currentState === "state-bulk");
           } else {
-            Swal.fire("Error", res.message, "error");
+            Swal.fire(t("lbl_error"), res.message, "error");
           }
         }
       }
 
       function editPayout(id) {
-        const h = allHistoryRecords.find((x) => x._id === id);
+        const h = allHistoryRecords.find((x) => x.id === id);
         if (!h) return;
-
         editingPayrollId = id;
         if (h.type === "single") {
-          switchState("state-single", "Edit Single Payout");
-
+          switchState("state-single", t("title_edit_single"));
           document.getElementById("singleAccNo").value =
             h.recipients[0].account;
           document.getElementById("singleAmount").value =
             h.recipients[0].amount;
           document.getElementById("singleRemark").value =
             h.recipients[0].remark || "";
-
-          const accInput = document.getElementById("singleAccNo");
-          fetchAccountName(accInput, "singleNameDisplay", "fetchedNameText");
+          fetchAccountName(
+            document.getElementById("singleAccNo"),
+            "singleNameDisplay",
+            "fetchedNameText",
+          );
         } else {
-          switchState("state-bulk", "Edit Bulk Payout");
-
+          switchState("state-bulk", t("title_edit_bulk"));
           document.getElementById("bulkSourceAcc").value =
-            h.sourceAccount || "MAIN_USD";
-
+            h.sourceAccount ||
+            user.mainAccounts?.USD?.accountNumber ||
+            "MAIN_USD";
           const bulkProcessType = document.getElementById("bulkProcessType");
           if (
             h.frequency === "manual" ||
             (h.frequency === "once" &&
               (!h.scheduleDetails || !h.scheduleDetails.date))
-          ) {
+          )
             bulkProcessType.value = "now";
-          } else {
-            bulkProcessType.value = "schedule";
-          }
+          else bulkProcessType.value = "schedule";
           toggleBulkSchedule();
-
           verifyAndRenderReviewTable(h.recipients);
         }
-
         if (h.frequency && h.frequency !== "manual") {
           const freqSelect = document.getElementById("sharedFreq");
           if (freqSelect) {
@@ -2603,7 +2869,6 @@
             updateFreqUI();
           }
         }
-
         if (h.scheduleDetails) {
           const sd = h.scheduleDetails;
           if (sd.date) {

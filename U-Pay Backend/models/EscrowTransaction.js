@@ -1,3 +1,4 @@
+// EscrowTransaction.js
 const mongoose = require("mongoose");
 
 const escrowTransactionSchema = new mongoose.Schema(

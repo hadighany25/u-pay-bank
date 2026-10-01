@@ -313,63 +313,6 @@
         width: 100% !important;
         margin: 0 !important;
       }
-
-      /* ========================================== */
-      /* 📩 ៧. CUSTOM SMS TOAST (សារលោតពីលើ) */
-      /* ========================================== */
-      .custom-sms-toast {
-        position: fixed;
-        top: -100px; /* លាក់ពីលើ */
-        left: 50%;
-        transform: translateX(-50%);
-        background: white;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-        border-radius: 18px;
-        padding: 16px 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        z-index: 99999; /* ឱ្យលោតពីលើគេបង្អស់ */
-        transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        width: 90%;
-        max-width: 380px;
-        border-left: 6px solid #10b981;
-      }
-
-      .custom-sms-toast.show {
-        top: 25px; /* ហោះធ្លាក់មកក្រោម */
-      }
-
-      .sms-icon {
-        background: #ecfdf5;
-        color: #10b981;
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        flex-shrink: 0;
-      }
-
-      .sms-content {
-        flex-grow: 1;
-        text-align: left;
-      }
-
-      .sms-title {
-        font-weight: 700;
-        color: #0f172a;
-        font-size: 0.95rem;
-      }
-
-      .sms-desc {
-        color: #64748b;
-        font-size: 0.85rem;
-        margin-top: 4px;
-        line-height: 1.4;
-      }
     </style>
   </head>
 
@@ -490,7 +433,6 @@
         sessionStorage.getItem("userToken")
       ) {
         const u = JSON.parse(sessionStorage.getItem("user"));
-        // ✅ [កែប្រែត្រង់នេះ] ឆែករកពាក្យ orderId ឬ acc= ឲ្យត្រូវនឹង Link របស់ QR
         if (
           currentUrlParams &&
           (currentUrlParams.includes("orderId") ||
@@ -504,7 +446,7 @@
       }
 
       // ==========================================
-      // 🚀 មុខងារ LOGOIN (បញ្ជូនទិន្នន័យទៅ Backend)
+      // 🚀 មុខងារ LOGIN (បញ្ជូនទិន្នន័យទៅ Backend)
       // ==========================================
       async function handleLogin(e) {
         e.preventDefault();
@@ -513,7 +455,6 @@
 
         if (!identifier || !password) return;
 
-        // ប្តូរស្ថានភាពប៊ូតុងទៅជា Loading
         const btn = document.getElementById("loginBtn");
         const originalText = btn.innerHTML;
         btn.innerHTML =
@@ -529,13 +470,9 @@
           const data = await res.json();
 
           if (data.success) {
-            // រក្សាទុកទិន្នន័យ User និង Token ទៅក្នុង Session
             sessionStorage.setItem("user", JSON.stringify(data.user));
-            if (data.token) {
-              sessionStorage.setItem("userToken", data.token);
-            }
+            if (data.token) sessionStorage.setItem("userToken", data.token);
 
-            // បង្ហាញសារជោគជ័យ
             Swal.fire({
               toast: true,
               position: "top-end",
@@ -545,9 +482,7 @@
               timer: 1500,
             });
 
-            // បញ្ជូនទៅកាន់ទំព័របន្ទាប់
             setTimeout(() => {
-              // ✅ [កែប្រែត្រង់នេះ] ឆែករកពាក្យ orderId ឬ acc= ឲ្យត្រូវនឹង Link របស់ QR ពេល Login ជោគជ័យ
               if (
                 currentUrlParams &&
                 (currentUrlParams.includes("orderId") ||
@@ -561,7 +496,6 @@
               }
             }, 1000);
           } else {
-            // បើ Login បរាជ័យ
             btn.innerHTML = originalText;
             btn.disabled = false;
             Swal.fire({
@@ -579,35 +513,8 @@
       }
 
       // ==========================================
-      // 📩 មុខងារ CUSTOM SMS TOAST (សារលោតពីលើអាកាស)
+      // 🔑 មុខងារ FORGOT PASSWORD (សង្គ្រោះគណនីតាមរយៈ EMAIL)
       // ==========================================
-      function showSmsToast(otp, username) {
-        const div = document.createElement("div");
-        div.className = "custom-sms-toast";
-        div.innerHTML = `
-            <div class="sms-icon"><i class="fa-solid fa-comment-sms"></i></div>
-            <div class="sms-content">
-              <div class="sms-title">U-PAY Security Alert</div>
-              <div class="sms-desc">លេខកូដ OTP សម្រាប់គណនី <b>${username}</b> គឺ: <b style="color:#10b981; font-size:1.15rem; letter-spacing:3px; display:inline-block; margin-top:3px;">${otp}</b></div>
-            </div>
-          `;
-        document.body.appendChild(div);
-
-        // ឱ្យវាហោះចុះមកក្រោមបន្ទាប់ពីបង្កើតរួច
-        setTimeout(() => div.classList.add("show"), 100);
-
-        // បាត់ទៅវិញដោយស្វ័យប្រវត្តិក្រោយ ១៥ វិនាទី
-        setTimeout(() => {
-          div.classList.remove("show");
-          setTimeout(() => div.remove(), 600); // រង់ចាំ Animation ចប់សឹមលុបចេញពី DOM
-        }, 15000);
-      }
-
-      // ==========================================
-      // 🔑 មុខងារ FORGOT PASSWORD (សង្គ្រោះគណនី)
-      // ==========================================
-
-      // រចនាប័ទ្មសម្រាប់ផ្ទាំង SweetAlert ឱ្យមើលទៅ Premium
       const swalStyle = {
         buttonsStyling: false,
         customClass: {
@@ -620,33 +527,44 @@
       async function handleForgotPassword(e) {
         e.preventDefault();
 
-        // ជំហានទី ១: វាយបញ្ចូល Username ឬ លេខទូរស័ព្ទ
-        const { value: identifierInput } = await Swal.fire({
+        // ជំហានទី ១: វាយបញ្ចូល Email
+        const { value: emailInput } = await Swal.fire({
           ...swalStyle,
           title: "🔐 Recovery Account",
           html: `<div class="swal-form-group">
-                    <label class="swal-form-label">Username / Phone Number</label>
-                    <input id="forgot-id" class="swal-custom-input" placeholder="Enter your username or phone">
+                    <label class="swal-form-label">Registered Email</label>
+                    <input id="forgot-email" type="email" class="swal-custom-input" placeholder="Enter your registered email address">
                  </div>`,
           showCancelButton: true,
-          confirmButtonText: "Find Account",
+          confirmButtonText: "Send OTP",
           cancelButtonText: "Cancel",
-          preConfirm: () => document.getElementById("forgot-id").value.trim(),
+          preConfirm: () => {
+            const email = document.getElementById("forgot-email").value.trim();
+            if (!email || !email.includes("@")) {
+              Swal.showValidationMessage("សូមបញ្ចូល Email ឱ្យបានត្រឹមត្រូវ!");
+              return false;
+            }
+            return email;
+          },
         });
 
-        if (!identifierInput) return; // ឈប់ដំណើរការបើអត់មានបញ្ជូលអ្វី
+        if (!emailInput) return;
 
-        Swal.fire({ title: "Checking...", didOpen: () => Swal.showLoading() });
+        Swal.fire({
+          title: "Sending OTP...",
+          text: "សូមរង់ចាំបន្តិច...",
+          didOpen: () => Swal.showLoading(),
+          allowOutsideClick: false,
+        });
 
         try {
-          // ស្វែងរកគណនីក្នុងប្រព័ន្ធ
           const res = await fetch("/api/forgot-password/verify-user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: identifierInput }),
+            body: JSON.stringify({ identifier: emailInput }),
           });
           const userData = await res.json();
-          Swal.close(); // បិទ Loading
+          Swal.close();
 
           if (!userData.success) {
             return Swal.fire({
@@ -656,40 +574,55 @@
             });
           }
 
-          const username = userData.username;
-          const userPhone = userData.phone;
-          const receivedOtp = userData.otp;
+          const userEmail = userData.email;
 
-          // លោតសារ SMS ចំលងហោះពីលើអាកាសមកបង្ហាញលេខ OTP
-          setTimeout(() => showSmsToast(receivedOtp, username), 500);
-
-          // ជំហានទី ២: ផ្ទាំងវាយបញ្ចូលលេខកូដ OTP
+          // 🟢 ជំហានទី ២: ផ្ទាំងវាយបញ្ចូល OTP (មានការផ្ទៀងផ្ទាត់ភ្លាមៗ)
           const { value: otpInput } = await Swal.fire({
             ...swalStyle,
             title: "🔢 OTP Verification",
-            html: `<p style="font-size:0.85rem; color:#64748b; margin-top:-10px; margin-bottom: 20px;">We sent a 6-digit code to ${userPhone.substring(0, 3)}***${userPhone.slice(-3)}</p>
+            html: `<p style="font-size:0.85rem; color:#64748b; margin-top:-10px; margin-bottom: 20px;">We sent a 6-digit code to <b>${userEmail}</b>.</p>
                    <div class="swal-form-group">
-                      <input id="forgot-otp" class="swal-custom-input" maxlength="6" placeholder="------" style="text-align:center; font-size:1.8rem; letter-spacing:10px; font-weight:700;">
+                      <input id="forgot-otp" class="swal-custom-input" maxlength="6" placeholder="------" style="text-align:center; font-size:1.8rem; letter-spacing:10px; font-weight:700;" autocomplete="off">
                    </div>`,
             showCancelButton: true,
             confirmButtonText: "Verify Code",
             cancelButtonText: "Cancel",
-            preConfirm: () =>
-              document.getElementById("forgot-otp").value.trim(),
+            showLoaderOnConfirm: true, // បង្ហាញសញ្ញាវិលៗពេលកំពុងឆែក
+            preConfirm: async () => {
+              const otp = document.getElementById("forgot-otp").value.trim();
+              if (otp.length !== 6) {
+                Swal.showValidationMessage("លេខកូដ OTP ត្រូវតែមាន ៦ ខ្ទង់!");
+                return false;
+              }
+
+              // 🔥 ផ្ទៀងផ្ទាត់ទៅកាន់ Backend ភ្លាមៗ (Real-time Validation)
+              try {
+                const verifyRes = await fetch(
+                  "/api/forgot-password/verify-otp",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: userEmail, otp: otp }),
+                  },
+                );
+                const verifyData = await verifyRes.json();
+
+                if (!verifyData.success) {
+                  Swal.showValidationMessage(verifyData.message);
+                  return false; // បញ្ឈប់មិនឱ្យទៅមុខបើកូដខុស ❌
+                }
+                return otp; // បើត្រូវ ទើបអនុញ្ញាតឱ្យទៅមុខ ✅
+              } catch (error) {
+                Swal.showValidationMessage("មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!");
+                return false;
+              }
+            },
+            allowOutsideClick: () => !Swal.isLoading(),
           });
 
-          if (!otpInput) return; // បើគេចុចខ្វែង ឬ Cancel
+          if (!otpInput) return; // បើគេចុចខ្វែង ឬ Cancel កណ្តាលទី
 
-          // ឆែកមើលលេខកូដ OTP
-          if (otpInput !== receivedOtp) {
-            return Swal.fire({
-              icon: "error",
-              title: "ខុសលេខកូដ",
-              text: "លេខកូដ OTP មិនត្រឹមត្រូវទេ! សូមព្យាយាមម្តងទៀត។",
-            });
-          }
-
-          // ជំហានទី ៣: បង្កើតពាក្យសម្ងាត់ថ្មី
+          // ជំហានទី ៣: បង្កើតពាក្យសម្ងាត់ថ្មី (លោតមកទាល់តែ OTP ត្រូវ ១០០%)
           const { value: passwordForm } = await Swal.fire({
             ...swalStyle,
             title: "🆕 Reset Password",
@@ -721,16 +654,17 @@
 
           if (!passwordForm) return;
 
-          // ផ្ញើទៅ Update លើ Database ក្នុង Backend
+          // ផ្ញើទៅ Update លើ Database
           Swal.fire({
             title: "Updating...",
             didOpen: () => Swal.showLoading(),
           });
+
           const resetRes = await fetch("/api/forgot-password/reset-password", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              username: username,
+              email: userEmail,
               otp: otpInput,
               newPassword: passwordForm,
             }),

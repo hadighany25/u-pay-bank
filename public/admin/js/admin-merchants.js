@@ -1,8 +1,17 @@
+// admin-merchants.js
 // ==========================================
 // MERCHANT MANAGEMENT LOGIC (FULL FEATURES)
 // ==========================================
 
 let globalMerchantsData = [];
+let currentViewedMerchantId = null;
+
+// 🟢 មុខងារថ្មី៖ បិទផ្ទាំង Sub-views អោយអស់ ការពារការជាន់គ្នាពេលចុច Back
+function closeMerchantSubViews() {
+  document.getElementById("sec-merchant-credentials").style.display = "none";
+  document.getElementById("sec-merchant-history").style.display = "none";
+  showSection("merchants"); // បង្ហាញផ្ទាំងមេវិញ
+}
 
 // ១. ទាញយកទិន្នន័យពី Database
 async function loadMerchantsData() {
@@ -11,12 +20,11 @@ async function loadMerchantsData() {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកទិន្នន័យ...</td></tr>';
 
-    // ហៅ API ដែលមានក្នុង merchantRoutes.js
     const res = await fetch("/api/merchants/admin/all-merchants", {
       headers: getAuthHeaders(),
     });
-
     const data = await res.json();
+
     if (data.success && data.merchants && data.merchants.length > 0) {
       globalMerchantsData = data.merchants;
       renderMerchantsTable(globalMerchantsData);
@@ -29,7 +37,8 @@ async function loadMerchantsData() {
       '<tr><td colspan="5" style="text-align: center; color: #ef4444;">មានបញ្ហាតភ្ជាប់ទៅ Server។</td></tr>';
   }
 }
-// ១. ជំនួសមុខងារ renderMerchantsTable ត្រង់កន្លែងប៊ូតុង Edit និង View Trx (ដើម្បីអោយវាបោះ _id ទៅ)
+
+// ២. បង្ហាញទិន្នន័យក្នុងតារាង
 function renderMerchantsTable(merchants) {
   const tbody = document.getElementById("merchantTableBody");
   tbody.innerHTML = "";
@@ -72,6 +81,7 @@ function renderMerchantsTable(merchants) {
       <td>${freezeHtml}</td>
       <td>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="btn-action" style="background:#0284c7;" title="មើលព័ត៌មានសម្ងាត់" onclick="viewMerchantCredentials('${m._id}')"><i class="fa-solid fa-key"></i></button>
           <button class="btn-action" style="background:#10b981;" title="មើលប្រតិបត្តិការ" onclick="viewMerchantTrx('${m._id}')"><i class="fa-solid fa-file-invoice"></i></button>
           <button class="btn-action" style="background:#f59e0b;" title="កែប្រែហាង" onclick="editMerchantByAdmin('${m._id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="btn-action btn-delete" title="លុបហាង" onclick="deleteMerchantByAdmin('${m._id}')"><i class="fa-solid fa-trash"></i></button>
@@ -82,60 +92,55 @@ function renderMerchantsTable(merchants) {
   });
 }
 
-// ២. មុខងារកែប្រែហាង (Edit Action) ដើរ ១០០%
+// ៣. មុខងារកែប្រែហាង (Edit Action)
 async function editMerchantByAdmin(id) {
   const mData = globalMerchantsData.find((m) => m._id === id);
   if (!mData) return;
 
   const { value: formValues } = await Swal.fire({
-    title: '<h3 style="margin:0;">កែប្រែព័ត៌មានហាង</h3>',
+    title:
+      '<h3 style="margin:0 0 10px 0; color: #0f172a; font-size: 1.25rem; font-weight: 700;">⚙️ កែប្រែព័ត៌មានហាង</h3>',
     html: `
-      <div style="text-align: left; margin-top: 15px;">
-        <label style="font-weight: 600; font-size: 0.9rem;">ឈ្មោះហាង</label>
-        <input id="swal-name" class="swal2-input" value="${mData.name}" style="margin: 5px 0 15px 0; width: 90%;">
-        
-        <label style="font-weight: 600; font-size: 0.9rem;">Merchant ID</label>
-        <input id="swal-mid" class="swal2-input" value="${mData.merchantId}" style="margin: 5px 0 15px 0; width: 90%;">
-        
-        <label style="font-weight: 600; font-size: 0.9rem;">ប្រភេទអាជីវកម្ម</label>
-        <input id="swal-cat" class="swal2-input" value="${mData.category}" style="margin: 5px 0 15px 0; width: 90%;">
-        
-        <label style="font-weight: 600; font-size: 0.9rem;">គណនីទទួលប្រាក់</label>
-        <select id="swal-acc" class="swal2-select" style="margin: 5px 0 0 0; width: 95%; padding: 10px;">
-            <option value="USD" ${mData.linkedAccount === "USD" ? "selected" : ""}>USD (គណនីចុះបញ្ចប់ដោយ ${mData.accountNumbers?.USD?.slice(-4) || "..."})</option>
-            <option value="KHR" ${mData.linkedAccount === "KHR" ? "selected" : ""}>KHR (គណនីចុះបញ្ចប់ដោយ ${mData.accountNumbers?.KHR?.slice(-4) || "..."})</option>
-        </select>
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; padding: 5px 10px;">
+        <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ឈ្មោះហាង (Shop Name)</label><input id="swal-name" class="swal2-input" value="${mData.name}" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px;"></div>
+        <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">Merchant ID (MID)</label><input id="swal-mid" class="swal2-input" value="${mData.merchantId}" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px;"></div>
+        <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ប្រភេទអាជីវកម្ម (Category)</label><input id="swal-cat" class="swal2-input" value="${mData.category}" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px;"></div>
+        <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">Webhook URL</label><input id="swal-webhook" class="swal2-input" value="${mData.webhookUrl || ""}" placeholder="https://..." style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px;"></div>
+        <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">គណនីទទួលប្រាក់</label>
+          <select id="swal-acc" class="swal2-select" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px; background: #fff;">
+              <option value="USD" ${mData.linkedAccount === "USD" ? "selected" : ""}>USD</option>
+              <option value="KHR" ${mData.linkedAccount === "KHR" ? "selected" : ""}>KHR</option>
+          </select>
+        </div>
       </div>`,
+    width: "500px",
+    showCancelButton: true,
     confirmButtonText: "រក្សាទុកការផ្លាស់ប្តូរ",
+    cancelButtonText: "បោះបង់",
     confirmButtonColor: "#004d40",
     preConfirm: () => [
       document.getElementById("swal-name").value,
       document.getElementById("swal-mid").value,
       document.getElementById("swal-cat").value,
+      document.getElementById("swal-webhook").value,
       document.getElementById("swal-acc").value,
     ],
   });
 
   if (formValues) {
-    // ចាប់យកអោយគ្រប់ ៤ ផ្នែក
-    const [newName, newMid, newCat, newAcc] = formValues;
+    const [newName, newMid, newCat, newWebhook, newAcc] = formValues;
     if (!newName || !newMid)
-      return Swal.fire(
-        "បរាជ័យ",
-        "សូមបញ្ចូលឈ្មោះហាង និង Merchant ID",
-        "warning",
-      );
-
+      return Swal.fire("បរាជ័យ", "សូមបញ្ចូលឈ្មោះ និង MID", "warning");
     try {
       const res = await fetch(`/api/admin/edit-merchant`, {
         method: "PUT",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        // បញ្ជូនទិន្នន័យទាំង ៤ ទៅអោយ Backend
         body: JSON.stringify({
-          id: id,
+          id,
           name: newName,
           merchantId: newMid,
           category: newCat,
+          webhookUrl: newWebhook,
           linkedAccount: newAcc,
         }),
       });
@@ -149,25 +154,26 @@ async function editMerchantByAdmin(id) {
           showConfirmButton: false,
           timer: 1500,
         });
-        loadMerchantsData(); // គូរតារាងឡើងវិញ
+        loadMerchantsData();
       } else throw new Error(data.message);
     } catch (e) {
-      Swal.fire("Error", e.message || "មិនអាចកែប្រែបានទេ", "error");
+      Swal.fire("Error", e.message, "error");
     }
   }
 }
 
-// ៣. មើលប្រតិបត្តិការហាង (View Transactions) ដាច់ដោយឡែក ១០០%
+// ៤. មើលប្រតិបត្តិការហាង (View Transactions)
 async function viewMerchantTrx(mid) {
-  // បើក Section ថ្មីដែលយើងទើបបង្កើត
-  showSection("merchant-history");
+  // លាក់ផ្ទាំងផ្សេងៗសិន
+  document.getElementById("sec-merchants").style.display = "none";
+  document.getElementById("sec-merchant-credentials").style.display = "none";
+  document.getElementById("sec-merchant-history").style.display = "block";
 
   const tbody = document.getElementById("merchantTrxBody");
   tbody.innerHTML =
     '<tr><td colspan="5" style="text-align:center; padding: 30px;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយកប្រវត្តិលុយ...</td></tr>';
 
   try {
-    // ហៅ API ទាញយក Transactions របស់ហាងនោះ (API នេះអ្នកមានស្រាប់ហើយក្នុង merchantRoutes.js)
     const res = await fetch(`/api/merchants/transactions/${mid}?filter=total`, {
       headers: getAuthHeaders(),
     });
@@ -197,4 +203,252 @@ async function viewMerchantTrx(mid) {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align:center; color:red; padding: 30px;">មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server API</td></tr>';
   }
+}
+
+// 🔥 ៥. មុខងារថ្មី៖ មើលព័ត៌មានសម្ងាត់ (Credentials View) ដូច Excel 🔥
+function viewMerchantCredentials(id) {
+  const mData = globalMerchantsData.find((m) => m._id === id);
+  if (!mData) return;
+
+  currentViewedMerchantId = id;
+
+  // លាក់ផ្ទាំងផ្សេងៗ រួចបង្ហាញផ្ទាំង Credentials
+  document.getElementById("sec-merchants").style.display = "none";
+  document.getElementById("sec-merchant-history").style.display = "none";
+  document.getElementById("sec-merchant-credentials").style.display = "block";
+
+  document.getElementById("credShopTitle").innerText =
+    `${mData.name.toUpperCase()} - MERCHANT INFORMATION`;
+
+  const tbody = document.getElementById("credTableBody");
+
+  const createRow = (
+    field,
+    value,
+    hasCheckbox = false,
+    checkboxId = "",
+    bgColor = "#ffffff",
+    isStatus = false, // បន្ថែម parameter ថ្មីសម្រាប់បែងចែក status
+  ) => {
+    let checkboxHtml = hasCheckbox
+      ? `<input type="checkbox" id="${checkboxId}" checked style="width:18px; height:18px; accent-color: #004d40; cursor:pointer;">`
+      : `<span style="color:#cbd5e1;">—</span>`;
+
+    // រចនាសម្ព័ន្ធសម្រាប់បង្ហាញតម្លៃ (មានឬគ្មានប៊ូតុងចម្លង)
+    let displayValueHtml = "";
+
+    if (isStatus) {
+      // បើជា status គឺមិនបាច់មានប៊ូតុង copy ទេ
+      displayValueHtml = value;
+    } else {
+      // សម្រាប់ទិន្នន័យទូទៅ បន្ថែមប៊ូតុង copy នៅជាប់វា
+      const rawTextForCopy = value
+        ? String(value).replace(/<[^>]*>?/gm, "")
+        : ""; // លុប HTML tags ចេញមុននឹង copy បើមាន
+      const safeTextForCopy = rawTextForCopy.replace(/'/g, "\\'"); // ការពារកំហុសសញ្ញា (apostrophe) ក្នុង onclick
+
+      displayValueHtml = `
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: ${field.includes("Secret") || field.includes("Key") ? "#047857" : "#475569"}; font-family: ${field.includes("Key") || field.includes("Id") || field.includes("Secret") || field.includes("USD") || field.includes("KHR") ? "'JetBrains Mono', monospace" : "inherit"}; word-break: break-all;">${value || "N/A"}</span>
+            ${value && value !== "N/A" && value !== "null" ? `<i class="fa-regular fa-copy" style="cursor: pointer; color: #94a3b8; transition: color 0.2s;" onmouseover="this.style.color='#0f172a'" onmouseout="this.style.color='#94a3b8'" onclick="copyToClipboard('${safeTextForCopy}')" title="ចម្លង"></i>` : ""}
+          </div>
+        `;
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid #e2e8f0; background: ${bgColor};">
+        <td style="padding: 12px 20px; font-weight: 600; color: #334155; width: 30%;">${field}</td>
+        <td style="padding: 12px 20px;">${displayValueHtml}</td>
+        <td style="padding: 12px 20px; text-align: center; width: 120px;">${checkboxHtml}</td>
+      </tr>
+    `;
+  };
+
+  const createHeaderRow = (title) => {
+    return `<tr style="background: #e0f2fe; border-bottom: 1px solid #bae6fd;"><td colspan="3" style="padding: 10px 20px; font-weight: bold; color: #0369a1;">${title}</td></tr>`;
+  };
+
+  let html = "";
+
+  // ព័ត៌មានទូទៅ
+  html += createRow("userId", mData.userId);
+  html += createRow("name", mData.name);
+  html += createRow("city", mData.city);
+  html += createRow("category", mData.category);
+
+  // Linked Accounts
+  html += createHeaderRow("Linked Accounts");
+  html += createRow("Currency", "Account Number", false, "", "#f8fafc");
+  html += createRow("USD", mData.linkedAccounts?.USD);
+  html += createRow("KHR", mData.linkedAccounts?.KHR);
+  html += createRow("merchantId", mData.merchantId);
+
+  // Account Numbers
+  html += createHeaderRow("Account Numbers (Virtual)");
+  html += createRow("Currency", "Account Number", false, "", "#f8fafc");
+  html += createRow("USD", mData.accountNumbers?.USD);
+  html += createRow("KHR", mData.accountNumbers?.KHR);
+
+  // Credentials (មាន Checkbox រួមទាំង Webhook ផងដែរ)
+  html += createHeaderRow("API & Security Credentials");
+  html += createRow("apiKey", mData.apiKey, true, "chk-apikey");
+  html += createRow("apiSecret", mData.apiSecret, true, "chk-apisecret");
+  // 🟢 ថែម Checkbox អោយ Webhook
+  html += createRow(
+    "webhookUrl",
+    mData.webhookUrl || "null",
+    true,
+    "chk-webhook",
+  );
+
+  // Status
+  html += createRow(
+    "status",
+    `<span style="background:#10b981; color:white; padding: 3px 10px; border-radius:12px; font-size:0.8rem;">${mData.status}</span>`,
+    false,
+    "",
+    "#ffffff",
+    true, // ប្រាប់ថាវាជា status ដូច្នេះមិនបាច់ចេញប៊ូតុង copy ទេ
+  );
+
+  tbody.innerHTML = html;
+}
+
+// ៦. មុខងារទាញយក PDF (🟢 ដោះស្រាយបញ្ហាអត់ស្គាល់ Token ដោយប្រើ fetch Blob)
+async function downloadCredentialPDF() {
+  if (!currentViewedMerchantId) return;
+
+  const showApiKey = document.getElementById("chk-apikey")?.checked || false;
+  const showApiSecret =
+    document.getElementById("chk-apisecret")?.checked || false;
+  const showWebhook = document.getElementById("chk-webhook")?.checked || false;
+
+  Swal.fire({
+    title: "កំពុងបង្កើតឯកសារ PDF...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    // ប្រើ Fetch API ដើម្បីបញ្ជូន Auth Token ទៅជាមួយ
+    const response = await fetch(
+      `/api/merchants/admin/credential-pdf/${currentViewedMerchantId}?showKey=${showApiKey}&showSecret=${showApiSecret}&showWebhook=${showWebhook}`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(), // បញ្ជូន Bearer Token ដើម្បីកុំអោយវាទាមទារ Login
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || "មិនអាចទាញយក PDF បានទេ! សូមពិនិត្យសិទ្ធិឡើងវិញ។",
+      );
+    }
+
+    // បំប្លែងទិន្នន័យទៅជាឯកសារ (Blob)
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    // បង្កើតតំណភ្ជាប់បណ្ដោះអាសន្នដើម្បីចុច Download
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    // ដាក់ឈ្មោះឯកសារ
+    a.download = `Merchant-Credentials-${currentViewedMerchantId}.pdf`;
+    document.body.appendChild(a);
+    a.click(); // បញ្ជាអោយចុច Download
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+
+    Swal.close();
+  } catch (error) {
+    Swal.fire("បរាជ័យ!", error.message, "error");
+  }
+}
+
+// ៧. លុបហាង
+async function deleteMerchantByAdmin(id) {
+  let isKh = window.currentLang === "kh";
+  Swal.fire({
+    title: isKh ? "តើអ្នកប្រាកដទេ?" : "Are you sure?",
+    text: isKh ? "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោល!" : "This shop will be deleted!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: isKh ? "បាទ/ចាស, លុប!" : "Yes, delete!",
+    cancelButtonText: isKh ? "បោះបង់" : "Cancel",
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const response = await fetch(`/api/merchants/delete-merchant/${id}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        });
+        const data = await response.json();
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: isKh ? "លុបរួចរាល់" : "Deleted",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          loadMerchantsData();
+        } else throw new Error(data.message);
+      } catch (err) {
+        Swal.fire(
+          "Error",
+          isKh ? "មិនអាចលុបបានទេ" : "Could not delete shop",
+          "error",
+        );
+      }
+    }
+  });
+}
+
+// ៨. ផ្អាកហាង
+async function toggleMerchantFreeze(id, isFrozen) {
+  try {
+    const res = await fetch("/api/merchants/toggle-merchant-freeze", {
+      method: "POST",
+      headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ id, isFrozen }),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      Swal.fire("Error", data.message, "error");
+      loadMerchantsData();
+    }
+  } catch (e) {
+    Swal.fire("Error", "Server Error", "error");
+    loadMerchantsData();
+  }
+}
+
+// មុខងារសម្រាប់ចម្លងអត្ថបទ
+function copyToClipboard(text) {
+  if (!text || text === "N/A" || text === "null") return;
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "បានចម្លងរួចរាល់",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    })
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "មិនអាចចម្លងបានទេ",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    });
 }

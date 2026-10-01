@@ -132,9 +132,11 @@ window.quickBindNFC = async function (username, cardId) {
   let currency = targetCard.linkedAccount === "KHR" ? "KHR" : "USD";
   let linkedAccNum = "N/A";
   if (targetCard.linkedAccount === "USD") {
-    linkedAccNum = targetUser.accountNumber || "N/A";
+    // ចាប់យកពី mainAccounts.USD ថ្មី
+    linkedAccNum = targetUser.mainAccounts?.USD?.accountNumber || "N/A";
   } else if (targetCard.linkedAccount === "KHR") {
-    linkedAccNum = targetUser.accountNumberKHR || "N/A";
+    // ចាប់យកពី mainAccounts.KHR ថ្មី
+    linkedAccNum = targetUser.mainAccounts?.KHR?.accountNumber || "N/A";
   } else {
     currency = targetCard.linkedAccount?.split("_")[0] || "USD";
     linkedAccNum =
@@ -708,25 +710,43 @@ async function sendBroadcast() {
 }
 
 async function loadBroadcastHistory() {
-  const res = await fetch("/api/users", { headers: getAuthHeaders() });
-  const users = await res.json();
-  let allNotifications = [];
-  users.forEach((u) => {
-    if (u.notifications)
-      allNotifications.push(
-        ...u.notifications.filter((n) => n.sender === "admin"),
-      );
-  });
-  const uniqueNotifications = Array.from(
-    new Map(allNotifications.map((n) => [n.id, n])).values(),
-  );
-  const list = document.getElementById("broadcastList");
-  list.innerHTML = "";
-  uniqueNotifications
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .forEach((n) => {
-      list.innerHTML += `<tr style="border-bottom: 1px solid var(--border);"><td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date}</td><td style="font-weight:600; color:var(--text-main);">${n.title}</td><td style="color:var(--text-muted); font-size: 0.9rem;">${n.message}</td><td style="text-align: right;"><button onclick="deleteBroadcast('${n.id}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;"><i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall</button></td></tr>`;
+  try {
+    const list = document.getElementById("broadcastList");
+    list.innerHTML =
+      '<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">កំពុងទាញយកទិន្នន័យ...</td></tr>';
+
+    // ហៅ API ថ្មីដែលទាញយកពី Notification Collection ផ្ទាល់
+    const res = await fetch("/api/admin/broadcast-history", {
+      headers: getAuthHeaders(),
     });
+    const data = await res.json();
+
+    list.innerHTML = "";
+
+    if (!data.success || !data.broadcasts || data.broadcasts.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">គ្មានប្រវត្តិផ្ញើសារ Broadcast ទេ</td></tr>';
+      return;
+    }
+
+    data.broadcasts.forEach((n) => {
+      const safeId = n.id || n._id;
+      list.innerHTML += `<tr style="border-bottom: 1px solid var(--border);">
+        <td style="color:var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="margin-right: 5px;"></i> ${n.date || "N/A"}</td>
+        <td style="font-weight:600; color:var(--text-main);">${n.title || ""}</td>
+        <td style="color:var(--text-muted); font-size: 0.9rem;">${n.message || ""}</td>
+        <td style="text-align: right;">
+          <button onclick="deleteBroadcast('${safeId}')" class="btn-action btn-delete" style="width: auto; padding: 0 15px; background: #fee2e2; color: #ef4444;">
+            <i class="fa-solid fa-trash-can" style="margin-right: 5px;"></i> Recall
+          </button>
+        </td>
+      </tr>`;
+    });
+  } catch (error) {
+    console.error("Error loading broadcast history:", error);
+    document.getElementById("broadcastList").innerHTML =
+      '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #ef4444;">មានបញ្ហាក្នុងការទាញយកទិន្នន័យពី Server</td></tr>';
+  }
 }
 
 async function deleteBroadcast(notifId) {

@@ -1,3 +1,4 @@
+<!-- history.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -9,87 +10,46 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Transaction History - U-Pay</title>
 
-    <!-- ==========================================
-         ១. ការភ្ជាប់ឯកសារ (FONTS & SCRIPTS)
-         ========================================== -->
+    <!-- 🔗 ១. ការភ្ជាប់ឯកសារ CSS & JS (Fast Load) -->
+    <link href="style.css" rel="stylesheet" />
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
 
-    <!-- External Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <!-- U-Pay Core Scripts -->
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="/js/slip.js"></script>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="js/pin.js"></script>
+    <!-- រុញឯកសារធំៗទាញយកពេលក្រោយ ដើម្បីឱ្យចេញអេក្រង់លឿន (Deferred Scripts) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
+      defer
+    ></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+    <script src="js/pin.js" defer></script>
 
     <style>
       /* ==========================================
-         ២. ការរចនាទូទៅ (GLOBAL STYLES)
+         ២. ការរចនាផ្ទាល់ខ្លួន (LOCAL STYLES)
          ========================================== */
-      body {
-        background-color: #f2f4f6;
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        min-height: 100vh;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
-      .app-container {
-        width: 100%;
-        max-width: 450px;
-        background: white;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        padding-bottom: 90px;
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.03);
-      }
 
-      /* ផ្នែកក្បាលខាងលើ */
-      .nav-header {
-        padding: 20px;
-        background: #004d40;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 1.1rem;
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
-      .nav-header a {
-        color: white;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        font-weight: 600;
-      }
-
-      /* របារឧបករណ៍ និងការស្វែងរក */
       .tool-bar {
         padding: 15px 20px;
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
+        background: var(--bg-main);
+        border-bottom: 1px solid var(--border);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -98,7 +58,32 @@
         z-index: 40;
       }
 
-      /* 🔥 ការរចនា Custom Multi-Select Dropdown ថ្មី */
+      .tab-container {
+        display: flex;
+        gap: 10px;
+        margin: 15px 20px;
+        background: var(--bg-card);
+        padding: 5px;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border);
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .tab-btn.active {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+
       .custom-select-wrapper {
         position: relative;
         width: 100%;
@@ -107,18 +92,25 @@
       .custom-select-btn {
         width: 100%;
         padding: 12px 15px;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--border);
         border-radius: 12px;
-        background: white;
+        background: var(--bg-card);
         display: flex;
         justify-content: space-between;
         align-items: center;
         cursor: pointer;
         font-weight: 600;
-        color: #1e293b;
+        color: var(--text-main);
         font-size: 0.9rem;
         transition: 0.2s;
         box-sizing: border-box;
+      }
+      .custom-select-btn span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        text-align: left;
       }
       .custom-select-btn:active {
         transform: scale(0.98);
@@ -128,8 +120,8 @@
         top: 110%;
         left: 0;
         width: 100%;
-        background: white;
-        border: 1px solid #cbd5e1;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         z-index: 100;
@@ -165,18 +157,18 @@
         gap: 12px;
       }
       .checkbox-item:hover {
-        background: #f1f5f9;
+        background: var(--bg-main);
       }
       .checkbox-item input[type="checkbox"] {
         width: 18px;
         height: 18px;
         cursor: pointer;
-        accent-color: #004d40;
+        accent-color: var(--primary);
       }
       .checkbox-item label {
         cursor: pointer;
         font-size: 0.85rem;
-        color: #334155;
+        color: var(--text-main);
         font-weight: 600;
         flex: 1;
         display: flex;
@@ -184,10 +176,39 @@
       }
       .checkbox-item label span {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         font-weight: 400;
         font-family: monospace;
         margin-top: 2px;
+      }
+
+      .search-box {
+        position: relative;
+        width: 100%;
+      }
+      .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 13px;
+        color: var(--text-muted);
+        font-size: 1rem;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 12px 15px 12px 42px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        outline: none;
+        color: var(--text-main);
+        background: var(--bg-card);
+        box-sizing: border-box;
+        transition: 0.2s;
+      }
+      .search-box input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
       }
 
       .date-inputs {
@@ -198,15 +219,39 @@
       .date-inputs input {
         flex: 1;
         padding: 10px;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--border);
         border-radius: 10px;
         font-family: inherit;
         font-size: 0.85rem;
         outline: none;
+        color: var(--text-main);
+        background: var(--bg-card);
+      }
+      .icon-btn {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      .icon-btn:hover {
+        background: #e2e8f0;
         color: #334155;
       }
+      .icon-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
       .export-btn {
-        background: #004d40;
+        background: var(--primary);
         color: white;
         border: none;
         padding: 12px 15px;
@@ -215,60 +260,55 @@
         cursor: pointer;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
         font-size: 0.9rem;
         transition: 0.2s;
-        justify-content: center;
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
+        width: 100%;
       }
       .export-btn:active {
         transform: scale(0.97);
       }
 
-      /* របារបែងចែកចំណូល/ចំណាយ */
       .filter-bar {
         display: flex;
         padding: 0 20px 10px 20px;
         gap: 10px;
-        background: #f8fafc;
-        border-bottom: 1px solid #e2e8f0;
+        background: var(--bg-main);
+        border-bottom: 1px solid var(--border);
       }
       .filter-btn {
         flex: 1;
         padding: 10px;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--border);
         border-radius: 10px;
-        background: white;
-        color: #64748b;
+        background: var(--bg-card);
+        color: var(--text-muted);
         font-weight: 600;
         font-size: 0.85rem;
         cursor: pointer;
         transition: 0.2s;
       }
       .filter-btn.active {
-        background: #004d40;
+        background: var(--primary);
         color: white;
-        border-color: #004d40;
+        border-color: var(--primary);
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
       }
 
-      /* ==========================================
-         ៣. ការរចនាបញ្ជីប្រវត្តិ និងសារ (LISTS & CARDS)
-         ========================================== */
       .history-list {
         padding: 10px 20px;
         flex: 1;
         overflow-y: auto;
-        background: #f8fafc;
+        background: var(--bg-main);
       }
-
-      /* កាតប្រតិបត្តិការនីមួយៗ */
       .trx-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 16px;
-        background: white;
+        background: var(--bg-card);
         border-radius: 18px;
         margin-bottom: 12px;
         cursor: pointer;
@@ -283,6 +323,7 @@
         display: flex;
         align-items: center;
         gap: 15px;
+        overflow: hidden;
       }
       .trx-icon {
         width: 48px;
@@ -292,30 +333,56 @@
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+      .trx-info {
+        overflow: hidden;
       }
       .trx-info h4 {
         margin: 0;
         font-size: 0.95rem;
-        color: #1e293b;
+        color: var(--text-main);
         font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .trx-info p {
         margin: 4px 0 0 0;
         font-size: 0.8rem;
-        color: #64748b;
+        color: var(--text-muted);
       }
       .trx-amount {
         font-weight: bold;
         font-size: 1.1rem;
+        flex-shrink: 0;
+        margin-left: 10px;
       }
 
-      /* កាតសារជូនដំណឹងនីមួយៗ (Message Card) */
+      .load-more-btn {
+        width: 100%;
+        padding: 12px;
+        background: #e2e8f0;
+        color: #475569;
+        border: none;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        transition: 0.2s;
+      }
+      .load-more-btn:active {
+        background: #cbd5e1;
+      }
+
+      /* កាតសារជូនដំណឹង (Message Card) */
       .msg-card {
-        background: white;
+        background: var(--bg-card);
         border-radius: 16px;
         padding: 15px;
         margin-bottom: 15px;
-        border: 1px solid #f1f5f9;
+        border: 1px solid var(--border);
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -324,7 +391,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
       }
       .msg-card:hover {
-        border-color: #e2e8f0;
+        border-color: #cbd5e1;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
       }
       .msg-top {
@@ -349,17 +416,17 @@
       .msg-content h4 {
         margin: 0 0 5px 0;
         font-size: 0.95rem;
-        color: #1e293b;
+        color: var(--text-main);
       }
       .msg-content p {
         margin: 0 0 8px 0;
         font-size: 0.85rem;
-        color: #475569;
+        color: var(--text-muted);
         line-height: 1.4;
       }
       .msg-date {
         font-size: 0.75rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         gap: 4px;
@@ -384,7 +451,7 @@
         transform: scale(0.95);
       }
 
-      /* ការកំណត់ពណ៌ចំណូល ចំណាយ */
+      /* ពណ៌ចំណូល ចំណាយ */
       .text-green {
         color: #10b981;
       }
@@ -411,62 +478,8 @@
       }
 
       /* ==========================================
-         ៤. ម៉ឺនុយខាងក្រោម (BOTTOM NAV)
+         ៣. ពណ៌ងងឹត (DARK MODE OVERRIDES)
          ========================================== */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 480px;
-        display: flex;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        padding: 12px 0 20px 0;
-        justify-content: space-around;
-        box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.05);
-        z-index: 9000;
-        border-radius: 25px 25px 0 0;
-        border-top: 1px solid rgba(0, 0, 0, 0.02);
-      }
-      .nav-item {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.75rem;
-        text-decoration: none;
-        flex: 1;
-        transition: all 0.3s ease;
-      }
-      .nav-item i {
-        font-size: 1.45rem;
-        display: block;
-        margin-bottom: 5px;
-        transition: 0.3s;
-      }
-      .nav-item.active {
-        color: #004d40;
-        font-weight: 700;
-        transform: translateY(-5px);
-      }
-      .nav-item.active i {
-        transform: scale(1.15);
-      }
-
-      /* ==========================================
-         ៥. ពណ៌ងងឹត (DARK MODE OVERRIDES)
-         ========================================== */
-      body.dark-mode {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .app-container {
-        background-color: #0f172a !important;
-        box-shadow: none;
-      }
-      body.dark-mode .nav-header {
-        background-color: #00251f !important;
-      }
       body.dark-mode .tool-bar {
         background-color: #0f172a !important;
         border-color: #1e293b !important;
@@ -486,6 +499,37 @@
       body.dark-mode .checkbox-item label {
         color: #f8fafc;
       }
+      body.dark-mode .search-box input {
+        background: #1e293b;
+        border-color: #334155;
+        color: white;
+      }
+      body.dark-mode .search-box i {
+        color: #64748b;
+      }
+      body.dark-mode .date-inputs input {
+        background: #1e293b;
+        color: white;
+        border-color: #334155;
+      }
+      body.dark-mode .icon-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+      }
+      body.dark-mode .icon-btn:hover {
+        background: #334155;
+        color: #cbd5e1;
+      }
+      body.dark-mode .icon-btn.active {
+        background: var(--secondary);
+        border-color: var(--secondary);
+        color: white;
+      }
+      body.dark-mode .load-more-btn {
+        background: #1e293b;
+        color: #cbd5e1;
+      }
       body.dark-mode .filter-bar {
         background-color: #0f172a !important;
         border-color: #1e293b !important;
@@ -496,16 +540,23 @@
         border-color: #334155;
       }
       body.dark-mode .filter-btn.active {
-        background: #10b981;
+        background: var(--secondary);
         color: white;
-        border-color: #10b981;
+        border-color: var(--secondary);
       }
-      body.dark-mode .date-inputs input {
+      body.dark-mode .tab-container {
         background: #1e293b;
-        color: white;
         border-color: #334155;
       }
-      body.dark-mode .history-list {
+      body.dark-mode .tab-btn {
+        color: #94a3b8;
+      }
+      body.dark-mode .tab-btn.active {
+        background: #0f172a;
+        color: #38bdf8;
+      }
+      body.dark-mode .history-list,
+      body.dark-mode #messagesContainer {
         background: #0f172a !important;
       }
       body.dark-mode .trx-item,
@@ -521,17 +572,6 @@
       body.dark-mode .msg-content p {
         color: #94a3b8 !important;
       }
-      body.dark-mode .bottom-nav {
-        background: rgba(30, 41, 59, 0.95) !important;
-        border-top: 1px solid #334155 !important;
-      }
-      body.dark-mode .nav-item {
-        color: #64748b !important;
-      }
-      body.dark-mode .nav-item.active {
-        color: #10b981 !important;
-      }
-
       body.dark-mode .bg-green {
         background: rgba(16, 185, 129, 0.15) !important;
         border-color: rgba(16, 185, 129, 0.3) !important;
@@ -551,117 +591,202 @@
         background: #450a0a;
         color: #f87171;
       }
-      .premium-swal {
-        border-radius: 24px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
-      }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <!-- ក្បាលទំព័រ (Header) -->
-      <div class="nav-header">
-        <div style="display: flex; align-items: center; gap: 15px">
-          <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-          <span data-i18n="nav_history_title">Transaction History</span>
-        </div>
-      </div>
-
-      <!-- របារឧបករណ៍ និងការស្វែងរក (Tool Bar) -->
-      <div class="tool-bar">
-        <!-- 🔥 Custom Multi-Select Dropdown សម្រាប់គណនី -->
-        <div class="custom-select-wrapper" id="accountSelectWrapper">
-          <div class="custom-select-btn" onclick="toggleAccountDropdown()">
-            <span id="selectedAccountsText">កំពុងទាញយកគណនី...</span>
-            <i
-              class="fa-solid fa-chevron-down"
-              id="dropdownIcon"
-              style="transition: 0.3s"
-            ></i>
-          </div>
-          <div class="custom-select-dropdown" id="accountDropdown">
-            <!-- Checkboxes នឹងលោតមកទីនេះអូតូ -->
-          </div>
-        </div>
-
-        <div class="date-inputs">
-          <input type="date" id="startDate" title="Start Date" />
-          <span style="color: #94a3b8">to</span>
-          <input type="date" id="endDate" title="End Date" />
-        </div>
+      <!-- ==========================================
+           ៤.១ ផ្នែកក្បាល (HEADER)
+           ========================================== -->
+      <div class="header-bar">
         <button
-          class="export-btn"
-          id="btnExportPDF"
-          onclick="exportStatementPDF()"
+          class="back-btn"
+          onclick="window.location.href = 'dashboard.html'"
         >
-          <i class="fa-solid fa-file-pdf"></i> Export Statement
+          <i class="fa-solid fa-arrow-left"></i>
         </button>
+        <h3 class="header-title kh-text" data-i18n="nav_history_title">
+          Transaction History
+        </h3>
+        <div style="width: 30px"></div>
       </div>
 
       <!-- ប៊ូតុងប្តូររវាង ប្រវត្តិ និង សារ (Tabs) -->
-      <div
-        style="
-          display: flex;
-          gap: 10px;
-          margin: 15px 20px;
-          background: white;
-          padding: 5px;
-          border-radius: 12px;
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
-        "
-        id="tabContainer"
-      >
+      <div class="tab-container" id="tabContainer">
         <button
           id="btn-trx"
           onclick="switchHistoryTab('trx')"
-          style="
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: #e0f2fe;
-            color: #0284c7;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-          "
+          class="tab-btn active kh-text"
         >
-          <i class="fa-solid fa-arrow-right-arrow-left"></i> Transactions
+          <i class="fa-solid fa-arrow-right-arrow-left"></i>
+          <span data-i18n="history_tab_trx">Transactions</span>
         </button>
         <button
           id="btn-msg"
           onclick="switchHistoryTab('msg')"
-          style="
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: transparent;
-            color: #64748b;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-          "
+          class="tab-btn kh-text"
         >
-          <i class="fa-solid fa-envelope"></i> Messages
+          <i class="fa-solid fa-envelope"></i>
+          <span data-i18n="history_tab_msg">Messages</span>
         </button>
       </div>
 
-      <!-- របារ Filter សម្រាប់ប្រតិបត្តិការ -->
-      <div class="filter-bar" id="trxFilterBar">
-        <button class="filter-btn active" onclick="filterHistory('all', this)">
-          All
-        </button>
-        <button class="filter-btn" onclick="filterHistory('in', this)">
-          Income
-        </button>
-        <button class="filter-btn" onclick="filterHistory('out', this)">
-          Expense
-        </button>
+      <!-- ==========================================
+           ៤.២ របារឧបករណ៍ (TOOL BAR)
+           ========================================== -->
+      <div id="trxToolsBox">
+        <div class="tool-bar">
+          <!-- Dropdown រើសគណនី -->
+          <div class="custom-select-wrapper" id="accountSelectWrapper">
+            <div
+              class="custom-select-btn kh-text"
+              onclick="toggleAccountDropdown()"
+            >
+              <span
+                id="selectedAccountsText"
+                class="kh-text"
+                data-i18n="history_loading_accs"
+                >Loading accounts...</span
+              >
+              <i
+                class="fa-solid fa-chevron-down"
+                id="dropdownIcon"
+                style="transition: 0.3s"
+              ></i>
+            </div>
+            <div class="custom-select-dropdown" id="accountDropdown"></div>
+          </div>
+
+          <!-- របារមុខងារ (Action Bar) -->
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-top: 5px;
+            "
+          >
+            <span
+              class="kh-text"
+              style="
+                font-weight: 700;
+                color: var(--text-main);
+                font-size: 0.95rem;
+              "
+              data-i18n="history_recent_activity"
+              >Recent Activity</span
+            >
+            <div style="display: flex; gap: 8px">
+              <button
+                class="icon-btn"
+                id="btnToggleSearch"
+                onclick="toggleSearchBox()"
+                title="Search"
+              >
+                <i class="fa-solid fa-search"></i>
+              </button>
+              <button
+                class="icon-btn"
+                id="btnToggleDate"
+                onclick="toggleDateBox()"
+                title="Filter Date & Export"
+              >
+                <i class="fa-solid fa-calendar-days"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- ប្រអប់ Search (លាក់បណ្តោះអាសន្ន) -->
+          <div
+            class="search-box"
+            id="searchBoxContainer"
+            style="display: none; margin-top: 10px"
+          >
+            <i class="fa-solid fa-search"></i>
+            <input
+              type="text"
+              id="searchTrx"
+              class="kh-text"
+              placeholder="Search..."
+              oninput="renderTransactions()"
+            />
+          </div>
+
+          <!-- ថ្ងៃខែ និងប៊ូតុង Export (លាក់បណ្តោះអាសន្ន) -->
+          <div
+            id="dateExportContainer"
+            style="
+              display: none;
+              flex-direction: column;
+              gap: 10px;
+              margin-top: 10px;
+              padding-top: 10px;
+              border-top: 1px dashed var(--border);
+            "
+          >
+            <div class="date-inputs">
+              <input
+                type="date"
+                id="startDate"
+                title="Start Date"
+                onchange="renderTransactions()"
+              />
+              <span style="color: #94a3b8">to</span>
+              <input
+                type="date"
+                id="endDate"
+                title="End Date"
+                onchange="renderTransactions()"
+              />
+              <button
+                class="icon-btn"
+                onclick="resetFilters()"
+                title="Reset Filters"
+              >
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            <button
+              class="export-btn kh-text"
+              id="btnExportPDF"
+              onclick="exportStatementPDF()"
+            >
+              <i class="fa-solid fa-file-pdf"></i>
+              <span data-i18n="history_export_btn">Export Statement</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- របារ Filter ចំណូល/ចំណាយ -->
+        <div class="filter-bar" id="trxFilterBar">
+          <button
+            class="filter-btn active kh-text"
+            onclick="filterHistory('all', this)"
+            data-i18n="history_filter_all"
+          >
+            All
+          </button>
+          <button
+            class="filter-btn kh-text"
+            onclick="filterHistory('in', this)"
+            data-i18n="history_filter_in"
+          >
+            Income
+          </button>
+          <button
+            class="filter-btn kh-text"
+            onclick="filterHistory('out', this)"
+            data-i18n="history_filter_out"
+          >
+            Expense
+          </button>
+        </div>
       </div>
 
-      <!-- ផ្ទៃបង្ហាញសារ (Messages Container) -->
+      <!-- ==========================================
+           ៤.៣ ផ្ទៃបង្ហាញទិន្នន័យ (CONTENT CONTAINERS)
+           ========================================== -->
+      <!-- ផ្ទៃបង្ហាញសារ (Messages) -->
       <div
         id="messagesContainer"
         style="
@@ -669,47 +794,27 @@
           padding: 10px 20px;
           flex: 1;
           overflow-y: auto;
-          background: #f8fafc;
+          background: var(--bg-main);
         "
       ></div>
 
       <!-- ផ្ទៃបង្ហាញប្រវត្តិប្រតិបត្តិការ (Transactions List) -->
-      <div class="history-list" id="historyList">
-        <p style="text-align: center; color: #94a3b8; margin-top: 50px">
-          <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem"></i
-          ><br /><br />Loading...
-        </p>
-      </div>
-
-      <!-- ម៉ឺនុយខាងក្រោម (Bottom Navigation) -->
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item">
-          <i class="fa-solid fa-house"></i>
-          <span data-i18n="nav_home">Home</span>
-        </a>
-        <a href="scan.html" class="nav-item">
-          <i class="fa-solid fa-qrcode"></i>
-          <span data-i18n="nav_scan">Scan</span>
-        </a>
-        <a href="#" class="nav-item active">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-i18n="nav_history">History</span>
-        </a>
-        <a href="settings.html" class="nav-item">
-          <i class="fa-solid fa-gear"></i>
-          <span data-i18n="nav_settings">Settings</span>
-        </a>
-      </div>
+      <div class="history-list" id="historyList"></div>
     </div>
 
     <!-- ==========================================
-         ៦. ផ្នែក JAVASCRIPT (LOGIC & MULTI-SELECT)
+         ៥. ផ្នែក JAVASCRIPT (LOGIC & i18n)
          ========================================== -->
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/slip.js" defer></script>
+
     <script>
-      // ៦.១ ការកំណត់អថេរទូទៅ
+      // 🚀 OPTIMIZATION: ក្បួន Smart Cache ការពារការគាំងទូរស័ព្ទ!
+      window.lastTrxState = "";
+      window.lastNotifState = "";
+
       const sessionUser = JSON.parse(sessionStorage.getItem("user"));
       const sessionToken = sessionStorage.getItem("userToken");
-
       if (!sessionUser || !sessionToken) window.location.href = "index.html";
 
       const authHeadersFetch = {
@@ -720,60 +825,41 @@
       let fullUserTransactions = sessionUser.transactions || [];
       let currentTransactions = [];
       let currentFilterType = "all";
-      let deletedMessages =
-        JSON.parse(
-          localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
-        ) || [];
+      let displayLimit = 20;
+      let msgDisplayLimit = 15;
 
       let selectedAccountNumbers = [];
       let allAvailableAccounts = [];
-      // 🔥 រក្សាទុកលេខកុងទាំងអស់របស់ Merchant
       let allMerchantAccounts = [];
 
-      function escapeHTML(str) {
-        if (typeof str !== "string") return str;
-        return str.replace(
-          /[&<>'"]/g,
-          (tag) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              "'": "&#39;",
-              '"': "&quot;",
-            })[tag] || tag,
-        );
-      }
-
-      function applyThemeHistory() {
-        const userThemeKey = "darkMode_" + sessionUser.username;
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-          document.getElementById("tabContainer").style.background = "#1e293b";
-          document.getElementById("tabContainer").style.borderColor = "#334155";
-          document.getElementById("btn-trx").style.background = "#0f172a";
-          document.getElementById("messagesContainer").style.background =
-            "#0f172a";
-        }
-      }
-
       window.addEventListener("DOMContentLoaded", () => {
-        applyThemeHistory();
         if (typeof applyLanguage === "function") applyLanguage();
+        if (
+          typeof document.getElementById("searchTrx").placeholder !==
+          "undefined"
+        ) {
+          document.getElementById("searchTrx").placeholder = window.t
+            ? window.t("history_search_ph")
+            : "Search...";
+        }
 
         const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        document.getElementById("startDate").max = todayStr;
+        document.getElementById("endDate").max = todayStr;
         document.getElementById("startDate").value = firstDay
           .toISOString()
           .split("T")[0];
-        document.getElementById("endDate").value = today
-          .toISOString()
-          .split("T")[0];
+        document.getElementById("endDate").value = todayStr;
 
-        // 🟢 ប្រមូលយកលេខ Merchant Accounts ទាំងអស់
+        // 🌟 កូដចាប់យក URL Parameter មកបើក Tab Messages ដោយស្វ័យប្រវត្តិ
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("tab") === "msg") {
+          switchHistoryTab("msg");
+        }
+
         if (
           sessionUser.merchantProfile &&
           sessionUser.merchantProfile.merchants
@@ -797,13 +883,80 @@
             }
           });
         }
-
         populateAccountCheckboxes();
+        renderTransactions();
+        renderMessages(sessionUser.notifications);
       });
 
-      // ==========================================
-      // 🔥 មុខងាររៀបចំ MULTI-SELECT DROPDOWN ថ្មី
-      // ==========================================
+      function switchHistoryTab(tab) {
+        const btnTrx = document.getElementById("btn-trx");
+        const btnMsg = document.getElementById("btn-msg");
+        const containerTrx = document.getElementById("historyList");
+        const containerMsg = document.getElementById("messagesContainer");
+        const toolsBox = document.getElementById("trxToolsBox");
+
+        if (tab === "trx") {
+          btnTrx.classList.add("active");
+          btnMsg.classList.remove("active");
+          containerTrx.style.display = "block";
+          toolsBox.style.display = "block";
+          containerMsg.style.display = "none";
+        } else {
+          btnMsg.classList.add("active");
+          btnTrx.classList.remove("active");
+          containerTrx.style.display = "none";
+          toolsBox.style.display = "none";
+          containerMsg.style.display = "block";
+
+          // 🌟 បាញ់ API ទៅកាន់ communicationController ដើម្បីប្រាប់ DB ថាអានសារទាំងអស់រួចរាល់
+          fetch("/api/communication/notifications/read", {
+            method: "POST",
+            headers: authHeadersFetch,
+            body: JSON.stringify({ username: sessionUser.username }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success) {
+                // កែប្រែស្ថានភាព isRead ក្នុង sessionUser ផ្ទាល់ដើម្បីឱ្យ Badge លេខក្រហមបាត់ទៅវិញភ្លាមៗ
+                if (sessionUser.notifications) {
+                  sessionUser.notifications.forEach((n) => (n.isRead = true));
+                  sessionStorage.setItem("user", JSON.stringify(sessionUser));
+                }
+                // លាក់ Badge ក្រហមលើកណ្តឹង (ถ้าមាន)
+                const badge = document.getElementById("notiBadge");
+                if (badge) badge.style.display = "none";
+              }
+            })
+            .catch((e) => console.log("Read notifications error:", e));
+        }
+      }
+
+      function toggleSearchBox() {
+        const box = document.getElementById("searchBoxContainer");
+        const btn = document.getElementById("btnToggleSearch");
+        if (box.style.display === "none") {
+          box.style.display = "block";
+          btn.classList.add("active");
+          document.getElementById("searchTrx").focus();
+        } else {
+          box.style.display = "none";
+          btn.classList.remove("active");
+        }
+      }
+
+      function toggleDateBox() {
+        const box = document.getElementById("dateExportContainer");
+        const btn = document.getElementById("btnToggleDate");
+        if (box.style.display === "none") {
+          box.style.display = "flex";
+          btn.classList.add("active");
+        } else {
+          box.style.display = "none";
+          btn.classList.remove("active");
+        }
+      }
+
+      // --- ៥.២ មុខងារ MULTI-SELECT DROPDOWN ---
       function toggleAccountDropdown() {
         const dropdown = document.getElementById("accountDropdown");
         const icon = document.getElementById("dropdownIcon");
@@ -821,39 +974,71 @@
             "rotate(0deg)";
         }
       });
-
       function populateAccountCheckboxes() {
         const dropdown = document.getElementById("accountDropdown");
         allAvailableAccounts = [];
         let htmlStr = `
-            <div class="checkbox-item" style="border-bottom: 1px solid #e2e8f0; border-radius: 0;">
+            <div class="checkbox-item" style="border-bottom: 1px solid var(--border); border-radius: 0;">
                 <input type="checkbox" id="chk_all" onchange="handleCheckboxChange('all')" checked>
-                <label for="chk_all">ជ្រើសរើសទាំងអស់ (Select All)</label>
+                <label for="chk_all" class="kh-text">${window.t ? window.t("history_select_all") : "Select All"}</label>
             </div>
         `;
 
-        if (sessionUser.accountNumber) {
+        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          sessionUser.mainAccounts &&
+          sessionUser.mainAccounts.USD &&
+          sessionUser.mainAccounts.USD.accountNumber
+        ) {
+          const accNum = sessionUser.mainAccounts.USD.accountNumber;
+          allAvailableAccounts.push(accNum);
+          htmlStr += `
+                <div class="checkbox-item">
+                    <input type="checkbox" class="acc-checkbox" value="${accNum}" id="chk_${accNum}" onchange="handleCheckboxChange('single')" checked>
+                    <label for="chk_${accNum}" class="kh-text">${sessionUser.mainAccounts.USD.accountName || "Main Account (USD)"}<br><span>${accNum} (USD)</span></label>
+                </div>
+            `;
+        } else if (sessionUser.accountNumber) {
+          // Legacy Fallback
           allAvailableAccounts.push(sessionUser.accountNumber);
           htmlStr += `
                 <div class="checkbox-item">
                     <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumber}" id="chk_${sessionUser.accountNumber}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${sessionUser.accountNumber}">Main Account (USD) <span>${sessionUser.accountNumber}</span></label>
+                    <label for="chk_${sessionUser.accountNumber}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumber} (USD)</span></label>
                 </div>
             `;
         }
 
-        if (sessionUser.accountNumberKHR) {
+        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          sessionUser.mainAccounts &&
+          sessionUser.mainAccounts.KHR &&
+          sessionUser.mainAccounts.KHR.accountNumber
+        ) {
+          const accNumKHR = sessionUser.mainAccounts.KHR.accountNumber;
+          allAvailableAccounts.push(accNumKHR);
+          htmlStr += `
+                <div class="checkbox-item">
+                    <input type="checkbox" class="acc-checkbox" value="${accNumKHR}" id="chk_${accNumKHR}" onchange="handleCheckboxChange('single')" checked>
+                    <label for="chk_${accNumKHR}" class="kh-text">${sessionUser.mainAccounts.KHR.accountName || "Main Account (KHR)"}<br><span>${accNumKHR} (KHR)</span></label>
+                </div>
+            `;
+        } else if (sessionUser.accountNumberKHR) {
+          // Legacy Fallback
           allAvailableAccounts.push(sessionUser.accountNumberKHR);
           htmlStr += `
                 <div class="checkbox-item">
                     <input type="checkbox" class="acc-checkbox" value="${sessionUser.accountNumberKHR}" id="chk_${sessionUser.accountNumberKHR}" onchange="handleCheckboxChange('single')" checked>
-                    <label for="chk_${sessionUser.accountNumberKHR}">Main Account (KHR) <span>${sessionUser.accountNumberKHR}</span></label>
+                    <label for="chk_${sessionUser.accountNumberKHR}" class="kh-text">${window.t ? window.t("history_main_acc") : "Main Account"}<br><span>${sessionUser.accountNumberKHR} (KHR)</span></label>
                 </div>
             `;
         }
 
+        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (sessionUser.subAccounts && sessionUser.subAccounts.length > 0) {
           sessionUser.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return; // បើលាក់កុង គឺមិនឱ្យឃើញក្នុងប្រវត្តិទេ
+
             allAvailableAccounts.push(sub.accountNumber);
             let accTypeName =
               sub.accountType === "joint"
@@ -864,7 +1049,7 @@
             htmlStr += `
                     <div class="checkbox-item">
                         <input type="checkbox" class="acc-checkbox" value="${sub.accountNumber}" id="chk_${sub.accountNumber}" onchange="handleCheckboxChange('single')" checked>
-                        <label for="chk_${sub.accountNumber}">${sub.accountName || accTypeName + " Account"} (${sub.currency}) <span>${sub.accountNumber}</span></label>
+                        <label for="chk_${sub.accountNumber}" class="kh-text">${sub.accountName || accTypeName + " Account"}<br><span>${sub.accountNumber} (${sub.currency})</span></label>
                     </div>
                 `;
           });
@@ -878,7 +1063,6 @@
       function handleCheckboxChange(type) {
         const checkAllBox = document.getElementById("chk_all");
         const itemCheckboxes = document.querySelectorAll(".acc-checkbox");
-
         if (type === "all") {
           const isChecked = checkAllBox.checked;
           itemCheckboxes.forEach((cb) => (cb.checked = isChecked));
@@ -888,45 +1072,38 @@
           );
           checkAllBox.checked = allChecked;
         }
-
         selectedAccountNumbers = Array.from(itemCheckboxes)
           .filter((cb) => cb.checked)
           .map((cb) => cb.value);
         updateSelectedAccountsText();
+        displayLimit = 20;
         renderTransactions();
       }
 
       function updateSelectedAccountsText() {
         const textSpan = document.getElementById("selectedAccountsText");
-        const lang = localStorage.getItem("lang") || "en";
-
+        const tFn = window.t || ((k) => k);
         if (selectedAccountNumbers.length === 0) {
-          textSpan.innerText =
-            lang === "kh" ? "មិនបានជ្រើសរើសគណនី" : "No Account Selected";
+          textSpan.innerText = tFn("history_no_acc_sel");
           textSpan.style.color = "#ef4444";
         } else if (
           selectedAccountNumbers.length === allAvailableAccounts.length
         ) {
-          textSpan.innerText =
-            lang === "kh"
-              ? "គណនីទាំងអស់ (All Accounts)"
-              : "All Accounts Selected";
-          textSpan.style.color = "#1e293b";
+          textSpan.innerText = tFn("history_all_acc_sel");
+          textSpan.style.color = document.body.classList.contains("dark-mode")
+            ? "white"
+            : "#1e293b";
         } else if (selectedAccountNumbers.length === 1) {
           textSpan.innerText = selectedAccountNumbers[0];
-          textSpan.style.color = "#004d40";
+          textSpan.style.color = "#10b981";
         } else {
           textSpan.innerText =
-            lang === "kh"
-              ? `បានជ្រើសរើស ${selectedAccountNumbers.length} គណនី`
-              : `${selectedAccountNumbers.length} Accounts Selected`;
-          textSpan.style.color = "#004d40";
+            selectedAccountNumbers.length + tFn("history_multi_acc_sel");
+          textSpan.style.color = "#10b981";
         }
       }
 
-      // ==========================================
-      // ៧. មុខងារជំនួយ (HELPER FUNCTIONS)
-      // ==========================================
+      // --- ៥.៣ មុខងារជំនួយ (HELPER FUNCTIONS) ---
       function formatMoney(amount, isKHR = false) {
         return Math.abs(amount).toLocaleString("en-US", {
           minimumFractionDigits: isKHR ? 0 : 2,
@@ -935,16 +1112,15 @@
       }
 
       function getSmartDateLabel(d) {
-        let t = new Date();
-        t.setHours(0, 0, 0, 0);
+        let tm = new Date();
+        tm.setHours(0, 0, 0, 0);
         let y = new Date();
-        y.setDate(t.getDate() - 1);
+        y.setDate(tm.getDate() - 1);
         y.setHours(0, 0, 0, 0);
         let c = new Date(d);
         c.setHours(0, 0, 0, 0);
         let l = localStorage.getItem("lang") || "en";
-
-        if (c.getTime() === t.getTime())
+        if (c.getTime() === tm.getTime())
           return l === "kh" ? "ថ្ងៃនេះ" : "Today";
         if (c.getTime() === y.getTime())
           return l === "kh" ? "ម្សិលមិញ" : "Yesterday";
@@ -955,9 +1131,40 @@
         });
       }
 
-      // ==========================================
-      // ៨. មុខងារទាញទិន្នន័យពី Server (SYNC DATA)
-      // ==========================================
+      function resetFilters() {
+        document.getElementById("searchTrx").value = "";
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById("startDate").value = firstDay
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("endDate").value = today
+          .toISOString()
+          .split("T")[0];
+        displayLimit = 20;
+        renderTransactions();
+      }
+
+      function filterHistory(type, btn) {
+        currentFilterType = type;
+        document
+          .querySelectorAll(".filter-btn")
+          .forEach((b) => b.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+        displayLimit = 20;
+        renderTransactions();
+      }
+
+      function loadMoreTrx() {
+        displayLimit += 20;
+        renderTransactions();
+      }
+      function loadMoreMsg() {
+        msgDisplayLimit += 15;
+        renderMessages(sessionUser.notifications);
+      }
+
+      // --- ៥.៤ ទាញទិន្នន័យពី Server ---
       async function syncAllData() {
         try {
           const res = await fetch("/api/users", { headers: authHeadersFetch });
@@ -966,12 +1173,18 @@
             const serverUser = users.find(
               (u) => u.username === sessionUser.username,
             );
-
             if (serverUser) {
               sessionUser.notifications = serverUser.notifications || [];
               fullUserTransactions = serverUser.transactions || [];
+
+              // 🌟 បច្ចុប្បន្នភាពទម្រង់ថ្មី
+              sessionUser.mainAccounts = serverUser.mainAccounts;
+              sessionUser.subAccounts = serverUser.subAccounts;
+
+              // ទុក Legacy
               sessionUser.accountNumber = serverUser.accountNumber;
               sessionUser.accountNumberKHR = serverUser.accountNumberKHR;
+
               sessionStorage.setItem("user", JSON.stringify(sessionUser));
 
               renderMessages(sessionUser.notifications);
@@ -983,32 +1196,26 @@
         }
       }
 
-      syncAllData();
       setInterval(syncAllData, 4000);
 
-      // ==========================================
-      // ៩. បង្ហាញប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS) ជាមួយ ICONS ថ្មី និង MULTI-SELECT
-      // ==========================================
+      // --- ៥.៥ បង្ហាញប្រវត្តិប្រតិបត្តិការ (RENDER TRANSACTIONS) ជាមួយក្បួន SMART CACHE ---
       function renderTransactions() {
         const list = document.getElementById("historyList");
+        const tFn = window.t || ((k) => k);
 
         if (selectedAccountNumbers.length === 0) {
-          list.innerHTML =
-            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><i class="fa-solid fa-folder-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>សូមជ្រើសរើសគណនីខាងលើ</p></div>';
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><i class="fa-solid fa-folder-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p class="kh-text">${tFn("history_pls_select_acc")}</p></div>`;
           return;
         }
 
-        // 🔥 ចម្រាញ់យកតែប្រតិបត្តិការណា ដែលពាក់ព័ន្ធនឹងគណនីដែលបាន Select (បូករួមទាំង Virtual Accounts របស់ Merchant ផង)
         let filtered = fullUserTransactions.filter((t) => {
           let isLinkedToMerchant = false;
           let merchantRelatedAccounts = [];
-
           if (
             sessionUser.merchantProfile &&
             sessionUser.merchantProfile.merchants
           ) {
             sessionUser.merchantProfile.merchants.forEach((m) => {
-              // បើគណនីដែលជ្រើសរើស ជា Linked Account របស់ហាងនេះ
               if (
                 m.linkedAccounts &&
                 (selectedAccountNumbers.includes(m.linkedAccounts.USD) ||
@@ -1046,7 +1253,6 @@
             isLinkedToMerchant &&
             merchantRelatedAccounts.includes(t.receiverAcc);
 
-          // Legacy Fallback (សម្រាប់ Data ចាស់ៗដែលអត់មាន record លេខកុង)
           let matchMain = false;
           if (
             !matchDirectAcc &&
@@ -1054,183 +1260,250 @@
             !t.senderAcc &&
             !t.receiverAcc
           ) {
+            // ឆែក USD តាមទម្រង់ថ្មី
+            const mainUsdNum =
+              sessionUser.mainAccounts && sessionUser.mainAccounts.USD
+                ? sessionUser.mainAccounts.USD.accountNumber
+                : sessionUser.accountNumber;
             if (
               t.currency === "USD" &&
-              selectedAccountNumbers.includes(sessionUser.accountNumber)
-            )
+              mainUsdNum &&
+              selectedAccountNumbers.includes(mainUsdNum)
+            ) {
               matchMain = true;
+            }
+
+            // ឆែក KHR តាមទម្រង់ថ្មី
+            const mainKhrNum =
+              sessionUser.mainAccounts && sessionUser.mainAccounts.KHR
+                ? sessionUser.mainAccounts.KHR.accountNumber
+                : sessionUser.accountNumberKHR;
             if (
               t.currency === "KHR" &&
-              selectedAccountNumbers.includes(sessionUser.accountNumberKHR)
-            )
+              mainKhrNum &&
+              selectedAccountNumbers.includes(mainKhrNum)
+            ) {
               matchMain = true;
+            }
           }
-
           return matchDirectAcc || matchMerchantAcc || matchMain;
         });
 
-        // 🌟 ១. ទាត់ចោល Pending មិនអោយបង្ហាញ និងមិនអោយមាន Slip
-        filtered = filtered.filter((t) => t.status !== "Pending");
+        filtered = filtered.filter(
+          (tx) => tx.status !== "Pending" || tx.isHold,
+        );
+
+        const sDate = document.getElementById("startDate").value;
+        const eDate = document.getElementById("endDate").value;
+        if (sDate && eDate) {
+          filtered = filtered.filter((tx) => {
+            let d = new Date(tx.date);
+            if (isNaN(d.getTime()) && tx.date.includes(","))
+              d = new Date(tx.date.split(",")[0].trim());
+            if (isNaN(d.getTime())) return true;
+            const iso = d.toISOString().split("T")[0];
+            return iso >= sDate && iso <= eDate;
+          });
+        }
+
+        const query = document.getElementById("searchTrx").value.toLowerCase();
+        if (query) {
+          filtered = filtered.filter(
+            (tx) =>
+              (tx.senderName || "").toLowerCase().includes(query) ||
+              (tx.receiverName || "").toLowerCase().includes(query) ||
+              (tx.type || "").toLowerCase().includes(query) ||
+              (tx.refId || "").toLowerCase().includes(query) ||
+              tx.amount.toString().includes(query),
+          );
+        }
 
         if (currentFilterType === "in")
-          filtered = filtered.filter((t) => t.amount > 0);
+          filtered = filtered.filter((tx) => tx.amount > 0);
         if (currentFilterType === "out")
-          filtered = filtered.filter((t) => t.amount < 0);
+          filtered = filtered.filter((tx) => tx.amount < 0);
 
         currentTransactions = filtered;
 
+        // 🚀 SMART CACHE: បើលក្ខខណ្ឌ Filter ឬ ទិន្នន័យដូចដើម មិនបាច់គូរថ្មីរំខានដល់ការ Scroll ឡើយ!
+        const currentState =
+          JSON.stringify(currentTransactions) +
+          displayLimit +
+          currentFilterType +
+          selectedAccountNumbers.join(",");
+        if (currentState === window.lastTrxState) return;
+        window.lastTrxState = currentState;
+
         if (currentTransactions.length === 0) {
-          list.innerHTML =
-            '<div style="text-align:center; color:#94a3b8; margin-top:50px"><p>មិនមានប្រតិបត្តិការទេ / No Transactions</p></div>';
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><p class="kh-text">${tFn("history_no_trx")}</p></div>`;
           return;
         }
 
-        // 🌟 ២. បំបែកប្រតិបត្តិការជា ២ ក្រុម: Hold (ជាប់ឃាត់) និង Success (ជោគជ័យធម្មតា)
         let holdTrxs = currentTransactions
-          .filter((t) => t.status === "Hold")
+          .filter((tx) => tx.status === "Hold" || tx.isHold)
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         let successTrxs = currentTransactions
-          .filter((t) => t.status !== "Hold")
+          .filter((tx) => tx.status !== "Hold" && !tx.isHold)
           .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 🌟 ថែមថ្មី៖ ទាញយកប្រវត្តិបំណុល P2P (Lend / Owe) បើ User ជ្រើសរើសមើល Main Account
+        let lendTrxs = [];
+        let oweTrxs = [];
+        const mainUsdNum =
+          sessionUser.mainAccounts?.USD?.accountNumber ||
+          sessionUser.accountNumber;
+
+        if (
+          selectedAccountNumbers.includes(mainUsdNum) &&
+          sessionUser.p2pDebts &&
+          sessionUser.p2pDebts.length > 0
+        ) {
+          sessionUser.p2pDebts.forEach((d) => {
+            if (d.type === "lend") lendTrxs.push(d);
+            else if (d.type === "owe") oweTrxs.push(d);
+          });
+        }
 
         let htmlStr = "";
 
-        // ==========================================
-        // 🌟 ៣. គូរ UI សម្រាប់ប្រតិបត្តិការ ON HOLD មុនគេ (ពណ៌លឿង)
-        // ==========================================
         if (holdTrxs.length > 0) {
-          htmlStr += `<div style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">⏳ ជាប់ឃាត់ទុក (ON HOLD)</div>`;
-
-          holdTrxs.forEach((t) => {
-            // ចាប់យក Index ពិតប្រាកដចេញពី fullUserTransactions ការពារកុំអោយចុចមើល Slip ខុស
-            const originalIndex = fullUserTransactions.indexOf(t);
-            const isIncome = t.amount > 0;
-
-            let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-            const isKHR = t.currency === "KHR";
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("history_on_hold")}</div>`;
+          holdTrxs.forEach((tx) => {
+            const originalIndex = fullUserTransactions.indexOf(tx);
+            const isIncome = tx.amount > 0;
+            const isKHR = tx.currency === "KHR";
             const currSym = isKHR ? "៛" : "$";
 
-            const tType = (t.type || "").toLowerCase();
-            const tMethod = (t.trxMethod || "").toLowerCase();
-            const tSender = (t.senderName || "").toLowerCase();
-
-            if (
-              tType.includes("deposit") ||
-              tMethod.includes("cashier") ||
-              tSender.includes("deposit")
-            ) {
-              iconClass = "fa-hand-holding-dollar";
-            } else if (
-              tType.includes("payroll") ||
-              tMethod.includes("payout") ||
-              tMethod.includes("payroll")
-            ) {
-              iconClass = "fa-money-bill-transfer";
-            } else if (
-              tType.includes("promo") ||
-              tType.includes("cashback") ||
-              tSender.includes("promo") ||
-              tSender.includes("reward") ||
-              tType.includes("reward")
-            ) {
-              iconClass = "fa-sack-dollar";
-            } else if (
-              tType.includes("merchant") ||
-              tMethod.includes("merchant") ||
-              tMethod.includes("b2b") ||
-              t.merchantId
-            ) {
-              iconClass = "fa-store";
-            } else if (tType.includes("bill") || tMethod.includes("bill")) {
-              iconClass = "fa-file-invoice-dollar";
-            } else if (tType.includes("refund") || tMethod.includes("refund")) {
-              // 🟢 ដាក់ Condition សម្រាប់ Refund ទុកទីនេះ ធានាថាមិនច្រឡំជាមួយ Savings ទេ
-              iconClass = "fa-arrow-rotate-left";
-              bgClass = "bg-green";
-              textClass = "text-green";
-            } else if (
-              tType.includes("u-fund") ||
-              tType.includes("saving") ||
-              tType.includes("fund")
-            ) {
-              iconClass = "fa-piggy-bank";
-            } else if (tType.includes("e-gift") || tType.includes("gift")) {
-              iconClass = "fa-gift";
-            } else if (isIncome && sessionUser.role === "junior") {
-              iconClass = "fa-child-reaching";
-            }
-
-            let dateObj = new Date(t.date);
-            if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))
-              dateObj = new Date(t.date.split(",")[0].trim());
+            let dateObj = new Date(tx.date);
+            if (isNaN(dateObj.getTime()) && tx.date && tx.date.includes(","))
+              dateObj = new Date(tx.date.split(",")[0].trim());
             if (isNaN(dateObj.getTime())) dateObj = new Date();
 
             let title = isIncome
-              ? t.senderName || t.merchantName || t.name || t.type || "Received"
-              : t.receiverName ||
-                t.merchantName ||
-                t.name ||
-                t.type ||
+              ? tx.senderName ||
+                tx.merchantName ||
+                tx.name ||
+                tx.type ||
+                "Received"
+              : tx.receiverName ||
+                tx.merchantName ||
+                tx.name ||
+                tx.type ||
                 "Transfer";
-            if (t.type === "E-Gift Received") title = "Received E-Gift";
-            else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
-            if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
-              title = t.trxMethod || t.type || "System Transaction";
-            }
-
             let timeStr = dateObj.toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             });
-            const cleanTitle = escapeHTML(title);
-            const cleanMethod = escapeHTML(t.trxMethod || "U-Pay");
 
-            // គូរប្រអប់ Hold មានស៊ុមពណ៌លឿង
             htmlStr += `
                 <div class="trx-item" onclick="showSlip(${originalIndex})" style="border: 1px dashed #fcd34d; background: #fffbeb;">
                   <div class="trx-left">
-                    <div class="trx-icon bg-orange text-orange"><i class="fa-solid ${iconClass}"></i></div>
+                    <div class="trx-icon bg-orange text-orange"><i class="fa-solid fa-hourglass-half"></i></div>
                     <div class="trx-info">
-                      <h4 style="text-transform: capitalize;">${cleanTitle}</h4>
-                      <p>${timeStr} • <span style="color:#f59e0b; font-weight:bold;">HOLD</span></p>
+                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(title)}</h4>
+                      <p class="kh-text">${timeStr} • <span style="color:#f59e0b; font-weight:bold;">${tFn("history_hold_badge")}</span></p>
                     </div>
                   </div>
-                  <div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
+                  <div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${formatMoney(tx.amount, isKHR)}</div>
                 </div>`;
           });
         }
 
-        // ==========================================
-        // 🌟 ៤. គូរ UI សម្រាប់ប្រតិបត្តិការជោគជ័យធម្មតា (SUCCESS)
-        // ==========================================
-        let lastDateLabel = "";
-        successTrxs.forEach((t) => {
-          const originalIndex = fullUserTransactions.indexOf(t);
-          const isIncome = t.amount > 0;
+        // 🌟 គូររបា LENDING (ប្រាក់ឱ្យគេខ្ចី)
+        if (lendTrxs.length > 0) {
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #10b981; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_lend") || "RECEIVABLE (LENDING)"}</div>`;
+          lendTrxs.forEach((d) => {
+            let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            htmlStr += `
+                <div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="border: 1px dashed #6ee7b7; background: #ecfdf5;">
+                  <div class="trx-left">
+                    <div class="trx-icon bg-green text-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                    <div class="trx-info">
+                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
+                      <p class="kh-text">${timeStr} • <span style="color:#10b981; font-weight:bold;">RECEIVABLE (${escapeHTML(d.fundName)})</span></p>
+                    </div>
+                  </div>
+                  <div class="trx-amount text-green">+$${formatMoney(d.amount, false)}</div>
+                </div>`;
+          });
+        }
 
+        // 🌟 គូររបា OWE (ប្រាក់ជំពាក់គេ)
+        if (oweTrxs.length > 0) {
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_owe") || "PAYABLE (DEBT)"}</div>`;
+          oweTrxs.forEach((d) => {
+            let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            htmlStr += `
+                <div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="border: 1px dashed #fca5a5; background: #fef2f2;">
+                  <div class="trx-left">
+                    <div class="trx-icon bg-red text-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <div class="trx-info">
+                      <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(d.partnerName || d.partnerUsername)}</h4>
+                      <p class="kh-text">${timeStr} • <span style="color:#ef4444; font-weight:bold;">DEBT (${escapeHTML(d.fundName)})</span></p>
+                    </div>
+                  </div>
+                  <div class="trx-amount text-red">-$${formatMoney(d.amount, false)}</div>
+                </div>`;
+          });
+        }
+
+        let lastDateLabel = "";
+        let displaySuccess = successTrxs.slice(0, displayLimit);
+
+        displaySuccess.forEach((tx) => {
+          const originalIndex = fullUserTransactions.indexOf(tx);
+          const isIncome = tx.amount > 0;
           let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
           let bgClass = isIncome ? "bg-green" : "bg-red";
           let textClass = isIncome ? "text-green" : "text-red";
-
-          const isKHR = t.currency === "KHR";
+          const isKHR = tx.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
-          const tType = (t.type || "").toLowerCase();
-          const tMethod = (t.trxMethod || "").toLowerCase();
-          const tSender = (t.senderName || "").toLowerCase();
+          const tType = (tx.type || "").toLowerCase();
+          const tMethod = (tx.trxMethod || "").toLowerCase();
+          const tSender = (tx.senderName || "").toLowerCase();
 
+          // 🌟 កំណត់ Icon អោយគ្រប់ប្រភេទ (Merchant ត្រូវនៅខាងលើគេបង្អស់)
           if (
-            tType.includes("deposit") ||
-            tMethod.includes("cashier") ||
-            tSender.includes("deposit")
+            tx.merchantName ||
+            tType.includes("merchant") ||
+            tType.includes("sale") ||
+            tType.includes("store") ||
+            tMethod.includes("merchant") ||
+            tMethod.includes("b2b") ||
+            tx.merchantId
           ) {
-            iconClass = "fa-hand-holding-dollar";
+            iconClass = "fa-store";
+          } else if (tType.includes("transfer")) {
+            iconClass = "fa-paper-plane";
+          } else if (
+            tType.includes("scan") ||
+            tType.includes("qr") ||
+            tType.includes("pay") ||
+            tType.includes("payment")
+          ) {
+            iconClass = "fa-qrcode";
+          } else if (
+            tType.includes("u-fund") ||
+            tType.includes("saving") ||
+            tType.includes("fund") ||
+            tType.includes("pool")
+          ) {
+            iconClass = "fa-piggy-bank";
           } else if (
             tType.includes("payroll") ||
             tMethod.includes("payout") ||
             tMethod.includes("payroll")
           ) {
             iconClass = "fa-money-bill-transfer";
+          } else if (tType.includes("debt") || tType.includes("bailout")) {
+            iconClass = "fa-handshake";
           } else if (
             tType.includes("promo") ||
             tType.includes("cashback") ||
@@ -1240,419 +1513,166 @@
           ) {
             iconClass = "fa-sack-dollar";
           } else if (
-            tType.includes("merchant") ||
-            tMethod.includes("merchant") ||
-            tMethod.includes("b2b") ||
-            t.merchantId
+            tType.includes("penalty") ||
+            tType.includes("fee") ||
+            tType.includes("bill") ||
+            tMethod.includes("bill")
           ) {
-            iconClass = "fa-store";
-          } else if (tType.includes("bill") || tMethod.includes("bill")) {
             iconClass = "fa-file-invoice-dollar";
+            if (tType.includes("fee")) {
+              bgClass = "bg-orange";
+              textClass = "text-orange";
+            }
+          } else if (tType.includes("refund") || tMethod.includes("refund")) {
+            iconClass = "fa-rotate-left";
           } else if (
-            tType.includes("u-fund") ||
-            tType.includes("saving") ||
-            tType.includes("fund")
+            tType.includes("deposit") ||
+            tMethod.includes("cashier") ||
+            tSender.includes("deposit")
           ) {
-            iconClass = "fa-piggy-bank";
-          } else if (tType.includes("e-gift") || tType.includes("gift")) {
-            iconClass = "fa-gift";
-          } else if (tType.includes("fee")) {
-            iconClass = "fa-receipt";
-            bgClass = "bg-orange";
-            textClass = "text-orange";
+            iconClass = "fa-vault";
           } else if (isIncome && sessionUser.role === "junior") {
             iconClass = "fa-child-reaching";
           }
 
-          let dateObj = new Date(t.date);
-          if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))
-            dateObj = new Date(t.date.split(",")[0].trim());
+          let dateObj = new Date(tx.date);
+          if (isNaN(dateObj.getTime()) && tx.date && tx.date.includes(","))
+            dateObj = new Date(tx.date.split(",")[0].trim());
           if (isNaN(dateObj.getTime())) dateObj = new Date();
 
           let dateStr = getSmartDateLabel(dateObj).toUpperCase();
 
           if (dateStr !== lastDateLabel) {
-            htmlStr += `<div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${dateStr}</div>`;
+            htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${dateStr}</div>`;
             lastDateLabel = dateStr;
           }
 
           let title = isIncome
-            ? t.senderName || t.merchantName || t.name || t.type || "Received"
-            : t.receiverName ||
-              t.merchantName ||
-              t.name ||
-              t.type ||
+            ? tx.senderName ||
+              tx.merchantName ||
+              tx.name ||
+              tx.type ||
+              "Received"
+            : tx.receiverName ||
+              tx.merchantName ||
+              tx.name ||
+              tx.type ||
               "Transfer";
-          if (t.type === "E-Gift Received") title = "Received E-Gift";
-          else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
-          if (title === "U-Pay Central Bank" || title === "U-Pay Bank") {
-            title = t.trxMethod || t.type || "System Transaction";
-          }
+          if (tx.type === "E-Gift Received") title = "Received E-Gift";
+          else if (tx.type === "E-Gift Sent") title = `Sent E-Gift`;
+          if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
+            title = tx.trxMethod || tx.type || "System Transaction";
 
           let timeStr = dateObj.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
           });
-          const cleanTitle = escapeHTML(title);
-          const cleanMethod = escapeHTML(t.trxMethod || "U-Pay");
 
           htmlStr += `
             <div class="trx-item" onclick="showSlip(${originalIndex})">
               <div class="trx-left">
                 <div class="trx-icon ${bgClass}"><i class="fa-solid ${iconClass}"></i></div>
                 <div class="trx-info">
-                  <h4 style="text-transform: capitalize;">${cleanTitle}</h4>
-                  <p>${timeStr} • ${cleanMethod}</p>
+                  <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(title)}</h4>
+                  <p class="kh-text">${timeStr} • ${escapeHTML(tx.trxMethod || "U-Pay")}</p>
                 </div>
               </div>
-              <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${formatMoney(t.amount, isKHR)}</div>
+              <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${formatMoney(tx.amount, isKHR)}</div>
             </div>
           `;
         });
 
+        if (successTrxs.length > displayLimit) {
+          htmlStr += `<button class="load-more-btn kh-text" onclick="loadMoreTrx()"><i class="fa-solid fa-angle-down"></i> ${tFn("history_load_more")}</button>`;
+        }
+
         list.innerHTML = htmlStr;
+        if (typeof applyLanguage === "function") applyLanguage();
       }
 
-      // ==========================================
-      // ១០. មុខងារបង្ហាញសារ (RENDER MESSAGES WITH BUTTONS)
-      // ==========================================
+      function showSlip(index) {
+        const tx = fullUserTransactions[index];
+        if (typeof openGlobalSlip === "function")
+          openGlobalSlip(tx, sessionUser.username);
+      }
+
+      // --- ៥.៦ បង្ហាញសារ (RENDER MESSAGES) ជាមួយក្បួន SMART CACHE ---
       function renderMessages(messages) {
         const containerMsg = document.getElementById("messagesContainer");
+        const tFn = window.t || ((k) => k);
+
+        const currentDeletedMsgs =
+          JSON.parse(
+            localStorage.getItem(`deletedMsgs_${sessionUser.username}`),
+          ) || [];
         const activeMsgs = (messages || [])
-          .filter((m) => !deletedMessages.includes(m.date + m.title))
+          .filter((m) => !currentDeletedMsgs.includes(m.date + m.title))
           .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+        // 🚀 ទាញយក Map ដែលបានកត់ចំណាំ
+        const respondedMap =
+          typeof window.getRespondedMap === "function"
+            ? window.getRespondedMap()
+            : {};
+
+        // 🚀 SMART CACHE: បើមិនមានការផ្លាស់ប្តូរទិន្នន័យ ឬប៊ូតុងចុចទេ មិនបាច់គូរថ្មីទេ
+        const currentState =
+          JSON.stringify(activeMsgs) +
+          msgDisplayLimit +
+          JSON.stringify(respondedMap);
+        if (currentState === window.lastNotifState) return;
+        window.lastNotifState = currentState;
+
         if (activeMsgs.length === 0) {
-          containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p>មិនមានសារថ្មីទេ / No New Messages</p></div>`;
+          containerMsg.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-regular fa-envelope-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p class="kh-text">${tFn("history_no_msg")}</p></div>`;
           return;
         }
 
         let htmlStr = "";
-        activeMsgs.forEach((m) => {
-          let displayMsg = m.message;
-          let iconClass = "fa-bullhorn";
-          let bgClass = "background:#e0f2fe; color:#0284c7;";
-          let actionBtns = "";
-          const notifId = m._id || m.id;
+        let displayMsgs = activeMsgs.slice(0, msgDisplayLimit);
 
-          if (m.title.includes("Received") && m.type !== "egift_receive") {
-            iconClass = "fa-hand-holding-dollar";
-            bgClass = "background:#ecfdf5; color:#10b981;";
-            if (sessionUser.role === "junior") {
-              iconClass = "fa-child-reaching";
-              bgClass = "background:#fce7f3; color:#db2777;";
-            }
-          } else if (
-            m.title.includes("សំណើទូទាត់ប្រាក់") ||
-            m.type === "payment_request"
-          ) {
-            iconClass = "fa-cart-shopping";
-            bgClass = "background:#fff7ed; color:#ea580c;";
-          } else if (
-            m.title.includes("Cashback") ||
-            m.type === "cashback_reward" ||
-            m.title.includes("ឈ្នះបាន")
-          ) {
-            iconClass = "fa-sack-dollar";
-            bgClass = "background:#dcfce7; color:#059669;";
-          } else if (m.title.includes("Refund")) {
-            iconClass = "fa-arrow-rotate-left";
-            bgClass = "background:#f3e8ff; color:#9333ea;";
-          }
+        // 🔥 ប្រើប្រាស់មុខងារកណ្តាលពី u-pay-core.js ដើម្បីគូរសារ
+        if (typeof window.generateMessageHTML === "function") {
+          displayMsgs.forEach((m) => {
+            // បញ្ជូន respondedMap ចូលដើម្បីឱ្យ generateMessageHTML ចេះវែកញែក
+            htmlStr += window.generateMessageHTML(m, true, respondedMap);
+          });
+        }
 
-          if (m.type === "egift_receive") {
-            iconClass = "fa-gift";
-            if (!m.isRead) {
-              displayMsg =
-                "🎉 អ្នកទទួលបានអាំងប៉ាវ! ចុចខាងក្រោមដើម្បីបើកមើលកាដូរបស់អ្នក...";
-              bgClass = "background:#fee2e2; color:#dc2626;";
-              const amt = m.egiftData?.amount || 0;
-              const cur = m.egiftData?.currency || "USD";
-              const sender =
-                m.egiftData?.senderName?.replace(/'/g, "\\'") || "មិត្តភក្តិ";
-              const note = m.egiftData?.message?.replace(/'/g, "\\'") || "";
-              const senderUsername = m.egiftData?.senderUsername || "";
-
-              actionBtns = `<div style="margin-top: 10px;"><button onclick="handleOpenGift('${amt}', '${cur}', '${sender}', '${note}', '${notifId}', '${senderUsername}')" style="width:100%; padding:10px; background:#dc2626; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ</button></div>`;
-            } else {
-              displayMsg = "✅ អ្នកបានបើកអាំងប៉ាវនេះរួចរាល់ហើយ។";
-              bgClass = "background:#d1fae5; color:#10b981;";
-            }
-          } else if (m.type === "egift_opened") {
-            iconClass = "fa-envelope-open";
-            bgClass = "background:#fce7f3; color:#db2777;";
-          } else if (m.type === "ufund_invite") {
-            iconClass = "fa-bullseye";
-            if (!m.isRead) {
-              bgClass = "background:#ecfeff; color:#0891b2;";
-              actionBtns = `<div style="margin-top: 10px; display: flex; gap: 10px;"><button onclick="respondUFundInvite('${m.fundId}', '${notifId}', 'accept')" style="flex:1; padding:10px; background:#10b981; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button><button onclick="respondUFundInvite('${m.fundId}', '${notifId}', 'decline')" style="flex:1; padding:10px; background:#ef4444; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button></div>`;
-            } else {
-              bgClass = "background:#f1f5f9; color:#94a3b8;";
-              displayMsg += ` <br><b style="color:#10b981; font-size: 0.8rem;">(✅ បានឆ្លើយតបរួចរាល់)</b>`;
-            }
-          } else if (m.metadata && m.metadata.type === "joint_invite") {
-            iconClass = "fa-users";
-            if (!m.isRead) {
-              bgClass = "background:#e0e7ff; color:#4f46e5;";
-              actionBtns = `<div id="joint-action-${notifId}" style="margin-top: 10px; display: flex; gap: 10px;"><button onclick="handleJointInvite(this, '${m.metadata.ownerUsername}', '${m.metadata.accountNumber}', 'accept', '${notifId}')" style="flex:1; padding:10px; background:#10b981; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-check"></i> យល់ព្រម</button><button onclick="handleJointInvite(this, '${m.metadata.ownerUsername}', '${m.metadata.accountNumber}', 'reject', '${notifId}')" style="flex:1; padding:10px; background:#ef4444; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;"><i class="fa-solid fa-xmark"></i> បដិសេធ</button></div>`;
-            } else {
-              bgClass = "background:#f1f5f9; color:#94a3b8;";
-              displayMsg += ` <br><b style="color:#10b981; font-size: 0.8rem;">(✅ បានឆ្លើយតបរួចរាល់)</b>`;
-            }
-          }
-          // 💳 ការបង្ហាញសម្រាប់ សំណើទូទាត់តាមកាត (Card Payment Request) - កែតម្រូវប្រើប្រាស់ m ឱ្យត្រូវគ្នា
-          else if (m.type === "card_payment_request") {
-            iconClass = "fa-credit-card";
-            if (!m.isRead) {
-              bgClass = "background:#fff7ed; color:#ea580c;";
-              displayMsg = `<b>${m.metadata.merchantName}</b> កំពុងស្នើសុំកាត់ប្រាក់ <b style="color:red;">$${Number(m.metadata.amount).toFixed(2)}</b> ពីកាតរបស់អ្នក។`;
-              actionBtns = `
-                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                  <button onclick="handleCardPaymentConfirm('${m.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
-                  <button onclick="handleCardPaymentReject('${m.metadata.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
-                </div>
-              `;
-            } else {
-              bgClass = "background:#f1f5f9; color:#94a3b8;";
-              displayMsg = "✅ ការស្នើសុំទូទាត់ត្រូវបានឆ្លើយតបរួចរាល់។";
-            }
-          }
-
-          htmlStr += `
-            <div class="msg-card">
-              <div class="msg-top">
-                <div class="msg-icon" style="${bgClass}"><i class="fa-solid ${iconClass}"></i></div>
-                <div class="msg-content">
-                  <h4>${escapeHTML(m.title)}</h4>
-                  <p>${displayMsg}</p>
-                  ${actionBtns}
-                  <span class="msg-date"><i class="fa-regular fa-clock"></i> ${escapeHTML(m.date)}</span>
-                </div>
-              </div>
-              <button class="msg-del-btn" onclick="deleteMessage('${escapeHTML(m.title)}', '${escapeHTML(m.date)}')">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
-          `;
-        });
+        if (activeMsgs.length > msgDisplayLimit) {
+          htmlStr += `<button class="load-more-btn kh-text" onclick="loadMoreMsg()"><i class="fa-solid fa-angle-down"></i> ${tFn("history_load_more")}</button>`;
+        }
 
         containerMsg.innerHTML = htmlStr;
+        if (typeof applyLanguage === "function") applyLanguage();
       }
 
-      // ==========================================
-      // ១១. មុខងារបន្ថែមសម្រាប់សារ (MESSAGE ACTIONS)
-      // ==========================================
-      async function respondUFundInvite(fundId, notifId, response) {
-        try {
-          Swal.fire({
-            title: "កំពុងដំណើរការ...",
-            didOpen: () => Swal.showLoading(),
-            allowOutsideClick: false,
-          });
-          const res = await fetch("/api/ufund/respond-invite", {
-            method: "POST",
-            headers: authHeadersFetch,
-            body: JSON.stringify({
-              username: sessionUser.username,
-              fundId: fundId,
-              notifId: notifId,
-              response: response,
-            }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "ជោគជ័យ!",
-              text: data.message,
-              timer: 2000,
-              showConfirmButton: false,
-            }).then(() => syncAllData());
-          } else {
-            Swal.fire("បរាជ័យ", data.message, "error");
-          }
-        } catch (error) {
-          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-        }
-      }
-
-      async function handleJointInvite(
-        btnElement,
-        ownerUsername,
-        accountNumber,
-        action,
-        notifId,
-      ) {
-        const parentDiv = document.getElementById(`joint-action-${notifId}`);
-        if (parentDiv)
-          parentDiv.innerHTML = `<button style="width:100%; padding:10px; background:#64748b; color:white; border:none; border-radius:10px; font-weight:bold;"><i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...</button>`;
-        try {
-          const res = await fetch("/api/account/joint/respond", {
-            method: "POST",
-            headers: authHeadersFetch,
-            body: JSON.stringify({
-              inviteeUsername: sessionUser.username,
-              ownerUsername: ownerUsername,
-              accountNumber: accountNumber,
-              action: action,
-            }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            if (parentDiv)
-              parentDiv.innerHTML = `<div style="width:100%; padding:10px; background:#ecfdf5; color:#10b981; border-radius:10px; text-align:center; font-weight:bold;"><i class="fa-solid fa-circle-check"></i> ជោគជ័យ!</div>`;
-            await fetch(`/api/user/notifications/read/${notifId}`, {
-              method: "POST",
-              headers: authHeadersFetch,
-            }).catch(() => ({}));
-            setTimeout(() => syncAllData(), 1500);
-          } else {
-            if (parentDiv)
-              parentDiv.innerHTML = `<div style="width:100%; padding:10px; background:#fef2f2; color:#ef4444; border-radius:10px; text-align:center; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${data.message}</div>`;
-          }
-        } catch (error) {
-          if (parentDiv)
-            parentDiv.innerHTML = `<div style="width:100%; padding:10px; background:#fef2f2; color:#ef4444; border-radius:10px; text-align:center; font-weight:bold;">បញ្ហាភ្ជាប់ទៅ Server</div>`;
-        }
-      }
-
-      async function handleOpenGift(
-        amount,
-        currency,
-        sender,
-        msg,
-        notifId,
-        senderUsername,
-      ) {
-        if (typeof confetti === "function")
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        const curSym = currency === "USD" ? "$" : "៛";
-        const displayAmt =
-          currency === "USD"
-            ? Number(amount).toFixed(2)
-            : Number(amount).toLocaleString();
-
-        Swal.fire({
-          html: `<div style="padding:20px; text-align:center;">
-                    <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
-                    <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
-                    <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
-                    <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
-                    <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
-                </div>`,
-          confirmButtonText: "ឡូយកប់!",
-          confirmButtonColor: "#004d40",
-          customClass: { popup: "premium-swal" },
-        }).then(() => syncAllData());
-
-        try {
-          await fetch("/api/egift/opened", {
-            method: "POST",
-            headers: authHeadersFetch,
-            body: JSON.stringify({
-              receiverName: sessionUser.fullName || sessionUser.username,
-              senderUsername: senderUsername,
-              notifId: notifId,
-            }),
-          });
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      function deleteMessage(title, date) {
-        Swal.fire({
-          title: "លុបសារ? / Delete Message?",
-          text: "តើអ្នកពិតជាចង់លុបសារនេះមែនទេ? / Are you sure?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#dc2626",
-          cancelButtonColor: "#94a3b8",
-          confirmButtonText: "យល់ព្រម / Yes",
-          cancelButtonText: "បោះបង់ / Cancel",
-          customClass: { popup: "premium-swal" },
-        }).then((result) => {
-          if (result.isConfirmed) {
-            const msgKey = date + title;
-            deletedMessages.push(msgKey);
-            localStorage.setItem(
-              `deletedMsgs_${sessionUser.username}`,
-              JSON.stringify(deletedMessages),
-            );
-            renderMessages(sessionUser.notifications);
-          }
-        });
-      }
-
-      // ==========================================
-      // ១២. មុខងារគ្រប់គ្រង TABS និង FILTER
-      // ==========================================
-      function filterHistory(type, btn) {
-        currentFilterType = type;
-        document
-          .querySelectorAll(".filter-btn")
-          .forEach((b) => b.classList.remove("active"));
-        if (btn) btn.classList.add("active");
-        renderTransactions();
-      }
-
-      function switchHistoryTab(tab) {
-        const btnTrx = document.getElementById("btn-trx");
-        const btnMsg = document.getElementById("btn-msg");
-        const containerTrx = document.getElementById("historyList");
-        const containerMsg = document.getElementById("messagesContainer");
-        const filterBar = document.getElementById("trxFilterBar");
-        const isDark = document.body.classList.contains("dark-mode");
-
-        if (tab === "trx") {
-          btnTrx.style.background = isDark ? "#0f172a" : "#e0f2fe";
-          btnTrx.style.color = "#0284c7";
-          btnMsg.style.background = "transparent";
-          btnMsg.style.color = "#64748b";
-          containerTrx.style.display = "block";
-          filterBar.style.display = "flex";
-          containerMsg.style.display = "none";
-        } else {
-          btnMsg.style.background = isDark ? "#0f172a" : "#e0f2fe";
-          btnMsg.style.color = "#0284c7";
-          btnTrx.style.background = "transparent";
-          btnTrx.style.color = "#64748b";
-          containerTrx.style.display = "none";
-          filterBar.style.display = "none";
-          containerMsg.style.display = "block";
-        }
-      }
-
-      function showSlip(index) {
-        const t = currentTransactions[index];
-        if (typeof openGlobalSlip === "function") {
-          openGlobalSlip(t, sessionUser.username);
-        }
-      }
-
-      // ==========================================
-      // ១៣. មុខងារទាញយករបាយការណ៍ (EXPORT PDF STATEMENT) - WITH LOADING ANIMATION
-      // ==========================================
+      // --- ៥.៨ មុខងារទាញយករបាយការណ៍ PDF ---
       async function exportStatementPDF() {
-        if (selectedAccountNumbers.length === 0) {
-          return Swal.fire(
-            "បញ្ជាក់",
-            "សូមជ្រើសរើសគណនីយ៉ាងហោចណាស់មួយ!",
-            "warning",
-          );
-        }
-
+        const tFn = window.t || ((k) => k);
+        if (selectedAccountNumbers.length === 0)
+          return Swal.fire({
+            title: "Warning",
+            text: tFn("pdf_err_no_acc"),
+            icon: "warning",
+            customClass: { popup: "kh-text" },
+          });
         const start = document.getElementById("startDate").value;
         const end = document.getElementById("endDate").value;
         if (!start || !end)
-          return Swal.fire("បញ្ជាក់", "សូមជ្រើសរើសកាលបរិច្ឆេទ!", "warning");
+          return Swal.fire({
+            title: "Warning",
+            text: tFn("pdf_err_no_date"),
+            icon: "warning",
+            customClass: { popup: "kh-text" },
+          });
 
         Swal.fire({
-          title: "កំពុងរៀបចំរបាយការណ៍ PDF...",
-          html: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងគណនាទិន្នន័យ...",
+          title: `<span class="kh-text">${tFn("pdf_generating_title")}</span>`,
+          html: `<span class="kh-text">${tFn("pdf_generating_desc")}</span>`,
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
 
         setTimeout(() => {
@@ -1679,105 +1699,39 @@
                 .trim();
             };
 
-            const currTrx = (fullUserTransactions || []).filter((t) => {
-              let isLinkedToMerchant = false;
-              let merchantRelatedAccounts = [];
-              if (
-                sessionUser.merchantProfile &&
-                sessionUser.merchantProfile.merchants
-              ) {
-                sessionUser.merchantProfile.merchants.forEach((m) => {
-                  if (
-                    m.linkedAccounts &&
-                    (selectedAccountNumbers.includes(m.linkedAccounts.USD) ||
-                      selectedAccountNumbers.includes(m.linkedAccounts.KHR))
-                  ) {
-                    isLinkedToMerchant = true;
-                    if (m.accountNumbers.USD)
-                      merchantRelatedAccounts.push(m.accountNumbers.USD);
-                    if (m.accountNumbers.KHR)
-                      merchantRelatedAccounts.push(m.accountNumbers.KHR);
-                    if (m.cashiers) {
-                      m.cashiers.forEach((c) => {
-                        if (c.virtualAccounts?.USD)
-                          merchantRelatedAccounts.push(c.virtualAccounts.USD);
-                        if (c.virtualAccounts?.KHR)
-                          merchantRelatedAccounts.push(c.virtualAccounts.KHR);
-                        if (c.virtualAccount)
-                          merchantRelatedAccounts.push(c.virtualAccount);
-                      });
-                    }
-                  }
-                });
-              }
-
-              const accsToMatch = [
-                t.senderAcc,
-                t.receiverAcc,
-                t.senderAccount,
-                t.receiverAccount,
-              ];
-              const matchDirectAcc = accsToMatch.some((acc) =>
-                selectedAccountNumbers.includes(acc),
-              );
-              const matchMerchantAcc =
-                isLinkedToMerchant &&
-                merchantRelatedAccounts.includes(t.receiverAcc);
-
-              let matchMain = false;
-              if (
-                !matchDirectAcc &&
-                !matchMerchantAcc &&
-                !t.senderAcc &&
-                !t.receiverAcc
-              ) {
-                if (
-                  t.currency === "USD" &&
-                  selectedAccountNumbers.includes(sessionUser.accountNumber)
-                )
-                  matchMain = true;
-                if (
-                  t.currency === "KHR" &&
-                  selectedAccountNumbers.includes(sessionUser.accountNumberKHR)
-                )
-                  matchMain = true;
-              }
-
-              return matchDirectAcc || matchMerchantAcc || matchMain;
-            });
-
+            const currTrx = currentTransactions;
             const allTrxAsc = [...currTrx].sort(
               (a, b) => new Date(a.date) - new Date(b.date),
             );
 
             let totalInUSD = 0,
-              totalOutUSD = 0;
-            let totalInKHR = 0,
+              totalOutUSD = 0,
+              totalInKHR = 0,
               totalOutKHR = 0;
-            let runningBalUSD = 0;
-            let runningBalKHR = 0;
+            let runningBalUSD = 0,
+              runningBalKHR = 0;
 
-            allTrxAsc.forEach((t) => {
-              const amt = num(t.amount);
-              if (t.currency === "KHR") {
+            allTrxAsc.forEach((tx) => {
+              const amt = num(tx.amount);
+              if (tx.currency === "KHR") {
                 runningBalKHR += amt;
-                t.computedBalance = runningBalKHR;
+                tx.computedBalance = runningBalKHR;
               } else {
                 runningBalUSD += amt;
-                t.computedBalance = runningBalUSD;
+                tx.computedBalance = runningBalUSD;
               }
             });
 
-            const stTrx = allTrxAsc.filter((t) => {
-              const d = new Date(t.date);
+            const stTrx = allTrxAsc.filter((tx) => {
+              const d = new Date(tx.date);
               if (isNaN(d)) return false;
               const iso = d.toISOString().split("T")[0];
               return iso >= start && iso <= end;
             });
 
-            stTrx.forEach((t) => {
-              const amt = num(t.amount);
-              if (t.currency === "KHR") {
+            stTrx.forEach((tx) => {
+              const amt = num(tx.amount);
+              if (tx.currency === "KHR") {
                 if (amt > 0) totalInKHR += amt;
                 else totalOutKHR += Math.abs(amt);
               } else {
@@ -1786,8 +1740,8 @@
               }
             });
 
-            const beforeStTrx = allTrxAsc.filter((t) => {
-              const d = new Date(t.date);
+            const beforeStTrx = allTrxAsc.filter((tx) => {
+              const d = new Date(tx.date);
               if (isNaN(d)) return false;
               return d.toISOString().split("T")[0] < start;
             });
@@ -1797,11 +1751,11 @@
             const lastUSD = beforeStTrx
               .slice()
               .reverse()
-              .find((t) => t.currency !== "KHR");
+              .find((tx) => tx.currency !== "KHR");
             const lastKHR = beforeStTrx
               .slice()
               .reverse()
-              .find((t) => t.currency === "KHR");
+              .find((tx) => tx.currency === "KHR");
             if (lastUSD) openingUSD = num(lastUSD.computedBalance);
             if (lastKHR) openingKHR = num(lastKHR.computedBalance);
 
@@ -1810,11 +1764,11 @@
             const endUSD = stTrx
               .slice()
               .reverse()
-              .find((t) => t.currency !== "KHR");
+              .find((tx) => tx.currency !== "KHR");
             const endKHR = stTrx
               .slice()
               .reverse()
-              .find((t) => t.currency === "KHR");
+              .find((tx) => tx.currency === "KHR");
             if (endUSD) endingUSD = num(endUSD.computedBalance);
             if (endKHR) endingKHR = num(endKHR.computedBalance);
 
@@ -1860,8 +1814,8 @@
             doc.text("Phnom Penh, Cambodia", 40, y + 15);
 
             let detailY = 110;
-            const rightColX = 350;
-            const valueColX = pageWidth - 40;
+            const rightColX = 350,
+              valueColX = pageWidth - 40;
 
             doc.setFont("helvetica", "bold");
             doc.setTextColor(44, 62, 80);
@@ -1960,11 +1914,11 @@
               return [ds, ts];
             };
 
-            const tableBody = stTrx.map((t) => {
-              const amount = num(t.amount);
+            const tableBody = stTrx.map((tx) => {
+              const amount = num(tx.amount);
               const isIn = amount > 0;
-              const [ds, ts] = formatDateToPDF(t.date);
-              const isKHRRow = t.currency === "KHR";
+              const [ds, ts] = formatDateToPDF(tx.date);
+              const isKHRRow = tx.currency === "KHR";
               const rowSym = isKHRRow ? " KHR" : " USD";
               const formatRowMoney = (val) =>
                 isKHRRow
@@ -1976,23 +1930,23 @@
 
               let sender = sanitizeForPDF(
                 (
-                  t.senderName ||
-                  t.merchantName ||
-                  t.name ||
+                  tx.senderName ||
+                  tx.merchantName ||
+                  tx.name ||
                   "SYSTEM"
                 ).toUpperCase(),
               );
               let receiver = sanitizeForPDF(
                 (
-                  t.receiverName ||
-                  t.merchantName ||
-                  t.name ||
+                  tx.receiverName ||
+                  tx.merchantName ||
+                  tx.name ||
                   "SYSTEM"
                 ).toUpperCase(),
               );
               let detailsText = isIn
                 ? `RECEIVED FROM ${sender}`
-                : t.type === "Merchant Payment" || t.type === "Scan"
+                : tx.type === "Merchant Payment" || tx.type === "Scan"
                   ? `PAYMENT TO ${receiver}`
                   : `TRANSFER TO ${receiver}`;
 
@@ -2001,17 +1955,21 @@
                 detailsText.includes("U-PAY BANK")
               )
                 detailsText = sanitizeForPDF(
-                  (t.trxMethod || t.type || "SYSTEM TRANSACTION").toUpperCase(),
+                  (
+                    tx.trxMethod ||
+                    tx.type ||
+                    "SYSTEM TRANSACTION"
+                  ).toUpperCase(),
                 );
               if (isMultipleAccounts)
-                detailsText += `\nACC: ${t.senderAcc || t.receiverAcc || "MAIN"}`;
-              detailsText += `\nREF# ${t.refId || "N/A"}`;
-              if (t.remark)
-                detailsText += `\nREMARK: ${sanitizeForPDF(t.remark)}`;
+                detailsText += `\nACC: ${tx.senderAcc || tx.receiverAcc || "MAIN"}`;
+              detailsText += `\nREF# ${tx.refId || "N/A"}`;
+              if (tx.remark)
+                detailsText += `\nREMARK: ${sanitizeForPDF(tx.remark)}`;
 
               const balStr = isMultipleAccounts
                 ? ""
-                : formatRowMoney(num(t.computedBalance)) + rowSym;
+                : formatRowMoney(num(tx.computedBalance)) + rowSym;
               return [
                 ds + "\n" + ts,
                 detailsText,
@@ -2113,102 +2071,21 @@
               toast: true,
               position: "top",
               icon: "success",
-              title: "ទាញយករបាយការណ៍ជោគជ័យ!",
+              title: `<span class="kh-text">${tFn("pdf_success")}</span>`,
               showConfirmButton: false,
               timer: 2000,
-              customClass: { popup: "premium-swal" },
+              customClass: { popup: "premium-swal kh-text" },
             });
           } catch (e) {
-            console.error(e);
             Swal.close();
-            Swal.fire("Error", "បញ្ហាក្នុងការទាញយក PDF: " + e.message, "error");
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: tFn("pdf_error") + e.message,
+              customClass: { popup: "kh-text" },
+            });
           }
         }, 300);
-      }
-
-      // ==========================================
-      // មុខងារ កាត់លុយតាមកាត (Card Payment Confirm/Reject)
-      // ==========================================
-      async function handleCardPaymentConfirm(transactionId, notifId) {
-        if (typeof requestPinVerification === "function") {
-          requestPinVerification(
-            "បញ្ចូលលេខសម្ងាត់",
-            "បញ្ជាក់ការទូទាត់កាត",
-            async function (pinCode) {
-              Swal.fire({
-                title: "កំពុងដំណើរការ...",
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
-                customClass: { popup: "premium-swal" },
-              });
-              try {
-                const res = await fetch(
-                  "/api/gateway/payment-request/confirm",
-                  {
-                    method: "POST",
-                    headers: authHeadersFetch,
-                    body: JSON.stringify({
-                      transactionId: transactionId,
-                      pin: pinCode,
-                    }),
-                  },
-                );
-                const data = await res.json();
-                if (data.success) {
-                  await fetch(`/api/user/notifications/read/${notifId}`, {
-                    method: "POST",
-                    headers: authHeadersFetch,
-                  }).catch(() => {});
-                  Swal.fire({
-                    icon: "success",
-                    title: "ជោគជ័យ",
-                    text: "ការទូទាត់បានជោគជ័យ និងប្រាក់បានកាត់រួចរាល់!",
-                    customClass: { popup: "premium-swal" },
-                  }).then(() => window.location.reload());
-                } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: "បរាជ័យ",
-                    text: data.message,
-                    customClass: { popup: "premium-swal" },
-                  });
-                }
-              } catch (e) {
-                Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
-              }
-            },
-          );
-        } else {
-          Swal.fire("Error", "មិនអាចស្វែងរកមុខងារវាយ PIN ឃើញទេ", "error");
-        }
-      }
-
-      async function handleCardPaymentReject(transactionId, notifId) {
-        Swal.fire({
-          title: "កំពុងបដិសេធ...",
-          didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
-        });
-        try {
-          await fetch("/api/gateway/payment-request/reject", {
-            method: "POST",
-            headers: authHeadersFetch,
-            body: JSON.stringify({ transactionId: transactionId }),
-          });
-          await fetch(`/api/user/notifications/read/${notifId}`, {
-            method: "POST",
-            headers: authHeadersFetch,
-          }).catch(() => {});
-
-          Swal.fire({
-            icon: "info",
-            title: "បដិសេធជោគជ័យ",
-            text: "អ្នកបានបដិសេធសំណើនេះរួចរាល់",
-            customClass: { popup: "premium-swal" },
-          }).then(() => window.location.reload());
-        } catch (e) {
-          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
-        }
       }
     </script>
   </body>

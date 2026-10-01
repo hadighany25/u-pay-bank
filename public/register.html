@@ -27,7 +27,6 @@
         justify-content: center;
         min-height: 100vh;
       }
-
       .app-container {
         background: white;
         width: 100%;
@@ -40,7 +39,6 @@
         flex-direction: column;
         position: relative;
       }
-
       .header-section {
         background: linear-gradient(135deg, #004d40, #00695c);
         color: white;
@@ -50,7 +48,6 @@
         border-bottom-left-radius: 30px;
         border-bottom-right-radius: 30px;
       }
-
       .logo {
         width: 70px;
         margin-bottom: 15px;
@@ -59,54 +56,46 @@
         border-radius: 16px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       }
-
       .header-section h2 {
         margin: 0;
         font-size: 1.6rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
       }
-
       .header-section p {
         margin: 5px 0 0 0;
         font-size: 0.9rem;
         opacity: 0.8;
       }
 
-      /* 🔥 កែសម្រួល PROGRESS BAR ឱ្យឈប់ត្រូវកន្លែង ១០០% */
+      /* PROGRESS BAR */
       .progress-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 40px;
+        padding: 0 35px;
         margin-top: -20px;
         position: relative;
         z-index: 10;
       }
-
-      /* ប្រអប់សម្រាប់ផ្ទុកខ្សែ (ចាប់ពីរង្វង់១ ដល់ រង្វង់៣) */
       .progress-track {
         position: absolute;
         top: 50%;
-        left: 60px; /* ចាប់ផ្តើមពីគែមរង្វង់១ */
-        right: 60px; /* បញ្ចប់ត្រឹមគែមរង្វង់៣ */
+        left: 55px;
+        right: 55px;
         height: 3px;
         background: #e2e8f0;
         z-index: -1;
         transform: translateY(-50%);
       }
-
-      /* ខ្សែរត់ពណ៌បៃតង */
       .progress-line-active {
         position: absolute;
         top: 0;
         left: 0;
         height: 100%;
         background: #10b981;
-        width: 0%; /* 0%, 50%, 100% */
+        width: 0%;
         transition: width 0.3s ease;
       }
-
       .step-circle {
         width: 40px;
         height: 40px;
@@ -121,13 +110,11 @@
         transition: all 0.3s;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
-
       .step-circle.active {
         border-color: #10b981;
         color: #10b981;
         box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
       }
-
       .step-circle.completed {
         background: #10b981;
         border-color: #10b981;
@@ -141,7 +128,6 @@
         display: flex;
         flex-direction: column;
       }
-
       .step-content {
         display: none;
         animation: fadeIn 0.4s;
@@ -165,7 +151,6 @@
         margin-bottom: 20px;
         text-align: left;
       }
-
       .input-group label {
         display: block;
         font-size: 0.85rem;
@@ -173,12 +158,10 @@
         margin-bottom: 8px;
         font-weight: 600;
       }
-
       .input-box {
         position: relative;
         width: 100%;
       }
-
       .input-box i.fa-solid {
         position: absolute;
         left: 15px;
@@ -187,7 +170,6 @@
         color: #94a3b8;
         font-size: 1rem;
       }
-
       .form-control {
         width: 100%;
         padding: 14px 45px;
@@ -200,13 +182,11 @@
         background: #f8fafc;
         color: #1e293b;
       }
-
       .form-control:focus {
         border-color: #004d40;
         background: white;
         box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
       }
-
       .pin-input {
         letter-spacing: 10px;
         text-align: center;
@@ -228,9 +208,6 @@
         padding: 5px;
         z-index: 2;
       }
-      .toggle-password:hover {
-        color: #0f172a;
-      }
 
       .btn-container {
         display: flex;
@@ -238,7 +215,6 @@
         margin-top: 25px;
         width: 100%;
       }
-
       .btn-primary,
       .btn-secondary {
         padding: 15px 0;
@@ -251,7 +227,6 @@
         flex: 1;
         text-align: center;
       }
-
       .btn-primary {
         background: #004d40;
         color: white;
@@ -260,7 +235,6 @@
       .btn-primary:hover {
         background: #00382e;
       }
-
       .btn-secondary {
         background: #f1f5f9;
         color: #64748b;
@@ -268,7 +242,6 @@
       .btn-secondary:hover {
         background: #e2e8f0;
       }
-
       .btn-full {
         width: 100%;
         flex: none;
@@ -282,28 +255,19 @@
         margin-bottom: 25px;
         text-align: left;
       }
-
       .terms-box input[type="checkbox"] {
         margin: 0;
         width: 18px;
         height: 18px;
-        flex-shrink: 0;
         accent-color: #004d40;
         cursor: pointer;
       }
-
       .terms-box label {
         font-size: 0.85rem;
         color: #475569;
         line-height: 1.4;
         cursor: pointer;
         margin: 0;
-      }
-
-      .terms-box a {
-        color: #004d40;
-        font-weight: 600;
-        text-decoration: none;
       }
 
       .link {
@@ -328,6 +292,45 @@
         justify-content: center;
         gap: 5px;
       }
+
+      /* OTP Box Styles */
+      .otp-container {
+        text-align: center;
+        margin: 20px 0;
+      }
+      .otp-display-email {
+        font-weight: 700;
+        color: #004d40;
+        margin: 10px 0 20px 0;
+        font-size: 0.95rem;
+        background: #f1f5f9;
+        padding: 10px;
+        border-radius: 8px;
+      }
+      .otp-input {
+        width: 100%;
+        text-align: center;
+        font-size: 2rem;
+        letter-spacing: 15px;
+        font-weight: 700;
+        padding: 15px;
+        color: #0f172a;
+        border: 2px dashed #10b981;
+        border-radius: 12px;
+        background: #ecfdf5;
+        outline: none;
+        transition: 0.2s;
+        font-family: "Courier New", monospace;
+        box-sizing: border-box;
+      }
+      .otp-input:focus {
+        border-color: #004d40;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+      .premium-swal {
+        border-radius: 24px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      }
     </style>
   </head>
   <body>
@@ -347,16 +350,20 @@
 
       <div class="progress-container">
         <div class="progress-track">
+          <!-- ខ្សែបន្ទាត់រត់ពី 0 ទៅ 33%, 66%, និង 100% -->
           <div class="progress-line-active" id="progressLineActive"></div>
         </div>
-
         <div class="step-circle active" id="circle1">1</div>
         <div class="step-circle" id="circle2">2</div>
         <div class="step-circle" id="circle3">3</div>
+        <div class="step-circle" id="circle4">
+          <i class="fa-solid fa-check"></i>
+        </div>
       </div>
 
       <div class="form-section">
         <form id="regForm">
+          <!-- STEP 1: Personal Info -->
           <div class="step-content active" id="step1">
             <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
               Personal Details
@@ -377,7 +384,21 @@
             </div>
 
             <div class="input-group">
-              <label>Phone Number</label>
+              <label>Email Address</label>
+              <div class="input-box">
+                <i class="fa-solid fa-envelope"></i>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-control"
+                  placeholder="E.g. sok.dara@gmail.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Phone Number (Optional for OTP)</label>
               <div class="input-box">
                 <i class="fa-solid fa-phone"></i>
                 <input
@@ -401,6 +422,7 @@
             </div>
           </div>
 
+          <!-- STEP 2: Account Details -->
           <div class="step-content" id="step2">
             <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
               Account Details
@@ -440,7 +462,7 @@
                   display: block;
                   margin-top: 5px;
                 "
-                >This PIN is for card payments.</small
+                >This PIN is for card payments & transfers.</small
               >
             </div>
 
@@ -454,6 +476,7 @@
             </div>
           </div>
 
+          <!-- STEP 3: Security & Terms -->
           <div class="step-content" id="step3">
             <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
               Security Setup
@@ -499,7 +522,7 @@
               <input type="checkbox" id="termsCheck" />
               <label for="termsCheck"
                 >I agree to the <a href="#">Terms & Conditions</a> and
-                <a href="#">Privacy Policy</a> of U-PAY.</label
+                <a href="#">Privacy Policy</a>.</label
               >
             </div>
 
@@ -510,16 +533,78 @@
               <button
                 type="button"
                 class="btn-primary"
-                id="submitBtn"
-                onclick="handleRegister(event)"
+                id="requestOtpBtn"
+                onclick="requestOTP(event)"
               >
-                Create Account
+                Get OTP Code
               </button>
             </div>
-
             <div class="security-badge">
               <i class="fa-solid fa-shield-halved"></i> 256-bit Secure
               Encryption
+            </div>
+          </div>
+
+          <!-- STEP 4: OTP Verification -->
+          <div class="step-content" id="step4">
+            <h3
+              style="
+                margin-top: 0;
+                color: #0f172a;
+                font-size: 1.2rem;
+                text-align: center;
+              "
+            >
+              Verify Your Email
+            </h3>
+            <p
+              style="
+                text-align: center;
+                color: #64748b;
+                font-size: 0.9rem;
+                margin-top: 5px;
+              "
+            >
+              We have sent a 6-digit verification code to:
+            </p>
+            <div class="otp-display-email" id="displayEmailOTP">
+              sok.dara@gmail.com
+            </div>
+
+            <div class="otp-container">
+              <input
+                type="text"
+                id="otpCode"
+                class="otp-input"
+                maxlength="6"
+                placeholder="------"
+                inputmode="numeric"
+              />
+            </div>
+
+            <div class="btn-container">
+              <button
+                type="button"
+                class="btn-primary btn-full"
+                id="submitBtn"
+                onclick="verifyAndRegister(event)"
+              >
+                <i class="fa-solid fa-user-check"></i> Verify & Create Account
+              </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 15px">
+              <a
+                href="#"
+                onclick="requestOTP(event)"
+                style="
+                  color: #64748b;
+                  font-size: 0.85rem;
+                  font-weight: bold;
+                  text-decoration: none;
+                "
+                ><i class="fa-solid fa-rotate-right"></i> Resend Code</a
+              >
             </div>
           </div>
         </form>
@@ -531,7 +616,7 @@
     </div>
 
     <script>
-      // បើ User ធ្លាប់ Login ហើយ មិនចាំបាច់អោយចុះឈ្មោះទៀតទេ លោតទៅ Dashboard តែម្តង
+      // បើ User ធ្លាប់ Login ហើយ លោតទៅ Dashboard
       if (
         sessionStorage.getItem("user") &&
         sessionStorage.getItem("userToken")
@@ -541,42 +626,24 @@
 
       let currentStep = 1;
 
-      // ប្តូរ Step
+      // ការពិនិត្យមុនប្តូរ Step
       function nextStep(step) {
         if (step === 2) {
           const fn = document.getElementById("fullName").value.trim();
+          const em = document.getElementById("email").value.trim();
           const ph = document.getElementById("phone").value.trim();
-          if (!fn || !ph)
-            return Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "warning",
-              title: "សូមបំពេញព័ត៌មានឱ្យគ្រប់សិន!",
-              showConfirmButton: false,
-              timer: 2000,
-            });
+          if (!fn || !em || !ph)
+            return showAlert("warning", "សូមបំពេញព័ត៌មានឱ្យគ្រប់សិន!");
+          if (!em.includes("@"))
+            return showAlert("error", "ទម្រង់ Email មិនត្រឹមត្រូវទេ!");
         }
         if (step === 3) {
           const un = document.getElementById("username").value.trim();
           const pin = document.getElementById("pin").value.trim();
           if (!un || !pin)
-            return Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "warning",
-              title: "សូមបំពេញព័ត៌មានគណនីសិន!",
-              showConfirmButton: false,
-              timer: 2000,
-            });
+            return showAlert("warning", "សូមបំពេញឈ្មោះគណនី និង PIN សិន!");
           if (pin.length !== 4)
-            return Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "warning",
-              title: "PIN ត្រូវតែមាន ៤ខ្ទង់!",
-              showConfirmButton: false,
-              timer: 2000,
-            });
+            return showAlert("warning", "PIN ត្រូវតែមាន ៤ខ្ទង់គត់!");
         }
         updateUI(step);
       }
@@ -585,10 +652,8 @@
         updateUI(step);
       }
 
-      // Update UI ឱ្យត្រូវខ្នាត ១០០%
       function updateUI(step) {
         currentStep = step;
-
         document
           .querySelectorAll(".step-content")
           .forEach((el) => el.classList.remove("active"));
@@ -600,14 +665,14 @@
           if (index + 1 === step) el.classList.add("active");
         });
 
-        // 🔥 កំណត់ខ្សែរត់ត្រឹម 0%, 50%, ឬ 100% នៃប្រអប់តូចដែលយើងកំណត់
+        // Update Progress Bar
         const line = document.getElementById("progressLineActive");
         if (step === 1) line.style.width = "0%";
-        if (step === 2) line.style.width = "50%";
-        if (step === 3) line.style.width = "100%";
+        if (step === 2) line.style.width = "33%";
+        if (step === 3) line.style.width = "66%";
+        if (step === 4) line.style.width = "100%";
       }
 
-      // មើល Password
       function toggleVisibility(inputId, iconElement) {
         const input = document.getElementById(inputId);
         if (input.type === "password") {
@@ -621,20 +686,34 @@
         }
       }
 
-      // Submit
-      async function handleRegister(e) {
+      function showAlert(icon, title) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: icon,
+          title: title,
+          showConfirmButton: false,
+          timer: 2000,
+          customClass: { popup: "premium-swal" },
+        });
+      }
+
+      // ==========================================
+      // 🚀 ១. សុំ OTP (Request OTP)
+      // ==========================================
+      async function requestOTP(e) {
         e.preventDefault();
 
         const fullName = document.getElementById("fullName").value.trim();
+        const email = document.getElementById("email").value.trim();
         const username = document.getElementById("username").value.trim();
         const phone = document.getElementById("phone").value.trim();
-        const pin = document.getElementById("pin").value.trim();
         const password = document.getElementById("password").value;
         const confirmPass = document.getElementById("confirmPass").value;
         const terms = document.getElementById("termsCheck").checked;
 
         if (!password || !confirmPass)
-          return Swal.fire("Error", "សូមបញ្ចូលពាក្យសម្ងាត់!", "warning");
+          return showAlert("warning", "សូមបញ្ចូលពាក្យសម្ងាត់!");
         if (password !== confirmPass)
           return Swal.fire("Error", "ពាក្យសម្ងាត់មិនដូចគ្នាទេ!", "error");
         if (!terms)
@@ -644,54 +723,119 @@
             "warning",
           );
 
-        const btn = document.getElementById("submitBtn");
-        const originalText = btn.innerText;
+        const btn = document.getElementById("requestOtpBtn");
+        const origText = btn.innerText;
         btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+          '<i class="fa-solid fa-spinner fa-spin"></i> Sending Email...';
         btn.disabled = true;
 
         try {
-          const res = await fetch("/api/register", {
+          const res = await fetch("/api/request-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fullName, username, phone, pin, password }),
+            body: JSON.stringify({ username, phone, email }),
+          });
+          const data = await res.json();
+          btn.innerHTML = origText;
+          btn.disabled = false;
+
+          if (data.success) {
+            document.getElementById("displayEmailOTP").innerText = email;
+            updateUI(4); // ទៅកាន់ទំព័រទី ៤ ឱ្យវាយកូដ OTP
+            showAlert(
+              "success",
+              "លេខកូដ OTP ត្រូវបានបញ្ជូនទៅកាន់ Email របស់អ្នកហើយ!",
+            );
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "បរាជ័យ",
+              text: data.message,
+              customClass: { popup: "premium-swal" },
+            });
+          }
+        } catch (error) {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+      }
+
+      // ==========================================
+      // 🚀 ២. បញ្ជាក់ OTP រួចបង្កើតគណនី (Verify & Register)
+      // ==========================================
+      async function verifyAndRegister(e) {
+        e.preventDefault();
+
+        const otp = document.getElementById("otpCode").value.trim();
+        if (otp.length !== 6)
+          return showAlert(
+            "warning",
+            "សូមវាយលេខកូដ OTP ៦ខ្ទង់ឱ្យបានត្រឹមត្រូវ!",
+          );
+
+        const btn = document.getElementById("submitBtn");
+        const origText = btn.innerHTML;
+        btn.innerHTML =
+          '<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...';
+        btn.disabled = true;
+
+        const payload = {
+          fullName: document.getElementById("fullName").value.trim(),
+          email: document.getElementById("email").value.trim(),
+          username: document.getElementById("username").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          pin: document.getElementById("pin").value.trim(),
+          password: document.getElementById("password").value,
+          otp: otp,
+        };
+
+        try {
+          const res = await fetch("/api/verify-register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
           });
           const data = await res.json();
 
           if (data.success) {
-            // Auto Login ក្រោយចុះឈ្មោះរួច
-            const loginRes = await fetch("/api/login", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ identifier: username, password }),
+            // Auto Login ក្រោយបង្កើតគណនីរួចរាល់
+            sessionStorage.setItem("user", JSON.stringify(data.user));
+            if (data.token) sessionStorage.setItem("userToken", data.token);
+
+            await Swal.fire({
+              icon: "success",
+              title: "Welcome to U-PAY!",
+              text: "គណនីរបស់អ្នកត្រូវបានបង្កើតជោគជ័យ។",
+              timer: 2000,
+              showConfirmButton: false,
+              customClass: { popup: "premium-swal" },
             });
-            const loginData = await loginRes.json();
-
-            if (loginData.success) {
-              // 🔥 ការបន្ថែមថ្មី៖ រក្សាទុកទាំង User Data និង Token សម្ងាត់ចូលក្នុង Session
-              sessionStorage.setItem("user", JSON.stringify(loginData.user));
-              if (loginData.token) {
-                sessionStorage.setItem("userToken", loginData.token);
-              }
-
-              await Swal.fire({
-                icon: "success",
-                title: "Welcome to U-PAY!",
-                text: "គណនីរបស់អ្នកត្រូវបានបង្កើតជោគជ័យ។",
-                timer: 2000,
-                showConfirmButton: false,
-              });
-              window.location.href = "dashboard.html";
-            }
+            window.location.href = "dashboard.html";
           } else {
-            btn.innerHTML = originalText;
+            btn.innerHTML = origText;
             btn.disabled = false;
-            Swal.fire("បរាជ័យ", data.message, "error");
+            Swal.fire({
+              icon: "error",
+              title: "កូដមិនត្រឹមត្រូវ",
+              text: data.message,
+              customClass: { popup: "premium-swal" },
+            });
           }
         } catch (error) {
-          btn.innerHTML = originalText;
+          btn.innerHTML = origText;
           btn.disabled = false;
-          Swal.fire("Error", "មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server!", "error");
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!",
+            customClass: { popup: "premium-swal" },
+          });
         }
       }
     </script>

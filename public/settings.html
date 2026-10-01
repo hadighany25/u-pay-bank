@@ -6,95 +6,129 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Settings - U-Pay</title>
 
+    <!-- ==========================================
+         🔗 ១. ការភ្ជាប់ឯកសារ CSS & JS
+         ========================================== -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
 
     <style>
-      /* 🔥 PREMIUM FONT & VARIABLES SETUP */
-      :root {
-        --font-main: "Inter", "Kantumruy Pro", sans-serif;
-        --max-width: 450px;
-        --primary-color: #004d40;
-        --bg-light: #eef2f6;
-        --app-bg-light: #f3f4f6;
-        --text-dark: #1e293b;
-        --text-muted: #64748b;
-      }
-
-      /* ផ្គុំ Body បញ្ចូលគ្នាតែមួយ ដើម្បីកុំឱ្យជាន់កូដ */
+      /* ==========================================
+         🎯 ១. BASE STYLES & HEADER
+         ========================================== */
       body {
         margin: 0;
-        font-family: var(--font-main);
-        background: var(--bg-light);
+        padding: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        background: #f1f5f9;
         display: flex;
+        align-items: center;
         justify-content: center;
         min-height: 100vh;
-        -webkit-font-smoothing: antialiased;
-
-        /* មុខងារ Fade-in លាក់សិនមុនពេលផ្ទុក */
-        visibility: hidden;
-        opacity: 0;
-        transition:
-          background-color 0.3s ease,
-          opacity 0.4s ease;
       }
-
-      /* ពេលផ្ទុកចប់ នឹងហៅ Class នេះមកប្រើ */
-      body.loaded {
-        visibility: visible;
-        opacity: 1;
-      }
-
       .app-container {
+        background: #f8fafc;
         width: 100%;
-        max-width: var(--max-width);
-        background: var(--app-bg-light);
+        max-width: 400px;
         min-height: 100vh;
-        position: relative;
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        overflow-x: hidden;
         display: flex;
         flex-direction: column;
-        padding-bottom: 90px;
-        transition:
-          background-color 0.3s ease,
-          color 0.3s ease;
+        position: relative;
       }
-
-      input,
-      button,
-      select,
-      textarea {
-        font-family: var(--font-main) !important;
-      }
-
-      /* HEADER */
       .header {
         background: linear-gradient(135deg, #004d40, #00695c);
         color: white;
-        padding: 40px 20px 90px 20px;
+        padding: 20px 20px 75px 20px;
         border-radius: 0 0 35px 35px;
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         box-shadow: 0 4px 15px rgba(0, 77, 64, 0.3);
+        position: relative;
+        z-index: 10;
+      }
+      .header-flat {
+        padding-bottom: 20px;
+        border-radius: 0 0 25px 25px;
+      }
+      .back-btn {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        cursor: pointer;
+        z-index: 20;
+        transition: 0.2s;
+      }
+      .back-btn:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.3);
+      }
+      .header-title-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        pointer-events: none;
       }
       .header h2 {
         margin: 0;
         font-weight: 700;
         letter-spacing: 0.5px;
+        font-size: 1.2rem;
       }
 
-      /* PROFILE CARD */
+      /* ==========================================
+         🔄 ២. VIEW STATES (SPA)
+         ========================================== */
+      .view-state {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        flex: 1;
+        animation: fadeSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .view-state.active {
+        display: flex;
+      }
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ==========================================
+         👤 ៣. PROFILE CARD
+         ========================================== */
       .profile-section {
         margin-top: -65px;
         padding: 0 20px;
+        position: relative;
+        z-index: 15;
       }
       .profile-card {
         background: white;
@@ -107,7 +141,6 @@
           background-color 0.3s ease,
           box-shadow 0.3s ease;
       }
-
       .profile-img-container {
         position: relative;
         width: 90px;
@@ -131,12 +164,11 @@
         transform: scale(0.95);
         opacity: 0.8;
       }
-
       .edit-icon {
         position: absolute;
         bottom: 0;
         right: 0;
-        background: var(--primary-color);
+        background: var(--primary);
         color: white;
         width: 32px;
         height: 32px;
@@ -147,80 +179,51 @@
         font-size: 0.9rem;
         border: 3px solid white;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
       }
-
       #fileUploadInput,
       #kycUploadInput {
         display: none;
       }
-
       .profile-info-box {
         display: flex;
         flex-direction: column;
         align-items: center;
-        position: relative;
         margin-top: 10px;
         padding: 10px;
-        border-radius: 16px;
-        transition:
-          background-color 0.2s,
-          border-color 0.2s;
-        cursor: pointer;
-        border: 1px solid transparent;
-      }
-      .profile-info-box:active {
-        background: #f8fafc;
-        border-color: #e2e8f0;
-      }
-      .profile-info-box .fa-pen {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #cbd5e1;
-        font-size: 1.1rem;
       }
       .user-name {
         font-size: 1.3rem;
         font-weight: 700;
-        color: var(--text-dark);
+        color: #1e293b;
         margin: 0;
-        letter-spacing: -0.5px;
-        transition: color 0.3s ease;
       }
       .user-phone {
-        color: var(--text-muted);
+        color: #64748b;
         font-size: 0.9rem;
         margin-top: 5px;
         font-weight: 500;
       }
 
-      /* SETTINGS LIST */
+      /* ==========================================
+         ⚙️ ៤. SETTINGS LIST
+         ========================================== */
       .settings-group {
         margin: 25px 20px;
       }
       .group-title {
         font-size: 0.85rem;
-        color: var(--text-muted);
+        color: #64748b;
         font-weight: 700;
         margin-bottom: 12px;
         margin-left: 10px;
         text-transform: uppercase;
         letter-spacing: 1px;
-        transition: color 0.3s ease;
       }
       .setting-wrapper {
         background: white;
         border-radius: 20px;
         overflow: hidden;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
-        border: 1px solid transparent;
       }
       .setting-item {
         padding: 18px 20px;
@@ -229,9 +232,6 @@
         justify-content: space-between;
         border-bottom: 1px solid #f1f5f9;
         cursor: pointer;
-        transition:
-          background-color 0.2s,
-          border-color 0.3s ease;
       }
       .setting-item:last-child {
         border-bottom: none;
@@ -247,24 +247,22 @@
         font-weight: 600;
         font-size: 1rem;
         color: #334155;
-        transition: color 0.3s ease;
       }
       .setting-icon {
         width: 38px;
         height: 38px;
         border-radius: 12px;
         background: #e0f2f1;
-        color: var(--primary-color);
+        color: var(--primary);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.1rem;
-        transition:
-          background-color 0.3s ease,
-          color 0.3s ease;
       }
 
-      /* LOGOUT BUTTON */
+      /* ==========================================
+         🔘 ៥. BUTTONS & SWITCHES
+         ========================================== */
       .logout-btn {
         margin: 10px 20px 30px;
         background: white;
@@ -274,65 +272,15 @@
         border-radius: 18px;
         font-weight: 700;
         cursor: pointer;
-        transition:
-          transform 0.2s,
-          background-color 0.3s,
-          color 0.3s,
-          border-color 0.3s;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 10px;
         box-shadow: 0 4px 10px rgba(239, 68, 68, 0.1);
-        border: 1px solid transparent;
       }
       .logout-btn:active {
         transform: scale(0.97);
       }
-
-      /* BOTTOM NAV */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: var(--max-width);
-        background: white;
-        padding: 12px 0 20px 0;
-        display: flex;
-        justify-content: space-around;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
-        z-index: 1000;
-        border-radius: 25px 25px 0 0;
-        transition:
-          background-color 0.3s ease,
-          box-shadow 0.3s ease,
-          border-top 0.3s ease;
-        border-top: 1px solid transparent;
-      }
-      .nav-item {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.75rem;
-        text-decoration: none;
-        cursor: pointer;
-        transition:
-          color 0.2s,
-          transform 0.2s;
-      }
-      .nav-item i {
-        font-size: 1.4rem;
-        display: block;
-        margin-bottom: 6px;
-      }
-      .nav-item.active {
-        color: var(--primary-color);
-        font-weight: 700;
-        transform: translateY(-5px);
-      }
-
-      /* SWITCH TOGGLE */
       .switch {
         position: relative;
         display: inline-block;
@@ -368,202 +316,519 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
       input:checked + .slider {
-        background-color: var(--primary-color);
+        background-color: var(--primary, #004d40);
       }
       input:checked + .slider:before {
         transform: translateX(20px);
       }
 
-      /* 🔥 PREMIUM SWEETALERT MODAL UI */
+      /* ==========================================
+         🔒 ៦. SECURITY FLOW (4 STEPS - PROFESSIONAL)
+         ========================================== */
+      .security-container {
+        padding: 30px 20px;
+        text-align: center;
+      }
+
+      /* Progress Bar (Fix Centered & No Overflow) */
+      .progress-bar-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 15px;
+        margin-bottom: 40px;
+        position: relative;
+      }
+      .progress-track {
+        position: absolute;
+        top: 50%;
+        left: 35px;
+        right: 35px; /* Stay between circles */
+        height: 3px;
+        background: #e2e8f0;
+        z-index: 1;
+        transform: translateY(-50%);
+      }
+      .progress-line-active {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: #004d40;
+        z-index: 2;
+        transition: width 0.4s ease;
+        width: 0%;
+      }
+      .progress-step {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        font-weight: bold;
+        position: relative;
+        z-index: 3;
+        transition: all 0.4s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      }
+      .progress-step.active {
+        border-color: #004d40;
+        color: #004d40;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+      .progress-step.completed {
+        background: #004d40;
+        border-color: #004d40;
+        color: white;
+      }
+
+      .step-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 10px;
+      }
+      .step-desc {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 25px;
+        line-height: 1.5;
+      }
+
+      /* Input Box Container (For Eye Icon) */
+      .input-box {
+        position: relative;
+        width: 100%;
+        margin-bottom: 15px;
+        text-align: left;
+      }
+      .styled-input {
+        width: 100%;
+        padding: 15px 45px 15px 15px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 1rem;
+        color: #1e293b;
+        font-family: inherit;
+        outline: none;
+        box-sizing: border-box;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+      .styled-input:focus {
+        border-color: #004d40;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+      }
+
+      /* Toggle Password Icon */
+      .toggle-password {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 5px;
+        z-index: 2;
+        font-size: 1.1rem;
+      }
+      .toggle-password:hover {
+        color: #0f172a;
+      }
+
+      .otp-input {
+        letter-spacing: 15px;
+        font-size: 1.8rem;
+        font-weight: 800;
+        font-family: "Courier New", monospace;
+        text-align: center;
+        padding-right: 15px;
+      }
+      .otp-display-email {
+        font-weight: 700;
+        color: #004d40;
+        margin: 10px 0 20px 0;
+        font-size: 0.95rem;
+        background: #f1f5f9;
+        padding: 10px;
+        border-radius: 8px;
+      }
+
+      .btn-main {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        font-family: inherit;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .btn-main:active {
+        transform: scale(0.98);
+      }
+      .btn-main:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .form-group {
+        text-align: left;
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 8px;
+        margin-left: 5px;
+      }
+
+      /* ==========================================
+         📱 ៧. TELEGRAM VIEW STYLES
+         ========================================== */
+      .tele-icon-box {
+        width: 80px;
+        height: 80px;
+        background: #e3f2fd;
+        color: #2aabee;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin: 0 auto 20px;
+      }
+      .bot-name {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 5px;
+      }
+      .bot-username {
+        color: #2aabee;
+        font-size: 0.9rem;
+        margin: 0 0 30px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .code-container {
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        display: none;
+      }
+      .code-digits {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--primary, #004d40);
+        letter-spacing: 10px;
+        margin: 0;
+      }
+      .btn-generate {
+        background: var(--primary, #004d40);
+        color: white;
+      }
+      .btn-unlink {
+        background: #fee2e2;
+        color: #ef4444;
+        box-shadow: none;
+        margin-top: 20px;
+        display: none;
+      }
+      .instruction-box {
+        text-align: left;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        border-radius: 15px;
+        margin-top: 20px;
+        display: none;
+      }
+      .step {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        font-size: 0.85rem;
+        color: #64748b;
+      }
+      .step-num {
+        width: 25px;
+        height: 25px;
+        background: var(--primary, #004d40);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        flex-shrink: 0;
+      }
+      .success-box {
+        display: none;
+        background: #d1fae5;
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid #10b981;
+        margin-bottom: 20px;
+      }
+      .success-box i {
+        font-size: 3rem;
+        color: #10b981;
+        margin-bottom: 10px;
+      }
+      .success-box h3 {
+        color: #065f46;
+        margin: 0 0 5px;
+      }
+
+      /* 🌟 បន្ថែម CSS នេះសម្រាប់រុញអក្សរឱ្យចំកណ្តាលពេលជា PIN */
+      .styled-input.pin-centered {
+        padding-left: 45px !important; /* ធ្វើឱ្យ Padding សងខាងស្មើគ្នា (ស្តាំ 45px, ឆ្វេង 45px) */
+        text-align: center !important;
+      }
+      /* ==========================================
+         📝 ៨. SweetAlert Modal Styles
+         ========================================== */
+      .swal2-container {
+        z-index: 99999 !important;
+      }
       .premium-swal {
-        border-radius: 24px !important;
-        padding: 20px !important;
-        transition: background-color 0.3s ease;
+        width: 90% !important;
+        max-width: 380px !important;
+        border-radius: 28px !important;
+        padding: 30px 20px 20px 20px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
       }
       .premium-swal-title {
         font-size: 1.4rem !important;
         font-weight: 700 !important;
-        color: #1e293b !important;
-        margin-bottom: 20px !important;
-        transition: color 0.3s ease;
-      }
-      .swal-form-group {
-        text-align: left;
-        margin-bottom: 16px;
-      }
-      .swal-form-label {
-        display: block;
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: color 0.3s ease;
+        color: #0f172a !important;
+        margin-bottom: 15px !important;
       }
       .swal-custom-input,
-      .swal-custom-select,
-      .swal-custom-textarea {
-        width: 100%;
-        padding: 14px 16px;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        font-family: var(--font-main);
-        font-size: 0.95rem;
-        color: #1e293b;
-        outline: none;
-        box-sizing: border-box;
-        transition:
-          border-color 0.2s,
-          background-color 0.3s ease,
-          color 0.3s ease;
-        background: #f8fafc;
+      .swal2-input,
+      .swal2-textarea,
+      .swal2-select {
+        width: 100% !important;
+        padding: 15px 16px !important;
+        margin: 10px 0 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 14px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif !important;
+        font-size: 1rem !important;
+        color: #1e293b !important;
+        outline: none !important;
+        box-sizing: border-box !important;
+        background: #f8fafc !important;
+        box-shadow: none !important;
       }
       .swal-custom-input:focus,
-      .swal-custom-select:focus,
-      .swal-custom-textarea:focus {
-        border-color: var(--primary-color);
-        background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+      .swal2-input:focus,
+      .swal2-select:focus,
+      .swal2-textarea:focus {
+        border-color: #004d40 !important;
+        background: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1) !important;
       }
-      .swal-custom-textarea {
-        resize: vertical;
-        min-height: 100px;
+      .swal2-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        margin-top: 15px !important;
+        width: 100% !important;
       }
       .premium-btn-confirm {
-        background: var(--primary-color) !important;
+        background: #004d40 !important;
         color: white !important;
         border: none !important;
-        border-radius: 12px !important;
-        padding: 12px 28px !important;
-        font-weight: 600 !important;
-        font-family: var(--font-main) !important;
+        border-radius: 14px !important;
+        padding: 14px 25px !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        width: 100% !important;
+        margin: 0 !important;
         box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2) !important;
-        margin: 5px !important;
       }
       .premium-btn-cancel {
-        background: white !important;
+        background: #f1f5f9 !important;
         color: #64748b !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 12px !important;
-        padding: 12px 28px !important;
-        font-weight: 600 !important;
-        font-family: var(--font-main) !important;
-        margin: 5px !important;
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease,
-          color 0.3s ease;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 14px 25px !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        width: 100% !important;
+        margin: 0 !important;
       }
 
       /* ==========================================
-         🌙 FULL DARK MODE OVERRIDES
+         🌙 ៩. មុខងារងងឹត (DARK MODE OVERRIDES)
          ========================================== */
-
-      body.dark-mode {
-        background-color: #000000 !important;
-      }
       body.dark-mode .app-container {
-        background-color: #121212 !important;
-        color: #e0e0e0 !important;
-        box-shadow: 0 0 40px rgba(255, 255, 255, 0.02) !important;
+        background: #0f172a;
       }
-
-      /* Profile Section Dark Mode */
       body.dark-mode .profile-card {
-        background: #1e1e1e !important;
+        background: #1e293b !important;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
       }
       body.dark-mode .profile-img {
-        border-color: #2d2d2d !important;
+        border-color: #334155 !important;
       }
       body.dark-mode .edit-icon {
-        border-color: #1e1e1e !important;
+        border-color: #1e293b !important;
         background: #10b981 !important;
       }
       body.dark-mode .user-name {
-        color: #ffffff !important;
+        color: #f8fafc !important;
       }
-      body.dark-mode .profile-info-box:active {
-        background: #2a2a2a !important;
-        border-color: #333 !important;
-      }
-
-      /* Settings List Dark Mode */
       body.dark-mode .group-title {
         color: #94a3b8 !important;
       }
       body.dark-mode .setting-wrapper {
-        background: #1e1e1e !important;
-        border: 1px solid #2d2d2d !important;
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
         box-shadow: none !important;
       }
       body.dark-mode .setting-item {
-        border-bottom: 1px solid #2d2d2d !important;
+        border-bottom: 1px solid #334155 !important;
       }
       body.dark-mode .setting-item:active {
-        background: #2a2a2a !important;
+        background: #0f172a !important;
       }
       body.dark-mode .setting-left {
         color: #e2e8f0 !important;
       }
       body.dark-mode .setting-icon {
-        background: #2d2d2d !important;
+        background: #334155 !important;
         color: #10b981 !important;
       }
-
-      /* Toggle Switch Dark Mode */
       body.dark-mode input:checked + .slider {
         background-color: #10b981 !important;
       }
-
-      /* Logout Button Dark Mode */
       body.dark-mode .logout-btn {
         background: #2a1515 !important;
         color: #ff6b6b !important;
         border-color: #451a1a !important;
         box-shadow: none !important;
       }
-      body.dark-mode .logout-btn:active {
-        background: #3f1d1d !important;
-      }
 
-      /* Bottom Nav Dark Mode */
-      body.dark-mode .bottom-nav {
-        background: #1e1e1e !important;
-        border-top: 1px solid #2d2d2d !important;
-        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.4) !important;
+      body.dark-mode .step-title {
+        color: white !important;
       }
-      body.dark-mode .nav-item.active {
-        color: #10b981 !important;
-      }
-
-      /* SweetAlert Modal Dark Mode */
-      body.dark-mode .premium-swal {
-        background: #1e1e1e !important;
-      }
-      body.dark-mode .premium-swal-title {
-        color: #ffffff !important;
-      }
-      body.dark-mode .swal-custom-input,
-      body.dark-mode .swal-custom-select,
-      body.dark-mode .swal-custom-textarea {
-        background: #121212 !important;
-        border-color: #333 !important;
-        color: #ffffff !important;
-      }
-      body.dark-mode .swal-custom-input:focus,
-      body.dark-mode .swal-custom-select:focus,
-      body.dark-mode .swal-custom-textarea:focus {
-        border-color: #10b981 !important;
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
-      }
-      body.dark-mode .swal-form-label {
+      body.dark-mode .step-desc {
         color: #94a3b8 !important;
       }
+      body.dark-mode .styled-input {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: white !important;
+      }
+      body.dark-mode .otp-display-email {
+        background: #1e293b !important;
+        color: #10b981 !important;
+      }
+      body.dark-mode .progress-step {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .progress-track {
+        background: #334155 !important;
+      }
+      body.dark-mode .progress-step.active {
+        border-color: #10b981 !important;
+        color: #10b981 !important;
+      }
+      body.dark-mode .progress-step.completed {
+        background: #10b981 !important;
+        border-color: #10b981 !important;
+        color: white !important;
+      }
+      body.dark-mode .progress-line-active {
+        background: #10b981 !important;
+      }
+      body.dark-mode .btn-main {
+        background: #10b981 !important;
+      }
+
+      body.dark-mode .tele-icon-box {
+        background: #1e293b !important;
+        color: #38bdf8 !important;
+      }
+      body.dark-mode .bot-name {
+        color: #ffffff !important;
+      }
+      body.dark-mode .code-container {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .code-digits {
+        color: #10b981 !important;
+      }
+      body.dark-mode .instruction-box {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .step {
+        color: #cbd5e1 !important;
+      }
+      body.dark-mode .success-box {
+        background: rgba(16, 185, 129, 0.1) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+      body.dark-mode .success-box h3,
+      body.dark-mode .success-box p {
+        color: #34d399 !important;
+      }
+      body.dark-mode .btn-unlink {
+        background: #2a1515 !important;
+        color: #ff6b6b !important;
+      }
+      body.dark-mode .premium-swal {
+        background: #1e293b !important;
+      }
+      body.dark-mode .premium-swal-title,
+      body.dark-mode .swal2-html-container {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .swal2-input,
+      body.dark-mode .swal-custom-input,
+      body.dark-mode .swal2-textarea,
+      body.dark-mode .swal2-select {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .swal2-input:focus,
+      body.dark-mode .swal-custom-input:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1) !important;
+      }
       body.dark-mode .premium-btn-cancel {
-        background: #2a2a2a !important;
-        border-color: #444 !important;
+        background: #0f172a !important;
+        border-color: #334155 !important;
         color: #cbd5e1 !important;
       }
       body.dark-mode .premium-btn-confirm {
@@ -574,240 +839,477 @@
   </head>
   <body>
     <div class="app-container">
-      <div class="header">
-        <h2 data-i18n="title">Settings</h2>
-      </div>
-
-      <div class="profile-section">
-        <div class="profile-card">
-          <div
-            class="profile-img-container"
-            onclick="document.getElementById('fileUploadInput').click()"
+      <!-- ==============================================================
+           🟢 VIEW 1: MAIN SETTINGS
+           ============================================================== -->
+      <div id="view-settings" class="view-state active">
+        <div class="header">
+          <button
+            class="back-btn"
+            onclick="window.location.href = 'dashboard.html'"
+            title="ត្រឡប់ទៅ Dashboard"
           >
-            <img id="u-img" src="images/logo.png" class="profile-img" />
-            <div class="edit-icon"><i class="fa-solid fa-camera"></i></div>
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="header-title-container">
+            <h2 data-i18n="title">Settings</h2>
           </div>
-          <input
-            type="file"
-            id="fileUploadInput"
-            accept="image/png, image/jpeg, image/jpg"
-            onchange="uploadImage(event)"
-          />
-          <div class="profile-info-box" onclick="editProfile()">
-            <h3 id="u-name" class="user-name">Loading...</h3>
-            <p id="u-phone" class="user-phone">Loading...</p>
-            <i class="fa-solid fa-pen"></i>
+          <div style="width: 38px"></div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-card">
+            <div
+              class="profile-img-container"
+              onclick="document.getElementById('fileUploadInput').click()"
+            >
+              <img id="u-img" src="images/logo.png" class="profile-img" />
+              <div class="edit-icon"><i class="fa-solid fa-camera"></i></div>
+            </div>
+            <input
+              type="file"
+              id="fileUploadInput"
+              accept="image/png, image/jpeg, image/jpg"
+              onchange="uploadImage(event)"
+            />
+            <div class="profile-info-box">
+              <h3 id="u-name" class="user-name">Loading...</h3>
+              <p id="u-phone" class="user-phone">Loading...</p>
+            </div>
           </div>
+        </div>
+
+        <!-- GENERAL SETTINGS -->
+        <div class="settings-group">
+          <div class="group-title" data-i18n="sec_general">General</div>
+          <div class="setting-wrapper">
+            <div class="setting-item">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="color: #0ea5e9; background: #e0f2fe"
+                >
+                  <i class="fa-solid fa-moon"></i>
+                </div>
+                <span data-i18n="dark_mode">Dark Mode</span>
+              </div>
+              <label class="switch"
+                ><input
+                  type="checkbox"
+                  id="darkModeToggle"
+                  onchange="toggleDarkMode()" /><span class="slider"></span
+              ></label>
+            </div>
+            <div class="setting-item" onclick="toggleLang()">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="color: #8b5cf6; background: #ede9fe"
+                >
+                  <i class="fa-solid fa-language"></i>
+                </div>
+                <span data-i18n="language">Language</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span
+                  id="currentLang"
+                  style="font-size: 0.9rem; color: #64748b; font-weight: 600"
+                  >EN</span
+                >
+                <i
+                  class="fa-solid fa-rotate"
+                  style="color: #cbd5e1; font-size: 0.9rem"
+                  id="langIcon"
+                ></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECURITY SETTINGS -->
+        <div class="settings-group">
+          <div class="group-title" data-i18n="sec_security">Security</div>
+          <div class="setting-wrapper">
+            <!-- 🔴 NEW SECURITY FLOW BUTTONS -->
+            <div class="setting-item" onclick="openSecurityFlow('password')">
+              <div class="setting-left">
+                <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
+                <span data-i18n="change_pass">Change Password</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+            </div>
+            <div class="setting-item" onclick="openSecurityFlow('pin')">
+              <div class="setting-left">
+                <div class="setting-icon"><i class="fa-solid fa-key"></i></div>
+                <span data-i18n="change_pin">Change PIN</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+            </div>
+
+            <!-- 🔵 TELEGRAM LINK BUTTON -->
+            <div class="setting-item" onclick="openTelegramView()">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="background: #e3f2fd; color: #2aabee"
+                >
+                  <i class="fa-brands fa-telegram"></i>
+                </div>
+                <div style="display: flex; flex-direction: column">
+                  <span data-i18n="link_telegram" style="margin-bottom: 3px"
+                    >Telegram Alert</span
+                  >
+                  <span
+                    id="teleStatus"
+                    style="font-size: 0.75rem; color: #888; font-weight: 400"
+                    >Checking...</span
+                  >
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="color: #f59e0b; background: #fef3c7"
+                >
+                  <i class="fa-solid fa-fingerprint"></i>
+                </div>
+                <span data-i18n="biometric">Biometric Login</span>
+              </div>
+              <label class="switch"
+                ><input
+                  type="checkbox"
+                  id="bioToggle"
+                  onchange="toggleBio()" /><span class="slider"></span
+              ></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUPPORT SETTINGS -->
+        <div class="settings-group">
+          <div class="group-title" data-i18n="sec_support">
+            Support & Verification
+          </div>
+          <div class="setting-wrapper">
+            <div class="setting-item" onclick="triggerKycUpload()">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="color: #6366f1; background: #e0e7ff"
+                >
+                  <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div style="display: flex; flex-direction: column">
+                  <span data-i18n="kyc_verify" style="margin-bottom: 3px"
+                    >Identity Verification</span
+                  >
+                  <span
+                    id="kycStatusText"
+                    style="
+                      font-size: 0.75rem;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                    "
+                    >Unverified</span
+                  >
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+            </div>
+            <input
+              type="file"
+              id="kycUploadInput"
+              accept="image/*"
+              onchange="uploadKyc(event)"
+            />
+
+            <div class="setting-item" onclick="openTicketModal()">
+              <div class="setting-left">
+                <div
+                  class="setting-icon"
+                  style="color: #d946ef; background: #fae8ff"
+                >
+                  <i class="fa-solid fa-headset"></i>
+                </div>
+                <span data-i18n="support_ticket">Support Tickets</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="logout-btn" onclick="logout()">
+          <i class="fa-solid fa-right-from-bracket"></i
+          ><span data-i18n="logout">Log Out</span>
         </div>
       </div>
 
-      <div class="settings-group">
-        <div class="group-title" data-i18n="sec_general">General</div>
-        <div class="setting-wrapper">
-          <div class="setting-item">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #0ea5e9; background: #e0f2fe"
-              >
-                <i class="fa-solid fa-moon"></i>
-              </div>
-              <span data-i18n="dark_mode">Dark Mode</span>
+      <!-- ==============================================================
+           🔒 VIEW 2: SECURITY FLOW (4 STEPS - PROFESSIONAL)
+           ============================================================== -->
+      <div id="view-security" class="view-state">
+        <div class="header header-flat">
+          <button class="back-btn" onclick="closeSecurityFlow()">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="header-title-container">
+            <h2 id="secTitle">Change Password</h2>
+          </div>
+          <div style="width: 38px"></div>
+        </div>
+
+        <div class="security-container">
+          <!-- 🟢 Progress Bar (Centered properly) -->
+          <div class="progress-bar-container">
+            <div class="progress-track">
+              <div class="progress-line-active" id="secProgressLine"></div>
             </div>
-            <label class="switch">
+            <div class="progress-step active" id="secStepIcon1">1</div>
+            <div class="progress-step" id="secStepIcon2">2</div>
+            <div class="progress-step" id="secStepIcon3">3</div>
+            <div class="progress-step" id="secStepIcon4">
+              <i class="fa-solid fa-check"></i>
+            </div>
+          </div>
+
+          <!-- STEP 1: Current Password Verification -->
+          <div id="sec-step-1">
+            <h3 class="step-title">Verify Identity</h3>
+            <p class="step-desc">
+              សូមវាយពាក្យសម្ងាត់គណនីចាស់របស់អ្នក ដើម្បីបន្ត។
+            </p>
+
+            <div class="form-group">
+              <label>Current Password</label>
+              <div class="input-box">
+                <input
+                  type="password"
+                  id="inputOldVal"
+                  placeholder="បញ្ចូលពាក្យសម្ងាត់បច្ចុប្បន្ន"
+                  class="styled-input"
+                />
+                <i
+                  class="fa-regular fa-eye toggle-password"
+                  onclick="toggleVisibility('inputOldVal', this)"
+                ></i>
+              </div>
+            </div>
+
+            <button
+              class="btn-main"
+              id="btnVerifyOldPass"
+              onclick="verifyOldPasswordStep()"
+            >
+              <i class="fa-solid fa-arrow-right"></i> Verify & Continue
+            </button>
+          </div>
+
+          <!-- STEP 2: Display Email & Request OTP -->
+          <div id="sec-step-2" style="display: none">
+            <h3 class="step-title">Email Verification</h3>
+            <p class="step-desc">
+              ដើម្បីសុវត្ថិភាព យើងនឹងបញ្ជូនលេខកូដ OTP ៦ខ្ទង់
+              ទៅកាន់អ៊ីមែលខាងក្រោម៖
+            </p>
+
+            <div class="otp-display-email" id="secEmailDisplay">
+              sok.dara@gmail.com
+            </div>
+
+            <button
+              class="btn-main"
+              id="btnSendOtp"
+              onclick="sendSecurityOtp()"
+            >
+              <i class="fa-solid fa-paper-plane"></i> Request OTP Code
+            </button>
+          </div>
+
+          <!-- STEP 3: Enter OTP -->
+          <div id="sec-step-3" style="display: none">
+            <h3 class="step-title">Enter OTP Code</h3>
+            <p class="step-desc">
+              សូមបញ្ចូលលេខកូដ ៦ខ្ទង់ ដែលបានផ្ញើទៅកាន់អ៊ីមែលរបស់អ្នក។
+            </p>
+
+            <div class="input-box">
               <input
-                type="checkbox"
-                id="darkModeToggle"
-                onchange="toggleDarkMode()"
+                type="number"
+                id="secOtpInput"
+                placeholder="------"
+                class="styled-input otp-input"
+                oninput="
+                  if (this.value.length > 6)
+                    this.value = this.value.slice(0, 6);
+                  if (this.value.length === 6) {
+                    verifySecurityOtp();
+                  }
+                "
               />
-              <span class="slider"></span>
-            </label>
+            </div>
+
+            <button
+              class="btn-main"
+              id="btnVerifyOtp"
+              onclick="verifySecurityOtp()"
+            >
+              <i class="fa-solid fa-shield-check"></i> Verify OTP
+            </button>
           </div>
-          <div class="setting-item" onclick="toggleLang()">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #8b5cf6; background: #ede9fe"
-              >
-                <i class="fa-solid fa-language"></i>
+
+          <!-- STEP 4: Enter New Credentials -->
+          <div id="sec-step-4" style="display: none">
+            <h3 class="step-title" id="finalFormTitle">Set New Password</h3>
+            <p class="step-desc" id="finalFormDesc">
+              ឥឡូវនេះ អ្នកអាចកំណត់លេខសម្ងាត់ថ្មីរបស់អ្នកបានហើយ។
+            </p>
+
+            <div class="form-group">
+              <label id="lblNewVal">New Password</label>
+              <div class="input-box">
+                <input
+                  type="password"
+                  id="inputNewVal"
+                  placeholder="********"
+                  class="styled-input"
+                />
+                <i
+                  class="fa-regular fa-eye toggle-password"
+                  onclick="toggleVisibility('inputNewVal', this)"
+                ></i>
               </div>
-              <span data-i18n="language">Language</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px">
-              <span
-                id="currentLang"
-                style="font-size: 0.9rem; color: #64748b; font-weight: 600"
-                >EN</span
-              >
-              <i
-                class="fa-solid fa-rotate"
-                style="color: #cbd5e1; font-size: 0.9rem"
-                id="langIcon"
-              ></i>
+
+            <div class="form-group">
+              <label id="lblConfirmVal">Confirm Password</label>
+              <div class="input-box">
+                <input
+                  type="password"
+                  id="inputConfirmVal"
+                  placeholder="********"
+                  class="styled-input"
+                />
+                <i
+                  class="fa-regular fa-eye toggle-password"
+                  onclick="toggleVisibility('inputConfirmVal', this)"
+                ></i>
+              </div>
             </div>
+
+            <button
+              class="btn-main"
+              id="btnSaveSec"
+              onclick="saveNewCredentials()"
+            >
+              <i class="fa-solid fa-floppy-disk"></i> Save Changes
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="settings-group">
-        <div class="group-title" data-i18n="sec_security">Security</div>
-        <div class="setting-wrapper">
-          <div class="setting-item" onclick="changePassword()">
-            <div class="setting-left">
-              <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
-              <span data-i18n="change_pass">Change Password</span>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
-          </div>
-          <div class="setting-item" onclick="changePin()">
-            <div class="setting-left">
-              <div class="setting-icon"><i class="fa-solid fa-key"></i></div>
-              <span data-i18n="change_pin">Change PIN</span>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
-          </div>
-          <a
-            href="telegram.html"
-            class="setting-item"
-            style="text-decoration: none; color: inherit"
+      <!-- ==============================================================
+           📱 VIEW 3: TELEGRAM LINK VIEW
+           ============================================================== -->
+      <div id="view-telegram" class="view-state">
+        <div class="header header-flat">
+          <button
+            class="back-btn"
+            onclick="closeTelegramView()"
+            title="ត្រឡប់ទៅ Settings"
           >
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="background: #e3f2fd; color: #2aabee"
-              >
-                <i class="fa-brands fa-telegram"></i>
-              </div>
-              <div style="display: flex; flex-direction: column">
-                <span data-i18n="link_telegram" style="margin-bottom: 3px"
-                  >Telegram Alert</span
-                >
-                <span
-                  id="teleStatus"
-                  style="font-size: 0.75rem; color: #888; font-weight: 400"
-                  >Checking...</span
-                >
-              </div>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
-          </a>
-          <div class="setting-item">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #f59e0b; background: #fef3c7"
-              >
-                <i class="fa-solid fa-fingerprint"></i>
-              </div>
-              <span data-i18n="biometric">Biometric Login</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="bioToggle" onchange="toggleBio()" />
-              <span class="slider"></span>
-            </label>
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="header-title-container">
+            <h2 style="font-family: &quot;Kantumruy Pro&quot;, sans-serif">
+              ភ្ជាប់ Telegram
+            </h2>
           </div>
+          <div style="width: 38px"></div>
         </div>
-      </div>
 
-      <div class="settings-group">
-        <div class="group-title" data-i18n="sec_limits">Limits</div>
-        <div class="setting-wrapper">
-          <div class="setting-item" onclick="changeLimit()">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #ef4444; background: #fee2e2"
-              >
-                <i class="fa-solid fa-chart-pie"></i>
-              </div>
-              <span data-i18n="trx_limit">Transaction Limit</span>
+        <div style="padding: 30px 20px; text-align: center">
+          <div class="tele-icon-box"><i class="fa-brands fa-telegram"></i></div>
+          <h3 class="bot-name">U-Pay Alert</h3>
+          <a
+            href="https://t.me/U_pay_bankBot"
+            target="_blank"
+            class="bot-username"
+            >@U_pay_bankBot</a
+          >
+
+          <button
+            class="btn-main btn-generate"
+            id="btnGenerate"
+            onclick="generateLinkCode()"
+          >
+            <i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដ
+          </button>
+
+          <div class="code-container" id="codeContainer">
+            <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 10px">
+              លេខកូដរបស់អ្នកគឺ៖
             </div>
-            <div style="display: flex; align-items: center; gap: 8px">
-              <span
-                id="userLimitDisplay"
-                style="font-size: 0.9rem; color: #64748b; font-weight: 700"
-                >$1,000</span
-              >
-            </div>
+            <h1 class="code-digits" id="displayCode">----</h1>
           </div>
-        </div>
-      </div>
 
-      <div class="settings-group">
-        <div class="group-title" data-i18n="sec_support">
-          Support & Verification
-        </div>
-        <div class="setting-wrapper">
-          <div class="setting-item" onclick="triggerKycUpload()">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #6366f1; background: #e0e7ff"
-              >
-                <i class="fa-solid fa-id-card"></i>
+          <div class="instruction-box" id="instructions">
+            <div style="font-weight: bold; margin-bottom: 15px">
+              របៀបភ្ជាប់ (How to Link):
+            </div>
+            <div class="step">
+              <div class="step-num">1</div>
+              <div>បង្កើត Group ថ្មីមួយនៅក្នុង Telegram។</div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div>
+                Add Bot ឈ្មោះ <strong>@U_pay_bankBot</strong> ចូលក្នុង Group
+                និងដាក់ជា Admin។
               </div>
-              <div style="display: flex; flex-direction: column">
-                <span data-i18n="kyc_verify" style="margin-bottom: 3px"
-                  >Identity Verification</span
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div>
+                វាយលេខកូដ
+                <strong id="instructionCode" style="color: var(--primary)"
+                  >----</strong
                 >
-                <span
-                  id="kycStatusText"
-                  style="
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                  "
-                  >Unverified</span
-                >
+                បញ្ជូនទៅក្នុង Group ជាការស្រេច។
               </div>
             </div>
-            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
           </div>
-          <input
-            type="file"
-            id="kycUploadInput"
-            accept="image/*"
-            onchange="uploadKyc(event)"
-          />
-          <div class="setting-item" onclick="openTicketModal()">
-            <div class="setting-left">
-              <div
-                class="setting-icon"
-                style="color: #d946ef; background: #fae8ff"
-              >
-                <i class="fa-solid fa-headset"></i>
-              </div>
-              <span data-i18n="support_ticket">Support Tickets</span>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
+
+          <div class="success-box" id="successBox">
+            <i class="fa-solid fa-circle-check"></i>
+            <h3>ភ្ជាប់ជោគជ័យ!</h3>
+            <p style="color: #047857; font-size: 0.9rem; margin: 0">
+              គណនីរបស់អ្នកនឹងទទួលបានសារដំណឹងពី Telegram ជានិច្ច។
+            </p>
           </div>
-        </div>
-      </div>
 
-      <div class="logout-btn" onclick="logout()">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span data-i18n="logout">Log Out</span>
-      </div>
-
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item"
-          ><i class="fa-solid fa-house"></i> Home</a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i> Scan</a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i> History</a
-        >
-        <div class="nav-item active">
-          <i class="fa-solid fa-gear"></i> Settings
+          <button
+            class="btn-main btn-unlink"
+            id="btnUnlink"
+            onclick="unlinkTelegram()"
+          >
+            <i class="fa-solid fa-link-slash"></i> ផ្តាច់គណនី (Unlink)
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- ==============================================================
+         ⚙️ JAVASCRIPT LOGIC
+         ============================================================== -->
     <script>
+      // 🛡️ User Session Check
       let user = JSON.parse(sessionStorage.getItem("user"));
-      if (!user) window.location.href = "index.html";
+      let userToken = sessionStorage.getItem("userToken");
+      if (!user || !userToken) window.location.href = "index.html";
 
       // --- INITIAL LOAD ---
       document.getElementById("u-name").innerText =
@@ -816,17 +1318,20 @@
         user.phone || "No Phone Number";
       document.getElementById("u-img").src =
         user.profileImage || "images/logo.png";
-      document.getElementById("userLimitDisplay").innerText =
-        "$" + (user.trxLimit || 1000).toLocaleString();
+      document.getElementById("secEmailDisplay").innerText =
+        user.email || "No Email Bound"; // Update Step 2 Email Text
 
-      const teleStatus = document.getElementById("teleStatus");
-      teleStatus.innerHTML = user.telegramChatId
-        ? '<span style="color: #10b981; font-weight: bold;">Linked</span>'
-        : '<span style="color: #ef4444;">Not Linked</span>';
+      function updateTeleStatusText() {
+        const teleStatus = document.getElementById("teleStatus");
+        teleStatus.innerHTML = user.telegramChatId
+          ? '<span style="color: #10b981; font-weight: bold;">Linked</span>'
+          : '<span style="color: #ef4444;">Not Linked</span>';
+      }
+      updateTeleStatusText();
 
       const kycEl = document.getElementById("kycStatusText");
       function updateKycUI() {
-        if (user.kycStatus === "approved") {
+        if (user.kycStatus === "approved" || user.kycStatus === "verified") {
           kycEl.innerText = "Verified";
           kycEl.style.color = "#10b981";
         } else if (user.kycStatus === "pending") {
@@ -840,25 +1345,23 @@
       updateKycUI();
 
       // ==========================================
-      // 🌐 LANGUAGE SETUP
+      // 👁️ មុខងារបិទ/បើកភ្នែក (Show/Hide Password)
       // ==========================================
-      function toggleLang() {
-        let currentLang = localStorage.getItem("lang") || "en";
-        let newLang = currentLang === "en" ? "kh" : "en";
-        localStorage.setItem("lang", newLang);
-
-        // ១. ប្តូរអក្សរ EN / KH នៅលើ UI Settings
-        document.getElementById("currentLang").innerText =
-          newLang === "en" ? "EN" : "KH";
-
-        // ២. ហៅមុខងារបកប្រែពី lang.js
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
+      function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          iconElement.classList.remove("fa-eye");
+          iconElement.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          iconElement.classList.remove("fa-eye-slash");
+          iconElement.classList.add("fa-eye");
         }
       }
 
       // ==========================================
-      // 🌙 THEME & BIO (Per-Account Settings)
+      // 🌐 LANGUAGE & THEME
       // ==========================================
       const userThemeKey = "darkMode_" + user.username;
       const userBioKey = "useBiometric_" + user.username;
@@ -867,35 +1370,23 @@
         const isDark =
           localStorage.getItem("theme") === "dark" ||
           localStorage.getItem(userThemeKey) === "true";
-
         if (isDark) {
           document.body.classList.add("dark-mode");
           const toggle = document.getElementById("darkModeToggle");
           if (toggle) toggle.checked = true;
         }
-
         if (localStorage.getItem(userBioKey) === "true") {
           const bioToggle = document.getElementById("bioToggle");
           if (bioToggle) bioToggle.checked = true;
         }
       }
 
-      // ហៅពេលចាប់ផ្តើម Page
       document.addEventListener("DOMContentLoaded", () => {
-        // ១. ឆែកនិងដាក់ Theme មុនគេបង្អស់
         applyTheme();
-
-        // ២. បន្ថែមការហៅ applyLanguage() នៅទីនេះ ដើម្បីឱ្យអក្សរបកប្រែភ្លាមៗពេលបើកទំព័រ
-        if (typeof applyLanguage === "function") {
-          applyLanguage();
-        }
-
-        // ៣. កំណត់អក្សរ EN/KH លើកដំបូងឱ្យត្រូវនឹងអ្វីដែលបាន Save
+        if (typeof applyLanguage === "function") applyLanguage();
         let currentLang = localStorage.getItem("lang") || "en";
         const langLabel = document.getElementById("currentLang");
         if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
-
-        // ៤. បង្ហាញ Body វិញដោយរលូនតាមរយៈ Class
         document.body.classList.add("loaded");
       });
 
@@ -903,15 +1394,24 @@
         const isDarkModeActive = document.body.classList.toggle("dark-mode");
         localStorage.setItem(userThemeKey, isDarkModeActive);
       }
-
       function toggleBio() {
         localStorage.setItem(
           userBioKey,
           document.getElementById("bioToggle").checked,
         );
       }
+      function toggleLang() {
+        let currentLang = localStorage.getItem("lang") || "en";
+        let newLang = currentLang === "en" ? "kh" : "en";
+        localStorage.setItem("lang", newLang);
+        document.getElementById("currentLang").innerText =
+          newLang === "en" ? "EN" : "KH";
+        if (typeof applyLanguage === "function") applyLanguage();
+      }
 
-      // --- MODAL UTILS ---
+      // ==========================================
+      // 📝 SWEETALERT CONFIG
+      // ==========================================
       const swalConfig = {
         buttonsStyling: false,
         customClass: {
@@ -919,126 +1419,413 @@
           title: "premium-swal-title",
           confirmButton: "premium-btn-confirm",
           cancelButton: "premium-btn-cancel",
+          input: "swal-custom-input",
         },
         showCancelButton: true,
+        confirmButtonText: "យល់ព្រម (OK)",
+        cancelButtonText: "បោះបង់ (Cancel)",
       };
 
-      async function editProfile() {
-        // បន្ថែមបន្ទាត់នេះ ដើម្បីចាប់យកភាសាបច្ចុប្បន្ន
-        const lang = localStorage.getItem("lang") || "en";
+      // ==========================================
+      // 🔒 SECURITY FLOW LOGIC (4 STEPS)
+      // ==========================================
+      let securityMode = ""; // 'password' or 'pin'
+      let tempOldPassword = ""; // រក្សាទុក password ចាស់បណ្តោះអាសន្ន
 
-        const { value: v } = await Swal.fire({
-          ...swalConfig,
-          title: lang === "en" ? "Edit Profile" : "កែប្រែព័ត៌មាន", // ប្រើ lang ជំនួស currentLang
-          html: `<div class="swal-form-group"><label class="swal-form-label">Full Name</label><input id="sw-n" class="swal-custom-input" value="${user.fullName || ""}"></div>
-                 <div class="swal-form-group"><label class="swal-form-label">Phone</label><input id="sw-p" class="swal-custom-input" value="${user.phone || ""}"></div>`,
-          preConfirm: () => [
-            document.getElementById("sw-n").value,
-            document.getElementById("sw-p").value,
-          ],
-        });
-        if (v) {
-          const res = await fetch("/api/user/update-profile", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: user.id, fullName: v[0], phone: v[1] }),
+      function openSecurityFlow(mode) {
+        if (!user.email) {
+          return Swal.fire(
+            "មិនអាចផ្លាស់ប្តូរបានទេ",
+            "គណនីរបស់អ្នកមិនទាន់បានភ្ជាប់ជាមួយអ៊ីមែល (Email) ទេ។",
+            "warning",
+          );
+        }
+
+        securityMode = mode;
+        tempOldPassword = ""; // Reset old pass
+        document.getElementById("view-settings").classList.remove("active");
+        document.getElementById("view-security").classList.add("active");
+
+        // 🌟 ១. កំណត់ចំណងជើងផ្ទាំងតាម Mode
+        document.getElementById("secTitle").innerText =
+          mode === "password" ? "Change Password" : "Change PIN";
+
+        // 🌟 ២. កំណត់ UI សម្រាប់ Step 1 (បែងចែកដាច់រវាង Password និង PIN)
+        const step1Title = document.querySelector("#sec-step-1 .step-title");
+        const step1Desc = document.querySelector("#sec-step-1 .step-desc");
+        const step1Label = document.querySelector(
+          "#sec-step-1 .form-group label",
+        );
+        const inputOldVal = document.getElementById("inputOldVal");
+
+        if (mode === "pin") {
+          step1Title.innerText = "Verify Current PIN";
+          step1Desc.innerText =
+            "សូមបញ្ចូលលេខ PIN ៤ ខ្ទង់បច្ចុប្បន្នរបស់អ្នក ដើម្បីបន្ត។";
+          step1Label.innerText = "Current PIN (4 digits)";
+
+          inputOldVal.placeholder = "* * * *";
+          inputOldVal.maxLength = 4;
+          inputOldVal.type = "password";
+          inputOldVal.inputMode = "numeric";
+          inputOldVal.pattern = "[0-9]*";
+          inputOldVal.style.letterSpacing = "12px";
+          inputOldVal.style.textAlign = "center";
+          inputOldVal.style.fontSize = "1.2rem";
+          inputOldVal.style.fontWeight = "bold";
+
+          // 🌟 ថែមទីនេះ៖ រុញផ្កាយឱ្យចំកណ្តាលប្រអប់ Step 1
+          inputOldVal.classList.add("pin-centered");
+        } else {
+          step1Title.innerText = "Verify Identity";
+          step1Desc.innerText =
+            "សូមវាយពាក្យសម្ងាត់គណនីចាស់របស់អ្នក ដើម្បីបន្ត។";
+          step1Label.innerText = "Current Password";
+
+          inputOldVal.placeholder = "បញ្ចូលពាក្យសម្ងាត់បច្ចុប្បន្ន";
+          inputOldVal.maxLength = 50;
+          inputOldVal.type = "password";
+          inputOldVal.inputMode = "text";
+          inputOldVal.removeAttribute("pattern");
+          inputOldVal.style.letterSpacing = "normal";
+          inputOldVal.style.textAlign = "left";
+          inputOldVal.style.fontSize = "1rem";
+          inputOldVal.style.fontWeight = "600";
+
+          // 🌟 លុបចេញវិញពេលជា Password
+          inputOldVal.classList.remove("pin-centered");
+        }
+
+        // 🌟 ៣. រៀបចំ UI សម្រាប់ Step 4 (New Password ឬ New PIN)
+        document.getElementById("finalFormTitle").innerText =
+          mode === "password" ? "Set New Password" : "Set New PIN";
+        document.getElementById("lblNewVal").innerText =
+          mode === "password" ? "New Password" : "New PIN (4 digits)";
+        document.getElementById("lblConfirmVal").innerText =
+          mode === "password" ? "Confirm Password" : "Confirm New PIN";
+
+        // កំណត់ទម្រង់ប្រអប់ New/Confirm វាយអក្សរ
+        const inputNewVal = document.getElementById("inputNewVal");
+        const inputConfirmVal = document.getElementById("inputConfirmVal");
+
+        if (mode === "pin") {
+          inputNewVal.type = "password";
+          inputNewVal.maxLength = 4;
+          inputConfirmVal.maxLength = 4;
+          inputNewVal.placeholder = "* * * *";
+          inputConfirmVal.placeholder = "* * * *";
+          inputNewVal.style.letterSpacing = "10px";
+          inputConfirmVal.style.letterSpacing = "10px";
+          inputNewVal.style.textAlign = "center";
+          inputConfirmVal.style.textAlign = "center";
+          inputNewVal.style.fontSize = "1.2rem";
+          inputNewVal.style.fontWeight = "bold";
+          inputConfirmVal.style.fontSize = "1.2rem";
+          inputConfirmVal.style.fontWeight = "bold";
+
+          // 🌟 ថែមទីនេះ៖ រុញផ្កាយប្រអប់ New/Confirm ឱ្យចំកណ្តាលដែរ
+          inputNewVal.classList.add("pin-centered");
+          inputConfirmVal.classList.add("pin-centered");
+        } else {
+          inputNewVal.type = "password";
+          inputNewVal.maxLength = 50;
+          inputConfirmVal.maxLength = 50;
+          inputNewVal.placeholder = "********";
+          inputConfirmVal.placeholder = "********";
+          inputNewVal.style.letterSpacing = "normal";
+          inputConfirmVal.style.textAlign = "left";
+          inputNewVal.style.fontSize = "1rem";
+          inputNewVal.style.fontWeight = "600";
+          inputConfirmVal.style.fontSize = "1rem";
+          inputConfirmVal.style.fontWeight = "600";
+
+          // 🌟 លុបចេញវិញពេលជា Password
+          inputNewVal.classList.remove("pin-centered");
+          inputConfirmVal.classList.remove("pin-centered");
+        }
+
+        // Clear Inputs
+        inputOldVal.value = "";
+        document.getElementById("secOtpInput").value = "";
+        inputNewVal.value = "";
+        inputConfirmVal.value = "";
+
+        setSecurityStep(1);
+      }
+
+      function closeSecurityFlow() {
+        document.getElementById("view-security").classList.remove("active");
+        document.getElementById("view-settings").classList.add("active");
+      }
+
+      function setSecurityStep(step) {
+        document.getElementById("sec-step-1").style.display =
+          step === 1 ? "block" : "none";
+        document.getElementById("sec-step-2").style.display =
+          step === 2 ? "block" : "none";
+        document.getElementById("sec-step-3").style.display =
+          step === 3 ? "block" : "none";
+        document.getElementById("sec-step-4").style.display =
+          step === 4 ? "block" : "none";
+
+        document.getElementById("secStepIcon1").className =
+          `progress-step ${step >= 1 ? "active" : ""} ${step > 1 ? "completed" : ""}`;
+        document.getElementById("secStepIcon2").className =
+          `progress-step ${step >= 2 ? "active" : ""} ${step > 2 ? "completed" : ""}`;
+        document.getElementById("secStepIcon3").className =
+          `progress-step ${step >= 3 ? "active" : ""} ${step > 3 ? "completed" : ""}`;
+        document.getElementById("secStepIcon4").className =
+          `progress-step ${step >= 4 ? "active" : ""}`;
+
+        // Line width: 0%, 33.3%, 66.6%, 100%
+        const lineWidths = { 1: "0%", 2: "33.33%", 3: "66.66%", 4: "100%" };
+        document.getElementById("secProgressLine").style.width =
+          lineWidths[step];
+      }
+
+      // Step 1: Verify Old Password
+      // ==========================================
+      // Step 1: Verify Old Password or PIN
+      // ==========================================
+      async function verifyOldPasswordStep() {
+        const oldVal = document.getElementById("inputOldVal").value.trim();
+        if (!oldVal) {
+          return Toast.fire({
+            icon: "warning",
+            title:
+              securityMode === "password"
+                ? "សូមវាយបញ្ចូលពាក្យសម្ងាត់ចាស់សិន!"
+                : "សូមបញ្ចូលលេខ PIN ចាស់សិន!",
           });
-          const d = await res.json();
-          if (d.success) {
-            user.fullName = v[0];
-            user.phone = v[1];
-            sessionStorage.setItem("user", JSON.stringify(user));
-            location.reload();
+        }
+
+        const btn = document.getElementById("btnVerifyOldPass");
+        const originalText = btn.innerHTML;
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងផ្ទៀងផ្ទាត់...';
+        btn.disabled = true;
+
+        try {
+          // 🌟 កែតម្រូវ URL ដោយដកពាក្យ /auth ចេញ
+          const url =
+            securityMode === "password"
+              ? "/api/verify-password"
+              : "/api/verify-pin";
+
+          const payload =
+            securityMode === "password"
+              ? { username: user.username, password: oldVal }
+              : { username: user.username, pin: oldVal };
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            // បើលេខចាស់ត្រូវ រក្សាទុកបណ្តោះអាសន្ន រួចទៅ Step 2
+            tempOldPassword = oldVal;
+            setSecurityStep(2);
+
+            // 🌟 ធ្វើការ Auto-Send OTP ភ្លាមៗ (មិនបាច់ឲ្យភ្ញៀវចុចប៊ូតុង Send ខ្លួនឯងទេ)
+            sendSecurityOtp();
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+            document.getElementById("inputOldVal").value = ""; // លុបចោលអោយវាយម្តងទៀត
           }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាតភ្ជាប់ទៅ Server", "error");
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
       }
 
-      async function changePassword() {
-        const { value: v } = await Swal.fire({
-          ...swalConfig,
-          title: "Password",
-          html: `<div class="swal-form-group"><label class="swal-form-label">Current</label><input id="o-p" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New</label><input id="n-p" type="password" class="swal-custom-input"></div>`,
-          preConfirm: () => [
-            document.getElementById("o-p").value,
-            document.getElementById("n-p").value,
-          ],
-        });
-        if (v) {
-          const res = await fetch("/api/user/change-password", {
+      // Step 2: Request OTP to Email
+      async function sendSecurityOtp() {
+        const btn = document.getElementById("btnSendOtp");
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...';
+        btn.disabled = true;
+
+        try {
+          // 🌟 បាញ់ទៅ API ថ្មីរបស់យើង ដោយបញ្ជូន purpose ទៅតាម mode ជាក់ស្តែង
+          const purposeType =
+            securityMode === "password" ? "security_pass" : "security_pin";
+
+          const res = await fetch("/api/send-security-otp", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: user.id,
-              oldPassword: v[0],
-              newPassword: v[1],
-            }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify({ email: user.email, purpose: purposeType }),
           });
-          const d = await res.json();
-          if (d.success)
-            Swal.fire("Success", "Relogin required", "success").then(logout);
-          else Swal.fire("Error", d.message, "error");
+          const data = await res.json();
+          if (data.success) {
+            setSecurityStep(3);
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាតភ្ជាប់ទៅ Server", "error");
+        } finally {
+          btn.innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> Request OTP Code';
+          btn.disabled = false;
         }
       }
 
-      async function changePin() {
-        const { value: v } = await Swal.fire({
-          ...swalConfig,
-          title: "PIN",
-          html: `<div class="swal-form-group"><label class="swal-form-label">Verify Pass</label><input id="p-v" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New PIN</label><input id="n-i" type="password" maxlength="4" class="swal-custom-input" style="text-align:center;letter-spacing:8px;font-size:1.5rem"></div>`,
-          preConfirm: () => [
-            document.getElementById("p-v").value,
-            document.getElementById("n-i").value,
-          ],
-        });
-        if (v) {
-          const res = await fetch("/api/user/change-pin", {
+      // Step 3: Verify OTP Code
+      async function verifySecurityOtp() {
+        const otpCode = document.getElementById("secOtpInput").value;
+        if (!otpCode || otpCode.length !== 6) {
+          return Toast.fire({
+            icon: "warning",
+            title: "សូមបញ្ចូលលេខកូដ ៦ខ្ទង់",
+          });
+        }
+
+        const btn = document.getElementById("btnVerifyOtp");
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...';
+        btn.disabled = true;
+
+        try {
+          const res = await fetch("/api/forgot-password/verify-otp", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: user.id, password: v[0], newPin: v[1] }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify({ email: user.email, otp: otpCode }),
           });
-          const d = await res.json();
-          if (d.success) {
-            user.pin = v[1];
-            sessionStorage.setItem("user", JSON.stringify(user));
-            Swal.fire("Success", "PIN Updated", "success");
-          } else Swal.fire("Error", d.message, "error");
+          const data = await res.json();
+          if (data.success) {
+            setSecurityStep(4);
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាតភ្ជាប់ទៅ Server", "error");
+        } finally {
+          btn.innerHTML = '<i class="fa-solid fa-shield-check"></i> Verify OTP';
+          btn.disabled = false;
         }
       }
 
-      async function changeLimit() {
-        const { value: v } = await Swal.fire({
-          ...swalConfig,
-          title: "Limit",
-          html: `<div class="swal-form-group"><label class="swal-form-label">Verify Pass</label><input id="l-v" type="password" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">New Limit ($)</label><input id="n-l" type="number" class="swal-custom-input"></div>`,
-          preConfirm: () => [
-            document.getElementById("l-v").value,
-            document.getElementById("n-l").value,
-          ],
-        });
-        if (v) {
-          const res = await fetch("/api/change-limit", {
+      // Step 4: Final Save (New Password or PIN)
+      // ==========================================
+      // Step 4: Final Save (New Password or PIN)
+      // ==========================================
+      async function saveNewCredentials() {
+        const newVal = document.getElementById("inputNewVal").value;
+        const confirmVal = document.getElementById("inputConfirmVal").value;
+
+        if (!newVal || !confirmVal)
+          return Toast.fire({
+            icon: "warning",
+            title: "សូមបំពេញព័ត៌មានអោយគ្រប់ជ្រុងជ្រោយ",
+          });
+
+        if (newVal !== confirmVal)
+          return Toast.fire({
+            icon: "error",
+            title:
+              securityMode === "password"
+                ? "លេខសម្ងាត់ថ្មីមិនត្រូវគ្នាទេ!"
+                : "លេខ PIN ថ្មីមិនត្រូវគ្នាទេ!",
+          });
+
+        if (securityMode === "pin" && (newVal.length !== 4 || isNaN(newVal))) {
+          return Toast.fire({
+            icon: "error",
+            title: "លេខ PIN ត្រូវមាន ៤ខ្ទង់!",
+          });
+        }
+
+        const btn = document.getElementById("btnSaveSec");
+        const originalText = btn.innerHTML;
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+        btn.disabled = true;
+
+        try {
+          // 🌟 កែតម្រូវ URL ដោយដកពាក្យ /auth ចេញ
+          let url =
+            securityMode === "password"
+              ? "/api/change-password"
+              : "/api/change-pin";
+
+          // 🌟 ប្រើ oldPin ជំនួស password សម្រាប់ Mode PIN
+          let payload =
+            securityMode === "password"
+              ? {
+                  username: user.username,
+                  oldPassword: tempOldPassword,
+                  newPassword: newVal,
+                }
+              : {
+                  username: user.username,
+                  oldPin: tempOldPassword,
+                  newPin: newVal,
+                };
+
+          const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              username: user.username,
-              password: v[0],
-              newLimit: v[1],
-            }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify(payload),
           });
-          const d = await res.json();
-          if (d.success) {
-            user.trxLimit = parseFloat(v[1]);
-            sessionStorage.setItem("user", JSON.stringify(user));
-            location.reload();
-          } else Swal.fire("Error", d.message, "error");
+          const data = await res.json();
+
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "ជោគជ័យ!",
+              text:
+                securityMode === "password"
+                  ? "លេខសម្ងាត់ត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!"
+                  : "លេខ PIN ត្រូវបានផ្លាស់ប្តូរជោគជ័យ។",
+              confirmButtonText: "យល់ព្រម (OK)",
+              allowOutsideClick: false,
+              customClass: { popup: "premium-swal" },
+            }).then(() => {
+              if (securityMode === "password") {
+                // 🟢 មិនបាច់ Logout ទេ រក្សាទុក session ហើយរត់ទៅ dashboard តែម្តង
+                window.location.href = "dashboard.html";
+              } else {
+                user.pin = newVal;
+                sessionStorage.setItem("user", JSON.stringify(user));
+                closeSecurityFlow();
+              }
+            });
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាតភ្ជាប់ទៅ Server", "error");
+        } finally {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
         }
       }
 
+      // ==========================================
+      // 📞 SUPPORT TICKET & KYC & PROFILE UPLOAD...
+      // ==========================================
       async function openTicketModal() {
         const { value: v } = await Swal.fire({
           ...swalConfig,
           title: "Support Ticket",
-          html: `<div class="swal-form-group"><label class="swal-form-label">Subject</label><input id="t-s" class="swal-custom-input"></div><div class="swal-form-group"><label class="swal-form-label">Priority</label><select id="t-p" class="swal-custom-select"><option value="Normal">Normal</option><option value="High">High</option></select></div><div class="swal-form-group"><label class="swal-form-label">Message</label><textarea id="t-d" class="swal-custom-textarea"></textarea></div>`,
+          html: `<div style="text-align:left; margin-bottom:5px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Subject</label></div><input id="t-s" class="swal2-input swal-custom-input"><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Priority</label></div><select id="t-p" class="swal2-select swal-custom-input"><option value="Normal">Normal</option><option value="High">High</option></select><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Message</label></div><textarea id="t-d" class="swal2-textarea swal-custom-input" style="min-height:100px;"></textarea>`,
           preConfirm: () => ({
             subject: document.getElementById("t-s").value,
             priority: document.getElementById("t-p").value,
@@ -1048,7 +1835,10 @@
         if (v && v.subject && v.description) {
           const res = await fetch("/api/ticket/create", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
             body: JSON.stringify({ username: user.username, ...v }),
           });
           const d = await res.json();
@@ -1057,96 +1847,359 @@
         }
       }
 
-      function triggerKycUpload() {
-        if (user.kycStatus === "approved" || user.kycStatus === "pending")
-          return Swal.fire("Status", user.kycStatus, "info");
+      async function triggerKycUpload() {
+        const status = (user.kycStatus || "").toLowerCase();
+
+        // 🟢 ករណី Status ជា approved, verified ឬ pending
+        if (
+          status === "approved" ||
+          status === "verified" ||
+          status === "pending"
+        ) {
+          // 🌟 ហៅទិន្នន័យថ្មីស្រឡាងពី Server ផ្ទាល់ ដើម្បីធានាថាបាន Link `kycDocument` ពិតប្រាកដ
+          let docUrl = "";
+          try {
+            Swal.fire({
+              title: "កំពុងទាញយករូបភាព...",
+              didOpen: () => Swal.showLoading(),
+              customClass: { popup: "premium-swal" },
+            });
+
+            const res = await fetch(`/api/users`, {
+              headers: { Authorization: "Bearer " + userToken },
+            });
+            const data = await res.json();
+            const userList = Array.isArray(data) ? data : data.users || [];
+            const freshUser = userList.find(
+              (u) =>
+                u.username &&
+                u.username.toLowerCase() === user.username.toLowerCase(),
+            );
+
+            Swal.close();
+
+            if (freshUser && freshUser.kycDocument) {
+              docUrl = freshUser.kycDocument;
+              // អាប់ដេត sessionStorage ទុកជាមុន
+              user = freshUser;
+              sessionStorage.setItem("user", JSON.stringify(user));
+            }
+          } catch (err) {
+            Swal.close();
+          }
+
+          // បើនៅតែអត់មាន យកតម្លៃក្នុង session មកទប់
+          if (!docUrl) {
+            docUrl = user.kycDocument || user.kycUrl || "";
+          }
+
+          if (!docUrl) {
+            return Swal.fire(
+              "ព័ត៌មានអត្តសញ្ញាណ",
+              `ស្ថានភាព KYC របស់អ្នកបច្ចុប្បន្នគឺ៖ <b>${status.toUpperCase()}</b> ប៉ុន្តែរកមិនឃើញរូបភាពឯកសារទេ។`,
+              "info",
+            );
+          }
+
+          // 🌟 បង្ហាញរូបភាព KYC ក្នុង SweetAlert Modal យ៉ាងស្អាត
+          return Swal.fire({
+            title: "ឯកសារអត្តសញ្ញាណរបស់អ្នក (KYC)",
+            html: `
+              <div style="margin-top: 10px;">
+                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">
+                  ស្ថានភាពបច្ចុប្បន្ន៖ <strong style="color: ${status === "pending" ? "#f59e0b" : "#10b981"}; text-transform: uppercase;">${status}</strong>
+                </p>
+                <div style="border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #f8fafc; max-height: 320px; display: flex; align-items: center; justify-content: center; padding: 5px;">
+                  <img src="${docUrl}" alt="KYC Document" style="width: 100%; height: auto; max-height: 300px; object-fit: contain; display: block; border-radius: 8px;" onerror="this.onerror=null; this.src='images/logo.png';" />
+                </div>
+              </div>
+            `,
+            confirmButtonText: "បិទ (Close)",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+
+        // 🔴 បើ Unverified ឱ្យបើក File Picker ដើម្បី Upload ធម្មតា
         document.getElementById("kycUploadInput").click();
       }
+
       async function uploadKyc(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append("kycDoc", file);
-        formData.append("username", user.username);
-        const res = await fetch("/api/user/submit-kyc", {
-          method: "POST",
-          body: formData,
+        Swal.fire({
+          title: "កំពុងបញ្ជូនឯកសារ KYC...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
         });
-        const d = await res.json();
-        if (d.success) {
-          user.kycStatus = "pending";
-          sessionStorage.setItem("user", JSON.stringify(user));
-          updateKycUI();
-          Swal.fire("Success", d.message, "success");
+        const CLOUD_NAME = "jp9yg3dj";
+        const UPLOAD_PRESET = "iaxuqmpb";
+        const cloudinaryData = new FormData();
+        cloudinaryData.append("file", file);
+        cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+        try {
+          const cloudRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+            { method: "POST", body: cloudinaryData },
+          );
+          const cloudData = await cloudRes.json();
+          if (cloudData.secure_url) {
+            const res = await fetch("/api/user/submit-kyc", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + userToken,
+              },
+              body: JSON.stringify({
+                username: user.username,
+                kycUrl: cloudData.secure_url,
+              }),
+            });
+            const d = await res.json();
+            if (d.success) {
+              user.kycStatus = "pending";
+              sessionStorage.setItem("user", JSON.stringify(user));
+              updateKycUI();
+              Swal.fire("ជោគជ័យ", "ឯកសារ KYC ត្រូវបានបញ្ជូនរួចរាល់", "success");
+            } else Swal.fire("បរាជ័យ", d.message, "error");
+          } else
+            Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
+        } catch (err) {
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
         }
+        e.target.value = "";
       }
 
       async function uploadImage(e) {
         const file = e.target.files[0];
         if (!file) return;
-
-        // ១. ការពាររូបធំពេក (ឧ. លើសពី 3MB)
         if (file.size > 3 * 1024 * 1024) {
           Swal.fire(
             "បរាជ័យ",
             "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបតូចជាង 3MB",
             "error",
           );
-          e.target.value = ""; // Clear input
+          e.target.value = "";
           return;
         }
-
         Swal.fire({
           title: "កំពុងបញ្ជូនរូបភាព...",
           didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
         });
-
-        const formData = new FormData();
-        formData.append("profileImg", file);
-        formData.append("id", user.id || user.username); // ការពារក្រែងលោបាត់ id ប្រើ username ជំនួស
-
+        const CLOUD_NAME = "jp9yg3dj";
+        const UPLOAD_PRESET = "iaxuqmpb";
+        const cloudinaryData = new FormData();
+        cloudinaryData.append("file", file);
+        cloudinaryData.append("upload_preset", UPLOAD_PRESET);
         try {
-          const res = await fetch("/api/user/upload-image", {
-            method: "POST",
-            body: formData,
-          });
-          const d = await res.json();
-
-          if (d.success) {
-            user.profileImage = d.imageUrl;
-            document.getElementById("u-img").src = d.imageUrl;
-
-            // ២. ប្រើ Try...Catch ការពារ Error ពេល Session Storage ពេញដោយសារ Base64 វែងពេក
-            try {
-              sessionStorage.setItem("user", JSON.stringify(user));
-            } catch (err) {
-              console.log(
-                "Session Storage ពេញ តែមិនអីទេ ព្រោះរូបត្រូវបាន Save ចូល Database ជោគជ័យហើយ!",
-              );
-            }
-
-            Swal.fire({
-              icon: "success",
-              title: "ជោគជ័យ",
-              text: "ផ្លាស់ប្តូររូបភាពរួចរាល់!",
-              timer: 1500,
+          const cloudRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+            { method: "POST", body: cloudinaryData },
+          );
+          const cloudData = await cloudRes.json();
+          if (cloudData.secure_url) {
+            const res = await fetch("/api/user/upload-image", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + userToken,
+              },
+              body: JSON.stringify({
+                id: user.username,
+                imageUrl: cloudData.secure_url,
+              }),
             });
-          } else {
-            Swal.fire("បរាជ័យ", d.message, "error");
-          }
+            const d = await res.json();
+            if (d.success) {
+              user.profileImage = cloudData.secure_url;
+              document.getElementById("u-img").src = cloudData.secure_url;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ",
+                text: "ផ្លាស់ប្តូររូបភាពរួចរាល់!",
+                timer: 1500,
+                customClass: { popup: "premium-swal" },
+              });
+            } else Swal.fire("បរាជ័យ", d.message, "error");
+          } else
+            Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
         } catch (err) {
           Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
         }
-
-        // ៣. សំខាន់បំផុត៖ Clear ទិន្នន័យក្នុង Input ចោល ដើម្បីអោយការចុចដូររូបលើកក្រោយដំណើរការ
         e.target.value = "";
       }
 
       function logout() {
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("userToken");
-        localStorage.removeItem("userToken"); // បើមាន
-        window.location.href = "index.html"; // ឬផ្ទាំង Login
+        localStorage.removeItem("userToken");
+        window.location.href = "index.html";
+      }
+
+      // ==========================================
+      // 📱 TELEGRAM VIEW LOGIC
+      // ==========================================
+      let pollingInterval;
+      const socket = io();
+      socket.on("connect", () => {
+        if (user && user.username) socket.emit("joinRoom", user.username);
+      });
+
+      // 🌟 មុខងារមេសម្រាប់ធ្វើបច្ចុប្បន្នភាពទិន្នន័យពេល Telegram ភ្ជាប់ជោគជ័យ
+      function handleTelegramSuccess(chatId) {
+        if (pollingInterval) clearInterval(pollingInterval);
+
+        // ធ្វើបច្ចុប្បន្នភាពលើអថេរ user និង Session Storage
+        user.telegramChatId = chatId || "linked";
+        sessionStorage.setItem("user", JSON.stringify(user));
+
+        // បិទកូដ និងបង្ហាញ UI ថាភ្ជាប់ជោគជ័យ
+        document.getElementById("codeContainer").style.display = "none";
+        document.getElementById("instructions").style.display = "none";
+        showTeleSuccessUI();
+
+        // អាប់ដេតអត្ថបទ Status ទាំងក្នុងផ្ទាំង Telegram និងផ្ទាំង Settings ខាងក្រៅភ្លាមៗ
+        updateTeleStatusText();
+      }
+
+      // 🌟 ប្រើប្រាស់ handleTelegramSuccess ក្នុង Socket
+      socket.on("telegramLinked", (data) => {
+        if (data.success) {
+          handleTelegramSuccess(data.telegramChatId);
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ! 🎉",
+            text:
+              data.message || "គណនីរបស់អ្នកត្រូវបានភ្ជាប់ Telegram រួចរាល់!",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+      });
+
+      function openTelegramView() {
+        document.getElementById("view-settings").classList.remove("active");
+        document.getElementById("view-telegram").classList.add("active");
+        if (user.telegramChatId) {
+          showTeleSuccessUI();
+        } else {
+          document.getElementById("btnGenerate").style.display = "block";
+          document.getElementById("codeContainer").style.display = "none";
+          document.getElementById("instructions").style.display = "none";
+          document.getElementById("successBox").style.display = "none";
+          document.getElementById("btnUnlink").style.display = "none";
+        }
+      }
+      function closeTelegramView() {
+        document.getElementById("view-telegram").classList.remove("active");
+        document.getElementById("view-settings").classList.add("active");
+        updateTeleStatusText();
+      }
+      function showTeleSuccessUI() {
+        document.getElementById("btnGenerate").style.display = "none";
+        document.getElementById("successBox").style.display = "block";
+        document.getElementById("btnUnlink").style.display = "block";
+      }
+      async function generateLinkCode() {
+        const btn = document.getElementById("btnGenerate");
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...';
+        btn.disabled = true;
+        try {
+          const res = await fetch("/api/generate-telegram-code", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify({ username: user.username }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById("displayCode").innerText = data.code;
+            document.getElementById("instructionCode").innerText = data.code;
+            btn.style.display = "none";
+            document.getElementById("codeContainer").style.display = "block";
+            document.getElementById("instructions").style.display = "block";
+            startPolling();
+          } else {
+            Swal.fire("Error", "បរាជ័យក្នុងការទាញកូដ!", "error");
+            resetGenBtn();
+          }
+        } catch (error) {
+          Swal.fire("Error", "Server Error!", "error");
+          resetGenBtn();
+        }
+      }
+      function resetGenBtn() {
+        const btn = document.getElementById("btnGenerate");
+        btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដ';
+        btn.disabled = false;
+      }
+
+      // 🌟 ប្រើប្រាស់ handleTelegramSuccess ក្នុង Polling ផងដែរ
+      function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(async () => {
+          try {
+            const res = await fetch(`/api/users?t=${new Date().getTime()}`, {
+              headers: { Authorization: "Bearer " + userToken },
+            });
+            const data = await res.json();
+            const userList = Array.isArray(data) ? data : data.users || [];
+            const freshUser = userList.find(
+              (u) =>
+                u.username &&
+                u.username.toLowerCase() === user.username.toLowerCase(),
+            );
+            if (freshUser && freshUser.telegramChatId) {
+              handleTelegramSuccess(freshUser.telegramChatId);
+              Swal.fire({
+                icon: "success",
+                title: "ជោគជ័យ! 🎉",
+                text: `គណនីភ្ជាប់ Telegram រួចរាល់!`,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+          } catch (e) {
+            console.error("Polling error:", e);
+          }
+        }, 2000);
+      }
+
+      async function unlinkTelegram() {
+        Swal.fire({
+          title: "តើអ្នកចង់ផ្តាច់មែនទេ?",
+          text: "អ្នកនឹងលែងទទួលបានសារពេលមានលុយចូលទៀតហើយ!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "យល់ព្រមផ្តាច់",
+          customClass: { popup: "premium-swal" },
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            Swal.showLoading();
+            const res = await fetch("/api/unlink-telegram", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + userToken,
+              },
+              body: JSON.stringify({ username: user.username }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              user.telegramChatId = null;
+              sessionStorage.setItem("user", JSON.stringify(user));
+              Swal.fire("ផ្តាច់ជោគជ័យ!", "", "success").then(() => {
+                document.getElementById("successBox").style.display = "none";
+                document.getElementById("btnUnlink").style.display = "none";
+                document.getElementById("btnGenerate").style.display = "block";
+                resetGenBtn();
+                updateTeleStatusText();
+              });
+            }
+          }
+        });
       }
     </script>
   </body>

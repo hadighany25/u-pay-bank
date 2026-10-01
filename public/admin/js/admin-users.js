@@ -35,7 +35,7 @@ function renderUsersTable(users) {
   const rowsHtml = users
     .map((u) => {
       const uid = u._id || u.id;
-      const isCentralBank = u.accountNumber === "888888888";
+      const isCentralBank = u.mainAccounts?.USD?.accountNumber === "888888888";
 
       // រៀបចំ HTML គណនី និង សមតុល្យ
       let accountsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
@@ -43,24 +43,24 @@ function renderUsersTable(users) {
 
       // គណនី Main USD
       accountsHtml += `
-        <div class="acc-badge usd" style="height: 28px; display: flex; align-items: center;" title="Main USD">
-            <span>$</span> ${u.accountNumber || "N/A"}
-        </div>`;
+  <div class="acc-badge usd" style="height: 28px; display: flex; align-items: center;" title="Main USD">
+      <span>$</span> ${u.mainAccounts?.USD?.accountNumber || "N/A"}
+  </div>`;
       balanceHtml += `
-        <div style="height: 28px; display: flex; align-items: center; color: #0369a1; font-weight: bold;" title="Main USD">
-            $${(u.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-        </div>`;
+  <div style="height: 28px; display: flex; align-items: center; color: #0369a1; font-weight: bold;" title="Main USD">
+      $${(u.mainAccounts?.USD?.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+  </div>`;
 
       // គណនី Main KHR
-      if (u.accountNumberKHR) {
+      if (u.mainAccounts?.KHR?.accountNumber) {
         accountsHtml += `
-            <div class="acc-badge khr" style="height: 28px; display: flex; align-items: center;" title="Main KHR">
-                <span>៛</span> ${u.accountNumberKHR}
-            </div>`;
+      <div class="acc-badge khr" style="height: 28px; display: flex; align-items: center;" title="Main KHR">
+          <span>៛</span> ${u.mainAccounts.KHR.accountNumber}
+      </div>`;
         balanceHtml += `
-            <div style="height: 28px; display: flex; align-items: center; color: #047857; font-weight: bold;" title="Main KHR">
-                ${(u.balanceKHR || 0).toLocaleString("en-US")} ៛
-            </div>`;
+      <div style="height: 28px; display: flex; align-items: center; color: #047857; font-weight: bold;" title="Main KHR">
+          ${(u.mainAccounts?.KHR?.balance || 0).toLocaleString("en-US")} ៛
+      </div>`;
       }
 
       // គណនី Sub-accounts (បើមាន)
@@ -155,8 +155,8 @@ function filterUsers() {
   const filteredData = globalUsersData.filter((u) => {
     const uname = (u.username || "").toLowerCase();
     const fname = (u.fullName || "").toLowerCase();
-    const accUSD = (u.accountNumber || "").toString();
-    const accKHR = (u.accountNumberKHR || "").toString();
+    const accUSD = (u.mainAccounts?.USD?.accountNumber || "").toString();
+    const accKHR = (u.mainAccounts?.KHR?.accountNumber || "").toString();
 
     let subMatch = false;
     if (u.subAccounts && u.subAccounts.length > 0) {
@@ -216,20 +216,50 @@ function compressImageAndPreview(file) {
   });
 }
 
+// កូដនេះត្រូវនៅពីលើ ឬ ពីក្រោម Function openEditModal ខាងលើ
 window.handleProfileImageUpload = async function (event) {
   const file = event.target.files[0];
   if (!file) return;
 
   Swal.fire({
-    title: "កំពុងរៀបចំរូបភាព...",
+    title: "កំពុងបញ្ជូនរូបភាព...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
+    customClass: { popup: "premium-swal" },
   });
-  const smallBase64 = await compressImageAndPreview(file);
 
-  document.getElementById("e-preview").src = smallBase64;
-  document.getElementById("editProfileImg").value = smallBase64;
-  Swal.close();
+  // បង្ហាញរូបជាបណ្តោះអាសន្នលើអេក្រង់សិន (ឱ្យ Admin បានឃើញភ្លាមៗ)
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById("e-preview").src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  const CLOUD_NAME = "jp9yg3dj"; // ដូរតាមរបស់អ្នក
+  const UPLOAD_PRESET = "iaxuqmpb"; // ដូរតាមរបស់អ្នក
+
+  const cloudinaryData = new FormData();
+  cloudinaryData.append("file", file);
+  cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+
+  try {
+    const cloudRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      { method: "POST", body: cloudinaryData },
+    );
+    const cloudData = await cloudRes.json();
+
+    if (cloudData.secure_url) {
+      // ✅ លាក់ URL Cloudinary ទុកក្នុង Input ពេល Admin ចុច "Save Changes" ទើបវា Save ចូល Database ផ្លូវការ
+      document.getElementById("editProfileImg").value = cloudData.secure_url;
+      Swal.close();
+    } else {
+      Swal.fire("បរាជ័យ", "មិនអាច Upload រូបភាពបានទេ", "error");
+      document.getElementById("editProfileImg").value = "";
+    }
+  } catch (e) {
+    Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Cloudinary", "error");
+  }
 };
 
 window.openEditModal = function (id) {
@@ -240,19 +270,21 @@ window.openEditModal = function (id) {
 
   document.getElementById("editUserId").value = u._id || u.id;
   document.getElementById("editUsername").value = u.username || "";
-  document.getElementById("editAccNum").value = u.accountNumber || "";
-  document.getElementById("editAccNumKHR").value = u.accountNumberKHR || "";
+  document.getElementById("editAccNum").value =
+    u.mainAccounts?.USD?.accountNumber || "";
+  document.getElementById("editAccNumKHR").value =
+    u.mainAccounts?.KHR?.accountNumber || "";
   document.getElementById("editPin").value = u.pin || "";
   document.getElementById("editPassword").value = "";
 
-  if (u.profileImage && u.profileImage.startsWith("data:image")) {
-    document.getElementById("editProfileImg").value = u.profileImage;
-  } else {
-    document.getElementById("editProfileImg").value = u.profileImage || "";
-  }
+  // ✅ កែត្រង់នេះ៖ ដាក់ URL ចូលក្នុង hidden input ដោយមិនបាច់ឆែក data:image ទៀតទេ
+  document.getElementById("editProfileImg").value = u.profileImage || "";
 
+  // ✅ កែត្រង់នេះ៖ បង្ហាញរូបភាពពី URL ឬបើអត់មានរូប ប្រើរូប Default ឱ្យត្រូវ Path
   document.getElementById("e-preview").src =
-    u.profileImage || "images/logo.png";
+    u.profileImage || "../images/default-avatar.png";
+
+  // បើកផ្ទាំង Modal
   document
     .getElementById("editUserModal")
     .style.setProperty("display", "flex", "important");
@@ -322,10 +354,12 @@ window.openAdjustBalance = function (username, type) {
   const user = globalUsersData.find((u) => u.username === username);
   if (!user) return;
 
-  let optionsHtml = `<option value="MAIN_USD" data-curr="USD">គណនី Main USD ($) - ${user.accountNumber}</option>`;
-  if (user.accountNumberKHR) {
-    optionsHtml += `<option value="MAIN_KHR" data-curr="KHR">គណនី Main KHR (៛) - ${user.accountNumberKHR}</option>`;
+  let optionsHtml = `<option value="MAIN_USD" data-curr="USD">គណនី Main USD ($) - ${user.mainAccounts?.USD?.accountNumber || "N/A"}</option>`;
+
+  if (user.mainAccounts?.KHR?.accountNumber) {
+    optionsHtml += `<option value="MAIN_KHR" data-curr="KHR">គណនី Main KHR (៛) - ${user.mainAccounts.KHR.accountNumber}</option>`;
   }
+
   if (user.subAccounts && user.subAccounts.length > 0) {
     user.subAccounts.forEach((sub) => {
       const sym = sub.currency === "USD" ? "$" : "៛";

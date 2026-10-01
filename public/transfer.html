@@ -1,3 +1,4 @@
+<!-- transfer.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -74,7 +75,7 @@
         text-decoration: none;
       }
       .transfer-form {
-        padding: 20px 25px;
+        padding: 10px 20px;
         flex: 1;
       }
       .section-label {
@@ -87,7 +88,7 @@
       }
 
       .recent-contacts-container {
-        margin-bottom: 25px;
+        margin-bottom: 2px;
         display: none;
       }
       .contacts-scroll {
@@ -189,7 +190,7 @@
 
       .receiver-box {
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         padding: 20px;
         background: #f8f9fa;
         border-radius: 20px;
@@ -210,7 +211,7 @@
         overflow: hidden;
       }
       .input-group {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         position: relative;
       }
       .input-group label {
@@ -522,6 +523,12 @@
         z-index: 5;
       }
 
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
       /* DARK MODE */
       body.dark-mode {
         background-color: #121212 !important;
@@ -645,6 +652,23 @@
           <span id="nameCheck" class="check-status"></span>
         </div>
 
+        <!-- 🌟 បន្ថែមប្រអប់ Bailout ថ្មី (វាលាក់ខ្លួនសិន ចាំ Scan ប៉ះ U-Fund ទើបលោតចេញមក) -->
+        <div class="input-group" id="bailoutGroup" style="display: none">
+          <label style="color: #0284c7">គោលបំណងបង់ប្រាក់ / ជួសអ្នកណា?</label>
+          <select
+            id="bailoutTarget"
+            class="main-input"
+            style="
+              border-color: #bae6fd;
+              background: #f0f9ff;
+              color: #0369a1;
+              font-weight: bold;
+            "
+          >
+            <option value="">👤 បង់ប្រាក់ចូលគណនីខ្លួនឯង (Advance)</option>
+          </select>
+        </div>
+
         <div class="input-group">
           <label data-lang="amount_label">Amount</label>
           <input
@@ -680,7 +704,7 @@
         <button
           onclick="validateAndOpenPin()"
           class="confirm-btn"
-          data-lang="btn_transfer"
+          data-lang="btn_transfer_now"
         >
           Transfer Now
         </button>
@@ -900,26 +924,63 @@
         const select = document.getElementById("fromAccount");
         select.innerHTML = "";
         let lang = localStorage.getItem("lang") || "en";
-        const usdOpt = document.createElement("option");
-        usdOpt.value = "MAIN_USD";
-        usdOpt.dataset.currency = "USD";
-        usdOpt.dataset.balance = user.balance || 0;
-        usdOpt.text =
-          (lang === "kh" ? "គណនី Main ($) - " : "Main Account ($) - ") +
-          user.accountNumber;
-        select.appendChild(usdOpt);
 
-        const khrOpt = document.createElement("option");
-        khrOpt.value = "MAIN_KHR";
-        khrOpt.dataset.currency = "KHR";
-        khrOpt.dataset.balance = user.balanceKHR || 0;
-        khrOpt.text =
-          (lang === "kh" ? "គណនី Main (៛) - " : "Main Account (៛) - ") +
-          (user.accountNumberKHR || "N/A");
-        select.appendChild(khrOpt);
+        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          const usdOpt = document.createElement("option");
+          usdOpt.value = user.mainAccounts.USD.accountNumber;
+          usdOpt.dataset.currency = "USD";
+          usdOpt.dataset.balance = user.mainAccounts.USD.balance || 0;
+          usdOpt.text =
+            (lang === "kh" ? "គណនីចម្បង ($) - " : "Main Account ($) - ") +
+            user.mainAccounts.USD.accountNumber;
+          select.appendChild(usdOpt);
+        } else if (user.accountNumber) {
+          // Legacy
+          const usdOpt = document.createElement("option");
+          usdOpt.value = "MAIN_USD";
+          usdOpt.dataset.currency = "USD";
+          usdOpt.dataset.balance = user.balance || 0;
+          usdOpt.text =
+            (lang === "kh" ? "គណនីចម្បង ($) - " : "Main Account ($) - ") +
+            user.accountNumber;
+          select.appendChild(usdOpt);
+        }
 
+        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          const khrOpt = document.createElement("option");
+          khrOpt.value = user.mainAccounts.KHR.accountNumber;
+          khrOpt.dataset.currency = "KHR";
+          khrOpt.dataset.balance = user.mainAccounts.KHR.balance || 0;
+          khrOpt.text =
+            (lang === "kh" ? "គណនីចម្បង (៛) - " : "Main Account (៛) - ") +
+            user.mainAccounts.KHR.accountNumber;
+          select.appendChild(khrOpt);
+        } else if (user.accountNumberKHR) {
+          // Legacy
+          const khrOpt = document.createElement("option");
+          khrOpt.value = "MAIN_KHR";
+          khrOpt.dataset.currency = "KHR";
+          khrOpt.dataset.balance = user.balanceKHR || 0;
+          khrOpt.text =
+            (lang === "kh" ? "គណនីចម្បង (៛) - " : "Main Account (៛) - ") +
+            user.accountNumberKHR;
+          select.appendChild(khrOpt);
+        }
+
+        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return; // បើលាក់កុង គឺមិនឱ្យបង្ហាញសម្រាប់វេរលុយទេ
             const opt = document.createElement("option");
             opt.value = sub.accountNumber;
             opt.dataset.currency = sub.currency;
@@ -928,6 +989,7 @@
             select.appendChild(opt);
           });
         }
+
         updateBalanceDisplay();
       }
 
@@ -1061,8 +1123,38 @@
               nameDisplay.innerHTML = d.success
                 ? `U-Fund (${d.projectName})`
                 : "U-Fund (Scan Pay)";
+
+              // 🌟 បង្ហាញប្រអប់រើសឈ្មោះ បើមានអ្នកជំពាក់
+              const bGroup = document.getElementById("bailoutGroup");
+              const bTarget = document.getElementById("bailoutTarget");
+
+              // 🟢 FIX: រក្សាទុកតម្លៃដែល User បានរើសសិន មុននឹង Render HTML ថ្មី (ដើម្បីកុំឱ្យវា Reset)
+              const previousSelection = bTarget ? bTarget.value : "";
+
+              if (
+                d.success &&
+                d.overdueMembers &&
+                d.overdueMembers.length > 0
+              ) {
+                bGroup.style.display = "block";
+                let opts = `<option value="">👤 បង់ប្រាក់ចូលគណនីខ្លួនឯង (Advance)</option>`;
+                d.overdueMembers.forEach((m) => {
+                  if (m.username !== user.username) {
+                    opts += `<option value="${m.username}">🤝 ចេញលុយជួស ${m.fullName} (ជំពាក់ $${m.debtAmount})</option>`;
+                  }
+                });
+                bTarget.innerHTML = opts;
+
+                // 🟢 FIX: បោះតម្លៃដែលគេរើសចូលវិញ ដើម្បីកុំឱ្យវារត់ទៅ Advance អូតូ
+                if (previousSelection) {
+                  bTarget.value = previousSelection;
+                }
+              } else {
+                if (bGroup) bGroup.style.display = "none";
+              }
             })
             .catch(() => (nameDisplay.innerHTML = "U-Fund (Scan Pay)"));
+
           status.innerText = "✔";
           status.className = "check-status status-ok";
           boxUI.style.borderColor = "#10b981";
@@ -1143,6 +1235,8 @@
         i.innerHTML = '<i class="fa-solid fa-user"></i>';
         targetUserIsKHR = null;
         calculateExchangePreview();
+        const bGroup = document.getElementById("bailoutGroup");
+        if (bGroup) bGroup.style.display = "none";
       }
 
       function calculateExchangePreview() {
@@ -1263,6 +1357,13 @@
                   qrString: recAcc,
                   amount: amt,
                   pin: pinCode,
+                  // 🌟 ចាប់យកឈ្មោះអ្នកដែលយើងរើសដើម្បីចេញលុយជួស បញ្ជូនទៅ Server
+                  bailoutTarget:
+                    document.getElementById("bailoutGroup") &&
+                    document.getElementById("bailoutGroup").style.display !==
+                      "none"
+                      ? document.getElementById("bailoutTarget").value
+                      : "",
                 }
               : {
                   senderUsername: user.username,
@@ -1306,7 +1407,7 @@
                   return;
                 }
 
-                // 🔥 ២. បញ្ឈប់ការ Update Memory ចាស់ ចាប់ទាញពី Database (Backend) ១០០%
+                // 🔥 ២. ចាប់ទាញទិន្នន័យពី Database មក Update សមតុល្យ (Balance) ថ្មី
                 try {
                   const freshRes = await fetch("/api/users", {
                     headers: authHeaders,
@@ -1318,9 +1419,12 @@
 
                   if (freshUser) {
                     // Update Session Storage ជាមួយ Data ថ្មីស្រឡាងពី Database
-                    // (រួមទាំង Balance ថ្មី និង Transaction ថ្មីៗដែល Server ទើបបង្កើត)
+                    sessionUser = freshUser; // 🌟 កែអថេរឱ្យត្រូវនឹងការហៅ
                     sessionStorage.setItem("user", JSON.stringify(freshUser));
                     Object.assign(user, freshUser);
+
+                    // 🌟 ធ្វើបច្ចុប្បន្នភាព Dropdown ម្តងទៀត ដើម្បីបង្ហាញលុយថ្មី
+                    populateSourceAccounts();
                   }
                 } catch (fetchErr) {
                   console.error(
@@ -1404,8 +1508,14 @@
               .then((r) => r.json())
               .then((d) => {
                 if (d.success) {
-                  user.balance = d.balance;
+                  // 🌟 អាប់ដេតសមតុល្យតាមទម្រង់ថ្មី
+                  if (user.mainAccounts && user.mainAccounts.USD) {
+                    user.mainAccounts.USD.balance = d.balance;
+                  } else {
+                    user.balance = d.balance; // Legacy Support
+                  }
                   sessionStorage.setItem("user", JSON.stringify(user));
+
                   new Audio(
                     "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
                   ).play();

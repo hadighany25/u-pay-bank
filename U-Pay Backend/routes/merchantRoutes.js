@@ -83,4 +83,11 @@ router.post(
   merchantController.checkCardBeforePayment,
 );
 
+// Route សម្រាប់ Admin ទាញយក PDF ព័ត៌មានសម្ងាត់ហាង
+router.get(
+  "/admin/credential-pdf/:id",
+  verifyUser,
+  merchantController.downloadMerchantCredentialPDF,
+);
+
 module.exports = router;

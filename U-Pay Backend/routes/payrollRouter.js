@@ -1,11 +1,15 @@
-// routes/payrollRouter.js
+// ============================================================================
+// ឯកសារ: routes/payrollRouter.js
+// អត្ថន័យ: បណ្តាញបញ្ជូន (Routes) សម្រាប់គ្រប់គ្រងប្រព័ន្ធបើកប្រាក់ខែស្វ័យប្រវត្តិ
+// ============================================================================
+
 const express = require("express");
 const router = express.Router();
 
-// ⚠️ ប្រើប្រាស់ verifyUser តាមកូដដែលមានស្រាប់របស់បង
+// 🛡️ Middleware សម្រាប់ផ្ទៀងផ្ទាត់ Token (Login Check)
 const { verifyUser } = require("../middleware/authMiddleware");
 
-// 🔥 កុំភ្លេច bring in getHistory មកជាមួយផង
+// 📦 ហៅបញ្ចូល Controller Functions ទាំងអស់
 const {
   createSchedule,
   getTemplates,
@@ -16,13 +20,29 @@ const {
   updateSchedule,
 } = require("../controllers/payrollController");
 
-// ប្រើ verifyUser ដើម្បីការពារ API ទាំងអស់នេះ
+// ==========================================
+// 🚀 API Routes ទាំងអស់ត្រូវបានការពារដោយ verifyUser
+// ==========================================
+
+// ១. បង្កើតកាលវិភាគ ឬបើកប្រាក់ខែភ្លាមៗ (Single / Bulk)
 router.post("/create", verifyUser, createSchedule);
+
+// ២. ទាញយក Template ដែលបាន Save ទុក
 router.get("/templates", verifyUser, getTemplates);
-router.get("/history", verifyUser, getHistory); // 👈 ឥឡូវស្គាល់ getHistory ແລ້ວ 💯
+
+// ៣. ទាញយកប្រវត្តិការទូទាត់ (Payout History)
+router.get("/history", verifyUser, getHistory);
+
+// ៤. 🌟 លុប Template ក្នុង Web Sheet ចោល (ត្រូវដាក់ពីលើ /:id ដើម្បីការពារការជាន់ Route)
+router.delete("/templates/:id", verifyUser, deleteTemplate);
+
+// ៥. កែប្រែស្ថានភាព (Pause / Resume កាលវិភាគ)
 router.patch("/:id/status", verifyUser, updateScheduleStatus);
+
+// ៦. កែសម្រួល និងរត់កាលវិភាគចាស់ឡើងវិញ (Edit & Retry)
+router.patch("/update/:id", verifyUser, updateSchedule);
+
+// ៧. លុបកាលវិភាគ ឬប្រវត្តិការទូទាត់ចោល
 router.delete("/:id", verifyUser, deleteSchedule);
-router.delete("/templates/:id", verifyUser, deleteTemplate); // 👈 បន្ថែមផ្លូវនេះសម្រាប់លុប Template
-router.patch("/update/:id", verifyUser, updateSchedule); // 👈 បន្ថែមផ្លូវនេះ
 
 module.exports = router;

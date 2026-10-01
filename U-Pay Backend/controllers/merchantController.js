@@ -1,10 +1,16 @@
+// controllers/merchantController.js
 const Merchant = require("../models/Merchant");
 const crypto = require("crypto");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
+const Notification = require("../models/Notification");
+const PDFDocument = require("pdfkit");
+const path = require("path");
+const fs = require("fs");
+const bot = require("../services/telegramBot"); // 🌟 នាំចូល Telegram Bot Service
 
 // ========================================================
-// 🛠️ Function ជំនួយ (Helpers)
+// 🛠️ ផ្នែកទី ១៖ Function ជំនួយ (Helpers)
 // ========================================================
 const generateRandomNumber = (length) => {
   let result = "";
@@ -14,8 +20,32 @@ const generateRandomNumber = (length) => {
   return result;
 };
 
+// បង្កើត Hash ស្តង់ដារ (១០ខ្ទង់ លាយអក្សរធំ និងលេខ)
+const generateStandardHash = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// បង្កើត Ref ID ស្តង់ដារ (ក្បាលអក្សរ + លេខ ៨ខ្ទង់)
+const generateStandardRefId = (prefix) => {
+  const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
+  return `${prefix}-${random8Digits}`;
+};
+
+// យកម៉ោងស្តង់ដារកម្ពុជា
+const getKhmerDate = () => {
+  return new Date().toLocaleString("en-US", {
+    timeZone: "Asia/Phnom_Penh",
+    hour12: true,
+  });
+};
+
 // ========================================================
-// 🏪 Merchant End-User APIs (សម្រាប់អតិថិជនជាម្ចាស់ហាង)
+// 🏪 ផ្នែកទី ២៖ Merchant APIs (សម្រាប់អតិថិជនជាម្ចាស់ហាង)
 // ========================================================
 
 // ១. មុខងារបង្កើតហាងថ្មី (Create Merchant)
@@ -46,13 +76,13 @@ exports.createMerchant = async (req, res) => {
     const apiKey = "upay_live_" + crypto.randomBytes(16).toString("hex");
     const apiSecret = crypto.randomBytes(32).toString("hex");
 
-    // 🔥 បង្កើតលេខគណនី QR របស់ហាង ដោយផ្អែកលើគណនីដែលគេភ្ជាប់
+    // បង្កើតលេខគណនី QR របស់ហាង ដោយផ្អែកលើគណនីដែលគេភ្ជាប់
     let accountNumbers = { USD: null, KHR: null };
     let linkedAccounts = { USD: null, KHR: null };
 
     if (linkedAccUSD) {
       accountNumbers.USD = "888" + generateRandomNumber(9);
-      linkedAccounts.USD = linkedAccUSD; // រក្សាទុកកុងពិតប្រាកដដែលម្ចាស់ហាងចង់បាន
+      linkedAccounts.USD = linkedAccUSD;
     }
     if (linkedAccKHR) {
       accountNumbers.KHR = "999" + generateRandomNumber(9);
@@ -73,6 +103,17 @@ exports.createMerchant = async (req, res) => {
     });
 
     const savedMerchant = await newMerchant.save();
+
+    // 🌟 ផ្តល់ដំណឹងចូល App (In-App Notification)
+    await Notification.create({
+      userId: owner._id,
+      username: owner.username,
+      title: "បង្កើតហាងជោគជ័យ! 🏪",
+      message: `អបអរសាទរ! ហាង "${name}" ត្រូវបានបង្កើតដោយជោគជ័យ និងរួចរាល់សម្រាប់ទទួលប្រាក់។`,
+      type: "system_alert",
+      date: getKhmerDate(),
+      isRead: false,
+    });
 
     res.status(201).json({
       success: true,
@@ -115,7 +156,6 @@ exports.deleteMerchant = async (req, res) => {
     const { merchantId } = req.params;
     const userId = req.user.username;
 
-    // អនុញ្ញាតអោយលុបបានតែហាងជារបស់ខ្លួនឯងប៉ុណ្ណោះ
     const merchant = await Merchant.findOneAndDelete({
       _id: merchantId,
       userId: userId,
@@ -124,6 +164,20 @@ exports.deleteMerchant = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Merchant not found" });
+
+    // 🌟 ផ្តល់ដំណឹងចូល App ពេលលុបហាង
+    const owner = await User.findOne({ username: userId });
+    if (owner) {
+      await Notification.create({
+        userId: owner._id,
+        username: owner.username,
+        title: "ហាងត្រូវបានលុប! ❌",
+        message: `ហាង "${merchant.name}" របស់អ្នកត្រូវបានលុបចេញពីប្រព័ន្ធ U-Pay រួចរាល់។`,
+        type: "system_alert",
+        date: getKhmerDate(),
+        isRead: false,
+      });
+    }
 
     res
       .status(200)
@@ -149,6 +203,21 @@ exports.updateMerchant = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Merchant not found" });
+
+    // 🌟 ផ្តល់ដំណឹងចូល App
+    const owner = await User.findOne({ username: userId });
+    if (owner) {
+      await Notification.create({
+        userId: owner._id,
+        username: owner.username,
+        title: "ព័ត៌មានហាងត្រូវបានកែប្រែ 📝",
+        message: `ព័ត៌មានហាងរបស់អ្នកត្រូវបានកែប្រែទៅជាឈ្មោះ "${name}" រួចរាល់។`,
+        type: "system_alert",
+        date: getKhmerDate(),
+        isRead: false,
+      });
+    }
+
     res.json({ success: true, merchant });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -167,16 +236,13 @@ exports.getMerchantTransactions = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Shop not found" });
 
-    // ១. ចាប់យកតាម ID ហាងតែមួយគត់ដែលយើងបានភ្ជាប់ពេលវេរលុយ
     let searchConditions = [{ merchantId: merchant.merchantId }];
 
-    // ២. ទុកលក្ខខណ្ឌចាស់ ដើម្បីកុំអោយបាត់ប្រវត្តិហាងចាស់ៗ
     if (merchant.accountNumbers && merchant.accountNumbers.USD)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.USD });
     if (merchant.accountNumbers && merchant.accountNumbers.KHR)
       searchConditions.push({ receiverAcc: merchant.accountNumbers.KHR });
 
-    // 🔥 ថែមលក្ខខណ្ឌអោយទាញយកប្រវត្តិ ដែលគេបាញ់ចូល Virtual Account របស់កូនចៅ
     if (merchant.cashiers && merchant.cashiers.length > 0) {
       merchant.cashiers.forEach((c) => {
         if (c.virtualAccounts && c.virtualAccounts.USD)
@@ -184,7 +250,6 @@ exports.getMerchantTransactions = async (req, res) => {
         if (c.virtualAccounts && c.virtualAccounts.KHR)
           searchConditions.push({ receiverAcc: c.virtualAccounts.KHR });
         if (c.virtualAccount)
-          // សម្រាប់ទិន្នន័យចាស់កុំអោយគាំង
           searchConditions.push({ receiverAcc: c.virtualAccount });
       });
     }
@@ -195,10 +260,8 @@ exports.getMerchantTransactions = async (req, res) => {
     }).sort({ _id: -1 });
 
     const currentUTC = new Date();
-    // បំប្លែងម៉ោងទៅជាម៉ោងស្រុកខ្មែរ (UTC+7)
     const nowKhmerTime = new Date(currentUTC.getTime() + 7 * 60 * 60 * 1000);
 
-    // តម្រង (Filter) តាមថ្ងៃ, សប្តាហ៍, និងខែ
     transactions = transactions.filter((t) => {
       const trxUTC = new Date(t.date);
       const trxKhmerTime = new Date(trxUTC.getTime() + 7 * 60 * 60 * 1000);
@@ -242,7 +305,7 @@ exports.getMerchantRevenue = async (req, res) => {
 };
 
 // ========================================================
-// 👑 Admin Business Management APIs (សម្រាប់តែ Admin ប៉ុណ្ណោះ)
+// 👑 ផ្នែកទី ៣៖ Admin Management APIs (សម្រាប់តែ Admin)
 // ========================================================
 
 // ផ្អាក ឬបើកដំណើរការហាង (Freeze/Unfreeze)
@@ -270,9 +333,9 @@ exports.adminDeleteMerchant = async (req, res) => {
 // Admin កែប្រែព័ត៌មានហាង
 exports.adminEditMerchant = async (req, res) => {
   try {
-    const { id, name, merchantId, category } = req.body;
+    const { id, name, merchantId, category, webhookUrl, linkedAccount } =
+      req.body;
 
-    // ឆែកមើលក្រែងលោមានហាងផ្សេងកំពុងប្រើ ID នេះ
     const existing = await Merchant.findOne({
       merchantId: merchantId,
       _id: { $ne: id },
@@ -283,20 +346,27 @@ exports.adminEditMerchant = async (req, res) => {
         message: "Merchant ID នេះមានអ្នកប្រើហើយ!",
       });
 
-    await Merchant.findByIdAndUpdate(id, { name, merchantId, category });
-    res.json({ success: true, message: "កែប្រែជោគជ័យ" });
+    await Merchant.findByIdAndUpdate(id, {
+      name,
+      merchantId,
+      category,
+      webhookUrl,
+      linkedAccount,
+    });
+    res.json({
+      success: true,
+      message: "កែប្រែព័ត៌មានហាង និង Webhook ជោគជ័យ!",
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // ========================================================
-// 🤖 Telegram Bot Alert APIs (សម្រាប់ Merchant)
+// 🤖 ផ្នែកទី ៤៖ Telegram Bot Alert APIs (សម្រាប់ហាង)
 // ========================================================
 
-// Object សម្រាប់ផ្ទុកកូដ ៤ ខ្ទង់បណ្តោះអាសន្ន (ទុកក្នុង Memory)
 const pendingMerchantTeleCodes = {};
-// Export វាចេញ ដើម្បីអោយ File Bot អាចឆែកមើលបាន
 exports.pendingMerchantTeleCodes = pendingMerchantTeleCodes;
 
 // ៧. បង្កើតលេខកូដ ៤ ខ្ទង់សម្រាប់ភ្ជាប់ Telegram
@@ -305,27 +375,22 @@ exports.generateTelegramCode = async (req, res) => {
     const { merchantId } = req.body;
     const userId = req.user.username;
 
-    // ផ្ទៀងផ្ទាត់ថាហាងនេះពិតជារបស់គាត់មែន
     const merchant = await Merchant.findOne({
       _id: merchantId,
       userId: userId,
     });
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
-    }
 
-    // បង្កើតកូដ ៤ ខ្ទង់ (ពី 1000 ដល់ 9999)
     const code = Math.floor(1000 + Math.random() * 9000).toString();
 
-    // រក្សាទុកកូដនេះ ដោយភ្ជាប់ជាមួយ ID ហាង (កូដមានសុពលភាព ៥ នាទី)
     pendingMerchantTeleCodes[code] = {
       merchantId: merchant._id.toString(),
       expiresAt: Date.now() + 5 * 60 * 1000,
     };
 
-    // (ស្រេចចិត្ត) លុបកូដចាស់ៗដែលហួសម៉ោងចោល ដើម្បីកុំអោយចង្អៀត Memory
     for (let key in pendingMerchantTeleCodes) {
       if (pendingMerchantTeleCodes[key].expiresAt < Date.now()) {
         delete pendingMerchantTeleCodes[key];
@@ -334,7 +399,6 @@ exports.generateTelegramCode = async (req, res) => {
 
     res.status(200).json({ success: true, code: code });
   } catch (error) {
-    console.error("GENERATE TELE CODE ERROR:", error);
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
@@ -350,31 +414,20 @@ exports.unlinkTelegram = async (req, res) => {
       _id: merchantId,
       userId: userId,
     });
-
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
+
+    // 🔥 ហៅ Telegram Bot នៅទីនេះផ្ទាល់ ដើម្បីដោះស្រាយបញ្ហា Circular Dependency
+    const bot = require("../services/telegramBot");
+
+    // 🔥 ហៅមុខងារបាញ់សារជូនដំណឹងចូល Telegram មុនពេលលុបទិន្នន័យ
+    if (merchant.telegramChatId && bot && bot.sendMerchantUnlinkAlert) {
+      await bot.sendMerchantUnlinkAlert(merchant.telegramChatId, merchant.name);
     }
 
-    // 🔥 ថែមថ្មី៖ បាញ់សារជូនដំណឹងចូល Telegram មុនពេលផ្តាច់
-    if (merchant.telegramChatId) {
-      try {
-        const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram (Unlinked)</b>\n\n🏪 ហាង៖ <b>${merchant.name}</b>\n\nគណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay ហាងរបស់អ្នកជោគជ័យ។ ចាប់ពីពេលនេះតទៅ នឹងមិនមានសារជូនដំណឹងលុយចូលទីនេះទៀតទេ។`;
-
-        // ហៅ bot មកប្រើ
-        await bot.sendMessage(merchant.telegramChatId, unlinkMsg, {
-          parse_mode: "HTML",
-        });
-      } catch (teleErr) {
-        console.error(
-          "Failed to send telegram merchant unlink alert:",
-          teleErr,
-        );
-      }
-    }
-
-    // ធ្វើការ Update លុប ChatID ចោល
+    // ធ្វើការ Update លុប ChatID ចោលពី Database
     merchant.telegramChatId = null;
     await merchant.save();
 
@@ -408,53 +461,47 @@ exports.createMerchantQR = async (req, res) => {
         .status(404)
         .json({ code: "FAIL", message: "រកមិនឃើញគណនី Merchant នេះទេ" });
 
-    // ទាញយកលេខគណនី USD របស់ Merchant
     const receiveAccount = merchant.accountNumbers.USD;
-
     const deepLink = `https://u-pay-bank.fly.dev/index.html?acc=${receiveAccount}&o=${order_id}&a=${amount}`;
 
     res.status(200).json({
       code: "SUCCESS",
       message: "ជោគជ័យ",
-      data: {
-        qr_code_data: deepLink,
-        deeplink: deepLink,
-      },
+      data: { qr_code_data: deepLink, deeplink: deepLink },
     });
   } catch (error) {
-    console.error("Error generating Merchant QR:", error);
-    res.status(500).json({
-      code: "FAIL",
-      message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធធនាគារកណ្តាល",
-    });
+    res
+      .status(500)
+      .json({ code: "FAIL", message: "បញ្ហាបច្ចេកទេសក្នុងប្រព័ន្ធ" });
   }
 };
 
 // ========================================================
-// 👨‍💼 Cashier Management APIs (សម្រាប់អ្នកគិតលុយ)
+// 👨‍💼 ផ្នែកទី ៥៖ Cashier Management (គ្រប់គ្រងអ្នកគិតលុយ)
 // ========================================================
 
-// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ ដើម្បីបន្ថែមជាអ្នកគិតលុយ
+// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ
 exports.searchCashierAccount = async (req, res) => {
   try {
     const { accountNumber } = req.params;
 
-    // ស្វែងរកគណនី
+    // 🌟 កែប្រែទៅតាមទម្រង់ Model ថ្មី (Support ទាំង USD, KHR និង Sub-Accounts)
     const user = await User.findOne({
       $or: [
+        { "mainAccounts.USD.accountNumber": accountNumber },
+        { "mainAccounts.KHR.accountNumber": accountNumber },
+        { "subAccounts.accountNumber": accountNumber },
+        // រក្សាទុកកុងចាស់បន្តិចសិន ការពារក្រែងលោមានគណនីចាស់មិនទាន់ Update ចូល Main Accounts
         { accountNumber: accountNumber },
         { accountNumberKHR: accountNumber },
-        { "subAccounts.accountNumber": accountNumber },
       ],
     });
 
-    if (!user) {
+    if (!user)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីកូនចៅនេះទេ!" });
-    }
 
-    // ត្រឡប់ទិន្នន័យចាំបាច់
     res.status(200).json({
       success: true,
       accountName: user.fullName || user.username,
@@ -481,33 +528,27 @@ exports.addCashier = async (req, res) => {
       _id: merchantId,
       userId: userId,
     });
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
-    }
 
-    // ឆែកក្រែងលោមានកូនចៅនេះហើយ
     const existingCashier = merchant.cashiers.find(
       (c) => c.accountNumber === cashierAccountNumber,
     );
-    if (existingCashier) {
+    if (existingCashier)
       return res
         .status(400)
         .json({ success: false, message: "កូនចៅម្នាក់នេះមានក្នុងហាងរួចហើយ!" });
-    }
 
-    // 🔥 បង្កើតលេខ Virtual Account អោយ Cashier ទាំង USD ទាំង KHR
     let virtualAccounts = { USD: null, KHR: null };
     let seq = merchant.cashiers.length + 1;
 
-    // បង្កើត Virtual USD បើមានកុង USD
     if (merchant.accountNumbers && merchant.accountNumbers.USD) {
       let baseAccUSD = merchant.accountNumbers.USD;
       let vAccUSD =
         baseAccUSD.substring(0, baseAccUSD.length - 2) +
         seq.toString().padStart(2, "0");
-      // ការពារកុំអោយលេខជាន់គ្នា
       while (
         merchant.cashiers.some(
           (c) =>
@@ -523,7 +564,6 @@ exports.addCashier = async (req, res) => {
       virtualAccounts.USD = vAccUSD;
     }
 
-    // បង្កើត Virtual KHR បើមានកុង KHR
     if (merchant.accountNumbers && merchant.accountNumbers.KHR) {
       let baseAccKHR = merchant.accountNumbers.KHR;
       let vAccKHR =
@@ -541,17 +581,22 @@ exports.addCashier = async (req, res) => {
       virtualAccounts.KHR = vAccKHR;
     }
 
-    // បន្ថែមចូលហាង
     merchant.cashiers.push({
       accountNumber: cashierAccountNumber,
       virtualAccounts: virtualAccounts,
-      virtualAccount: virtualAccounts.USD || virtualAccounts.KHR, // Fallback
+      virtualAccount: virtualAccounts.USD || virtualAccounts.KHR,
       originalName: cashierOriginalName,
       displayName: cashierDisplayName,
       status: "Active",
     });
 
     await merchant.save();
+
+    // 🌟 ផ្តល់ដំណឹង Telegram ទៅកាន់ម្ចាស់ហាង (Merchant Alert)
+    if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
+      const msg = `👨‍💼 <b>បន្ថែមអ្នកគិតលុយថ្មី</b>\n\nអ្នកបានបន្ថែម <b>${cashierDisplayName}</b> ទៅក្នុងហាង ${merchant.name} ដោយជោគជ័យ។`;
+      bot.sendMerchantAlert(merchant._id, msg).catch(() => {});
+    }
 
     res.status(200).json({
       success: true,
@@ -574,18 +619,31 @@ exports.removeCashier = async (req, res) => {
       _id: merchantId,
       userId: userId,
     });
-    if (!merchant) {
+    if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
-    }
 
-    // ច្រោះយកតែកូនចៅដែលមិនត្រូវនឹង ID ដែលចង់លុប
+    // រក្សាឈ្មោះទុកមុននឹងលុប ដើម្បីបាញ់សារ
+    const removedCashier = merchant.cashiers.find(
+      (c) => c._id.toString() === cashierId,
+    );
+
     merchant.cashiers = merchant.cashiers.filter(
       (c) => c._id.toString() !== cashierId,
     );
-
     await merchant.save();
+
+    // 🌟 ផ្តល់ដំណឹង Telegram ទៅម្ចាស់ហាង
+    if (
+      removedCashier &&
+      typeof bot !== "undefined" &&
+      bot &&
+      bot.sendMerchantAlert
+    ) {
+      const msg = `🗑️ <b>លុបអ្នកគិតលុយចេញ</b>\n\nអ្នកគិតលុយឈ្មោះ <b>${removedCashier.displayName}</b> ត្រូវបានដកចេញពីហាង ${merchant.name} រួចរាល់។`;
+      bot.sendMerchantAlert(merchant._id, msg).catch(() => {});
+    }
 
     res.status(200).json({
       success: true,
@@ -597,58 +655,40 @@ exports.removeCashier = async (req, res) => {
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
-// 🛑 អថេរសម្រាប់ចាក់សោការពារការឈូតកាតត្រួតគ្នា (Double Tap Cooldown ៥ វិនាទី)
-const activeTaps = new Set();
 
 // =======================================================
-// 💳 TAP TO PAY (STRICT CROSS-CURRENCY WITH DB EXCHANGE RATE)
+// 💳 ផ្នែកទី ៦៖ TAP TO PAY (NFC Card Payment)
 // =======================================================
+const activeTaps = new Set(); // សម្រាប់ចាក់សោរការពារការឈូតត្រួតគ្នា
+
 exports.processTapToPay = async (req, res) => {
   const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
-  const payAmount = parseFloat(amount); // ចំនួនទឹកប្រាក់ដែលហាងចង់បាន (USD ឬ KHR)
+  const payAmount = parseFloat(amount);
 
-  // 🛑 ទី១: ការពារការកាត់លុយ ២ដងក្នុងពេលតែមួយ (Lock ៥វិនាទី)
   const tapLockKey = `${uid}_${merchantId}_${payAmount}`;
-  if (activeTaps.has(tapLockKey)) {
+  if (activeTaps.has(tapLockKey))
     return res.json({
       success: false,
       message: "កំពុងដំណើរការទូទាត់ សូមរង់ចាំបន្តិច!",
     });
-  }
   activeTaps.add(tapLockKey);
 
   try {
-    const User = require("../models/User");
-    const Merchant = require("../models/Merchant");
-    const Transaction = require("../models/Transaction");
-
-    if (!uid || !amount || !currency || !merchantId) {
+    const System = require("../models/System");
+    if (!uid || !amount || !currency || !merchantId)
       return res.json({
         success: false,
         message: "ទិន្នន័យផ្ញើមកមិនគ្រប់គ្រាន់ទេ!",
       });
-    }
 
-    // 🟢 ទាញយក Exchange Rate ឱ្យចំពី fxRates ក្នុង Database
-    const System = require("../models/System");
-    let exchangeRate = 4110; // Default
-
+    let exchangeRate = 4110;
     try {
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
       if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
         exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
       }
-    } catch (e) {
-      console.log("Could not fetch FX Rate from DB, using default 4110");
-    }
+    } catch (e) {}
 
-    // សម្រាប់ Debug មើលតម្លៃពិតប្រាកដក្នុង fly logs
-    console.log(
-      "🔥 [FX Rate Debug] Fetched usdToKhrBuy from DB:",
-      exchangeRate,
-    );
-
-    // ២. ស្វែងរកកាត និងគណនី
     const customer = await User.findOne({ "virtualCards.uid": uid });
     if (!customer)
       return res.json({
@@ -665,22 +705,17 @@ exports.processTapToPay = async (req, res) => {
       return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
 
     let cardCurrency = card.linkedAccount || card.currency || "USD";
-
-    // ៣. គណនាសមតុល្យដែលត្រូវកាត់ និងរូបិយប័ណ្ណពិតប្រាកដ
     let deductUsd = 0;
     let deductKhr = 0;
-    let effectiveCurrency = currency; // រូបិយប័ណ្ណដែលត្រូវកាត់ពីកុងអតិថិជន
+    let effectiveCurrency = currency;
 
     if (cardCurrency === currency) {
-      // ករណីរូបិយប័ណ្ណដូចគ្នា (USD ទៅ USD ឬ KHR ទៅ KHR)
       if (currency === "USD") deductUsd = payAmount;
       else deductKhr = payAmount;
     } else if (cardCurrency === "USD" && currency === "KHR") {
-      // 🟢 ករណីកាត USD តែហាងទារ KHR -> បម្លែង KHR ទៅជា USD (ឧ. 10000 / 4110 = 2.43$)
       deductUsd = parseFloat((payAmount / exchangeRate).toFixed(2));
       effectiveCurrency = "USD";
     } else if (cardCurrency === "KHR" && currency === "USD") {
-      // ករណីកាត KHR តែហាងទារ USD -> បម្លែង USD ទៅជា KHR (គុណនឹង Exchange Rate)
       deductKhr = payAmount * exchangeRate;
       effectiveCurrency = "KHR";
     } else {
@@ -690,7 +725,6 @@ exports.processTapToPay = async (req, res) => {
       });
     }
 
-    // ៤. PIN Check & Daily Limit
     let requiresPin = false;
     let limitUsd =
       cardCurrency === "USD"
@@ -698,52 +732,40 @@ exports.processTapToPay = async (req, res) => {
           ? deductUsd
           : 0
         : deductKhr / exchangeRate;
-
     if (limitUsd > 20) requiresPin = true;
 
-    if (requiresPin && !pin) {
+    if (requiresPin && !pin)
       return res.json({
         success: false,
         message:
           "ទឹកប្រាក់លើសកម្រិតកំណត់ សូមអតិថិជនវាយបញ្ជាក់លេខសម្ងាត់ (PIN)!",
       });
-    }
-    if (pin && card.pin !== pin) {
+    if (pin && card.pin !== pin)
       return res.json({
         success: false,
         message: "លេខសម្ងាត់កាត (PIN) មិនត្រឹមត្រូវទេ!",
       });
-    }
 
-    // ៥. ឆែកសមតុល្យប្រាក់ក្នុងកុងអតិថិជន
-    if (deductUsd > 0 && customer.balance < deductUsd) {
+    if (deductUsd > 0 && customer.balance < deductUsd)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ USD ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
-    }
-    if (deductKhr > 0 && customer.balanceKHR < deductKhr) {
+    if (deductKhr > 0 && customer.balanceKHR < deductKhr)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ KHR ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
-    }
 
-    // ៦. ស្វែងរកហាង
     let shop = null;
     if (merchantId.match(/^[0-9a-fA-F]{24}$/))
       shop = await Merchant.findById(merchantId);
     if (!shop) shop = await Merchant.findOne({ merchantId: merchantId });
     if (!shop) return res.json({ success: false, message: "រកមិនឃើញហាងទេ!" });
 
-    const dateStr = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Phnom_Penh",
-      hour12: true,
-    });
-
+    const dateStr = getKhmerDate();
     let amtInUsdForLimit = deductUsd > 0 ? deductUsd : deductKhr / exchangeRate;
 
-    // ៧. កាត់លុយអតិថិជន
     let updateInc = {};
     if (deductUsd > 0) updateInc.balance = -deductUsd;
     if (deductKhr > 0) updateInc.balanceKHR = -deductKhr;
@@ -751,36 +773,29 @@ exports.processTapToPay = async (req, res) => {
 
     await User.updateOne(
       { _id: customer._id, "virtualCards.uid": uid },
-      {
-        $inc: updateInc,
-        $push: {
-          notifications: {
-            $each: [
-              {
-                id: "NOTIF-" + Date.now(),
-                title: "ទូទាត់ប្រាក់ (Tap to Pay)",
-                message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name}។`,
-                date: dateStr,
-                isRead: false,
-              },
-            ],
-            $position: 0,
-          },
-        },
-      },
+      { $inc: updateInc },
     );
 
-    // ៨. បន្ថែមលុយចូល Escrow របស់ហាង (តាមរូបិយប័ណ្ណដែលហាងកំណត់)
+    // 🌟 Notification ជូនអតិថិជន
+    await Notification.create({
+      userId: customer._id,
+      username: customer.username,
+      title: "ទូទាត់ប្រាក់ (Tap to Pay) 💳",
+      message: `អ្នកបានទូទាត់ប្រាក់ ${currency === "USD" ? "$" : "៛"}${payAmount.toLocaleString()} ទៅកាន់ហាង ${shop.name}។`,
+      date: dateStr,
+      type: "tap_to_pay",
+      isRead: false,
+    });
+
     const incEscrow =
       currency === "USD"
         ? { "escrowHold.USD": payAmount }
         : { "escrowHold.KHR": payAmount };
     await Merchant.updateOne({ _id: shop._id }, { $inc: incEscrow });
 
-    // ៩. កត់ត្រា Transaction
-    const trxRef = "TAP-" + Date.now().toString().slice(-6);
-    const trxHash =
-      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    const trxRef = generateStandardRefId("TAP");
+    const trxHash = generateStandardHash();
+
     const cashierName = cashierAcc ? ` (Cashier: ${cashierAcc})` : "";
     const receiverDisplayName = `${shop.name}${cashierName}`;
     const customerReceiverAcc =
@@ -790,13 +805,12 @@ exports.processTapToPay = async (req, res) => {
     let merchantLinkedAcc = shop.linkedAccounts
       ? shop.linkedAccounts[currency]
       : null;
-    if (!merchantLinkedAcc && shop.linkedAccounts) {
+    if (!merchantLinkedAcc && shop.linkedAccounts)
       merchantLinkedAcc =
         shop.linkedAccounts.USD || shop.linkedAccounts.KHR || "N/A";
-    }
 
-    // ប្រវត្តិអតិថិជន
     await Transaction.create({
+      userId: customer._id,
       username: customer.username,
       refId: trxRef,
       hash: trxHash,
@@ -811,18 +825,16 @@ exports.processTapToPay = async (req, res) => {
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
       receiverAcc: customerReceiverAcc,
-
-      // 🟢 ថែមលេខកាត និង ID កាត ចូលទៅក្នុងប្រវត្តិ (សម្រាប់បង្ហាញ Slip ភ្ញៀវជាលេខកាត)
       cardId: card.id,
       cardNumber: card.number,
-
       status: "Hold",
-      remark: `Payment with Auto Exchange Rate (${exchangeRate})`,
+      remark: `ទូទាត់កាតតាមអត្រាប្តូរប្រាក់ស្វ័យប្រវត្តិ`,
       trxMethod: "NFC Payment",
     });
 
-    // ប្រវត្តិហាង (🟢 មិនបាច់ដាក់ merchantId ក្នុង Transaction ຝັ່ງអតិថិជនទេ ឬដាក់ត្រឹមហាងបានហើយ តែសម្រាប់ Slip ភ្ញៀវ យើងបានទប់កុំឱ្យវាបង្ហាញ ID ហាងរួចរាល់ហើយក្នុង slip.js)
+    const shopOwner = await User.findOne({ username: shop.userId });
     await Transaction.create({
+      userId: shopOwner ? shopOwner._id : undefined,
       username: shop.userId,
       refId: trxRef,
       hash: trxHash,
@@ -837,15 +849,25 @@ exports.processTapToPay = async (req, res) => {
           : customer.accountNumberKHR || "N/A",
       receiverName: receiverDisplayName,
       receiverAcc: merchantLinkedAcc,
-      merchantId: shop.merchantId, // ហាងនៅតែត្រូវការ merchantId នេះដើម្បីទាញប្រវត្តិចូលផ្ទាំង Dashbaord ហាង
-
+      merchantId: shop.merchantId,
       cardId: card.id,
       cardNumber: card.number,
-
       status: "Hold",
-      remark: "Tap to Pay Transaction",
+      remark: "ប្រតិបត្តិការទូទាត់ឈូតកាត",
       trxMethod: "NFC Payment",
     });
+
+    // 🌟 Telegram Merchant Alert ពេលមានអតិថិជនឈូតកាតចូលហាង
+    if (typeof bot !== "undefined" && bot && bot.sendMerchantPaymentAlert) {
+      bot
+        .sendMerchantPaymentAlert(shop._id, {
+          amount: payAmount,
+          currency: currency,
+          senderName: customer.fullName || customer.username,
+          refId: trxRef,
+        })
+        .catch(() => {});
+    }
 
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
@@ -867,7 +889,6 @@ exports.processTapToPay = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Server Error: " + error.message });
   } finally {
-    // 🟢 ដោះសោរការពារវិញបន្ទាប់ពី ៥ វិនាទី
     setTimeout(() => activeTaps.delete(tapLockKey), 5000);
   }
 };
@@ -878,7 +899,7 @@ exports.processTapToPay = async (req, res) => {
 exports.checkCardBeforePayment = async (req, res) => {
   const { uid, amount, currency } = req.body;
   try {
-    const User = require("../models/User");
+    const System = require("../models/System");
 
     const customer = await User.findOne({ "virtualCards.uid": uid });
     if (!customer)
@@ -900,24 +921,13 @@ exports.checkCardBeforePayment = async (req, res) => {
         message: "កាតនេះត្រូវបានបិទមុខងារទូទាត់!",
       });
 
-    // 🟢 ទាញយក Exchange Rate ឱ្យចំពី fxRates ក្នុង Database
-    const System = require("../models/System");
-    let exchangeRate = 4110; // Default
-
+    let exchangeRate = 4110;
     try {
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
       if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
         exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
       }
-    } catch (e) {
-      console.log("Could not fetch FX Rate from DB, using default 4110");
-    }
-
-    // សម្រាប់ Debug មើលតម្លៃពិតប្រាកដក្នុង fly logs
-    console.log(
-      "🔥 [FX Rate Debug] Fetched usdToKhrBuy from DB:",
-      exchangeRate,
-    );
+    } catch (e) {}
 
     let cardCurrency = card.linkedAccount || card.currency || "USD";
     const payAmount = parseFloat(amount);
@@ -939,7 +949,6 @@ exports.checkCardBeforePayment = async (req, res) => {
       });
     }
 
-    // ឆែក Daily Limit
     let payAmountUsd =
       cardCurrency === "USD" ? requiredUsd : requiredKhr / exchangeRate;
     const currentSpentToday = card.dailySpentToday || 0;
@@ -952,41 +961,33 @@ exports.checkCardBeforePayment = async (req, res) => {
       });
     }
 
-    // ឆែកសមតុល្យ
-    if (requiredUsd > 0 && customer.balance < requiredUsd) {
+    if (requiredUsd > 0 && customer.balance < requiredUsd)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ USD ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
-    }
-    if (requiredKhr > 0 && customer.balanceKHR < requiredKhr) {
+    if (requiredKhr > 0 && customer.balanceKHR < requiredKhr)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ KHR ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
-    }
 
     res.json({
       success: true,
       message: "កាតត្រឹមត្រូវ និងអាចទូទាត់បានតាម Exchange Rate",
     });
   } catch (err) {
-    console.error("Check Card Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 // =======================================================
-// ↩️ មុខងារបង្វិលប្រាក់សម្រាប់ប្រតិបត្តិការ HOLD ONLY (STRICT REFUND)
+// ↩️ ផ្នែកទី ៧៖ មុខងារបង្វិលប្រាក់ (Refund Transaction)
 // =======================================================
 exports.refundTransaction = async (req, res) => {
   const { merchantId, refId, pin } = req.body;
 
   try {
-    const User = require("../models/User");
-    const Merchant = require("../models/Merchant");
-    const Transaction = require("../models/Transaction");
-
-    // ១. ស្វែងរកហាង និងផ្ទៀងផ្ទាត់ PIN របស់ម្ចាស់ហាង
     const shop = await Merchant.findOne({
       $or: [{ merchantId: merchantId }, { _id: merchantId }],
     });
@@ -995,20 +996,16 @@ exports.refundTransaction = async (req, res) => {
     const owner = await User.findOne({ username: shop.userId });
     if (!owner)
       return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
-
-    if (owner.pin !== pin) {
+    if (owner.pin !== pin)
       return res.json({
         success: false,
         message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
       });
-    }
 
-    // ២. ទាញយក Transaction ដើមតាមរយៈ refId
     const trxs = await Transaction.find({ refId: refId });
     if (!trxs || trxs.length === 0)
       return res.json({ success: false, message: "រកមិនឃើញប្រវត្តិនេះទេ!" });
 
-    // ឆែកមើលថាតើវាបាន Refund រួចហ្ដេស
     const isAlreadyRefunded = trxs.some(
       (t) => t.status === "Refunded" || t.status === "Voided",
     );
@@ -1018,7 +1015,6 @@ exports.refundTransaction = async (req, res) => {
         message: "ប្រតិបត្តិការនេះត្រូវបានបង្វិលប្រាក់រួចហើយ!",
       });
 
-    // ឆែកមើលថាតើវាស្ថិតក្នុងស្ថានភាព Hold ដែរឬទេ
     const merchantTrx = trxs.find(
       (t) => t.merchantId === shop.merchantId || t.amount > 0,
     );
@@ -1030,70 +1026,59 @@ exports.refundTransaction = async (req, res) => {
       });
     }
 
-    // 🔥 ស្វែងរក Transaction ຝັ່ງអតិថិជន ដើម្បីយក Amount និង Currency ដើមដែលបានកាត់ជាក់ស្តែង
     const customerTrx = trxs.find(
       (t) => t.merchantId !== shop.merchantId && t.amount < 0,
     );
     if (!customerTrx)
       return res.json({ success: false, message: "រកមិនឃើញព័ត៌មានអតិថិជន!" });
 
-    const refundAmount = Math.abs(customerTrx.amount); // ចំនួនទឹកប្រាក់ពិតប្រាកដដែលបានកាត់ពីអតិថិជន
-    const customerCurrency = customerTrx.currency; // រូបិយប័ណ្ណដើមរបស់អតិថិជន (USD ឬ KHR)
-    const merchantCurrency = merchantTrx.currency; // រូបិយប័ណ្ណរបស់ហាង
+    const refundAmount = Math.abs(customerTrx.amount);
+    const customerCurrency = customerTrx.currency;
+    const merchantCurrency = merchantTrx.currency;
     const customerUsername = customerTrx.username;
 
-    // ៣. ដកលុយចេញពី EscrowHold របស់ហាង ផ្អែកលើរូបិយប័ណ្ណរបស់ហាង (Atomic Update)
     const decEscrow =
       merchantCurrency === "USD"
         ? { "escrowHold.USD": -merchantTrx.amount }
         : { "escrowHold.KHR": -merchantTrx.amount };
     await Merchant.updateOne({ _id: shop._id }, { $inc: decEscrow });
 
-    // ៤. 🟢 បូកលុយសងចូលកុងអតិថិជនវិញ ចំកុងដើមពិតប្រាកដ (USD ទៅ USD, KHR ទៅ KHR)
     const incCustomerBalance =
       customerCurrency === "USD"
         ? { balance: refundAmount }
         : { balanceKHR: refundAmount };
-
-    const dateStr = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Phnom_Penh",
-      hour12: true,
-    });
+    const dateStr = getKhmerDate();
 
     await User.updateOne(
       { username: customerUsername },
-      {
-        $inc: incCustomerBalance,
-        $push: {
-          notifications: {
-            $each: [
-              {
-                id: "NOTIF-" + Date.now(),
-                title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ ↩️",
-                message: `ហាង ${shop.name} បានបង្វិលប្រាក់ ${customerCurrency === "USD" ? "$" : "៛"}${refundAmount.toLocaleString()} ជូនអ្នកវិញហើយ។`,
-                date: dateStr,
-                isRead: false,
-              },
-            ],
-            $position: 0,
-          },
-        },
-      },
+      { $inc: incCustomerBalance },
     );
 
-    // ៥. Update ស្ថានភាព Transaction ចាស់ទៅជា Refunded
+    const customerObj = await User.findOne({ username: customerUsername });
+
+    // 🌟 Notification ប្រាប់អតិថិជន
+    if (customerObj) {
+      await Notification.create({
+        userId: customerObj._id,
+        username: customerObj.username,
+        title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ ↩️",
+        message: `ហាង ${shop.name} បានបង្វិលប្រាក់ ${customerCurrency === "USD" ? "$" : "៛"}${refundAmount.toLocaleString()} ជូនអ្នកវិញហើយ។`,
+        date: dateStr,
+        type: "refund_receive",
+        isRead: false,
+      });
+    }
+
     await Transaction.updateMany(
       { refId: refId },
       { $set: { status: "Refunded" } },
     );
 
-    // ៦. បង្កើត Slip ប្រវត្តិថ្មីសម្រាប់ទាំង ២ ភាគី (រក្សារូបិយប័ណ្ណរៀងខ្លួន)
-    const newRefId = "RFD-" + Date.now().toString().slice(-6);
-    const newHash =
-      "HSH" + Math.random().toString(36).substring(2, 10).toUpperCase();
+    const newRefId = generateStandardRefId("RFD");
+    const newHash = generateStandardHash();
 
-    // Slip ຝັ່ງអតិថិជន (សងចូលកុងអតិថិជនចំរូបិយប័ណ្ណដើម)
     await Transaction.create({
+      userId: customerObj ? customerObj._id : undefined,
       username: customerUsername,
       refId: newRefId,
       hash: newHash,
@@ -1104,16 +1089,14 @@ exports.refundTransaction = async (req, res) => {
       senderName: shop.name,
       receiverName: customerTrx.senderName,
       status: "Success",
-      remark: `Refund for Hold Trx: ${refId}`,
+      remark: `បង្វិលប្រាក់ត្រឡប់វិញពីហាង (Ref: ${refId})`,
       trxMethod: "Refund",
-
-      // 🟢 ថែមលេខកាត និង ID កាត ចូលទៅក្នុងប្រវត្តិ Refund វិញដែរ
       cardId: customerTrx.cardId,
       cardNumber: customerTrx.cardNumber,
     });
 
-    // Slip ຝັ່ງហាង
     await Transaction.create({
+      userId: owner._id,
       username: shop.userId,
       merchantId: shop.merchantId,
       refId: newRefId,
@@ -1125,35 +1108,351 @@ exports.refundTransaction = async (req, res) => {
       senderName: shop.name,
       receiverName: customerTrx.senderName,
       status: "Success",
-      remark: `Refunded hold transaction (Ref: ${refId})`,
+      remark: `បានធ្វើការបង្វិលប្រាក់ទៅអតិថិជន (Ref: ${refId})`,
       trxMethod: "Refund",
     });
 
-    // ៧. បាញ់ Socket Refresh ទាំងសងខាង
+    // 🌟 Telegram Merchant Alert ពេលហាងធ្វើការ Refund ជោគជ័យ
+    if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
+      const refundMsg = `🔄 <b>ប្រាក់ត្រូវបានបង្វិល (Refunded)</b>\n\nហាងរបស់អ្នកបានបង្វិលប្រាក់ចំនួន <b>${merchantCurrency === "USD" ? "$" : "៛"}${Math.abs(merchantTrx.amount).toLocaleString()}</b> ទៅកាន់អតិថិជន <b>${customerTrx.senderName}</b> វិញជោគជ័យ។\nលេខយោង៖ #${newRefId}`;
+      bot.sendMerchantAlert(shop._id, refundMsg).catch(() => {});
+    }
+
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
-      global.io.to(customerUsername).emit("transactionUpdated"); // 🟢 កែពី customer.username មក customerUsername
+      global.io.to(customerUsername).emit("transactionUpdated");
       global.io.to(shop.userId).emit("paymentReceived", {
-        amount: Math.abs(merchantTrx.amount), // 🟢 ប្រើទឹកប្រាក់របស់ហាង
-        currency: merchantCurrency, // 🟢 ប្រើរូបិយប័ណ្ណរបស់ហាង
-        senderName: customerTrx.senderName, // 🟢 ប្រើឈ្មោះអតិថិជនពី Trx ចាស់
-        refId: newRefId, // 🟢 ប្រើ RefId ថ្មី
-        hash: newHash, // 🟢 ប្រើ Hash ថ្មី
+        amount: Math.abs(merchantTrx.amount),
+        currency: merchantCurrency,
+        senderName: customerTrx.senderName,
+        refId: newRefId,
+        hash: newHash,
       });
     }
 
-    // 🟢 កន្លែងសំខាន់៖ បោះទិន្នន័យពិតប្រាកដទៅឱ្យអេក្រង់ POS វិញ
     res.json({
       success: true,
       message: "ការបង្វិលប្រាក់បានសម្រេចជោគជ័យ!",
-      refId: newRefId, // 🟢 ប្រើ RefId ថ្មី
-      hash: newHash, // 🟢 ប្រើ Hash ថ្មី
-      senderName: customerTrx.senderName, // 🟢 ប្រើឈ្មោះអតិថិជនពី Trx ចាស់
+      refId: newRefId,
+      hash: newHash,
+      senderName: customerTrx.senderName,
     });
   } catch (error) {
-    console.error("Tap to Pay Strict Error:", error);
     res
       .status(500)
       .json({ success: false, message: "Server Error: " + error.message });
+  }
+};
+
+// =======================================================
+// 📄 ផ្នែកទី ៨៖ ការទាញយកវិក្កយបត្រ (PDF Generator)
+// =======================================================
+exports.downloadMerchantCredentialPDF = async (req, res) => {
+  try {
+    if (
+      req.user.role !== "super_admin" &&
+      req.user.role !== "finance_admin" &&
+      req.user.role !== "custom"
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access Denied!" });
+    }
+
+    const { id } = req.params;
+    const showApiKey = req.query.showKey === "true";
+    const showApiSecret = req.query.showSecret === "true";
+    const showWebhook = req.query.showWebhook === "true";
+
+    const merchant = await Merchant.findById(id);
+    if (!merchant)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញហាងនេះទេ!" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Merchant-Credentials-${merchant.merchantId}.pdf`,
+    );
+
+    const doc = new PDFDocument({ margin: 0, size: "A4" });
+    doc.pipe(res);
+
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    const timeStr = now.toTimeString().split(" ")[0];
+
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor("#475569")
+      .text(`Date: ${dateStr}`, 450, 40)
+      .text(`Time: ${timeStr}`, 450, 55);
+
+    const logoPath = path.join(__dirname, "../public/images/logo.png");
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 200, 35, { width: 35 });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(26)
+        .fillColor("#004d40")
+        .text("UPAY", 245, 40);
+    } else {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(26)
+        .fillColor("#004d40")
+        .text("U UPAY", 0, 40, { align: "center" });
+    }
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .fillColor("#004d40")
+      .text("MERCHANT INFORMATION", 0, 80, { align: "center" });
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .fillColor("#64748b")
+      .text("Merchant Profile & Account Details", 0, 98, { align: "center" });
+    doc.moveTo(40, 125).lineTo(555, 125).lineWidth(1.5).stroke("#059669");
+
+    let currentY = 140;
+    const pageHeight = 842;
+
+    function checkPageBreak(requiredSpace) {
+      if (currentY + requiredSpace > pageHeight - 80) {
+        doc.addPage();
+        currentY = 40;
+      }
+    }
+
+    function drawSection(title, data, themeColor, bgLightColor) {
+      const rowHeight = 22;
+      const titleHeight = 26;
+      const sectionHeight = titleHeight + data.length * rowHeight + 5;
+
+      checkPageBreak(sectionHeight);
+
+      doc.save();
+      doc.roundedRect(40, currentY, 515, titleHeight, 5).fill(bgLightColor);
+      doc.rect(40, currentY + 10, 515, titleHeight - 10).fill(bgLightColor);
+      doc.restore();
+
+      doc
+        .roundedRect(40, currentY, 515, sectionHeight, 5)
+        .lineWidth(1)
+        .stroke(themeColor);
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(11)
+        .fillColor(themeColor)
+        .text(title, 55, currentY + 8);
+      currentY += titleHeight;
+
+      doc.font("Helvetica").fontSize(9);
+      data.forEach((row, i) => {
+        if (i > 0)
+          doc
+            .moveTo(41, currentY)
+            .lineTo(554, currentY)
+            .lineWidth(0.5)
+            .stroke("#e2e8f0");
+
+        doc
+          .fillColor("#475569")
+          .text(row.label, 50, currentY + 6, { width: 140 });
+
+        if (row.isBadge) {
+          doc.roundedRect(200, currentY + 4, 45, 14, 7).fill("#10b981");
+          doc
+            .fillColor("#ffffff")
+            .font("Helvetica-Bold")
+            .fontSize(8)
+            .text(row.value, 200, currentY + 8, { width: 45, align: "center" });
+          doc.font("Helvetica").fontSize(9);
+        } else if (row.isLink) {
+          doc.fillColor("#3b82f6").text(row.value, 200, currentY + 6, {
+            width: 340,
+            lineBreak: false,
+          });
+        } else {
+          doc.fillColor("#0f172a").text(row.value, 200, currentY + 6, {
+            width: 340,
+            lineBreak: false,
+          });
+        }
+        currentY += rowHeight;
+      });
+      currentY += 15;
+    }
+
+    const dateCreated = merchant.createdAt
+      ? new Date(merchant.createdAt).toISOString()
+      : "N/A";
+    const dateUpdated = merchant.updatedAt
+      ? new Date(merchant.updatedAt).toISOString()
+      : "N/A";
+
+    drawSection(
+      "Merchant Information",
+      [
+        { label: "User ID", value: merchant.userId || "N/A" },
+        { label: "Name", value: merchant.name || "N/A" },
+        { label: "City", value: merchant.city || "N/A" },
+        { label: "Category", value: merchant.category || "N/A" },
+        { label: "Merchant ID", value: merchant.merchantId || "N/A" },
+        { label: "Status", value: merchant.status || "Active", isBadge: true },
+        { label: "Created At", value: dateCreated },
+        { label: "Updated At", value: dateUpdated },
+      ],
+      "#059669",
+      "#ecfdf5",
+    );
+
+    drawSection(
+      "Linked Accounts",
+      [
+        { label: "Currency", value: "USD" },
+        {
+          label: "Account Number",
+          value: merchant.linkedAccounts?.USD || "N/A",
+        },
+        { label: "Currency", value: "KHR" },
+        {
+          label: "Account Number",
+          value: merchant.linkedAccounts?.KHR || "N/A",
+        },
+        { label: "Merchant ID", value: merchant.merchantId || "N/A" },
+      ],
+      "#0284c7",
+      "#e0f2fe",
+    );
+
+    drawSection(
+      "Account Numbers",
+      [
+        { label: "Currency", value: "USD" },
+        {
+          label: "Account Number",
+          value: merchant.accountNumbers?.USD || "N/A",
+        },
+        { label: "Currency", value: "KHR" },
+        {
+          label: "Account Number",
+          value: merchant.accountNumbers?.KHR || "N/A",
+        },
+      ],
+      "#059669",
+      "#ecfdf5",
+    );
+
+    drawSection(
+      "Collected",
+      [
+        { label: "Currency", value: "USD" },
+        { label: "Amount", value: (merchant.collected?.USD || 0).toString() },
+        { label: "Currency", value: "KHR" },
+        { label: "Amount", value: (merchant.collected?.KHR || 0).toString() },
+      ],
+      "#d97706",
+      "#fef3c7",
+    );
+
+    drawSection(
+      "Escrow Hold",
+      [
+        { label: "Currency", value: "USD" },
+        { label: "Amount", value: (merchant.escrowHold?.USD || 0).toString() },
+        { label: "Currency", value: "KHR" },
+        { label: "Amount", value: (merchant.escrowHold?.KHR || 0).toString() },
+      ],
+      "#7c3aed",
+      "#f3e8ff",
+    );
+
+    const apiKeyDisplay = showApiKey
+      ? merchant.apiKey || "N/A"
+      : "******************************** (Hidden)";
+    const apiSecretDisplay = showApiSecret
+      ? merchant.apiSecret || "N/A"
+      : "******************************** (Hidden)";
+    const webhookDisplay = showWebhook
+      ? merchant.webhookUrl || "null"
+      : "******************************** (Hidden)";
+
+    drawSection(
+      "API & Webhook",
+      [
+        { label: "API Key", value: apiKeyDisplay },
+        { label: "API Secret", value: apiSecretDisplay },
+        { label: "Webhook URL", value: webhookDisplay, isLink: showWebhook },
+        { label: "Telegram Chat ID", value: merchant.telegramChatId || "null" },
+        {
+          label: "Cashiers",
+          value: merchant.cashiers
+            ? `[${merchant.cashiers.length} Users]`
+            : "[]",
+        },
+      ],
+      "#0284c7",
+      "#f0f9ff",
+    );
+
+    checkPageBreak(120);
+    currentY += 20;
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .fillColor("#059669")
+      .text("Prepared By", 60, currentY)
+      .text("Received By", 350, currentY);
+
+    currentY += 40;
+    doc.lineWidth(1).stroke("#cbd5e1");
+
+    doc.moveTo(40, currentY).lineTo(140, currentY).stroke();
+    doc.moveTo(150, currentY).lineTo(250, currentY).stroke();
+    doc.moveTo(260, currentY).lineTo(320, currentY).stroke();
+
+    doc.moveTo(340, currentY).lineTo(440, currentY).stroke();
+    doc.moveTo(450, currentY).lineTo(550, currentY).stroke();
+
+    currentY += 8;
+    doc.font("Helvetica").fontSize(8).fillColor("#64748b");
+    doc.text("Name", 80, currentY);
+    doc.text("Signature", 185, currentY);
+    doc.text("Date", 280, currentY);
+    doc.text("Name", 380, currentY);
+    doc.text("Signature", 485, currentY);
+
+    const bottomY = pageHeight - 40;
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .fillColor("#004d40")
+      .text("UPAY", 0, bottomY - 15, { align: "center" });
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor("#64748b")
+      .text("Secure Payment • Better Business", 0, bottomY, {
+        align: "center",
+      });
+    doc
+      .polygon(
+        [0, pageHeight],
+        [0, pageHeight - 15],
+        [595, pageHeight - 30],
+        [595, pageHeight],
+      )
+      .fill("#059669");
+
+    doc.end();
+  } catch (error) {
+    if (!res.headersSent)
+      res.status(500).json({ success: false, message: error.message });
   }
 };

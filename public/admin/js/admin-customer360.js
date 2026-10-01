@@ -1,3 +1,4 @@
+//admin-customer360.js
 // ========================================================================
 // 🛡️ CUSTOMER 360° VIEW LOGIC (ALL-IN-ONE SYSTEM)
 // រក្សាទុកកូដចាស់ទាំងអស់ និងបន្ថែមមុខងារបញ្ជាទិន្នន័យ (Actions)
@@ -77,9 +78,12 @@ function renderCustomerProfile(user) {
 
   // បង្ហាញទិន្នន័យខាងលើ (Header)
   const avatarEl = document.getElementById("c360-avatar");
-  if (avatarEl)
+  if (avatarEl) {
     avatarEl.src = user.profileImage || "../images/default-avatar.png";
-
+    avatarEl.style.cursor = "pointer"; // បង្ហាញសញ្ញាដៃពេលយកកណ្តុរដាក់ពីលើ
+    avatarEl.title = "ចុចទីនេះដើម្បីប្តូររូបភាព Profile ថ្មី";
+    avatarEl.onclick = () => c360ChangeProfileImage(); // បន្ថែមមុខងារចុចដើម្បីដូររូប
+  }
   const nameEl = document.getElementById("c360-name");
   if (nameEl) nameEl.innerText = user.fullName || user.username || "Unknown";
 
@@ -306,9 +310,10 @@ async function saveC360Info() {
 
   const bodyData = {
     id: currentC360User._id || currentC360User.id,
-    username: currentC360User.username, // មិនអោយប្តូរ
-    accountNumber: currentC360User.accountNumber,
-    accountNumberKHR: currentC360User.accountNumberKHR,
+    username: currentC360User.username,
+    // 🟢 កែត្រង់នេះ
+    accountNumber: currentC360User.mainAccounts?.USD?.accountNumber,
+    accountNumberKHR: currentC360User.mainAccounts?.KHR?.accountNumber,
     pin: pinVal,
     password: passVal === "*********" ? "" : passVal,
     fullName: document.getElementById("c360-edit-fullname").value,
@@ -359,17 +364,24 @@ async function saveC360Info() {
 function renderWalletsTab(user) {
   const container = document.getElementById("c360-tab-finance");
   if (!container) return;
+
+  // 🟢 កែប្រែការទាញយកទិន្នន័យនៅទីនេះ
+  const balUSD = user.mainAccounts?.USD?.balance || 0;
+  const accUSD = user.mainAccounts?.USD?.accountNumber || "N/A";
+  const balKHR = user.mainAccounts?.KHR?.balance || 0;
+  const accKHR = user.mainAccounts?.KHR?.accountNumber || "N/A";
+
   container.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
       <div class="dash-card" style="border-left: 5px solid var(--accent);">
         <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី USD ($)</h4>
-        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">$${(user.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
-        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${user.accountNumber || "N/A"}</p>
+        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">$${balUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
+        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${accUSD}</p>
       </div>
       <div class="dash-card" style="border-left: 5px solid var(--secondary);">
         <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី KHR (៛)</h4>
-        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">${(user.balanceKHR || 0).toLocaleString()} ៛</h2>
-        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${user.accountNumberKHR || "N/A"}</p>
+        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">${balKHR.toLocaleString()} ៛</h2>
+        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${accKHR}</p>
       </div>
     </div>
     
@@ -384,7 +396,9 @@ function renderWalletsTab(user) {
   `;
 }
 
+// =======================================================
 // ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management)
+// =======================================================
 function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
   if (!container) return;
@@ -399,177 +413,372 @@ function renderCardsTab(user) {
   if (!user.virtualCards || user.virtualCards.length === 0) {
     container.innerHTML =
       headerHtml +
-      `<div style="text-align:center; padding: 40px; color: var(--text-muted); font-size: 1.1rem;" class="kh-text">អតិថិជននេះមិនទាន់មានកាត (Virtual Card) នៅឡើយទេ។</div>`;
+      `<div style="text-align:center; padding: 40px; color: var(--text-muted); font-size: 1.1rem;" class="kh-text">
+        <i class="fa-regular fa-credit-card" style="font-size: 4rem; opacity: 0.5; margin-bottom: 15px; display: block;"></i>
+        អតិថិជននេះមិនទាន់មានកាត (Virtual Card) នៅឡើយទេ។
+      </div>`;
     return;
   }
 
-  let html =
-    headerHtml +
-    `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">`;
+  let stylesHtml = `
+    <style>
+      .admin-cards-slider {
+        display: flex; overflow-x: auto; padding-bottom: 15px; gap: 20px;
+        scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      }
+      .admin-cards-slider::-webkit-scrollbar { height: 6px; }
+      .admin-cards-slider::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      .admin-card-wrapper {
+        flex: 0 0 340px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 15px;
+      }
+      
+      /* 🔥 3D Flip Effects */
+      .card-perspective { perspective: 1000px; width: 100%; height: 215px; z-index: 10; cursor: pointer; }
+      .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; border-radius: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+      .card-inner.flipped { transform: rotateY(180deg); }
+      .u-card-front, .u-card-back {
+        position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+        border-radius: 20px; box-sizing: border-box; color: #fff; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      .u-card-front { padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
+      .u-card-back { transform: rotateY(180deg); padding: 0; display: flex; flex-direction: column; }
+      
+      /* THEMES */
+      .theme-standard { background: linear-gradient(135deg, #149a83 0%, #004d40 100%) !important; }
+      .theme-fifa { background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10") center/cover no-repeat !important; }
+      .theme-metal { background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%) !important; }
+      .theme-celebrity { background: linear-gradient(rgba(88,28,135,0.4), rgba(0,0,0,0.8)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2RxvoEe_j52IEh_8Fu_DZ0aupMrDFYak0tD3k4Ee_ug&s=10") center/cover no-repeat !important; }
+      .theme-anime { background: linear-gradient(rgba(185,28,28,0.5), rgba(0,0,0,0.85)), url("https://static0.cbrimages.com/wordpress/wp-content/uploads/2024/01/sasuke-naruto-and-sakura.jpg") center/cover no-repeat !important; }
+      .theme-gamer { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10") center/cover no-repeat !important; }
+      .theme-eco { background: linear-gradient(rgba(21,128,61,0.4), rgba(0,0,0,0.8)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmfmcQbkrZqkkSWfuTzzuFZNf65-nxTieNggbtUhV_vw&s=10") center/cover no-repeat !important; }
+      .theme-platinum { background: #000000 !important; }
+      .theme-animal { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80") center/cover no-repeat !important; }
+      .theme-custom { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)) center/cover no-repeat !important; }
+
+      .u-chip {
+        width: 45px; height: 32px; background: linear-gradient(135deg, #e5e7eb, #94a3b8);
+        border-radius: 6px; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+      }
+      .theme-standard .u-chip, .theme-metal .u-chip, .theme-eco .u-chip {
+        background: linear-gradient(135deg, #fde047, #d97706);
+      }
+      .u-nfc { font-size: 1.4rem; color: rgba(255,255,255,0.8); transform: rotate(90deg); margin-left: 10px; }
+      
+      .u-locked-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(3px) grayscale(80%);
+        display: flex; align-items: center; justify-content: center; z-index: 20;
+      }
+      .u-locked-text {
+        font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 4px;
+        border: 3px solid #fff; padding: 10px 20px; border-radius: 8px; transform: rotate(-15deg);
+      }
+      .cvv-box { background: #fff; color: #000; padding: 4px 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1.1rem; letter-spacing: 2px; }
+    </style>
+  `;
+
+  const getThemeClass = (type) => {
+    const map = {
+      standard: "theme-standard",
+      fifa: "theme-fifa",
+      metal: "theme-metal",
+      celebrity: "theme-celebrity",
+      anime: "theme-anime",
+      gamer: "theme-gamer",
+      eco: "theme-eco",
+      platinum: "theme-platinum",
+      animal: "theme-animal",
+      custom: "theme-custom",
+    };
+    return map[type] || "theme-standard";
+  };
+
+  let cardsHtml = `<div class="admin-cards-slider">`;
 
   user.virtualCards.forEach((c) => {
-    const bgGradient =
-      c.type === "standard"
-        ? "linear-gradient(135deg, #149a83 0%, #00695c 100%)"
-        : "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)";
-    const chipColor =
-      c.type === "standard"
-        ? "linear-gradient(135deg, #e2c35d, #c4a038)"
-        : "linear-gradient(135deg, #e5e7eb, #94a3b8)";
-    const isLocked = c.isLocked;
+    let themeClass = getThemeClass(c.type);
+    let isRealNFC = c.isPhysical || (c.uid && c.uid !== "");
+    let nfcIconHtml = isRealNFC ? `<i class="fa-solid fa-wifi u-nfc"></i>` : ``;
+    let isLocked = c.isLocked;
 
-    html += `
-      <div style="display: flex; flex-direction: column; gap: 15px;">
-          <div style="background: ${bgGradient}; border-radius: 18px; padding: 25px; color: white; box-shadow: 0 15px 30px rgba(0,0,0,0.15); position: relative; overflow: hidden;">
-            ${isLocked ? `<div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 10; display: flex; align-items: center; justify-content: center;"><span class="kh-text" style="color: white; border: 3px solid white; padding: 5px 15px; font-weight: 900; font-size: 1.5rem; transform: rotate(-15deg); border-radius: 8px; letter-spacing: 2px;">FROZEN</span></div>` : ""}
+    let customBgStyle = "";
+    if (c.type === "custom" && c.customBgUrl) {
+      customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
+    }
 
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 1; position: relative;">
-                <div style="width: 45px; height: 32px; background: ${chipColor}; border-radius: 6px; box-shadow: inset 0 0 5px rgba(0,0,0,0.3);"></div>
-                <div style="font-weight: 800; font-size: 1.3rem; font-family: 'Inter', sans-serif;">U-PAY</div>
-            </div>
+    let cardNameDisplay =
+      c.name && c.name.trim() !== ""
+        ? c.name
+        : c.type
+          ? c.type.replace("-", " ").toUpperCase()
+          : "STANDARD";
+
+    cardsHtml += `
+      <div class="admin-card-wrapper">
+        <div class="card-perspective">
+          <div class="card-inner ${themeClass}" id="cardInner_${c.id}">
             
-            <div id="c360-cardnum-${c.id}" style="margin-top: 25px; font-size: 1.4rem; letter-spacing: 4px; font-family: 'Courier New', monospace; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 1; position: relative;">
-                **** **** **** ${c.number.slice(-4)}
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 25px; z-index: 1; position: relative;">
-                <div>
-                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px;">CARD HOLDER</div>
-                    <div style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase;">${user.fullName || user.username}</div>
+            <!-- 💳 FRONT CARD -->
+            <div class="u-card-front" ${customBgStyle}>
+                ${isLocked ? `<div class="u-locked-overlay"><div class="u-locked-text">FROZEN</div></div>` : ""}
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
+                    <div style="display: flex; align-items: center;">
+                        <div class="u-chip"></div>
+                        ${nfcIconHtml}
+                    </div>
+                    <img src="../images/logo-nobg.png" style="height: 35px; filter: brightness(0) invert(1); opacity: 0.9;" onerror="this.style.display='none'">
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px;">EXPIRES</div>
-                    <div id="c360-cardexp-${c.id}" style="font-size: 0.95rem; font-weight: 600;">**/**</div>
+                
+                <div id="c360-cardnum-${c.id}" style="font-family: 'Courier New', monospace; font-size: 1.15rem; letter-spacing: 1.5px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.4); z-index: 2; margin-top: auto; margin-bottom: auto; white-space: nowrap;">
+                    **** **** **** ${c.number.slice(-4)}
                 </div>
-                <div style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 1.6rem; font-style: italic; opacity: 0.9;">VISA</div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
+                    <div style="flex: 1.2;">
+                        <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">CARD HOLDER</div>
+                        <div style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.fullName || user.username}</div>
+                    </div>
+                    <div style="flex: 0.8; text-align: center;">
+                        <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">EXPIRES</div>
+                        <div id="c360-cardexp-${c.id}" style="font-size: 0.95rem; font-weight: 600;">**/**</div>
+                    </div>
+                    <div style="flex: 1.5; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 1rem; text-transform: uppercase; text-align: right; text-shadow: 0 1px 2px rgba(0,0,0,0.5); opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${cardNameDisplay}
+                    </div>
+                </div>
             </div>
+
+            <!-- 💳 BACK CARD -->
+            <div class="u-card-back" ${customBgStyle}>
+                ${isLocked ? `<div class="u-locked-overlay"><div class="u-locked-text">FROZEN</div></div>` : ""}
+                <div style="width: 100%; height: 40px; background: #111; margin-top: 20px;"></div>
+                <div style="padding: 15px 25px 5px; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.95); max-width: 55%; line-height: 1.6;">
+                        <span style="font-weight: 800;">AUTHORIZED SIGNATURE</span><br>
+                        This card is issued by U-Pay PLC.
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                        <span style="font-size: 0.7rem; color: #fff; font-weight: bold; margin-bottom: 3px;">CVV</span>
+                        <div id="c360-cardcvv-${c.id}" class="cvv-box">***</div>
+                    </div>
+                </div>
+                <div style="padding: 0 25px 15px; margin-top: auto; text-align: right;">
+                    <img src="../images/logo-nobg.png" style="height: 30px; filter: brightness(0) invert(1);" onerror="this.style.display='none'">
+                </div>
+            </div>
+
           </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-              <div style="display: flex; gap: 10px;">
-                  <button onclick="c360RevealCard('${c.id}')" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                      <i class="fa-solid fa-eye"></i> មើល
-                  </button>
-                  <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: ${isLocked ? "var(--secondary)" : "#ef4444"}; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                      <i class="fa-solid ${isLocked ? "fa-unlock" : "fa-lock"}"></i> ${isLocked ? "បើក" : "បិទ"}
-                  </button>
-                  <button onclick="c360DeleteCard('${c.id}')" class="kh-text" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--bg-body); color: #ef4444; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid var(--border);">
-                      <i class="fa-solid fa-trash"></i> លុប
-                  </button>
-              </div>
-          </div>
+        </div>
+        
+        <div style="background: var(--bg-card); border: 1px solid var(--border); padding: 12px 15px; border-radius: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="color: var(--text-main); font-weight: 600;">
+               <i class="fa-solid fa-gauge-high" style="color: #d97706; margin-right: 5px;"></i> Limit: $${c.dailyLimit || 500}
+            </div>
+            <div style="color: var(--text-main); font-weight: 600;">
+               <i class="fa-solid fa-globe" style="color: #059669; margin-right: 5px;"></i> Online: ${c.isOnlinePayEnabled !== false ? '<span style="color:#10b981;">ON</span>' : '<span style="color:#ef4444;">OFF</span>'}
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button onclick="c360RevealCard('${c.id}')" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                <i class="fa-solid fa-eye"></i> មើល
+            </button>
+            <button onclick="document.getElementById('cardInner_${c.id}').classList.toggle('flipped')" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                <i class="fa-solid fa-arrows-rotate"></i> ត្រឡប់
+            </button>
+            <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: ${isLocked ? "var(--secondary)" : "#ef4444"}; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                <i class="fa-solid ${isLocked ? "fa-unlock" : "fa-lock"}"></i> ${isLocked ? "បើក" : "បិទ"}
+            </button>
+            <button onclick="c360DeleteCard('${c.id}')" class="kh-text" style="width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--bg-body); color: #ef4444; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid var(--border);">
+                <i class="fa-solid fa-trash"></i> លុបកាតចោល
+            </button>
+        </div>
+
       </div>`;
   });
-  container.innerHTML = html + `</div>`;
+
+  cardsHtml += `</div>`;
+  container.innerHTML = stylesHtml + headerHtml + cardsHtml;
 }
 
+// =======================================================
+// 🟢 បង្កើតកាតថ្មី (បូកបញ្ចូលតម្លៃ Dynamic Price)
+// =======================================================
 async function c360CreateCardForUser() {
-  const { value: cardType } = await Swal.fire({
+  const cardTiers = [
+    {
+      id: "standard",
+      name: "Standard",
+      price: 2.0,
+      styleClass: "theme-standard",
+    },
+    {
+      id: "fifa",
+      name: "FIFA World Cup",
+      price: 10.0,
+      styleClass: "theme-fifa",
+    },
+    { id: "metal", name: "Metal Gold", price: 15.0, styleClass: "theme-metal" },
+    {
+      id: "celebrity",
+      name: "BTS Edition",
+      price: 10.0,
+      styleClass: "theme-celebrity",
+    },
+    {
+      id: "anime",
+      name: "Naruto Edition",
+      price: 8.0,
+      styleClass: "theme-anime",
+    },
+    { id: "gamer", name: "Gamer Pro", price: 8.0, styleClass: "theme-gamer" },
+    { id: "eco", name: "Eco Green", price: 3.0, styleClass: "theme-eco" },
+    {
+      id: "platinum",
+      name: "Platinum Premium",
+      price: 25.0,
+      styleClass: "theme-platinum",
+    },
+    {
+      id: "animal",
+      name: "Animal Edition",
+      price: 8.0,
+      styleClass: "theme-animal",
+    },
+    {
+      id: "custom",
+      name: "Custom VIP",
+      price: 25.0,
+      styleClass: "theme-custom",
+    },
+  ];
+
+  let gridHtml = cardTiers
+    .map((t, index) => {
+      return `
+      <label style="cursor:pointer;">
+        <input type="radio" name="swal-card-type" value="${t.id}" data-price="${t.price}" ${index === 0 ? "checked" : ""} style="display:none;" 
+          onchange="document.querySelectorAll('.admin-tier-option').forEach(el=>el.classList.remove('selected')); this.nextElementSibling.classList.add('selected'); document.getElementById('adminCustomBgBox').style.display = (this.value==='custom') ? 'block' : 'none'; document.getElementById('swal-price-display').innerText = '$' + this.getAttribute('data-price');">
+        <div class="admin-tier-option ${index === 0 ? "selected" : ""}" style="border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; background: var(--bg-body);">
+            <div class="${t.styleClass}" style="width: 100%; height: 50px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"></div>
+            <div class="kh-text" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); line-height: 1.2;">${t.name}</div>
+            <div style="font-size: 0.75rem; color: #ef4444; font-weight: bold; margin-top: 5px;">$${t.price.toFixed(2)}</div>
+        </div>
+      </label>
+    `;
+    })
+    .join("");
+
+  const { value: formResult } = await Swal.fire({
     title:
-      '<span class="kh-text" style="font-size:1.4rem;">ជ្រើសរើសប្រភេទកាត</span>',
+      '<span class="kh-text" style="font-size:1.4rem;">បង្កើតកាតថ្មី</span>',
     html: `
-      <div style="display:flex; flex-direction:column; gap:15px; text-align: left; margin-top: 15px;">
-          <label style="padding:15px; border:2px solid var(--border); border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:15px; background: var(--bg-body);" onclick="this.style.borderColor='var(--secondary)'">
-              <input type="radio" name="swal-card-type" value="platinum" checked style="width:20px; height:20px; accent-color:var(--secondary);">
-              <div style="width:60px; height:40px; background:linear-gradient(135deg, #1e293b, #0f172a); border-radius:6px;"></div>
-              <div><h4 class="kh-text" style="margin:0; font-size:1rem; color:var(--text-main);">Platinum (កាតខ្មៅ)</h4></div>
-          </label>
-          <label style="padding:15px; border:2px solid var(--border); border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:15px; background: var(--bg-body);" onclick="this.previousElementSibling.style.borderColor='var(--border)'; this.style.borderColor='var(--secondary)'">
-              <input type="radio" name="swal-card-type" value="standard" style="width:20px; height:20px; accent-color:var(--secondary);">
-              <div style="width:60px; height:40px; background:linear-gradient(135deg, #149a83, #00695c); border-radius:6px;"></div>
-              <div><h4 class="kh-text" style="margin:0; font-size:1rem; color:var(--text-main);">Standard (កាតបៃតង)</h4></div>
-          </label>
+      <style>
+        .admin-tier-option.selected { border-color: var(--secondary) !important; background: rgba(16, 185, 129, 0.05) !important; }
+      </style>
+      <div style="text-align: left; margin-top: 15px;">
+          <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; display: block;">ជ្រើសរើសប្រភេទកាត (Design)</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 300px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
+              ${gridHtml}
+          </div>
+          
+          <div id="adminCustomBgBox" style="display: none; margin-bottom: 15px;">
+              <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">បញ្ចូល Link រូបភាព (សម្រាប់កាត Custom)</label>
+              <input id="swal-custom-url" type="text" class="swal2-input" placeholder="https://image.com/myphoto.jpg" style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem;">
+          </div>
+
+          <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px; margin-bottom: 15px; text-align: center;">
+              <span class="kh-text" style="color: #ef4444; font-size: 0.9rem; font-weight: bold;">ថ្លៃសេវាកាត់ពីគណនីអតិថិជន៖ </span>
+              <span id="swal-price-display" style="color: #ef4444; font-size: 1.1rem; font-weight: 900;">$2.00</span>
+          </div>
+
+          <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ចំណាំ (Remark)</label>
+          <input id="swal-card-remark" class="swal2-input kh-text" placeholder="មូលហេតុ (ឧ. បង្កើតជំនួសអតិថិជន)" style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main);">
       </div>`,
     showCancelButton: true,
-    confirmButtonText: '<span class="kh-text">បន្ត (Next)</span>',
+    confirmButtonText: '<span class="kh-text">កាត់លុយ & បង្កើត</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
     confirmButtonColor: "var(--secondary)",
     customClass: { popup: "modal-radius" },
-    preConfirm: () =>
-      document.querySelector('input[name="swal-card-type"]:checked').value,
+    preConfirm: () => {
+      const radio = document.querySelector(
+        'input[name="swal-card-type"]:checked',
+      );
+      const cardType = radio.value;
+      const customBgUrl = document
+        .getElementById("swal-custom-url")
+        .value.trim();
+      const remark =
+        document.getElementById("swal-card-remark").value.trim() ||
+        "Admin បង្កើតកាតជំនួស";
+
+      if (cardType === "custom" && !customBgUrl) {
+        Swal.showValidationMessage("សូមបញ្ចូល Link រូបភាពសម្រាប់កាត Custom!");
+        return false;
+      }
+      return { cardType, customBgUrl, remark };
+    },
   });
 
-  if (cardType) {
-    const { value: remark } = await Swal.fire({
-      title:
-        '<span class="kh-text" style="font-size:1.4rem;">បញ្ជាក់ការបង្កើតកាត</span>',
-      html: `
-        <div style="text-align:left; font-size:0.95rem; background: var(--bg-body); padding: 15px; border-radius: 10px; border: 1px solid var(--border);" class="kh-text">
-            <p style="margin: 0 0 10px; color: var(--text-main);">ប្រភេទកាត: <b style="text-transform:uppercase;">${cardType}</b></p>
-            <p style="margin: 0; color: var(--text-main);">ថ្លៃសេវា: <b style="color:#ef4444;">$5.00</b> (កាត់ទៅចូលប្រព័ន្ធ)</p>
-        </div>
-        <div style="text-align: left; margin-top: 15px;">
-            <input id="swal-card-remark" class="swal2-input kh-text" placeholder="មូលហេតុ (Remark)..." style="width: 100%; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: '<span class="kh-text">បញ្ជាក់ & បង្កើត</span>',
-      confirmButtonColor: "var(--secondary)",
-      customClass: { popup: "modal-radius" },
-      preConfirm: () =>
-        document.getElementById("swal-card-remark").value.trim() ||
-        "គ្មានមូលហេតុ",
+  if (formResult) {
+    Swal.fire({
+      title: "កំពុងកាត់ប្រាក់ និងបង្កើតកាត...",
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal" },
     });
-
-    if (remark) {
-      Swal.fire({
-        title: "កំពុងដំណើរការ...",
-        didOpen: () => Swal.showLoading(),
-        customClass: { popup: "premium-swal" },
+    try {
+      const res = await fetch("/api/admin/create-card", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardType: formResult.cardType,
+          customBgUrl: formResult.customBgUrl,
+          remark: formResult.remark,
+        }),
       });
-      try {
-        const res = await fetch("/api/admin/create-card", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            username: currentC360User.username,
-            cardType,
-          }),
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: "កាត់លុយ និងបង្កើតកាតរួចរាល់។",
+          timer: 2000,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal" },
         });
-        const data = await res.json();
-        if (data.success) {
-          await fetch("/api/admin/log-action", {
-            method: "POST",
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              action: "Created Card",
-              target: currentC360User.username,
-              details: `បង្កើតកាត ${cardType} - ${remark}`,
-            }),
-          });
-          Swal.fire({
-            icon: "success",
-            title: "ជោគជ័យ!",
-            text: "កាត់លុយ និងបង្កើតកាតរួចរាល់។",
-            timer: 1500,
-            showConfirmButton: false,
-            customClass: { popup: "premium-swal" },
-          });
-          c360RefreshData();
-        } else
-          Swal.fire({
-            icon: "error",
-            title: "បរាជ័យ",
-            text: data.message,
-            customClass: { popup: "premium-swal" },
-          });
-      } catch (e) {
+        c360RefreshData();
+      } else {
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: "មានបញ្ហា Server",
+          title: "បរាជ័យ",
+          text: data.message,
           customClass: { popup: "premium-swal" },
         });
       }
+    } catch (e) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "មានបញ្ហា Server",
+        customClass: { popup: "premium-swal" },
+      });
     }
   }
 }
 
+// =======================================================
+// 👀 មុខងារបង្ហាញលេខកាត, ថ្ងៃផុតកំណត់, និង CVV
+// =======================================================
 async function c360RevealCard(cardId) {
   const card = currentC360User.virtualCards.find((c) => c.id === cardId);
   const numEl = document.getElementById(`c360-cardnum-${cardId}`);
+
+  // បើកំពុងបង្ហាញស្រាប់ ចុចម្ដងទៀតដើម្បីលាក់វិញ
   if (numEl.innerText.includes(card.number.slice(0, 4))) {
     numEl.innerText = `**** **** **** ${card.number.slice(-4)}`;
     document.getElementById(`c360-cardexp-${cardId}`).innerText = "**/**";
+    document.getElementById(`c360-cardcvv-${cardId}`).innerText = "***";
     return;
   }
 
@@ -604,16 +813,20 @@ async function c360RevealCard(cardId) {
           details: `មើលលេខកាត *${card.number.slice(-4)} - មូលហេតុ: ${remark}`,
         }),
       });
+
+      // បង្ហាញលេខទាំង ៣ កន្លែង
       document.getElementById(`c360-cardnum-${cardId}`).innerText = card.number
         .match(/.{1,4}/g)
         .join(" ");
       document.getElementById(`c360-cardexp-${cardId}`).innerText =
         card.expiryDate || card.expiry || "12/28";
+      document.getElementById(`c360-cardcvv-${cardId}`).innerText = card.cvv;
+
       Swal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "បានបញ្ចេញលេខកាត!",
+        title: "បានបញ្ចេញព័ត៌មានកាត!",
         showConfirmButton: false,
         timer: 1500,
         customClass: { popup: "premium-swal" },
@@ -703,7 +916,9 @@ function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   if (!container) return;
   const status = user.kycStatus || "unverified";
-  const imgUrl = user.kycImage || user.idCardImage || "";
+
+  // ✅ FIX: ថែម user.kycDocument ព្រោះក្នុង Model (User.js) ឈ្មោះវា kycDocument
+  const imgUrl = user.kycDocument || user.kycImage || user.idCardImage || "";
 
   let content = "";
 
@@ -770,53 +985,75 @@ function renderKycTab(user) {
   container.innerHTML = content;
 }
 
+// =======================================================
+// ☁️ កន្លែងទី២៖ កែ Function c360AdminUploadKyc អោយបាញ់ទៅ Cloudinary
+// =======================================================
 async function c360AdminUploadKyc(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   Swal.fire({
-    title: "កំពុងរៀបចំឯកសារ...",
+    title: "កំពុងរៀបចំឯកសារបញ្ជូនទៅ Server...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
     customClass: { popup: "premium-swal" },
   });
+
+  const CLOUD_NAME = "jp9yg3dj"; // Cloud Name
+  const UPLOAD_PRESET = "iaxuqmpb"; // Upload Preset
+
+  const cloudinaryData = new FormData();
+  cloudinaryData.append("file", file);
+  cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+
   try {
-    const base64Image = await compressImageAndPreview(file);
-    const res = await fetch("/api/admin/upload-kyc", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        username: currentC360User.username,
-        kycImage: base64Image,
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      await fetch("/api/admin/log-action", {
+    // ជំហានទី ១: Upload ទៅ Cloudinary
+    const cloudRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: cloudinaryData,
+      },
+    );
+    const cloudData = await cloudRes.json();
+
+    if (cloudData.secure_url) {
+      // ជំហានទី ២: ផ្ញើ URL ទៅកាន់ Backend របស់អ្នក
+      const res = await fetch("/api/admin/upload-kyc", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          action: "Uploaded KYC",
-          target: currentC360User.username,
-          details: `Admin បានបញ្ចូលឯកសារ KYC ជំនួសអតិថិជន`,
+          username: currentC360User.username,
+          kycDocument: cloudData.secure_url, // ផ្ញើឈ្មោះអោយត្រូវនឹង Database
         }),
       });
-      Swal.fire({
-        icon: "success",
-        title: "ជោគជ័យ!",
-        text: "លោតចូលផ្ទាំងរង់ចាំអនុម័ត!",
-        timer: 1500,
-        showConfirmButton: false,
-        customClass: { popup: "premium-swal" },
-      });
-      c360RefreshData();
-    } else
-      Swal.fire({
-        icon: "error",
-        title: "បរាជ័យ",
-        text: data.message,
-        customClass: { popup: "premium-swal" },
-      });
+      const data = await res.json();
+
+      if (data.success) {
+        await fetch("/api/admin/log-action", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            action: "Uploaded KYC",
+            target: currentC360User.username,
+            details: `Admin បានបញ្ចូលឯកសារ KYC ជំនួសអតិថិជន`,
+          }),
+        });
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: "លោតចូលផ្ទាំងរង់ចាំអនុម័ត!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal" },
+        });
+        c360RefreshData();
+      } else {
+        Swal.fire("បរាជ័យ", data.message, "error");
+      }
+    } else {
+      Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
+    }
   } catch (e) {
     Swal.fire({
       icon: "error",
@@ -828,7 +1065,7 @@ async function c360AdminUploadKyc(event) {
 }
 
 // =======================================================
-// 💸 TAB 5: Transactions
+// 💸 TAB 5: Transactions (ADVANCED BANKING STANDARD)
 // =======================================================
 function c360ParseDateString(dateStr) {
   if (!dateStr) return new Date();
@@ -867,108 +1104,243 @@ function c360GetTimeString(d, orig) {
       : "";
 }
 
+// 🟢 អថេរសម្រាប់គ្រប់គ្រង Pagination និង Filter
+let c360CurrentTrxPage = 1;
+const c360TrxPerPage = 20;
+let c360FilteredTrx = [];
+let c360CurrentFilterTab = "all";
+
 function renderTrxTab(user) {
   const container = document.getElementById("c360-tab-trx");
   if (!container) return;
-  let filterHtml = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--bg-card); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
-          <div class="kh-text" style="color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 10px;">
-              <i class="fa-solid fa-filter" style="color: var(--accent);"></i> ជ្រើសរើសគណនី
-          </div>
-          <select id="c360-trx-filter" class="kh-text" style="padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); outline: none; cursor: pointer; background: var(--bg-body); color: var(--text-main); font-weight: bold;" onchange="c360FilterTrxList()">
-              <option value="ALL">ប្រតិបត្តិការទាំងអស់ (All)</option>
-              <option value="USD">គណនី USD: ${user.accountNumber || ""}</option>
-              ${user.accountNumberKHR ? `<option value="KHR">គណនី KHR: ${user.accountNumberKHR}</option>` : ""}
-          </select>
-      </div>
-      <div id="c360-trx-content"></div>
+
+  // កំណត់ថ្ងៃទី (ដើមខែ ដល់ ថ្ងៃនេះ)
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const startStr = firstDay.toISOString().split("T")[0];
+  const endStr = today.toISOString().split("T")[0];
+
+  // 🟢 កែប្រែការទាញលេខគណនី
+  const accUSD = user.mainAccounts?.USD?.accountNumber;
+  const accKHR = user.mainAccounts?.KHR?.accountNumber;
+
+  let accOptions = `<option value="ALL">ប្រតិបត្តិការទាំងអស់ (All)</option>`;
+  if (accUSD)
+    accOptions += `<option value="USD">គណនី Main USD: ${accUSD}</option>`;
+  if (accKHR)
+    accOptions += `<option value="KHR">គណនី Main KHR: ${accKHR}</option>`;
+
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    user.subAccounts.forEach((sub) => {
+      accOptions += `<option value="${sub.accountNumber}">${sub.accountName} (${sub.currency}): ${sub.accountNumber}</option>`;
+    });
+  }
+
+  let html = `
+    <style>
+      .c360-filter-tab { flex:1; padding:10px; border:none; background:transparent; color:var(--text-muted); font-weight:bold; border-radius:10px; cursor:pointer; transition:0.2s; }
+      .c360-filter-tab.active { background:var(--primary); color:white; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+      .c360-trx-item { display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--bg-body); border-radius:16px; margin-bottom:12px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.02); border:1px solid var(--border); transition:0.2s; }
+      .c360-trx-item:hover { border-color:var(--secondary); transform:translateY(-2px); }
+      .c360-page-btn { padding:8px 15px; background:var(--bg-body); border:1px solid var(--border); border-radius:8px; color:var(--text-main); font-weight:bold; cursor:pointer; transition:0.2s; }
+      .c360-page-btn:hover:not(:disabled) { background:var(--secondary); color:white; border-color:var(--secondary); }
+      .c360-page-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    </style>
+
+    <div style="background: var(--bg-card); padding: 20px; border-radius: 18px; border: 1px solid var(--border); margin-bottom: 20px;">
+        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
+            <div style="flex:1; min-width:200px;">
+                <label class="kh-text" style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">ជ្រើសរើសគណនី (Account)</label>
+                <select id="c360-trx-acc-filter" class="form-input" style="margin-top:5px;" onchange="c360FilterTrxList(true)">
+                    ${accOptions}
+                </select>
+            </div>
+            <div style="flex:1; min-width:200px;">
+                <label class="kh-text" style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">កាលបរិច្ឆេទ (Date Range)</label>
+                <div style="display:flex; gap:10px; margin-top:5px; align-items:center;">
+                    <input type="date" id="c360-date-start" class="form-input" value="${startStr}" onchange="c360FilterTrxList(true)">
+                    <span style="color:var(--text-muted); font-weight:bold;">-</span>
+                    <input type="date" id="c360-date-end" class="form-input" value="${endStr}" onchange="c360FilterTrxList(true)">
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; background:var(--bg-body); padding:5px; border-radius:12px; border:1px solid var(--border); margin-bottom:15px;">
+            <button class="c360-filter-tab kh-text active" onclick="c360SetFilterTab('all', this)">ទាំងអស់ (All)</button>
+            <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('in', this)">ចំណូល (Income)</button>
+            <button class="c360-filter-tab kh-text" onclick="c360SetFilterTab('out', this)">ចំណាយ (Expense)</button>
+        </div>
+
+        <button onclick="c360ExportStatementPDF()" class="kh-text" style="width:100%; padding:12px; background:#10b981; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:1rem; box-shadow:0 4px 10px rgba(16,185,129,0.2);">
+            <i class="fa-solid fa-file-pdf"></i> ទាញយករបាយការណ៍ (Export Statement PDF)
+        </button>
+    </div>
+
+    <div id="c360-trx-content" style="min-height: 300px;"></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top:1px dashed var(--border);">
+        <button id="c360-btn-prev" class="c360-page-btn kh-text" onclick="c360ChangeTrxPage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
+        <span id="c360-page-info" class="kh-text" style="font-weight:bold; color:var(--text-main);">ទំព័រ 1</span>
+        <button id="c360-btn-next" class="c360-page-btn kh-text" onclick="c360ChangeTrxPage(1)">បន្ទាប់ <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
   `;
-  container.innerHTML = filterHtml;
-  c360FilterTrxList();
+  container.innerHTML = html;
+
+  // រត់ Filter លើកដំបូង
+  c360CurrentFilterTab = "all";
+  c360FilterTrxList(true);
 }
 
-window.c360FilterTrxList = function () {
+window.c360SetFilterTab = function (type, btnEl) {
+  c360CurrentFilterTab = type;
+  document
+    .querySelectorAll(".c360-filter-tab")
+    .forEach((b) => b.classList.remove("active"));
+  btnEl.classList.add("active");
+  c360FilterTrxList(true);
+};
+
+window.c360FilterTrxList = function (resetPage = false) {
   const user = currentC360User;
   if (!user) return;
-  const filterVal = document.getElementById("c360-trx-filter").value;
-  const container = document.getElementById("c360-trx-content");
+
+  if (resetPage) c360CurrentTrxPage = 1;
+
+  const accVal = document.getElementById("c360-trx-acc-filter").value;
+  const startStr = document.getElementById("c360-date-start").value;
+  const endStr = document.getElementById("c360-date-end").value;
 
   let trxs = user.transactions || [];
-  if (filterVal === "USD")
-    trxs = trxs.filter((t) => !t.currency || t.currency === "USD");
-  if (filterVal === "KHR") trxs = trxs.filter((t) => t.currency === "KHR");
 
-  if (trxs.length === 0) {
+  // 1. Filter by Account
+  if (accVal !== "ALL") {
+    if (accVal === "USD" || accVal === "KHR") {
+      trxs = trxs.filter((t) => t.currency === accVal);
+    } else {
+      trxs = trxs.filter(
+        (t) => t.senderAcc === accVal || t.receiverAcc === accVal,
+      );
+    }
+  }
+
+  // 2. Filter by Date (ប្រើ createdAt សម្រាប់ទិន្នន័យច្បាស់លាស់ ឬ date ជា fallback)
+  if (startStr && endStr) {
+    trxs = trxs.filter((t) => {
+      let dDate = t.createdAt
+        ? new Date(t.createdAt)
+        : c360ParseDateString(t.date);
+      if (isNaN(dDate.getTime())) return true; // រំលងបើមើលថ្ងៃអត់ដាច់
+      let iso = dDate.toISOString().split("T")[0];
+      return iso >= startStr && iso <= endStr;
+    });
+  }
+
+  // 3. Filter by Tab
+  if (c360CurrentFilterTab === "in")
+    trxs = trxs.filter((t) => t.amount > 0 || t.type === "Received");
+  if (c360CurrentFilterTab === "out")
+    trxs = trxs.filter((t) => t.amount < 0 && t.type !== "Received");
+
+  // 4. ដក Pending ចេញកុំអោយរញ៉េរញ៉ៃ Statement
+  trxs = trxs.filter((t) => t.status !== "Pending");
+
+  // តម្រៀបពីថ្មីទៅចាស់
+  c360FilteredTrx = trxs.sort(
+    (a, b) =>
+      new Date(b.createdAt || c360ParseDateString(b.date)) -
+      new Date(a.createdAt || c360ParseDateString(a.date)),
+  );
+
+  c360RenderTrxPage();
+};
+
+function c360RenderTrxPage() {
+  const container = document.getElementById("c360-trx-content");
+  const btnPrev = document.getElementById("c360-btn-prev");
+  const btnNext = document.getElementById("c360-btn-next");
+  const pageInfo = document.getElementById("c360-page-info");
+
+  if (c360FilteredTrx.length === 0) {
     container.innerHTML = `
-      <div style="text-align:center; padding: 50px 20px; color: var(--text-muted);" class="kh-text">
-          <i class="fa-solid fa-folder-open" style="font-size: 3.5rem; opacity: 0.3; margin-bottom: 15px;"></i>
-          <h3 style="margin: 0 0 5px;">មិនមានទិន្នន័យទេ</h3>
-          <p style="margin: 0; font-size: 0.9rem;">អតិថិជននេះគ្មានប្រវត្តិប្រតិបត្តិការលើគណនីនេះឡើយ។</p>
-      </div>`;
+        <div style="text-align:center; padding: 50px 20px; color: var(--text-muted);" class="kh-text">
+            <i class="fa-solid fa-file-invoice" style="font-size: 4rem; opacity: 0.2; margin-bottom: 15px;"></i>
+            <h3 style="margin: 0 0 5px;">មិនមានប្រតិបត្តិការទេ</h3>
+            <p style="margin: 0; font-size: 0.9rem;">សូមសាកល្បងប្តូរថ្ងៃខែ ឬ គណនីម្តងទៀត។</p>
+        </div>`;
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+    pageInfo.innerText = "ទំព័រ 0 នៃ 0";
     return;
   }
 
-  trxs = [...trxs].reverse();
+  const totalPages = Math.ceil(c360FilteredTrx.length / c360TrxPerPage);
+  if (c360CurrentTrxPage > totalPages) c360CurrentTrxPage = totalPages;
+
+  const startIndex = (c360CurrentTrxPage - 1) * c360TrxPerPage;
+  const endIndex = startIndex + c360TrxPerPage;
+  const pageItems = c360FilteredTrx.slice(startIndex, endIndex);
+
   let html = "";
   let lastDateLabel = "";
 
-  trxs.slice(0, 100).forEach((t) => {
+  pageItems.forEach((t) => {
     const isIncome = t.amount > 0 || t.type === "Received";
-    const isPending = t.status === "Pending";
     const isRefunded = t.status === "Refunded";
 
-    let parsedDate = c360ParseDateString(t.date);
+    let parsedDate = t.createdAt
+      ? new Date(t.createdAt)
+      : c360ParseDateString(t.date);
     let dateLabel = c360GetSmartDateLabel(parsedDate);
 
     if (dateLabel !== lastDateLabel) {
-      html += `<div class="kh-text" style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin: 20px 0 10px 0; padding: 0 5px; text-transform: uppercase;">${dateLabel}</div>`;
+      html += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin: 20px 0 10px 5px; text-transform: uppercase;">${dateLabel}</div>`;
       lastDateLabel = dateLabel;
     }
 
     let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
     let bgStyle = isIncome
-      ? "background: rgba(16, 185, 129, 0.15); color: var(--secondary);"
+      ? "background: rgba(16, 185, 129, 0.15); color: #10b981;"
       : "background: rgba(239, 68, 68, 0.15); color: #ef4444;";
-    if (isPending)
-      bgStyle = "background: rgba(245, 158, 11, 0.15); color: #f97316;";
-    if (isRefunded)
+    let textColor = isIncome ? "#10b981" : "#ef4444";
+
+    if (isRefunded) {
       bgStyle = "background: var(--bg-body); color: var(--text-muted);";
+      textColor = "var(--text-muted)";
+    }
 
-    let textColor = isIncome ? "var(--secondary)" : "#ef4444";
-    if (isPending) textColor = "#f97316";
-    if (isRefunded) textColor = "var(--text-muted)";
+    const tType = (t.type || "").toLowerCase();
+    const tMethod = (t.trxMethod || "").toLowerCase();
+    const tSender = (t.senderName || "").toLowerCase();
 
-    let isMerchantTrx =
-      t.type === "Merchant Payment" ||
-      t.trxMethod === "Merchant Payment" ||
-      t.merchantId ||
-      t.receiverType === "Merchant";
-    if (isMerchantTrx) iconClass = "fa-store";
-    else if (t.type === "E-Gift Sent" || t.type === "E-Gift Received")
-      iconClass = "fa-gift";
-    else if (
-      t.type === "Card Issuance Fee" ||
-      (t.type && t.type.includes("Fee"))
+    if (
+      tType.includes("deposit") ||
+      tMethod.includes("cashier") ||
+      tSender.includes("deposit")
     ) {
-      iconClass = "fa-file-invoice-dollar";
-      bgStyle = "background: rgba(245, 158, 11, 0.15); color: #f97316;";
-    } else if (t.type === "Promo Reward" || t.type === "Promo Expense")
-      iconClass = "fa-tag";
-    else if (
-      t.type === "Cash Deposit" ||
-      t.type === "Cash Withdrawal" ||
-      (t.type && t.type.includes("System"))
-    )
+      iconClass = "fa-hand-holding-dollar";
+    } else if (tType.includes("payroll") || tMethod.includes("payout")) {
       iconClass = "fa-money-bill-transfer";
+    } else if (tType.includes("promo") || tType.includes("reward")) {
+      iconClass = "fa-sack-dollar";
+    } else if (
+      tType.includes("merchant") ||
+      tMethod.includes("merchant") ||
+      t.merchantId
+    ) {
+      iconClass = "fa-store";
+    } else if (tType.includes("fee")) {
+      iconClass = "fa-receipt";
+      bgStyle = "background:#fff7ed; color:#ea580c;";
+      textColor = "#ea580c";
+    } else if (tType.includes("refund")) {
+      iconClass = "fa-arrow-rotate-left";
+    }
 
-    let title = t.type;
-    if (isIncome) title = t.senderName || "Received";
-    else
-      title =
-        t.receiverName ||
-        (t.type === "Card Payment" ? "Card Payment" : "Transfer");
+    let title = isIncome
+      ? t.senderName || t.merchantName || t.type || "Received"
+      : t.receiverName || t.merchantName || t.type || "Transfer";
     if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
-      title = t.type || t.trxMethod || title;
+      title = t.trxMethod || t.type || "System Transaction";
 
     const displayAmt =
       t.currency === "KHR"
@@ -977,32 +1349,76 @@ window.c360FilterTrxList = function () {
     const sign = isIncome ? "+" : "-";
     const timeStr = c360GetTimeString(parsedDate, t.date);
 
+    const safeRefId = t.refId || t.id || t._id || t.transactionId || "";
     html += `
-      <div onclick="c360ViewTrxDetails('${t.refId}')" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-card); border-radius: 16px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid var(--border); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);" onmouseover="this.style.borderColor='var(--accent)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
-          <div style="display: flex; align-items: center; gap: 15px;">
-              <div style="${bgStyle} width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-                  <i class="fa-solid ${isRefunded ? "fa-rotate-left" : isPending ? "fa-clock-rotate-left" : iconClass}"></i>
-              </div>
-              <div>
-                  <h4 class="kh-text" style="margin: 0; font-size: 0.95rem; color: var(--text-main); font-weight: 700; text-transform: capitalize;">${title}</h4>
-                  <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted); font-family: 'Inter', sans-serif;">${timeStr} • ${t.trxMethod || t.type}</p>
-              </div>
-          </div>
-          <div style="text-align: right;">
-              <div style="font-weight: bold; font-size: 1.1rem; color: ${textColor}; font-family: 'Inter', sans-serif;">
-                  ${isRefunded ? "" : sign}${displayAmt}
-              </div>
-              <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-family: monospace;">#${(t.refId || "").substring(0, 8)}</div>
-          </div>
-      </div>`;
+        <div class="c360-trx-item" onclick="c360ViewTrxDetails('${safeRefId}')">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="${bgStyle} width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid ${iconClass}"></i>
+                </div>
+                <div>
+                    <h4 class="kh-text" style="margin: 0; font-size: 0.95rem; color: var(--text-main); font-weight: 700; text-transform: capitalize;">${title}</h4>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted); font-family: 'Inter', sans-serif;">${timeStr} • ${t.trxMethod || t.type}</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: bold; font-size: 1.1rem; color: ${textColor}; font-family: 'Inter', sans-serif;">
+                    ${isRefunded ? "" : sign}${displayAmt}
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; font-family: monospace;">#${(t.refId || "").substring(0, 8)}</div>
+            </div>
+        </div>`;
   });
+
   container.innerHTML = html;
+
+  // Update Pagination Controls
+  pageInfo.innerText = `ទំព័រ ${c360CurrentTrxPage} នៃ ${totalPages}`;
+  btnPrev.disabled = c360CurrentTrxPage === 1;
+  btnNext.disabled = c360CurrentTrxPage === totalPages;
+}
+
+window.c360ChangeTrxPage = function (step) {
+  c360CurrentTrxPage += step;
+  c360RenderTrxPage();
 };
 
+// =======================================================
+// មុខងារបង្ហាញ Detail របស់ Transaction (មានប្រព័ន្ធការពារ Error)
+// =======================================================
 window.c360ViewTrxDetails = function (refId) {
-  const t = currentC360User.transactions.find((x) => x.refId === refId);
-  if (!t) return;
+  // 1. រកមើលទិន្នន័យ (គាំទ្រទាំង refId, id និង _id ការពារការគាំង)
+  const t = currentC360User.transactions.find(
+    (x) =>
+      x.refId === refId ||
+      x.id === refId ||
+      x._id === refId ||
+      x.transactionId === refId,
+  );
 
+  if (!t) {
+    Swal.fire(
+      "បរាជ័យ",
+      "រកមិនឃើញទិន្នន័យវិក្កយបត្រនេះទេ (ID: " + refId + ")",
+      "error",
+    );
+    return;
+  }
+
+  // 2. សាកល្បងហៅមុខងារពី slip.js
+  if (typeof openGlobalSlip === "function") {
+    try {
+      openGlobalSlip(t, currentC360User.username);
+      return; // បើ Slip ដើរជោគជ័យ បញ្ចប់ត្រឹមនេះមិនបាច់ចុះទៅក្រោមទៀតទេ
+    } catch (error) {
+      console.warn("slip.js មិនអាចដំណើរការពេញលេញនៅលើ Admin ទេ: ", error);
+      // បើមាន Error វានឹងរំលង ហើយទៅបើកវិក្កយបត្រ Admin ជំនួសវិញដោយស្វ័យប្រវត្តិ
+    }
+  }
+
+  // ==========================================
+  // 3. FALLBACK: វិក្កយបត្រកម្រិត Admin (បើ slip.js ដើរមិនរួច ឬមិនដំណើរការ)
+  // ==========================================
   const isIncome = t.amount > 0 || t.type === "Received";
   const displayAmt =
     t.currency === "KHR"
@@ -1013,72 +1429,481 @@ window.c360ViewTrxDetails = function (refId) {
 
   let statusBadge = "";
   const s = (t.status || "").toLowerCase();
-  const successStatus = [
-    "completed",
-    "success",
-    "approved",
-    "paid",
-    "finished",
-  ];
-
-  if (successStatus.includes(s))
+  if (["completed", "success", "approved", "paid"].includes(s))
     statusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: var(--secondary); padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-check-circle"></i> ជោគជ័យ</span>`;
-  else if (s === "pending")
-    statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #f97316; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-clock"></i> កំពុងរង់ចាំ</span>`;
   else if (s === "refunded")
     statusBadge = `<span style="background: var(--bg-body); color: var(--text-muted); padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-rotate-left"></i> បានបង្វិលសង</span>`;
-  else if (s === "failed" || s === "rejected")
-    statusBadge = `<span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-times-circle"></i> បរាជ័យ</span>`;
   else
-    statusBadge = `<span style="background: var(--bg-body); color: var(--text-muted); padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;">${t.status || "N/A"}</span>`;
-
-  let refundBtnHtml = "";
-  if (t.amount < 0 && t.status !== "Refunded") {
-    refundBtnHtml = `<button onclick="Swal.close(); setTimeout(() => { if(typeof handleAdminAction === 'function') handleAdminAction('refund', '${t.refId}'); setTimeout(c360RefreshData, 1500); }, 300)" class="kh-text" style="width:100%; margin-top:15px; padding: 14px; background: #f59e0b; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-rotate-left"></i> ធ្វើការ Refund ប្រាក់ត្រឡប់មកវិញ</button>`;
-  }
+    statusBadge = `<span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 5px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold;"><i class="fa-solid fa-times-circle"></i> បរាជ័យ</span>`;
 
   Swal.fire({
     title:
-      '<span class="kh-text" style="font-size:1.3rem;">វិក្កយបត្រលម្អិត (Receipt)</span>',
+      '<span class="kh-text" style="font-size:1.3rem;">វិក្កយបត្រលម្អិត (Admin View)</span>',
     html: `
       <div class="kh-text" style="text-align: left; background: var(--bg-body); padding: 25px 20px; border-radius: 20px; border: 1px solid var(--border); margin-top: 10px;">
           <div style="text-align: center; margin-bottom: 25px;">
               <div style="font-size: 2.2rem; font-weight: 800; color: ${color}; font-family: 'Inter', sans-serif; letter-spacing: -1px;">${sign}${displayAmt}</div>
               <div style="margin-top: 10px;">${statusBadge}</div>
           </div>
-          
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">ប្រភេទ៖</span>
-              <span style="font-weight: bold; color: var(--text-main);">${t.type}</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem;">ប្រភេទ៖</span><span style="font-weight: bold; color: var(--text-main);">${t.type || t.trxMethod || "ប្រតិបត្តិការ"}</span>
           </div>
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">កាលបរិច្ឆេទ៖</span>
-              <span style="font-weight: bold; color: var(--text-main); text-align: right; font-size: 0.9rem;">${t.date}</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem;">កាលបរិច្ឆេទ៖</span><span style="font-weight: bold; color: var(--text-main); text-align: right; font-size: 0.9rem;">${t.createdAt || t.date || "N/A"}</span>
           </div>
           <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">អ្នកផ្ញើ៖</span>
-              <span style="font-weight: bold; color: var(--text-main);">${t.senderName || "N/A"}</span>
+              <span style="color: var(--text-muted); font-size: 0.9rem;">អ្នកពាក់ព័ន្ធ៖</span><span style="font-weight: bold; color: var(--text-main); text-align: right;">${t.senderName || t.receiverName || t.merchantName || "N/A"}</span>
           </div>
-          <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">អ្នកទទួល៖</span>
-              <span style="font-weight: bold; color: var(--text-main);">${t.receiverName || "N/A"}</span>
-          </div>
-          <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 12px;">
-              <span style="color: var(--text-muted); font-size: 0.9rem;">លេខយោង (Ref)៖</span>
-              <span style="font-weight: bold; color: var(--accent); font-family: monospace; font-size: 1.1rem; background: rgba(59, 130, 246, 0.15); padding: 2px 8px; border-radius: 6px;">${t.refId}</span>
-          </div>
-          <div style="display:flex; justify-content: space-between; align-items: flex-start;">
-              <span style="color: var(--text-muted); font-size: 0.9rem; min-width: 80px;">ចំណាំ៖</span>
-              <span style="font-weight: 600; color: var(--text-main); text-align: right; font-size: 0.9rem;">${t.description || t.remark || "គ្មាន"}</span>
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">លេខយោង (Ref)៖</span><span style="font-weight: bold; color: var(--accent); font-family: monospace; font-size: 1rem; background: rgba(59, 130, 246, 0.15); padding: 3px 8px; border-radius: 6px;">${t.refId || t.id || t._id || "N/A"}</span>
           </div>
       </div>
-      ${refundBtnHtml}
     `,
     showConfirmButton: true,
     confirmButtonText: '<span class="kh-text">បិទ (Close)</span>',
     confirmButtonColor: "var(--primary)",
-    customClass: { popup: "modal-radius" },
+    customClass: { popup: "modal-radius premium-swal" },
   });
+};
+
+// =======================================================
+// 🖨️ មុខងារ EXPORT PDF (ទម្រង់ដូច History 100%)
+// =======================================================
+window.c360ExportStatementPDF = async function () {
+  if (c360FilteredTrx.length === 0) {
+    return Swal.fire(
+      "បញ្ជាក់",
+      "មិនមានប្រតិបត្តិការដើម្បី Export ទេ!",
+      "warning",
+    );
+  }
+
+  const start = document.getElementById("c360-date-start").value;
+  const end = document.getElementById("c360-date-end").value;
+  const accVal = document.getElementById("c360-trx-acc-filter").value;
+  const isMultipleAccounts = accVal === "ALL";
+
+  if (!start || !end)
+    return Swal.fire("បញ្ជាក់", "សូមជ្រើសរើសកាលបរិច្ឆេទ!", "warning");
+
+  Swal.fire({
+    title: "កំពុងរៀបចំរបាយការណ៍ PDF...",
+    html: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងគណនាទិន្នន័យ...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+    customClass: { popup: "premium-swal kh-text" },
+  });
+
+  // Load jsPDF library dynamically if it doesn't exist in admin
+  if (typeof window.jspdf === "undefined") {
+    await new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+    await new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+  }
+
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("p", "pt", "a4");
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+
+      const num = (v) => {
+        const n = Number(v);
+        return isNaN(n) ? 0 : n;
+      };
+
+      const sanitizeForPDF = (str) => {
+        if (!str) return "";
+        let s = str
+          .replace(/គណនីបញ្ញើកើនទ្រព្យ/g, "WEALTH GROWTH")
+          .replace(/គណនីបញ្ញើកើនចំណូល/g, "INCOME GROWTH")
+          .replace(/គណនីប្រាក់បញ្ញើប្រចាំត្រីមាស/g, "QUARTERLY DEPOSIT")
+          .replace(/ប្រាក់បញ្ញើប្រចាំត្រីមាស/g, "QUARTERLY DEPOSIT");
+        return s
+          .replace(/[^\x20-\x7E]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      };
+
+      // ដក Pending ចេញកុំអោយរញ៉េរញ៉ៃ Statement
+      const allTrxAsc = [...currentC360User.transactions]
+        .filter((t) => t.status !== "Pending")
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date),
+        );
+
+      let totalInUSD = 0,
+        totalOutUSD = 0;
+      let totalInKHR = 0,
+        totalOutKHR = 0;
+      let runningBalUSD = 0,
+        runningBalKHR = 0;
+
+      allTrxAsc.forEach((t) => {
+        const amt = num(t.amount);
+        if (t.currency === "KHR") {
+          runningBalKHR += amt;
+          t.computedBalance = runningBalKHR;
+        } else {
+          runningBalUSD += amt;
+          t.computedBalance = runningBalUSD;
+        }
+      });
+
+      // Filter យកតែអីដែលកំពុងបង្ហាញ
+      const stTrx = [...c360FilteredTrx].sort(
+        (a, b) =>
+          new Date(a.createdAt || a.date) - new Date(b.createdAt || b.date),
+      );
+
+      stTrx.forEach((t) => {
+        const amt = num(t.amount);
+        if (t.currency === "KHR") {
+          if (amt > 0) totalInKHR += amt;
+          else totalOutKHR += Math.abs(amt);
+        } else {
+          if (amt > 0) totalInUSD += amt;
+          else totalOutUSD += Math.abs(amt);
+        }
+      });
+
+      const beforeStTrx = allTrxAsc.filter((t) => {
+        const d = new Date(t.createdAt || t.date);
+        if (isNaN(d.getTime())) return false;
+        return d.toISOString().split("T")[0] < start;
+      });
+
+      let openingUSD = 0,
+        openingKHR = 0;
+      const lastUSD = beforeStTrx
+        .slice()
+        .reverse()
+        .find((t) => t.currency !== "KHR");
+      const lastKHR = beforeStTrx
+        .slice()
+        .reverse()
+        .find((t) => t.currency === "KHR");
+      if (lastUSD) openingUSD = num(lastUSD.computedBalance);
+      if (lastKHR) openingKHR = num(lastKHR.computedBalance);
+
+      let endingUSD = openingUSD,
+        endingKHR = openingKHR;
+      const endUSD = stTrx
+        .slice()
+        .reverse()
+        .find((t) => t.currency !== "KHR");
+      const endKHR = stTrx
+        .slice()
+        .reverse()
+        .find((t) => t.currency === "KHR");
+      if (endUSD) endingUSD = num(endUSD.computedBalance);
+      if (endKHR) endingKHR = num(endKHR.computedBalance);
+
+      // បញ្ចូលរូប Logo (ផ្លូវទៅកាន់ File គឺ '../images/' សម្រាប់ Dashboard Admin)
+      doc.addImage("../images/logo-nobg.png", "PNG", 40, 40, 70, 32);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+
+      const reportTitle = isMultipleAccounts
+        ? "CONSOLIDATED STATEMENT"
+        : "ACCOUNT STATEMENT";
+      doc.text(reportTitle, pageWidth - 40, 55, { align: "right" });
+
+      doc.setFontSize(10);
+      doc.setTextColor(16, 185, 129);
+      const fStart = new Date(start).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      const fEnd = new Date(end).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      doc.text(`For period: ${fStart} - ${fEnd}`, pageWidth - 40, 70, {
+        align: "right",
+      });
+
+      doc.setDrawColor(16, 185, 129);
+      doc.setLineWidth(1.5);
+      doc.line(40, 85, pageWidth - 40, 85);
+
+      let y = 110;
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      const userNameStr = sanitizeForPDF(
+        (currentC360User.fullName || currentC360User.username).toUpperCase(),
+      );
+      doc.text(userNameStr, 40, y);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("Phnom Penh, Cambodia", 40, y + 15);
+
+      let detailY = 110;
+      const rightColX = 350;
+      const valueColX = pageWidth - 40;
+
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(44, 62, 80);
+      doc.text("ACCOUNT DETAILS", rightColX, detailY);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+
+      const accNoDisplay = isMultipleAccounts ? "MULTIPLE ACCOUNTS" : accVal;
+      const currDisplay = isMultipleAccounts
+        ? "MIXED (USD & KHR)"
+        : stTrx[0] && stTrx[0].currency === "KHR"
+          ? "KHR"
+          : "USD";
+
+      const details = [
+        ["Account Name", userNameStr],
+        ["Account Type", isMultipleAccounts ? "Consolidated" : "Savings"],
+        ["Account No.", accNoDisplay],
+        ["Currency", currDisplay],
+      ];
+
+      details.forEach((item) => {
+        detailY += 15;
+        doc.setTextColor(100);
+        doc.text(item[0], rightColX, detailY);
+        doc.setTextColor(0);
+        doc.text(item[1], valueColX, detailY, { align: "right" });
+      });
+
+      let summaryY = detailY + 30;
+      doc.setFont("helvetica", "bold");
+      doc.text("ACCOUNT SUMMARY", rightColX, summaryY);
+      let summary = [];
+
+      if (!isMultipleAccounts) {
+        const sym = currDisplay === "KHR" ? " KHR" : " USD";
+        const opBal = currDisplay === "KHR" ? openingKHR : openingUSD;
+        const enBal = currDisplay === "KHR" ? endingKHR : endingUSD;
+        const inBal = currDisplay === "KHR" ? totalInKHR : totalInUSD;
+        const outBal = currDisplay === "KHR" ? totalOutKHR : totalOutUSD;
+        const formatFn = (val) =>
+          currDisplay === "KHR"
+            ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
+            : val.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+
+        summary = [
+          ["Opening Balance", formatFn(opBal) + sym],
+          ["Total Money In", "+ " + formatFn(inBal) + sym],
+          ["Total Money Out", "- " + formatFn(outBal) + sym],
+          ["Ending Balance", formatFn(enBal) + sym],
+        ];
+      } else {
+        const formatUSD = (val) =>
+          val.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        const formatKHR = (val) =>
+          val.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+        summary = [
+          ["Total USD In", "+ " + formatUSD(totalInUSD) + " USD"],
+          ["Total USD Out", "- " + formatUSD(totalOutUSD) + " USD"],
+          ["Total KHR In", "+ " + formatKHR(totalInKHR) + " KHR"],
+          ["Total KHR Out", "- " + formatKHR(totalOutKHR) + " KHR"],
+        ];
+      }
+
+      summary.forEach((item, i) => {
+        summaryY += 15;
+        doc.setFont(
+          "helvetica",
+          !isMultipleAccounts && i === 3 ? "bold" : "normal",
+        );
+        doc.setTextColor(100);
+        doc.text(item[0], rightColX, summaryY);
+        doc.setTextColor(0);
+        doc.text(item[1], valueColX, summaryY, { align: "right" });
+      });
+
+      const formatDateToPDF = (dateStr) => {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return ["", ""];
+        const ds =
+          ("0" + (d.getMonth() + 1)).slice(-2) +
+          "/" +
+          ("0" + d.getDate()).slice(-2) +
+          "/" +
+          d.getFullYear();
+        const ts = d.toLocaleTimeString("en-US");
+        return [ds, ts];
+      };
+
+      const tableBody = stTrx.map((t) => {
+        const amount = num(t.amount);
+        const isIn = amount > 0;
+        const [ds, ts] = formatDateToPDF(t.createdAt || t.date);
+        const isKHRRow = t.currency === "KHR";
+        const rowSym = isKHRRow ? " KHR" : " USD";
+        const formatRowMoney = (val) =>
+          isKHRRow
+            ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
+            : val.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+
+        let sender = sanitizeForPDF(
+          (t.senderName || t.merchantName || t.name || "SYSTEM").toUpperCase(),
+        );
+        let receiver = sanitizeForPDF(
+          (
+            t.receiverName ||
+            t.merchantName ||
+            t.name ||
+            "SYSTEM"
+          ).toUpperCase(),
+        );
+        let detailsText = isIn
+          ? `RECEIVED FROM ${sender}`
+          : t.type === "Merchant Payment" || t.type === "Scan"
+            ? `PAYMENT TO ${receiver}`
+            : `TRANSFER TO ${receiver}`;
+
+        if (
+          detailsText.includes("U-PAY CENTRAL BANK") ||
+          detailsText.includes("U-PAY BANK")
+        ) {
+          detailsText = sanitizeForPDF(
+            (t.trxMethod || t.type || "SYSTEM TRANSACTION").toUpperCase(),
+          );
+        }
+        if (isMultipleAccounts)
+          detailsText += `\nACC: ${t.senderAcc || t.receiverAcc || "MAIN"}`;
+        detailsText += `\nREF# ${t.refId || "N/A"}`;
+        if (t.remark) detailsText += `\nREMARK: ${sanitizeForPDF(t.remark)}`;
+
+        const balStr = isMultipleAccounts
+          ? ""
+          : formatRowMoney(num(t.computedBalance)) + rowSym;
+        return [
+          ds + "\n" + ts,
+          detailsText,
+          isIn ? formatRowMoney(amount) + rowSym : "",
+          !isIn ? formatRowMoney(Math.abs(amount)) + rowSym : "",
+          balStr,
+        ];
+      });
+
+      const tableHead = [
+        [
+          "Date",
+          "Transaction Details",
+          { content: "Money In", styles: { halign: "right" } },
+          { content: "Money Out", styles: { halign: "right" } },
+        ],
+      ];
+      if (!isMultipleAccounts)
+        tableHead[0].push({ content: "Balance", styles: { halign: "right" } });
+
+      doc.autoTable({
+        startY: summaryY + 30,
+        margin: { bottom: 65, left: 40, right: 40 },
+        showFoot: "lastPage",
+        head: tableHead,
+        body: tableBody,
+        theme: "plain",
+        styles: { fontSize: 8, cellPadding: 5, textColor: [0, 0, 0] },
+        headStyles: {
+          fillColor: [245, 245, 245],
+          fontStyle: "bold",
+          textColor: [0, 0, 0],
+        },
+        columnStyles: {
+          0: { cellWidth: 70 },
+          1: { cellWidth: "auto" },
+          2: { halign: "right", cellWidth: 70, textColor: [16, 185, 129] },
+          3: { halign: "right", cellWidth: 70, textColor: [220, 38, 38] },
+          4: { halign: "right", cellWidth: 70 },
+        },
+        didDrawCell: function (data) {
+          if (
+            data.section === "body" &&
+            data.row.index > 0 &&
+            data.column.index === 0
+          ) {
+            doc.setDrawColor(230);
+            doc.setLineWidth(0.5);
+            doc.line(
+              data.cell.x,
+              data.cell.y,
+              data.cell.x + doc.internal.pageSize.width,
+              data.cell.y,
+            );
+          }
+        },
+        didDrawPage: function () {
+          doc.setFontSize(7);
+          doc.setTextColor(150);
+          doc.text(
+            "The Ending Balance does not reflect any pending withdrawals or uncleared transactions.",
+            40,
+            pageHeight - 50,
+          );
+          doc.text(
+            "DISCLAIMER: This document is a digitally generated statement for informational purposes only and does not require a physical signature.",
+            40,
+            pageHeight - 40,
+          );
+          doc.text(
+            "For an official certified copy, please visit your nearest U-Pay branch.",
+            40,
+            pageHeight - 32,
+          );
+          doc.text(
+            "U-Pay Plc. | +855 98 203 203 | info@upay.com",
+            40,
+            pageHeight - 20,
+          );
+          doc.text(
+            "Page " + doc.internal.getNumberOfPages(),
+            pageWidth - 40,
+            pageHeight - 20,
+            { align: "right" },
+          );
+        },
+      });
+
+      doc.save(`Statement_${currentC360User.username}_${start}.pdf`);
+      Swal.close();
+      Swal.fire({
+        toast: true,
+        position: "top",
+        icon: "success",
+        title: "ទាញយករបាយការណ៍ជោគជ័យ!",
+        showConfirmButton: false,
+        timer: 2000,
+        customClass: { popup: "premium-swal" },
+      });
+    } catch (e) {
+      console.error(e);
+      Swal.close();
+      Swal.fire("Error", "បញ្ហាក្នុងការទាញយក PDF", "error");
+    }
+  }, 500);
 };
 
 // =======================================================
@@ -1478,3 +2303,170 @@ async function renderLogsTab(user) {
       '<div style="text-align:center; padding: 40px; color: red;">បរាជ័យក្នុងការភ្ជាប់ទៅកាន់ Server API សម្រាប់ Logs</div>';
   }
 }
+
+// =======================================================
+// 📸 មុខងារចុចប្តូររូប Profile នៅក្នុង Customer 360°
+// =======================================================
+window.c360ChangeProfileImage = async function () {
+  if (!currentC360User) return;
+
+  // បង្កើត Input File លាក់មួយដើម្បីឱ្យ Admin ជ្រើសរើសរូបភាព
+  let fileInput = document.getElementById("c360-profile-file-input");
+  if (!fileInput) {
+    fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.id = "c360-profile-file-input";
+    fileInput.accept = "image/*";
+    fileInput.style.display = "none";
+    document.body.appendChild(fileInput);
+  }
+
+  // ពេល Admin រើសរូបភាពរួចរាល់
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      Swal.fire("បរាជ័យ", "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបតូចជាង 3MB", "error");
+      e.target.value = "";
+      return;
+    }
+
+    Swal.fire({
+      title: "កំពុងបញ្ជូនរូបភាព...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal" },
+    });
+
+    const CLOUD_NAME = "jp9yg3dj"; // Cloud Name របស់អ្នក
+    const UPLOAD_PRESET = "iaxuqmpb"; // Upload Preset របស់អ្នក
+    const cloudinaryData = new FormData();
+    cloudinaryData.append("file", file);
+    cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+
+    try {
+      // 1. បាញ់រូបទៅ Cloudinary
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: cloudinaryData,
+        },
+      );
+      const cloudData = await cloudRes.json();
+
+      if (cloudData.secure_url) {
+        // 2. ផ្ញើ URL ទៅកាន់ Backend ដើម្បី Update Profile
+        const res = await fetch("/api/admin/edit-user", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            id: currentC360User._id || currentC360User.id,
+            profileImage: cloudData.secure_url, // Update តែរូបភាព
+          }),
+        });
+
+        const d = await res.json();
+
+        if (d.success) {
+          // Update រូបភាពនៅលើ UI ភ្លាមៗ
+          document.getElementById("c360-avatar").src = cloudData.secure_url;
+          currentC360User.profileImage = cloudData.secure_url;
+
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ",
+            text: "ផ្លាស់ប្តូររូបភាព Profile អតិថិជនរួចរាល់!",
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: "premium-swal" },
+          });
+
+          // Refresh ទិន្នន័យក្នុងតារាង User Management បើវាមាន
+          if (typeof loadData === "function") loadData();
+        } else {
+          Swal.fire("បរាជ័យ", d.message, "error");
+        }
+      } else {
+        Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
+      }
+    } catch (err) {
+      Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+    }
+
+    e.target.value = ""; // Clear input វិញ
+  };
+
+  fileInput.click(); // បញ្ជាឱ្យបើកផ្ទាំងរើសរូបភាព
+};
+
+// =======================================================
+// ❄️ មុខងារបិទ/បើកគណនី (Freeze/Unfreeze) ក្នុង Customer 360°
+// =======================================================
+window.c360ToggleFreeze = async function () {
+  if (!currentC360User) return;
+
+  const newFreezeState = !currentC360User.isFrozen;
+  const actionText = newFreezeState ? "ផ្អាក (Freeze)" : "ដោះសោរ (Unfreeze)";
+  const actionColor = newFreezeState ? "#ef4444" : "#10b981";
+
+  Swal.fire({
+    title: "បញ្ជាក់ការផ្លាស់ប្តូរ",
+    text: `តើអ្នកពិតជាចង់ ${actionText} គណនីអតិថិជននេះមែនទេ?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: actionColor,
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "យល់ព្រម",
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal kh-text" },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+        customClass: { popup: "premium-swal" },
+      });
+
+      try {
+        const res = await fetch("/api/admin/toggle-freeze", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            id: currentC360User._id || currentC360User.id,
+            isFrozen: newFreezeState,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "ជោគជ័យ",
+            text: `គណនីត្រូវបាន ${actionText} រួចរាល់!`,
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: "premium-swal" },
+          });
+
+          // Refresh ផ្ទាំង Customer 360° ឡើងវិញ ដើម្បីអោយពណ៌ប៊ូតុង និង Status លោតត្រូវ
+          c360RefreshData();
+
+          // Update ទិន្នន័យក្នុងតារាងធំ User Management អោយត្រូវគ្នា
+          if (typeof loadData === "function") loadData();
+        } else {
+          Swal.fire(
+            "បរាជ័យ",
+            data.message || "មិនអាចប្តូរស្ថានភាពបានទេ",
+            "error",
+          );
+        }
+      } catch (e) {
+        Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+      }
+    }
+  });
+};

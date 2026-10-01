@@ -18,6 +18,7 @@
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/slip.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
       rel="stylesheet"
@@ -35,7 +36,6 @@
     <!-- 🗄️ ផ្នែកទី២៖ របារចំហៀងខាងឆ្វេង (SIDEBAR MENU) -->
     <!-- ======================================================= -->
     <div class="sidebar" id="sidebar">
-      <!-- 2.1 ប្រវត្តិរូប Admin ខាងលើ -->
       <div
         style="
           padding: 0 20px 20px;
@@ -78,11 +78,14 @@
           "
         ></div>
       </div>
-
-      <!-- 2.2 ក្រុមទី១៖ ម៉ឺនុយគោល (Main Menu) -->
+      <!-- ============================== -->
+      <!--Operations -->
+      <!-- ============================== -->
       <div class="menu-label" id="label-main" data-i18n="menu-main">
         Main Menu
       </div>
+
+      <!-- Menu Dashboard -->
       <div
         class="menu-item active"
         id="menu-dashboard"
@@ -94,6 +97,7 @@
       >
         <i class="fa-solid fa-chart-pie"></i> Dashboard
       </div>
+      <!-- Menu User Management -->
       <div
         class="menu-item"
         id="menu-users"
@@ -103,8 +107,9 @@
         "
         data-i18n="menu-users"
       >
-        <i class="fa-solid fa-users" data-i18n="menu-users"></i> User Management
+        <i class="fa-solid fa-users"></i> User Management
       </div>
+      <!-- Menu Merchant Management -->
       <div
         class="menu-item"
         id="menu-merchants"
@@ -118,10 +123,14 @@
         <i class="fa-solid fa-store"></i> Merchant Management
       </div>
 
-      <!-- 2.3 ក្រុមទី២៖ ប្រតិបត្តិការ (Operations) -->
+      <!-- ============================== -->
+      <!--Operations -->
+      <!-- ============================== -->
       <div class="menu-label" id="label-ops" data-i18n="menu-ops">
         Operations
       </div>
+
+      <!-- Menu Customer 360 -->
       <div
         class="menu-item"
         id="menu-customer-360"
@@ -133,6 +142,7 @@
         <i class="fa-solid fa-users-viewfinder"></i>
         <span data-i18n="menu-customer-360">Customer 360°</span>
       </div>
+      <!-- Menu Cashier -->
       <div
         class="menu-item"
         id="menu-cashier"
@@ -144,6 +154,7 @@
         <i class="fa-solid fa-cash-register"></i>
         <span data-i18n="menu-cashier">Cashier (Deposit/Withdraw)</span>
       </div>
+      <!-- Menu Transaction Check -->
       <div
         class="menu-item"
         id="menu-checktrx"
@@ -155,6 +166,7 @@
       >
         <i class="fa-solid fa-shield-halved"></i> Transaction Check
       </div>
+      <!-- Menu Broadcast History -->
       <div
         class="menu-item"
         id="menu-broadcast"
@@ -167,10 +179,14 @@
         <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
       </div>
 
-      <!-- 2.4 ក្រុមទី៣៖ ហិរញ្ញវត្ថុ និងកាត (Finance & Cards) -->
+      <!-- ============================== -->
+      <!-- Finance & Cards -->
+      <!-- ============================== -->
       <div class="menu-label" id="label-finance" data-i18n="menu-finance">
         Finance & Cards
       </div>
+
+      <!-- Menu Exchange Rates -->
       <div
         class="menu-item"
         id="menu-fx"
@@ -182,6 +198,7 @@
       >
         <i class="fa-solid fa-money-bill-transfer"></i> Exchange Rates
       </div>
+      <!-- Menu Fee & Limits -->
       <div
         class="menu-item"
         id="menu-fees"
@@ -193,6 +210,7 @@
       >
         <i class="fa-solid fa-percent"></i> Fee & Limits
       </div>
+      <!-- Menu Promo Codes -->
       <div
         class="menu-item"
         id="menu-promo"
@@ -204,6 +222,7 @@
       >
         <i class="fa-solid fa-ticket"></i> Promo Codes
       </div>
+      <!-- Menu Card Management -->
       <div
         class="menu-item"
         id="menu-cards"
@@ -215,11 +234,13 @@
       >
         <i class="fa-solid fa-credit-card"></i> Card Management
       </div>
-
-      <!-- 2.5 ក្រុមទី៤៖ សុវត្ថិភាព និងជំនួយ (Security & Support) -->
+      <!-- ============================== -->
+      <!-- Security & Support -->
+      <!-- ============================== -->
       <div class="menu-label" id="label-security" data-i18n="menu-security">
         Security & Support
       </div>
+      <!-- Menu KYC Approvals -->
       <div
         class="menu-item"
         id="menu-kyc"
@@ -231,6 +252,7 @@
       >
         <i class="fa-solid fa-id-card"></i> KYC Approvals
       </div>
+      <!-- Menu Support Tickets -->
       <div
         class="menu-item"
         id="menu-tickets"
@@ -242,6 +264,7 @@
       >
         <i class="fa-solid fa-headset"></i> Support Tickets
       </div>
+      <!-- Menu Live Support Chat -->
       <div
         class="menu-item"
         id="menu-chat"
@@ -254,10 +277,14 @@
         <i class="fa-solid fa-comments"></i> Live Support Chat
       </div>
 
-      <!-- 2.6 ក្រុមទី៥៖ សម្រាប់តែ Super Admin (Super Admin Only) -->
+      <!-- ============================== -->
+      <!-- Super Admin Only -->
+      <!-- ============================== -->
       <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
         Super Admin Only
       </div>
+
+      <!-- Menu Admin Management -->
       <div
         class="menu-item"
         id="menu-admins"
@@ -269,6 +296,7 @@
       >
         <i class="fa-solid fa-user-tie"></i> Admin Management
       </div>
+      <!-- Menu Audit Logs -->
       <div
         class="menu-item"
         id="menu-logs"
@@ -280,6 +308,7 @@
       >
         <i class="fa-solid fa-list-check"></i> Audit Logs
       </div>
+      <!-- Menu System Control -->
       <div
         class="menu-item"
         id="menu-system"
@@ -289,8 +318,7 @@
         <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
         Control
       </div>
-
-      <!-- 2.7 ចាកចេញ (Logout) -->
+      <!-- Menu Secure Logout -->
       <div
         class="menu-item logout-btn"
         onclick="logout()"
@@ -305,7 +333,6 @@
     <!-- 💻 ផ្នែកទី៣៖ ផ្ទៃបង្ហាញគោលខាងស្តាំ (MAIN CONTENT) -->
     <!-- ======================================================= -->
     <div class="main-content">
-      <!-- 3.1 របារខាងលើសម្រាប់កុំព្យូទ័រ (Top Nav Actions) -->
       <div class="top-nav-actions">
         <button
           class="icon-btn"
@@ -327,7 +354,6 @@
         </button>
       </div>
 
-      <!-- 3.2 របារខាងលើសម្រាប់ទូរស័ព្ទដៃ (Mobile Header) -->
       <div class="mobile-header">
         <div
           class="brand"
@@ -399,7 +425,6 @@
             Live Sync Active
           </div>
         </div>
-        <!-- កាតទិន្នន័យ Dashboard -->
         <div class="dash-stats">
           <div class="dash-card stat-item">
             <div class="bg-shape" style="background: #3b82f6"></div>
@@ -522,7 +547,6 @@
             </div>
           </div>
         </div>
-        <!-- ក្រាហ្វិច និងសកម្មភាព -->
         <div class="dash-grid">
           <div class="dash-card">
             <div class="card-header">
@@ -573,8 +597,8 @@
             User Management
           </h2>
           <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input
+            <i class="fa-solid fa-magnifying-glass"></i
+            ><input
               type="text"
               id="searchBox"
               placeholder="Search by name or account..."
@@ -623,8 +647,7 @@
             type="text"
             id="searchTrxId"
             placeholder="Enter Reference ID or Hash Code to trace..."
-          />
-          <button onclick="searchTrx()">
+          /><button onclick="searchTrx()">
             <i class="fa-solid fa-magnifying-glass"></i>
             <span data-i18n="trace">Trace</span>
           </button>
@@ -853,8 +876,9 @@
               padding-bottom: 15px;
               border-bottom: 1px solid #e2e8f0;
             "
+            data-i18n="cashier"
           >
-            <i class="fa-solid fa-cash-register"></i> បេឡាករ (Cashier)
+            <i class="fa-solid fa-cash-register"></i> បេឡាករ
           </div>
 
           <div class="input-group" style="margin-bottom: 25px">
@@ -877,6 +901,8 @@
                   justify-content: center;
                   align-items: center;
                   gap: 8px;
+                  font-family:
+                    &quot;Kantumruy Pro&quot;, sans-serif; /* បន្ថែម font នៅទីនេះ */
                 "
                 onclick="searchTargetUser()"
               >
@@ -1075,6 +1101,8 @@
                 gap: 8px;
                 font-size: 1.1rem;
                 padding: 12px;
+                font-family:
+                  &quot;Kantumruy Pro&quot;, sans-serif; /* បានបន្ថែម font នៅទីនេះ */
               "
               onclick="processCashTransaction()"
             >
@@ -1220,7 +1248,11 @@
         "
       >
         <div class="table-header-controls">
-          <button class="btn-cancel" onclick="showSection('merchants')">
+          <button
+            class="btn-cancel"
+            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            onclick="closeMerchantSubViews()"
+          >
             <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
           </button>
           <h2 class="dash-title">ប្រវត្តិប្រតិបត្តិការហាង</h2>
@@ -1237,6 +1269,122 @@
               </tr>
             </thead>
             <tbody id="merchantTrxBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 🔥 [ ផ្ទាំង ០៨.៥ ] Merchant Credentials 🔥 -->
+      <div
+        id="sec-merchant-credentials"
+        style="
+          display: none;
+          width: 100%;
+          max-width: 1400px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px;
+        "
+      >
+        <div
+          class="table-header-controls"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <!-- 🟢 កែ onclick នៅទីនេះ -->
+          <button
+            class="btn-cancel"
+            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            onclick="closeMerchantSubViews()"
+          >
+            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 15px">
+            <!-- Logo របស់ U-PAY ជំនួស Logo Excel -->
+            <img
+              src="../images/logo-nobg.png"
+              alt="U-PAY"
+              style="
+                height: 35px;
+                border-right: 2px solid #cbd5e1;
+                padding-right: 15px;
+              "
+            />
+            <h2
+              class="dash-title"
+              id="credShopTitle"
+              style="margin: 0; color: #004d40"
+            >
+              MERCHANT INFORMATION
+            </h2>
+          </div>
+
+          <button
+            class="btn-primary"
+            onclick="downloadCredentialPDF()"
+            style="background: #004d40; border-radius: 8px"
+          >
+            <i class="fa-solid fa-file-pdf"></i> ទាញយក PDF
+          </button>
+        </div>
+
+        <div
+          class="table-container"
+          style="
+            background: #fff;
+            padding: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+          "
+        >
+          <table
+            style="
+              width: 100%;
+              border-collapse: collapse;
+              text-align: left;
+              font-size: 0.95rem;
+            "
+          >
+            <thead style="background: #004d40; color: white">
+              <tr>
+                <th
+                  style="
+                    padding: 12px 15px;
+                    border: 1px solid #004d40;
+                    font-weight: 600;
+                  "
+                >
+                  Field
+                </th>
+                <th
+                  style="
+                    padding: 12px 15px;
+                    border: 1px solid #004d40;
+                    font-weight: 600;
+                  "
+                >
+                  Value
+                </th>
+                <th
+                  style="
+                    padding: 12px 15px;
+                    border: 1px solid #004d40;
+                    font-weight: 600;
+                    text-align: center;
+                    width: 120px;
+                  "
+                >
+                  Show in PDF
+                </th>
+              </tr>
+            </thead>
+            <tbody id="credTableBody">
+              <!-- ទិន្នន័យនឹងត្រូវ Generate ដោយ JS -->
+            </tbody>
           </table>
         </div>
       </div>
@@ -1853,22 +2001,37 @@
           margin: 0 auto;
           box-sizing: border-box;
           padding: 0 15px;
+          font-family:
+            &quot;Kantumruy Pro&quot;, sans-serif; /* កំណត់ Font ឱ្យ Parent Element */
         "
       >
         <div class="table-header-controls">
           <div>
-            <h2 class="dash-title" data-i18n="admin-audit-logs">
+            <h2
+              class="dash-title"
+              data-i18n="admin-audit-logs"
+              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            >
               Admin Audit Logs
             </h2>
-            <p class="dash-desc" data-i18n="track-admin-activities">
+            <p
+              class="dash-desc"
+              data-i18n="track-admin-activities"
+              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            >
               តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
-          <button class="btn-cancel" onclick="loadAdminLogs()">
+          <button
+            class="btn-cancel"
+            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            onclick="loadAdminLogs()"
+          >
             <i class="fa-solid fa-rotate-right"></i>
             <span data-i18n="reload-data">ទាញយកទិន្នន័យថ្មី</span>
           </button>
         </div>
+
         <!-- ប្រអប់ស្វែងរក (Filters) -->
         <div
           style="
@@ -1889,6 +2052,7 @@
               border-radius: 8px;
               outline: none;
               color: #475569;
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
             "
           />
           <input
@@ -1903,6 +2067,7 @@
               outline: none;
               flex: 1;
               min-width: 200px;
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
             "
           />
           <input
@@ -1917,6 +2082,7 @@
               outline: none;
               flex: 1;
               min-width: 200px;
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
             "
           />
           <button
@@ -1930,6 +2096,7 @@
               border-radius: 8px;
               cursor: pointer;
               font-weight: bold;
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
             "
           >
             <i class="fa-solid fa-filter"></i> ស្វែងរក
@@ -1981,6 +2148,8 @@
               border-radius: 8px;
               cursor: pointer;
               font-weight: bold;
+              font-family:
+                &quot;Kantumruy Pro&quot;, sans-serif; /* បន្ថែម font នៅទីនេះ */
             "
             disabled
           >
@@ -1990,20 +2159,18 @@
             >ទំព័រទី 1</span
           >
           <button
+            class="btn-primary"
             id="btnNextLogs"
             onclick="changeLogPage(1)"
             style="
-              height: 40px;
-              padding: 0 20px;
-              background: #0f172a;
-              color: #fff;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-              font-weight: bold;
+              background: var(--accent);
+              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              font-size: 0.95rem;
+              font-weight: 600;
+              border-radius: 10px;
             "
           >
-            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+            បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
       </div>
@@ -2013,7 +2180,6 @@
     <!-- ======================================================= -->
     <!-- [ ផ្នែកទី៣ ] ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
     <!-- ======================================================= -->
-
     <!-- 3.1 Modal កែប្រែគណនីអ្នកប្រើប្រាស់ -->
     <div id="editUserModal" class="modal-overlay">
       <div class="modal-card">
@@ -2285,7 +2451,7 @@
               <input
                 id="customRoleName"
                 class="form-input wizard-input"
-                placeholder="ឧທាហរណ៍: អ្នកគ្រប់គ្រងកាត"
+                placeholder="ឧទាហរណ៍: អ្នកគ្រប់គ្រងកាត"
                 style="border-color: #34d399"
               />
             </div>

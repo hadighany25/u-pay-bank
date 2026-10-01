@@ -1,3 +1,4 @@
+<!-- dashboard.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -8,83 +9,33 @@
     />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Dashboard - U-Pay</title>
-    <!-- ==========================================
-         ១. ការភ្ជាប់ឯកសារ CSS & JS (STYLES & SCRIPTS)
-         ========================================== -->
+
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="js/pin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script
+      src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
+      defer
+    ></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+    <script src="js/pin.js" defer></script>
 
     <style>
-      /* ==========================================
-         ២. ការរចនាទូទៅ និងពុម្ពអក្សរ (GLOBAL & FONTS)
-         ========================================== */
-      body {
-        visibility: hidden;
-        background-color: #f2f4f6;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        min-height: 100vh;
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
-        -webkit-font-smoothing: antialiased;
-        transition: background-color 0.3s ease;
-      }
-      h1,
-      h2,
-      h3,
-      h4,
-      p,
-      span,
-      div,
-      button,
-      .menu-text {
-        font-family: "Kantumruy Pro", sans-serif;
-      }
-      .card-balance,
-      .trx-amount,
-      .card-number,
-      .slip-amount,
-      .sheet-balance {
-        font-family: "Inter", sans-serif;
-        font-weight: 700;
-      }
-      body.loaded {
-        visibility: visible;
-      }
-      .app-container {
-        width: 100%;
-        max-width: 480px;
-        background: #f8fafc;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        padding-bottom: 90px;
-        overflow-x: hidden;
-        transition: background-color 0.3s ease;
-        box-shadow: 0 0 30px rgba(0, 0, 0, 0.03);
-      }
-
-      /* ==========================================
-         ៣. ផ្នែកក្បាលខាងលើ (HEADER)
-         ========================================== */
       .header {
         padding: 20px 20px 15px 20px;
         display: flex;
@@ -98,6 +49,7 @@
         display: flex;
         align-items: center;
         gap: 15px;
+        cursor: pointer;
       }
       .avatar {
         width: 52px;
@@ -107,7 +59,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #004d40;
+        color: var(--primary);
         font-size: 1.6rem;
         overflow: hidden;
         border: 2px solid white;
@@ -120,13 +72,13 @@
       }
       .greeting h4 {
         margin: 0;
-        color: #64748b;
+        color: var(--text-muted);
         font-size: 0.85rem;
         font-weight: 500;
       }
       .greeting h2 {
         margin: 0;
-        color: #1e293b;
+        color: var(--text-main);
         font-size: 1.2rem;
         font-weight: 700;
         letter-spacing: -0.3px;
@@ -139,9 +91,9 @@
       .action-btn {
         width: 44px;
         height: 44px;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 100px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -150,14 +102,13 @@
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         padding: 0;
-        color: #334155;
-        -webkit-tap-highlight-color: transparent;
+        color: var(--text-main);
       }
       .noti-badge {
         position: absolute;
         top: -6px;
         right: -6px;
-        background: #ef4444;
+        background: var(--danger);
         color: white;
         font-size: 0.65rem;
         font-weight: bold;
@@ -170,9 +121,6 @@
         border: 2px solid white;
       }
 
-      /* ==========================================
-         ៤. ផ្នែករុញកាតគណនី (CARDS SLIDER)
-         ========================================== */
       .card-slider-wrapper {
         display: flex;
         overflow-x: auto;
@@ -184,7 +132,6 @@
       .card-slider-wrapper::-webkit-scrollbar {
         display: none;
       }
-
       .credit-card {
         min-width: 100%;
         scroll-snap-align: center;
@@ -199,11 +146,7 @@
         justify-content: space-between;
         align-items: flex-start;
         z-index: 1;
-        box-sizing: border-box;
         cursor: pointer;
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.3s ease;
         box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
       }
       .usd-card::before,
@@ -307,9 +250,6 @@
         font-weight: bold;
       }
 
-      /* ==========================================
-         ៥. ម៉ឺនុយជម្រើស (PREMIUM MENU GRID)
-         ========================================== */
       .menu-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -324,7 +264,7 @@
       }
       .scroll-hint {
         text-align: center;
-        color: #94a3b8;
+        color: var(--text-muted);
         font-size: 1.2rem;
         margin-top: 5px;
         margin-bottom: 20px;
@@ -367,9 +307,8 @@
         justify-content: center;
         font-size: 1.5rem;
         box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
         border: 1px solid rgba(255, 255, 255, 0.5);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .menu-item:hover .icon-box {
         transform: translateY(-4px) scale(1.05);
@@ -377,7 +316,7 @@
       }
       .menu-text {
         font-size: 0.75rem;
-        color: #475569;
+        color: var(--text-muted);
         font-weight: 600;
         text-align: center;
       }
@@ -386,33 +325,9 @@
         transform: scale(0.9);
       }
 
-      .icon-transfer {
-        background: linear-gradient(135deg, #e0f2f1, #b2dfdb);
-        color: #004d40;
-      }
-      .icon-scan {
-        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-        color: #0284c7;
-      }
-      .icon-payment {
-        background: linear-gradient(135deg, #ffedd5, #fed7aa);
-        color: #ea580c;
-      }
-      .icon-card {
-        background: linear-gradient(135deg, #fae8ff, #f3e8ff);
-        color: #9333ea;
-      }
-      .icon-analytics {
-        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-        color: #4f46e5;
-      }
-
-      /* ==========================================
-         ៦. ផ្នែកប្រូម៉ូសិន (PROMO SECTION)
-         ========================================== */
       .promo-section {
         flex: 1;
-        background: white;
+        background: var(--bg-card);
         padding: 25px 0 25px 20px;
         border-top-left-radius: 35px;
         border-top-right-radius: 35px;
@@ -423,7 +338,7 @@
       .section-title {
         font-size: 1.15rem;
         font-weight: 700;
-        color: #1e293b;
+        color: var(--text-main);
         margin: 0 0 15px 0;
       }
       .promo-slider {
@@ -441,7 +356,6 @@
       .promo-card {
         min-width: 280px;
         height: 145px;
-        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
         border-radius: 22px;
         scroll-snap-align: center;
         padding: 22px;
@@ -495,284 +409,7 @@
         transform: rotate(-15deg);
       }
 
-      /* ==========================================
-         ៧. ផ្ទាំងលោតពីក្រោម (ABA STYLE BOTTOM SHEET & TRXs)
-         ========================================== */
-      .bottom-sheet-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        z-index: 9998;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-        backdrop-filter: blur(3px);
-      }
-      .bottom-sheet-overlay.active {
-        opacity: 1;
-        pointer-events: all;
-      }
-      .bottom-sheet {
-        position: fixed;
-        bottom: -100%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 480px;
-        height: 85vh;
-        background: #f8fafc;
-        border-radius: 35px 35px 0 0;
-        z-index: 9999;
-        transition: bottom 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.2);
-      }
-      .bottom-sheet.active {
-        bottom: 0;
-      }
-      .sheet-header {
-        background: white;
-        padding: 15px 20px 25px 20px;
-        border-radius: 35px 35px 0 0;
-        text-align: center;
-        position: relative;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-        z-index: 2;
-      }
-      .sheet-pull-bar {
-        width: 45px;
-        height: 5px;
-        background: #cbd5e1;
-        border-radius: 10px;
-        margin: 0 auto 15px;
-      }
-      .sheet-close-btn {
-        position: absolute;
-        right: 20px;
-        top: 15px;
-        background: #f1f5f9;
-        border: none;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        color: #64748b;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .sheet-acc-title {
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin: 0;
-      }
-      .sheet-balance {
-        font-size: 2.8rem;
-        color: #0f172a;
-        margin: 5px 0 0 0;
-        letter-spacing: -1px;
-      }
-      .sheet-acc-num {
-        font-family: monospace;
-        font-size: 1.15rem;
-        color: #3b82f6;
-        background: #eff6ff;
-        padding: 6px 18px;
-        border-radius: 12px;
-        display: inline-block;
-        margin-top: 10px;
-        font-weight: bold;
-        border: 1px dashed #bae6fd;
-      }
-      .sheet-trx-container {
-        flex: 1;
-        overflow-y: auto;
-        padding: 20px;
-        background: #f8fafc;
-      }
-
-      .trx-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px;
-        background: white;
-        border-radius: 18px;
-        margin-bottom: 12px;
-        cursor: pointer;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.02);
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-      }
-      .trx-left {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      .trx-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-      }
-      .trx-info h4 {
-        margin: 0;
-        font-size: 0.95rem;
-        color: #1e293b;
-        font-weight: 600;
-      }
-      .trx-info p {
-        margin: 4px 0 0 0;
-        font-size: 0.8rem;
-        color: #64748b;
-      }
-      .trx-amount {
-        font-weight: bold;
-        font-size: 1.1rem;
-      }
-
-      .text-green {
-        color: #10b981;
-      }
-      .text-red {
-        color: #ef4444;
-      }
-      .text-orange {
-        color: #f97316;
-      }
-      .bg-green {
-        background: #ecfdf5;
-        color: #10b981;
-        border: 1px solid #d1fae5;
-      }
-      .bg-red {
-        background: #fef2f2;
-        color: #ef4444;
-        border: 1px solid #fee2e2;
-      }
-      .bg-orange {
-        background: #fff7ed;
-        color: #f97316;
-        border: 1px solid #ffedd5;
-      }
-
-      /* ==========================================
-         ៨. ម៉ឺនុយខាងក្រោម (BOTTOM NAV & MODALS)
-         ========================================== */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100%;
-        max-width: 480px;
-        display: flex;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        padding: 12px 0 20px 0;
-        justify-content: space-around;
-        box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.05);
-        z-index: 9000;
-        border-radius: 25px 25px 0 0;
-        border-top: 1px solid rgba(0, 0, 0, 0.02);
-      }
-      .nav-item {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 0.75rem;
-        text-decoration: none;
-        flex: 1;
-        transition: all 0.3s ease;
-      }
-      .nav-item i {
-        font-size: 1.45rem;
-        display: block;
-        margin-bottom: 5px;
-        transition: 0.3s;
-      }
-      .nav-item.active {
-        color: #004d40;
-        font-weight: 700;
-        transform: translateY(-5px);
-      }
-      .nav-item.active i {
-        transform: scale(1.15);
-      }
-
-      .notif-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(5px);
-        z-index: 2000;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-      .notif-card {
-        background: #ffffff;
-        width: 100%;
-        max-width: 420px;
-        border-radius: 28px;
-        padding: 0;
-        max-height: 80vh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-      .notif-header {
-        padding: 20px;
-        border-bottom: 1px solid #f1f5f9;
-        background: #f8fafc;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .notif-header h3 {
-        margin: 0;
-        color: #0f172a;
-        font-size: 1.25rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .notif-close-btn {
-        background: #e2e8f0;
-        border: none;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #64748b;
-      }
-      .notif-body {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-        background: #fbfbfc;
-      }
-      .premium-swal {
-        border-radius: 24px !important;
-      }
-
-      /* ==========================================
-         ✨ ៩. រចនាបថពិសេសសម្រាប់កុមារ (JUNIOR THEME OVERRIDES)
-         ========================================== */
+      /* JUNIOR THEME */
       body.junior-mode,
       body.junior-mode .app-container {
         background-color: #fdf2f8 !important;
@@ -793,50 +430,30 @@
         border: none !important;
         color: white !important;
       }
-      body.junior-mode .action-btn:active {
-        background: rgba(255, 255, 255, 0.4) !important;
-      }
       body.junior-mode .usd-card::before {
         background: linear-gradient(60deg, #db2777, #fbcfe8, #f472b6, #db2777);
       }
       body.junior-mode .usd-card::after {
         background: linear-gradient(135deg, #fdf2f8 0%, #fbcfe8 100%);
       }
-      body.junior-mode .nav-item.active {
-        color: #db2777 !important;
-      }
       body.junior-mode .noti-badge {
         background: #f59e0b;
         color: white;
       }
-      /* ពណ៌ Pastel ពេលមានលុយចូលសម្រាប់ក្មេង */
-      body.junior-mode .bg-green {
-        background: #fce7f3;
-        color: #db2777;
-        border: 1px solid #fbcfe8;
-      }
-      body.junior-mode .text-green {
-        color: #db2777;
-      }
 
-      /* ==========================================
-         🌙 ១០. មុខងារងងឹត (FULL DARK MODE OVERRIDES)
-         ========================================== */
-      body.dark-mode {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .app-container {
-        background-color: #0f172a !important;
-        box-shadow: none;
+      /* DARK MODE OVERRIDES */
+      body.dark-mode .header {
+        background: transparent !important;
       }
       body.dark-mode .avatar {
         border-color: #1e293b !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       }
-      body.dark-mode .greeting h2,
-      body.dark-mode .greeting h4 {
+      body.dark-mode .greeting h2 {
         color: #f8fafc !important;
+      }
+      body.dark-mode .greeting h4 {
+        color: #94a3b8 !important;
       }
       body.dark-mode .action-btn {
         background-color: #1e293b !important;
@@ -844,7 +461,6 @@
         color: #cbd5e1 !important;
       }
       body.dark-mode .credit-card {
-        background: #1e293b !important;
         box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
       }
       body.dark-mode .usd-card::after,
@@ -863,7 +479,7 @@
         color: #f8fafc !important;
       }
       body.dark-mode .menu-item .icon-box {
-        background: rgba(30, 41, 59, 0.8) !important;
+        filter: brightness(0.85);
         border: 1px solid rgba(255, 255, 255, 0.05) !important;
       }
       body.dark-mode .menu-text {
@@ -875,107 +491,36 @@
       body.dark-mode .promo-section {
         background-color: #0f172a !important;
         border-top: 1px solid #1e293b;
+        box-shadow: 0 -15px 30px rgba(0, 0, 0, 0.5) !important;
       }
       body.dark-mode .section-title {
         color: #f8fafc !important;
-      }
-      body.dark-mode .bottom-nav {
-        background: rgba(30, 41, 59, 0.95) !important;
-        border-top: 1px solid #334155 !important;
-      }
-      body.dark-mode .nav-item {
-        color: #64748b !important;
-      }
-      body.dark-mode .nav-item.active {
-        color: #10b981 !important;
-      }
-      body.dark-mode .bottom-sheet {
-        background: #0f172a !important;
-      }
-      body.dark-mode .sheet-header {
-        background: #1e293b !important;
-        border-bottom: 1px solid #334155;
-      }
-      body.dark-mode .sheet-pull-bar {
-        background: #475569 !important;
-      }
-      body.dark-mode .sheet-close-btn {
-        background: #334155 !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .sheet-balance {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .sheet-trx-container {
-        background: #0f172a !important;
-      }
-      body.dark-mode .trx-item {
-        background: #1e293b !important;
-        border-color: #334155 !important;
-      }
-      body.dark-mode .trx-info h4 {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .trx-info p {
-        color: #94a3b8 !important;
-      }
-      body.dark-mode .bg-green {
-        background: rgba(16, 185, 129, 0.15) !important;
-        border-color: rgba(16, 185, 129, 0.3) !important;
-        color: #34d399 !important;
-      }
-      body.dark-mode .bg-red {
-        background: rgba(239, 68, 68, 0.15) !important;
-        border-color: rgba(239, 68, 68, 0.3) !important;
-        color: #f87171 !important;
-      }
-      body.dark-mode .bg-orange {
-        background: rgba(249, 115, 22, 0.15) !important;
-        border-color: rgba(249, 115, 22, 0.3) !important;
-        color: #fb923c !important;
-      }
-      body.dark-mode .notif-card {
-        background: #1e293b !important;
-      }
-      body.dark-mode .notif-header {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-      }
-      body.dark-mode .notif-header h3 {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .notif-body {
-        background: #1e293b !important;
-      }
-      body.dark-mode .notif-item {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-      }
-
-      /* ១០.១. វិក្កយបត្រ (SLIP - KEEP WHITE) */
-      body.dark-mode #slipModal .slip-container,
-      body.dark-mode #slipModal .slip-body {
-        background-color: #ffffff !important;
-      }
-      body.dark-mode #slipModal .slip-body span {
-        color: #1e293b !important;
-      }
-      body.dark-mode #slipModal .detail-row span:first-child {
-        color: #888888 !important;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
-      <!-- ផ្នែកក្បាល (HEADER) -->
+      <!-- ==========================================
+           ៤.១. ផ្នែកក្បាល (HEADER)
+           ========================================== -->
       <div class="header">
-        <div class="user-profile">
+        <div
+          class="user-profile"
+          onclick="window.location.href = 'settings.html'"
+          title="ចូលទៅកាន់ Settings"
+        >
           <div class="avatar" id="avatarBox">
             <i class="fa-solid fa-user"></i>
           </div>
           <div class="greeting">
-            <h4 id="greetText">Welcome back,</h4>
-            <h2 id="username">...</h2>
+            <h4
+              id="greetText"
+              class="kh-text"
+              data-i18n="greeting_welcome_back"
+            >
+              Welcome back,
+            </h4>
+            <h2 id="username" class="kh-text">...</h2>
           </div>
         </div>
 
@@ -992,25 +537,27 @@
           >
             <i class="fa-regular fa-comment-dots"></i>
           </button>
+          <!-- 🚀 ប្តូរមុខងារចុចកណ្តឹង រុញទៅកាន់ History ទំព័រសារតែម្តង -->
           <button
             class="action-btn"
             id="bellIcon"
-            onclick="readNotifications()"
+            onclick="window.location.href = 'history.html?tab=msg'"
           >
-            <i class="fa-solid fa-bell" id="bellShake"></i>
-            <span class="noti-badge" id="notiBadge">0</span>
+            <i class="fa-solid fa-bell" id="bellShake"></i
+            ><span class="noti-badge" id="notiBadge">0</span>
           </button>
         </div>
       </div>
 
-      <!-- ផ្នែករុញកាតគណនី (CARDS SLIDER) -->
-      <div class="card-slider-wrapper">
-        <!-- កាតនឹងត្រូវបានបង្កើតតាមរយៈកូដ JavaScript -->
-      </div>
+      <!-- ==========================================
+           ៤.២. ផ្នែករុញកាតគណនី (CARDS SLIDER)
+           ========================================== -->
+      <div class="card-slider-wrapper"></div>
 
-      <!-- ម៉ឺនុយជម្រើស (MENU GRID) -->
+      <!-- ==========================================
+           ៤.៣. ម៉ឺនុយជម្រើស (MENU GRID)
+           ========================================== -->
       <div class="menu-grid" id="sortableMenu">
-        <!-- វេរប្រាក់ (Transfer) -->
         <button
           class="menu-item"
           id="m1"
@@ -1019,53 +566,52 @@
           <div class="icon-box" style="background: #fff3e0; color: #04da28">
             <i class="fa-solid fa-paper-plane"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_transfer">Transfer</span>
+          <span class="menu-text kh-text" data-i18n="btn_transfer"
+            >Transfer</span
+          >
         </button>
-        <!-- ស្កេន (Scan QR) -->
         <button
           class="menu-item"
           id="m2"
           onclick="window.location.href = 'scan.html'"
         >
-          <div class="icon-box icon-scan">
+          <div class="icon-box" style="background: #e0f2fe; color: #0284c7">
             <i class="fa-solid fa-qrcode"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_scan">Scan QR</span>
+          <span class="menu-text kh-text" data-i18n="btn_scan">Scan QR</span>
         </button>
-        <!-- ទូទាត់ (Payment) -->
         <button
           class="menu-item"
           id="m3"
           onclick="window.location.href = 'payment.html'"
         >
-          <div class="icon-box icon-payment">
+          <div class="icon-box" style="background: #ffedd5; color: #ea580c">
             <i class="fa-solid fa-file-invoice-dollar"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_payment">Payment</span>
+          <span class="menu-text kh-text" data-i18n="btn_payment">Payment</span>
         </button>
-        <!-- កាត (Cards) -->
         <button
           class="menu-item"
           id="m4"
           onclick="window.location.href = 'cards.html'"
         >
-          <div class="icon-box icon-card">
+          <div class="icon-box" style="background: #fae8ff; color: #9333ea">
             <i class="fa-regular fa-credit-card"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_card">Cards</span>
+          <span class="menu-text kh-text" data-i18n="btn_card">Cards</span>
         </button>
-        <!-- វិភាគ (Analytics) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m5"
           onclick="window.location.href = 'analytics.html'"
         >
-          <div class="icon-box icon-analytics">
+          <div class="icon-box" style="background: #e0e7ff; color: #4f46e5">
             <i class="fa-solid fa-chart-pie"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_analytics">Analytics</span>
+          <span class="menu-text kh-text" data-i18n="btn_analytics"
+            >Analytics</span
+          >
         </button>
-        <!-- សន្សំ (Savings) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m6"
@@ -1074,9 +620,8 @@
           <div class="icon-box" style="background: #fce4ec; color: #d81b60">
             <i class="fa-solid fa-piggy-bank"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_savings">Savings</span>
+          <span class="menu-text kh-text" data-i18n="btn_savings">Savings</span>
         </button>
-        <!-- បំបែកវិក្កយបត្រ (Split Bill) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m7"
@@ -1085,9 +630,10 @@
           <div class="icon-box" style="background: #fff3e0; color: #e65100">
             <i class="fa-solid fa-pizza-slice"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_split">Split Bill</span>
+          <span class="menu-text kh-text" data-i18n="btn_split"
+            >Split Bill</span
+          >
         </button>
-        <!-- ដាក់ប្រាក់ (Fixed Deposit) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m8"
@@ -1096,9 +642,8 @@
           <div class="icon-box" style="background: #fff7ed; color: #f97316">
             <i class="fa-solid fa-vault"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_deposit">Deposit</span>
+          <span class="menu-text kh-text" data-i18n="btn_deposit">Deposit</span>
         </button>
-        <!-- អាជីវករ (Merchant) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m10"
@@ -1107,16 +652,16 @@
           <div class="icon-box" style="background: #e0e7ff; color: #2d14ce">
             <i class="fa-solid fa-store"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_merchant">Merchant</span>
+          <span class="menu-text kh-text" data-i18n="btn_merchant"
+            >Merchant</span
+          >
         </button>
-        <!-- ប្រូម៉ូសិន (Promo) -->
         <button class="menu-item" id="m9" onclick="claimPromoPopup()">
           <div class="icon-box" style="background: #fce7f3; color: #db2777">
             <i class="fa-solid fa-gift"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_promo">Promo</span>
+          <span class="menu-text kh-text" data-i18n="btn_promo">Promo</span>
         </button>
-        <!-- អាំងប៉ាវ (E-Gift) -->
         <button
           class="menu-item"
           id="m11"
@@ -1125,22 +670,20 @@
           <div class="icon-box" style="background: #fef2f2; color: #e11d48">
             <i class="fa-solid fa-envelope-open-text"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_egift">E-Gift</span>
+          <span class="menu-text kh-text" data-i18n="btn_egift">E-Gift</span>
         </button>
-
-        <!-- គណនីថ្មី (New Account) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m12"
           onclick="window.location.href = 'new-account.html'"
         >
-          <div class="icon-box" style="background: #e0f2f1; color: #004d40">
+          <div class="icon-box" style="background: #e0f2f1; color: #43fedfd8">
             <i class="fa-solid fa-folder-plus"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_new_account">New Account</span>
+          <span class="menu-text kh-text" data-i18n="btn_new_account"
+            >New Account</span
+          >
         </button>
-
-        <!-- គ្រប់គ្រងគណនីកូន (Manage Junior) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m13"
@@ -1149,12 +692,10 @@
           <div class="icon-box" style="background: #fff7ed; color: #ea580c">
             <i class="fa-solid fa-children"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_manage_junior"
+          <span class="menu-text kh-text" data-i18n="btn_manage_junior"
             >Manage Kids</span
           >
         </button>
-
-        <!-- ទូទាត់ស្វ័យប្រវត្តិ (Auto Payout / Payroll) - លាក់សម្រាប់ក្មេង -->
         <button
           class="menu-item adult-feature"
           id="m14"
@@ -1163,7 +704,9 @@
           <div class="icon-box" style="background: #f3e8ff; color: #7e22ce">
             <i class="fa-solid fa-money-bill-transfer"></i>
           </div>
-          <span class="menu-text" data-i18n="btn_auto_payout">Auto Payout</span>
+          <span class="menu-text kh-text" data-i18n="btn_auto_payout"
+            >Auto Payout</span
+          >
         </button>
       </div>
 
@@ -1175,186 +718,72 @@
         <i class="fa-solid fa-angle-down"></i>
       </div>
 
-      <!-- ផ្នែកប្រូម៉ូសិន (PROMO SECTION) -->
+      <!-- ==========================================
+           ៤.៤. ផ្នែកប្រូម៉ូសិន (PROMO SECTION)
+           ========================================== -->
       <div class="promo-section">
-        <h3 class="section-title" data-i18n="promo_title">
+        <h3 class="section-title kh-text" data-i18n="promo_title">
           Promotions & Offers
         </h3>
         <div class="promo-slider">
           <div class="promo-card green">
             <i class="fa-solid fa-gift"></i>
             <div>
-              <h3>Cashback 10%</h3>
-              <p>When you pay at AEON Mall using U-Pay KHQR.</p>
+              <h3 class="kh-text" data-i18n="promo_cashback_title">
+                Cashback 10%
+              </h3>
+              <p class="kh-text" data-i18n="promo_cashback_desc">
+                When you pay at AEON Mall using U-Pay KHQR.
+              </p>
             </div>
-            <button>Claim Now</button>
+            <button
+              class="kh-text"
+              data-i18n="promo_claim_btn"
+              onclick="claimPromoPopup()"
+            >
+              Claim Now
+            </button>
           </div>
           <div class="promo-card blue">
             <i class="fa-solid fa-plane"></i>
             <div>
-              <h3>Travel Insurance</h3>
-              <p>Get covered up to $50,000 for your next trip.</p>
+              <h3 class="kh-text" data-i18n="promo_insure_title">
+                Travel Insurance
+              </h3>
+              <p class="kh-text" data-i18n="promo_insure_desc">
+                Get covered up to $50,000 for your next trip.
+              </p>
             </div>
-            <button>Learn More</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ផ្ទាំងអាំងប៉ាវអនឡាញ (E-Gift Modal) -->
-      <div
-        id="egiftModal"
-        style="
-          display: none;
-          position: fixed;
-          inset: 0;
-          z-index: 9999;
-          background: rgba(0, 0, 0, 0.8);
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        "
-      >
-        <div
-          id="envelope"
-          style="
-            width: 280px;
-            height: 350px;
-            background: var(--gift-red);
-            border-radius: 20px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s;
-          "
-          onclick="openEgift()"
-        >
-          <i
-            class="fa-solid fa-envelope-open-text"
-            style="font-size: 5rem; color: #fff; margin-bottom: 20px"
-          ></i>
-          <h3 style="color: white; margin: 0" class="kh-text">
-            ចុចដើម្បីបើកអាំងប៉ាវ!
-          </h3>
-        </div>
-      </div>
-    </div>
-
-    <!-- ម៉ឺនុយខាងក្រោម (BOTTOM NAV) -->
-    <div class="bottom-nav">
-      <a href="dashboard.html" class="nav-item active"
-        ><i class="fa-solid fa-house"></i
-        ><span data-i18n="nav_home">Home</span></a
-      >
-      <a href="scan.html" class="nav-item"
-        ><i class="fa-solid fa-qrcode"></i
-        ><span data-i18n="nav_scan">Scan</span></a
-      >
-      <a href="history.html" class="nav-item"
-        ><i class="fa-solid fa-clock-rotate-left"></i
-        ><span data-i18n="nav_history">History</span></a
-      >
-      <a href="settings.html" class="nav-item"
-        ><i class="fa-solid fa-gear"></i
-        ><span data-i18n="nav_settings">Settings</span></a
-      >
-    </div>
-
-    <!-- ផ្ទាំងលោតពីក្រោមបង្ហាញគណនី (BOTTOM SHEET) -->
-    <div
-      id="accountModalOverlay"
-      class="bottom-sheet-overlay"
-      onclick="closeAccountDetails()"
-    ></div>
-    <div id="accountBottomSheet" class="bottom-sheet">
-      <div class="sheet-header">
-        <div class="sheet-pull-bar"></div>
-        <button class="sheet-close-btn" onclick="closeAccountDetails()">
-          <i class="fa-solid fa-chevron-down"></i>
-        </button>
-        <p id="sheetAccType" class="sheet-acc-title">គណនីប្រាក់ដុល្លារ (USD)</p>
-        <h1 id="sheetBalance" class="sheet-balance">$0.00</h1>
-        <div id="sheetAccNum" class="sheet-acc-num">000 000 000</div>
-      </div>
-      <div class="sheet-trx-container" id="sheetTrxList">
-        <div style="text-align: center; color: #94a3b8; margin-top: 40px">
-          <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem"></i>
-          <p>Loading transactions...</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ផ្ទាំងសារជូនដំណឹង (NOTIFICATION MODAL) -->
-    <div class="notif-modal" id="notifModal">
-      <div class="notif-card">
-        <div class="notif-header">
-          <h3>
-            <i class="fa-solid fa-bell" style="color: #3b82f6"></i> ការជូនដំណឹង
-          </h3>
-          <button class="notif-close-btn" onclick="closeNotifications()">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <div class="notif-body" id="notifList">
-          <div style="text-align: center; padding: 40px 0">
-            <i
-              class="fa-solid fa-spinner fa-spin"
-              style="font-size: 2rem; color: #94a3b8"
-            ></i>
-            <p style="color: #64748b; margin-top: 10px">កំពុងទាញយក...</p>
+            <button class="kh-text" data-i18n="promo_learn_btn">
+              Learn More
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="/js/auth.js"></script>
-    <script src="/js/slip.js"></script>
+    <!-- ==========================================
+         ៥. ផ្នែក SCRIPT (LOGIC & API)
+         ========================================== -->
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/slip.js" defer></script>
 
     <script>
-      // ==========================================
-      // ១១. សុវត្ថិភាព និងការគ្រប់គ្រងសម័យ (JWT SECURITY & SESSION MANAGEMENT)
-      // ==========================================
-      let user = JSON.parse(sessionStorage.getItem("user"));
-      let token = sessionStorage.getItem("userToken");
+      window.lastCardState = "";
+      window.lastNotifState = "";
 
-      // បើគ្មាន User ទេ ទាត់ទៅទំព័រ Login វិញ
+      let user = window.currentUser;
       if (!user) window.location.href = "index.html";
+      // 🌟 ចាប់យក Balance តាមទម្រង់ថ្មី
+      let lastBalance = user.mainAccounts?.USD?.balance || 0;
 
-      const authHeaders = {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      };
-      let lastBalance = user.balance;
-
-      // ==========================================
-      // ១២. រៀបចំ UI តម្រូវតាមប្រភេទគណនី (JUNIOR VS ADULT)
-      // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
-        // ឆែកមើលក្រែងលោជាកូនក្មេង (Junior Account)
         if (user.role === "junior") {
-          // ១. ប្តូរពណ៌ Theme អោយ Cute
           document.body.classList.add("junior-mode");
-
-          // ២. ប្តូរពាក្យស្វាគមន៍
-          document.getElementById("greetText").innerHTML =
-            "សួស្តីអូនតូច, <i class='fa-solid fa-face-smile-wink' style='color:#fcd34d'></i>";
-
-          // ៣. លាក់ប៊ូតុងមនុស្សធំ (កម្ចី, ដាក់ប្រាក់...) ចេញពី Menu
           const adultFeatures = document.querySelectorAll(".adult-feature");
           adultFeatures.forEach((el) => (el.style.display = "none"));
-        } else {
-          // បើមនុស្សធំ ឆែកមើល Dark Mode ធម្មតា
-          const userThemeKey = "darkMode_" + user.username;
-          const isDark = localStorage.getItem(userThemeKey) === "true";
-          if (isDark) document.body.classList.add("dark-mode");
         }
 
-        document.body.classList.add("loaded");
-
-        // រៀបចំ Menu Sortable សម្រាប់អូសចុះឡើង
         const grid = document.getElementById("sortableMenu");
         const userMenuKey = "menuOrder_" + user.username;
         const savedOrder = localStorage.getItem(userMenuKey);
@@ -1367,7 +796,6 @@
           });
         }
 
-        // ការពារការអូស Menu ដែលលាក់ (សម្រាប់ Junior)
         new Sortable(grid, {
           animation: 250,
           delay: 200,
@@ -1384,53 +812,45 @@
         loadDashboardData(false);
       });
 
-      // ==========================================
-      // 🎁 មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code) - Premium UI
-      // ==========================================
+      // --- ៥.៣. មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code) ---
       async function claimPromoPopup() {
         const { value: code, isConfirmed } = await Swal.fire({
-          title: "🎁 បញ្ចូលកូដប្រូម៉ូសិន",
-          html: `<p style="color:#64748b; font-size:0.9rem; margin-top:0;">សូមវាយបញ្ចូលកូដប្រូម៉ូសិនរបស់អ្នកនៅទីនេះ ដើម្បីទទួលបានរង្វាន់!</p>`,
+          title: `<span class="kh-text">${t("swal_promo_title")}</span>`,
+          html: `<p class="kh-text" style="color:#64748b; font-size:0.9rem; margin-top:0;">${t("swal_promo_desc")}</p>`,
           input: "text",
-          inputPlaceholder: "ឧទាហរណ៍៖ UPAY2026",
+          inputPlaceholder: t("swal_promo_ph"),
           inputAttributes: {
-            // រចនា Input អោយចំកណ្តាល អក្សរធំដិត និងមានគម្លាត
             style:
-              "text-align: center; text-transform: uppercase; font-weight: 900; font-size: 1.6rem; letter-spacing: 3px; color: #0f172a; background: #f8fafc; border: 2px dashed #10b981; border-radius: 15px;",
+              "text-align: center; text-transform: uppercase; font-weight: 900; font-size: 1.6rem; letter-spacing: 3px; border: 2px dashed #10b981; border-radius: 15px;",
             maxlength: 15,
             autocapitalize: "off",
             autocomplete: "off",
           },
           showCancelButton: true,
-          confirmButtonText:
-            "<i class='fa-solid fa-gift'></i> ទទួលយកលុយរង្វាន់",
-          cancelButtonText: "បោះបង់",
+          confirmButtonText: `<i class='fa-solid fa-gift'></i> <span class="kh-text">${t("swal_promo_btn")}</span>`,
+          cancelButtonText: `<span class="kh-text">${t("btn_cancel")}</span>`,
           confirmButtonColor: "#10b981",
           cancelButtonColor: "#f1f5f9",
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
           didOpen: () => {
             const input = Swal.getInput();
-            // បង្ខំអោយអក្សរដែលវាយក្លាយជាអក្សរធំ (Uppercase) ភ្លាមៗ
             input.addEventListener("input", function () {
               this.value = this.value.toUpperCase();
             });
             input.focus();
-
-            // កែពណ៌ប៊ូតុង Cancel អោយស្អាត
             const cancelBtn = Swal.getCancelButton();
             cancelBtn.style.color = "#475569";
             cancelBtn.style.fontWeight = "bold";
           },
         });
 
-        // ដំណើរការពេលអតិថិជនវាយកូដរួច ហើយចុចយល់ព្រម
         if (isConfirmed && code) {
           Swal.fire({
-            title: "កំពុងត្រួតពិនិត្យ...",
-            text: "សូមរង់ចាំបន្តិច ប្រព័ន្ធកំពុងផ្ទៀងផ្ទាត់កូដរបស់អ្នក",
+            title: `<span class="kh-text">${t("swal_checking_title")}</span>`,
+            html: `<span class="kh-text">${t("swal_checking_desc")}</span>`,
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading(),
-            customClass: { popup: "premium-swal" },
+            customClass: { popup: "premium-swal kh-text" },
           });
 
           try {
@@ -1439,29 +859,25 @@
               headers: authHeaders,
               body: JSON.stringify({
                 username: user.username,
-                code: code.toUpperCase(), // ធានាថាវាជាអក្សរធំបញ្ជូនទៅ Server
+                code: code.toUpperCase(),
               }),
             });
             const data = await res.json();
 
             if (data.success) {
-              // លោតលុយថ្មីចូល App ភ្លាមៗ
               user.balance = data.newBalance;
               sessionStorage.setItem("user", JSON.stringify(user));
               updateUI(user);
 
-              // 🎶 ចាក់សម្លេងអបអរ
               new Audio(
                 "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
               )
                 .play()
                 .catch(() => {});
 
-              // 🎊 បាញ់ក្រដាសអបអរសាទរ (Confetti Animation)
               if (typeof confetti === "function") {
                 const duration = 3 * 1000;
                 const end = Date.now() + duration;
-
                 (function frame() {
                   confetti({
                     particleCount: 5,
@@ -1477,60 +893,54 @@
                     origin: { x: 1 },
                     colors: ["#10b981", "#f59e0b", "#3b82f6", "#db2777"],
                   });
-
-                  if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                  }
+                  if (Date.now() < end) requestAnimationFrame(frame);
                 })();
               }
 
-              // 🎯 ទាញយកតែតួលេខលុយពីសាររបស់ Backend មកបង្ហាញអោយធំៗ
               const rewardAmountMatch = data.message.match(/\$[\d.]+/);
               const rewardAmtStr = rewardAmountMatch
                 ? rewardAmountMatch[0]
-                : "រង្វាន់ធំ";
+                : "BIG REWARD";
 
-              // 🌟 បង្ហាញ UI ជោគជ័យយ៉ាងស្រស់ស្អាត
               Swal.fire({
                 html: `
                   <div style="padding:10px; text-align:center;">
                     <div style="width:80px; height:80px; background:#dcfce7; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">
                       <i class="fa-solid fa-check" style="font-size:3.5rem; color:#10b981;"></i>
                     </div>
-                    <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 10px;">អបអរសាទរ! 🎉</h2>
-                    <p style="color:#64748b; font-size: 0.95rem; margin-bottom: 20px;">អ្នកបានប្រើប្រាស់កូដ <strong style="color:#004d40; background:#f1f5f9; padding:2px 8px; border-radius:6px;">${code.toUpperCase()}</strong> ដោយជោគជ័យ!</p>
+                    <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 10px;">${t("swal_congrats_title")}</h2>
+                    <p class="kh-text" style="color:#64748b; font-size: 0.95rem; margin-bottom: 20px;">${t("swal_congrats_desc1")} <strong style="color:#004d40; background:#f1f5f9; padding:2px 8px; border-radius:6px;">${code.toUpperCase()}</strong>!</p>
                     <div style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);">
-                      <span style="font-size: 0.9rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">ទឹកប្រាក់ទទួលបាន</span><br>
+                      <span class="kh-text" style="font-size: 0.9rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">${t("swal_reward_amt")}</span><br>
                       <span style="font-size: 3.5rem; font-weight: 900; letter-spacing: -2px;">${rewardAmtStr}</span>
                     </div>
                   </div>
                 `,
-                confirmButtonText: "ឡូយកប់! 😎",
+                confirmButtonText: `<span class="kh-text">${t("swal_btn_awesome")}</span>`,
                 confirmButtonColor: "#004d40",
-                customClass: { popup: "premium-swal" },
+                customClass: { popup: "premium-swal kh-text" },
               });
             } else {
               Swal.fire({
                 icon: "error",
-                title: "សុំទោស!",
-                text: data.message,
+                title: `<span class="kh-text">${t("swal_sorry_title")}</span>`,
+                html: `<span class="kh-text">${data.message}</span>`,
                 confirmButtonColor: "#ef4444",
-                customClass: { popup: "premium-swal" },
+                customClass: { popup: "premium-swal kh-text" },
               });
             }
           } catch (e) {
-            console.error("Promo Error:", e);
-            Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅប្រព័ន្ធ", "error");
+            Swal.fire("Error", "Server Connection Failed", "error");
           }
         }
       }
 
-      // ==========================================
-      // ១៣. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD)
-      // ==========================================
+      // --- ៥.៤. ទាញយកទិន្នន័យពីម៉ាស៊ីនមេ (TURBO LOAD) ---
       async function loadDashboardData(isAuto = true) {
         try {
-          const res = await fetch("/api/users", { headers: authHeaders });
+          const res = await fetch("/api/users", {
+            headers: window.authHeaders,
+          });
           const users = await res.json();
           const serverUser = users.find((u) => u.username === user.username);
 
@@ -1538,31 +948,24 @@
             user = serverUser;
             sessionStorage.setItem("user", JSON.stringify(serverUser));
 
-            // ឆែកលុយចូល
-            if (isAuto && serverUser.balance > lastBalance) {
+            // 🌟 ឆែកមើលសមតុល្យ USD តាមទម្រង់ថ្មី ដើម្បីលោត Alert
+            const currentUsdBalance =
+              serverUser.mainAccounts?.USD?.balance || 0;
+
+            if (isAuto && currentUsdBalance > lastBalance) {
               Swal.fire({
                 toast: true,
                 position: "top-end",
                 showConfirmButton: false,
                 timer: 4000,
                 icon: "success",
-                title: `Received +$${(serverUser.balance - lastBalance).toFixed(2)}`,
-                customClass: { popup: "premium-swal" },
+                title: `Received +$${(currentUsdBalance - lastBalance).toFixed(2)}`,
+                customClass: { popup: "premium-swal kh-text" },
               });
             }
-            lastBalance = serverUser.balance;
+            lastBalance = currentUsdBalance;
 
             updateUI(user);
-
-            // Update ក្នុងកាតដែលកំពុងបើក
-            if (currentViewingCurrency && currentViewingAccountNum) {
-              renderTransactionsInModal(
-                user,
-                currentViewingCurrency,
-                currentViewingAccountNum,
-              );
-            }
-
             updateNotificationsUI(user);
           }
         } catch (err) {
@@ -1570,10 +973,28 @@
         }
       }
 
-      // ==========================================
-      // ១៤. ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់អ្នកប្រើ (Update UI)
-      // ==========================================
+      // --- ៥.៥. ធ្វើបច្ចុប្បន្នភាពចំណុចប្រទាក់កាត (UPDATE UI) ---
       function updateUI(currentUser) {
+        // ប្រមូលទិន្នន័យចាំបាច់ដើម្បីឆែកមើលថាមានការផ្លាស់ប្តូរឬអត់ (Smart Cache)
+        const mainUSD =
+          currentUser.mainAccounts && currentUser.mainAccounts.USD
+            ? currentUser.mainAccounts.USD
+            : {};
+        const mainKHR =
+          currentUser.mainAccounts && currentUser.mainAccounts.KHR
+            ? currentUser.mainAccounts.KHR
+            : {};
+
+        const cardData = {
+          b: mainUSD.balance || 0,
+          k: mainKHR.balance || 0,
+          s: currentUser.subAccounts,
+          p: currentUser.profileImage,
+        };
+        const currentState = JSON.stringify(cardData);
+        if (currentState === window.lastCardState) return;
+        window.lastCardState = currentState;
+
         const usernameEl = document.getElementById("username");
         if (usernameEl)
           usernameEl.innerText = currentUser.fullName || currentUser.username;
@@ -1581,33 +1002,37 @@
         const sliderWrapper = document.querySelector(".card-slider-wrapper");
         sliderWrapper.innerHTML = "";
 
-        // ១. គូរកុង USD Main (ប្រព័ន្ធការពារ Error ក្រែងអត់មានកុង USD)
-        if (currentUser.accountNumber) {
+        // 🌟 បង្ហាញកាតចម្បង USD តាមទម្រង់ថ្មី (លាក់បើសិន isHidden គឺ true)
+        if (mainUSD.accountNumber && !mainUSD.isHidden) {
           sliderWrapper.appendChild(
             createCardElement(
               "USD",
-              currentUser.balance || 0,
-              currentUser.accountNumber,
+              mainUSD.balance || 0,
+              mainUSD.accountNumber,
               "usd-card",
+              mainUSD.accountName || "Main Account USD",
             ),
           );
         }
 
-        // ២. គូរកុង KHR Main (ប្រព័ន្ធការពារ Error)
-        if (currentUser.accountNumberKHR) {
+        // 🌟 បង្ហាញកាតចម្បង KHR តាមទម្រង់ថ្មី (លាក់បើសិន isHidden គឺ true)
+        if (mainKHR.accountNumber && !mainKHR.isHidden) {
           sliderWrapper.appendChild(
             createCardElement(
               "KHR",
-              currentUser.balanceKHR || 0,
-              currentUser.accountNumberKHR,
+              mainKHR.balance || 0,
+              mainKHR.accountNumber,
               "khr-card",
+              mainKHR.accountName || "Main Account KHR",
             ),
           );
         }
 
-        // ៣. បន្ថែម Sub-Accounts (សម្រាប់ប៉ាម៉ាក់ ដែលមានកុងកូនភ្ជាប់ជាមួយ)
+        // 🌟 បង្ហាញកាតរង (Sub Accounts) ដែលមិនត្រូវបានលាក់ (isHidden: false)
         if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
           currentUser.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return; // បើ User លាក់ គឺមិនបង្ហាញកាតនេះទេ
+
             const cardClass = sub.currency === "KHR" ? "khr-card" : "usd-card";
             sliderWrapper.appendChild(
               createCardElement(
@@ -1622,12 +1047,10 @@
         }
 
         const avatarBox = document.getElementById("avatarBox");
-        if (currentUser.profileImage && avatarBox) {
+        if (currentUser.profileImage && avatarBox)
           avatarBox.innerHTML = `<img src="${currentUser.profileImage}">`;
-        }
       }
 
-      // បង្កើតកាតគណនី (Create Card Element)
       function createCardElement(
         currency,
         balance,
@@ -1638,81 +1061,65 @@
         const label = customName
           ? customName
           : currency === "USD"
-            ? "Available Balance (USD)"
-            : "Available Balance (KHR)";
+            ? window.t("card_usd_balance")
+            : window.t("card_khr_balance");
         const displayBal =
           currency === "USD"
             ? balance.toFixed(2)
             : balance.toLocaleString("en-US");
-
-        // ការពារការគាំងបើសិនជា accNum ជា null
         const safeAccNum = accNum
           ? accNum.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")
           : "N/A";
-
         const card = document.createElement("div");
         card.className = `credit-card ${cardClass}`;
         card.onclick = () => (window.location.href = "accounts.html");
-
-        card.innerHTML = `
-           <div class="card-top">
-             <span class="card-chip"></span>
-             <img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'">
-           </div>
-           <div class="card-body">
-             <p class="card-label">${label}</p>
-             <h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1>
-           </div>
-           <div class="card-footer">
-             <p class="card-number">${safeAccNum}</p>
-           </div>
-         `;
+        card.innerHTML = `<div class="card-top"><span class="card-chip"></span><img src="images/logo-nobg.png" class="card-logo-img" onerror="this.style.display = 'none'"></div><div class="card-body"><p class="card-label kh-text">${label}</p><h1 class="card-balance">${currency === "USD" ? "$" : ""}${displayBal}${currency === "KHR" ? " ៛" : ""}</h1></div><div class="card-footer"><p class="card-number">${safeAccNum}</p></div>`;
         return card;
       }
 
-      // ==========================================
-      // ១៤. ការគ្រប់គ្រងសារជូនដំណឹង (NOTIFICATIONS)
-      // ==========================================
+      // --- ៥.៦. ការគ្រប់គ្រងសារជូនដំណឹង (UNIFIED INBOX DISPATCHER) ---
       let currentUnreadCount = 0;
-      let poppedUpSet = new Set(); // 🔥 ថែមអថេរថ្មី ដើម្បីចំណាំសារដែលបានលោត Popup រួច
 
       function updateNotificationsUI(currentUser) {
-        const unread = (currentUser.notifications || []).filter(
-          (n) => !n.isRead,
-        );
+        const respondedMap = window.getRespondedMap();
 
-        // 🌟 មុខងារថ្មី: ឆែកមើលសំណើទូទាត់កាត ហើយលោត Popup ស្វ័យប្រវត្តិ (ជំនួសអោយ Socket)
-        unread.forEach((n) => {
-          const nId = n._id || n.id;
-          if (n.type === "card_payment_request" && !poppedUpSet.has(nId)) {
-            poppedUpSet.add(nId); // ចំណាំទុក កុំអោយវាលោតជាន់គ្នា២ដង
+        const unread = (currentUser.notifications || []).filter((n) => {
+          if (n.isRead) return false;
 
-            new Audio(
-              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-            )
-              .play()
-              .catch(() => {});
+          let key;
+          const metaData = n.metadata || {};
 
-            Swal.fire({
-              title: "សំណើទូទាត់ប្រាក់ 🔔",
-              html: `ហាង <b>${n.metadata?.merchantName}</b> បានស្នើសុំកាត់ប្រាក់ <b style="color:red;">$${Number(n.metadata?.amount).toFixed(2)}</b> ពីកាតរបស់អ្នក។`,
-              icon: "info",
-              showCancelButton: true,
-              confirmButtonText: "យល់ព្រម",
-              cancelButtonText: "បដិសេធ",
-              allowOutsideClick: false, // ការពារកុំអោយអតិថិជនចុចក្រៅបាត់
-              customClass: { popup: "premium-swal" },
-            }).then((result) => {
-              if (result.isConfirmed) {
-                handleCardPaymentConfirm(n.metadata?.transactionId, nId);
-              } else if (result.dismiss === Swal.DismissReason.cancel) {
-                handleCardPaymentReject(n.metadata?.transactionId, nId);
-              }
-            });
+          if (n.type === "card_payment_request")
+            key = metaData.transactionId || n._id || n.id;
+          else if (n.type === "ufund_invite")
+            key = n.fundId || metaData.fundId || n._id || n.id;
+          else if (
+            n.type === "joint_invite" ||
+            metaData.type === "joint_invite"
+          )
+            key = metaData.accountNumber || n._id || n.id;
+          else key = n._id || n.id;
+
+          // 🌟 ការពារការលោតសារដែលយើងបាន Accept/Reject រួចនៅក្នុង Database (Priority)
+          if (n.responseStatus && n.responseStatus !== "pending") return false;
+
+          // 🚀 ឆ្លាតវៃបំផុត: បើ U-MALL បាញ់សំណើដដែលមកវិញ (ដែលនៅ Unread) យើងត្រូវលុបប្រវត្តិ Reject ចាស់ចោល!
+          if (
+            n.type === "card_payment_request" &&
+            respondedMap[key] === "rejected"
+          ) {
+            delete respondedMap[key];
+            localStorage.setItem(
+              `respondedNotifs_${currentUser.username}`,
+              JSON.stringify(respondedMap),
+            );
+            return true;
           }
+
+          if (respondedMap[key]) return false;
+          return true;
         });
 
-        // បើមានសារថ្មី លោតសម្លេង និងរលាក់កណ្តឹង
         if (unread.length > currentUnreadCount) {
           new Audio(
             "https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3",
@@ -1725,520 +1132,24 @@
             setTimeout(() => bell.classList.remove("fa-shake"), 2000);
           }
         }
-
         currentUnreadCount = unread.length;
-
         const badge = document.getElementById("notiBadge");
         if (badge) {
           badge.innerText = currentUnreadCount;
           badge.style.display = currentUnreadCount > 0 ? "flex" : "none";
         }
-        const list = document.getElementById("notifList");
-        if (list) {
-          if (unread.length === 0) {
-            list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
-          } else {
-            list.innerHTML = unread
-              .map((n) => {
-                // តម្លៃដើម (Default) សម្រាប់ Icon និង ពណ៌
-                let icon = "fa-bullhorn",
-                  bg = "#e0f2fe",
-                  col = "#0284c7";
-                let displayMsg = n.message;
-                let actionBtn = "";
-                const notifId = n._id || n.id;
 
-                // 🔥 ១. យកការឆែក Card Payment មកដាក់លើគេបង្អស់ ដើម្បីកុំអោយជាន់គ្នាជាមួយលក្ខខណ្ឌផ្សេង
-                if (n.type === "card_payment_request") {
-                  icon = "fa-credit-card";
-                  bg = "#fff7ed";
-                  col = "#ea580c";
-                  displayMsg = `<b>${n.metadata?.merchantName}</b> កំពុងស្នើសុំកាត់ប្រាក់ <b style="color:red;">$${Number(n.metadata?.amount).toFixed(2)}</b> ពីកាតរបស់អ្នក។`;
-                  actionBtn = `
-                    <div style="margin-top: 10px; display: flex; gap: 10px;">
-                      <button onclick="handleCardPaymentConfirm('${n.metadata?.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
-                      <button onclick="handleCardPaymentReject('${n.metadata?.transactionId}', '${notifId}')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
-                    </div>
-                  `;
-                }
-                // 💵 ២. ពណ៌សម្រាប់ ការទទួលប្រាក់ធម្មតា
-                else if (
-                  n.title.includes("Received") &&
-                  n.type !== "egift_receive"
-                ) {
-                  icon = "fa-hand-holding-dollar";
-                  bg = "#ecfdf5";
-                  col = "#10b981";
-                  if (currentUser.role === "junior") {
-                    icon = "fa-child-reaching";
-                    bg = "#fce7f3";
-                    col = "#db2777";
-                  }
-                }
-                // 🛒 ៣. ពណ៌សម្រាប់ សំណើទូទាត់ប្រាក់ (Payment Request ចាស់)
-                else if (
-                  n.title.includes("សំណើទូទាត់ប្រាក់") ||
-                  n.type === "payment_request"
-                ) {
-                  icon = "fa-cart-shopping";
-                  bg = "#fff7ed";
-                  col = "#ea580c";
-                }
-                // 🎁 ៤. ពណ៌ និង Icon សម្រាប់ Cashback Reward
-                else if (
-                  n.title.includes("Cashback") ||
-                  n.type === "cashback_reward" ||
-                  n.title.includes("ឈ្នះបាន")
-                ) {
-                  icon = "fa-sack-dollar";
-                  bg = "#dcfce7";
-                  col = "#059669";
-                }
-                // 🔄 ៥. ពណ៌ និង Icon សម្រាប់ System Refund
-                else if (n.title.includes("Refund")) {
-                  icon = "fa-arrow-rotate-left";
-                  bg = "#f3e8ff";
-                  col = "#9333ea";
-                }
-                // 🧧 ៦. ការបង្ហាញសម្រាប់ អាំងប៉ាវអនឡាញ (E-Gift)
-                else if (n.type === "egift_receive") {
-                  icon = "fa-gift";
-                  bg = "#fee2e2";
-                  col = "#dc2626";
+        const currentState = JSON.stringify(unread);
+        if (currentState === window.lastNotifState) return;
+        window.lastNotifState = currentState;
 
-                  const amount = n.egiftData?.amount || 0;
-                  const currency = n.egiftData?.currency || "USD";
-                  const sender = (
-                    n.egiftData?.senderName || "មិត្តភក្តិ"
-                  ).replace(/'/g, "\\'");
-                  const msg = (n.egiftData?.message || "ជូនពរសំណាងល្អ").replace(
-                    /'/g,
-                    "\\'",
-                  );
-                  const senderUsername = n.egiftData?.senderUsername || "";
-
-                  displayMsg = `🎉 អ្នកទទួលបានអាំងប៉ាវពី ${sender}!`;
-
-                  actionBtn = `
-                      <div style="margin-top: 10px;">
-                        <button onclick="handleOpenGiftFromDash(${amount}, '${currency}', '${sender}', '${msg}', '${notifId}', '${senderUsername}')" style="width:100%; padding:8px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                          <i class="fa-solid fa-envelope-open-text"></i> បើកអាំងប៉ាវឥឡូវនេះ
-                        </button>
-                      </div>
-                    `;
-                }
-                // 🎯 ៧. ការបង្ហាញសម្រាប់ សំណើអញ្ជើញ U-Fund
-                else if (n.type === "ufund_invite") {
-                  icon = "fa-bullseye";
-                  bg = "#ecfeff";
-                  col = "#0891b2";
-
-                  actionBtn = `
-                      <div style="margin-top: 10px; display: flex; gap: 10px;">
-                        <button onclick="respondUFundInvite('${n.fundId}', '${notifId}', 'accept')" style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">យល់ព្រម</button>
-                        <button onclick="respondUFundInvite('${n.fundId}', '${notifId}', 'decline')" style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">បដិសេធ</button>
-                      </div>
-                    `;
-                }
-                // 🤝 ៨. ការបង្ហាញសម្រាប់ ការអញ្ជើញចូលគណនីរួម (Joint Account)
-                else if (n.metadata && n.metadata.type === "joint_invite") {
-                  icon = "fa-users";
-                  bg = "#e0e7ff";
-                  col = "#4f46e5";
-
-                  actionBtn = `
-                      <div id="joint-action-${notifId}" style="margin-top: 10px; display: flex; gap: 10px;">
-                        <button
-                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'accept', '${notifId}')"
-                          style="flex:1; padding:8px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                          <i class="fa-solid fa-check"></i> យល់ព្រម
-                        </button>
-                        <button
-                          onclick="handleJointInvite(this, '${n.metadata.ownerUsername}', '${n.metadata.accountNumber}', 'reject', '${notifId}')"
-                          style="flex:1; padding:8px; background:#ef4444; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                          <i class="fa-solid fa-xmark"></i> បដិសេធ
-                        </button>
-                      </div>
-                    `;
-                }
-
-                // គូរ UI សម្រាប់សារនីមួយៗបញ្ចូលទៅក្នុង Modal
-                return `<div class="notif-item" style="padding:12px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; background:#f0f9ff; margin-bottom:10px; border-radius:12px; flex-direction:column;">
-                           <div style="display:flex; gap:12px;">
-                               <div style="background:${bg}; color:${col}; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid ${icon}"></i></div>
-                               <div>
-                                   <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">${n.title}</h4>
-                                   <p style="margin:4px 0; font-size:0.85rem; color:#475569;">${displayMsg}</p>
-                                   <span style="font-size:0.75rem; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${n.date}</span>
-                               </div>
-                           </div>
-                           ${actionBtn}
-                       </div>`;
-              })
-              .reverse()
-              .join("");
-          }
-        }
-      }
-
-      function readNotifications() {
-        const notifModal = document.getElementById("notifModal");
-        if (notifModal) notifModal.style.display = "flex";
-      }
-
-      // ==========================================
-      // មុខងារ កាត់លុយតាមកាត (Card Payment Confirm/Reject) - បន្ថែមថ្មី
-      // ==========================================
-      async function handleCardPaymentConfirm(transactionId, notifId) {
-        if (typeof requestPinVerification === "function") {
-          // បិទ Modal សារសិន មុននឹងលោតផ្ទាំង PIN
-          const notifModal = document.getElementById("notifModal");
-          if (notifModal) notifModal.style.display = "none";
-
-          requestPinVerification(
-            "បញ្ចូលលេខសម្ងាត់",
-            "បញ្ជាក់ការទូទាត់កាត",
-            async function (pinCode) {
-              Swal.fire({
-                title: "កំពុងដំណើរការ...",
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
-                customClass: { popup: "premium-swal" },
-              });
-              try {
-                const res = await fetch(
-                  "/api/gateway/payment-request/confirm",
-                  {
-                    method: "POST",
-                    headers: authHeaders,
-                    body: JSON.stringify({
-                      transactionId: transactionId,
-                      pin: pinCode,
-                    }),
-                  },
-                );
-                const data = await res.json();
-                if (data.success) {
-                  // ប្រាប់ Server ថាអានសារនេះរួចរាល់
-                  await fetch(`/api/user/notifications/read/${notifId}`, {
-                    method: "POST",
-                    headers: authHeaders,
-                  }).catch(() => {});
-                  Swal.fire({
-                    icon: "success",
-                    title: "ជោគជ័យ",
-                    text: "ការទូទាត់បានជោគជ័យ និងប្រាក់បានកាត់រួចរាល់!",
-                    customClass: { popup: "premium-swal" },
-                  }).then(() => window.location.reload());
-                } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: "បរាជ័យ",
-                    text: data.message,
-                    customClass: { popup: "premium-swal" },
-                  });
-                }
-              } catch (e) {
-                Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
-              }
-            },
-          );
-        } else {
-          Swal.fire("Error", "មិនអាចស្វែងរកមុខងារវាយ PIN ឃើញទេ", "error");
-        }
-      }
-
-      async function handleCardPaymentReject(transactionId, notifId) {
-        Swal.fire({
-          title: "កំពុងបដិសេធ...",
-          didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
+        unread.forEach((n) => {
+          if (typeof window.showSmartNotification === "function")
+            window.showSmartNotification(n);
         });
-        try {
-          await fetch("/api/gateway/payment-request/reject", {
-            method: "POST",
-            headers: authHeaders,
-            body: JSON.stringify({ transactionId: transactionId }),
-          });
-          await fetch(`/api/user/notifications/read/${notifId}`, {
-            method: "POST",
-            headers: authHeaders,
-          }).catch(() => {});
-
-          Swal.fire({
-            icon: "info",
-            title: "បដិសេធជោគជ័យ",
-            text: "អ្នកបានបដិសេធសំណើនេះរួចរាល់",
-            customClass: { popup: "premium-swal" },
-          }).then(() => window.location.reload());
-        } catch (e) {
-          Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ម៉ាស៊ីនមេ", "error");
-        }
       }
 
-      // ==========================================
-      // មុខងារចុច យល់ព្រម ឬ បដិសេធ ការអញ្ជើញគណនីរួម (Joint Account)
-      // ==========================================
-      async function handleJointInvite(
-        btnElement,
-        ownerUsername,
-        accountNumber,
-        action,
-        notifId,
-      ) {
-        const parentDiv = document.getElementById(`joint-action-${notifId}`);
-        const notifItem = document.getElementById(`notif-item-${notifId}`);
-
-        if (parentDiv) {
-          parentDiv.innerHTML = `
-              <button style="width: 100%; padding:8px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:not-allowed; font-family:'Inter', 'Kantumruy Pro', sans-serif;">
-                  <i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងដំណើរការ...
-              </button>
-            `;
-        }
-
-        try {
-          let currentUsr =
-            window.currentUser ||
-            JSON.parse(
-              sessionStorage.getItem("user") || localStorage.getItem("user"),
-            );
-
-          let reqHeaders =
-            typeof authHeaders !== "undefined"
-              ? authHeaders
-              : window.authHeaders || {};
-          reqHeaders["Content-Type"] = "application/json";
-
-          if (!reqHeaders["Authorization"]) {
-            let token =
-              localStorage.getItem("token") || sessionStorage.getItem("token");
-            reqHeaders["Authorization"] = `Bearer ${token}`;
-          }
-
-          const res = await fetch("/api/account/joint/respond", {
-            method: "POST",
-            headers: reqHeaders,
-            body: JSON.stringify({
-              inviteeUsername: currentUsr.username,
-              ownerUsername: ownerUsername,
-              accountNumber: accountNumber,
-              action: action,
-            }),
-          });
-
-          const data = await res.json();
-
-          if (data.success) {
-            if (parentDiv) {
-              parentDiv.innerHTML = `
-                   <div style="width: 100%; padding:8px; background:#ecfdf5; color:#10b981; border:none; border-radius:8px; text-align: center; font-weight:bold; font-size: 0.95rem;">
-                       <i class="fa-solid fa-circle-check"></i> ជោគជ័យ!
-                   </div>
-                `;
-            }
-
-            if (currentUsr && currentUsr.notifications) {
-              const notifIndex = currentUsr.notifications.findIndex(
-                (n) => (n._id || n.id) === notifId,
-              );
-              if (notifIndex > -1) {
-                currentUsr.notifications[notifIndex].isRead = true;
-                sessionStorage.setItem("user", JSON.stringify(currentUsr));
-                window.currentUser = currentUsr;
-              }
-            }
-
-            await fetch(`/api/user/notifications/read/${notifId}`, {
-              method: "POST",
-              headers: reqHeaders,
-            }).catch(() => {});
-
-            setTimeout(() => {
-              if (notifItem) notifItem.remove();
-
-              const unreadList = document.querySelectorAll(".notif-item");
-              const badge = document.getElementById("notiBadge");
-              if (badge) {
-                badge.innerText = unreadList.length;
-                badge.style.display = unreadList.length > 0 ? "flex" : "none";
-              }
-
-              if (unreadList.length === 0) {
-                const list = document.getElementById("notifList");
-                if (list)
-                  list.innerHTML = `<div style="text-align:center; padding:40px 0;"><i class="fa-regular fa-circle-check" style="font-size:3rem; color:#10b981; margin-bottom:15px;"></i><p style="color:#64748b;">អ្នកបានអានសារអស់ហើយ</p></div>`;
-              }
-            }, 1500);
-          } else {
-            if (parentDiv) {
-              parentDiv.innerHTML = `
-                   <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
-                       <i class="fa-solid fa-circle-exclamation"></i> ${data.message}
-                   </div>
-                `;
-            }
-          }
-        } catch (error) {
-          console.error("Error:", error);
-          if (parentDiv) {
-            parentDiv.innerHTML = `
-               <div style="width: 100%; padding:8px; background:#fef2f2; color:#ef4444; border:1px solid #fca5a5; border-radius:8px; text-align: center; font-size: 0.85rem;">
-                   <i class="fa-solid fa-triangle-exclamation"></i> បញ្ហាភ្ជាប់ទៅ Server
-               </div>
-            `;
-          }
-        }
-      }
-
-      // ==========================================
-      // មុខងារបិទផ្ទាំងសារ (Close Notifications)
-      // ==========================================
-      async function closeNotifications() {
-        const notifModal = document.getElementById("notifModal");
-        if (notifModal) notifModal.style.display = "none";
-
-        let currentUsr =
-          window.currentUser || JSON.parse(sessionStorage.getItem("user"));
-        if (!currentUsr) return;
-
-        let hasUpdates = false;
-        if (currentUsr.notifications) {
-          currentUsr.notifications.forEach((n) => {
-            // 🔥 យកលក្ខខណ្ឌដកចេញ E-Gift ចេញ ដើម្បីអោយវា Mark អានរួចទាំងអស់ពេលចុចខ្វែង (X) បិទ
-            if (!n.isRead) {
-              n.isRead = true;
-              hasUpdates = true;
-            }
-          });
-        }
-
-        if (hasUpdates) {
-          sessionStorage.setItem("user", JSON.stringify(currentUsr));
-          window.currentUser = currentUsr;
-
-          let reqHeaders =
-            typeof authHeaders !== "undefined"
-              ? authHeaders
-              : window.authHeaders || {};
-
-          // បាញ់ API ប្រាប់ Server ថាបានអានសារទាំងអស់ហើយ
-          fetch("/api/user/read-notifications", {
-            method: "POST",
-            headers: reqHeaders,
-            body: JSON.stringify({ username: currentUsr.username }),
-          }).catch((e) => console.log(e));
-
-          updateNotificationsUI(currentUsr);
-        }
-      }
-
-      // 🔥 មុខងារបើកអាំងប៉ាវពី Dashboard (Popup Modal)
-      async function handleOpenGiftFromDash(
-        amount,
-        currency,
-        sender,
-        msg,
-        notifId,
-        senderUsername,
-      ) {
-        const notifModal = document.getElementById("notifModal");
-        if (notifModal) notifModal.style.display = "none";
-
-        if (typeof confetti === "function") {
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        }
-
-        const curSym = currency === "USD" ? "$" : "៛";
-        const displayAmt =
-          currency === "USD"
-            ? Number(amount).toFixed(2)
-            : Number(amount).toLocaleString();
-
-        Swal.fire({
-          html: `
-                   <div style="padding:20px; text-align:center;">
-                       <i class="fa-solid fa-gift" style="font-size:4.5rem; color:#dc2626; margin-bottom:15px; animation: tada 1s;"></i>
-                       <h2 class="kh-text" style="color:#1e293b; font-weight:bold; margin-bottom: 20px;">SURPRISE! 🎁</h2>
-                       <div style="font-size:3.5rem; font-weight:bold; color:#dc2626; font-family:'JetBrains Mono', monospace;">${curSym}${displayAmt}</div>
-                       <p class="kh-text" style="color:#64748b; margin-top:10px;">ពី: <b>${sender}</b></p>
-                       <div class="kh-text" style="background:#f8fafc; padding:15px; border-radius:12px; font-style:italic; margin-top:15px; color:#475569; font-weight: 500;">"${msg}"</div>
-                   </div>
-               `,
-          confirmButtonText: "ឡូយកប់!",
-          confirmButtonColor: "#004d40",
-          customClass: { popup: "modal-radius" },
-        }).then(() => {
-          if (typeof loadDashboardData === "function") loadDashboardData(false);
-        });
-
-        try {
-          let user =
-            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
-          await fetch("/api/egift/opened", {
-            method: "POST",
-            headers: window.authHeaders,
-            body: JSON.stringify({
-              receiverName: user.fullName || user.username,
-              senderUsername: senderUsername,
-              notifId: notifId,
-            }),
-          });
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      // 🔥 មុខងារឆ្លើយតបការអញ្ជើញ U-Fund (Accept/Decline)
-      async function respondUFundInvite(fundId, notifId, response) {
-        try {
-          const notifModal = document.getElementById("notifModal");
-          if (notifModal) notifModal.style.display = "none";
-
-          Swal.fire({
-            title: "កំពុងដំណើរការ...",
-            didOpen: () => Swal.showLoading(),
-            allowOutsideClick: false,
-          });
-
-          let user =
-            window.currentUser || JSON.parse(sessionStorage.getItem("user"));
-          const res = await fetch("/api/ufund/respond-invite", {
-            method: "POST",
-            headers: window.authHeaders,
-            body: JSON.stringify({
-              username: user.username,
-              fundId: fundId,
-              notifId: notifId,
-              response: response,
-            }),
-          });
-
-          const data = await res.json();
-
-          if (data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "ជោគជ័យ!",
-              text: data.message,
-              timer: 2000,
-              showConfirmButton: false,
-            }).then(() => {
-              if (typeof loadDashboardData === "function")
-                loadDashboardData(false);
-            });
-          } else {
-            Swal.fire("បរាជ័យ", data.message, "error");
-          }
-        } catch (error) {
-          console.error(error);
-          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-        }
-      }
-
-      // ==========================================
-      // ១៦. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE)
-      // ==========================================
+      // --- ៥.៧. មុខងារលាតម៉ឺនុយចុះឡើង (MENU TOGGLE) ---
       function toggleMenuExpansion() {
         const grid = document.getElementById("sortableMenu");
         const btn = document.getElementById("menuToggleBtn");
@@ -2246,8 +1157,8 @@
         btn.classList.toggle("expanded");
       }
 
-      let touchStartY = 0;
-      let touchEndY = 0;
+      let touchStartY = 0,
+        touchEndY = 0;
       const menuGridEl = document.getElementById("sortableMenu");
       menuGridEl.addEventListener(
         "touchstart",
@@ -2260,103 +1171,15 @@
         "touchend",
         (e) => {
           touchEndY = e.changedTouches[0].screenY;
-          handleMenuSwipe();
+          const swipeDistance = touchStartY - touchEndY;
+          const isExpanded = menuGridEl.classList.contains("expanded");
+          if (swipeDistance < -30 && !isExpanded) toggleMenuExpansion();
+          else if (swipeDistance > 30 && isExpanded) toggleMenuExpansion();
         },
         { passive: true },
       );
 
-      function handleMenuSwipe() {
-        const swipeDistance = touchStartY - touchEndY;
-        const isExpanded = menuGridEl.classList.contains("expanded");
-        if (swipeDistance < -30 && !isExpanded) toggleMenuExpansion();
-        else if (swipeDistance > 30 && isExpanded) toggleMenuExpansion();
-      }
-      // ==========================================
-      // 🔌 ភ្ជាប់ Socket.io សម្រាប់ចាំទទួលសំណើទូទាត់តាមកាត (Card Payment Gateway)
-      // ==========================================
-      // ដាក់នៅកម្រិត Root នៃ <script> ដើម្បីអោយវា Active ភ្លាមៗពេលបើក App
-      if (user && typeof io !== "undefined") {
-        // 🔥 កែពី window.currentUser មក user
-        const socket = io("https://u-pay-bank.fly.dev");
-
-        socket.emit("joinRoom", user.username);
-
-        socket.on("paymentRequest", (data) => {
-          new Audio(
-            "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-          )
-            .play()
-            .catch(() => {});
-
-          Swal.fire({
-            title: "សំណើទូទាត់ប្រាក់ 🔔",
-            html: `ហាង <b>${data.merchantName}</b> បានស្នើសុំកាត់ប្រាក់ <b>$${Number(data.amount).toFixed(2)}</b>`,
-            icon: "info",
-            showCancelButton: true,
-            confirmButtonText: "យល់ព្រម",
-            cancelButtonText: "បដិសេធ",
-            customClass: { popup: "premium-swal" },
-          }).then((result) => {
-            if (result.isConfirmed) {
-              if (typeof requestPinVerification === "function") {
-                requestPinVerification(
-                  "បញ្ចូលលេខសម្ងាត់",
-                  "បញ្ជាក់ការទូទាត់កាត",
-                  async function (pinCode) {
-                    Swal.fire({
-                      title: "កំពុងដំណើរការ...",
-                      allowOutsideClick: false,
-                      didOpen: () => Swal.showLoading(),
-                      customClass: { popup: "premium-swal" },
-                    });
-
-                    try {
-                      const res = await fetch(
-                        "/api/gateway/payment-request/confirm",
-                        {
-                          method: "POST",
-                          headers: authHeaders, // 🔥 កែពី window.authHeaders មក authHeaders
-                          body: JSON.stringify({
-                            transactionId: data.transactionId,
-                            pin: pinCode,
-                          }),
-                        },
-                      );
-                      const resData = await res.json();
-
-                      if (resData.success) {
-                        Swal.fire({
-                          icon: "success",
-                          title: "ជោគជ័យ",
-                          text: "ការទូទាត់បានជោគជ័យ និងប្រាក់បានកាត់រួចរាល់!",
-                          customClass: { popup: "premium-swal" },
-                        }).then(() => window.location.reload());
-                      } else {
-                        Swal.fire({
-                          icon: "error",
-                          title: "បរាជ័យ",
-                          text: resData.message,
-                          customClass: { popup: "premium-swal" },
-                        });
-                      }
-                    } catch (e) {
-                      Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
-                    }
-                  },
-                );
-              }
-            } else if (result.dismiss === Swal.DismissReason.cancel) {
-              fetch("/api/gateway/payment-request/reject", {
-                method: "POST",
-                headers: authHeaders, // 🔥 កែពី window.authHeaders មក authHeaders
-                body: JSON.stringify({ transactionId: data.transactionId }),
-              }).then(() => window.location.reload());
-            }
-          });
-        });
-      }
-
-      // ហៅ Data អោយដំណើរការដោយស្វ័យប្រវត្តិ
+      // 🔄 Load Data រាល់ ៤ វិនាទី
       setInterval(() => loadDashboardData(true), 4000);
     </script>
   </body>

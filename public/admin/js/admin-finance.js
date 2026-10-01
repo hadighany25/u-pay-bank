@@ -1,3 +1,4 @@
+// admin-finance.js
 // ========================================================================
 // 📊 ផ្នែកទី ២៖ ហិរញ្ញវត្ថុ បេឡាករ និងការកំណត់ (FINANCE & CASHIER LOGIC)
 // ========================================================================
@@ -379,11 +380,18 @@ window.searchTargetUser = async function () {
 
       document.getElementById("targetUserCard").style.display = "flex";
       document.getElementById("transactionForm").style.display = "block";
+
+      // ✅ កែត្រង់នេះ៖ បន្ថែមការបង្ហាញរូបភាព Profile របស់អតិថិជន
+      document.getElementById("cardAvatar").src =
+        currentTargetUser.profileImage || "../images/default-avatar.png";
+
       document.getElementById("cardName").textContent =
         `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
 
-      const balUSD = currentTargetUser.balance || 0;
-      const balKHR = currentTargetUser.balanceKHR || 0;
+      // ១. ទាញយកសមតុល្យពី mainAccounts
+      const balUSD = currentTargetUser.mainAccounts?.USD?.balance || 0;
+      const balKHR = currentTargetUser.mainAccounts?.KHR?.balance || 0;
+
       document.getElementById("cardBalUSD").textContent =
         `USD: $${balUSD.toFixed(2)}`;
       document.getElementById("cardBalKHR").textContent =
@@ -392,10 +400,14 @@ window.searchTargetUser = async function () {
       const accountSelect = document.getElementById("targetAccountSelect");
       let optionHTML = "";
 
-      if (currentTargetUser.accountNumber)
-        optionHTML += `<option value="${currentTargetUser.accountNumber}">Main USD: ${currentTargetUser.accountNumber}</option>`;
-      if (currentTargetUser.accountNumberKHR)
-        optionHTML += `<option value="${currentTargetUser.accountNumberKHR}">Main KHR: ${currentTargetUser.accountNumberKHR}</option>`;
+      // ២. ទាញយកលេខគណនីពី mainAccounts
+      const accUSD = currentTargetUser.mainAccounts?.USD?.accountNumber;
+      const accKHR = currentTargetUser.mainAccounts?.KHR?.accountNumber;
+
+      if (accUSD)
+        optionHTML += `<option value="${accUSD}">Main USD: ${accUSD}</option>`;
+      if (accKHR)
+        optionHTML += `<option value="${accKHR}">Main KHR: ${accKHR}</option>`;
 
       if (
         currentTargetUser.subAccounts &&
@@ -420,7 +432,9 @@ window.searchTargetUser = async function () {
           );
 
           if (selectedSub) cashCurrency.value = selectedSub.currency;
-          else if (searchVal === currentTargetUser.accountNumberKHR)
+          else if (
+            searchVal === currentTargetUser.mainAccounts?.KHR?.accountNumber
+          )
             cashCurrency.value = "KHR";
           else cashCurrency.value = "USD";
           break;

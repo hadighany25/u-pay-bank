@@ -1,249 +1,326 @@
-// adminRoutes.js
+// ============================================================================
+// ឯកសារ: routes/adminRoutes.js
+// អត្ថន័យ: បណ្តុំផ្លូវ (Routes) សម្រាប់គ្រប់គ្រងប្រព័ន្ធ U-PAY Admin
+// ============================================================================
+
+// ==========================================
+// 📦 ផ្នែកទី ១៖ ទាញយកបណ្ណាល័យ និង Controller
+// ==========================================
 const express = require("express");
 const router = express.Router();
+
 const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
 const cardController = require("../controllers/cardController");
-// 🤖 1. Import aiController ចូលទីនេះ
 const aiController = require("../controllers/aiController");
+
 const { checkRole } = require("../middleware/authMiddleware");
 
 // ==========================================
-// 🛡️ កំណត់អថេរសិទ្ធិ (Role Variables)
+// 🛡️ ផ្នែកទី ២៖ កំណត់សិទ្ធិ (Roles) & មុខងារការពារ (Safe Wrapper)
 // ==========================================
 const ROLE_SUPER = "super_admin";
 const ROLE_FINANCE = "finance_admin";
 const ROLE_SUPPORT = "support_agent";
 const ROLE_CUSTOM = "custom";
 
+// ការពារកុំឱ្យគាំង Server ពេលហៅឈ្មោះ Controller ខុស
+const safeHandler = (handler, name) => {
+  if (typeof handler !== "function") {
+    console.error(
+      `🚨 [រកឃើញកំហុស]: adminController.${name} គឺអត់មានទេ (Undefined)!`,
+    );
+    return (req, res, next) =>
+      res
+        .status(500)
+        .json({ success: false, message: `កូដផ្នែក ${name} មិនទាន់ដំណើរការ!` });
+  }
+  return handler;
+};
+
 // ==========================================
-// 👑 ១. មុខងារកំពូល (ភាគច្រើនទាមទារសិទ្ធិ Super Admin តែម្នាក់គត់)
+// 👑 ផ្នែកទី ៣៖ មុខងារកំពូល (System Config & Setup)
 // ==========================================
 // បិទ/បើក ប្រព័ន្ធទាំងមូល
 router.post(
   "/toggle-system",
   checkRole([ROLE_SUPER]),
-  adminController.toggleSystem,
+  safeHandler(adminController.toggleSystem, "toggleSystem"),
 );
 
-// លុបគណនីអតិថិជន (បើកសិទ្ធិអោយ Custom ព្រោះ controller មានឆែកសិទ្ធិលម្អិតទៀត)
-router.post(
-  "/delete-user",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  adminController.deleteUser,
-);
-
-// មើលកំណត់ត្រាសកម្មភាពរបស់ Admin ទាំងអស់
-router.get("/logs", checkRole([ROLE_SUPER]), adminController.getAdminLogs);
-
-// បង្វិលលុយត្រឡប់ (Refund)
-router.post(
-  "/refund-transaction",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.refundTransaction,
-);
-
-// មើលស្ថានភាពប្រព័ន្ធ
+// មើលស្ថានភាពប្រព័ន្ធ និងអត្រាប្តូរប្រាក់
 router.get(
   "/system-status",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getSystemStatus,
+  safeHandler(adminController.getSystemStatus, "getSystemStatus"),
 );
-
-// មើលអត្រាប្តូរប្រាក់
 router.get(
   "/fx/rates",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getFXRates,
+  safeHandler(adminController.getFXRates, "getFXRates"),
 );
 
-// ==========================================
-// 💰 ២. មុខងារហិរញ្ញវត្ថុ (Finance, Super, និង Custom)
-// ==========================================
-// ដាក់/ដកប្រាក់
-router.post(
-  "/adjust-balance",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.adjustBalance,
-);
-
-// អនុម័តប្រតិបត្តិការ
-router.post(
-  "/approve-transaction",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.approveTransaction,
-);
-
-// ផ្លាស់ប្តូរអត្រាប្តូរប្រាក់ (FX Rates)
-router.post(
-  "/fx/update",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.updateFX,
-);
-
-// ==========================================
-// 👥 ៣. មុខងារគ្រប់គ្រងគណនី Admin (សម្រាប់តែ Super Admin ប៉ុណ្ណោះ)
-// ==========================================
-// មើលបញ្ជីអ្នកគ្រប់គ្រង (Admins)
+// មើលថ្លៃសេវា និងកែប្រែថ្លៃសេវា
 router.get(
-  "/list-admins",
+  "/fees",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getFeeSettings, "getFeeSettings"),
+);
+router.post(
+  "/fees",
   checkRole([ROLE_SUPER]),
-  adminController.getAdminsList,
+  safeHandler(adminController.updateFeeSettings, "updateFeeSettings"),
 );
 
-// បង្កើត ឬកែប្រែគណនី Admin
-router.post(
-  "/save-admin",
+// មើលកំណត់ត្រាសកម្មភាពរបស់ Admin ទាំងអស់
+router.get(
+  "/logs",
   checkRole([ROLE_SUPER]),
-  adminController.saveAdminAccount,
+  safeHandler(adminController.getAdminLogs, "getAdminLogs"),
 );
-
-// លុបគណនី Admin
 router.post(
-  "/delete-admin",
-  checkRole([ROLE_SUPER]),
-  adminController.deleteAdminAccount,
-);
-
-router.post(
-  "/toggle-admin-status",
-  checkRole([ROLE_SUPER]),
-  adminController.toggleAdminStatus,
+  "/log-action",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.logCustomAction, "logCustomAction"),
 );
 
 // ==========================================
-// 📊 ៤. មុខងារទូទៅ និងការគ្រប់គ្រងអតិថិជន
+// 👥 ផ្នែកទី ៤៖ គ្រប់គ្រងគណនី Admin គ្នាឯង
 // ==========================================
-// របាយការណ៍ស្ថិតិ (Stats)
-router.get(
-  "/stats",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getStats,
-);
-
-// របាយការណ៍បន្ថែម (Extra Dashboard)
-router.get(
-  "/dashboard-extra",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getDashboardExtra,
-);
-
-// មើលប្រតិបត្តិការលម្អិត
-router.get(
-  "/transaction/:id",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getTransaction,
-);
-
-// កែប្រែព័ត៌មានអតិថិជន
-router.post(
-  "/edit-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.editUser,
-);
-
-// បិទ/បើក គណនីអតិថិជន (Freeze User)
-router.post(
-  "/toggle-freeze",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.toggleFreeze,
-);
-
-// បិទ/បើក កាតអតិថិជន (Lock Card)
-router.post(
-  "/toggle-card-lock",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.toggleAdminCardLock,
-);
-
-// អនុម័ត ឬបដិសេធ KYC
-router.post(
-  "/kyc-action",
-  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.kycAction,
-);
-
-// ឆ្លើយតបសំបុត្រជំនួយ (Ticket Reply)
-router.post(
-  "/ticket-reply",
-  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.ticketReply,
-);
-
-// ទាញយកព័ត៌មាន Admin ផ្ទាល់ខ្លួន
 router.get(
   "/me",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getMe,
+  safeHandler(adminController.getMe, "getMe"),
 );
-
-// ឆែកមើល NFC ជាន់គ្នាភ្លាមៗ
-router.post(
-  "/check-nfc",
+router.get(
+  "/list-admins",
   checkRole([ROLE_SUPER]),
-  adminController.checkAdminNfcUid,
+  safeHandler(adminController.getAdminsList, "getAdminsList"),
 );
-
-// 🟢 Super Admin Reset Password បុគ្គលិក
+router.post(
+  "/save-admin",
+  checkRole([ROLE_SUPER]),
+  safeHandler(adminController.saveAdminAccount, "saveAdminAccount"),
+);
+router.post(
+  "/delete-admin",
+  checkRole([ROLE_SUPER]),
+  safeHandler(adminController.deleteAdminAccount, "deleteAdminAccount"),
+);
+router.post(
+  "/toggle-admin-status",
+  checkRole([ROLE_SUPER]),
+  safeHandler(adminController.toggleAdminStatus, "toggleAdminStatus"),
+);
 router.post(
   "/reset-admin-password",
   checkRole([ROLE_SUPER]),
-  adminController.adminResetPassword,
+  safeHandler(adminController.adminResetPassword, "adminResetPassword"),
 );
-
-// ==========================================
-// 📢 ៥. មុខងារផ្សព្វផ្សាយ រង្វាន់ និង AI Support (Broadcast, Promo & AI)
-// ==========================================
-// ផ្ញើសារជូនដំណឹង (Broadcast)
 router.post(
-  "/broadcast",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.broadcast,
-);
-
-// លុបសារជូនដំណឹង
-router.post(
-  "/delete-broadcast",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.deleteBroadcast,
-);
-
-// មើលថ្លៃសេវា (Fee Settings)
-router.get(
-  "/fees",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getFeeSettings,
-);
-
-// កែប្រែថ្លៃសេវា (Super Admin តែម្នាក់គត់)
-router.post(
-  "/fees",
+  "/check-nfc",
   checkRole([ROLE_SUPER]),
-  adminController.updateFeeSettings,
+  safeHandler(adminController.checkAdminNfcUid, "checkAdminNfcUid"),
 );
 
-// បង្កើតកូដប្រូម៉ូសិន (Promo Code)
+// ==========================================
+// 📊 ផ្នែកទី ៥៖ របាយការណ៍ និងស្ថិតិ (Dashboard)
+// ==========================================
+router.get(
+  "/stats",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getStats, "getStats"),
+);
+router.get(
+  "/dashboard-extra",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getDashboardExtra, "getDashboardExtra"),
+);
+
+// ==========================================
+// 🔍 ផ្នែកទី ៦៖ គ្រប់គ្រងអតិថិជន (Customer 360)
+// ==========================================
+router.post(
+  "/search-user",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.searchUserByAdmin, "searchUserByAdmin"),
+);
+router.post(
+  "/get-user",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getUserByAdmin, "getUserByAdmin"),
+);
+router.post(
+  "/edit-user",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.editUser, "editUser"),
+);
+router.post(
+  "/delete-user",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.deleteUser, "deleteUser"),
+);
+router.post(
+  "/toggle-freeze",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.toggleFreeze, "toggleFreeze"),
+);
+router.post(
+  "/force-logout",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminForceLogout, "adminForceLogout"),
+);
+router.post(
+  "/kyc-action",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.kycAction, "kycAction"),
+);
+router.post(
+  "/upload-kyc",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.adminUploadKyc, "adminUploadKyc"),
+);
+
+// ==========================================
+// 💰 ផ្នែកទី ៧៖ ហិរញ្ញវត្ថុ និងប្រតិបត្តិការ (Finance)
+// ==========================================
+router.get(
+  "/transaction/:id",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getTransaction, "getTransaction"),
+);
+router.post(
+  "/adjust-balance",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.adjustBalance, "adjustBalance"),
+);
+router.post(
+  "/approve-transaction",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.approveTransaction, "approveTransaction"),
+);
+router.post(
+  "/refund-transaction",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.refundTransaction, "refundTransaction"),
+);
+router.post(
+  "/fx/update",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.updateFX, "updateFX"),
+);
+
+// ==========================================
+// 🛍️ ផ្នែកទី ៨៖ បញ្ជរគិតប្រាក់ (Cashier System)
+// ==========================================
+router.get(
+  "/cashier/search/:identifier",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.searchCashierUser, "searchCashierUser"),
+);
+router.post(
+  "/cashier/transaction",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.processCashierTransaction,
+    "processCashierTransaction",
+  ),
+);
+
+// ==========================================
+// 💳 ផ្នែកទី ៩៖ កាត NFC និងហាងទំនិញ (Cards & Merchants)
+// ==========================================
+router.post(
+  "/create-card",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminCreateCard, "adminCreateCard"),
+);
+router.post(
+  "/delete-card",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminDeleteCard, "adminDeleteCard"),
+);
+router.post(
+  "/toggle-card-lock",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.toggleAdminCardLock, "toggleAdminCardLock"),
+);
+
+// NFC Cards (តភ្ជាប់មកពី cardController)
+router.post(
+  "/cards/bind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  cardController.bindNfcCard,
+);
+router.post(
+  "/cards/unbind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  cardController.unbindNfcCard,
+);
+
+// Merchants (តភ្ជាប់មកពី merchantController និង adminController)
+router.post(
+  "/create-merchant",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminCreateMerchant, "adminCreateMerchant"),
+);
+router.post(
+  "/toggle-merchant-freeze",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  merchantController.adminToggleMerchantFreeze,
+);
+router.put(
+  "/edit-merchant",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  merchantController.adminEditMerchant,
+);
+router.delete(
+  "/delete-merchant/:id",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  merchantController.adminDeleteMerchant,
+);
+
+// ==========================================
+// 📢 ផ្នែកទី ១០៖ ទីផ្សារ ជំនួយអតិថិជន និង AI (Promo, Tickets, Broadcast & AI)
+// ==========================================
 router.post(
   "/promo/create",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.createPromoCode,
+  safeHandler(adminController.createPromoCode, "createPromoCode"),
 );
-
-// មើលបញ្ជីកូដប្រូម៉ូសិន
 router.get(
   "/promos",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getPromoCodes,
+  safeHandler(adminController.getPromoCodes, "getPromoCodes"),
 );
-
-// បិទ/បើក កូដប្រូម៉ូសិន
 router.post(
   "/promo/toggle",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  adminController.togglePromoCode,
+  safeHandler(adminController.togglePromoCode, "togglePromoCode"),
 );
 
-// 🤖 2. បន្ថែម Route សម្រាប់ AI Smart Reply (ឱ្យទាំង Super, Support និង Custom ប្រើបាន)
+router.post(
+  "/ticket-reply",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.ticketReply, "ticketReply"),
+);
+router.post(
+  "/broadcast",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.broadcast, "broadcast"),
+);
+router.get(
+  "/broadcast-history",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getBroadcastHistory, "getBroadcastHistory"),
+);
+router.post(
+  "/delete-broadcast",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.deleteBroadcast, "deleteBroadcast"),
+);
+
+// 🤖 AI Smart Reply
 router.post(
   "/ai-reply",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
@@ -251,123 +328,6 @@ router.post(
 );
 
 // ==========================================
-// 🏪 ៦. មុខងារគ្រប់គ្រង ហាងទំនិញ (Merchant Management)
+// 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
-// ផ្អាកហាង (Freeze Merchant)
-router.post(
-  "/toggle-merchant-freeze",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminToggleMerchantFreeze,
-);
-
-// លុបហាង
-router.delete(
-  "/delete-merchant/:id",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminDeleteMerchant,
-);
-
-// កែប្រែព័ត៌មានហាង
-router.put(
-  "/edit-merchant",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminEditMerchant,
-);
-
-// បង្កើតហាងថ្មី
-router.post(
-  "/create-merchant",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  adminController.adminCreateMerchant,
-);
-
-// ==========================================
-// ⚙️ ៧. មុខងារ Logs និងកាតបន្ថែម
-// ==========================================
-// កត់ត្រាសកម្មភាព Admin
-router.post(
-  "/log-action",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.logCustomAction,
-);
-
-// លុបកាតចោល
-router.post(
-  "/delete-card",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  adminController.adminDeleteCard,
-);
-
-// បង្កើតកាតថ្មី
-router.post(
-  "/create-card",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  adminController.adminCreateCard,
-);
-
-// អាប់ឡូតឯកសារ KYC
-router.post(
-  "/upload-kyc",
-  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.adminUploadKyc,
-);
-
-// បង្ខំអោយ Logout (Force Logout)
-router.post(
-  "/force-logout",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  adminController.adminForceLogout,
-);
-
-// ==========================================
-// 🛍️ ៨. មុខងារសម្រាប់បញ្ជរគិតប្រាក់ (Cashier System)
-// ==========================================
-// ស្វែងរកអតិថិជនដើម្បីគិតប្រាក់
-router.get(
-  "/cashier/search/:identifier",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.searchCashierUser,
-);
-
-// ដំណើរការគិតប្រាក់ (Cashier Transaction)
-router.post(
-  "/cashier/transaction",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.processCashierTransaction,
-);
-
-// ==========================================
-// 🔍 ៩. CUSTOMER 360° ROUTES (LIVE DB SEARCH)
-// ==========================================
-// ស្វែងរកអតិថិជនដោយ Admin
-router.post(
-  "/search-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.searchUserByAdmin,
-);
-
-// ទាញយកព័ត៌មានអតិថិជនលម្អិត
-router.post(
-  "/get-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  adminController.getUserByAdmin,
-);
-
-// ==========================================
-// 💳 ១០. មុខងារគ្រប់គ្រង NFC Card
-// ==========================================
-// ភ្ជាប់ NFC Card
-router.post(
-  "/cards/bind-nfc",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  cardController.bindNfcCard,
-);
-
-// ផ្តាច់ NFC Card
-router.post(
-  "/cards/unbind-nfc",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  cardController.unbindNfcCard,
-);
-
 module.exports = router;

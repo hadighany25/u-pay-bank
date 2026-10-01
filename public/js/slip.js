@@ -1,6 +1,8 @@
 // js/slip.js
 
+// ==========================================
 // ១. បង្កើតទម្រង់ Slip HTML បញ្ចូលទៅក្នុងទំព័រដោយស្វ័យប្រវត្តិ
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("slipModal")) {
     const slipHTML = `
@@ -46,9 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
         
-        <!-- ផ្ទាំងប៊ូតុងខាងក្រោម ៣ (មានភ្ជាប់ ID សម្រាប់ប្តូរ) -->
+        <!-- ផ្ទាំងប៊ូតុងខាងក្រោម ៣ -->
         <div id="slipActionButtons" style="display:flex; justify-content:center; gap:35px; margin-top: 25px;">
-          <!-- Default Buttons -->
+          <!-- Default Buttons នឹងត្រូវ Generate ដោយ JS -->
         </div>
       </div>
     `;
@@ -57,6 +59,39 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.currentSlipData = null;
+
+// ==========================================
+// 🌟 មុខងារថ្មី សម្រាប់ហៅ Slip ទារបំណុល (P2P Debt)
+// វានឹងរុញទិន្នន័យក្លែងក្លាយ ទៅឱ្យមុខងារ Slip ធំខាងក្រោម
+// ==========================================
+window.openDebtSlip = function (
+  amount,
+  date,
+  refId,
+  partnerName,
+  fundName,
+  isLend,
+) {
+  const userObj = JSON.parse(sessionStorage.getItem("user")) || {};
+  const currentUserName = userObj.username || "System";
+  const currentUserFullName = userObj.fullName || currentUserName;
+
+  const fakeTx = {
+    amount: isLend ? Math.abs(amount) : -Math.abs(amount),
+    currency: "USD",
+    date: date,
+    refId: refId || "N/A",
+    hash: "PENDING (Auto-Recovery)", // មិនទាន់សង
+    senderName: isLend ? partnerName : currentUserFullName,
+    receiverName: isLend ? currentUserFullName : partnerName,
+    type: "P2P Debt Record",
+    trxMethod: "Bailout Agreement",
+    remark: isLend ? `Receivable for ${fundName}` : `Debt for ${fundName}`,
+  };
+
+  // បញ្ជូនទៅមុខងារខាងក្រោម
+  openGlobalSlip(fakeTx, currentUserName);
+};
 
 // ==========================================
 // ២. មុខងារបង្ហាញ Slip ធម្មតា (Global History)
@@ -93,6 +128,7 @@ function openGlobalSlip(t, currentUsername) {
 
   const tType = (t.type || "").toLowerCase();
 
+  // 🌟 ការវិភាគប្រភេទទិន្នន័យ ដើម្បីប្តូរពណ៌ Slip
   if (tType.includes("deposit")) {
     bgColor = "#10b981";
     iconColor = "#10b981";
@@ -100,6 +136,14 @@ function openGlobalSlip(t, currentUsername) {
     titleText = "Cash Deposit";
     lblSenderText = "Deposited By";
     lblReceiverText = "Credited To";
+  } else if (tType.includes("p2p debt record")) {
+    // 🌟 លក្ខខណ្ឌថ្មីសម្រាប់បំណុល P2P
+    bgColor = isIncome ? "#10b981" : "#ef4444";
+    iconColor = bgColor;
+    iconClass = "fa-handshake";
+    titleText = isIncome ? "P2P Receivable Contract" : "P2P Debt Contract";
+    lblSenderText = isIncome ? "Debtor" : "Debtor (You)";
+    lblReceiverText = isIncome ? "Creditor (You)" : "Creditor";
   } else if (tType.includes("payroll")) {
     bgColor = "#0ea5e9";
     iconColor = "#0ea5e9";
@@ -166,11 +210,9 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipHash").innerText = t.hash || "N/A";
   document.getElementById("slipDate").innerText = t.date;
 
-  // 🔥 មុខងារឆ្លាតវៃ៖ កំណត់លេខកាត និង លេខហាង (Merchant ID)
   let displaySenderAcc = t.senderAcc || "";
   let displayReceiverAcc = t.receiverAcc || "";
 
-  // ១. បើមានលេខកាត យកលេខកាតមក Mask
   if (t.cardNumber) {
     const maskedCard = `(${t.cardNumber.substring(0, 4)} **** **** ${t.cardNumber.slice(-4)})`;
     if (tType.includes("refund")) {
@@ -180,8 +222,6 @@ function openGlobalSlip(t, currentUsername) {
     }
   }
 
-  // ណែនាំ៖ បើជាប្រតិបត្តិការទូទាត់ឱ្យហាង (Payment / NFC Payment) ហើយភ្ញៀវជាអ្នកមើល (isIncome = false)
-  // គឺត្រូវលុបលេខកុង/លេខហាងចេញ (មិនបាច់បង្ហាញទេ ទុកជា string ទទេ)
   if (
     (tType.includes("merchant") ||
       tType.includes("scan") ||
@@ -191,7 +231,6 @@ function openGlobalSlip(t, currentUsername) {
   ) {
     displayReceiverAcc = "";
   } else if (t.merchantId) {
-    // សម្រាប់ម្ចាស់ហាងមើល (isIncome = true) ទើបបង្ហាញ Merchant ID
     if (tType.includes("refund")) {
       displaySenderAcc = isIncome ? `(${t.merchantId})` : "";
     } else {
@@ -262,7 +301,7 @@ function openPosSlip(t, currentUsername) {
 }
 
 // ==========================================
-// 🖨️ មុខងារបញ្ជាម៉ាស៊ីនព្រីន (Smart Detection Fix សម្រាប់ Sunmi Web)
+// 🖨️ មុខងារបញ្ជាម៉ាស៊ីនព្រីន
 // ==========================================
 function printPosReceipt() {
   if (window.Android && typeof window.Android.printReceipt === "function") {
@@ -292,7 +331,9 @@ function printPosReceipt() {
   }, 500);
 }
 
-// ៣. មុខងារ Share ពិតៗ (Web Share API)
+// ==========================================
+// ៣. មុខងារ Share (Web Share API)
+// ==========================================
 async function shareSlipGlobal() {
   const iconBox = document.querySelector(
     "#slipModal .fa-share-nodes",
@@ -350,7 +391,9 @@ function closeSlipGlobal() {
   document.getElementById("slipModal").style.display = "none";
 }
 
-// ៥. មុខងារ Download PDF ទម្រង់ U-Pay Standard ថ្មី (Classic ABA Style + Khmer Sanitizer)
+// ==========================================
+// ៥. មុខងារ Download PDF ទម្រង់ U-Pay Standard ថ្មី
+// ==========================================
 async function downloadSlipPDF() {
   const t = window.currentSlipData;
   if (!t) return;
@@ -423,9 +466,13 @@ async function downloadSlipPDF() {
         let lblSenderText = "Sender";
         let lblReceiverText = "Receiver";
 
+        // 🌟 កែសម្រួល PDF ឱ្យគាំទ្របំណុល P2P
         if (tType.includes("deposit")) {
           lblSenderText = "Deposited By";
           lblReceiverText = "Credited To";
+        } else if (tType.includes("p2p debt")) {
+          lblSenderText = isIncome ? "Debtor" : "Debtor (You)";
+          lblReceiverText = isIncome ? "Creditor (You)" : "Creditor";
         } else if (tType.includes("payroll")) {
           lblSenderText = "Company / Payer";
           lblReceiverText = "Employee";
@@ -460,7 +507,6 @@ async function downloadSlipPDF() {
           else displaySenderAcc = maskedCard;
         }
 
-        // 🟢 កែសម្រួល PDF ឱ្យលាក់ Merchant ID សម្រាប់ភ្ញៀវដូចគ្នា
         if (t.merchantId) {
           if (tType.includes("refund")) {
             displaySenderAcc = isIncome ? `(${t.merchantId})` : "";
@@ -475,6 +521,8 @@ async function downloadSlipPDF() {
         let displayTitle =
           (isIncome ? t.senderName : t.receiverName) || "SYSTEM";
         if (tType.includes("deposit")) displayTitle = "CASH DEPOSIT";
+        else if (tType.includes("p2p debt"))
+          displayTitle = isIncome ? "P2P RECEIVABLE" : "P2P DEBT";
         else if (tType.includes("payroll"))
           displayTitle = isIncome ? "SALARY" : "PAYROLL";
         else if (tType.includes("fund") || tType.includes("saving"))

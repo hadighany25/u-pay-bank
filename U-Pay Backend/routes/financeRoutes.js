@@ -5,10 +5,29 @@ const {
   withdrawFixedDeposit,
   cashbackReward,
 } = require("../controllers/financeController");
+const {
+  verifyUser,
+  enforceSystemActive,
+} = require("../middleware/authMiddleware");
 
-// រក្សាទុកតែមុខងារទាំងនេះ ព្រោះ U-Fund បានទៅនៅ ufundRoutes.js អស់ហើយ
-router.post("/fixed-deposit", createFixedDeposit);
-router.post("/fixed-deposit/withdraw", withdrawFixedDeposit);
-router.post("/reward/cashback", cashbackReward);
+// ត្រូវមាន verifyUser និង enforceSystemActive ដូច APIដទៃទៀត ដើម្បីកុំឱ្យទติด Security Block
+router.post(
+  "/fixed-deposit",
+  verifyUser,
+  enforceSystemActive,
+  createFixedDeposit,
+);
+router.post(
+  "/fixed-deposit/withdraw",
+  verifyUser,
+  enforceSystemActive,
+  withdrawFixedDeposit,
+);
+router.post(
+  "/reward/cashback",
+  verifyUser,
+  enforceSystemActive,
+  cashbackReward,
+);
 
 module.exports = router;

@@ -19,6 +19,7 @@ const {
   toggleReaction,
   globalSearch,
   editMsg,
+  readSingleNotification,
   getScheduledMessages,
 } = require("../controllers/communicationController");
 
@@ -28,6 +29,8 @@ router.get("/user/notifications", getNotifications);
 router.post("/user/read-notifications", readNotifications);
 router.post("/admin/broadcast", broadcast);
 router.post("/admin/delete-broadcast", deleteBroadcast);
+// 🟢 ថែមមួយជួរនេះចូល ដើម្បីអោយស៊ីគ្នាជាមួយ Frontend (dashboard.html)
+router.post("/user/notifications/read/:notifId", readSingleNotification);
 
 // Chat Core Features
 router.post("/chat/send", sendChat);

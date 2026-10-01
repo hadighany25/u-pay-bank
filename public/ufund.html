@@ -1,17 +1,12 @@
+<!-- ufund.html -->
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- ==========================================
-         ១. ផ្នែកក្បាល (META & SEO)
-         ========================================== -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>U-Fund - U-Pay</title>
 
-    <!-- ==========================================
-         ២. ភ្ជាប់ពុម្ពអក្សរ និងរូបតំណាង (FONTS & ICONS)
-         ========================================== -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -21,25 +16,17 @@
       rel="stylesheet"
     />
 
-    <!-- ==========================================
-         ៣. ភ្ជាប់បណ្ណាល័យ និង CORE (SCRIPTS)
-         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
-    <!-- 🧠 ភ្ជាប់ខួរក្បាលកណ្តាល -->
 
-    <!-- ==========================================
-         ៤. ផ្នែករចនា (CSS STYLES)
-         ========================================== -->
     <style>
-      /* --- 🚀 ការពារការលោតពណ៌ស (FOUC PREVENTION) --- */
       body {
         background-color: #f2f4f6;
         margin: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
-        visibility: hidden; /* លាក់សិនរង់ចាំ Core ដំណើរការចប់ */
+        visibility: hidden;
         opacity: 0;
         display: flex;
         justify-content: center;
@@ -51,10 +38,13 @@
       }
       body.loaded {
         visibility: visible;
-        opacity: 1; /* បង្ហាញវិញយ៉ាងរលូន */
+        opacity: 1;
       }
 
-      /* --- 📱 រចនាសម្ព័ន្ធទូទៅ (BASE APP CONTAINER) --- */
+      .kh-text {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
       .app-container {
         width: 100%;
         max-width: 450px;
@@ -94,7 +84,6 @@
         transition: background-color 0.3s;
       }
 
-      /* --- ❌ ទិដ្ឋភាពពេលគ្មានគម្រោង (NO FUND STATE) --- */
       #noFundState {
         text-align: center;
         margin-top: 50px;
@@ -117,12 +106,12 @@
         cursor: pointer;
         transition: 0.2s;
         box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
       }
       .btn-create:active {
         transform: scale(0.95);
       }
 
-      /* --- ✅ ទិដ្ឋភាពពេលមានគម្រោង (HAS FUND STATE - CAROUSEL) --- */
       #hasFundState {
         width: 100%;
         display: none;
@@ -143,7 +132,7 @@
         flex: 0 0 100%;
         scroll-snap-align: center;
         width: 100%;
-        height: 210px;
+        min-height: 210px;
         z-index: 10;
       }
       .fund-inner {
@@ -176,7 +165,18 @@
         pointer-events: none;
       }
 
-      /* --- 📝 ព័ត៌មានកាតសន្សំ (FUND DETAILS) --- */
+      .announcement-bar {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        margin-bottom: 15px;
+        border-left: 3px solid #f59e0b;
+        z-index: 2;
+        display: none;
+      }
+
       .fund-top {
         display: flex;
         justify-content: space-between;
@@ -216,8 +216,13 @@
       .fund-bottom {
         z-index: 2;
       }
+      .fund-deadline {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 8px;
+        text-align: right;
+      }
 
-      /* --- 📊 របារភាគរយ (PROGRESS BAR) --- */
       .progress-header {
         display: flex;
         justify-content: space-between;
@@ -242,7 +247,6 @@
         background: #f59e0b;
       }
 
-      /* --- 🔘 ចំណុចប្រាប់ទំព័រ (DOTS INDICATOR) --- */
       .slider-dots {
         display: flex;
         justify-content: center;
@@ -263,7 +267,6 @@
         border-radius: 10px;
       }
 
-      /* --- ⚙️ បញ្ជីការកំណត់ (SETTINGS LIST) --- */
       .settings-section {
         background: transparent;
         padding: 0 10px;
@@ -313,7 +316,6 @@
         color: #94a3b8;
       }
 
-      /* --- 👥 បញ្ជីសមាជិក (LEADERBOARD ACCORDION) --- */
       .members-list {
         max-height: 0;
         transition: max-height 0.4s ease-out;
@@ -332,13 +334,25 @@
         align-items: center;
         padding: 12px 10px;
         border-bottom: 1px dashed #e2e8f0;
+        position: relative;
       }
       .member-item:last-child {
         border-bottom: none;
       }
+
+      .transfer-btn {
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.3s ease;
+      }
+      .member-item:hover .transfer-btn {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
       .member-avatar {
-        width: 35px;
-        height: 35px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         background: #e2e8f0;
         display: flex;
@@ -346,7 +360,13 @@
         justify-content: center;
         font-weight: bold;
         color: #004d40;
-        font-size: 0.9rem;
+        font-size: 1rem;
+        overflow: hidden;
+      }
+      .member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
       .member-name {
         font-weight: 700;
@@ -379,7 +399,6 @@
         font-size: 1rem;
       }
 
-      /* --- ➕ ប៊ូតុងអណ្តែត (FLOATING ACTION BUTTON) --- */
       .fab-container {
         position: fixed;
         bottom: 95px;
@@ -410,7 +429,6 @@
         transform: scale(0.9);
       }
 
-      /* --- 🧭 ម៉ឺនុយខាងក្រោម (BOTTOM NAV) --- */
       .bottom-nav {
         position: fixed;
         bottom: 0;
@@ -446,17 +464,27 @@
         transform: translateY(-5px);
       }
 
-      /* --- 🎨 តុបតែង SWEETALERT (PREMIUM SWAL) --- */
       .premium-swal {
         border-radius: 20px !important;
+        font-family: "Inter", "Kantumruy Pro", sans-serif !important;
       }
       .swal2-input,
-      .swal2-select {
+      .swal2-select,
+      .swal2-textarea {
         border-radius: 12px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        font-family: inherit;
       }
 
-      /* --- 🌙 មុខងារងងឹត (DARK MODE OVERRIDES) --- */
+      .dep-swal-label {
+        color: #475569;
+      }
+      .dep-swal-input {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #1e293b;
+      }
+
+      /* Dark Mode ... */
       body.dark-mode {
         background-color: #000000 !important;
       }
@@ -511,65 +539,147 @@
         background-color: #334155 !important;
         color: #10b981 !important;
       }
+      body.dark-mode .dep-swal-label {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .dep-swal-input {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .dep-swal-icon {
+        color: #10b981 !important;
+      }
+      /* 🌟 ពណ៌ Dark Mode សម្រាប់ផ្ទាំង Create/Settings ថ្មី */
+      body.dark-mode .swal-inp {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .swal-lbl {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .swal-check-row {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .swal-check-row span {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .section-title-green {
+        color: #10b981 !important;
+        border-bottom-color: #334155 !important;
+      }
+      body.dark-mode .section-title-red {
+        color: #ef4444 !important;
+        border-bottom-color: #334155 !important;
+      }
     </style>
   </head>
   <body>
-    <!-- ==========================================
-         ៥. រចនាសម្ព័ន្ធទំព័រ (BODY LAYOUT)
-         ========================================== -->
     <div class="app-container">
-      <!-- ក្បាលទំព័រ (Header) -->
       <div class="nav-header">
         <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-i18n="ufund_title">U-Fund (Savings)</span>
+        <span class="kh-text" data-i18n="ufund_title">U-Fund (Savings)</span>
       </div>
 
       <div class="content-body">
-        <!-- ==========================================
-             ទិដ្ឋភាព ១: គ្មានគម្រោងសន្សំទេ (NO FUND STATE)
-             ========================================== -->
         <div id="noFundState">
           <i class="fa-solid fa-piggy-bank"></i>
-          <h3 data-i18n="ufund_no_fund_title">No U-Funds Yet</h3>
+          <h3 class="kh-text" data-i18n="ufund_no_fund_title">
+            No U-Funds Yet
+          </h3>
           <p
+            class="kh-text"
             data-i18n="ufund_no_fund_desc"
             style="color: #888; margin-bottom: 30px"
           >
             Start a personal goal or group tontine to save money smartly!
           </p>
-          <button class="btn-create" onclick="openCreateFundUI()">
+          <button class="btn-create kh-text" onclick="openCreateFundUI()">
             <span data-i18n="ufund_btn_create_new">Create New U-Fund</span>
           </button>
         </div>
 
-        <!-- ==========================================
-             ទិដ្ឋភាព ២: មានគម្រោងសន្សំ (HAS FUND STATE)
-             ========================================== -->
         <div id="hasFundState">
-          <!-- កន្លែងអូសកាតគម្រោង (Slider) -->
+          <!-- Overdue Banner -->
+          <div
+            id="overdueBanner"
+            style="
+              display: none;
+              background: #fef2f2;
+              border: 1px solid #fca5a5;
+              border-radius: 15px;
+              padding: 15px;
+              margin-bottom: 15px;
+              align-items: center;
+              justify-content: space-between;
+              box-shadow: 0 4px 10px rgba(239, 68, 68, 0.1);
+            "
+          >
+            <div style="display: flex; align-items: center; gap: 10px">
+              <i
+                class="fa-solid fa-circle-exclamation"
+                style="color: #ef4444; font-size: 1.5rem"
+              ></i>
+              <div>
+                <h4
+                  class="kh-text"
+                  style="margin: 0; color: #991b1b; font-size: 0.9rem"
+                  data-i18n="ufund_overdue_warning"
+                >
+                  You have an outstanding balance!
+                </h4>
+                <p
+                  class="kh-text"
+                  style="margin: 2px 0 0 0; color: #ef4444; font-size: 0.8rem"
+                >
+                  <span data-i18n="ufund_amount">Amount:</span>
+                  <b id="overdueAmtDisplay">$0.00</b>
+                </p>
+              </div>
+            </div>
+            <button
+              class="kh-text"
+              onclick="payMyOverdue()"
+              data-i18n="ufund_btn_pay_now"
+              style="
+                background: #ef4444;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+              "
+            >
+              Pay Now
+            </button>
+          </div>
+
           <div
             class="funds-slider"
             id="fundsSlider"
             onscroll="updateActiveDot()"
           ></div>
-          <!-- ចំណុចប្រាប់ទីតាំងកាត (Dots) -->
           <div class="slider-dots" id="sliderDots"></div>
 
-          <!-- បញ្ជីមុខងារការកំណត់ (Settings Section) -->
           <div class="settings-section">
-            <div class="settings-header" data-i18n="ufund_actions">
+            <div class="settings-header kh-text" data-i18n="ufund_actions">
               Fund Actions
             </div>
 
-            <!-- មុខងារទី ១: ដាក់ប្រាក់ (Manual Deposit) -->
             <div class="setting-item" onclick="openDepositUI()">
               <div class="setting-left">
                 <div class="setting-icon">
                   <i class="fa-solid fa-circle-plus"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-i18n="ufund_act_deposit">Deposit Money</h4>
-                  <p data-i18n="ufund_act_deposit_desc">
+                  <h4 class="kh-text" data-i18n="ufund_act_deposit">
+                    Deposit / Bailout
+                  </h4>
+                  <p class="kh-text" data-i18n="ufund_act_deposit_desc">
                     Add funds manually to the pool
                   </p>
                 </div>
@@ -580,7 +690,6 @@
               ></i>
             </div>
 
-            <!-- មុខងារទី ២: អញ្ជើញមិត្តភក្តិ (Invite) - ឃើញតែអ្នកបង្កើត (Creator) -->
             <div
               class="setting-item"
               onclick="openInviteUI()"
@@ -591,8 +700,10 @@
                   <i class="fa-solid fa-user-plus"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-i18n="ufund_act_invite">Invite Friends</h4>
-                  <p data-i18n="ufund_act_invite_desc">
+                  <h4 class="kh-text" data-i18n="ufund_act_invite">
+                    Invite Friends
+                  </h4>
+                  <p class="kh-text" data-i18n="ufund_act_invite_desc">
                     Add members to this group fund
                   </p>
                 </div>
@@ -603,15 +714,14 @@
               ></i>
             </div>
 
-            <!-- មុខងារទី ៣: បង្ហាញ QR Code (Show QR) -->
             <div class="setting-item" onclick="showFundQR()">
               <div class="setting-left">
                 <div class="setting-icon">
                   <i class="fa-solid fa-qrcode"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-i18n="ufund_act_qr">Fund QR Code</h4>
-                  <p data-i18n="ufund_act_qr_desc">
+                  <h4 class="kh-text" data-i18n="ufund_act_qr">Fund QR Code</h4>
+                  <p class="kh-text" data-i18n="ufund_act_qr_desc">
                     Scan to receive money directly
                   </p>
                 </div>
@@ -622,10 +732,9 @@
               ></i>
             </div>
 
-            <!-- មុខងារទី ៤: កែប្រែគម្រោង (Edit Fund) - ឃើញតែអ្នកបង្កើត -->
             <div
               class="setting-item"
-              onclick="openEditFundUI()"
+              onclick="openAdvancedSettingsUI()"
               id="btnEditFund"
             >
               <div class="setting-left">
@@ -633,9 +742,11 @@
                   <i class="fa-solid fa-pen-to-square"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-i18n="ufund_act_edit">Edit Fund Details</h4>
-                  <p data-i18n="ufund_act_edit_desc">
-                    Change name, target, or auto-deposit rules
+                  <h4 class="kh-text" data-i18n="ufund_act_edit">
+                    Advanced Settings
+                  </h4>
+                  <p class="kh-text" data-i18n="ufund_act_edit_desc">
+                    Change rules, lock fund, or set deadlines
                   </p>
                 </div>
               </div>
@@ -645,7 +756,42 @@
               ></i>
             </div>
 
-            <!-- មុខងារទី ៥: បិទគម្រោង (Close/Cancel Fund) - ឃើញតែអ្នកបង្កើត -->
+            <div
+              class="setting-item"
+              onclick="requestLeaveFund()"
+              id="btnLeaveFund"
+              style="display: none"
+            >
+              <div class="setting-left">
+                <div class="setting-icon">
+                  <i
+                    class="fa-solid fa-person-walking-arrow-right"
+                    style="color: #ef4444"
+                  ></i>
+                </div>
+                <div class="setting-info">
+                  <h4
+                    class="kh-text"
+                    style="color: #ef4444"
+                    data-i18n="ufund_act_leave"
+                  >
+                    Leave Fund
+                  </h4>
+                  <p
+                    class="kh-text"
+                    style="color: #fca5a5"
+                    data-i18n="ufund_act_leave_desc"
+                  >
+                    Request to leave and refund
+                  </p>
+                </div>
+              </div>
+              <i
+                class="fa-solid fa-chevron-right"
+                style="color: #fca5a5; font-size: 0.9rem"
+              ></i>
+            </div>
+
             <div
               class="setting-item"
               onclick="closeOrCancelFund()"
@@ -662,12 +808,17 @@
                 <div class="setting-info">
                   <h4
                     id="closeFundText"
+                    class="kh-text"
                     style="color: #ef4444"
                     data-i18n="ufund_close_cancel"
                   >
                     Cancel Fund
                   </h4>
-                  <p id="closeFundDesc" data-i18n="ufund_close_cancel_desc">
+                  <p
+                    id="closeFundDesc"
+                    class="kh-text"
+                    data-i18n="ufund_close_cancel_desc"
+                  >
                     Stop and refund all members
                   </p>
                 </div>
@@ -678,7 +829,6 @@
               ></i>
             </div>
 
-            <!-- មុខងារទី ៦: បញ្ជីសមាជិក (Leaderboard Accordion) -->
             <div
               class="setting-item"
               style="padding: 15px 0; border-bottom: none"
@@ -689,8 +839,10 @@
                   <i class="fa-solid fa-users"></i>
                 </div>
                 <div class="setting-info">
-                  <h4 data-i18n="ufund_act_members">Members & Leaderboard</h4>
-                  <p data-i18n="ufund_act_members_desc">
+                  <h4 class="kh-text" data-i18n="ufund_act_members">
+                    Members & Leaderboard
+                  </h4>
+                  <p class="kh-text" data-i18n="ufund_act_members_desc">
                     Tap to view contributions
                   </p>
                 </div>
@@ -706,66 +858,49 @@
         </div>
       </div>
 
-      <!-- ==========================================
-           ប៊ូតុងអណ្តែតបង្កើតថ្មី (FAB)
-           ========================================== -->
       <div class="fab-container" id="fabContainer" style="display: none">
         <button class="fab-btn" onclick="openCreateFundUI()">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
-
-      <!-- ==========================================
-           ម៉ឺនុយខាងក្រោម (BOTTOM NAV)
-           ========================================== -->
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item">
-          <i class="fa-solid fa-house"></i>
-          <span data-i18n="nav_home">Home</span>
-        </a>
-        <a href="scan.html" class="nav-item">
-          <i class="fa-solid fa-qrcode"></i>
-          <span data-i18n="nav_scan">Scan</span>
-        </a>
-        <a href="history.html" class="nav-item">
-          <i class="fa-solid fa-clock-rotate-left"></i>
-          <span data-i18n="nav_history">History</span>
-        </a>
-        <a href="settings.html" class="nav-item">
-          <i class="fa-solid fa-gear"></i>
-          <span data-i18n="nav_settings">Settings</span>
-        </a>
-      </div>
     </div>
 
-    <!-- ==========================================
-         ៦. ផ្នែកដំណើរការកម្មវិធី (JAVASCRIPT LOGIC)
-         ========================================== -->
     <script>
-      // ==========================================
-      // 🧠 ក. ការគ្រប់គ្រងទិន្នន័យពី CORE (Global Variables)
-      // ==========================================
-      // ប្រើប្រាស់ទិន្នន័យ (User, Token, Headers) ពី u-pay-core.js ដោយផ្ទាល់
       const user = window.currentUser;
       let activeFunds = [];
       let currentFundIndex = 0;
 
-      // ==========================================
-      // 🔄 ខ. ដំណើរការពេលទំព័រលោតចេញ (On Load)
-      // ==========================================
+      // 🌟 HELPER FUNCTION
+      function t(key) {
+        const lang = localStorage.getItem("lang") || "en";
+        if (
+          typeof translations !== "undefined" &&
+          translations[lang] &&
+          translations[lang][key]
+        ) {
+          return translations[lang][key];
+        }
+        if (
+          typeof translations !== "undefined" &&
+          translations["en"] &&
+          translations["en"][key]
+        ) {
+          return translations["en"][key];
+        }
+        return key;
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
-        // ចំណាំ៖ ការរៀបចំ Theme និង Language ត្រូវបានគ្រប់គ្រងដោយ u-pay-core.js រួចរាល់ហើយ។
-        fetchMyFunds(); // ទាញទិន្នន័យគម្រោងសន្សំភ្លាមៗ
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
+        fetchMyFunds();
       });
 
-      // ==========================================
-      // 📡 គ. មុខងារទាក់ទងជាមួយ API (API Helpers)
-      // ==========================================
       async function fetchAPI(endpoint, payload) {
         try {
           const res = await fetch(endpoint, {
             method: "POST",
-            headers: window.authHeaders, // ប្រើ Header របស់កណ្តាល
+            headers: window.authHeaders,
             body: JSON.stringify(payload),
           });
           if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
@@ -777,22 +912,19 @@
       }
 
       async function fetchMyFunds() {
-        if (!user) return; // ការពារកុំឱ្យ Error ពេល User អត់មានទិន្នន័យ
+        if (!user) return;
         const data = await fetchAPI("/api/ufund/list", {
           username: user.username,
         });
         if (data.success) {
           activeFunds = data.funds || [];
-          renderFunds(); // បញ្ជូនទៅគូរ UI
+          renderFunds();
         } else {
           document.getElementById("noFundState").innerHTML =
-            `<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i><p>${data.message}</p>`;
+            `<i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i><p class="kh-text">${data.message}</p>`;
         }
       }
 
-      // ==========================================
-      // 🎨 ឃ. មុខងារគូរទិដ្ឋភាព (Render UI)
-      // ==========================================
       function renderFunds() {
         const slider = document.getElementById("fundsSlider");
         const dots = document.getElementById("sliderDots");
@@ -814,21 +946,42 @@
             const themeClass = f.type === "group" ? "theme-group" : "";
             const badgeIcon = f.type === "group" ? "fa-users" : "fa-user";
 
-            // បន្ថែម data-i18n ទៅលើអក្សរដែលគូរដោយ JS
+            const typeKey =
+              f.type === "group" ? "ufund_type_group" : "ufund_type_personal";
+            const adminObj = f.members.find((m) => m.role === "admin");
+            const creatorName = adminObj ? adminObj.fullName : f.creator;
+            const activeCount =
+              f.members.filter((m) => m.status !== "pending").length || 1;
+            const fairShare = f.targetAmount / activeCount;
+
+            const memoHtml = f.announcement
+              ? `<div class="announcement-bar kh-text"><i class="fa-solid fa-bullhorn" style="color:#f59e0b; margin-right:5px;"></i> ${f.announcement}</div>`
+              : "";
+
+            let deadlineHtml = "";
+            if (f.deadline) {
+              const dDate = new Date(f.deadline);
+              const isOverdue = dDate < new Date();
+              const dColor = isOverdue ? "#ef4444" : "rgba(255,255,255,0.6)";
+              deadlineHtml = `<div class="fund-deadline kh-text" style="color:${dColor}"><i class="fa-regular fa-calendar-xmark"></i> <span>${t("ufund_deadline")}</span> ${dDate.toLocaleDateString()}</div>`;
+            }
+
             slider.innerHTML += `
               <div class="fund-perspective">
                 <div class="fund-inner ${themeClass}">
+                  ${memoHtml}
                   <div class="fund-top">
-                    <h3 class="fund-name">${f.name} <br><span style="font-size:0.7rem; font-weight:normal; color:rgba(255,255,255,0.7)"><span data-i18n="ufund_creator">Creator:</span> ${f.creator}</span></h3>
-                    <div class="fund-type-badge"><i class="fa-solid ${badgeIcon}"></i> <span style="text-transform:capitalize;">${f.type}</span></div>
+                    <h3 class="fund-name kh-text">${f.name} <br><span style="font-size:0.7rem; font-weight:normal; color:rgba(255,255,255,0.7)"><span>${t("ufund_creator")}</span> ${creatorName} ${f.isLocked ? '<i class="fa-solid fa-lock" style="color:#f59e0b; margin-left:5px;"></i>' : ""}</span></h3>
+                    <div class="fund-type-badge kh-text"><i class="fa-solid ${badgeIcon}"></i> <span>${t(typeKey)}</span></div>
                   </div>
                   <div class="fund-middle">
-                    <p class="fund-target"><span data-i18n="ufund_target">Target:</span> $${f.targetAmount.toLocaleString()}</p>
+                    <p class="fund-target kh-text"><span>${t("ufund_target")}</span> $${f.targetAmount.toLocaleString()} | <span>${t("ufund_fairshare")}</span> $${fairShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}/<span>${t("ufund_pax")}</span></p>
                     <h1 class="fund-amount">$${f.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h1>
                   </div>
                   <div class="fund-bottom">
-                    <div class="progress-header"><span data-i18n="ufund_progress">Progress</span><span>${percent}%</span></div>
+                    <div class="progress-header kh-text"><span>${t("ufund_progress")}</span><span>${percent}%</span></div>
                     <div class="progress-bg"><div class="progress-bar ${isFull ? "success" : ""}" style="width: ${percent}%"></div></div>
+                    ${deadlineHtml}
                   </div>
                 </div>
               </div>`;
@@ -855,13 +1008,10 @@
           document
             .querySelectorAll(".dot")
             .forEach((d, i) => d.classList.toggle("active", i === index));
-          syncFundActions(); // រៀបចំសិទ្ធិឡើងវិញពេលអូសកាត
+          syncFundActions();
         }
       }
 
-      // ==========================================
-      // ⚙️ ង. មុខងារបិទ/បើកសិទ្ធិ (Sync Actions)
-      // ==========================================
       function syncFundActions() {
         const currentFund = activeFunds[currentFundIndex];
         if (!currentFund) return;
@@ -870,7 +1020,9 @@
         const isFull = currentFund.currentAmount >= currentFund.targetAmount;
 
         document.getElementById("btnInviteFriend").style.display =
-          currentFund.type === "group" && isCreator ? "flex" : "none";
+          currentFund.type === "group" && isCreator && !isFull
+            ? "flex"
+            : "none";
         document.getElementById("btnEditFund").style.display = isCreator
           ? "flex"
           : "none";
@@ -878,60 +1030,120 @@
           ? "flex"
           : "none";
 
+        const myMemberInfo = currentFund.members.find(
+          (m) => m.username === user.username,
+        );
+
+        if (
+          !isCreator &&
+          myMemberInfo &&
+          myMemberInfo.status === "active" &&
+          !currentFund.isLocked &&
+          !isFull &&
+          (!myMemberInfo.leaveRequest || !myMemberInfo.leaveRequest.requested)
+        ) {
+          document.getElementById("btnLeaveFund").style.display = "flex";
+        } else {
+          document.getElementById("btnLeaveFund").style.display = "none";
+        }
+
         const btnCloseIcon = document.getElementById("closeFundIcon");
         const btnCloseText = document.getElementById("closeFundText");
         const btnCloseDesc = document.getElementById("closeFundDesc");
 
-        // ដូរ data-i18n ទៅតាមលក្ខខណ្ឌ ពេញ ឬ មិនពេញ
         if (isFull) {
           btnCloseIcon.className = "fa-solid fa-check-double";
           btnCloseIcon.style.color = "#10b981";
-          btnCloseText.setAttribute("data-i18n", "ufund_close_success");
+          btnCloseText.innerText = t("ufund_close_btn");
           btnCloseText.style.color = "#10b981";
-          btnCloseDesc.setAttribute("data-i18n", "ufund_close_success_desc");
+          btnCloseDesc.innerText = t("ufund_close_desc");
         } else {
           btnCloseIcon.className = "fa-solid fa-power-off";
           btnCloseIcon.style.color = "#ef4444";
-          btnCloseText.setAttribute("data-i18n", "ufund_close_cancel");
+          btnCloseText.innerText = t("ufund_close_cancel");
           btnCloseText.style.color = "#ef4444";
-          btnCloseDesc.setAttribute("data-i18n", "ufund_close_cancel_desc");
+          btnCloseDesc.innerText = t("ufund_close_cancel_desc");
+        }
+
+        const banner = document.getElementById("overdueBanner");
+        if (myMemberInfo && myMemberInfo.status === "overdue") {
+          banner.style.display = "flex";
+          const oweAmt =
+            myMemberInfo.debtAmount > 0
+              ? myMemberInfo.debtAmount
+              : myMemberInfo.autoDeposit.amount;
+          document.getElementById("overdueAmtDisplay").innerText =
+            `$${oweAmt.toFixed(2)}`;
+        } else {
+          banner.style.display = "none";
         }
 
         const container = document.getElementById("membersListContainer");
         container.innerHTML = "";
-        const sortedMembers = [...currentFund.members].sort(
-          (a, b) => b.contributedAmount - a.contributedAmount,
-        );
+
+        const sortedMembers = [...currentFund.members].sort((a, b) => {
+          if (a.role === "admin" && b.role !== "admin") return -1;
+          if (b.role === "admin" && a.role !== "admin") return 1;
+          return b.contributedAmount - a.contributedAmount;
+        });
 
         sortedMembers.forEach((m) => {
           let stClass = "st-active";
-          let stI18n = "ufund_status_active";
+          let stI18nHTML = `<span class="kh-text">${t("ufund_status_active")}</span>`;
+          let actionBtn = "";
+
           if (m.status === "pending") {
             stClass = "st-pending";
-            stI18n = "ufund_status_pending";
-          }
-          if (m.status === "overdue") {
+            stI18nHTML = `<span class="kh-text">${t("ufund_status_pending")}</span>`;
+            if (isCreator) {
+              actionBtn = `
+                <button class="kh-text" onclick="nudgePending('${m.username}')" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px;"><i class="fa-solid fa-bell"></i> <span>${t("ufund_btn_remind")}</span></button>
+                <button class="kh-text" onclick="cancelPendingInvite('${m.username}', '${m.fullName}')" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px; margin-left:3px;"><i class="fa-solid fa-xmark"></i> <span>${t("ufund_btn_cancel")}</span></button>
+              `;
+            }
+          } else if (m.status === "overdue") {
             stClass = "st-overdue";
-            stI18n = "ufund_status_overdue";
+            const oweAmt =
+              m.debtAmount > 0 ? m.debtAmount : m.autoDeposit.amount;
+            stI18nHTML = `<span class="kh-text">${t("ufund_status_overdue")}</span> ($${oweAmt})`;
+            if (isCreator && m.username !== user.username) {
+              actionBtn = `<button class="kh-text" onclick="sendOverdueReminder('${currentFund._id}', '${m.username}')" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px;"><i class="fa-solid fa-bullhorn"></i> <span>${t("ufund_btn_remind")}</span></button>`;
+            }
+          } else if (m.status === "active") {
+            if (m.leaveRequest && m.leaveRequest.requested) {
+              if (isCreator) {
+                actionBtn = `<button class="kh-text" onclick="approveLeaveFund('${m.username}', '${m.fullName}')" style="background:#fef2f2; color:#ef4444; border:1px solid #fecaca; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px;"><i class="fa-solid fa-person-walking-arrow-right"></i> <span>${t("ufund_btn_approve_leave")}</span></button>`;
+              } else if (m.username === user.username) {
+                actionBtn = `<button class="kh-text" onclick="cancelMyLeaveRequest()" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px;"><i class="fa-solid fa-rotate-left"></i> <span>${t("ufund_btn_cancel_leave")}</span></button>`;
+              } else {
+                actionBtn = `<span class="kh-text" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; padding:2px 6px; border-radius:6px; font-size:0.6rem; margin-top:3px; display:inline-block;"><i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i> <span>${t("ufund_status_leaving")}</span></span>`;
+              }
+            } else if (isCreator && m.username !== user.username) {
+              actionBtn = `<button class="transfer-btn kh-text" onclick="transferAdminOwnership('${m.username}', '${m.fullName}')" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd; padding:3px 8px; border-radius:6px; font-size:0.65rem; cursor:pointer; margin-top:3px;"><i class="fa-solid fa-crown"></i> <span>${t("ufund_change_owner")}</span></button>`;
+            }
           }
+
+          let avatarHtml = m.profileImage
+            ? `<img src="${m.profileImage}">`
+            : `${m.fullName.charAt(0).toUpperCase()}`;
+          let youTag =
+            m.username === user.username
+              ? ` <span class="kh-text" style="color:#94a3b8; font-size:0.75rem;">${t("ufund_you_tag")}</span>`
+              : "";
 
           container.innerHTML += `
             <div class="member-item">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <div class="member-avatar">${m.fullName.charAt(0).toUpperCase()}</div>
+                    <div class="member-avatar">${avatarHtml}</div>
                     <div>
-                        <div class="member-name">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}</div>
-                        <span class="member-status ${stClass}" data-i18n="${stI18n}"></span>
+                        <div class="member-name kh-text">${m.role === "admin" ? '<i class="fa-solid fa-crown" style="color:#f59e0b"></i> ' : ""}${m.fullName}${youTag}</div>
+                        <span class="member-status kh-text ${stClass}">${stI18nHTML}</span>
+                        <div style="margin-top:2px;">${actionBtn}</div>
                     </div>
                 </div>
-                <div class="member-amt">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                <div class="member-amt kh-text">$${m.contributedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             </div>`;
         });
-
-        // 🔥 បញ្ជាឱ្យប្រព័ន្ធបកប្រែដំណើរការម្តងទៀត បន្ទាប់ពីគូរកូដថ្មីរួច
-        if (typeof window.applyLanguage === "function") {
-          window.applyLanguage();
-        }
       }
 
       function toggleMembersList() {
@@ -945,86 +1157,131 @@
           : "rotate(0)";
       }
 
-      // ==========================================
-      // 🚀 ច. មុខងារចម្បង (LIFECYCLE: Create, Edit, Close)
-      // ==========================================
-      // ១. បង្កើតគម្រោងថ្មី
       async function openCreateFundUI() {
+        const tNow = new Date();
+        const curTimeStr =
+          ("0" + tNow.getHours()).slice(-2) +
+          ":" +
+          ("0" + tNow.getMinutes()).slice(-2);
+        const todayStr = tNow.toISOString().split("T")[0];
+
         const { value: formValues } = await Swal.fire({
-          title:
-            '<i class="fa-solid fa-piggy-bank" style="color:var(--primary); font-size:2.5rem; margin-bottom:10px;"></i><br><span style="font-size:1.4rem;">Create U-Fund</span>',
           html: `
             <style>
-                .fund-form-group { margin-bottom: 12px; text-align: left; }
-                .fund-form-group label { font-size: 0.85rem; color: #475569; font-weight: 600; margin-bottom: 6px; display: block; }
-                .fund-input { width: 100%; padding: 12px 15px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; box-sizing: border-box; outline: none; transition: 0.3s; background: white; font-family: 'Inter', 'Kantumruy Pro', sans-serif;}
-                .fund-input:focus { border-color: #004d40; box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1); }
-                .auto-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; }
-                .flex-row { display: flex; gap: 10px; margin-top: 10px; }
-                .flex-row > div { flex: 1; }
+              .form-row { display: flex; gap: 12px; margin-bottom: 12px; text-align: left; }
+              .form-col { flex: 1; }
+              .swal-lbl { font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block; }
+              .swal-inp { width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; color: #1e293b; box-sizing: border-box; font-family:inherit; transition: 0.2s; outline: none; }
+              .swal-inp:focus { border-color: #004d40; box-shadow: 0 0 0 3px rgba(0,77,64,0.1); }
+              .swal-check-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; text-align: left; background: #f8fafc; padding: 12px 15px; border-radius: 10px; border: 1.5px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
+              .swal-check-row:hover { border-color: #cbd5e1; }
+              .section-title-green { text-align: left; margin: 20px 0 10px; font-weight: 800; color: #004d40; font-size: 1.05rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+              .section-title-red { text-align: left; margin: 20px 0 10px; font-weight: 800; color: #ef4444; font-size: 1.05rem; border-bottom: 2px solid #fecaca; padding-bottom: 6px; }
             </style>
+            
+            <i class="fa-solid fa-piggy-bank" style="color:#004d40; font-size:2.8rem; margin-bottom:10px;"></i><br>
+            <span class="kh-text" style="font-size:1.3rem; font-weight:800; color:#1e293b;">${t("ufund_swal_create_title")}</span><br><br>
 
-            <div class="fund-form-group">
-                <label>Fund Name</label>
-                <input id="swal-fname" class="fund-input" placeholder="e.g. Bali Trip 2026">
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_name")}</label>
+                <input id="swal-fname" class="swal-inp kh-text" placeholder="e.g. Bali Trip">
+              </div>
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_target")}</label>
+                <input id="swal-famt" type="number" class="swal-inp kh-text" placeholder="0.00">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_type")}</label>
+                <select id="swal-ftype" class="swal-inp kh-text" style="appearance: auto; background-color: white;">
+                    <option value="personal">${t("ufund_type_personal")}</option>
+                    <option value="group">${t("ufund_type_group")}</option>
+                </select>
+              </div>
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_deadline")}</label>
+                <input id="swal-deadline" type="date" class="swal-inp kh-text" min="${todayStr}" style="background-color: white;">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_memo")}</label>
+                <textarea id="swal-memo" class="swal-inp kh-text" rows="2" placeholder="Rules or notes..."></textarea>
+              </div>
+            </div>
+
+            <label class="swal-check-row" for="swal-lock">
+              <input type="checkbox" id="swal-lock" style="width:20px; height:20px; accent-color:#004d40; cursor:pointer;">
+              <div>
+                <span class="kh-text" style="font-weight:700; font-size:0.95rem; color:#1e293b; display:block;">${t("ufund_swal_create_lock")}</span>
+                <span class="kh-text" style="font-size:0.75rem; color:#64748b;">${t("ufund_swal_create_lock_desc")}</span>
+              </div>
+            </label>
+
+            <div class="section-title-green kh-text">${t("ufund_swal_create_late")}</div>
+            <div class="form-row">
+              <div class="form-col">
+                <select id="swal-late-rule" class="swal-inp kh-text" style="appearance: auto; background-color: white;">
+                    <option value="zero" selected>${t("ufund_swal_create_late_zero")}</option>
+                    <option value="catchup">${t("ufund_swal_create_late_catchup")}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title-green kh-text">${t("ufund_swal_create_auto")}</div>
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_auto_amt")}</label>
+                <input id="swal-auto-amt" type="number" class="swal-inp kh-text" placeholder="0.00">
+              </div>
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_auto_freq")}</label>
+                <select id="swal-auto-freq" class="swal-inp kh-text" style="appearance: auto; background-color: white;">
+                    <option value="none" selected>${t("ufund_swal_create_auto_none")}</option>
+                    <option value="daily">${t("ufund_swal_create_auto_daily")}</option>
+                    <option value="weekly">${t("ufund_swal_create_auto_weekly")}</option>
+                    <option value="monthly">${t("ufund_swal_create_auto_monthly")}</option>
+                </select>
+              </div>
             </div>
             
-            <div class="flex-row">
-                <div class="fund-form-group">
-                    <label>Target Amount ($)</label>
-                    <input id="swal-famt" type="number" class="fund-input" placeholder="0.00">
-                </div>
-                <div class="fund-form-group">
-                    <label>Fund Type</label>
-                    <select id="swal-ftype" class="fund-input">
-                        <option value="personal">Personal</option>
-                        <option value="group">Group</option>
-                    </select>
-                </div>
+            <div id="create-time-box" class="form-row" style="display: none;">
+              <div class="form-col">
+                <label class="swal-lbl kh-text"><i class="fa-regular fa-clock"></i> ${t("ufund_swal_create_auto_time")}</label>
+                <input id="swal-auto-time" type="time" class="swal-inp kh-text" value="${curTimeStr}" style="background-color: white;">
+              </div>
             </div>
 
-            <div class="auto-box">
-                <label style="font-weight:bold; font-size:0.9rem; color:#004d40; margin-bottom:10px; display:block;">
-                    <i class="fa-solid fa-robot"></i> Auto-Deduct Rule
-                </label>
-                
-                <div class="flex-row">
-                    <div class="fund-form-group" style="margin-bottom:0;">
-                        <label>Amount ($)</label>
-                        <input id="swal-auto-amt" type="number" class="fund-input" placeholder="0.00">
-                    </div>
-                    <div class="fund-form-group" style="margin-bottom:0;">
-                        <label>Frequency</label>
-                        <select id="swal-auto-freq" class="fund-input">
-                            <option value="none">None</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="time-picker-box" class="fund-form-group" style="display: none; margin-top: 15px; margin-bottom: 0;">
-                    <label><i class="fa-regular fa-clock"></i> Execution Time (AM/PM)</label>
-                    <input id="swal-auto-time" type="time" class="fund-input" value="08:00">
-                    <span style="font-size:0.7rem; color:#94a3b8; margin-top:5px; display:block;">* Time is strictly based on Cambodia Time (GMT+7).</span>
-                </div>
+            <div class="section-title-red kh-text">${t("ufund_swal_create_penalty")}</div>
+            <label class="swal-check-row" for="swal-pen-en">
+              <input type="checkbox" id="swal-pen-en" style="width:20px; height:20px; accent-color:#ef4444; cursor:pointer;">
+              <div>
+                <span class="kh-text" style="font-weight:700; font-size:0.95rem; color:#1e293b; display:block;">${t("ufund_swal_create_penalty_en")}</span>
+              </div>
+            </label>
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_penalty_amt")}</label>
+                <input id="swal-pen-amt" type="number" class="swal-inp kh-text" placeholder="0.50">
+              </div>
             </div>
           `,
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           cancelButtonColor: "#94a3b8",
-          confirmButtonText: "Create Fund",
-          customClass: { popup: "premium-swal" },
+          confirmButtonText: t("ufund_swal_create_btn"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
           didOpen: () => {
             const freqSelect = document.getElementById("swal-auto-freq");
-            const timeBox = document.getElementById("time-picker-box");
+            const timeBox = document.getElementById("create-time-box");
             freqSelect.addEventListener("change", (e) => {
-              if (e.target.value !== "none") {
-                timeBox.style.display = "block";
-              } else {
-                timeBox.style.display = "none";
-              }
+              timeBox.style.display =
+                e.target.value !== "none" ? "flex" : "none";
             });
           },
           preConfirm: () => {
@@ -1032,6 +1289,17 @@
               name: document.getElementById("swal-fname").value,
               target: document.getElementById("swal-famt").value,
               type: document.getElementById("swal-ftype").value,
+              isLocked: document.getElementById("swal-lock").checked,
+              deadline: document.getElementById("swal-deadline").value,
+              announcement: document.getElementById("swal-memo").value,
+              lateJoinerRule: document.getElementById("swal-late-rule").value,
+              penaltyRule: {
+                enabled: document.getElementById("swal-pen-en").checked,
+                amount:
+                  parseFloat(document.getElementById("swal-pen-amt").value) ||
+                  0,
+                gracePeriodDays: 1,
+              },
               autoAmt: document.getElementById("swal-auto-amt").value || 0,
               autoFreq: document.getElementById("swal-auto-freq").value,
               autoTime: document.getElementById("swal-auto-time").value,
@@ -1041,97 +1309,228 @@
 
         if (formValues && formValues.name && formValues.target > 0) {
           Swal.fire({
-            title: "Creating...",
+            title: t("ufund_processing"),
             didOpen: () => Swal.showLoading(),
           });
-
           const data = await fetchAPI("/api/ufund/create", {
             username: user.username,
             ...formValues,
           });
-
           if (data.success) {
             Swal.fire({
               icon: "success",
-              title: "Created!",
+              title: t("ufund_success"),
               timer: 1500,
               showConfirmButton: false,
             });
             fetchMyFunds();
-          } else Swal.fire("Error", data.message, "error");
+          } else Swal.fire(t("ufund_failed"), data.message, "error");
         }
       }
 
-      // ២. កែប្រែគម្រោង (Edit Fund)
-      async function openEditFundUI() {
+      async function openAdvancedSettingsUI() {
         const fund = activeFunds[currentFundIndex];
+        const myMemberInfo = fund.members.find(
+          (m) => m.username === user.username,
+        );
+        const autoInfo =
+          myMemberInfo && myMemberInfo.autoDeposit
+            ? myMemberInfo.autoDeposit
+            : { enabled: false, amount: 0, frequency: "none", time: "08:00" };
+
+        const tNow = new Date();
+        const curTimeStr =
+          ("0" + tNow.getHours()).slice(-2) +
+          ":" +
+          ("0" + tNow.getMinutes()).slice(-2);
+        const todayStr = tNow.toISOString().split("T")[0];
+
         const { value: formValues } = await Swal.fire({
-          title: "Edit Fund Settings",
           html: `
-            <input id="swal-edit-name" class="swal2-input" value="${fund.name}" placeholder="Fund Name">
-            <input id="swal-edit-target" type="number" class="swal2-input" value="${fund.targetAmount}" placeholder="Target Amount ($)">
+            <style>
+              .form-row { display: flex; gap: 12px; margin-bottom: 12px; text-align: left; }
+              .form-col { flex: 1; }
+              .swal-lbl { font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block; }
+              .swal-inp { width: 100%; padding: 12px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; color: #1e293b; box-sizing: border-box; font-family:inherit; transition: 0.2s; outline: none; }
+              .swal-inp:focus { border-color: #004d40; box-shadow: 0 0 0 3px rgba(0,77,64,0.1); }
+              .swal-check-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; text-align: left; background: #f8fafc; padding: 12px 15px; border-radius: 10px; border: 1.5px solid #e2e8f0; cursor: pointer; transition: 0.2s; }
+              .swal-check-row:hover { border-color: #cbd5e1; }
+              .section-title-green { text-align: left; margin: 20px 0 10px; font-weight: 800; color: #004d40; font-size: 1.05rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
+              .section-title-red { text-align: left; margin: 20px 0 10px; font-weight: 800; color: #ef4444; font-size: 1.05rem; border-bottom: 2px solid #fecaca; padding-bottom: 6px; }
+            </style>
+            
+            <i class="fa-solid fa-pen-to-square" style="color:#004d40; font-size:2.8rem; margin-bottom:10px;"></i><br>
+            <span class="kh-text" style="font-size:1.3rem; font-weight:800; color:#1e293b;">${t("ufund_swal_adv_title")}</span><br><br>
+
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_name")}</label>
+                <input id="set-name" class="swal-inp kh-text" value="${fund.name}">
+              </div>
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_target")}</label>
+                <input id="set-target" type="number" class="swal-inp kh-text" value="${fund.targetAmount}">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_deadline")}</label>
+                <input id="set-deadline" type="date" class="swal-inp kh-text" min="${todayStr}" value="${fund.deadline ? fund.deadline.split("T")[0] : ""}" style="background-color: white;">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_memo")}</label>
+                <textarea id="set-memo" class="swal-inp kh-text" rows="2">${fund.announcement || ""}</textarea>
+              </div>
+            </div>
+
+            <label class="swal-check-row" for="set-lock">
+              <input type="checkbox" id="set-lock" ${fund.isLocked ? "checked" : ""} style="width:20px; height:20px; accent-color:#004d40; cursor:pointer;">
+              <div>
+                <span class="kh-text" style="font-weight:700; font-size:0.95rem; color:#1e293b; display:block;">${t("ufund_swal_create_lock")}</span>
+                <span class="kh-text" style="font-size:0.75rem; color:#64748b;">${t("ufund_swal_create_lock_desc")}</span>
+              </div>
+            </label>
+
+            <div class="section-title-green kh-text">${t("ufund_swal_create_late")}</div>
+            <div class="form-row">
+              <div class="form-col">
+                <select id="set-late-rule" class="swal-inp kh-text" style="appearance: auto; background-color: white;">
+                    <option value="zero" ${fund.lateJoinerRule === "zero" || !fund.lateJoinerRule ? "selected" : ""}>${t("ufund_swal_create_late_zero")}</option>
+                    <option value="catchup" ${fund.lateJoinerRule === "catchup" ? "selected" : ""}>${t("ufund_swal_create_late_catchup")}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="section-title-green kh-text">${t("ufund_swal_create_auto")}</div>
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_auto_amt")}</label>
+                <input id="set-auto-amt" type="number" class="swal-inp kh-text" value="${autoInfo.amount}">
+              </div>
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_auto_freq")}</label>
+                <select id="set-auto-freq" class="swal-inp kh-text" style="appearance: auto; background-color: white;">
+                    <option value="none" ${autoInfo.frequency === "none" ? "selected" : ""}>${t("ufund_swal_create_auto_none")}</option>
+                    <option value="daily" ${autoInfo.frequency === "daily" ? "selected" : ""}>${t("ufund_swal_create_auto_daily")}</option>
+                    <option value="weekly" ${autoInfo.frequency === "weekly" ? "selected" : ""}>${t("ufund_swal_create_auto_weekly")}</option>
+                    <option value="monthly" ${autoInfo.frequency === "monthly" ? "selected" : ""}>${t("ufund_swal_create_auto_monthly")}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div id="edit-time-box" class="form-row" style="display: ${autoInfo.frequency !== "none" ? "flex" : "none"};">
+              <div class="form-col">
+                <label class="swal-lbl kh-text"><i class="fa-regular fa-clock"></i> ${t("ufund_swal_create_auto_time")}</label>
+                <input id="set-auto-time" type="time" class="swal-inp kh-text" value="${autoInfo.time || curTimeStr}" style="background-color: white;">
+              </div>
+            </div>
+
+            <div class="section-title-red kh-text">${t("ufund_swal_create_penalty")}</div>
+            <label class="swal-check-row" for="set-pen-en">
+              <input type="checkbox" id="set-pen-en" ${fund.penaltyRule && fund.penaltyRule.enabled ? "checked" : ""} style="width:20px; height:20px; accent-color:#ef4444; cursor:pointer;">
+              <div>
+                <span class="kh-text" style="font-weight:700; font-size:0.95rem; color:#1e293b; display:block;">${t("ufund_swal_create_penalty_en")}</span>
+              </div>
+            </label>
+            <div class="form-row">
+              <div class="form-col">
+                <label class="swal-lbl kh-text">${t("ufund_swal_create_penalty_amt")}</label>
+                <input id="set-pen-amt" type="number" class="swal-inp kh-text" value="${fund.penaltyRule ? fund.penaltyRule.amount : 0}">
+              </div>
+            </div>
           `,
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           cancelButtonColor: "#64748b",
-          confirmButtonText: "Save Changes",
-          customClass: { popup: "premium-swal" },
+          confirmButtonText: t("ufund_swal_adv_btn"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+          didOpen: () => {
+            const freqSelect = document.getElementById("set-auto-freq");
+            const timeBox = document.getElementById("edit-time-box");
+            freqSelect.addEventListener("change", (e) => {
+              timeBox.style.display =
+                e.target.value !== "none" ? "flex" : "none";
+            });
+          },
           preConfirm: () => {
             return {
-              name: document.getElementById("swal-edit-name").value,
-              target: document.getElementById("swal-edit-target").value,
+              name: document.getElementById("set-name").value,
+              target: document.getElementById("set-target").value,
+              deadline: document.getElementById("set-deadline").value,
+              announcement: document.getElementById("set-memo").value,
+              isLocked: document.getElementById("set-lock").checked,
+              lateJoinerRule: document.getElementById("set-late-rule").value,
+              penaltyRule: {
+                enabled: document.getElementById("set-pen-en").checked,
+                amount:
+                  parseFloat(document.getElementById("set-pen-amt").value) || 0,
+                gracePeriodDays: 1,
+              },
+              autoDeposit: {
+                enabled:
+                  document.getElementById("set-auto-freq").value !== "none",
+                amount:
+                  parseFloat(document.getElementById("set-auto-amt").value) ||
+                  0,
+                frequency: document.getElementById("set-auto-freq").value,
+                time:
+                  document.getElementById("set-auto-time").value || curTimeStr,
+              },
             };
           },
         });
 
         if (formValues) {
           Swal.fire({
-            title: "Processing...",
+            title: t("ufund_processing"),
             didOpen: () => Swal.showLoading(),
           });
-          const data = await fetchAPI("/api/ufund/edit", {
+          const data = await fetchAPI("/api/ufund/update-settings", {
             username: user.username,
             fundId: fund._id,
-            name: formValues.name,
-            target: formValues.target,
+            ...formValues,
           });
-
           if (data.success) {
             Swal.fire({
               icon: "success",
-              title: "Saved!",
+              title: t("ufund_success"),
               timer: 1500,
               showConfirmButton: false,
             });
             fetchMyFunds();
           } else {
-            Swal.fire("Failed", data.message, "error");
+            Swal.fire(t("ufund_failed"), data.message, "error");
           }
         }
       }
 
-      // ៣. បិទគម្រោង (Close / Cancel Fund)
       async function closeOrCancelFund() {
         const fund = activeFunds[currentFundIndex];
         const isFull = fund.currentAmount >= fund.targetAmount;
 
-        const confirmMsg = isFull
-          ? "Are you sure you want to close this successful fund and transfer the balance to your main account?"
-          : "Are you sure you want to cancel this fund? All contributions will be refunded to the members.";
-
         const result = await Swal.fire({
-          title: isFull ? "Success & Close?" : "Cancel Fund?",
-          text: confirmMsg,
+          title: isFull ? t("ufund_close_success") : t("ufund_close_cancel"),
+          text: isFull
+            ? t("ufund_close_success_desc")
+            : t("ufund_close_cancel_desc"),
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: isFull ? "#10b981" : "#ef4444",
-          confirmButtonText: isFull ? "Yes, Close it!" : "Yes, Cancel it!",
-          customClass: { popup: "premium-swal" },
+          confirmButtonText: isFull
+            ? t("ufund_close_btn")
+            : t("ufund_close_cancel"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
         });
 
         if (result.isConfirmed) {
           Swal.fire({
-            title: "Processing...",
+            title: t("ufund_processing"),
             didOpen: () => Swal.showLoading(),
           });
           const data = await fetchAPI("/api/ufund/close", {
@@ -1141,43 +1540,112 @@
           if (data.success) {
             Swal.fire({
               icon: "success",
-              title: "Done!",
+              title: t("ufund_success"),
               text: data.message,
               timer: 2000,
               showConfirmButton: false,
             });
             fetchMyFunds();
-          } else Swal.fire("Error", data.message, "error");
+          } else Swal.fire(t("ufund_failed"), data.message, "error");
         }
       }
 
-      // ==========================================
-      // 💸 ឆ. មុខងារប្រតិបត្តិការ (Deposit, Invite, QR)
-      // ==========================================
-      // ១. ដាក់ប្រាក់ចូលគម្រោង (Manual Deposit)
       async function openDepositUI() {
         const fund = activeFunds[currentFundIndex];
-        const { value: amt } = await Swal.fire({
-          title: "Manual Deposit",
-          html: `<div style="font-weight:bold; color:#0284c7; margin-bottom:15px;">➡️ ${fund.name}</div>
-                 <input id="dep-amt" type="number" class="swal2-input" placeholder="Amount ($)">`,
+        if (fund.currentAmount >= fund.targetAmount)
+          return Swal.fire(
+            "Full!",
+            "This fund has reached its target!",
+            "info",
+          );
+
+        const myMemberInfo = fund.members.find(
+          (m) => m.username === user.username,
+        );
+        if (myMemberInfo && myMemberInfo.status === "pending")
+          return Swal.fire(
+            "Pending",
+            "Please accept the invitation first!",
+            "warning",
+          );
+
+        const overdueMembers = fund.members.filter(
+          (m) => m.status === "overdue" && m.username !== user.username,
+        );
+
+        let bailoutOptions = `<option class="kh-text" value="">${t("ufund_dep_self")}</option>`;
+
+        overdueMembers.forEach((m) => {
+          const oweAmt = m.debtAmount > 0 ? m.debtAmount : m.autoDeposit.amount;
+          bailoutOptions += `<option class="kh-text" value="${m.username}">🤝 ${t("ufund_dep_bail")} ${m.fullName} (${t("ufund_dep_owes")} $${oweAmt})</option>`;
+        });
+
+        const { value: formValues } = await Swal.fire({
+          html: `
+            <div style="background: linear-gradient(135deg, #004d40, #0284c7); padding: 20px; border-radius: 15px; color: white; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <i class="fa-solid fa-piggy-bank" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+                <h3 style="margin: 0; line-height: 1.3;" class="kh-text">${fund.name}</h3>
+            </div>
+            
+            <div class="dep-swal-label kh-text" style="text-align:left; margin-bottom:8px; font-size:0.85rem; font-weight:bold;">${t("ufund_dep_select")}</div>
+            <div style="position: relative; margin-bottom: 20px;">
+                <i class="fa-solid fa-handshake dep-swal-icon" style="position: absolute; left: 15px; top: 15px; font-size: 1.1rem; color: #0284c7;"></i>
+                <select id="dep-target" class="dep-swal-input kh-text" style="width: 100%; padding: 15px 15px 15px 45px; border: 2px solid; border-radius: 15px; font-size: 0.95rem; appearance: none; outline: none; cursor: pointer; transition: 0.3s;">
+                    ${bailoutOptions}
+                </select>
+                <i class="fa-solid fa-chevron-down" style="position: absolute; right: 15px; top: 18px; color: #94a3b8; pointer-events: none;"></i>
+            </div>
+            
+            <div class="dep-swal-label kh-text" style="text-align:left; margin-bottom:8px; font-size:0.85rem; font-weight:bold;">${t("ufund_dep_enter_amt")}</div>
+            <div style="position: relative;">
+                <span class="dep-swal-icon kh-text" style="position: absolute; left: 20px; top: 14px; font-size: 1.2rem; font-weight: bold; color: #004d40;">$</span>
+                <input id="dep-amt" type="number" class="dep-swal-input kh-text" style="width: 100%; padding: 15px 15px 15px 40px; border: 2px solid; border-radius: 15px; font-size: 1.2rem; font-weight: bold; box-sizing: border-box; outline: none; transition: 0.3s;" placeholder="0.00">
+            </div>
+          `,
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           cancelButtonColor: "#64748b",
-          confirmButtonText: "Deposit",
-          customClass: { popup: "premium-swal" },
-          preConfirm: () => document.getElementById("dep-amt").value,
+          confirmButtonText: t("ufund_btn_pay_now"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+          didOpen: () => {
+            const amtInp = document.getElementById("dep-amt");
+            const targetSel = document.getElementById("dep-target");
+            amtInp.addEventListener(
+              "focus",
+              () => (amtInp.style.borderColor = "#004d40"),
+            );
+            amtInp.addEventListener(
+              "blur",
+              () => (amtInp.style.borderColor = ""),
+            );
+            targetSel.addEventListener(
+              "focus",
+              () => (targetSel.style.borderColor = "#0284c7"),
+            );
+            targetSel.addEventListener(
+              "blur",
+              () => (targetSel.style.borderColor = ""),
+            );
+          },
+          preConfirm: () => {
+            return {
+              amount: document.getElementById("dep-amt").value,
+              bailoutTarget: document.getElementById("dep-target").value,
+            };
+          },
         });
 
-        if (amt && amt > 0) {
+        if (formValues && formValues.amount > 0) {
           Swal.fire({
-            title: "Processing...",
+            title: t("ufund_processing"),
             didOpen: () => Swal.showLoading(),
           });
           const data = await fetchAPI("/api/ufund/deposit", {
             username: user.username,
             fundId: fund._id,
-            amount: amt,
+            amount: formValues.amount,
+            bailoutTarget: formValues.bailoutTarget,
             isAuto: false,
           });
           if (data.success) {
@@ -1188,32 +1656,37 @@
               .catch(() => {});
             Swal.fire({
               icon: "success",
-              title: "Deposited!",
-              timer: 1500,
+              title: t("ufund_success"),
+              text: data.message,
+              timer: 2000,
               showConfirmButton: false,
+              customClass: { popup: "kh-text" },
             });
             fetchMyFunds();
-          } else Swal.fire("Failed", data.message, "error");
+          } else Swal.fire(t("ufund_failed"), data.message, "error");
         }
       }
 
-      // ២. អញ្ជើញមិត្តភក្តិ (Invite Friend)
       async function openInviteUI() {
         const fund = activeFunds[currentFundIndex];
         const { value: invitee } = await Swal.fire({
-          title: "Invite Friend",
+          title: `<span class="kh-text">${t("ufund_swal_invite_title")}</span>`,
           text: fund.name,
           input: "text",
-          inputPlaceholder: "Username, Phone, or Account No.",
+          inputPlaceholder: t("ufund_swal_invite_ph"),
           showCancelButton: true,
           confirmButtonColor: "#004d40",
           cancelButtonColor: "#64748b",
-          confirmButtonText: "Send Invite",
-          customClass: { popup: "premium-swal" },
+          confirmButtonText: t("ufund_swal_invite_btn"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
         });
 
         if (invitee) {
-          Swal.fire({ title: "Sending...", didOpen: () => Swal.showLoading() });
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
           const data = await fetchAPI("/api/ufund/invite", {
             fundId: fund._id,
             inviterUsername: user.username,
@@ -1222,29 +1695,27 @@
           if (data.success) {
             Swal.fire({
               icon: "success",
-              title: "Invited!",
+              title: t("ufund_success"),
               text: data.message,
               timer: 2000,
               showConfirmButton: false,
             });
             fetchMyFunds();
-          } else Swal.fire("Failed", data.message, "error");
+          } else Swal.fire(t("ufund_failed"), data.message, "error");
         }
       }
 
-      // ៣. បង្ហាញ QR Code សម្រាប់ស្កេន
       function showFundQR() {
         const fund = activeFunds[currentFundIndex];
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&ecc=H&data=${fund.qrCodeString}`;
-
         Swal.fire({
           html: `
             <div style="background: linear-gradient(135deg, #004d40, #0284c7); margin: -1.25em -1.25em 20px -1.25em; padding: 30px 15px 20px 15px; border-radius: 15px 15px 0 0; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                <i class="fa-solid fa-piggy-bank" style="font-size: 3rem; margin-bottom: 10px; animation: bounce 2s infinite;"></i>
-               <h3 style="margin: 0; font-family: 'Kantumruy Pro', sans-serif; font-weight: bold; letter-spacing: 1px;">U-Fund QR</h3>
-               <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">ស្កេនដើម្បីដាក់ប្រាក់សន្សំ</p>
+               <h3 class="kh-text" style="margin: 0; font-weight: bold; letter-spacing: 1px;">${t("ufund_act_qr")}</h3>
+               <p class="kh-text" style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">${t("ufund_scan_to_pay_desc")}</p>
             </div>
-            <h4 style="color: #0f172a; font-weight: bold; font-size: 1.4rem; margin-bottom: 5px; text-transform: capitalize;">${fund.name}</h4>
+            <h4 class="kh-text" style="color: #0f172a; font-weight: bold; font-size: 1.4rem; margin-bottom: 5px; text-transform: capitalize;">${fund.name}</h4>
             <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 6px 15px; border-radius: 20px; display: inline-block; margin-bottom: 25px;">
                <span style="color: #64748b; font-size: 0.85rem; font-family: 'JetBrains Mono', monospace;">
                   <i class="fa-solid fa-hashtag" style="color: #0284c7;"></i> ${fund.qrCodeString}
@@ -1252,20 +1723,269 @@
             </div>
             <div style="position: relative; width: 220px; height: 220px; margin: 0 auto; padding: 10px; background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 2px solid #e2e8f0;">
                <img src="${qrUrl}" alt="QR Code" style="width: 100%; height: 100%; border-radius: 10px; object-fit: contain;">
-               <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-                  <i class="fa-solid fa-piggy-bank" style="color: #0284c7; font-size: 1.3rem;"></i>
-               </div>
             </div>
-            <p style="margin-top: 25px; margin-bottom: 0; font-size: 0.85rem; color: #94a3b8;">
-               <i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> សុវត្ថិភាពខ្ពស់ដោយ U-Pay
-            </p>
           `,
           showConfirmButton: true,
           confirmButtonColor: "#004d40",
-          confirmButtonText: "បិទ / Close",
-          customClass: { popup: "modal-radius" },
+          confirmButtonText: t("ufund_qr_close_btn"),
+          customClass: { popup: "modal-radius kh-text" },
           width: "380px",
         });
+      }
+
+      async function payMyOverdue() {
+        const fund = activeFunds[currentFundIndex];
+        const myMemberInfo = fund.members.find(
+          (m) => m.username === user.username,
+        );
+        const oweAmt =
+          myMemberInfo.debtAmount > 0
+            ? myMemberInfo.debtAmount
+            : myMemberInfo.autoDeposit.amount;
+
+        const { value: amt } = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_pay_overdue_title")}</span>`,
+          html: `<div class="kh-text">${t("ufund_pay_overdue_desc")} <b>$${oweAmt}</b><br><br><input id="owe-dep-amt" type="number" class="swal2-input kh-text" value="${oweAmt}" max="${oweAmt}"></div>`,
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_btn_pay_now"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+          preConfirm: () => document.getElementById("owe-dep-amt").value,
+        });
+
+        if (amt && amt > 0) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const data = await fetchAPI("/api/ufund/deposit", {
+            username: user.username,
+            fundId: fund._id,
+            amount: amt,
+            isAuto: false,
+          });
+          if (data.success) {
+            Swal.fire({
+              icon: "success",
+              title: t("ufund_success"),
+              text: "Payment Successful!",
+              customClass: { popup: "kh-text" },
+            });
+            fetchMyFunds();
+          } else Swal.fire(t("ufund_failed"), data.message, "error");
+        }
+      }
+
+      async function sendOverdueReminder(fundId, targetUsername) {
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "info",
+          title: t("ufund_processing"),
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        const res = await fetchAPI("/api/ufund/remind", {
+          adminUsername: user.username,
+          targetUsername,
+          fundId,
+        });
+        if (res.success)
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "success",
+            title: t("ufund_success"),
+            showConfirmButton: false,
+            timer: 2000,
+          });
+      }
+
+      async function nudgePending(targetUsername) {
+        Swal.fire({
+          toast: true,
+          position: "top",
+          icon: "info",
+          title: t("ufund_processing"),
+          showConfirmButton: false,
+          timer: 1000,
+        });
+        const res = await fetchAPI("/api/ufund/nudge", {
+          adminUsername: user.username,
+          targetUsername,
+          fundId: fund._id,
+        });
+        if (res.success)
+          Swal.fire({
+            toast: true,
+            position: "top",
+            icon: "success",
+            title: t("ufund_success"),
+            showConfirmButton: false,
+            timer: 2000,
+          });
+      }
+
+      async function requestLeaveFund() {
+        const fund = activeFunds[currentFundIndex];
+        if (fund.isLocked)
+          return Swal.fire(
+            "Locked",
+            "This fund is locked by Admin. You cannot leave early!",
+            "warning",
+          );
+
+        const { value: reason } = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_leave_req_title")}</span>`,
+          html: `<span class="kh-text">${t("ufund_leave_req_desc")}</span>`,
+          input: "text",
+          inputPlaceholder: t("ufund_leave_req_ph"),
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_act_leave"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+        if (reason) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const res = await fetchAPI("/api/ufund/request-leave", {
+            username: user.username,
+            fundId: fund._id,
+            reason,
+          });
+          if (res.success) {
+            Swal.fire(t("ufund_success"), res.message, "success");
+            fetchMyFunds();
+          } else Swal.fire(t("ufund_failed"), res.message, "error");
+        }
+      }
+
+      async function approveLeaveFund(targetUsername, targetFullName) {
+        const fund = activeFunds[currentFundIndex];
+        const res = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_approve_leave_title")}</span>`,
+          html: `<span class="kh-text">System will refund 100% to ${targetFullName}. Do you agree?</span>`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_btn_approve_leave"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+        if (res.isConfirmed) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const apiRes = await fetchAPI("/api/ufund/approve-leave", {
+            adminUsername: user.username,
+            targetUsername,
+            fundId: fund._id,
+          });
+          if (apiRes.success) {
+            Swal.fire(t("ufund_success"), apiRes.message, "success");
+            fetchMyFunds();
+          } else Swal.fire(t("ufund_failed"), apiRes.message, "error");
+        }
+      }
+
+      async function cancelPendingInvite(targetUsername, targetFullName) {
+        const fund = activeFunds[currentFundIndex];
+        const res = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_cancel_inv_title")}</span>`,
+          html: `<span class="kh-text">Revoke invitation for ${targetFullName}?</span>`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_btn_revoke"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+        if (res.isConfirmed) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const apiRes = await fetchAPI("/api/ufund/cancel-invite", {
+            adminUsername: user.username,
+            targetUsername,
+            fundId: fund._id,
+          });
+          if (apiRes.success) {
+            Swal.fire(t("ufund_success"), apiRes.message, "success");
+            fetchMyFunds();
+          } else Swal.fire(t("ufund_failed"), apiRes.message, "error");
+        }
+      }
+
+      async function transferAdminOwnership(targetUsername, targetFullName) {
+        const fund = activeFunds[currentFundIndex];
+        const res = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_transfer_title")}</span>`,
+          html: `<span class="kh-text">Transfer Admin role to ${targetFullName}?</span>`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#0284c7",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_btn_transfer"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+        if (res.isConfirmed) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const apiRes = await fetchAPI("/api/ufund/transfer-admin", {
+            adminUsername: user.username,
+            targetUsername,
+            fundId: fund._id,
+          });
+          if (apiRes.success) {
+            Swal.fire(t("ufund_success"), apiRes.message, "success");
+            fetchMyFunds();
+          } else Swal.fire(t("ufund_failed"), apiRes.message, "error");
+        }
+      }
+
+      async function cancelMyLeaveRequest() {
+        const fund = activeFunds[currentFundIndex];
+        const res = await Swal.fire({
+          title: `<span class="kh-text">${t("ufund_cancel_req_title")}</span>`,
+          html: `<span class="kh-text">${t("ufund_cancel_req_desc")}</span>`,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonColor: "#004d40",
+          cancelButtonColor: "#64748b",
+          confirmButtonText: t("ufund_btn_cont_saving"),
+          cancelButtonText: t("btn_cancel"),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+
+        if (res.isConfirmed) {
+          Swal.fire({
+            title: t("ufund_processing"),
+            didOpen: () => Swal.showLoading(),
+          });
+          const apiRes = await fetchAPI("/api/ufund/cancel-leave", {
+            username: user.username,
+            fundId: fund._id,
+          });
+          if (apiRes.success) {
+            Swal.fire(t("ufund_success"), apiRes.message, "success");
+            fetchMyFunds();
+          } else {
+            Swal.fire(t("ufund_failed"), apiRes.message, "error");
+          }
+        }
       }
     </script>
   </body>

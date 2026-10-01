@@ -1,3 +1,4 @@
+<!-- accounts.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -7,8 +8,11 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <link rel="icon" type="image/png" href="images/favicon.png" />
-    <title>My Accounts - U-Pay</title>
+    <title data-i18n="acc_title">My Accounts - U-Pay</title>
 
+    <!-- ==========================================
+         📦 ១. ភ្ជាប់ Font & Icons
+         ========================================== -->
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
@@ -18,15 +22,36 @@
       rel="stylesheet"
     />
 
+    <!-- ==========================================
+         📦 ២. Libraries ផ្សេងៗ
+         ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-
-    <!-- ភ្ជាប់ឯកសារគោលដូច Dashboard -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
+      defer
+    ></script>
+    <!-- ==========================================
+         📦 ៣. ភ្ជាប់ឯកសារគោល (Language, Core & PIN)
+         ========================================== -->
     <script src="js/lang.js"></script>
     <script src="js/u-pay-core.js"></script>
-    <script src="/js/slip.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/slip.js"></script>
+    <script src="js/pin.js"></script>
+    <!-- 🌟 ហៅ PIN Module មកប្រើ -->
 
+    <!-- ==========================================
+         🎨 ៤. CSS (Style & Dark Mode)
+         ========================================== -->
     <style>
       :root {
         --usd-color: #10b981;
@@ -41,11 +66,13 @@
         min-height: 100vh;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
         -webkit-font-smoothing: antialiased;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.4s ease;
       }
+
+      /* រចនាសម្ព័ន្ធគោល Mobile View កម្រិត 480px */
       .app-container {
         width: 100%;
-        max-width: 450px;
+        max-width: 480px;
         background: #f8fafc;
         min-height: 100vh;
         display: flex;
@@ -54,10 +81,15 @@
         padding-bottom: 20px;
         box-shadow: 0 0 30px rgba(0, 0, 0, 0.03);
         overflow-x: hidden;
-        transition: 0.3s;
+        transition: 0.4s ease;
       }
 
-      /* Header ដើម */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+
+      /* ផ្នែក Header */
       .nav-header {
         padding: 20px;
         background: #004d40;
@@ -70,7 +102,7 @@
         top: 0;
         z-index: 50;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        transition: 0.3s;
+        transition: 0.4s ease;
       }
       .nav-header a {
         color: white;
@@ -80,11 +112,13 @@
         gap: 15px;
         font-weight: 600;
         cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+      .nav-header a:active {
+        transform: scale(0.95);
       }
 
-      /* ==========================================
-         ១. ផ្ទាំងសរុប (DONUT CHART OVERVIEW)
-         ========================================== */
+      /* ផ្ទាំងសរុប (DONUT CHART) */
       .overview-card {
         background: white;
         margin: 20px;
@@ -95,16 +129,24 @@
         gap: 20px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
         border: 1px solid #e2e8f0;
-        transition: 0.3s;
+        transition: 0.4s ease;
+        animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+        transform: translateY(-20px);
       }
-
+      @keyframes slideDown {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
       @keyframes popIn {
         0% {
-          transform: scale(0.5) rotate(-45deg);
+          transform: scale(0.8) rotate(-20deg);
           opacity: 0;
         }
         70% {
-          transform: scale(1.1) rotate(10deg);
+          transform: scale(1.05) rotate(5deg);
         }
         100% {
           transform: scale(1) rotate(0deg);
@@ -116,7 +158,9 @@
         position: relative;
         width: 90px;
         height: 90px;
-        animation: popIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        animation: popIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        opacity: 0;
+        animation-delay: 0.2s;
       }
       .donut-chart {
         width: 100%;
@@ -126,7 +170,7 @@
           var(--usd-color) 0% 0%,
           var(--khr-color) 0% 100%
         );
-        transition: background 1s ease-in-out;
+        transition: background 1.5s cubic-bezier(0.25, 1, 0.5, 1);
       }
       .donut-hole {
         position: absolute;
@@ -142,11 +186,14 @@
         font-size: 0.75rem;
         color: #64748b;
         font-weight: bold;
-        transition: 0.3s;
+        transition: 0.4s ease;
         box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
       }
       .overview-details {
         flex: 1;
+        opacity: 0;
+        animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.3s;
       }
       .balance-row {
         display: flex;
@@ -175,28 +222,42 @@
         font-size: 0.85rem;
         color: #64748b;
         font-weight: 500;
+        transition: color 0.4s ease;
       }
       .bal-value {
         font-size: 1.05rem;
         font-weight: bold;
         color: #1e293b;
+        transition: color 0.4s ease;
       }
 
-      /* ==========================================
-         ២. បញ្ជីគណនី (ACCOUNTS LIST)
-         ========================================== */
+      /* បញ្ជីគណនី (ACCOUNTS LIST) */
       .section-title {
         margin: 0 20px 10px 20px;
         font-size: 0.95rem;
         color: #64748b;
         font-weight: 700;
         text-transform: uppercase;
+        opacity: 0;
+        animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation-delay: 0.4s;
+        transition: color 0.4s ease;
       }
       .accounts-list {
         padding: 0 20px;
         display: flex;
         flex-direction: column;
         gap: 12px;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .account-item {
@@ -211,6 +272,8 @@
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         cursor: pointer;
+        opacity: 0;
+        animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       .account-item:hover {
         transform: translateY(-3px);
@@ -218,11 +281,12 @@
         border-color: #e2e8f0;
       }
       .account-item:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
       }
       .account-item.sortable-ghost {
         opacity: 0.4;
         transform: scale(0.95);
+        background-color: #f8fafc;
       }
 
       .drag-handle {
@@ -232,13 +296,15 @@
         padding: 5px;
         transition: 0.2s;
       }
-      .drag-handle:hover {
-        color: #94a3b8;
+      .drag-handle:active {
+        cursor: grabbing;
       }
+
       .acc-color-bar {
         width: 5px;
         height: 40px;
         border-radius: 5px;
+        transition: background 0.3s ease;
       }
       .bar-usd {
         background: var(--usd-color);
@@ -259,12 +325,14 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        transition: color 0.4s ease;
       }
       .acc-info p {
         margin: 4px 0 0 0;
         font-size: 0.8rem;
         color: #64748b;
         font-family: monospace;
+        transition: color 0.4s ease;
       }
       .acc-badge {
         background: #f1f5f9;
@@ -273,12 +341,19 @@
         padding: 2px 6px;
         border-radius: 6px;
         font-weight: bold;
+        transition:
+          background 0.4s ease,
+          color 0.4s ease;
       }
       .acc-amount {
         font-weight: 700;
         font-size: 1.1rem;
         color: #1e293b;
         text-align: right;
+        transition:
+          color 0.4s ease,
+          transform 0.2s ease;
+        display: inline-block;
       }
 
       .more-btn {
@@ -295,34 +370,41 @@
         background: #f1f5f9;
         color: #0f172a;
       }
+      .more-btn:active {
+        transform: scale(0.9);
+      }
 
-      /* ==========================================
-         ៣. ផ្ទាំងលម្អិត (SLIDING DETAIL VIEW)
-         ========================================== */
+      /* ផ្ទាំងលម្អិត (DETAIL VIEW) */
       .detail-view {
-        position: fixed;
+        position: absolute;
         top: 0;
-        left: 100%;
+        left: 0;
         width: 100%;
         height: 100%;
-        max-width: 450px;
         background: #f8fafc;
         z-index: 100;
-        transition: left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         display: flex;
         flex-direction: column;
-        box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(20px);
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease,
+          visibility 0.3s ease;
+        overflow-y: hidden;
       }
       .detail-view.active {
-        left: 50%;
-        transform: translateX(-50%);
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
       }
 
       .detail-header {
         padding: 20px 20px 30px 20px;
         color: white;
         position: relative;
-        transition: 0.3s;
+        transition: background 0.5s ease;
       }
       .detail-header.bg-usd {
         background: linear-gradient(135deg, #004d40, var(--usd-color));
@@ -342,13 +424,23 @@
       .dh-top i {
         cursor: pointer;
         padding: 5px;
-        transition: 0.2s;
+        transition: transform 0.2s;
       }
       .dh-top i:active {
-        transform: scale(0.9);
+        transform: scale(0.85);
       }
+
       .dh-info {
         text-align: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition:
+          opacity 0.4s ease 0.1s,
+          transform 0.4s ease 0.1s;
+      }
+      .detail-view.active .dh-info {
+        opacity: 1;
+        transform: translateY(0);
       }
       .dh-info p {
         margin: 0;
@@ -360,6 +452,8 @@
         font-size: 2.8rem;
         letter-spacing: -1px;
         text-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+        display: inline-block;
       }
 
       .dh-actions {
@@ -367,6 +461,15 @@
         justify-content: center;
         gap: 15px;
         margin-top: 25px;
+        opacity: 0;
+        transform: translateY(15px);
+        transition:
+          opacity 0.4s ease 0.2s,
+          transform 0.4s ease 0.2s;
+      }
+      .detail-view.active .dh-actions {
+        opacity: 1;
+        transform: translateY(0);
       }
       .dh-action-btn {
         background: rgba(255, 255, 255, 0.2);
@@ -382,25 +485,105 @@
         align-items: center;
         gap: 6px;
         backdrop-filter: blur(5px);
-        transition: 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       }
       .dh-action-btn:active {
-        transform: scale(0.95);
+        transform: scale(0.92);
         background: rgba(255, 255, 255, 0.3);
-      }
-      .dh-action-btn i {
-        font-size: 1.2rem;
       }
 
       .detail-transactions {
         flex: 1;
         background: #f8fafc;
-        border-radius: 25px 25px 0 0;
-        margin-top: -20px;
+        border-radius: 20px 20px 0 0;
+        margin-top: -15px;
         padding: 20px;
         overflow-y: auto;
-        transition: 0.3s;
+        transition: background 0.4s ease;
+        position: relative;
+        z-index: 10;
+      }
+      .detail-transactions::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+
+      .load-more-btn {
+        display: block;
+        width: 70%;
+        margin: 25px auto 30px auto;
+        padding: 12px 20px;
+        background: var(--bg-card, #ffffff);
+        color: var(--primary, #004d40);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 50px;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        text-align: center;
+      }
+      .load-more-btn:hover {
+        background: #f1f5f9;
+        transform: translateY(-2px);
+      }
+      .load-more-btn:active {
+        transform: scale(0.97);
+      }
+
+      .sticky-date-header {
+        position: sticky;
+        top: -18px;
+        z-index: 5;
+        background: rgba(248, 250, 252, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 6px 10px;
+        margin: 10px 0 8px 0;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+      }
+
+      /* Collapsible Categories */
+      .cat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 20px 0 10px 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 8px;
+        border-radius: 8px;
+        transition: background 0.3s;
+      }
+      .cat-header:active {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      .cat-content {
+        transition:
+          max-height 0.4s ease-in-out,
+          opacity 0.3s;
+        max-height: 2000px;
+        overflow: hidden;
+        opacity: 1;
+      }
+      .cat-content.collapsed {
+        max-height: 0;
+        opacity: 0;
+      }
+      .icon-rotate {
+        transform: rotate(180deg);
       }
 
       .trx-item {
@@ -413,11 +596,16 @@
         margin-bottom: 10px;
         cursor: pointer;
         border: 1px solid #f1f5f9;
-        transition: 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
+      }
+      .detail-view.active .trx-item {
+        animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       .trx-item:active {
-        transform: scale(0.98);
+        transform: scale(0.97);
       }
+
       .trx-left {
         display: flex;
         align-items: center;
@@ -472,30 +660,53 @@
       }
 
       /* ==========================================
-         ៤. ទំហំ SweetAlert & ប៊ូតុង Menu ៣
+         🌟 ថ្មី៖ BOTTOM SHEET ACCOUNT OPTIONS
          ========================================== */
-      .account-options-swal {
-        width: 90% !important;
-        max-width: 400px !important;
-        border-radius: 24px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+      .bottom-sheet-modal {
+        margin: 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 480px !important;
+        border-radius: 24px 24px 0 0 !important;
+        padding: 25px 20px !important;
+        box-sizing: border-box;
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
       }
+      @keyframes slideUp {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .sheet-drag-line {
+        width: 40px;
+        height: 5px;
+        background: #cbd5e1;
+        border-radius: 5px;
+        margin: 0 auto 20px auto;
+      }
+
       .menu-btn-custom {
         display: flex;
         align-items: center;
         gap: 15px;
         width: 100%;
-        padding: 15px;
+        padding: 16px;
         border: none;
-        border-radius: 14px;
+        border-radius: 16px;
         font-weight: bold;
         font-size: 0.95rem;
         cursor: pointer;
-        transition: 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         font-family: inherit;
+        margin-bottom: 10px;
       }
       .menu-btn-custom:active {
-        transform: scale(0.97);
+        transform: scale(0.95);
       }
       .btn-info {
         background: #eff6ff;
@@ -513,9 +724,123 @@
         background: #fef2f2;
         color: #dc2626;
       }
+      .btn-freeze {
+        background: #fff1f2;
+        color: #e11d48;
+      }
+      .btn-unfreeze {
+        background: #ecfdf5;
+        color: #059669;
+      }
+
+      .detail-tool-bar {
+        padding: 4px 0 8px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .detail-tool-bar span {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.95rem;
+      }
+      .detail-tool-bar .icon-btn {
+        background: #ffffff;
+        color: #004d40;
+        border: 1px solid #e2e8f0;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+      .detail-tool-bar .icon-btn:hover {
+        background: #f1f5f9;
+      }
+      .detail-tool-bar .icon-btn.active {
+        background: #004d40;
+        color: white;
+        border-color: #004d40;
+      }
+
+      #detailSearchBox {
+        margin: 4px 0 6px 0;
+        animation: fadeIn 0.2s ease;
+      }
+      #detailSearchInput {
+        width: 100% !important;
+        padding: 10px 14px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        font-family: inherit;
+        font-size: 0.85rem !important;
+        background: #ffffff !important;
+        color: #1e293b !important;
+        box-sizing: border-box;
+      }
+
+      .detail-filter-bar {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
+      }
+      .detail-filter-btn {
+        flex: 1;
+        padding: 8px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 15px;
+        background: #ffffff;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      }
+      .detail-filter-btn.active {
+        background: #004d40;
+        color: white;
+        border-color: #004d40;
+        box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+      }
+
+      /* ប៊ូតុងគណនីដែលបានលាក់ (Subtle Button) */
+      .hidden-acc-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin: 15px auto 30px auto;
+        padding: 10px 20px;
+        background: transparent;
+        border: 1px dashed #cbd5e1;
+        border-radius: 20px;
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .hidden-acc-btn:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #475569;
+      }
+      body.dark-mode .hidden-acc-btn {
+        border-color: #334155;
+        color: #94a3b8;
+      }
+      body.dark-mode .hidden-acc-btn:hover {
+        background: #1e293b;
+        color: #cbd5e1;
+      }
 
       /* ==========================================
-         🌙 ៥. មុខងារងងឹត (DARK MODE) ពេញលេញ
+         🌙 ៥. DARK MODE (ការពារខូចពណ៌)
          ========================================== */
       body.dark-mode {
         background-color: #0f172a;
@@ -541,8 +866,9 @@
       body.dark-mode .bal-value {
         color: #f8fafc;
       }
-      body.dark-mode .section-title {
-        color: #94a3b8;
+      body.dark-mode .section-title,
+      body.dark-mode .cat-header {
+        color: #cbd5e1 !important;
       }
       body.dark-mode .account-item {
         background: #1e293b;
@@ -567,15 +893,29 @@
       }
       body.dark-mode .detail-view {
         background: #0f172a;
-        box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+        box-shadow: none;
       }
       body.dark-mode .detail-transactions {
         background: #0f172a;
       }
       body.dark-mode .trx-item {
-        background: #1e293b;
-        border-color: #334155;
+        background: #1e293b !important;
+        border-color: #334155 !important;
       }
+
+      body.dark-mode .trx-item[style*="#fff7ed"] {
+        background: rgba(249, 115, 22, 0.15) !important;
+        border-color: rgba(249, 115, 22, 0.3) !important;
+      }
+      body.dark-mode .trx-item[style*="#ecfdf5"] {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+      body.dark-mode .trx-item[style*="#fef2f2"] {
+        background: rgba(239, 68, 68, 0.15) !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+      }
+
       body.dark-mode .trx-info h4 {
         color: #f8fafc;
       }
@@ -607,52 +947,139 @@
         background: rgba(220, 38, 38, 0.2);
         color: #f87171;
       }
+      body.dark-mode .btn-freeze {
+        background: rgba(225, 29, 72, 0.2);
+        color: #fb7185;
+      }
+      body.dark-mode .btn-unfreeze {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+      body.dark-mode .load-more-btn {
+        background: #1e293b !important;
+        color: #38bdf8 !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .sticky-date-header {
+        background: rgba(15, 23, 42, 0.95) !important;
+        color: #94a3b8 !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      body.dark-mode .detail-tool-bar span {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .detail-tool-bar .icon-btn {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #38bdf8 !important;
+      }
+      body.dark-mode .detail-tool-bar .icon-btn.active {
+        background: #10b981 !important;
+        color: white !important;
+        border-color: #10b981 !important;
+      }
+      body.dark-mode #detailSearchInput {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .detail-filter-btn {
+        background: #1e293b !important;
+        color: #94a3b8 !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .detail-filter-btn.active {
+        background: #10b981 !important;
+        color: white !important;
+        border-color: #10b981 !important;
+        box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+      }
+      body.dark-mode #detailStartDate,
+      body.dark-mode #detailEndDate {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .bottom-sheet-modal {
+        background: #1e293b !important;
+      }
     </style>
   </head>
   <body>
+    <!-- ==========================================
+         ៥. រចនាសម្ព័ន្ធ HTML 
+         ========================================== -->
     <div class="app-container">
-      <div class="nav-header">
-        <a onclick="goBack()"
-          ><i class="fa-solid fa-arrow-left"></i> My Accounts</a
+      <!-- ផ្ទាំងខាងមុខ (Main View) -->
+      <div id="mainViewContent">
+        <div class="nav-header">
+          <a onclick="goBack()" class="kh-text">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span data-i18n="acc_title">My Accounts</span>
+          </a>
+        </div>
+
+        <!-- Overview Donut Chart -->
+        <div class="overview-card">
+          <div class="donut-wrapper">
+            <div class="donut-chart" id="donutChart"></div>
+            <div class="donut-hole kh-text" data-i18n="acc_total">Total</div>
+          </div>
+          <div class="overview-details">
+            <div class="balance-row">
+              <div>
+                <span class="dot usd"></span
+                ><span class="bal-label kh-text" data-i18n="acc_usd_label"
+                  >USD Accounts</span
+                >
+              </div>
+              <div class="bal-value" id="totUSD">$0.00</div>
+            </div>
+            <div class="balance-row">
+              <div>
+                <span class="dot khr"></span
+                ><span class="bal-label kh-text" data-i18n="acc_khr_label"
+                  >KHR Accounts</span
+                >
+              </div>
+              <div class="bal-value" id="totKHR">0 ៛</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="section-title kh-text" data-i18n="acc_all_title">
+          All Accounts
+        </h3>
+        <div class="accounts-list" id="accountsList"></div>
+
+        <!-- ប៊ូតុងសម្រាប់ចុចមើលគណនីដែលលាក់ -->
+        <button
+          id="btnShowHiddenAccounts"
+          class="hidden-acc-btn kh-text"
+          onclick="verifyAndShowHiddenAccounts()"
+          style="display: none"
         >
+          <i class="fa-solid fa-eye-slash"></i>
+          <span data-i18n="acc_btn_hidden">គណនីដែលបានលាក់ (Hidden)</span>
+        </button>
       </div>
 
-      <div class="overview-card">
-        <div class="donut-wrapper">
-          <div class="donut-chart" id="donutChart"></div>
-          <div class="donut-hole">Total</div>
-        </div>
-        <div class="overview-details">
-          <div class="balance-row">
-            <div>
-              <span class="dot usd"></span
-              ><span class="bal-label">USD Accounts</span>
-            </div>
-            <div class="bal-value" id="totUSD">$0.00</div>
-          </div>
-          <div class="balance-row">
-            <div>
-              <span class="dot khr"></span
-              ><span class="bal-label">KHR Accounts</span>
-            </div>
-            <div class="bal-value" id="totKHR">0 ៛</div>
-          </div>
-        </div>
-      </div>
-
-      <h3 class="section-title">All Accounts</h3>
-      <div class="accounts-list" id="accountsList"></div>
-
+      <!-- Detail View (Fade In Panel) -->
       <div class="detail-view" id="detailView">
         <div class="detail-header" id="detailHeader">
           <div class="dh-top">
             <i class="fa-solid fa-arrow-left" onclick="closeDetailView()"></i>
-            <span id="headerDetailTitle" style="text-transform: uppercase"
+            <span
+              id="headerDetailTitle"
+              class="kh-text"
+              style="text-transform: uppercase"
+              data-i18n="acc_detail_title"
               >Account Details</span
             >
             <i
               class="fa-solid fa-ellipsis-vertical"
-              onclick="showAccountOptionsFromDetail()"
+              onclick="showAccountOptions(currentViewingAccount.id)"
             ></i>
           </div>
           <div class="dh-info">
@@ -667,8 +1094,12 @@
             >
               000 000 000 | USD
             </p>
-            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px">
-              សមតុល្យគណនីអាចប្រើបាន
+            <p
+              class="kh-text"
+              data-i18n="acc_available_bal"
+              style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px"
+            >
+              Available Balance
             </p>
             <h1
               id="detBalance"
@@ -677,24 +1108,27 @@
               $0.00
             </h1>
             <p
+              class="kh-text"
               id="detTotalBalance"
               style="font-size: 0.85rem; opacity: 0.8; margin-top: 5px"
             >
-              សមតុល្យគណនីសរុប $0.00
+              Total Account Balance $0.00
             </p>
           </div>
           <div class="dh-actions">
             <div
-              class="dh-action-btn"
+              class="dh-action-btn kh-text"
               onclick="window.location.href = 'transfer.html'"
             >
-              <i class="fa-solid fa-paper-plane"></i> Transfer
+              <i class="fa-solid fa-paper-plane"></i
+              ><span data-i18n="acc_btn_transfer">Transfer</span>
             </div>
             <div
-              class="dh-action-btn"
+              class="dh-action-btn kh-text"
               onclick="window.location.href = 'scan.html?showQR=true'"
             >
-              <i class="fa-solid fa-qrcode"></i> Receive
+              <i class="fa-solid fa-qrcode"></i
+              ><span data-i18n="acc_btn_receive">Receive</span>
             </div>
           </div>
         </div>
@@ -703,6 +1137,9 @@
       </div>
     </div>
 
+    <!-- ==========================================
+         ៦. ផ្នែក JS (Logic & Socket Sync)
+         ========================================== -->
     <script>
       let user = JSON.parse(sessionStorage.getItem("user"));
       if (!user) window.location.href = "index.html";
@@ -710,43 +1147,112 @@
       let allAccounts = [];
       let currentViewingAccount = null;
       let allMerchantAccounts = [];
+      let detailFilterType = "all";
+      let detailSearchQuery = "";
+      let detailStartDate = "";
+      let detailEndDate = "";
+      let hiddenAccounts = []; // 🌟 ថែមអថេរថ្មីនេះ
 
-      // 🔄 Socket.IO សម្រាប់ Update Real-time
-      const socket = io();
+      const authHeaders = {
+        "Content-Type": "application/json",
+        Authorization: sessionStorage.getItem("userToken")
+          ? `Bearer ${sessionStorage.getItem("userToken")}`
+          : "",
+      };
+
+      const socket = io({ transports: ["websocket", "polling"] });
       socket.emit("joinRoom", user.username);
 
-      socket.on("paymentReceived", () => {
-        fetchLatestUserData(); // ទាញទិន្នន័យថ្មីភ្លាមៗ ពេលមានអ្នកវេរលុយចូល
-      });
-      socket.on("transactionUpdated", () => {
-        fetchLatestUserData(); // ទាញទិន្នន័យថ្មីភ្លាមៗ ពេលលុយ Hold ធ្លាក់ចូល
-      });
+      socket.on("paymentReceived", () => fetchLatestUserData());
+      socket.on("transactionUpdated", () => fetchLatestUserData());
 
-      // 🔄 អនុគមន៍សម្រាប់ហៅទិន្នន័យថ្មីពី Server (Auto Fetch)
+      let detailTrxLimit = 15;
+      window.lastNotifState = "";
+
+      function updateNotificationsUI(currentUser) {
+        const respondedMap =
+          typeof window.getRespondedMap === "function"
+            ? window.getRespondedMap()
+            : {};
+        const unread = (currentUser.notifications || []).filter((n) => {
+          if (n.isRead) return false;
+          let key;
+          const metaData = n.metadata || {};
+          if (n.type === "card_payment_request")
+            key = metaData.transactionId || n._id || n.id;
+          else if (n.type === "ufund_invite")
+            key = n.fundId || metaData.fundId || n._id || n.id;
+          else if (
+            n.type === "joint_invite" ||
+            metaData.type === "joint_invite"
+          )
+            key = metaData.accountNumber || n._id || n.id;
+          else key = n._id || n.id;
+
+          if (n.responseStatus && n.responseStatus !== "pending") return false;
+          if (
+            n.type === "card_payment_request" &&
+            respondedMap[key] === "rejected"
+          ) {
+            delete respondedMap[key];
+            localStorage.setItem(
+              `respondedNotifs_${currentUser.username}`,
+              JSON.stringify(respondedMap),
+            );
+            return true;
+          }
+          if (respondedMap[key]) return false;
+          return true;
+        });
+
+        const currentState = JSON.stringify(unread);
+        if (currentState === window.lastNotifState) return;
+        window.lastNotifState = currentState;
+        unread.forEach((n) => {
+          if (typeof window.showSmartNotification === "function") {
+            window.showSmartNotification(n);
+          }
+        });
+      }
+
       async function fetchLatestUserData() {
         try {
-          const res = await fetch("/api/users/me", {
-            headers: window.authHeaders,
+          const res = await fetch("/api/users?t=" + Date.now(), {
+            headers: authHeaders,
+            cache: "no-store",
           });
-          const data = await res.json();
-          if (data.success) {
-            user = data.user;
-            sessionStorage.setItem("user", JSON.stringify(user));
-            processAccountsData();
-            renderAccountsList();
-            updateDonutChart();
+          const users = await res.json();
+          if (Array.isArray(users)) {
+            const serverUser = users.find((u) => u.username === user.username);
+            if (serverUser) {
+              user = serverUser;
+              sessionStorage.setItem("user", JSON.stringify(serverUser));
+              processAccountsData();
+              renderAccountsList();
+              updateDonutChart();
+              updateNotificationsUI(serverUser);
 
-            // បើកំពុងបើកមើលផ្ទាំង Detail ត្រូវ Update លុយ និងប្រវត្តិអោយវាភ្លាមៗ
-            if (currentViewingAccount) {
-              const updatedAcc = allAccounts.find(
-                (a) => a.id === currentViewingAccount.id,
-              );
-              if (updatedAcc) {
-                currentViewingAccount = updatedAcc;
-                renderDetailTransactions(
-                  currentViewingAccount.id,
-                  currentViewingAccount.currency,
+              if (currentViewingAccount) {
+                const updatedAcc = allAccounts.find(
+                  (a) => a.id === currentViewingAccount.id,
                 );
+                if (updatedAcc) {
+                  currentViewingAccount = updatedAcc;
+                  const fmtAvail =
+                    updatedAcc.currency === "USD"
+                      ? `$${updatedAcc.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : `${updatedAcc.balance.toLocaleString("en-US")} ៛`;
+                  const balEl = document.getElementById("detBalance");
+                  if (balEl.innerText !== fmtAvail) {
+                    balEl.style.transform = "scale(1.1)";
+                    setTimeout(() => (balEl.style.transform = "scale(1)"), 200);
+                    balEl.innerText = fmtAvail;
+                  }
+                  renderDetailTransactions(
+                    currentViewingAccount.id,
+                    currentViewingAccount.currency,
+                  );
+                }
               }
             }
           }
@@ -755,18 +1261,38 @@
         }
       }
 
-      function applyTheme() {
+      function applyThemeLocally() {
         const userThemeKey = "darkMode_" + user.username;
         const isDark =
           localStorage.getItem("theme") === "dark" ||
           localStorage.getItem(userThemeKey) === "true";
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        }
+        if (isDark) document.body.classList.add("dark-mode");
+      }
+
+      function getSmartDateLabel(dateObj) {
+        let l = localStorage.getItem("lang") || "en";
+        let today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        let c = new Date(dateObj);
+        c.setHours(0, 0, 0, 0);
+
+        if (c.getTime() === today.getTime())
+          return l === "kh" ? "ថ្ងៃនេះ" : "TODAY";
+        if (c.getTime() === yesterday.getTime())
+          return l === "kh" ? "ម្សិលមិញ" : "YESTERDAY";
+        return dateObj
+          .toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+          .toUpperCase();
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        applyTheme();
+        applyThemeLocally();
         if (typeof applyLanguage === "function") applyLanguage();
 
         if (user.merchantProfile && user.merchantProfile.merchants) {
@@ -795,15 +1321,12 @@
         setTimeout(updateDonutChart, 100);
         setupSortable();
 
-        // 🟢 ឆែកមើល URL ក្រែងលោមាន ?id=... (សម្រាប់ទប់កុំអោយវាលោតទៅដើមពេល Refresh)
         const urlParams = new URLSearchParams(window.location.search);
         const accIdParam = urlParams.get("id");
-        if (accIdParam) {
-          setTimeout(() => openDetailView(accIdParam), 100);
-        }
+        if (accIdParam) setTimeout(() => openDetailView(accIdParam), 100);
 
-        // 🟢 ហៅទាញទិន្នន័យថ្មី១ដងពេលបើកទំព័រ ដើម្បីធានាថាទិន្នន័យពិតជាថ្មីជានិច្ច
         fetchLatestUserData();
+        setInterval(() => fetchLatestUserData(), 4000);
       });
 
       function goBack() {
@@ -812,49 +1335,124 @@
 
       function processAccountsData() {
         allAccounts = [];
+        hiddenAccounts = []; // 🌟 Clear ទិន្នន័យចាស់
         let tUsd = 0,
-          tKhr = 0;
+          tKhr = 0,
+          totalP2PLendUSD = 0;
 
-        if (user.accountNumber) {
-          allAccounts.push({
-            id: user.accountNumber,
-            name: "Main Account",
+        if (user.p2pDebts && user.p2pDebts.length > 0) {
+          user.p2pDebts.forEach((d) => {
+            if (d.type === "lend") totalP2PLendUSD += d.amount;
+          });
+        }
+        const tFn = window.t || ((k) => k);
+
+        // ១. Main USD
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          const mainUsd = user.mainAccounts.USD;
+          const accObj = {
+            id: mainUsd.accountNumber,
+            name: mainUsd.accountName || tFn("acc_main"),
             type: "Main",
             currency: "USD",
-            balance: user.balance,
+            balance: mainUsd.balance,
+            dailyLimit: mainUsd.dailyLimit,
+            isFrozen: mainUsd.isFrozen || mainUsd.isSystemLocked,
             isMain: true,
-          });
-          tUsd += user.balance;
-        }
-        if (user.accountNumberKHR) {
+            isHidden: mainUsd.isHidden || false,
+          };
+          if (mainUsd.isHidden) {
+            hiddenAccounts.push(accObj);
+          } else {
+            allAccounts.push(accObj);
+            tUsd += mainUsd.balance + totalP2PLendUSD;
+          }
+        } else if (user.accountNumber) {
           allAccounts.push({
-            id: user.accountNumberKHR,
-            name: "Main Account KHR",
+            id: user.accountNumber,
+            name: tFn("acc_main"),
+            type: "Main",
+            currency: "USD",
+            balance: user.balance || 0,
+            dailyLimit: user.trxLimit || 1000,
+            isFrozen: user.isFrozen || false,
+            isMain: true,
+            isHidden: false,
+          });
+          tUsd += (user.balance || 0) + totalP2PLendUSD;
+        }
+
+        // ២. Main KHR
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          const mainKhr = user.mainAccounts.KHR;
+          const accObj = {
+            id: mainKhr.accountNumber,
+            name: mainKhr.accountName || tFn("acc_main") + " KHR",
             type: "Main",
             currency: "KHR",
-            balance: user.balanceKHR,
+            balance: mainKhr.balance,
+            dailyLimit: mainKhr.dailyLimit,
+            isFrozen: mainKhr.isFrozen || mainKhr.isSystemLocked,
             isMain: true,
+            isHidden: mainKhr.isHidden || false,
+          };
+          if (mainKhr.isHidden) {
+            hiddenAccounts.push(accObj);
+          } else {
+            allAccounts.push(accObj);
+            tKhr += mainKhr.balance;
+          }
+        } else if (user.accountNumberKHR) {
+          allAccounts.push({
+            id: user.accountNumberKHR,
+            name: tFn("acc_main") + " KHR",
+            type: "Main",
+            currency: "KHR",
+            balance: user.balanceKHR || 0,
+            dailyLimit: 4000000,
+            isFrozen: user.isFrozen || false,
+            isMain: true,
+            isHidden: false,
           });
           tKhr += user.balanceKHR || 0;
         }
+
+        // ៣. Sub Accounts
         if (user.subAccounts) {
           user.subAccounts.forEach((sub) => {
-            let tName =
+            let typeTransKey =
               sub.accountType === "joint"
-                ? "Joint"
+                ? "acc_joint"
                 : sub.accountType === "junior"
-                  ? "Junior"
-                  : "Savings";
-            allAccounts.push({
+                  ? "acc_junior"
+                  : "acc_sub";
+            const accObj = {
               id: sub.accountNumber,
-              name: sub.accountName || tName,
-              type: tName,
+              name: sub.accountName || tFn(typeTransKey),
+              type: tFn(typeTransKey),
               currency: sub.currency,
               balance: sub.balance,
+              dailyLimit: sub.dailyLimit || 1000,
+              isFrozen:
+                sub.isFrozen || sub.isLocked || sub.isSystemLocked || false,
               isMain: false,
-            });
-            if (sub.currency === "USD") tUsd += sub.balance;
-            else tKhr += sub.balance;
+              isHidden: sub.isHidden || false,
+            };
+            if (sub.isHidden) {
+              hiddenAccounts.push(accObj);
+            } else {
+              allAccounts.push(accObj);
+              if (sub.currency === "USD") tUsd += sub.balance;
+              else tKhr += sub.balance;
+            }
           });
         }
 
@@ -864,6 +1462,11 @@
           `${tKhr.toLocaleString("en-US")} ៛`;
         window.totalUSD = tUsd;
         window.totalKHR = tKhr;
+
+        // 🌟 លាក់ ឬបង្ហាញប៊ូតុង "គណនីដែលបានលាក់"
+        const btnHidden = document.getElementById("btnShowHiddenAccounts");
+        if (btnHidden)
+          btnHidden.style.display = hiddenAccounts.length > 0 ? "flex" : "none";
       }
 
       function updateDonutChart() {
@@ -885,9 +1488,9 @@
 
       function renderAccountsList() {
         const list = document.getElementById("accountsList");
-        list.innerHTML = "";
         const savedOrder =
           JSON.parse(localStorage.getItem(`accOrder_${user.username}`)) || [];
+
         if (savedOrder.length > 0) {
           allAccounts.sort((a, b) => {
             let idxA = savedOrder.indexOf(a.id);
@@ -897,24 +1500,46 @@
             return idxA - idxB;
           });
         }
-        allAccounts.forEach((acc) => {
+
+        const currentIds = allAccounts.map((a) => a.id);
+        allAccounts.forEach((acc, index) => {
           const isUSD = acc.currency === "USD";
           const barClass = isUSD ? "bar-usd" : "bar-khr";
           const balStr = isUSD
             ? `$${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : `${acc.balance.toLocaleString("en-US")} ៛`;
           const accFmt = acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
-          list.innerHTML += `
-              <div class="account-item" data-id="${acc.id}" onclick="openDetailView('${acc.id}')">
+          let existingItem = list.querySelector(
+            `.account-item[data-id="${acc.id}"]`,
+          );
+
+          if (existingItem) {
+            const amtEl = existingItem.querySelector(".acc-amount");
+            if (amtEl.innerText !== balStr) {
+              amtEl.style.transform = "scale(1.1)";
+              setTimeout(() => (amtEl.style.transform = "scale(1)"), 200);
+              amtEl.innerText = balStr;
+            }
+          } else {
+            const div = document.createElement("div");
+            div.className = "account-item";
+            div.setAttribute("data-id", acc.id);
+            div.onclick = () => openDetailView(acc.id);
+            div.style.animationDelay = `${0.4 + index * 0.1}s`;
+            div.innerHTML = `
                  <i class="fa-solid fa-grip-vertical drag-handle" onclick="event.stopPropagation()"></i>
                  <div class="acc-color-bar ${barClass}"></div>
-                 <div class="acc-info">
-                    <h4>${acc.name} <span class="acc-badge">${acc.type}</span></h4>
-                    <p>${accFmt}</p>
-                 </div>
+                 <div class="acc-info"><h4 class="kh-text">${acc.name} <span class="acc-badge kh-text">${acc.type}</span></h4><p>${accFmt}</p></div>
                  <div class="acc-amount">${balStr}</div>
                  <button class="more-btn" onclick="event.stopPropagation(); showAccountOptions('${acc.id}')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-              </div>`;
+            `;
+            list.appendChild(div);
+          }
+        });
+
+        Array.from(list.children).forEach((child) => {
+          if (!currentIds.includes(child.getAttribute("data-id")))
+            child.remove();
         });
       }
 
@@ -936,59 +1561,312 @@
         });
       }
 
+      // ==========================================
+      // 🌟 BOTTOM SHEET ACCOUNT OPTIONS (NEW)
+      // ==========================================
       function showAccountOptions(accId) {
+        const tFn = window.t || ((k) => k);
         currentViewingAccount = allAccounts.find((a) => a.id === accId);
-        let html = `<div style="text-align:left; display:flex; flex-direction:column; gap:12px; margin-top:10px;">`;
-        html += `<button onclick="Swal.close()" class="menu-btn-custom btn-info"><i class="fa-solid fa-circle-info" style="font-size:1.2rem;"></i> ព័ត៌មានគណនី (Info)</button>`;
-        html += `<button onclick="copyAccNumber()" class="menu-btn-custom btn-copy"><i class="fa-solid fa-copy" style="font-size:1.2rem;"></i> ចម្លងលេខកុង (Copy)</button>`;
+        if (!currentViewingAccount) return;
+
+        let isFrozen = currentViewingAccount.isFrozen || false;
+
+        // 🌟 ប្រើ Custom HTML ធ្វើជា Bottom Sheet ពិតប្រាកដ
+        let html = `
+          <div class="sheet-drag-line"></div>
+          <h3 class="kh-text" style="text-align:center; margin:0 0 20px 0; color:var(--text-main); font-size:1.1rem;">${currentViewingAccount.name}</h3>
+          
+          <button onclick="showAccountInfoModal()" class="menu-btn-custom btn-info kh-text"><i class="fa-solid fa-circle-info"></i> <span data-i18n="acc_opt_info">Account Info</span></button>
+          
+          <button onclick="copyAccNumber()" class="menu-btn-custom btn-copy kh-text"><i class="fa-solid fa-copy"></i> <span data-i18n="acc_opt_copy">Copy Account Number</span></button>
+        `;
+
         if (!currentViewingAccount.isMain) {
-          html += `<button onclick="renameAccount()" class="menu-btn-custom btn-rename"><i class="fa-solid fa-pen" style="font-size:1.2rem;"></i> ប្តូរឈ្មោះគណនី (Rename)</button>`;
+          html += `<button onclick="renameAccount()" class="menu-btn-custom btn-rename kh-text"><i class="fa-solid fa-pen"></i> <span data-i18n="acc_opt_rename">Rename Account</span></button>`;
         }
-        html += `<button onclick="Swal.close()" class="menu-btn-custom btn-hide"><i class="fa-solid fa-eye-slash" style="font-size:1.2rem;"></i> លាក់គណនី (Hide)</button>`;
-        html += `</div>`;
+
+        html += `<button onclick="showDailyLimitModal()" class="menu-btn-custom kh-text" style="background:#f3e8ff; color:#7e22ce;"><i class="fa-solid fa-gauge-high"></i> <span data-i18n="acc_opt_limit">Daily Limit Control</span></button>`;
+
+        html += `<button onclick="toggleFreezeAccount()" class="menu-btn-custom ${isFrozen ? "btn-unfreeze" : "btn-freeze"} kh-text"><i class="fa-solid ${isFrozen ? "fa-lock-open" : "fa-lock"}"></i> <span data-i18n="${isFrozen ? "acc_opt_unfreeze" : "acc_opt_freeze"}">${isFrozen ? "Unfreeze Account" : "Freeze Account"}</span></button>`;
+
+        html += `<button onclick="toggleHideAccount()" class="menu-btn-custom btn-hide kh-text"><i class="fa-solid fa-eye-slash"></i> <span data-i18n="acc_opt_hide">Hide Account</span></button>`;
+
         Swal.fire({
-          title: `<span style="font-size:1.1rem;">${currentViewingAccount.name}</span>`,
           html: html,
           showConfirmButton: false,
-          showCloseButton: true,
-          customClass: { popup: "account-options-swal" },
+          showCloseButton: false,
+          position: "bottom",
+          backdrop: `rgba(0,0,0,0.5)`,
+          allowOutsideClick: true, // 🌟 ថែមត្រង់នេះ៖ ឱ្យចុចផ្ទៃក្រៅបាត់វិញ
+          allowEscapeKey: true, // 🌟 ថែមត្រង់នេះ៖ ឱ្យចុច ESC បាត់វិញ
+          customClass: { popup: "bottom-sheet-modal kh-text" },
+          didOpen: () => {
+            if (typeof applyLanguage === "function") applyLanguage();
+          },
         });
       }
 
-      function showAccountOptionsFromDetail() {
-        if (currentViewingAccount) showAccountOptions(currentViewingAccount.id);
-      }
+      // 🌟 បន្ថែមព្រឹត្តិការណ៍ចុចផ្ទៃក្រៅ ដើម្បីបិទ Bottom Sheet ស្វ័យប្រវត្តិ
+      document.addEventListener("click", function (event) {
+        const swalPopup = document.querySelector(".swal2-popup");
+        const swalContainer = document.querySelector(".swal2-container");
+
+        // បើផ្ទាំង Bottom Sheet កំពុងបើក ហើយ User ចុចលើផ្ទៃក្រៅ (swalContainer) តែមិនមែនលើ Popup
+        if (swalContainer && swalPopup && event.target === swalContainer) {
+          Swal.close();
+        }
+      });
 
       function copyAccNumber() {
+        const tFn = window.t || ((k) => k);
         navigator.clipboard.writeText(currentViewingAccount.id);
+        Swal.close();
         Swal.fire({
           toast: true,
           position: "top",
           icon: "success",
-          title: "ចម្លងបានជោគជ័យ!",
+          title: `<span class="kh-text">${tFn("acc_copy_success") || "ចម្លងលេខគណនីជោគជ័យ"}</span>`,
           showConfirmButton: false,
           timer: 1500,
           customClass: { popup: "premium-swal" },
         });
       }
 
-      function renameAccount() {
+      function showAccountInfoModal() {
+        const tFn = window.t || ((k) => k);
+        const acc = currentViewingAccount;
         Swal.fire({
-          title: "ប្តូរឈ្មោះគណនី",
+          title: `<span class="kh-text">${tFn("acc_opt_info") || "Account Info"}</span>`,
+          html: `
+            <div style="text-align: left; font-size: 0.9rem; display: flex; flex-direction: column; gap: 8px; padding: 10px;">
+              <p><b>Name:</b> ${acc.name}</p>
+              <p><b>Account No:</b> ${acc.id}</p>
+              <p><b>Type:</b> ${acc.type}</p>
+              <p><b>Currency:</b> ${acc.currency}</p>
+              <p><b>Balance:</b> <span style="color: #10b981; font-weight: bold;">${acc.currency === "USD" ? "$" + acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2 }) : acc.balance.toLocaleString("en-US") + " ៛"}</span></p>
+              <p><b>Status:</b> <span style="color: ${acc.isFrozen ? "#ef4444" : "#10b981"}; font-weight: bold;">${acc.isFrozen ? "Frozen / Locked" : "Active"}</span></p>
+            </div>
+          `,
+          confirmButtonText: `<span class="kh-text">${tFn("btn_close") || "Close"}</span>`,
+          customClass: { popup: "account-options-swal kh-text" },
+        });
+      }
+
+      function renameAccount() {
+        const tFn = window.t || ((k) => k);
+        Swal.fire({
+          title: `<span class="kh-text">${tFn("acc_rename_title") || "ប្ដូរឈ្មោះគណនី"}</span>`,
           input: "text",
           inputValue: currentViewingAccount.name,
           showCancelButton: true,
-          confirmButtonText: "រក្សាទុក",
-          cancelButtonText: "បោះបង់",
-          customClass: { popup: "account-options-swal" },
+          confirmButtonText: `<span class="kh-text">${tFn("btn_save") || "រក្សាទុក"}</span>`,
+          cancelButtonText: `<span class="kh-text">${tFn("btn_cancel") || "បោះបង់"}</span>`,
+          customClass: { popup: "account-options-swal kh-text" },
+        }).then(async (res) => {
+          if (res.isConfirmed && res.value) {
+            try {
+              const response = await fetch("/api/account/rename", {
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify({
+                  accountNumber: currentViewingAccount.id,
+                  newName: res.value,
+                }),
+              });
+              const data = await response.json();
+              if (data.success) {
+                user = data.user;
+                sessionStorage.setItem("user", JSON.stringify(user));
+
+                // 🌟 កែតម្រូវត្រង់នេះ៖ គ្រាន់តែ Update List ខាងក្រៅ និងបិទ Modal ចោល គឺគ្រប់គ្រាន់ហើយ!
+                processAccountsData();
+                renderAccountsList();
+                Swal.close(); // បិទផ្ទាំង Menu ដាក់ឈ្មោះវិញដោយរលូន
+
+                Swal.fire({
+                  icon: "success",
+                  title: "ជោគជ័យ!",
+                  text: "ប្ដូរឈ្មោះគណនីបានជោគជ័យ!",
+                  timer: 1500,
+                  showConfirmButton: false,
+                  customClass: { popup: "premium-swal kh-text" },
+                });
+              } else {
+                throw new Error(data.message);
+              }
+            } catch (err) {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: err.message,
+                customClass: { popup: "kh-text" },
+              });
+            }
+          }
+        });
+      }
+
+      // 🌟 ការកំណត់លុយចាយដោយប្រើ PIN Code
+      function showDailyLimitModal() {
+        const tFn = window.t || ((k) => k);
+        Swal.fire({
+          title: '<span class="kh-text">កំណត់កម្រិតចំណាយប្រចាំថ្ងៃ</span>',
+          input: "number",
+          inputLabel: "បញ្ចូលទឹកប្រាក់អតិបរមាដែលអាចចាយក្នុង ១ ថ្ងៃ",
+          inputValue: currentViewingAccount.dailyLimit || 1000,
+          showCancelButton: true,
+          confirmButtonText: '<span class="kh-text">រក្សាទុក</span>',
+          cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+          customClass: { popup: "account-options-swal kh-text" },
         }).then((res) => {
           if (res.isConfirmed && res.value) {
-            Swal.fire({
-              icon: "success",
-              title: "Saved!",
-              text: "ឈ្មោះត្រូវបានកែប្រែ (Demo)",
-              customClass: { popup: "premium-swal" },
-            });
+            // 🌟 ហៅ PIN Modal បន្ទាប់ពីចុចរក្សាទុក
+            requestPinVerification(
+              "បញ្ជាក់ការកំណត់",
+              `កម្រិតចំណាយថ្មី៖ $${res.value}`,
+              async function () {
+                try {
+                  // 🌟 ប្តូរ API Route ទៅកាន់ authController
+                  const response = await fetch("/api/account/update-limit", {
+                    method: "POST",
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                      accountNumber: currentViewingAccount.id,
+                      dailyLimit: Number(res.value),
+                    }),
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                    user = data.user;
+                    sessionStorage.setItem("user", JSON.stringify(user));
+                    Swal.fire({
+                      toast: true,
+                      position: "top",
+                      icon: "success",
+                      title:
+                        '<span class="kh-text">បានកំណត់កម្រិតចំណាយប្រចាំថ្ងៃជោគជ័យ!</span>',
+                      showConfirmButton: false,
+                      timer: 1500,
+                      customClass: { popup: "premium-swal kh-text" },
+                    });
+                  } else {
+                    throw new Error(data.message);
+                  }
+                } catch (err) {
+                  Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: err.message,
+                    customClass: { popup: "kh-text" },
+                  });
+                }
+              },
+            );
+          }
+        });
+      }
+
+      // 🌟 Freeze Account ដោយប្រើ PIN Code
+      async function toggleFreezeAccount() {
+        Swal.close();
+        let isFrozen = currentViewingAccount.isFrozen || false;
+        let actionTxt = isFrozen
+          ? "បន្តដំណើរការគណនី (Unfreeze)"
+          : "ផ្អាកគណនីបណ្តោះអាសន្ន (Freeze)";
+
+        requestPinVerification(
+          "បញ្ជាក់សន្តិសុខគណនី",
+          `តើអ្នកពិតជាចង់ ${actionTxt} មែនទេ?`,
+          async function () {
+            try {
+              // 🌟 ប្តូរ API Route ទៅកាន់ authController
+              const response = await fetch("/api/account/toggle-freeze", {
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify({
+                  accountNumber: currentViewingAccount.id,
+                }),
+              });
+              const data = await response.json();
+              if (data.success) {
+                user = data.user;
+                sessionStorage.setItem("user", JSON.stringify(user));
+                currentViewingAccount.isFrozen = data.isFrozen;
+                processAccountsData();
+                renderAccountsList();
+                Swal.fire({
+                  toast: true,
+                  position: "top",
+                  icon: data.isFrozen ? "warning" : "success",
+                  title: `<span class="kh-text">${data.message}</span>`,
+                  showConfirmButton: false,
+                  timer: 2000,
+                  customClass: { popup: "premium-swal kh-text" },
+                });
+              } else {
+                throw new Error(data.message);
+              }
+            } catch (err) {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: err.message,
+                customClass: { popup: "kh-text" },
+              });
+            }
+          },
+        );
+      }
+
+      // 🌟 លាក់គណនីដោយមានផ្ទាំងបញ្ជាក់ Confirmation
+      async function toggleHideAccount() {
+        Swal.fire({
+          title: "តើអ្នកចង់លាក់គណនីនេះឬទេ?",
+          text: "វានឹងមិនបង្ហាញនៅលើ Dashboard ទៀតទេ!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "យល់ព្រមលាក់",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal kh-text" },
+        }).then(async (res) => {
+          if (res.isConfirmed) {
+            try {
+              // 🌟 ប្តូរ API Route ទៅកាន់ authController
+              const response = await fetch("/api/account/toggle-hide", {
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify({
+                  accountNumber: currentViewingAccount.id,
+                }),
+              });
+              const data = await response.json();
+              if (data.success) {
+                user = data.user;
+                sessionStorage.setItem("user", JSON.stringify(user));
+                processAccountsData();
+                renderAccountsList();
+                closeDetailView();
+                Swal.fire({
+                  toast: true,
+                  position: "top",
+                  icon: "success",
+                  title: '<span class="kh-text">បានលាក់គណនីដោយជោគជ័យ!</span>',
+                  showConfirmButton: false,
+                  timer: 1500,
+                  customClass: { popup: "premium-swal kh-text" },
+                });
+              } else {
+                throw new Error(data.message);
+              }
+            } catch (err) {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: err.message,
+                customClass: { popup: "kh-text" },
+              });
+            }
           }
         });
       }
@@ -997,37 +1875,52 @@
         const acc = allAccounts.find((a) => a.id === accId);
         if (!acc) return;
         currentViewingAccount = acc;
-
-        // 🟢 Update URL ដើម្បីកុំអោយបាត់ពេល Refresh
         history.pushState(null, "", "?id=" + accId);
-
         const header = document.getElementById("detailHeader");
         header.className =
           "detail-header " + (acc.currency === "USD" ? "bg-usd" : "bg-khr");
-
+        const infoEl = document.querySelector(".dh-info");
+        const newInfoEl = infoEl.cloneNode(true);
+        infoEl.parentNode.replaceChild(newInfoEl, infoEl);
+        const actionsEl = document.querySelector(".dh-actions");
+        const newActionsEl = actionsEl.cloneNode(true);
+        actionsEl.parentNode.replaceChild(newActionsEl, actionsEl);
         document.getElementById("headerDetailTitle").innerText =
           acc.name.toUpperCase();
         document.getElementById("detAccNum").innerText =
           `${acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")} | ${acc.currency}`;
-
         renderDetailTransactions(acc.id, acc.currency);
+        document.getElementById("mainViewContent").style.display = "none";
         document.getElementById("detailView").classList.add("active");
+        window.scrollTo(0, 0);
+        detailTrxLimit = 15;
       }
 
       function closeDetailView() {
         document.getElementById("detailView").classList.remove("active");
-        // 🟢 លុប URL Parameter ចេញពេលបិទផ្ទាំង Detail
+        setTimeout(() => {
+          document.getElementById("mainViewContent").style.display = "block";
+        }, 300);
         history.pushState(null, "", window.location.pathname);
       }
+
+      function toggleCat(catId) {
+        const content = document.getElementById(`cat-content-${catId}`);
+        const icon = document.getElementById(`cat-icon-${catId}`);
+        content.classList.toggle("collapsed");
+        icon.classList.toggle("icon-rotate");
+      }
+
+      window.lastDetailState = "";
 
       function renderDetailTransactions(accId, currency) {
         const list = document.getElementById("detailTransactions");
         const allTrx = user.transactions || [];
+        const tFn = window.t || ((k) => k);
 
         let filtered = allTrx.filter((t) => {
           let isLinkedToMerchant = false;
           let merchantRelatedAccounts = [];
-
           if (user.merchantProfile && user.merchantProfile.merchants) {
             user.merchantProfile.merchants.forEach((m) => {
               if (
@@ -1059,26 +1952,130 @@
           const matchMerchantAcc =
             isLinkedToMerchant &&
             merchantRelatedAccounts.includes(t.receiverAcc);
+          const isMainAcc =
+            accId === user.accountNumber ||
+            accId === user.accountNumberKHR ||
+            (user.mainAccounts?.USD?.accountNumber === accId &&
+              currency === "USD") ||
+            (user.mainAccounts?.KHR?.accountNumber === accId &&
+              currency === "KHR");
           const matchMain =
             currency === t.currency &&
-            (accId === user.accountNumber || accId === user.accountNumberKHR) &&
-            !t.senderAcc &&
-            !t.receiverAcc;
+            isMainAcc &&
+            (!t.senderAcc ||
+              t.senderAcc === accId ||
+              t.senderAcc === user.accountNumber ||
+              t.senderAcc === user.mainAccounts?.USD?.accountNumber) &&
+            (!t.receiverAcc ||
+              t.receiverAcc === accId ||
+              t.receiverAcc === user.accountNumber ||
+              t.receiverAcc === user.mainAccounts?.USD?.accountNumber);
 
           return matchDirectAcc || matchMerchantAcc || matchMain;
         });
 
-        filtered = filtered.filter((t) => t.status !== "Pending");
+        filtered = filtered.filter((t) => t.status !== "Pending" || t.isHold);
+        if (detailFilterType === "in") {
+          filtered = filtered.filter((t) => t.amount > 0);
+        } else if (detailFilterType === "out") {
+          filtered = filtered.filter((t) => t.amount < 0);
+        }
+
+        if (detailSearchQuery) {
+          filtered = filtered.filter(
+            (t) =>
+              (t.senderName || "").toLowerCase().includes(detailSearchQuery) ||
+              (t.receiverName || "")
+                .toLowerCase()
+                .includes(detailSearchQuery) ||
+              (t.type || "").toLowerCase().includes(detailSearchQuery) ||
+              (t.refId || "").toLowerCase().includes(detailSearchQuery) ||
+              t.amount.toString().includes(detailSearchQuery),
+          );
+        }
+
+        if (detailStartDate && detailEndDate) {
+          filtered = filtered.filter((tx) => {
+            let d = new Date(tx.date);
+            if (isNaN(d.getTime()) && tx.date && tx.date.includes(","))
+              d = new Date(tx.date.split(",")[0].trim());
+            if (isNaN(d.getTime())) return true;
+            const iso = d.toISOString().split("T")[0];
+            return iso >= detailStartDate && iso <= detailEndDate;
+          });
+        }
+
+        const currentSearchBoxOpen = document.getElementById("detailSearchBox")
+          ? document.getElementById("detailSearchBox").style.display === "block"
+          : false;
+        const currentState =
+          JSON.stringify(filtered) +
+          detailTrxLimit +
+          detailFilterType +
+          detailSearchQuery +
+          currentSearchBoxOpen;
+        if (currentState === window.lastDetailState) return;
+        window.lastDetailState = currentState;
+
+        let htmlStr = `
+          <div class="detail-tool-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="kh-text" style="font-weight: 700; color: #1e293b; font-size: 0.95rem;" data-i18n="history_recent_activity">Recent Activity</span>
+              <div style="display: flex; gap: 8px;">
+                <button class="icon-btn ${currentSearchBoxOpen ? "active" : ""}" onclick="toggleDetailSearchBox()" title="Search"><i class="fa-solid fa-search"></i></button>
+                <button class="icon-btn" id="btnToggleDetailDate" onclick="toggleDetailDateBox()" title="Filter Date"><i class="fa-solid fa-calendar-days"></i></button>
+              </div>
+            </div>
+            <div id="detailSearchBox" style="display: ${currentSearchBoxOpen ? "block" : "none"};"><input type="text" id="detailSearchInput" class="kh-text" placeholder="Search..." value="${detailSearchQuery}" oninput="filterDetailBySearch(this.value)" /></div>
+            <div id="detailDateExportContainer" style="display: ${document.getElementById("detailDateExportContainer") && document.getElementById("detailDateExportContainer").style.display === "flex" ? "flex" : "none"}; flex-direction: column; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+              <div class="date-inputs" style="display: flex; gap: 8px; align-items: center;">
+                <input type="date" id="detailStartDate" class="kh-text" value="${detailStartDate}" onchange="filterDetailByDate()" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:10px; font-size:0.8rem; background:var(--bg-card); color:var(--text-main);" />
+                <span style="color: #94a3b8; font-size: 0.8rem;">to</span>
+                <input type="date" id="detailEndDate" class="kh-text" value="${detailEndDate}" onchange="filterDetailByDate()" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:10px; font-size:0.8rem; background:var(--bg-card); color:var(--text-main);" />
+                <button class="icon-btn" onclick="resetDetailDateFilter()" title="Reset Filters" style="width:34px; height:34px; border-radius:8px;"><i class="fa-solid fa-rotate-right"></i></button>
+              </div>
+              <button class="export-btn kh-text" id="btnExportPDF" onclick="exportDetailStatementPDF()" style="padding:10px; border-radius:10px; background:var(--usd-color); color:white; border:none; font-weight:600; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-file-pdf"></i><span data-i18n="history_export_btn">Export Statement</span>
+              </button>
+            </div>
+            <div class="detail-filter-bar">
+              <button class="detail-filter-btn ${detailFilterType === "all" ? "active" : ""} kh-text" onclick="setDetailFilter('all', this)" data-i18n="history_filter_all">All</button>
+              <button class="detail-filter-btn ${detailFilterType === "in" ? "active" : ""} kh-text" onclick="setDetailFilter('in', this)" data-i18n="history_filter_in">Income</button>
+              <button class="detail-filter-btn ${detailFilterType === "out" ? "active" : ""} kh-text" onclick="setDetailFilter('out', this)" data-i18n="history_filter_out">Expense</button>
+            </div>
+          </div>
+        `;
 
         let totalHoldAmount = 0;
         filtered.forEach((t) => {
-          if (t.status === "Hold") totalHoldAmount += Math.abs(t.amount);
+          if (t.status === "Hold" || t.isHold)
+            totalHoldAmount += Math.abs(t.amount);
         });
+        let totalLendAmount = 0;
+        let lendTrxs = [];
+        let oweTrxs = [];
+
+        // 🌟 ថែមលក្ខខណ្ឌឆែកកុងថ្មី mainAccounts.USD.accountNumber
+        if (
+          user.p2pDebts &&
+          user.p2pDebts.length > 0 &&
+          (accId === user.accountNumber ||
+            accId === user.mainAccounts?.USD?.accountNumber) &&
+          currency === "USD"
+        ) {
+          user.p2pDebts.forEach((d) => {
+            if (d.type === "lend") {
+              totalLendAmount += d.amount;
+              lendTrxs.push(d);
+            } else if (d.type === "owe") {
+              oweTrxs.push(d);
+            }
+          });
+        }
 
         const acc = allAccounts.find((a) => a.id === accId);
         const availBal = acc.balance;
-        const totalBal = availBal + totalHoldAmount;
-
+        const totalBal = availBal + totalHoldAmount + totalLendAmount;
         const fmtAvail =
           currency === "USD"
             ? `$${availBal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -1088,243 +2085,672 @@
             ? `$${totalBal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : `${totalBal.toLocaleString("en-US")} ៛`;
 
-        document.getElementById("detBalance").innerHTML = fmtAvail;
-        document.getElementById("detTotalBalance").innerHTML =
-          `សមតុល្យគណនីសរុប ${fmtTotal}`;
+        const balEl = document.getElementById("detBalance");
+        if (balEl.innerText !== fmtAvail) balEl.innerText = fmtAvail;
+        let totalBalText = tFn("acc_total_bal") + " " + fmtTotal;
+        document.getElementById("detTotalBalance").innerText = totalBalText;
 
         let holdTrxs = filtered
-          .filter((t) => t.status === "Hold")
+          .filter((t) => t.status === "Hold" || t.isHold)
           .sort((a, b) => new Date(b.date) - new Date(a.date));
-        let successTrxs = filtered
-          .filter((t) => t.status !== "Hold")
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 30);
+        let successTrxsSorted = filtered
+          .filter((t) => t.status !== "Hold" && !t.isHold)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        let successTrxs = successTrxsSorted.slice(0, detailTrxLimit);
 
-        if (filtered.length === 0) {
-          list.innerHTML = `<div style="text-align:center; padding:50px 0; color:#94a3b8;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p>គ្មានប្រតិបត្តិការទេ</p></div>`;
+        if (
+          filtered.length === 0 &&
+          holdTrxs.length === 0 &&
+          lendTrxs.length === 0 &&
+          oweTrxs.length === 0
+        ) {
+          list.innerHTML =
+            htmlStr +
+            `<div style="text-align:center; padding:30px 0; color:#94a3b8;"><i class="fa-solid fa-folder-open" style="font-size:3rem; opacity:0.5; margin-bottom:10px;"></i><p class="kh-text">${tFn("acc_no_trx")}</p></div>`;
           return;
         }
 
-        let htmlStr = "";
-
         if (holdTrxs.length > 0) {
-          htmlStr += `<div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">⏳ ប្រតិបត្តិការបង្កក (ON HOLD)</div>`;
+          htmlStr += `<div class="cat-header" onclick="toggleCat('hold')"><span class="kh-text"><i class="fa-solid fa-hourglass-half" style="color:#ea580c; margin-right:5px;"></i> ${tFn("acc_cat_hold")}</span><i class="fa-solid fa-chevron-up" id="cat-icon-hold" style="transition:0.3s; color:#94a3b8;"></i></div><div class="cat-content" id="cat-content-hold">`;
           holdTrxs.forEach((t) => {
             const originalIndex = allTrx.indexOf(t);
             const isIncome = t.amount > 0;
-            let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
             const currSym = currency === "KHR" ? "៛" : "$";
             const amtDisplay = Math.abs(t.amount).toLocaleString("en-US", {
               minimumFractionDigits: currency === "USD" ? 2 : 0,
               maximumFractionDigits: currency === "USD" ? 2 : 0,
             });
-
             let title = isIncome
-              ? t.senderName || t.type || "Received"
-              : t.receiverName || t.type || "Transfer";
-            if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
-              title = t.trxMethod || t.type || "System Transaction";
-
-            const cleanTitle = title.replace(
-              /[&<>'"]/g,
-              (tag) =>
-                ({
-                  "&": "&amp;",
-                  "<": "&lt;",
-                  ">": "&gt;",
-                  "'": "&#39;",
-                  '"': "&quot;",
-                })[tag],
-            );
-            const cleanMethod = (t.trxMethod || "U-Pay").replace(
-              /[&<>'"]/g,
-              (tag) =>
-                ({
-                  "&": "&amp;",
-                  "<": "&lt;",
-                  ">": "&gt;",
-                  "'": "&#39;",
-                  '"': "&quot;",
-                })[tag],
-            );
-
+              ? t.senderName || t.type
+              : t.receiverName || t.type;
             let timeStr = new Date(t.date).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             });
-
-            htmlStr += `
-                <div class="trx-item" onclick="openGlobalSlip(user.transactions[${originalIndex}], user.username)" style="background: #fdf2f8; border: 1px solid #fbcfe8;">
-                  <div class="trx-left">
-                    <div class="trx-icon bg-orange text-orange"><i class="fa-solid ${iconClass}"></i></div>
-                    <div class="trx-info">
-                      <h4>${cleanTitle}</h4>
-                      <p>${timeStr} • <span style="color:#ea580c; font-weight:bold;">HOLD</span></p>
-                    </div>
-                  </div>
-                  <div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${amtDisplay}</div>
-                </div>`;
+            htmlStr += `<div class="trx-item" onclick="openGlobalSlip(user.transactions[${originalIndex}], user.username)" style="background: #fff7ed; border: 1px solid #fed7aa; opacity:1;"><div class="trx-left"><div class="trx-icon bg-orange text-orange"><i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i></div><div class="trx-info"><h4 class="kh-text">${title}</h4><p>${timeStr} • <span style="color:#ea580c; font-weight:bold;">HOLD</span></p></div></div><div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${amtDisplay}</div></div>`;
           });
+          htmlStr += `</div>`;
+        }
+
+        if (lendTrxs.length > 0) {
+          htmlStr += `<div class="cat-header" onclick="toggleCat('lend')"><span class="kh-text"><i class="fa-solid fa-handshake" style="color:#10b981; margin-right:5px;"></i> ${tFn("acc_cat_lend")}</span><i class="fa-solid fa-chevron-up" id="cat-icon-lend" style="transition:0.3s; color:#94a3b8;"></i></div><div class="cat-content" id="cat-content-lend">`;
+          lendTrxs.forEach((d) => {
+            const amtDisplay = d.amount.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+            let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            htmlStr += `<div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="background: #ecfdf5; border: 1px solid #a7f3d0; opacity:1; cursor:pointer;"><div class="trx-left"><div class="trx-icon bg-green text-green"><i class="fa-solid fa-hand-holding-dollar"></i></div><div class="trx-info"><h4 class="kh-text">${d.partnerName || d.partnerUsername}</h4><p>${timeStr} • <span style="color:#10b981; font-weight:bold;">RECEIVABLE (${d.fundName})</span></p></div></div><div class="trx-amount text-green">+$${amtDisplay}</div></div>`;
+          });
+          htmlStr += `</div>`;
+        }
+
+        if (oweTrxs.length > 0) {
+          htmlStr += `<div class="cat-header" onclick="toggleCat('owe')"><span class="kh-text"><i class="fa-solid fa-file-invoice-dollar" style="color:#ef4444; margin-right:5px;"></i> ${tFn("acc_cat_owe")}</span><i class="fa-solid fa-chevron-up" id="cat-icon-owe" style="transition:0.3s; color:#94a3b8;"></i></div><div class="cat-content" id="cat-content-owe">`;
+          oweTrxs.forEach((d) => {
+            const amtDisplay = d.amount.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+            let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            htmlStr += `<div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="background: #fef2f2; border: 1px solid #fecaca; opacity:1; cursor:pointer;"><div class="trx-left"><div class="trx-icon bg-red text-red"><i class="fa-solid fa-file-invoice-dollar"></i></div><div class="trx-info"><h4 class="kh-text">${d.partnerName || d.partnerUsername}</h4><p>${timeStr} • <span style="color:#ef4444; font-weight:bold;">DEBT (${d.fundName})</span></p></div></div><div class="trx-amount text-red">-$${amtDisplay}</div></div>`;
+          });
+          htmlStr += `</div>`;
         }
 
         let lastDateLabel = "";
-
         successTrxs.forEach((t) => {
           const originalIndex = allTrx.indexOf(t);
           const isIncome = t.amount > 0;
-          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
+
           let bgClass = isIncome ? "bg-green" : "bg-red";
           let textClass = isIncome ? "text-green" : "text-red";
-          const currSym = currency === "KHR" ? "៛" : "$";
+          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up"; // លំនាំដើម
 
+          // 🌟 កំណត់ Icon ទៅតាមប្រភេទ Transaction នីមួយៗ
           const tType = (t.type || "").toLowerCase();
-          const tMethod = (t.trxMethod || "").toLowerCase();
-          const tSender = (t.senderName || "").toLowerCase();
 
+          // 🌟 ដាក់ Merchant ខាងលើគេ ដើម្បីកុំឲ្យវាជាន់គ្នាជាមួយពាក្យ Payment ឬ Pay
           if (
-            tType.includes("deposit") ||
-            tMethod.includes("cashier") ||
-            tSender.includes("deposit")
-          )
-            iconClass = "fa-hand-holding-dollar";
-          else if (
-            tType.includes("payroll") ||
-            tMethod.includes("payout") ||
-            tMethod.includes("payroll")
-          )
-            iconClass = "fa-money-bill-transfer";
-          else if (
-            tType.includes("promo") ||
-            tType.includes("cashback") ||
-            tSender.includes("promo") ||
-            tSender.includes("reward") ||
-            tType.includes("reward")
-          )
-            iconClass = "fa-sack-dollar";
-          // 🟢 ថែមលក្ខខណ្ឌសម្រាប់ Refund នៅទីនេះ ដើម្បីកុំឱ្យវាធ្លាក់ទៅច្រឡំជាមួយ Savings
-          else if (tType.includes("refund") || tMethod.includes("refund")) {
-            iconClass = "fa-arrow-rotate-left"; // ជារូបសញ្ញាបង្វិលប្រាក់ត្រឡប់ (Return Icon)
-          } else if (
+            t.merchantName ||
             tType.includes("merchant") ||
-            tMethod.includes("merchant") ||
-            tMethod.includes("b2b") ||
-            t.merchantId
-          )
-            iconClass = "fa-store";
-          else if (tType.includes("bill") || tMethod.includes("bill"))
-            iconClass = "fa-file-invoice-dollar";
-          else if (
-            tType.includes("u-fund") ||
-            tType.includes("saving") ||
-            tType.includes("fund")
-          )
-            iconClass = "fa-piggy-bank";
-          else if (tType.includes("e-gift") || tType.includes("gift"))
-            iconClass = "fa-gift";
-          else if (tType.includes("fee")) {
-            iconClass = "fa-receipt";
-            bgClass = "bg-orange";
-            textClass = "text-orange";
-          } else if (isIncome && user.role === "junior")
-            iconClass = "fa-child-reaching";
-          else if (
-            tType.includes("merchant") ||
-            tMethod.includes("merchant") ||
-            tMethod.includes("b2b") ||
-            t.merchantId ||
-            tType.includes("tap to pay") ||
-            tMethod.includes("nfc")
+            tType.includes("sale") ||
+            tType.includes("store")
           ) {
             iconClass = "fa-store";
+          } else if (tType.includes("transfer")) {
+            iconClass = "fa-paper-plane";
+          } else if (
+            tType.includes("scan") ||
+            tType.includes("qr") ||
+            tType.includes("pay") ||
+            tType.includes("payment")
+          ) {
+            iconClass = "fa-qrcode";
+          } else if (tType.includes("u-fund") || tType.includes("pool")) {
+            iconClass = "fa-piggy-bank";
+          } else if (tType.includes("payroll") || tType.includes("payout")) {
+            iconClass = "fa-money-bill-transfer";
+          } else if (tType.includes("debt") || tType.includes("bailout")) {
+            iconClass = "fa-handshake";
+          } else if (tType.includes("penalty") || tType.includes("fee")) {
+            iconClass = "fa-file-invoice-dollar";
+          } else if (tType.includes("refund")) {
+            iconClass = "fa-rotate-left";
+          } else if (tType.includes("deposit")) {
+            iconClass = "fa-vault";
           }
 
+          const currSym = currency === "KHR" ? "៛" : "$";
+          const amtDisplay = Math.abs(t.amount).toLocaleString("en-US", {
+            minimumFractionDigits: currency === "USD" ? 2 : 0,
+            maximumFractionDigits: currency === "USD" ? 2 : 0,
+          });
           let title = isIncome
-            ? t.senderName || t.type || "Received"
-            : t.receiverName || t.type || "Transfer";
-          if (t.type === "E-Gift Received") title = "Received E-Gift";
-          else if (t.type === "E-Gift Sent") title = `Sent E-Gift`;
-          if (title === "U-Pay Central Bank" || title === "U-Pay Bank")
-            title = t.trxMethod || t.type || "System Transaction";
-
+            ? t.senderName || t.type
+            : t.receiverName || t.type;
+          let timeStr = new Date(t.date).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           let dateObj = new Date(t.date);
           if (isNaN(dateObj.getTime()) && t.date && t.date.includes(","))
             dateObj = new Date(t.date.split(",")[0].trim());
           if (isNaN(dateObj.getTime())) dateObj = new Date();
-
-          let d = new Date();
-          d.setHours(0, 0, 0, 0);
-          let y = new Date();
-          y.setDate(d.getDate() - 1);
-          y.setHours(0, 0, 0, 0);
-          let c = new Date(dateObj);
-          c.setHours(0, 0, 0, 0);
-
-          let dateStr = "";
-          if (c.getTime() === d.getTime()) dateStr = "TODAY";
-          else if (c.getTime() === y.getTime()) dateStr = "YESTERDAY";
-          else
-            dateStr = dateObj
-              .toLocaleDateString("en-US", {
-                month: "short",
-                day: "2-digit",
-                year: "numeric",
-              })
-              .toUpperCase();
-
+          let dateStr = getSmartDateLabel(dateObj);
           if (dateStr !== lastDateLabel) {
-            htmlStr += `<div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${dateStr}</div>`;
+            htmlStr += `<div class="kh-text sticky-date-header">${dateStr}</div>`;
             lastDateLabel = dateStr;
           }
 
-          let timeStr = dateObj.toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          let amtDisplay =
-            currency === "USD"
-              ? Math.abs(t.amount).toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
-              : Math.abs(t.amount).toLocaleString();
-
-          const cleanTitle = title.replace(
-            /[&<>'"]/g,
-            (tag) =>
-              ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                "'": "&#39;",
-                '"': "&quot;",
-              })[tag],
-          );
-          const cleanMethod = (t.trxMethod || "U-Pay").replace(
-            /[&<>'"]/g,
-            (tag) =>
-              ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                "'": "&#39;",
-                '"': "&quot;",
-              })[tag],
-          );
-
-          htmlStr += `
-                <div class="trx-item" onclick="openGlobalSlip(user.transactions[${originalIndex}], user.username)">
-                  <div class="trx-left">
-                    <div class="trx-icon ${bgClass}"><i class="fa-solid ${iconClass}"></i></div>
-                    <div class="trx-info">
-                      <h4>${cleanTitle}</h4>
-                      <p>${timeStr} • ${cleanMethod}</p>
-                    </div>
-                  </div>
-                  <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${amtDisplay}</div>
-                </div>
-              `;
+          htmlStr += `<div class="trx-item" onclick="openGlobalSlip(user.transactions[${originalIndex}], user.username)" style="opacity:1;"><div class="trx-left"><div class="trx-icon ${bgClass}"><i class="fa-solid ${iconClass}"></i></div><div class="trx-info"><h4 class="kh-text">${title}</h4><p>${timeStr} • ${t.trxMethod || "U-Pay"}</p></div></div><div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${amtDisplay}</div></div>`;
         });
-        list.innerHTML = htmlStr;
+
+        if (successTrxsSorted.length > detailTrxLimit) {
+          htmlStr += `<button class="load-more-btn kh-text" onclick="loadMoreDetailTrx()"><i class="fa-solid fa-angle-down" style="margin-right:6px;"></i> <span data-i18n="history_load_more">${tFn("history_load_more") || "Load More"}</span></button>`;
+        }
+        if (list.innerHTML !== htmlStr) {
+          list.innerHTML = htmlStr;
+        }
+      }
+
+      function loadMoreDetailTrx() {
+        detailTrxLimit += 15;
+        if (currentViewingAccount) {
+          renderDetailTransactions(
+            currentViewingAccount.id,
+            currentViewingAccount.currency,
+          );
+        }
+      }
+
+      function toggleDetailSearchBox() {
+        const box = document.getElementById("detailSearchBox");
+        box.style.display = box.style.display === "none" ? "block" : "none";
+        if (box.style.display === "block")
+          document.getElementById("detailSearchInput").focus();
+      }
+
+      function setDetailFilter(type, btn) {
+        detailFilterType = type;
+        document
+          .querySelectorAll(".detail-filter-btn")
+          .forEach((b) => b.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+        if (currentViewingAccount) {
+          renderDetailTransactions(
+            currentViewingAccount.id,
+            currentViewingAccount.currency,
+          );
+        }
+      }
+
+      function filterDetailBySearch(val) {
+        detailSearchQuery = val.toLowerCase();
+        window.lastDetailState = "";
+        if (currentViewingAccount) {
+          renderDetailTransactions(
+            currentViewingAccount.id,
+            currentViewingAccount.currency,
+          );
+          const inputEl = document.getElementById("detailSearchInput");
+          if (inputEl) {
+            inputEl.focus();
+            inputEl.setSelectionRange(
+              inputEl.value.length,
+              inputEl.value.length,
+            );
+          }
+        }
+      }
+
+      function toggleDetailDateBox() {
+        const box = document.getElementById("detailDateExportContainer");
+        const btn = document.getElementById("btnToggleDetailDate");
+        if (box) {
+          if (box.style.display === "none" || !box.style.display) {
+            box.style.display = "flex";
+            if (btn) btn.classList.add("active");
+          } else {
+            box.style.display = "none";
+            if (btn) btn.classList.remove("active");
+          }
+        }
+      }
+
+      function filterDetailByDate() {
+        const startEl = document.getElementById("detailStartDate");
+        const endEl = document.getElementById("detailEndDate");
+        const todayStr = new Date().toISOString().split("T")[0];
+        if (startEl && endEl) {
+          let startVal = startEl.value;
+          let endVal = endEl.value;
+          if (startVal > todayStr) startVal = todayStr;
+          if (endVal > todayStr) endVal = todayStr;
+          if (startVal && endVal && startVal > endVal) {
+            Swal.fire({
+              toast: true,
+              position: "top",
+              icon: "warning",
+              title:
+                '<span class="kh-text">កាលបរិច្ឆេទចាប់ផ្តើមមិនអាចធំជាងថ្ងៃបញ្ចប់ទេ!</span>',
+              showConfirmButton: false,
+              timer: 2500,
+              customClass: { popup: "premium-swal kh-text" },
+            });
+            endVal = startVal;
+          }
+          startEl.value = startVal;
+          endEl.value = endVal;
+          detailStartDate = startVal;
+          detailEndDate = endVal;
+          window.lastDetailState = "";
+          if (currentViewingAccount) {
+            renderDetailTransactions(
+              currentViewingAccount.id,
+              currentViewingAccount.currency,
+            );
+          }
+        }
+      }
+
+      function resetDetailDateFilter() {
+        detailStartDate = "";
+        detailEndDate = "";
+        const startEl = document.getElementById("detailStartDate");
+        const endEl = document.getElementById("detailEndDate");
+        if (startEl) startEl.value = "";
+        if (endEl) endEl.value = "";
+        window.lastDetailState = "";
+        if (currentViewingAccount) {
+          renderDetailTransactions(
+            currentViewingAccount.id,
+            currentViewingAccount.currency,
+          );
+        }
+      }
+
+      async function exportDetailStatementPDF() {
+        const tFn = window.t || ((k) => k);
+        const start = document.getElementById("detailStartDate").value;
+        const end = document.getElementById("detailEndDate").value;
+        if (!start || !end) {
+          return Swal.fire({
+            title: "Warning",
+            text: tFn("pdf_err_no_date") || "សូមជ្រើសរើសកាលបរិច្ឆេទសិន!",
+            icon: "warning",
+            customClass: { popup: "kh-text" },
+          });
+        }
+        Swal.fire({
+          title: `<span class="kh-text">${tFn("pdf_generating_title") || "กำลังสร้างรายงาน..."}</span>`,
+          html: `<span class="kh-text">${tFn("pdf_generating_desc") || "กรุณารอสักครู่..."}</span>`,
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+
+        setTimeout(() => {
+          try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF("p", "pt", "a4");
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+            const num = (v) => {
+              const n = Number(v);
+              return isNaN(n) ? 0 : n;
+            };
+            const sanitizeForPDF = (str) => {
+              if (!str) return "";
+              let s = str
+                .replace(/គណនីបញ្ញើកើនទ្រព្យ/g, "WEALTH GROWTH")
+                .replace(/គណនីបញ្ញើកើនចំណូល/g, "INCOME GROWTH")
+                .replace(/គណនីប្រាក់បញ្ញើប្រចាំត្រីមាស/g, "QUARTERLY DEPOSIT")
+                .replace(/ប្រាក់បញ្ញើប្រចាំត្រីមាស/g, "QUARTERLY DEPOSIT");
+              return s
+                .replace(/[^\x20-\x7E]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+            };
+            const allTrx = user.transactions || [];
+            const accId = currentViewingAccount.id;
+            const currency = currentViewingAccount.currency;
+            let accountTrx = allTrx.filter((t) => {
+              const matchDirectAcc =
+                t.senderAcc === accId || t.receiverAcc === accId;
+              const matchMain =
+                currency === t.currency &&
+                (accId === user.accountNumber ||
+                  accId === user.accountNumberKHR) &&
+                !t.senderAcc &&
+                !t.receiverAcc;
+              return matchDirectAcc || matchMain;
+            });
+            const allTrxAsc = [...accountTrx].sort(
+              (a, b) => new Date(a.date) - new Date(b.date),
+            );
+            let totalIn = 0,
+              totalOut = 0;
+            let runningBal = 0;
+            allTrxAsc.forEach((tx) => {
+              const amt = num(tx.amount);
+              runningBal += amt;
+              tx.computedBalance = runningBal;
+            });
+            const stTrx = allTrxAsc.filter((tx) => {
+              const d = new Date(tx.date);
+              if (isNaN(d)) return false;
+              const iso = d.toISOString().split("T")[0];
+              return iso >= start && iso <= end;
+            });
+            stTrx.forEach((tx) => {
+              const amt = num(tx.amount);
+              if (amt > 0) totalIn += amt;
+              else totalOut += Math.abs(amt);
+            });
+            const beforeStTrx = allTrxAsc.filter((tx) => {
+              const d = new Date(tx.date);
+              if (isNaN(d)) return false;
+              return d.toISOString().split("T")[0] < start;
+            });
+            let openingBal = 0;
+            const lastTxBefore = beforeStTrx.slice().reverse()[0];
+            if (lastTxBefore) openingBal = num(lastTxBefore.computedBalance);
+            let endingBal = openingBal;
+            const lastTxEnd = stTrx.slice().reverse()[0];
+            if (lastTxEnd) endingBal = num(lastTxEnd.computedBalance);
+
+            doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 70, 32);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(20);
+            doc.text("ACCOUNT STATEMENT", pageWidth - 40, 55, {
+              align: "right",
+            });
+            doc.setFontSize(10);
+            doc.setTextColor(16, 185, 129);
+            const fStart = new Date(start).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+            const fEnd = new Date(end).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            });
+            doc.text(`For period: ${fStart} - ${fEnd}`, pageWidth - 40, 70, {
+              align: "right",
+            });
+            doc.setDrawColor(16, 185, 129);
+            doc.setLineWidth(1.5);
+            doc.line(40, 85, pageWidth - 40, 85);
+            let y = 110;
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            const userNameStr = sanitizeForPDF(
+              (user.fullName || user.username).toUpperCase(),
+            );
+            doc.text(userNameStr, 40, y);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text("Phnom Penh, Cambodia", 40, y + 15);
+            let detailY = 110;
+            const rightColX = 350,
+              valueColX = pageWidth - 40;
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(44, 62, 80);
+            doc.text("ACCOUNT DETAILS", rightColX, detailY);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            let accTypeName = currentViewingAccount.type || "Savings";
+            if (currentViewingAccount.isMain) accTypeName = "Main Account";
+            const details = [
+              ["Account Name", userNameStr],
+              ["Account Type", sanitizeForPDF(accTypeName.toUpperCase())],
+              ["Account No.", accId],
+              ["Currency", currency],
+            ];
+            details.forEach((item) => {
+              detailY += 15;
+              doc.setTextColor(100);
+              doc.text(item[0], rightColX, detailY);
+              doc.setTextColor(0);
+              doc.text(item[1], valueColX, detailY, { align: "right" });
+            });
+            let summaryY = detailY + 30;
+            doc.setFont("helvetica", "bold");
+            doc.text("ACCOUNT SUMMARY", rightColX, summaryY);
+            const sym = currency === "KHR" ? " KHR" : " USD";
+            const formatFn = (val) =>
+              currency === "KHR"
+                ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
+                : val.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  });
+            const summary = [
+              ["Opening Balance", formatFn(openingBal) + sym],
+              ["Total Money In", "+ " + formatFn(totalIn) + sym],
+              ["Total Money Out", "- " + formatFn(totalOut) + sym],
+              ["Ending Balance", formatFn(endingBal) + sym],
+            ];
+            summary.forEach((item, i) => {
+              summaryY += 15;
+              doc.setFont("helvetica", i === 3 ? "bold" : "normal");
+              doc.setTextColor(100);
+              doc.text(item[0], rightColX, summaryY);
+              doc.setTextColor(0);
+              doc.text(item[1], valueColX, summaryY, { align: "right" });
+            });
+            const formatDateToPDF = (dateStr) => {
+              const d = new Date(dateStr);
+              if (isNaN(d)) return ["", ""];
+              const ds =
+                ("0" + (d.getMonth() + 1)).slice(-2) +
+                "/" +
+                ("0" + d.getDate()).slice(-2) +
+                "/" +
+                d.getFullYear();
+              const ts = d.toLocaleTimeString("en-US");
+              return [ds, ts];
+            };
+            const tableBody = stTrx.map((tx) => {
+              const amount = num(tx.amount);
+              const isIn = amount > 0;
+              const [ds, ts] = formatDateToPDF(tx.date);
+              const formatRowMoney = (val) =>
+                currency === "KHR"
+                  ? val.toLocaleString("en-US", { maximumFractionDigits: 0 })
+                  : val.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    });
+              let sender = sanitizeForPDF(
+                (
+                  tx.senderName ||
+                  tx.merchantName ||
+                  tx.name ||
+                  "SYSTEM"
+                ).toUpperCase(),
+              );
+              let receiver = sanitizeForPDF(
+                (
+                  tx.receiverName ||
+                  tx.merchantName ||
+                  tx.name ||
+                  "SYSTEM"
+                ).toUpperCase(),
+              );
+              let detailsText = isIn
+                ? `RECEIVED FROM ${sender}`
+                : `TRANSFER TO ${receiver}`;
+              if (tx.remark)
+                detailsText += `\nREMARK: ${sanitizeForPDF(tx.remark)}`;
+              detailsText += `\nREF# ${tx.refId || "N/A"}`;
+              const balStr = formatRowMoney(num(tx.computedBalance)) + sym;
+              return [
+                ds + "\n" + ts,
+                detailsText,
+                isIn ? formatRowMoney(amount) + sym : "",
+                !isIn ? formatRowMoney(Math.abs(amount)) + sym : "",
+                balStr,
+              ];
+            });
+            doc.autoTable({
+              startY: summaryY + 30,
+              margin: { bottom: 65, left: 40, right: 40 },
+              showFoot: "lastPage",
+              head: [
+                [
+                  "Date",
+                  "Transaction Details",
+                  { content: "Money In", styles: { halign: "right" } },
+                  { content: "Money Out", styles: { halign: "right" } },
+                  { content: "Balance", styles: { halign: "right" } },
+                ],
+              ],
+              body: tableBody,
+              theme: "plain",
+              styles: { fontSize: 8, cellPadding: 5, textColor: [0, 0, 0] },
+              headStyles: {
+                fillColor: [245, 245, 245],
+                fontStyle: "bold",
+                textColor: [0, 0, 0],
+              },
+              columnStyles: {
+                0: { cellWidth: 70 },
+                1: { cellWidth: "auto" },
+                2: {
+                  halign: "right",
+                  cellWidth: 70,
+                  textColor: [16, 185, 129],
+                },
+                3: { halign: "right", cellWidth: 70, textColor: [220, 38, 38] },
+                4: { halign: "right", cellWidth: 70 },
+              },
+              didDrawPage: function () {
+                doc.setFontSize(7);
+                doc.setTextColor(150);
+                doc.text(
+                  "The Ending Balance does not reflect any pending withdrawals or uncleared transactions.",
+                  40,
+                  pageHeight - 50,
+                );
+                doc.text(
+                  "DISCLAIMER: This document is a digitally generated statement for informational purposes only.",
+                  40,
+                  pageHeight - 40,
+                );
+                doc.text(
+                  "U-Pay Plc. | +855 98 203 203 | info@upay.com",
+                  40,
+                  pageHeight - 20,
+                );
+                doc.text(
+                  "Page " + doc.internal.getNumberOfPages(),
+                  pageWidth - 40,
+                  pageHeight - 20,
+                  { align: "right" },
+                );
+              },
+            });
+            doc.save(`Statement_${currentViewingAccount.id}_${start}.pdf`);
+            Swal.close();
+            Swal.fire({
+              toast: true,
+              position: "top",
+              icon: "success",
+              title: `<span class="kh-text">${tFn("pdf_success") || "ទាញយក PDF បានជោគជ័យ!"}</span>`,
+              showConfirmButton: false,
+              timer: 2000,
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          } catch (e) {
+            Swal.close();
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: tFn("pdf_error") + e.message,
+              customClass: { popup: "kh-text" },
+            });
+          }
+        }, 300);
+      }
+      // ==========================================
+      // 🌟 មុខងារគ្រប់គ្រងគណនីដែលបានលាក់ (Hidden Accounts Logic)
+      // ==========================================
+
+      // ៤.១ ហៅ PIN កូដ មុនពេលបង្ហាញ
+      function verifyAndShowHiddenAccounts() {
+        requestPinVerification(
+          "សន្តិសុខគណនី",
+          "សូមបញ្ចូលលេខកូដ PIN របស់អ្នកដើម្បីអាចមើលគណនីដែលបានលាក់។",
+          function () {
+            showHiddenAccountsModal();
+          },
+        );
+      }
+
+      // ៤.២ បង្ហាញ Bottom Sheet
+      function showHiddenAccountsModal() {
+        let html = `
+          <div class="sheet-drag-line"></div>
+          <h3 class="kh-text" style="text-align:center; margin:0 0 20px 0; color:var(--text-main); font-size:1.1rem;">គណនីដែលបានលាក់ (${hiddenAccounts.length})</h3>
+          <div style="max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+        `;
+
+        hiddenAccounts.forEach((acc) => {
+          const isUSD = acc.currency === "USD";
+          const balStr = isUSD
+            ? `$${acc.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+            : `${acc.balance.toLocaleString("en-US")} ៛`;
+          const accFmt = acc.id.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+
+          html += `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); padding:15px; border-radius:16px; margin-bottom:12px; border:1px solid var(--border);">
+              <div style="text-align:left;">
+                <h4 class="kh-text" style="margin:0; font-size:0.95rem; color:var(--text-main);">${acc.name}</h4>
+                <p style="margin:3px 0 0 0; font-size:0.8rem; color:#64748b; font-family:monospace;">${accFmt}</p>
+                <p style="margin:3px 0 0 0; font-size:0.95rem; font-weight:bold; color:var(--text-main);">${balStr}</p>
+              </div>
+              <button onclick="unhideAccount('${acc.id}')" style="background:#ecfdf5; color:#059669; border:none; padding:10px 15px; border-radius:12px; font-weight:bold; font-size:0.85rem; cursor:pointer; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.2);" class="kh-text"><i class="fa-solid fa-eye"></i> បង្ហាញវិញ</button>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+
+        Swal.fire({
+          html: html,
+          showConfirmButton: false,
+          showCloseButton: false,
+          position: "bottom",
+          backdrop: `rgba(0,0,0,0.5)`,
+          allowOutsideClick: true, // 🌟 ថែមត្រង់នេះ៖ ឱ្យចុចផ្ទៃក្រៅបាត់វិញ
+          allowEscapeKey: true, // 🌟 ថែមត្រង់នេះ៖ ឱ្យចុច ESC បាត់វិញ
+          customClass: { popup: "bottom-sheet-modal kh-text" },
+        });
+      }
+
+      // ៤.៣ ហៅ API ដើម្បីបង្ហាញកុងមកវិញ (Unhide)
+      async function unhideAccount(accId) {
+        Swal.fire({
+          title: "កំពុងដំណើរការ...",
+          didOpen: () => Swal.showLoading(),
+        });
+        try {
+          const response = await fetch("/api/account/toggle-hide", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ accountNumber: accId }),
+          });
+          const data = await response.json();
+          if (data.success) {
+            user = data.user;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            processAccountsData();
+            renderAccountsList(); // Update UI
+            Swal.fire({
+              toast: true,
+              position: "top",
+              icon: "success",
+              title: '<span class="kh-text">បានបង្ហាញគណនីវិញជោគជ័យ!</span>',
+              showConfirmButton: false,
+              timer: 1500,
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          } else {
+            throw new Error(data.message);
+          }
+        } catch (err) {
+          Swal.fire({ icon: "error", title: "Error", text: err.message });
+        }
       }
     </script>
   </body>

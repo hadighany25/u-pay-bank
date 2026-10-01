@@ -1,3 +1,4 @@
+// Merchant.js
 const mongoose = require("mongoose");
 
 const merchantSchema = new mongoose.Schema(

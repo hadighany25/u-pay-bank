@@ -1,3 +1,4 @@
+// JointAccount.js
 const mongoose = require("mongoose");
 
 const jointAccountSchema = new mongoose.Schema(

@@ -1,23 +1,23 @@
-//authRoutes.js
+// ============================================================================
+// ឯកសារ: routes/authRoutes.js
+// អត្ថន័យ: បណ្តុំផ្លូវ (Routes) សម្រាប់ភ្ជាប់ទៅកាន់មុខងារ Auth, Profile, និង Settings
+// ============================================================================
 
+// ==========================================
+// 📦 ផ្នែកទី ១៖ ទាញយកបណ្ណាល័យ និង Controller
+// ==========================================
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
 const authController = require("../controllers/authController");
 
-// កំណត់ Multer អោយទុករូបក្នុង Memory កុំព្យូទ័របណ្តោះអាសន្ន
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // កំណត់ទំហំរូបមិនអោយលើសពី 5MB
-});
-
-// ១. ទាញយកឆ្មាំយាមទ្វារនៅខាងលើគេ
+// ទាញយក Middleware សម្រាប់ការពារផ្លូវ (Route Guardian)
 const { verifyUser } = require("../middleware/authMiddleware");
 
-// =====================================================================
-// 🛡️ មុខងារអាវក្រោះការពារ (Safe Wrapper) កុំឱ្យគាំង Server ពេលបាត់ Controller ណាមួយ
-// =====================================================================
+// ==========================================
+// 🛡️ ផ្នែកទី ២៖ មុខងារអាវក្រោះការពារ (Safe Wrappers)
+// ==========================================
+// ការពារកុំឱ្យគាំង Server ពេលហៅឈ្មោះ Controller ឫ Middleware ខុស
+
 const safeHandler = (handler, name) => {
   if (typeof handler !== "function") {
     console.error(
@@ -31,7 +31,6 @@ const safeHandler = (handler, name) => {
   return handler;
 };
 
-// 🛡️ ការពារ Middleware ដូចគ្នា
 let safeVerifyUser = verifyUser;
 if (typeof verifyUser !== "function") {
   console.error(
@@ -42,59 +41,140 @@ if (typeof verifyUser !== "function") {
       .status(500)
       .json({ success: false, message: "Middleware verifyUser អត់ដំណើរការ!" });
 }
-// =====================================================================
 
-// ផ្លូវ (Routes) សម្រាប់ការចុះឈ្មោះ និង Login
-router.post("/register", safeHandler(authController.register, "register"));
+// ==========================================
+// 🚪 ផ្នែកទី ៣៖ ការចូល និងចាកចេញ (Login, Logout & Heartbeat)
+// ==========================================
 router.post("/login", safeHandler(authController.login, "login"));
 router.post("/logout", safeHandler(authController.logout, "logout"));
 router.post("/heartbeat", safeHandler(authController.heartbeat, "heartbeat"));
+
+// 🔴 សម្រាប់ Admin (Admin Login)
 router.post(
   "/admin/login",
   safeHandler(authController.adminLogin, "adminLogin"),
 );
+router.post(
+  "/admin/nfc-login",
+  safeHandler(authController.adminNfcLogin, "adminNfcLogin"),
+);
 
-// ២. ដាក់ឆ្មាំយាមមុខ API ដែលបញ្ជូនទិន្នន័យអតិថិជន
+// ==========================================
+// 📝 ផ្នែកទី ៤៖ ការចុះឈ្មោះ (Registration)
+// ==========================================
+// 🟢 ចុះឈ្មោះដោយប្រើការផ្ទៀងផ្ទាត់ OTP (ថ្មី)
+router.post(
+  "/request-otp",
+  safeHandler(authController.requestRegisterOTP, "requestRegisterOTP"),
+);
+router.post(
+  "/verify-register",
+  safeHandler(authController.verifyAndRegister, "verifyAndRegister"),
+);
+
+// 🔴 ចុះឈ្មោះបែបចាស់ (Legacy)
+router.post("/register", safeHandler(authController.register, "register"));
+
+// ==========================================
+// 🔑 ផ្នែកទី ៥៖ ការសង្គ្រោះគណនី (Forgot Password)
+// ==========================================
+router.post(
+  "/forgot-password/verify-user",
+  safeHandler(authController.verifyUser, "verifyUser"),
+);
+router.post(
+  "/forgot-password/verify-otp",
+  safeHandler(authController.verifyForgotOtp, "verifyForgotOtp"),
+);
+router.post(
+  "/forgot-password/reset-password",
+  safeHandler(authController.resetPassword, "resetPassword"),
+);
+router.post(
+  "/send-security-otp",
+  safeHandler(authController.sendSecurityOtp, "sendSecurityOtp"),
+);
+
+// ==========================================
+// ⚙️ ផ្នែកទី ៦៖ ការកំណត់សុវត្ថិភាព និងប្រវត្តិរូប (Security & Profile Settings)
+// ==========================================
+// ផ្ទៀងផ្ទាត់លេខសម្ងាត់ចាស់ ឫ PIN ចាស់
+router.post(
+  "/verify-password",
+  safeHandler(authController.verifyCurrentPassword, "verifyCurrentPassword"),
+);
+router.post(
+  "/verify-pin",
+  safeHandler(authController.verifyCurrentPin, "verifyCurrentPin"),
+);
+
+// ប្តូរលេខសម្ងាត់ និង PIN ថ្មី
+router.post(
+  "/change-password",
+  safeHandler(authController.changePassword, "changePassword"),
+);
+router.post("/change-pin", safeHandler(authController.changePin, "changePin"));
+
+// ការបញ្ជូនរូបភាព និងឯកសារ (KYC)
+router.post(
+  "/user/upload-image",
+  safeHandler(authController.uploadImage, "uploadImage"),
+);
+router.post(
+  "/user/submit-kyc",
+  safeHandler(authController.submitKyc, "submitKyc"),
+);
+
+// ==========================================
+// 🏦 ផ្នែកទី ៧៖ ការគ្រប់គ្រងគណនីរង (Account Management - Protected)
+// ==========================================
+// 🛡️ ផ្លូវទាំងនេះត្រូវឆ្លងកាត់ safeVerifyUser ជាមុនសិន
+router.post(
+  "/account/rename",
+  safeVerifyUser,
+  safeHandler(authController.renameAccount, "renameAccount"),
+);
+router.post(
+  "/account/update-limit",
+  safeVerifyUser,
+  safeHandler(authController.updateAccountLimit, "updateAccountLimit"),
+);
+router.post(
+  "/account/toggle-freeze",
+  safeVerifyUser,
+  safeHandler(authController.toggleFreezeAccount, "toggleFreezeAccount"),
+);
+router.post(
+  "/account/toggle-hide",
+  safeVerifyUser,
+  safeHandler(authController.toggleHideAccount, "toggleHideAccount"),
+);
+
+// ==========================================
+// 📡 ផ្នែកទី ៨៖ ការទាញយកទិន្នន័យ (Data & Bank Operations)
+// ==========================================
+// ទាញយកទិន្នន័យ Users ទាំងអស់ (ត្រូវការ Token)
 router.get(
   "/users",
   safeVerifyUser,
   safeHandler(authController.getUsers, "getUsers"),
 );
 
-// ផ្លូវ (Routes) សម្រាប់ការកំណត់គណនី
-router.post(
-  "/change-password",
-  safeHandler(authController.changePassword, "changePassword"),
-);
-router.post("/change-pin", safeHandler(authController.changePin, "changePin"));
-router.post(
-  "/change-limit",
-  safeHandler(authController.changeLimit, "changeLimit"),
+// ផ្ទៀងផ្ទាត់ឈ្មោះម្ចាស់គណនីមុនវេរលុយ
+router.get(
+  "/bank/verify-account/:account_number",
+  safeHandler(authController.verifyAccount, "verifyAccount"),
 );
 
-// 🔥 ផ្លូវ (Routes) សំខាន់សម្រាប់ការអាប់ឡូតរូបភាព និង KYC ចូល MongoDB
-router.post(
-  "/user/upload-image",
-  upload.single("profileImg"),
-  safeHandler(authController.uploadImage, "uploadImage"),
-);
-router.post(
-  "/user/submit-kyc",
-  upload.single("kycDoc"),
-  safeHandler(authController.submitKyc, "submitKyc"),
+// ជម្លៀសប្រតិបត្តិការចាស់ៗ
+router.get(
+  "/migrate-trx",
+  safeHandler(authController.migrateTransactions, "migrateTransactions"),
 );
 
-// ផ្លូវ (Routes) សម្រាប់ភ្លេចលេខសម្ងាត់
-router.post(
-  "/forgot-password/verify-user",
-  safeHandler(authController.verifyUser, "verifyUser"),
-);
-router.post(
-  "/forgot-password/reset-password",
-  safeHandler(authController.resetPassword, "resetPassword"),
-);
-
-// ផ្លូវ (Routes) សម្រាប់ Telegram Bot និងផ្សេងៗ
+// ==========================================
+// 🤖 ផ្នែកទី ៩៖ ការតភ្ជាប់ជាមួយ Telegram
+// ==========================================
 router.post(
   "/generate-telegram-code",
   safeHandler(authController.generateTelegramCode, "generateTelegramCode"),
@@ -103,20 +183,8 @@ router.post(
   "/unlink-telegram",
   safeHandler(authController.unlinkTelegram, "unlinkTelegram"),
 );
-router.get(
-  "/bank/verify-account/:account_number",
-  safeHandler(authController.verifyAccount, "verifyAccount"),
-);
 
-router.get(
-  "/migrate-trx",
-  safeHandler(authController.migrateTransactions, "migrateTransactions"),
-);
-
-// 🟢 ផ្លូវថ្មីសម្រាប់ Login ដោយស្កេនកាត NFC
-router.post(
-  "/admin/nfc-login",
-  safeHandler(authController.adminNfcLogin, "adminNfcLogin"),
-);
-
+// ==========================================
+// 📤 ផ្នែកទី ១០៖ បញ្ចេញមុខងារ (Exports)
+// ==========================================
 module.exports = router;

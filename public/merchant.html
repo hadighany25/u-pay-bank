@@ -1,3 +1,4 @@
+<!-- merchant.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -2384,16 +2385,38 @@
           khrSelect.innerHTML =
             '<option value="">-- មិនភ្ជាប់ (None) --</option>';
 
-          usdSelect.innerHTML += `<option value="${window.currentUser.accountNumber}">Main Account ($) - ${window.currentUser.accountNumber}</option>`;
-          if (window.currentUser.accountNumberKHR) {
+          // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+          if (
+            window.currentUser.mainAccounts &&
+            window.currentUser.mainAccounts.USD &&
+            window.currentUser.mainAccounts.USD.accountNumber
+          ) {
+            usdSelect.innerHTML += `<option value="${window.currentUser.mainAccounts.USD.accountNumber}">Main Account ($) - ${window.currentUser.mainAccounts.USD.accountNumber}</option>`;
+          } else if (window.currentUser.accountNumber) {
+            // Legacy
+            usdSelect.innerHTML += `<option value="${window.currentUser.accountNumber}">Main Account ($) - ${window.currentUser.accountNumber}</option>`;
+          }
+
+          // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+          if (
+            window.currentUser.mainAccounts &&
+            window.currentUser.mainAccounts.KHR &&
+            window.currentUser.mainAccounts.KHR.accountNumber
+          ) {
+            khrSelect.innerHTML += `<option value="${window.currentUser.mainAccounts.KHR.accountNumber}">Main Account (៛) - ${window.currentUser.mainAccounts.KHR.accountNumber}</option>`;
+          } else if (window.currentUser.accountNumberKHR) {
+            // Legacy
             khrSelect.innerHTML += `<option value="${window.currentUser.accountNumberKHR}">Main Account (៛) - ${window.currentUser.accountNumberKHR}</option>`;
           }
 
+          // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
           if (
             window.currentUser.subAccounts &&
             window.currentUser.subAccounts.length > 0
           ) {
             window.currentUser.subAccounts.forEach((sub) => {
+              if (sub.isHidden) return; // បើលាក់កុង គឺមិនបង្ហាញឱ្យភ្ជាប់ទេ
+
               if (sub.currency === "USD") {
                 usdSelect.innerHTML += `<option value="${sub.accountNumber}">${sub.accountName} ($) - ${sub.accountNumber}</option>`;
               } else if (sub.currency === "KHR") {
@@ -3928,29 +3951,27 @@
               // 🟢 ៣. បិទផ្ទាំងកាមេរ៉ាស្កេន NFC
               closeQRModal();
 
-              // 🟢 ៤. ហៅផ្ទាំង POS Slip មកបង្ហាញអូតូ (មានប៊ូតុង Print)
-              openPosSlip(
-                {
-                  amount: amount, // ចំនួនទឹកប្រាក់
-                  currency: currency, // រូបិយប័ណ្ណ
-                  senderName: data.senderName || "Customer",
-                  receiverName: currentMerchant.name,
-                  refId: data.refId || "TAP-" + Date.now().toString().slice(-6),
-                  hash: data.hash || "N/A",
-                  date: new Date().toLocaleString("en-US", {
-                    timeZone: "Asia/Phnom_Penh",
-                    hour12: true,
-                  }),
-                  remark: "NFC Tap to Pay",
-                  trxMethod: "NFC Payment",
-                },
-                window.currentUser.username,
-              );
-
-              // 🟢 ៥. ទាញប្រវត្តិ និងទឹកប្រាក់ថ្មីមក Update លើ Dashboard
-              if (typeof loadTransactions === "function") loadTransactions();
-              if (typeof fetchMerchantRevenue === "function")
+              // 🟢 ៤. ទាញប្រវត្តិ និងទឹកប្រាក់ថ្មីមក Update លើ Dashboard ជាមុនសិន
+              if (typeof loadTransactions === "function") {
+                await loadTransactions(); // រង់ចាំឱ្យវាទាញប្រវត្តិពី Server ឱ្យចប់សិន
+              }
+              if (typeof fetchMerchantRevenue === "function") {
                 fetchMerchantRevenue();
+              }
+
+              // 🟢 ៥. ហៅផ្ទាំង Slip ពិតប្រាកដមកបង្ហាញ
+              if (typeof openGlobalSlip === "function") {
+                if (data.transaction) {
+                  // បើ Backend បោះទិន្នន័យប្រតិបត្តិការពេញលេញមក យើងយកមកបង្ហាញតែម្តង
+                  openGlobalSlip(data.transaction);
+                } else if (
+                  currentTransactions &&
+                  currentTransactions.length > 0
+                ) {
+                  // បើ Backend មិនបានបោះឱ្យ យើងចាប់យកប្រតិបត្តិការថ្មីបំផុត (លេខរៀងទី ០) ដែលទើប Update មិញនេះមកបង្ហាញ
+                  openGlobalSlip(currentTransactions[0]);
+                }
+              }
             } else {
               Swal.fire("ប្រតិបត្តិការបរាជ័យ!", data.message, "error");
             }

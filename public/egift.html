@@ -1,3 +1,4 @@
+<!-- egift.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -492,18 +493,42 @@
         select.innerHTML = "";
         let lang = localStorage.getItem("lang") || "en";
 
-        const usdLabel = lang === "kh" ? "គណនី Main ($)" : "Main Account ($)";
-        const khrLabel = lang === "kh" ? "គណនី Main (៛)" : "Main Account (៛)";
+        const usdLabel = lang === "kh" ? "គណនីចម្បង ($)" : "Main Account ($)";
+        const khrLabel = lang === "kh" ? "គណនីចម្បង (៛)" : "Main Account (៛)";
 
-        select.innerHTML += `<option value="MAIN_USD" data-currency="USD" data-bal="${currentUser.balance}">${usdLabel} - ${currentUser.accountNumber}</option>`;
-        select.innerHTML += `<option value="MAIN_KHR" data-currency="KHR" data-bal="${currentUser.balanceKHR || 0}">${khrLabel} - ${currentUser.accountNumberKHR || "N/A"}</option>`;
+        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          currentUser.mainAccounts &&
+          currentUser.mainAccounts.USD &&
+          currentUser.mainAccounts.USD.accountNumber
+        ) {
+          select.innerHTML += `<option value="${currentUser.mainAccounts.USD.accountNumber}" data-currency="USD" data-bal="${currentUser.mainAccounts.USD.balance}">${usdLabel} - ${currentUser.mainAccounts.USD.accountNumber}</option>`;
+        } else if (currentUser.accountNumber) {
+          // Legacy Fallback
+          select.innerHTML += `<option value="MAIN_USD" data-currency="USD" data-bal="${currentUser.balance}">${usdLabel} - ${currentUser.accountNumber}</option>`;
+        }
 
+        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          currentUser.mainAccounts &&
+          currentUser.mainAccounts.KHR &&
+          currentUser.mainAccounts.KHR.accountNumber
+        ) {
+          select.innerHTML += `<option value="${currentUser.mainAccounts.KHR.accountNumber}" data-currency="KHR" data-bal="${currentUser.mainAccounts.KHR.balance}">${khrLabel} - ${currentUser.mainAccounts.KHR.accountNumber}</option>`;
+        } else if (currentUser.accountNumberKHR) {
+          // Legacy Fallback
+          select.innerHTML += `<option value="MAIN_KHR" data-currency="KHR" data-bal="${currentUser.balanceKHR || 0}">${khrLabel} - ${currentUser.accountNumberKHR || "N/A"}</option>`;
+        }
+
+        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (currentUser.subAccounts && currentUser.subAccounts.length > 0) {
           currentUser.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return; // មិនបង្ហាញកុងដែលលាក់
             const sym = sub.currency === "USD" ? "$" : "៛";
             select.innerHTML += `<option value="${sub.accountNumber}" data-currency="${sub.currency}" data-bal="${sub.balance}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
           });
         }
+
         handleAccountChange();
       }
 
@@ -687,19 +712,34 @@
               const data = await response.json();
 
               if (data.success) {
-                if (senderAccount === "MAIN_USD")
-                  currentUser.balance = data.newBalance;
-                else if (senderAccount === "MAIN_KHR")
-                  currentUser.balanceKHR = data.newBalance;
-                else {
+                // 🌟 Update សមតុល្យទៅតាមទម្រង់ថ្មី
+                if (
+                  senderAccount === "MAIN_USD" ||
+                  (currentUser.mainAccounts?.USD &&
+                    currentUser.mainAccounts.USD.accountNumber ===
+                      senderAccount)
+                ) {
+                  if (currentUser.mainAccounts?.USD)
+                    currentUser.mainAccounts.USD.balance = data.newBalance;
+                  else currentUser.balance = data.newBalance; // Legacy
+                } else if (
+                  senderAccount === "MAIN_KHR" ||
+                  (currentUser.mainAccounts?.KHR &&
+                    currentUser.mainAccounts.KHR.accountNumber ===
+                      senderAccount)
+                ) {
+                  if (currentUser.mainAccounts?.KHR)
+                    currentUser.mainAccounts.KHR.balance = data.newBalance;
+                  else currentUser.balanceKHR = data.newBalance; // Legacy
+                } else {
                   let subIdx = currentUser.subAccounts.findIndex(
                     (a) => a.accountNumber === senderAccount,
                   );
                   if (subIdx !== -1)
                     currentUser.subAccounts[subIdx].balance = data.newBalance;
                 }
-                sessionStorage.setItem("user", JSON.stringify(currentUser));
 
+                sessionStorage.setItem("user", JSON.stringify(currentUser));
                 showSuccessAnimation(receiver, amount, message);
               } else {
                 Swal.fire("បរាជ័យ", data.message, "error");

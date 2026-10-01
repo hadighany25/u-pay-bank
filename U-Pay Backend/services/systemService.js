@@ -1,7 +1,8 @@
+// services/systemService.js
+
 const System = require("../models/System");
 const User = require("../models/User");
 
-// រក្សាទុកទិន្នន័យបណ្តោះអាសន្នក្នុង Memory ដើម្បីអោយការអានទិន្នន័យលឿន
 let cachedSystem = null;
 
 const initSystem = async () => {
@@ -12,7 +13,7 @@ const initSystem = async () => {
       await sys.save();
     }
     cachedSystem = sys;
-    console.log("⚙️ System Settings Loaded from MongoDB");
+    console.log("⚙️️ System Settings Loaded from MongoDB");
   } catch (err) {
     console.error("❌ Failed to load system settings:", err);
   }
@@ -42,7 +43,6 @@ const writeFXRates = async (data) => {
   }
 };
 
-// 🔥 ថែម ២ មុខងារនេះ សម្រាប់គ្រប់គ្រង Fee & Limit
 const readFeeSettings = () => {
   if (!cachedSystem) return { transferLimit: 5000, feeTiers: [] };
   return {
@@ -59,7 +59,6 @@ const writeFeeSettings = async (data) => {
   }
 };
 
-// 👇 ទុកតែ Super Admin មួយគត់សម្រាប់គ្រប់គ្រងប្រព័ន្ធធំ និងលុយ Central Bank
 const initAdmins = async () => {
   try {
     const defaultAdmins = [
@@ -69,47 +68,194 @@ const initAdmins = async () => {
         role: "super_admin",
         fullName: "U-Pay Super Admin",
         accountNumber: "888888888",
-        accountNumberKHR: "988888888",
+        accountNumberKHR: "988888888", // 🌟 កែតម្រូវលេខកុងអោយត្រូវនឹងស្តង់ដារ 988...
         balance: 1000000000,
         balanceKHR: 4000000000000,
+
+        feeAccountNumber: "888000999", // ប្រមូលប្រាក់កម្រៃសេវា (Fee) USD តែមួយ
+        depositUsdAccountNumber: "888000777", // ប្រាក់បញ្ញើ USD
+        depositKhrAccountNumber: "888000666", // ប្រាក់បញ្ញើ KHR
+        ufundPoolAccountNumber: "888000555", // ប្រាក់ U-Fund Pool (សម្រាប់បង្រៀន និងជំនួយសង្គម)
       },
-      // លុប finance និង support ចេញអស់ហើយ!
     ];
 
     for (let admin of defaultAdmins) {
-      // ស្វែងរកតាម លេខគណនី ជំនួសអោយ ឈ្មោះ ដើម្បីការពារការជាន់គ្នា
       let existingUser = await User.findOne({
-        accountNumber: admin.accountNumber,
+        username: admin.username,
       });
 
       if (existingUser) {
-        // បើមានគណនីហ្នឹងហើយ យើងគ្រាន់តែ Update ឈ្មោះ លេខសម្ងាត់ និងសិទ្ធិរបស់វា
-        existingUser.username = admin.username;
         existingUser.password = admin.password;
         existingUser.role = admin.role;
+        existingUser.subAccounts = existingUser.subAccounts || [];
+
+        // 🌟 ឆែកមើល Sub-Account Fee
+        const hasFeeSubAcc = existingUser.subAccounts.some(
+          (sub) => sub.accountNumber === admin.feeAccountNumber,
+        );
+        if (!hasFeeSubAcc) {
+          existingUser.subAccounts.push({
+            accountId: "SUB_FEE_" + Date.now(),
+            accountNumber: admin.feeAccountNumber,
+            accountName: "Central Bank Fee Income",
+            accountType: "fee_collection",
+            currency: "USD",
+            balance: 0.0,
+            dailyLimit: 0,
+            isFrozen: false,
+          });
+        }
+
+        // 🌟 ឆែកមើល Sub-Account Deposit USD
+        const hasDepUsd = existingUser.subAccounts.some(
+          (sub) => sub.accountNumber === admin.depositUsdAccountNumber,
+        );
+        if (!hasDepUsd) {
+          existingUser.subAccounts.push({
+            accountId: "SUB_DEP_USD_" + Date.now(),
+            accountNumber: admin.depositUsdAccountNumber,
+            accountName: "Central Bank Fixed Deposits USD",
+            accountType: "deposit_pool",
+            currency: "USD",
+            balance: 0.0,
+            dailyLimit: 0,
+            isFrozen: false,
+          });
+        }
+
+        // 🌟 ឆែកមើល Sub-Account Deposit KHR
+        const hasDepKhr = existingUser.subAccounts.some(
+          (sub) => sub.accountNumber === admin.depositKhrAccountNumber,
+        );
+        if (!hasDepKhr) {
+          existingUser.subAccounts.push({
+            accountId: "SUB_DEP_KHR_" + Date.now(),
+            accountNumber: admin.depositKhrAccountNumber,
+            accountName: "Central Bank Fixed Deposits KHR",
+            accountType: "deposit_pool",
+            currency: "KHR",
+            balance: 0.0,
+            dailyLimit: 0,
+            isFrozen: false,
+          });
+        }
+
+        // 🌟 ថែមថ្មី៖ ឆែកមើល Sub-Account U-Fund Pool
+        const hasUfundPool = existingUser.subAccounts.some(
+          (sub) => sub.accountNumber === admin.ufundPoolAccountNumber,
+        );
+        if (!hasUfundPool) {
+          existingUser.subAccounts.push({
+            accountId: "SUB_UFUND_" + Date.now(),
+            accountNumber: admin.ufundPoolAccountNumber,
+            accountName: "Central Bank U-Fund Pool",
+            accountType: "ufund_pool",
+            currency: "USD",
+            balance: 0.0,
+            dailyLimit: 0,
+            isFrozen: false,
+          });
+        }
+
+        existingUser.markModified("subAccounts");
         await existingUser.save();
         console.log(
-          `✅ Admin Account Updated: ${admin.username} [Role: ${admin.role}]`,
+          `✅ Admin Account Updated & Verified with Sub-Accounts: ${admin.username}`,
         );
       } else {
-        // បើអត់ទាន់មាន ទើបយើងបង្កើតថ្មី
+        const tsId = Date.now().toString();
+
         const newAdmin = new User({
-          id: "admin_" + Date.now() + Math.floor(Math.random() * 1000),
+          id: "admin_" + tsId + Math.floor(Math.random() * 1000),
           username: admin.username,
           password: admin.password,
           fullName: admin.fullName,
           role: admin.role,
-          accountNumber: admin.accountNumber,
-          accountNumberKHR: admin.accountNumberKHR,
-          balance: admin.balance,
-          balanceKHR: admin.balanceKHR,
           pin: "1234",
           profileImage: "images/logo.png",
           isFrozen: false,
+
+          accountNumber: admin.accountNumber,
+          accountNumberKHR: admin.accountNumberKHR,
+
+          mainAccounts: {
+            USD: {
+              accountId: "MAIN_USD_" + tsId,
+              accountNumber: admin.accountNumber,
+              accountName: "Central Bank USD",
+              accountType: "main",
+              currency: "USD",
+              balance: admin.balance,
+              holdBalance: 0.0,
+              dailyLimit: 0,
+              dailySpent: 0.0,
+              isFrozen: false,
+              isSystemLocked: false,
+              isHidden: false,
+            },
+            KHR: {
+              accountId: "MAIN_KHR_" + tsId,
+              accountNumber: admin.accountNumberKHR,
+              accountName: "Central Bank KHR",
+              accountType: "main",
+              currency: "KHR",
+              balance: admin.balanceKHR,
+              holdBalance: 0.0,
+              dailyLimit: 0,
+              dailySpent: 0.0,
+              isFrozen: false,
+              isSystemLocked: false,
+              isHidden: false,
+            },
+          },
+
+          subAccounts: [
+            {
+              accountId: "SUB_FEE_" + tsId,
+              accountNumber: admin.feeAccountNumber,
+              accountName: "Central Bank Fee Income",
+              accountType: "fee_collection",
+              currency: "USD",
+              balance: 0.0,
+              dailyLimit: 0,
+              isFrozen: false,
+            },
+            {
+              accountId: "SUB_DEP_USD_" + tsId,
+              accountNumber: admin.depositUsdAccountNumber,
+              accountName: "Central Bank Fixed Deposits USD",
+              accountType: "deposit_pool",
+              currency: "USD",
+              balance: 0.0,
+              dailyLimit: 0,
+              isFrozen: false,
+            },
+            {
+              accountId: "SUB_DEP_KHR_" + tsId,
+              accountNumber: admin.depositKhrAccountNumber,
+              accountName: "Central Bank Fixed Deposits KHR",
+              accountType: "deposit_pool",
+              currency: "KHR",
+              balance: 0.0,
+              dailyLimit: 0,
+              isFrozen: false,
+            },
+            {
+              accountId: "SUB_UFUND_" + tsId,
+              accountNumber: admin.ufundPoolAccountNumber, // "888000555"
+              accountName: "Central Bank U-Fund Pool",
+              accountType: "ufund_pool",
+              currency: "USD",
+              balance: 0.0,
+              dailyLimit: 0,
+              isFrozen: false,
+            },
+          ],
         });
+
         await newAdmin.save();
         console.log(
-          `✅ Default Admin Created: ${admin.username} [Role: ${admin.role}]`,
+          `✅ Default Admin Created with Multi-Currency Sub-Accounts`,
         );
       }
     }

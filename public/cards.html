@@ -1,3 +1,4 @@
+<!-- cards.html -->
 <!doctype html>
 <html lang="en">
   <head>
@@ -1372,25 +1373,6 @@
         </button>
       </div>
 
-      <div class="bottom-nav">
-        <a href="dashboard.html" class="nav-item"
-          ><i class="fa-solid fa-house"></i
-          ><span data-i18n="nav_home">Home</span></a
-        >
-        <a href="scan.html" class="nav-item"
-          ><i class="fa-solid fa-qrcode"></i
-          ><span data-i18n="nav_scan">Scan</span></a
-        >
-        <a href="history.html" class="nav-item"
-          ><i class="fa-solid fa-clock-rotate-left"></i
-          ><span data-i18n="nav_history">History</span></a
-        >
-        <a href="settings.html" class="nav-item"
-          ><i class="fa-solid fa-gear"></i
-          ><span data-i18n="nav_settings">Settings</span></a
-        >
-      </div>
-
       <!-- STEP 1: T&C MODAL -->
       <div class="custom-modal" id="termsModal">
         <div class="modal-content">
@@ -1628,40 +1610,40 @@
         {
           id: "standard",
           name: "Standard",
-          price: 2.0,
+          price: 5.0,
           styleClass: "theme-standard",
         },
         {
           id: "fifa",
           name: "FIFA World Cup",
-          price: 10.0,
+          price: 15.0,
           styleClass: "theme-fifa",
         },
         {
           id: "metal",
           name: "Metal Gold",
-          price: 15.0,
+          price: 5.0,
           styleClass: "theme-metal",
         },
         {
           id: "celebrity",
           name: "BTS Edition",
-          price: 10.0,
+          price: 15.0,
           styleClass: "theme-celebrity",
         },
         {
           id: "anime",
           name: "Naruto Edition",
-          price: 8.0,
+          price: 15.0,
           styleClass: "theme-anime",
         },
         {
           id: "gamer",
           name: "Gamer Pro",
-          price: 8.0,
+          price: 15.0,
           styleClass: "theme-gamer",
         },
-        { id: "eco", name: "Eco Green", price: 3.0, styleClass: "theme-eco" },
+        { id: "eco", name: "Eco Green", price: 5.0, styleClass: "theme-eco" },
         {
           id: "platinum",
           name: "Platinum Premium",
@@ -1671,7 +1653,7 @@
         {
           id: "animal",
           name: "Animal Edition",
-          price: 8.0,
+          price: 15.0,
           styleClass: "theme-animal",
         },
         {
@@ -2212,11 +2194,40 @@
         document.getElementById("customBgContainer").style.display = "none";
 
         const accSelect = document.getElementById("newCardLinkedAcc");
-        accSelect.innerHTML = `<option value="USD">Main Account ($) - ${user.accountNumber || "N/A"}</option>`;
-        if (user.accountNumberKHR)
-          accSelect.innerHTML += `<option value="KHR">Main Account (៛) - ${user.accountNumberKHR}</option>`;
-        if (user.subAccounts) {
+        accSelect.innerHTML = ""; // ជម្រះ Option ចាស់ចោលសិន
+
+        let lang = localStorage.getItem("lang") || "en";
+        const usdLabel = lang === "kh" ? "គណនីចម្បង ($)" : "Main Account ($)";
+        const khrLabel = lang === "kh" ? "គណនីចម្បង (៛)" : "Main Account (៛)";
+
+        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          accSelect.innerHTML += `<option value="USD_${user.mainAccounts.USD.accountNumber}">${usdLabel} - ${user.mainAccounts.USD.accountNumber}</option>`;
+        } else if (user.accountNumber) {
+          // Legacy Fallback
+          accSelect.innerHTML += `<option value="USD_${user.accountNumber}">${usdLabel} - ${user.accountNumber}</option>`;
+        }
+
+        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          accSelect.innerHTML += `<option value="KHR_${user.mainAccounts.KHR.accountNumber}">${khrLabel} - ${user.mainAccounts.KHR.accountNumber}</option>`;
+        } else if (user.accountNumberKHR) {
+          // Legacy Fallback
+          accSelect.innerHTML += `<option value="KHR_${user.accountNumberKHR}">${khrLabel} - ${user.accountNumberKHR}</option>`;
+        }
+
+        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
+        if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
+            if (sub.isHidden) return; // បើលាក់កុង គឺមិនបង្ហាញឱ្យភ្ជាប់កាតទេ
             accSelect.innerHTML += `<option value="${sub.currency}_${sub.accountNumber}">${sub.accountName} (${sub.currency === "USD" ? "$" : "៛"}) - ${sub.accountNumber}</option>`;
           });
         }

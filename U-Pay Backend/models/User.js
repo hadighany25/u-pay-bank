@@ -1,46 +1,120 @@
+// ============================================================================
+// ឯកសារ: models/User.js
+// អត្ថន័យ: Schema ស្តង់ដារកម្រិតធនាគារសម្រាប់អ្នកប្រើប្រាស់ (User Profile & Accounts)
+// ============================================================================
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
+    // ==========================================
+    // 👤 ១. ព័ត៌មានគណនីមូលដ្ឋាន (Basic User Info)
+    // ==========================================
     id: { type: String, default: () => Date.now().toString() },
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     fullName: { type: String, default: "" },
     phone: { type: String, default: "" },
-    pin: { type: String, default: "1111" },
-    accountNumber: { type: String, unique: true },
-    accountNumberKHR: { type: String, unique: true },
-    balance: { type: Number, default: 0.0 },
-    balanceKHR: { type: Number, default: 0.0 },
+    email: { type: String, default: "" },
 
-    // 🔥 បន្ថែម Fields សម្រាប់ Junior Account (Parental Control)
-    role: { type: String, default: "user" },
+    // ==========================================
+    // 🏦 ២. គណនីចម្បង (Main Accounts - ញែក USD និង KHR ដាច់ពីគ្នា)
+    // ==========================================
+    mainAccounts: {
+      USD: {
+        accountId: {
+          type: String,
+          default: () => "MAIN_USD_" + Date.now().toString(),
+        },
+        accountNumber: { type: String, unique: true, sparse: true },
+        accountName: { type: String, default: "Main Account USD" },
+        accountType: { type: String, default: "main" },
+        currency: { type: String, default: "USD" },
+
+        balance: { type: Number, default: 0.0 },
+        holdBalance: { type: Number, default: 0.0 },
+
+        dailyLimit: { type: Number, default: 1000.0 },
+        dailySpent: { type: Number, default: 0.0 },
+        lastSpentDate: { type: String, default: "" },
+
+        isFrozen: { type: Boolean, default: false },
+        isSystemLocked: { type: Boolean, default: false },
+        isHidden: { type: Boolean, default: false },
+      },
+      KHR: {
+        accountId: {
+          type: String,
+          default: () => "MAIN_KHR_" + Date.now().toString(),
+        },
+        accountNumber: { type: String, unique: true, sparse: true },
+        accountName: { type: String, default: "Main Account KHR" },
+        accountType: { type: String, default: "main" },
+        currency: { type: String, default: "KHR" },
+
+        balance: { type: Number, default: 0.0 },
+        holdBalance: { type: Number, default: 0.0 },
+
+        dailyLimit: { type: Number, default: 4000000.0 },
+        dailySpent: { type: Number, default: 0.0 },
+        lastSpentDate: { type: String, default: "" },
+
+        isFrozen: { type: Boolean, default: false },
+        isSystemLocked: { type: Boolean, default: false },
+        isHidden: { type: Boolean, default: false },
+      },
+    },
+
+    // ==========================================
+    // 👨‍👦 ៣. ការគ្រប់គ្រងកុងកុមារ (Junior Profile Control)
+    // ==========================================
+    role: { type: String, default: "user" }, // "user", "junior", "admin"
     parentUsername: { type: String, default: null },
-    dailyLimit: { type: Number, default: 0 },
-    dailySpent: { type: Number, default: 0 },
 
-    trxLimit: { type: Number, default: 1000.0 },
+    // ==========================================
+    // 🛡️ ៤. ការកំណត់ប្រព័ន្ធសុវត្ថិភាពកម្រិតទម្រង់ (Profile Security)
+    // ==========================================
+    pin: { type: String, default: "1111" },
+    pinAttempts: { type: Number, default: 0 },
     profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
-    pinAttempts: { type: Number, default: 0 },
-    notifications: { type: Array, default: [] },
-    tickets: { type: Array, default: [] },
-    savings: { type: Array, default: [] },
-    deposits: { type: Array, default: [] },
+
+    // ==========================================
+    // 📝 ៥. ព័ត៌មាន KYC (Identity Verification)
+    // ==========================================
     kycStatus: { type: String, default: "unverified" },
     kycDocument: { type: String, default: "" },
     kycSubmittedAt: { type: String, default: "" },
+
+    // ==========================================
+    // 🎧 ៦. ការកំណត់សេវាកម្មអតិថិជន (Customer Support)
+    // ==========================================
     needsSupport: { type: Boolean, default: false },
-    // 🟢 ថែម ២ ជួរនេះសម្រាប់គ្រប់គ្រង Chat Admin
     chatStatus: { type: String, default: "pending" },
     chatSentiment: { type: String, default: "neutral" },
     telegramChatId: { type: String, default: null },
     linkCode: { type: String, default: null },
-    lastActive: { type: String, default: "" },
-    joinDate: { type: String, default: "" },
-    suspiciousActivities: { type: Array, default: [] },
 
+    // ==========================================
+    // 📦 ៧. បញ្ជីទិន្នន័យពាក់ព័ន្ធ (Related Data Arrays)
+    // ==========================================
+    // ❌ បានលុប `tickets`, `savings`, `deposits`, និង `transactions` ចេញ ដើម្បីអោយ Database ស្រាល និងដើរលឿន!
+
+    // 🌟 ប្រព័ន្ធកត់ត្រាបំណុលទ្វេភាគ (Double-Entry P2P Debt)
+    p2pDebts: [
+      {
+        type: { type: String, enum: ["owe", "lend"], default: "owe" },
+        partnerUsername: String,
+        partnerName: String,
+        amount: Number,
+        fundName: String,
+        date: String,
+        refId: String,
+      },
+    ],
+
+    // 💳 កាតនិម្មិត (Virtual & Physical Cards)
     virtualCards: [
       {
         id: { type: String },
@@ -52,26 +126,39 @@ const userSchema = new mongoose.Schema(
         isLocked: { type: Boolean, default: false },
         isOnlinePayEnabled: { type: Boolean, default: true },
         dailyLimit: { type: Number },
-        dailyTxCountLimit: { type: Number }, // 🟢 បន្ថែមសម្រាប់កំណត់ចំនួនដងចាយ
+        dailyTxCountLimit: { type: Number },
         linkedAccount: { type: String },
         pin: { type: String },
         lockedByAdmin: { type: Boolean, default: false },
-        uid: { type: String, default: null }, // លេខកូដ NFC Physical Card
-        isPhysical: { type: Boolean, default: false }, // 🟢 បន្ថែមដើម្បី Show Icon Wi-Fi
-        customBgUrl: { type: String, default: "" }, // 🟢 ថែមមួយជួរនេះ ដើម្បីទុក Link រូបភាព
+        uid: { type: String, default: null },
+        isPhysical: { type: Boolean, default: false },
+        customBgUrl: { type: String, default: "" },
       },
     ],
 
-    // 🔥 Sub-Accounts
+    // 👥 គណនីរង និង គណនីរួម (Sub-Accounts & Joint Accounts)
     subAccounts: [
       {
-        accountId: { type: String, default: () => Date.now().toString() },
+        accountId: {
+          type: String,
+          default: () => "SUB_" + Date.now().toString(),
+        },
         accountNumber: { type: String },
         accountName: { type: String },
         accountType: { type: String, default: "premium" },
-        balance: { type: Number, default: 0.0 },
         currency: { type: String, default: "USD" },
-        isLocked: { type: Boolean, default: false },
+
+        balance: { type: Number, default: 0.0 },
+        holdBalance: { type: Number, default: 0.0 },
+
+        dailyLimit: { type: Number, default: 1000.0 },
+        dailySpent: { type: Number, default: 0.0 },
+        lastSpentDate: { type: String, default: "" },
+
+        isFrozen: { type: Boolean, default: false },
+        isSystemLocked: { type: Boolean, default: false },
+        isHidden: { type: Boolean, default: false },
+
         members: [
           {
             username: { type: String },
@@ -86,6 +173,12 @@ const userSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+
+    // ==========================================
+    // ⏱️ ៨. កត់ត្រាពេលវេលា និងសកម្មភាព (Timestamps)
+    // ==========================================
+    lastActive: { type: String, default: "" },
+    joinDate: { type: String, default: "" },
   },
   { timestamps: true },
 );

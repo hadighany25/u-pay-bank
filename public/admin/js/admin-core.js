@@ -115,6 +115,10 @@ function showSection(id, btn) {
     .querySelectorAll(".menu-item")
     .forEach((m) => m.classList.remove("active"));
   if (btn) btn.classList.add("active");
+  if (id === "broadcast-history") {
+    // ដូរមកប្រើ id វិញ
+    if (typeof loadBroadcastHistory === "function") loadBroadcastHistory();
+  }
 }
 
 function logout() {
@@ -133,7 +137,7 @@ function logout() {
     if (result.isConfirmed) {
       sessionStorage.removeItem("adminToken");
       sessionStorage.removeItem("adminRole");
-      window.location.href = window.location.origin + "/admin-login.html";
+      window.location.href = window.location.href = "admin-login.html";
     }
   });
 }
@@ -252,7 +256,10 @@ async function loadData() {
       if (u.isOnline) activeToday++;
       if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
       if (u.isFrozen) frozenCount++;
-      totalFunds += Number(u.balance) || 0;
+      const balUSD = u.mainAccounts?.USD?.balance || 0;
+      // បើចង់បូក KHR បញ្ចូលគ្នា គឺត្រូវយកទៅចែកជាមួយអត្រាប្តូរប្រាក់ (ឧ. ៤១០០)
+      const balKHRinUSD = (u.mainAccounts?.KHR?.balance || 0) / 4100;
+      totalFunds += balUSD + balKHRinUSD;
 
       if (u.deposits && Array.isArray(u.deposits))
         u.deposits.forEach(

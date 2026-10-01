@@ -881,14 +881,44 @@
         const selector = document.getElementById("accountSelector");
         selector.innerHTML = "";
 
-        let optUSD = document.createElement("option");
-        optUSD.value = user.accountNumber;
-        optUSD.dataset.currency = "USD";
-        optUSD.dataset.accName = user.fullName || user.username;
-        optUSD.textContent = `Main USD - ${user.accountNumber}`;
-        selector.appendChild(optUSD);
+        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          let optUSD = document.createElement("option");
+          optUSD.value = user.mainAccounts.USD.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.accName =
+            user.mainAccounts.USD.accountName || user.fullName || user.username;
+          optUSD.textContent = `Main USD - ${user.mainAccounts.USD.accountNumber}`;
+          selector.appendChild(optUSD);
+        } else if (user.accountNumber) {
+          // Legacy Fallback
+          let optUSD = document.createElement("option");
+          optUSD.value = user.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.accName = user.fullName || user.username;
+          optUSD.textContent = `Main USD - ${user.accountNumber}`;
+          selector.appendChild(optUSD);
+        }
 
-        if (user.accountNumberKHR) {
+        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          let optKHR = document.createElement("option");
+          optKHR.value = user.mainAccounts.KHR.accountNumber;
+          optKHR.dataset.currency = "KHR";
+          optKHR.dataset.accName =
+            user.mainAccounts.KHR.accountName || user.fullName || user.username;
+          optKHR.textContent = `Main KHR - ${user.mainAccounts.KHR.accountNumber}`;
+          selector.appendChild(optKHR);
+        } else if (user.accountNumberKHR) {
+          // Legacy Fallback
           let optKHR = document.createElement("option");
           optKHR.value = user.accountNumberKHR;
           optKHR.dataset.currency = "KHR";
@@ -897,8 +927,10 @@
           selector.appendChild(optKHR);
         }
 
+        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((acc) => {
+            if (acc.isHidden) return; // មិនបង្ហាញកុងដែលលាក់
             let opt = document.createElement("option");
             opt.value = acc.accountNumber;
             opt.dataset.currency = acc.currency;
@@ -906,7 +938,9 @@
             let typeLabel =
               acc.accountType === "joint" || acc.accountType === "joint_member"
                 ? "Joint"
-                : "Premium";
+                : acc.accountType === "junior"
+                  ? "Junior"
+                  : "Premium";
             opt.textContent = `${acc.accountName} (${typeLabel} ${acc.currency}) - ${acc.accountNumber}`;
             selector.appendChild(opt);
           });
