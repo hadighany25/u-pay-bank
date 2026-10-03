@@ -1,10 +1,18 @@
+<!-- register.html -->
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Register - U-Pay</title>
+
+    <!-- ==========================================
+         🔗 ១. បញ្ចូល CSS & LIBRARIES ខាងក្រៅ
+         ========================================== -->
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -14,31 +22,81 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/lang.js"></script>
 
     <style>
-      /* BASE STYLES */
+      /* ==========================================
+         🎨 ២. ការរចនាទូទៅ (BASE STYLES) & DARK MODE
+         ========================================== */
+      :root {
+        --primary: #004d40;
+        --primary-hover: #00382e;
+        --success: #10b981;
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+      }
+
+      body.dark-mode {
+        --primary: #10b981;
+        --primary-hover: #059669;
+        --bg-main: #000000;
+        --bg-card: #121212;
+        --text-main: #f8fafc;
+        --text-sub: #94a3b8;
+        --border: #334155;
+      }
+
       body {
         margin: 0;
         padding: 0;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
-        background: #f1f5f9;
+        background: var(--bg-main);
         display: flex;
         align-items: center;
         justify-content: center;
         min-height: 100vh;
+        transition: background 0.3s;
       }
+
+      .kh-text {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+
       .app-container {
-        background: white;
+        background: var(--bg-card);
         width: 100%;
-        max-width: 400px;
-        min-height: 600px;
-        border-radius: 24px;
+        max-width: 420px;
+        min-height: 100vh;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
         display: flex;
         flex-direction: column;
         position: relative;
+        transition: background 0.3s;
+        overflow: hidden;
       }
+
+      /* --- ការគ្រប់គ្រង SweetAlert --- */
+      .app-container {
+        position: relative !important;
+      }
+      .swal2-container {
+        position: absolute !important;
+        width: 100% !important;
+        height: 100% !important;
+        inset: 0 !important;
+      }
+      .swal2-popup {
+        max-width: 85% !important;
+        font-size: 0.85rem !important;
+        padding: 1rem !important;
+      }
+
+      /* ==========================================
+         🏷️ ៣. ផ្នែកខាងលើ (HEADER & TOP ICONS)
+         ========================================== */
       .header-section {
         background: linear-gradient(135deg, #004d40, #00695c);
         color: white;
@@ -48,9 +106,25 @@
         border-bottom-left-radius: 30px;
         border-bottom-right-radius: 30px;
       }
+      .top-icons {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 15px;
+        font-size: 1.2rem;
+      }
+      .top-icons i {
+        cursor: pointer;
+        transition: 0.2s;
+        opacity: 0.9;
+      }
+      .top-icons i:active {
+        transform: scale(0.9);
+      }
       .logo {
-        width: 70px;
-        margin-bottom: 15px;
+        width: 65px;
+        margin-bottom: 10px;
         background: white;
         padding: 10px;
         border-radius: 16px;
@@ -58,21 +132,23 @@
       }
       .header-section h2 {
         margin: 0;
-        font-size: 1.6rem;
+        font-size: 1.5rem;
         font-weight: 700;
       }
       .header-section p {
         margin: 5px 0 0 0;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         opacity: 0.8;
       }
 
-      /* PROGRESS BAR */
+      /* ==========================================
+         📊 ៤. រង្វង់ដំណើរការ (PROGRESS BAR - 6 STEPS)
+         ========================================== */
       .progress-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 35px;
+        padding: 0 25px;
         margin-top: -20px;
         position: relative;
         z-index: 10;
@@ -80,10 +156,10 @@
       .progress-track {
         position: absolute;
         top: 50%;
-        left: 55px;
-        right: 55px;
+        left: 45px;
+        right: 45px;
         height: 3px;
-        background: #e2e8f0;
+        background: var(--border);
         z-index: -1;
         transform: translateY(-50%);
       }
@@ -92,50 +168,60 @@
         top: 0;
         left: 0;
         height: 100%;
-        background: #10b981;
+        background: var(--success);
         width: 0%;
-        transition: width 0.3s ease;
+        transition: width 0.4s ease;
       }
       .step-circle {
-        width: 40px;
-        height: 40px;
+        width: 35px;
+        height: 35px;
         border-radius: 50%;
-        background: white;
-        border: 3px solid #e2e8f0;
+        background: var(--bg-card);
+        border: 3px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: #64748b;
+        font-size: 0.85rem;
+        color: var(--text-sub);
         transition: all 0.3s;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
       }
       .step-circle.active {
-        border-color: #10b981;
-        color: #10b981;
-        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        border-color: var(--success);
+        color: var(--success);
       }
       .step-circle.completed {
-        background: #10b981;
-        border-color: #10b981;
+        background: var(--success);
+        border-color: var(--success);
         color: white;
       }
 
-      /* FORM SECTION */
+      /* ==========================================
+         📝 ៥. ទម្រង់បញ្ជូលទិន្នន័យ (FORMS & INPUTS)
+         ========================================== */
       .form-section {
-        padding: 30px;
+        padding: 15px 25px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
       }
       .step-content {
         display: none;
-        animation: fadeIn 0.4s;
+        animation: fadeIn 0.3s;
       }
       .step-content.active {
         display: block;
       }
-
+      .step-content.summary-step {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      .step-content.summary-step.active {
+        display: flex;
+      }
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -148,67 +234,200 @@
       }
 
       .input-group {
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         text-align: left;
       }
       .input-group label {
         display: block;
         font-size: 0.85rem;
-        color: #334155;
-        margin-bottom: 8px;
-        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 6px;
+        font-weight: 700;
       }
       .input-box {
         position: relative;
         width: 100%;
       }
-      .input-box i.fa-solid {
+      .input-box i.left-icon {
         position: absolute;
         left: 15px;
         top: 50%;
         transform: translateY(-50%);
-        color: #94a3b8;
+        color: var(--text-sub);
         font-size: 1rem;
       }
+
       .form-control {
         width: 100%;
-        padding: 14px 45px;
-        border: 1px solid #e2e8f0;
+        padding: 14px 15px 14px 45px;
+        border: 1.5px solid var(--border);
         border-radius: 12px;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        font-family: inherit;
         box-sizing: border-box;
         outline: none;
         transition: 0.2s;
-        background: #f8fafc;
-        color: #1e293b;
+        background: var(--bg-main);
+        color: var(--text-main);
       }
       .form-control:focus {
-        border-color: #004d40;
-        background: white;
-        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
+        border-color: var(--success);
+        background: var(--bg-card);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
       }
-      .pin-input {
-        letter-spacing: 10px;
-        text-align: center;
-        padding-left: 14px !important;
-        padding-right: 14px !important;
+
+      /* --- ប៊ូតុង @gmail.com --- */
+      .email-suffix {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 0.75rem;
+        padding: 6px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: 0.2s;
+        z-index: 2;
       }
-      .pin-input + i {
-        display: none;
+      .email-suffix:hover {
+        background: var(--primary);
+        color: white;
+      }
+      body.dark-mode .email-suffix {
+        background: #334155;
+        color: #cbd5e1;
+      }
+      body.dark-mode .email-suffix:hover {
+        background: var(--primary);
+        color: white;
+      }
+
+      select.form-control {
+        padding-left: 45px;
+        cursor: pointer;
       }
 
       .toggle-password {
         position: absolute;
         right: 15px;
-        left: auto !important;
         top: 50%;
         transform: translateY(-50%);
-        color: #94a3b8;
+        color: var(--text-sub);
         cursor: pointer;
         padding: 5px;
-        z-index: 2;
       }
 
+      /* --- ប្រអប់កូដ PIN --- */
+      .strength-meter {
+        height: 4px;
+        background: var(--border);
+        border-radius: 4px;
+        margin-top: 8px;
+        overflow: hidden;
+        display: flex;
+      }
+      .strength-bar {
+        height: 100%;
+        width: 0;
+        transition: 0.3s;
+      }
+
+      .pin-box-container {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 10px;
+      }
+      .pin-box {
+        width: 50px;
+        height: 55px;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: bold;
+        background: var(--bg-main);
+        color: var(--text-main);
+        font-family: "Courier New", monospace;
+        transition: 0.2s;
+        outline: none;
+      }
+      .pin-box:focus {
+        border-color: var(--success);
+        background: var(--bg-card);
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      }
+
+      /* --- ប្រអប់ Upload និង រូបភាព --- */
+      .upload-box {
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        padding: 20px 15px;
+        text-align: center;
+        background: var(--bg-main);
+        cursor: pointer;
+        transition: 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .upload-box.id-box {
+        height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .upload-box.selfie-box {
+        height: 360px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .upload-preview {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+        border-radius: 10px;
+      }
+      .upload-success-tick {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: white;
+        background: var(--success);
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* --- ប្រអប់ព្រមានពេល ID ស្ទួន (Support Dark Mode) --- */
+      #duplicateReasonBox {
+        background: #fff7ed;
+        border: 1px dashed #fdba74;
+      }
+      body.dark-mode #duplicateReasonBox {
+        background: #431407;
+        border-color: #9a3412;
+      }
+      body.dark-mode #duplicateReasonBox textarea {
+        background: var(--bg-main);
+        color: var(--text-main);
+        border-color: #9a3412;
+      }
+
+      /* ==========================================
+         🔘 ៦. ប៊ូតុង និង លក្ខខណ្ឌ (BUTTONS & TERMS)
+         ========================================== */
       .btn-container {
         display: flex;
         gap: 15px;
@@ -226,21 +445,26 @@
         transition: 0.2s;
         flex: 1;
         text-align: center;
+        font-family: inherit;
       }
       .btn-primary {
-        background: #004d40;
+        background: var(--primary);
         color: white;
-        box-shadow: 0 4px 6px rgba(0, 77, 64, 0.2);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
       .btn-primary:hover {
-        background: #00382e;
+        background: var(--primary-hover);
+      }
+      .btn-primary:active {
+        transform: scale(0.97);
       }
       .btn-secondary {
-        background: #f1f5f9;
-        color: #64748b;
+        background: var(--bg-main);
+        color: var(--text-sub);
+        border: 1px solid var(--border);
       }
-      .btn-secondary:hover {
-        background: #e2e8f0;
+      .btn-secondary:active {
+        transform: scale(0.97);
       }
       .btn-full {
         width: 100%;
@@ -249,93 +473,72 @@
 
       .terms-box {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 10px;
         margin-top: 15px;
         margin-bottom: 25px;
         text-align: left;
       }
-      .terms-box input[type="checkbox"] {
-        margin: 0;
+      .terms-box input {
         width: 18px;
         height: 18px;
-        accent-color: #004d40;
-        cursor: pointer;
+        accent-color: var(--success);
+        margin-top: 2px;
       }
       .terms-box label {
         font-size: 0.85rem;
-        color: #475569;
+        color: var(--text-main);
         line-height: 1.4;
-        cursor: pointer;
         margin: 0;
       }
-
-      .link {
-        margin-top: 20px;
-        font-size: 0.9rem;
-        color: #64748b;
-        text-align: center;
-      }
-      .link a {
-        color: #004d40;
+      .terms-box a {
+        color: var(--success);
+        font-weight: 700;
         text-decoration: none;
-        font-weight: 700;
       }
 
-      .security-badge {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 0.75rem;
-        color: #94a3b8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
+      body.dark-mode .upload-box {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .upload-box p {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .upload-box i {
+        color: #10b981 !important;
       }
 
-      /* OTP Box Styles */
-      .otp-container {
-        text-align: center;
-        margin: 20px 0;
-      }
-      .otp-display-email {
-        font-weight: 700;
-        color: #004d40;
-        margin: 10px 0 20px 0;
-        font-size: 0.95rem;
-        background: #f1f5f9;
-        padding: 10px;
-        border-radius: 8px;
-      }
-      .otp-input {
-        width: 100%;
-        text-align: center;
-        font-size: 2rem;
-        letter-spacing: 15px;
-        font-weight: 700;
-        padding: 15px;
-        color: #0f172a;
-        border: 2px dashed #10b981;
-        border-radius: 12px;
-        background: #ecfdf5;
-        outline: none;
-        transition: 0.2s;
-        font-family: "Courier New", monospace;
-        box-sizing: border-box;
-      }
-      .otp-input:focus {
-        border-color: #004d40;
-        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
-      }
       .premium-swal {
         border-radius: 24px !important;
-        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        font-family: "Inter", "Kantumruy Pro", sans-serif !important;
+      }
+      body.dark-mode .premium-swal {
+        background: #1e293b !important;
+        color: white !important;
+      }
+      body.dark-mode .swal2-title,
+      body.dark-mode .swal2-html-container {
+        color: #f8fafc !important;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
       <div class="header-section">
+        <div class="top-icons">
+          <i
+            class="fa-solid fa-moon"
+            id="themeToggleBtn"
+            onclick="toggleTheme()"
+            title="Toggle Dark Mode"
+          ></i>
+          <i
+            class="fa-solid fa-language"
+            onclick="toggleLang()"
+            title="Toggle Language"
+          ></i>
+        </div>
         <img
           src="images/logo.png"
           class="logo"
@@ -344,172 +547,506 @@
             this.src = 'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
           "
         />
-        <h2>Create Account</h2>
-        <p>Join U-Pay Digital Banking</p>
+        <h2 data-i18n="create_acc">Create Account</h2>
+        <p data-i18n="join_upay">Join U-Pay Digital Banking</p>
       </div>
 
       <div class="progress-container">
         <div class="progress-track">
-          <!-- ខ្សែបន្ទាត់រត់ពី 0 ទៅ 33%, 66%, និង 100% -->
           <div class="progress-line-active" id="progressLineActive"></div>
         </div>
-        <div class="step-circle active" id="circle1">1</div>
-        <div class="step-circle" id="circle2">2</div>
-        <div class="step-circle" id="circle3">3</div>
+        <div class="step-circle active" id="circle1">
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        <div class="step-circle" id="circle2">
+          <i class="fa-solid fa-id-card"></i>
+        </div>
+        <div class="step-circle" id="circle3">
+          <i class="fa-solid fa-camera"></i>
+        </div>
         <div class="step-circle" id="circle4">
+          <i class="fa-solid fa-user-lock"></i>
+        </div>
+        <div class="step-circle" id="circle5">
+          <i class="fa-solid fa-key"></i>
+        </div>
+        <div class="step-circle" id="circle6">
           <i class="fa-solid fa-check"></i>
         </div>
       </div>
 
       <div class="form-section">
         <form id="regForm">
-          <!-- STEP 1: Personal Info -->
+          <!-- ==========================================
+               STEP 1: CONTACT & OTP VERIFICATION
+               ========================================== -->
           <div class="step-content active" id="step1">
-            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
-              Personal Details
+            <h3
+              style="margin-top: 0; color: var(--text-main); font-size: 1.15rem"
+              class="kh-text"
+              data-i18n="verify_contact"
+            >
+              ផ្ទៀងផ្ទាត់ទំនាក់ទំនង
             </h3>
 
             <div class="input-group">
-              <label>Full Name</label>
+              <label data-i18n="phone_number">Phone Number</label>
               <div class="input-box">
-                <i class="fa-solid fa-user"></i>
-                <input
-                  type="text"
-                  id="fullName"
-                  class="form-control"
-                  placeholder="E.g. Sok Dara"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label>Email Address</label>
-              <div class="input-box">
-                <i class="fa-solid fa-envelope"></i>
-                <input
-                  type="email"
-                  id="email"
-                  class="form-control"
-                  placeholder="E.g. sok.dara@gmail.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label>Phone Number (Optional for OTP)</label>
-              <div class="input-box">
-                <i class="fa-solid fa-phone"></i>
+                <i class="fa-solid fa-phone left-icon"></i>
                 <input
                   type="tel"
                   id="phone"
-                  class="form-control"
+                  class="form-control focus-next"
+                  data-i18n-placeholder="phone_placeholder"
                   placeholder="012 345 678"
                   required
                 />
               </div>
             </div>
 
+            <div class="input-group">
+              <label data-i18n="email_address">Email Address</label>
+              <div class="input-box">
+                <i class="fa-solid fa-envelope left-icon"></i>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-control"
+                  data-i18n-placeholder="email_placeholder"
+                  placeholder="E.g. sok.dara"
+                  style="padding-right: 100px"
+                  required
+                />
+                <span
+                  id="gmailSuffix"
+                  class="email-suffix"
+                  onclick="appendGmail()"
+                  >@gmail.com</span
+                >
+              </div>
+            </div>
+
+            <div id="otpSection" style="display: none; animation: fadeIn 0.3s">
+              <p
+                style="
+                  text-align: center;
+                  color: var(--text-sub);
+                  font-size: 0.85rem;
+                  margin-top: 20px;
+                "
+                class="kh-text"
+                data-i18n="otp_sent_msg"
+              >
+                លេខកូដ ៦ខ្ទង់បានផ្ញើទៅ Email របស់អ្នក
+              </p>
+              <input
+                type="text"
+                id="otpCode"
+                class="form-control kh-text"
+                placeholder="------"
+                maxlength="6"
+                style="
+                  text-align: center;
+                  letter-spacing: 15px;
+                  font-size: 1.5rem;
+                  font-weight: bold;
+                  padding-left: 15px;
+                "
+                inputmode="numeric"
+              />
+              <div
+                style="text-align: center; margin-top: 15px; font-size: 0.85rem"
+              >
+                <span id="otpTimer" style="color: var(--text-sub)"
+                  >ផុតកំណត់ក្នុងរយៈពេល: <b id="countdown">300</b>វិនាទី</span
+                >
+                <br />
+                <button
+                  type="button"
+                  id="btnResendOtp"
+                  style="
+                    background: none;
+                    border: none;
+                    color: var(--primary);
+                    font-weight: bold;
+                    cursor: pointer;
+                    margin-top: 8px;
+                    display: none;
+                  "
+                  onclick="handleStep1OTP()"
+                >
+                  <i class="fa-solid fa-rotate-right"></i> ផ្ញើកូដសាថ្មី (Resend
+                  Code)
+                </button>
+              </div>
+            </div>
+
             <div class="btn-container">
               <button
                 type="button"
-                class="btn-primary btn-full"
-                onclick="nextStep(2)"
+                class="btn-primary btn-full kh-text"
+                id="btnRequestOtp"
+                onclick="handleStep1OTP()"
               >
-                Continue <i class="fa-solid fa-arrow-right"></i>
+                <i class="fa-solid fa-paper-plane"></i>
+                <span data-i18n="send_otp_btn">ផ្ញើកូដ OTP (Send)</span>
               </button>
+            </div>
+            <div style="text-align: center; margin-top: 20px">
+              <a
+                href="index.html"
+                style="
+                  color: var(--text-sub);
+                  text-decoration: none;
+                  font-size: 0.9rem;
+                  font-weight: bold;
+                "
+                data-i18n="back_to_login"
+                >Back to Login</a
+              >
             </div>
           </div>
 
-          <!-- STEP 2: Account Details -->
+          <!-- ==========================================
+               STEP 2: ID CARD & OCR
+               ========================================== -->
           <div class="step-content" id="step2">
-            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
-              Account Details
+            <h3
+              style="margin-top: 0; color: var(--text-main); font-size: 1.15rem"
+              class="kh-text"
+              data-i18n="identity_info"
+            >
+              ព័ត៌មានអត្តសញ្ញាណ
             </h3>
 
+            <div
+              class="upload-box id-box"
+              onclick="document.getElementById('idUpload').click()"
+            >
+              <img id="idPreview" class="upload-preview" />
+              <div class="upload-success-tick" id="idTick">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <i class="fa-solid fa-id-card"></i>
+              <p class="kh-text" data-i18n="upload_id_front">
+                ចុច Upload អត្តសញ្ញាណប័ណ្ណ (មុខ)
+              </p>
+            </div>
+            <input
+              type="file"
+              id="idUpload"
+              accept="image/*"
+              style="display: none"
+              onchange="handleIdUpload(event)"
+            />
+            <div style="height: 20px"></div>
+
             <div class="input-group">
-              <label>Username</label>
+              <label>
+                <span data-i18n="full_name"
+                  >Full Name (នាមត្រកូល និងនាមខ្លួន)</span
+                >
+                <span style="color: red">*</span>
+              </label>
               <div class="input-box">
-                <i class="fa-solid fa-at"></i>
+                <i class="fa-solid fa-user left-icon"></i>
                 <input
                   type="text"
-                  id="username"
-                  class="form-control"
-                  placeholder="dara123"
-                  required
+                  id="fullName"
+                  class="form-control focus-next"
+                  data-i18n-placeholder="name_placeholder"
+                  placeholder="E.g. SOK DARA"
+                  oninput="this.value = this.value.toUpperCase()"
                 />
               </div>
             </div>
 
+            <div style="display: flex; gap: 15px">
+              <div class="input-group" style="flex: 1">
+                <label>
+                  <span data-i18n="date_of_birth">Date of Birth</span>
+                  <span style="color: red">*</span>
+                </label>
+                <div class="input-box">
+                  <i class="fa-solid fa-calendar left-icon"></i>
+                  <input
+                    type="date"
+                    id="dob"
+                    class="form-control focus-next"
+                    style="padding-left: 45px"
+                  />
+                </div>
+              </div>
+              <div class="input-group" style="flex: 1">
+                <label>
+                  <span data-i18n="gender">Gender</span>
+                  <span style="color: red">*</span>
+                </label>
+                <div class="input-box">
+                  <i class="fa-solid fa-venus-mars left-icon"></i>
+                  <select id="gender" class="form-control focus-next">
+                    <option
+                      value=""
+                      disabled
+                      selected
+                      data-i18n="select_gender"
+                    >
+                      ជ្រើសរើស...
+                    </option>
+                    <option value="Male" data-i18n="male">ប្រុស (Male)</option>
+                    <option value="Female" data-i18n="female">
+                      ស្រី (Female)
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div class="input-group">
-              <label>Create PIN (4 Digits)</label>
+              <label>
+                <span data-i18n="national_id">National ID Number</span>
+                <span style="color: red">*</span>
+              </label>
               <div class="input-box">
+                <i class="fa-solid fa-address-card left-icon"></i>
                 <input
-                  type="password"
-                  id="pin"
-                  class="form-control pin-input"
-                  maxlength="4"
-                  placeholder="****"
-                  inputmode="numeric"
-                  required
+                  type="text"
+                  id="idNumber"
+                  class="form-control focus-next"
+                  data-i18n-placeholder="id_placeholder"
+                  placeholder="0123456789"
                 />
               </div>
-              <small
+
+              <div
+                id="duplicateReasonBox"
                 style="
-                  color: #64748b;
-                  font-size: 0.75rem;
-                  display: block;
-                  margin-top: 5px;
+                  display: none;
+                  padding: 12px;
+                  border-radius: 12px;
+                  margin-top: 15px;
                 "
-                >This PIN is for card payments & transfers.</small
               >
+                <label
+                  style="
+                    color: #ea580c;
+                    font-size: 0.8rem;
+                    margin-bottom: 8px;
+                    line-height: 1.4;
+                  "
+                >
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span data-i18n="duplicate_id_warning"
+                    >លេខអត្តសញ្ញាណប័ណ្ណនេះមានក្នុងប្រព័ន្ធហើយ!
+                    សូមបញ្ជាក់មូលហេតុចង់បង្កើតគណនីថ្មី៖</span
+                  >
+                </label>
+                <textarea
+                  id="duplicateReason"
+                  class="form-control"
+                  rows="2"
+                  style="font-size: 1rem"
+                  placeholder="ឧ. ខ្ញុំបានបាត់គណនីចាស់..."
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label data-i18n="referral_code">Referral Code (Optional)</label>
+              <div class="input-box">
+                <i class="fa-solid fa-users left-icon"></i>
+                <input
+                  type="text"
+                  id="referralCode"
+                  class="form-control focus-next"
+                  data-i18n-placeholder="ref_placeholder"
+                  placeholder="បញ្ចូលលេខអ្នកណែនាំ"
+                  maxlength="8"
+                  inputmode="numeric"
+                  oninput="
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                    document.getElementById('referralFeedback').innerHTML = '';
+                    this.style.borderColor = '';
+                  "
+                />
+              </div>
+              <div
+                id="referralFeedback"
+                style="font-size: 0.85rem; margin-top: 8px; font-weight: 600"
+              ></div>
             </div>
 
             <div class="btn-container">
-              <button type="button" class="btn-secondary" onclick="prevStep(1)">
-                Back
+              <button
+                type="button"
+                class="btn-secondary kh-text"
+                onclick="prevStep(1)"
+                data-i18n="back_btn"
+              >
+                ថយក្រោយ
               </button>
-              <button type="button" class="btn-primary" onclick="nextStep(3)">
-                Continue
+              <button
+                type="button"
+                class="btn-primary kh-text"
+                onclick="nextStep(3)"
+                data-i18n="continue_btn"
+              >
+                បន្តទៅមុខ
               </button>
             </div>
           </div>
 
-          <!-- STEP 3: Security & Terms -->
+          <!-- ==========================================
+               STEP 3: LIVE SELFIE UPLOAD
+               ========================================== -->
           <div class="step-content" id="step3">
-            <h3 style="margin-top: 0; color: #0f172a; font-size: 1.2rem">
-              Security Setup
+            <h3
+              style="
+                margin-top: 0;
+                color: var(--text-main);
+                font-size: 1.15rem;
+                text-align: center;
+              "
+              class="kh-text"
+              data-i18n="live_selfie"
+            >
+              ថតរូបផ្ទៃមុខផ្ទាល់
+            </h3>
+            <p
+              style="
+                color: var(--text-sub);
+                font-size: 0.85rem;
+                text-align: center;
+              "
+              class="kh-text"
+              data-i18n="selfie_desc"
+            >
+              ដើម្បីផ្ទៀងផ្ទាត់ជាមួយអត្តសញ្ញាណប័ណ្ណ
+            </p>
+
+            <div
+              class="upload-box selfie-box"
+              onclick="document.getElementById('selfieUpload').click()"
+            >
+              <img id="selfiePreview" class="upload-preview" />
+              <div class="upload-success-tick" id="selfieTick">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <i class="fa-solid fa-camera-retro" style="font-size: 2.5rem"></i>
+              <p
+                class="kh-text"
+                style="margin-top: 10px"
+                data-i18n="upload_selfie"
+              >
+                ចុច Upload រូបភាព Selfie
+              </p>
+            </div>
+            <input
+              type="file"
+              id="selfieUpload"
+              accept="image/*"
+              capture="user"
+              style="display: none"
+              onchange="handleSelfieUpload(event)"
+            />
+
+            <div class="btn-container">
+              <button
+                type="button"
+                class="btn-secondary kh-text"
+                onclick="prevStep(2)"
+                data-i18n="back_btn"
+              >
+                ថយក្រោយ
+              </button>
+              <button
+                type="button"
+                class="btn-primary kh-text"
+                onclick="nextStep(4)"
+                data-i18n="continue_btn"
+              >
+                បន្តទៅមុខ
+              </button>
+            </div>
+          </div>
+
+          <!-- ==========================================
+               STEP 4: CREDENTIALS (USERNAME & PASSWORD)
+               ========================================== -->
+          <div class="step-content" id="step4">
+            <h3
+              style="margin-top: 0; color: var(--text-main); font-size: 1.15rem"
+              class="kh-text"
+              data-i18n="create_account_step"
+            >
+              បង្កើតគណនី (Account)
             </h3>
 
             <div class="input-group">
-              <label>Password</label>
+              <label>
+                <span data-i18n="username_label">Username (សម្រាប់ Login)</span>
+                <span style="color: red">*</span>
+              </label>
               <div class="input-box">
-                <i class="fa-solid fa-key"></i>
+                <i class="fa-solid fa-at left-icon"></i>
+                <input
+                  type="text"
+                  id="username"
+                  class="form-control focus-next"
+                  data-i18n-placeholder="username_placeholder"
+                  placeholder="dara_99"
+                  oninput="
+                    this.value = this.value
+                      .replace(/[^a-zA-Z0-9]/g, '')
+                      .toLowerCase();
+                    document.getElementById('usernameFeedback').innerHTML = '';
+                  "
+                />
+              </div>
+              <div
+                id="usernameFeedback"
+                style="font-size: 0.8rem; margin-top: 8px; font-weight: 600"
+              ></div>
+            </div>
+
+            <div class="input-group">
+              <label>
+                <span data-i18n="password_label">Password</span>
+                <span style="color: red">*</span>
+              </label>
+              <div class="input-box">
+                <i class="fa-solid fa-key left-icon"></i>
                 <input
                   type="password"
                   id="password"
-                  class="form-control"
-                  placeholder="Create strong password"
-                  required
+                  class="form-control focus-next"
+                  data-i18n-placeholder="pass_placeholder"
+                  placeholder="បង្កើតពាក្យសម្ងាត់"
+                  onkeyup="checkPasswordStrength(this.value)"
                 />
                 <i
                   class="fa-regular fa-eye toggle-password"
                   onclick="toggleVisibility('password', this)"
                 ></i>
               </div>
+              <div class="strength-meter">
+                <div class="strength-bar" id="strBar"></div>
+              </div>
             </div>
 
             <div class="input-group">
-              <label>Confirm Password</label>
+              <label>
+                <span data-i18n="confirm_pass_label">Confirm Password</span>
+                <span style="color: red">*</span>
+              </label>
               <div class="input-box">
-                <i class="fa-solid fa-check-double"></i>
+                <i class="fa-solid fa-check-double left-icon"></i>
                 <input
                   type="password"
                   id="confirmPass"
                   class="form-control"
-                  placeholder="Repeat password"
-                  required
+                  data-i18n-placeholder="confirm_placeholder"
+                  placeholder="វាយបញ្ជាក់ម្តងទៀត"
                 />
                 <i
                   class="fa-regular fa-eye toggle-password"
@@ -518,139 +1055,668 @@
               </div>
             </div>
 
-            <div class="terms-box">
-              <input type="checkbox" id="termsCheck" />
-              <label for="termsCheck"
-                >I agree to the <a href="#">Terms & Conditions</a> and
-                <a href="#">Privacy Policy</a>.</label
-              >
-            </div>
-
             <div class="btn-container">
-              <button type="button" class="btn-secondary" onclick="prevStep(2)">
-                Back
+              <button
+                type="button"
+                class="btn-secondary kh-text"
+                onclick="prevStep(3)"
+                data-i18n="back_btn"
+              >
+                ថយក្រោយ
               </button>
               <button
                 type="button"
-                class="btn-primary"
-                id="requestOtpBtn"
-                onclick="requestOTP(event)"
+                class="btn-primary kh-text"
+                onclick="nextStep(5)"
+                data-i18n="continue_btn"
               >
-                Get OTP Code
+                បន្តទៅមុខ
               </button>
-            </div>
-            <div class="security-badge">
-              <i class="fa-solid fa-shield-halved"></i> 256-bit Secure
-              Encryption
             </div>
           </div>
 
-          <!-- STEP 4: OTP Verification -->
-          <div class="step-content" id="step4">
+          <!-- ==========================================
+               STEP 5: PIN CODE SETUP
+               ========================================== -->
+          <div class="step-content" id="step5">
             <h3
               style="
                 margin-top: 0;
-                color: #0f172a;
-                font-size: 1.2rem;
                 text-align: center;
+                color: var(--text-main);
+                font-size: 1.15rem;
               "
+              class="kh-text"
+              data-i18n="transaction_security"
             >
-              Verify Your Email
+              សុវត្ថិភាពប្រតិបត្តិការ
             </h3>
             <p
+              id="pinInstructionDesc"
               style="
                 text-align: center;
-                color: #64748b;
-                font-size: 0.9rem;
-                margin-top: 5px;
+                color: var(--text-sub);
+                font-size: 0.85rem;
               "
+              class="kh-text"
+              data-i18n="create_pin_desc"
             >
-              We have sent a 6-digit verification code to:
+              Create a 4-digit PIN
             </p>
-            <div class="otp-display-email" id="displayEmailOTP">
-              sok.dara@gmail.com
+
+            <div class="input-group" style="margin-top: 30px">
+              <div class="pin-box-container">
+                <input
+                  type="password"
+                  class="pin-box"
+                  id="pin1"
+                  maxlength="1"
+                  inputmode="numeric"
+                />
+                <input
+                  type="password"
+                  class="pin-box"
+                  id="pin2"
+                  maxlength="1"
+                  inputmode="numeric"
+                />
+                <input
+                  type="password"
+                  class="pin-box"
+                  id="pin3"
+                  maxlength="1"
+                  inputmode="numeric"
+                />
+                <input
+                  type="password"
+                  class="pin-box"
+                  id="pin4"
+                  maxlength="1"
+                  inputmode="numeric"
+                />
+              </div>
             </div>
 
-            <div class="otp-container">
-              <input
-                type="text"
-                id="otpCode"
-                class="otp-input"
-                maxlength="6"
-                placeholder="------"
-                inputmode="numeric"
-              />
-            </div>
-
-            <div class="btn-container">
+            <div
+              class="btn-container"
+              id="pinBtnContainer"
+              style="margin-top: 40px; display: none"
+            >
               <button
                 type="button"
-                class="btn-primary btn-full"
-                id="submitBtn"
-                onclick="verifyAndRegister(event)"
+                class="btn-secondary kh-text"
+                onclick="prevStep(4)"
+                data-i18n="back_btn"
               >
-                <i class="fa-solid fa-user-check"></i> Verify & Create Account
+                ថយក្រោយ
+              </button>
+              <button
+                type="button"
+                class="btn-primary kh-text"
+                onclick="nextStep(6)"
+                data-i18n="continue_btn"
+              >
+                បន្តទៅមុខ
               </button>
             </div>
+          </div>
 
-            <div style="text-align: center; margin-top: 15px">
-              <a
-                href="#"
-                onclick="requestOTP(event)"
+          <!-- ==========================================
+               STEP 6: SUMMARY
+               ========================================== -->
+          <div class="step-content summary-step" id="step6">
+            <div style="text-align: center; margin-bottom: 8px">
+              <h3
                 style="
-                  color: #64748b;
-                  font-size: 0.85rem;
-                  font-weight: bold;
-                  text-decoration: none;
+                  margin: 0 0 7px 0;
+                  color: var(--text-main);
+                  font-size: 1.3rem;
                 "
-                ><i class="fa-solid fa-rotate-right"></i> Resend Code</a
+                class="kh-text"
+                data-i18n="verify_final"
               >
+                ផ្ទៀងផ្ទាត់ព័ត៌មានចុងក្រោយ
+              </h3>
+              <p
+                style="margin: 0; color: var(--text-sub); font-size: 0.95rem"
+                class="kh-text"
+                data-i18n="verify_final_desc"
+              >
+                សូមពិនិត្យព័ត៌មានរបស់អ្នកមុនពេលបង្កើតគណនី
+              </p>
+            </div>
+
+            <div
+              style="
+                background: var(--bg-main);
+                padding: 12px 14px;
+                border-radius: 14px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                border: 1px solid var(--border);
+                flex: 1;
+                margin-bottom: 12px;
+                overflow-y: auto;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: center;
+                  gap: 30px;
+                  padding-bottom: 8px;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                <div style="text-align: center">
+                  <span
+                    style="
+                      font-size: 1rem;
+                      color: var(--text-sub);
+                      display: block;
+                      margin-bottom: 10px;
+                    "
+                    class="kh-text"
+                    data-i18n="id_card"
+                    >អត្តសញ្ញាណប័ណ្ណ</span
+                  >
+                  <img
+                    id="sumIdImg"
+                    src=""
+                    alt="ID Card"
+                    style="
+                      width: 95px;
+                      height: 65px;
+                      object-fit: cover;
+                      border-radius: 6px;
+                      border: 1px solid var(--border);
+                    "
+                    onerror="this.src = 'https://placehold.co/75x45?text=ID'"
+                  />
+                </div>
+                <div style="text-align: center">
+                  <span
+                    style="
+                      font-size: 1rem;
+                      color: var(--text-sub);
+                      display: block;
+                      margin-bottom: 7px;
+                    "
+                    class="kh-text"
+                    data-i18n="selfie"
+                    >រូបថតផ្ទាល់ខ្លួន</span
+                  >
+                  <img
+                    id="sumSelfieImg"
+                    src=""
+                    alt="Selfie"
+                    style="
+                      width: 70px;
+                      height: 70px;
+                      object-fit: cover;
+                      border-radius: 50%;
+                      border: 1px solid var(--border);
+                    "
+                    onerror="
+                      this.src = 'https://placehold.co/45x45?text=Selfie'
+                    "
+                  />
+                </div>
+              </div>
+
+              <div
+                style="
+                  font-size: 1rem;
+                  color: var(--text-main);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 15px;
+                  padding: 18px 0;
+                "
+              >
+                <div style="display: flex; justify-content: space-between">
+                  <span
+                    style="color: var(--text-sub)"
+                    data-i18n="full_name_label"
+                    >ឈ្មោះពេញ:</span
+                  >
+                  <b id="sumName">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span style="color: var(--text-sub)" data-i18n="email_label"
+                    >អ៊ីមែល:</span
+                  >
+                  <b id="sumEmail" style="word-break: break-all">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span style="color: var(--text-sub)" data-i18n="phone_label"
+                    >លេខទូរស័ព្ទ:</span
+                  >
+                  <b id="sumPhone">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span style="color: var(--text-sub)" data-i18n="dob_label"
+                    >ថ្ងៃខែឆ្នាំកំណើត:</span
+                  >
+                  <b id="sumDob">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span style="color: var(--text-sub)" data-i18n="gender_label"
+                    >ភេទ:</span
+                  >
+                  <b id="sumGender">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span
+                    style="color: var(--text-sub)"
+                    data-i18n="id_number_label"
+                    >លេខអត្តសញ្ញាណប័ណ្ណ:</span
+                  >
+                  <b id="sumIdNum">---</b>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                  <span
+                    style="color: var(--text-sub)"
+                    data-i18n="username_label_short"
+                    >ឈ្មោះគណនី:</span
+                  >
+                  <b id="sumUsername" style="color: var(--success)">---</b>
+                </div>
+              </div>
+
+              <div
+                class="terms-box"
+                style="
+                  margin: 0;
+                  padding-top: 8px;
+                  border-top: 1px solid var(--border);
+                "
+              >
+                <input type="checkbox" id="termsCheck" />
+                <label
+                  for="termsCheck"
+                  class="kh-text"
+                  style="font-size: 0.95rem"
+                >
+                  <span data-i18n="i_agree">ខ្ញុំបានអាន និងយល់ព្រមតាម</span>
+                  <a href="#" data-i18n="terms">លក្ខខណ្ឌប្រើប្រាស់</a>។
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-container" style="margin-top: 0">
+              <button
+                type="button"
+                class="btn-secondary kh-text"
+                onclick="prevStep(5)"
+                data-i18n="back_btn"
+              >
+                ថយក្រោយ
+              </button>
+              <button
+                type="button"
+                class="btn-primary kh-text"
+                id="btnCreate"
+                onclick="finalSubmit()"
+              >
+                <i class="fa-solid fa-user-check"></i>
+                <span data-i18n="create_account_btn">បង្កើតគណនី</span>
+              </button>
             </div>
           </div>
         </form>
-
-        <div class="link">
-          Already have an account? <a href="index.html">Log In</a>
-        </div>
       </div>
     </div>
 
+    <!-- ==========================================
+         ⚙️ ៧. ផ្នែកតក្កវិជ្ជា (JAVASCRIPT LOGIC)
+         ========================================== -->
     <script>
-      // បើ User ធ្លាប់ Login ហើយ លោតទៅ Dashboard
-      if (
-        sessionStorage.getItem("user") &&
-        sessionStorage.getItem("userToken")
-      ) {
-        window.location.href = "dashboard.html";
+      function applyTheme() {
+        const isDark = localStorage.getItem("theme") === "dark";
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+          document
+            .getElementById("themeToggleBtn")
+            .classList.replace("fa-moon", "fa-sun");
+        }
+      }
+
+      function toggleTheme() {
+        const isDark = document.body.classList.toggle("dark-mode");
+        localStorage.setItem("theme", isDark ? "dark" : "light");
+        const btn = document.getElementById("themeToggleBtn");
+        if (isDark) btn.classList.replace("fa-moon", "fa-sun");
+        else btn.classList.replace("fa-sun", "fa-moon");
+      }
+
+      function toggleLang() {
+        let currentLang = localStorage.getItem("lang") || "kh";
+        let newLang = currentLang === "kh" ? "en" : "kh";
+        localStorage.setItem("lang", newLang);
+        if (typeof applyLanguage === "function") applyLanguage();
+      }
+
+      let countdownInterval;
+      function startOtpCountdown(duration = 300) {
+        let timer = duration;
+        const countdownEl = document.getElementById("countdown");
+        const resendBtn = document.getElementById("btnResendOtp");
+        const timerSpan = document.getElementById("otpTimer");
+
+        resendBtn.style.display = "none";
+        timerSpan.style.display = "inline";
+
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        countdownInterval = setInterval(() => {
+          let minutes = Math.floor(timer / 60);
+          let seconds = timer % 60;
+          countdownEl.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+          if (--timer < 0) {
+            clearInterval(countdownInterval);
+            timerSpan.style.display = "none";
+            resendBtn.style.display = "inline-block";
+          }
+        }, 1000);
+      }
+
+      function appendGmail() {
+        const emailInput = document.getElementById("email");
+        let val = emailInput.value.trim();
+        if (val && !val.includes("@")) {
+          emailInput.value = val + "@gmail.com";
+          document.getElementById("gmailSuffix").style.display = "none";
+          saveFormData();
+        }
+        emailInput.focus();
+      }
+
+      document.getElementById("email").addEventListener("input", function () {
+        const suffixBtn = document.getElementById("gmailSuffix");
+        if (this.value.includes("@")) suffixBtn.style.display = "none";
+        else suffixBtn.style.display = "block";
+      });
+
+      function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          iconElement.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+          input.type = "password";
+          iconElement.classList.replace("fa-eye-slash", "fa-eye");
+        }
+      }
+
+      function checkPasswordStrength(val) {
+        let str = 0;
+        if (val.length > 5) str += 25;
+        if (val.length > 7) str += 25;
+        if (/[A-Z]/.test(val)) str += 25;
+        if (/[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val)) str += 25;
+
+        const bar = document.getElementById("strBar");
+        bar.style.width = str + "%";
+        if (str <= 25) bar.style.background = "#ef4444";
+        else if (str <= 75) bar.style.background = "#f59e0b";
+        else bar.style.background = "#10b981";
+      }
+
+      const pinBoxes = document.querySelectorAll(".pin-box");
+      pinBoxes.forEach((box, i) => {
+        box.addEventListener("input", () => {
+          box.value = box.value.replace(/[^0-9]/g, "");
+          if (box.value && i < 3) pinBoxes[i + 1].focus();
+
+          if (i === 3 && box.value) {
+            const currentPin = getPinValue();
+            setTimeout(() => {
+              if (!isConfirmingPin) {
+                firstPinAttempt = currentPin;
+                isConfirmingPin = true;
+                document
+                  .getElementById("pinInstructionDesc")
+                  .setAttribute("data-i18n", "confirm_pin_desc");
+                if (typeof applyLanguage === "function") applyLanguage();
+                clearPinBoxes();
+                pinBoxes[0].focus();
+              } else {
+                if (currentPin === firstPinAttempt) {
+                  document.getElementById("pinBtnContainer").style.display =
+                    "flex";
+                  document.getElementById("pinInstructionDesc").innerHTML =
+                    '<span style="color: #10b981;"><i class="fa-solid fa-circle-check"></i> PIN Matched!</span>';
+                  pinBoxes.forEach((b) => b.blur());
+                } else {
+                  Swal.fire({
+                    target: ".app-container",
+                    toast: true,
+                    position: "top-end",
+                    icon: "error",
+                    title: "លេខ PIN មិនដូចគ្នាទេ! សូមវាយម្តងទៀត។",
+                    showConfirmButton: false,
+                    timer: 2000,
+                  });
+                  isConfirmingPin = false;
+                  firstPinAttempt = "";
+                  document
+                    .getElementById("pinInstructionDesc")
+                    .setAttribute("data-i18n", "create_pin_desc");
+                  if (typeof applyLanguage === "function") applyLanguage();
+                  clearPinBoxes();
+                  pinBoxes[0].focus();
+                }
+              }
+            }, 150);
+          }
+        });
+
+        box.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !box.value && i > 0) {
+            pinBoxes[i - 1].focus();
+          }
+        });
+      });
+
+      function getPinValue() {
+        return Array.from(pinBoxes)
+          .map((b) => b.value)
+          .join("");
+      }
+
+      function clearPinBoxes() {
+        pinBoxes.forEach((b) => (b.value = ""));
+      }
+
+      document
+        .getElementById("username")
+        .addEventListener("blur", async function () {
+          const val = this.value.trim();
+          const feedback = document.getElementById("usernameFeedback");
+          if (val.length < 3) return;
+          try {
+            const res = await fetch("/api/check-username", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: val }),
+            });
+            const data = await res.json();
+            if (data.available) {
+              feedback.innerHTML =
+                '<span style="color:#10b981;"><i class="fa-solid fa-circle-check"></i> ឈ្មោះនេះអាចប្រើប្រាស់បាន</span>';
+              this.style.borderColor = "#10b981";
+            } else {
+              feedback.innerHTML =
+                '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> ឈ្មោះនេះមានគេប្រើរួចហើយ!</span>';
+              this.style.borderColor = "#ef4444";
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        });
+
+      document
+        .getElementById("idNumber")
+        .addEventListener("blur", async function () {
+          const val = this.value.trim();
+          if (!val) return;
+          try {
+            const res = await fetch("/api/check-id-number", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ idNumber: val }),
+            });
+            const data = await res.json();
+            if (data.exists) {
+              document.getElementById("duplicateReasonBox").style.display =
+                "block";
+            } else {
+              document.getElementById("duplicateReasonBox").style.display =
+                "none";
+              document.getElementById("duplicateReason").value = "";
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        });
+
+      const CLOUD_NAME = "jp9yg3dj";
+      const UPLOAD_PRESET = "iaxuqmpb";
+      let idCardUrl = "";
+      let selfieUrl = "";
+
+      async function handleIdUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        document.getElementById("fullName").value = "";
+        document.getElementById("dob").value = "";
+        document.getElementById("idNumber").value = "";
+        document.getElementById("idPreview").style.display = "none";
+        document.getElementById("idTick").style.display = "none";
+        document.getElementById("duplicateReasonBox").style.display = "none";
+        idCardUrl = "";
+        saveFormData();
+
+        Swal.fire({
+          target: ".app-container",
+          title: "កំពុងស្កេនដោយ AI...",
+          html: "ប្រព័ន្ធកំពុងអានអក្សរពីរូបភាពរបស់អ្នក",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+
+        try {
+          const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+            { method: "POST", body: formData },
+          );
+          const data = await res.json();
+          if (data.secure_url) {
+            const tempUrl = data.secure_url;
+            const ocrRes = await fetch("/api/scan-id-card", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ imageUrl: tempUrl }),
+            });
+            const ocrData = await ocrRes.json();
+            Swal.close();
+
+            if (!ocrData.success) {
+              e.target.value = "";
+              return Swal.fire({
+                target: ".app-container",
+                icon: "error",
+                title: "ឯកសារបដិសេធ ❌",
+                text: ocrData.message,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+
+            idCardUrl = tempUrl;
+            document.getElementById("idPreview").src = idCardUrl;
+            document.getElementById("idPreview").style.display = "block";
+            document.getElementById("idTick").style.display = "flex";
+
+            document.getElementById("fullName").value =
+              ocrData.data.fullName || "";
+            document.getElementById("dob").value = ocrData.data.dob || "";
+            document.getElementById("gender").value = ocrData.data.gender || "";
+            document.getElementById("idNumber").value =
+              ocrData.data.idNumber || "";
+
+            if (ocrData.data.idNumber) {
+              document.getElementById("idNumber").focus();
+              document.getElementById("idNumber").blur();
+            }
+            saveFormData();
+
+            Swal.fire({
+              target: ".app-container",
+              icon: "success",
+              title: "ស្កេនឯកសារជោគជ័យ!",
+              html: "ប្រព័ន្ធបានទាញយកទិន្នន័យរួចរាល់។",
+              customClass: { popup: "premium-swal" },
+            });
+          } else throw new Error("Cloudinary error");
+        } catch (err) {
+          Swal.close();
+          Swal.fire({
+            target: ".app-container",
+            icon: "error",
+            title: "បរាជ័យ",
+            text: "មិនអាច Upload រូបភាពបានទេ សូមសាកល្បងម្តងទៀត!",
+            customClass: { popup: "premium-swal" },
+          });
+        }
+      }
+
+      async function handleSelfieUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        Swal.fire({
+          target: ".app-container",
+          title: "កំពុង Upload Selfie...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+        try {
+          const res = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+            { method: "POST", body: formData },
+          );
+          const data = await res.json();
+          if (data.secure_url) {
+            selfieUrl = data.secure_url;
+            document.getElementById("selfiePreview").src = selfieUrl;
+            document.getElementById("selfiePreview").style.display = "block";
+            document.getElementById("selfieTick").style.display = "flex";
+            Swal.close();
+          } else throw new Error("Cloudinary error");
+        } catch (err) {
+          Swal.fire({
+            target: ".app-container",
+            icon: "error",
+            title: "បរាជ័យ",
+            text: "មិនអាច Upload រូបភាពបានទេ",
+            customClass: { popup: "premium-swal" },
+          });
+        }
       }
 
       let currentStep = 1;
-
-      // ការពិនិត្យមុនប្តូរ Step
-      function nextStep(step) {
-        if (step === 2) {
-          const fn = document.getElementById("fullName").value.trim();
-          const em = document.getElementById("email").value.trim();
-          const ph = document.getElementById("phone").value.trim();
-          if (!fn || !em || !ph)
-            return showAlert("warning", "សូមបំពេញព័ត៌មានឱ្យគ្រប់សិន!");
-          if (!em.includes("@"))
-            return showAlert("error", "ទម្រង់ Email មិនត្រឹមត្រូវទេ!");
-        }
-        if (step === 3) {
-          const un = document.getElementById("username").value.trim();
-          const pin = document.getElementById("pin").value.trim();
-          if (!un || !pin)
-            return showAlert("warning", "សូមបំពេញឈ្មោះគណនី និង PIN សិន!");
-          if (pin.length !== 4)
-            return showAlert("warning", "PIN ត្រូវតែមាន ៤ខ្ទង់គត់!");
-        }
-        updateUI(step);
-      }
-
-      function prevStep(step) {
-        updateUI(step);
-      }
+      let otpVerified = false;
+      let firstPinAttempt = "";
+      let isConfirmingPin = false;
 
       function updateUI(step) {
         currentStep = step;
@@ -665,135 +1731,313 @@
           if (index + 1 === step) el.classList.add("active");
         });
 
-        // Update Progress Bar
         const line = document.getElementById("progressLineActive");
-        if (step === 1) line.style.width = "0%";
-        if (step === 2) line.style.width = "33%";
-        if (step === 3) line.style.width = "66%";
-        if (step === 4) line.style.width = "100%";
+        const percentages = {
+          1: "0%",
+          2: "20%",
+          3: "40%",
+          4: "60%",
+          5: "80%",
+          6: "100%",
+        };
+        line.style.width = percentages[step];
+
+        setTimeout(() => {
+          if (step === 1) document.getElementById("phone").focus();
+          else if (step === 2) document.getElementById("fullName").focus();
+          else if (step === 4) document.getElementById("username").focus();
+          else if (step === 5) {
+            isConfirmingPin = false;
+            firstPinAttempt = "";
+            clearPinBoxes();
+            document
+              .getElementById("pinInstructionDesc")
+              .setAttribute("data-i18n", "create_pin_desc");
+            document.getElementById("pinBtnContainer").style.display = "none";
+            if (typeof applyLanguage === "function") applyLanguage();
+            document.getElementById("pin1").focus();
+          }
+        }, 300);
+
+        saveFormData();
       }
 
-      function toggleVisibility(inputId, iconElement) {
-        const input = document.getElementById(inputId);
-        if (input.type === "password") {
-          input.type = "text";
-          iconElement.classList.remove("fa-eye");
-          iconElement.classList.add("fa-eye-slash");
-        } else {
-          input.type = "password";
-          iconElement.classList.remove("fa-eye-slash");
-          iconElement.classList.add("fa-eye");
-        }
+      function prevStep(step) {
+        updateUI(step);
       }
 
-      function showAlert(icon, title) {
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: icon,
-          title: title,
-          showConfirmButton: false,
-          timer: 2000,
-          customClass: { popup: "premium-swal" },
-        });
+      function populateSummary() {
+        document.getElementById("sumName").innerText =
+          document.getElementById("fullName").value;
+        document.getElementById("sumEmail").innerText =
+          document.getElementById("email").value;
+        document.getElementById("sumPhone").innerText =
+          document.getElementById("phone").value;
+        document.getElementById("sumDob").innerText =
+          document.getElementById("dob").value;
+        document.getElementById("sumGender").innerText =
+          document.getElementById("gender").value;
+        document.getElementById("sumIdNum").innerText =
+          document.getElementById("idNumber").value;
+        document.getElementById("sumUsername").innerText = document
+          .getElementById("username")
+          .value.trim();
+
+        if (idCardUrl) document.getElementById("sumIdImg").src = idCardUrl;
+        if (selfieUrl) document.getElementById("sumSelfieImg").src = selfieUrl;
       }
 
-      // ==========================================
-      // 🚀 ១. សុំ OTP (Request OTP)
-      // ==========================================
-      async function requestOTP(e) {
-        e.preventDefault();
+      async function nextStep(step) {
+        if (step === 3) {
+          const fn = document.getElementById("fullName").value.trim();
+          const dob = document.getElementById("dob").value.trim();
+          const gen = document.getElementById("gender").value;
+          const idNum = document.getElementById("idNumber").value.trim();
+          const dupReasonBox =
+            document.getElementById("duplicateReasonBox").style.display;
+          const dupReason = document
+            .getElementById("duplicateReason")
+            .value.trim();
+          const refVal = document.getElementById("referralCode").value.trim();
 
-        const fullName = document.getElementById("fullName").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const username = document.getElementById("username").value.trim();
-        const phone = document.getElementById("phone").value.trim();
-        const password = document.getElementById("password").value;
-        const confirmPass = document.getElementById("confirmPass").value;
-        const terms = document.getElementById("termsCheck").checked;
+          if (!idCardUrl)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូម Upload អត្តសញ្ញាណប័ណ្ណសិន!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          if (!fn || !dob || !gen || !idNum)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូមបំពេញព័ត៌មានដែលចាំបាច់ (*) ឱ្យបានគ្រប់គ្រាន់!",
+              showConfirmButton: false,
+              timer: 2500,
+            });
 
-        if (!password || !confirmPass)
-          return showAlert("warning", "សូមបញ្ចូលពាក្យសម្ងាត់!");
-        if (password !== confirmPass)
-          return Swal.fire("Error", "ពាក្យសម្ងាត់មិនដូចគ្នាទេ!", "error");
-        if (!terms)
-          return Swal.fire(
-            "Error",
-            "សូមយល់ព្រមលើលក្ខខណ្ឌប្រើប្រាស់សិន!",
-            "warning",
-          );
+          if (dupReasonBox === "block" && !dupReason) {
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូមបញ្ជាក់មូលហេតុបង្កើតគណនីថ្មី!",
+              showConfirmButton: false,
+              timer: 2500,
+            });
+          }
 
-        const btn = document.getElementById("requestOtpBtn");
-        const origText = btn.innerText;
-        btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin"></i> Sending Email...';
-        btn.disabled = true;
-
-        try {
-          const res = await fetch("/api/request-otp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, phone, email }),
-          });
-          const data = await res.json();
-          btn.innerHTML = origText;
-          btn.disabled = false;
-
-          if (data.success) {
-            document.getElementById("displayEmailOTP").innerText = email;
-            updateUI(4); // ទៅកាន់ទំព័រទី ៤ ឱ្យវាយកូដ OTP
-            showAlert(
-              "success",
-              "លេខកូដ OTP ត្រូវបានបញ្ជូនទៅកាន់ Email របស់អ្នកហើយ!",
-            );
-          } else {
-            Swal.fire({
+          if (refVal && !isReferralValid) {
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
               icon: "error",
-              title: "បរាជ័យ",
-              text: data.message,
+              title: "លេខកូដអ្នកណែនាំមិនត្រឹមត្រូវទេ!",
+              showConfirmButton: false,
+              timer: 2500,
+            });
+          }
+        }
+
+        if (step === 4) {
+          if (!selfieUrl)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូម Upload រូប Selfie ជាមុនសិន!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+        }
+
+        if (step === 5) {
+          const un = document.getElementById("username").value.trim();
+          const pw = document.getElementById("password").value;
+          const cpw = document.getElementById("confirmPass").value;
+          const feedback =
+            document.getElementById("usernameFeedback").innerText;
+          setTimeout(() => {
+            document.getElementById("pin1").focus();
+          }, 300);
+
+          if (!un || !pw)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "សូមបំពេញ Username និង Password!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          if (feedback.includes("រួចហើយ"))
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "error",
+              title: "Username នេះមានគេប្រើហើយ!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          if (pw !== cpw)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "error",
+              title: "Password មិនដូចគ្នាទេ!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+        }
+
+        if (step === 6) {
+          const pin = getPinValue();
+          if (pin.length !== 4)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "PIN ត្រូវមាន ៤ខ្ទង់!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          populateSummary();
+        }
+        updateUI(step);
+      }
+
+      async function handleStep1OTP() {
+        const phone = document.getElementById("phone").value.trim();
+        const email = document.getElementById("email").value.trim();
+        if (!phone || !email)
+          return Swal.fire({
+            target: ".app-container",
+            toast: true,
+            position: "top-end",
+            icon: "warning",
+            title: "សូមបំពេញ Phone និង Email!",
+            showConfirmButton: false,
+            timer: 2000,
+          });
+
+        const btn = document.getElementById("btnRequestOtp");
+        if (btn.innerText.includes("Send") || btn.innerText.includes("ផ្ញើ")) {
+          btn.innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+          btn.disabled = true;
+          try {
+            const res = await fetch("/api/request-otp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                phone,
+                username: "temp_" + Date.now(),
+              }),
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            if (data.success) {
+              document.getElementById("otpSection").style.display = "block";
+              btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Verify';
+              startOtpCountdown(300);
+              Swal.fire({
+                target: ".app-container",
+                toast: true,
+                position: "top-end",
+                icon: "success",
+                title: "OTP Sent!",
+                showConfirmButton: false,
+                timer: 2000,
+              });
+            } else {
+              btn.innerHTML =
+                '<i class="fa-solid fa-paper-plane"></i> Send OTP';
+              Swal.fire({
+                target: ".app-container",
+                icon: "error",
+                title: "បរាជ័យ",
+                text: data.message,
+                customClass: { popup: "premium-swal" },
+              });
+            }
+          } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send OTP';
+            Swal.fire({
+              target: ".app-container",
+              icon: "error",
+              title: "Error",
+              text: "Server Error",
               customClass: { popup: "premium-swal" },
             });
           }
-        } catch (error) {
-          btn.innerHTML = origText;
-          btn.disabled = false;
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!",
-            customClass: { popup: "premium-swal" },
-          });
+        } else {
+          const code = document.getElementById("otpCode").value.trim();
+          if (code.length !== 6)
+            return Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "warning",
+              title: "OTP ត្រូវមាន ៦ខ្ទង់!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          otpVerified = true;
+          document.getElementById("email").disabled = true;
+          document.getElementById("phone").disabled = true;
+          saveFormData();
+          nextStep(2);
         }
       }
 
-      // ==========================================
-      // 🚀 ២. បញ្ជាក់ OTP រួចបង្កើតគណនី (Verify & Register)
-      // ==========================================
-      async function verifyAndRegister(e) {
-        e.preventDefault();
-
-        const otp = document.getElementById("otpCode").value.trim();
-        if (otp.length !== 6)
-          return showAlert(
-            "warning",
-            "សូមវាយលេខកូដ OTP ៦ខ្ទង់ឱ្យបានត្រឹមត្រូវ!",
-          );
-
-        const btn = document.getElementById("submitBtn");
-        const origText = btn.innerHTML;
-        btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin"></i> Creating Account...';
-        btn.disabled = true;
+      async function finalSubmit() {
+        const terms = document.getElementById("termsCheck").checked;
+        if (!terms)
+          return Swal.fire({
+            target: ".app-container",
+            icon: "warning",
+            title: "បំរាម",
+            text: "សូមយល់ព្រមលើលក្ខខណ្ឌប្រើប្រាស់សិន!",
+            customClass: { popup: "premium-swal" },
+          });
 
         const payload = {
-          fullName: document.getElementById("fullName").value.trim(),
           email: document.getElementById("email").value.trim(),
-          username: document.getElementById("username").value.trim(),
           phone: document.getElementById("phone").value.trim(),
-          pin: document.getElementById("pin").value.trim(),
+          fullName: document.getElementById("fullName").value.trim(),
+          dob: document.getElementById("dob").value,
+          gender: document.getElementById("gender").value,
+          idNumber: document.getElementById("idNumber").value.trim(),
+          duplicateReason: document
+            .getElementById("duplicateReason")
+            .value.trim(),
+          referralCode: document.getElementById("referralCode").value.trim(),
+          idCardUrl: idCardUrl,
+          selfieUrl: selfieUrl,
+          username: document.getElementById("username").value.trim(),
           password: document.getElementById("password").value,
-          otp: otp,
+          pin: getPinValue(),
+          otp: document.getElementById("otpCode").value.trim(),
         };
+
+        const btn = document.getElementById("btnCreate");
+        btn.innerHTML =
+          '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+        btn.disabled = true;
 
         try {
           const res = await fetch("/api/verify-register", {
@@ -802,35 +2046,46 @@
             body: JSON.stringify(payload),
           });
           const data = await res.json();
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-user-check"></i> បង្កើតគណនី';
 
           if (data.success) {
-            // Auto Login ក្រោយបង្កើតគណនីរួចរាល់
             sessionStorage.setItem("user", JSON.stringify(data.user));
             if (data.token) sessionStorage.setItem("userToken", data.token);
+            sessionStorage.removeItem("regDraft");
 
-            await Swal.fire({
-              icon: "success",
-              title: "Welcome to U-PAY!",
-              text: "គណនីរបស់អ្នកត្រូវបានបង្កើតជោគជ័យ។",
-              timer: 2000,
-              showConfirmButton: false,
-              customClass: { popup: "premium-swal" },
-            });
-            window.location.href = "dashboard.html";
-          } else {
-            btn.innerHTML = origText;
-            btn.disabled = false;
+            const realAccountNumber =
+              data.user.mainAccounts?.USD?.accountNumber ||
+              data.user.accountNumber ||
+              "N/A";
+            const realUserId = data.user.userId || "N/A";
+
             Swal.fire({
+              target: ".app-container",
+              icon: "success",
+              title: "អបអរសាទរ! 🎉",
+              html: `<div style="font-size: 0.95rem; color: #475569; line-height: 1.6;" class="kh-text">គណនីរបស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ។<br>លេខគណនីធនាគាររបស់អ្នកគឺ៖ <b style="color:#10b981; font-size:1.1rem;">${realAccountNumber}</b><br>លេខសម្គាល់អតិថិជនរបស់អ្នកគឺ៖ <b style="color:#004d40; font-size:1.1rem; letter-spacing: 1px;">${realUserId}</b></div>`,
+              confirmButtonText: "ចូលប្រើប្រាស់ឥឡូវនេះ",
+              customClass: { popup: "premium-swal" },
+              allowOutsideClick: false,
+            }).then(() => {
+              window.location.href = "dashboard.html";
+            });
+          } else {
+            Swal.fire({
+              target: ".app-container",
               icon: "error",
-              title: "កូដមិនត្រឹមត្រូវ",
+              title: "បរាជ័យ",
               text: data.message,
               customClass: { popup: "premium-swal" },
             });
+            if (data.message.toLowerCase().includes("otp")) prevStep(1);
           }
-        } catch (error) {
-          btn.innerHTML = origText;
+        } catch (e) {
           btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-user-check"></i> បង្កើតគណនី';
           Swal.fire({
+            target: ".app-container",
             icon: "error",
             title: "Error",
             text: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!",
@@ -838,6 +2093,273 @@
           });
         }
       }
+
+      function saveFormData() {
+        const draft = {
+          step: currentStep,
+          otpVerified: otpVerified,
+          phone: document.getElementById("phone").value,
+          email: document.getElementById("email").value,
+          otpCode: document.getElementById("otpCode").value,
+          fullName: document.getElementById("fullName").value,
+          dob: document.getElementById("dob").value,
+          gender: document.getElementById("gender").value,
+          idNumber: document.getElementById("idNumber").value,
+          duplicateReason: document.getElementById("duplicateReason").value,
+          referralCode: document.getElementById("referralCode").value,
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value,
+          confirmPass: document.getElementById("confirmPass").value,
+          pin1: document.getElementById("pin1").value,
+          pin2: document.getElementById("pin2").value,
+          pin3: document.getElementById("pin3").value,
+          pin4: document.getElementById("pin4").value,
+          idCardUrl: idCardUrl,
+          selfieUrl: selfieUrl,
+        };
+        sessionStorage.setItem("regDraft", JSON.stringify(draft));
+      }
+
+      function restoreFormData() {
+        const draft = JSON.parse(sessionStorage.getItem("regDraft"));
+        if (draft) {
+          otpVerified = draft.otpVerified || false;
+          document.getElementById("phone").value = draft.phone || "";
+          document.getElementById("email").value = draft.email || "";
+          document.getElementById("otpCode").value = draft.otpCode || "";
+          document.getElementById("fullName").value = draft.fullName || "";
+          document.getElementById("dob").value = draft.dob || "";
+          document.getElementById("gender").value = draft.gender || "";
+          document.getElementById("idNumber").value = draft.idNumber || "";
+          document.getElementById("duplicateReason").value =
+            draft.duplicateReason || "";
+          document.getElementById("referralCode").value =
+            draft.referralCode || "";
+          document.getElementById("username").value = draft.username || "";
+          document.getElementById("password").value = draft.password || "";
+          document.getElementById("confirmPass").value =
+            draft.confirmPass || "";
+          document.getElementById("pin1").value = draft.pin1 || "";
+          document.getElementById("pin2").value = draft.pin2 || "";
+          document.getElementById("pin3").value = draft.pin3 || "";
+          document.getElementById("pin4").value = draft.pin4 || "";
+
+          if (draft.password) checkPasswordStrength(draft.password);
+
+          idCardUrl = draft.idCardUrl || "";
+          selfieUrl = draft.selfieUrl || "";
+
+          if (idCardUrl) {
+            document.getElementById("idPreview").src = idCardUrl;
+            document.getElementById("idPreview").style.display = "block";
+            document.getElementById("idTick").style.display = "flex";
+          }
+          if (selfieUrl) {
+            document.getElementById("selfiePreview").src = selfieUrl;
+            document.getElementById("selfiePreview").style.display = "block";
+            document.getElementById("selfieTick").style.display = "flex";
+          }
+
+          if (draft.email && draft.email.includes("@")) {
+            document.getElementById("gmailSuffix").style.display = "none";
+          }
+          if (draft.duplicateReason) {
+            document.getElementById("duplicateReasonBox").style.display =
+              "block";
+          }
+
+          if (otpVerified) {
+            document.getElementById("email").disabled = true;
+            document.getElementById("phone").disabled = true;
+            document.getElementById("otpSection").style.display = "block";
+            document.getElementById("btnRequestOtp").innerHTML =
+              '<i class="fa-solid fa-check-double"></i> Verify';
+          }
+
+          if (draft.step && draft.step > 1) {
+            updateUI(draft.step);
+            if (draft.step === 6) populateSummary();
+          }
+        }
+      }
+
+      document.querySelectorAll("input, select, textarea").forEach((input) => {
+        input.addEventListener("input", saveFormData);
+        input.addEventListener("change", saveFormData);
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
+        restoreFormData();
+
+        setTimeout(() => {
+          const phoneInput = document.getElementById("phone");
+          if (phoneInput && !phoneInput.disabled) phoneInput.focus();
+        }, 300);
+      });
+
+      let isReferralValid = true;
+      document
+        .getElementById("referralCode")
+        .addEventListener("blur", async function () {
+          const val = this.value.trim();
+          const feedback = document.getElementById("referralFeedback");
+          if (!val) {
+            feedback.innerHTML = "";
+            this.style.borderColor = "";
+            isReferralValid = true;
+            return;
+          }
+          if (val.length !== 8) {
+            feedback.innerHTML =
+              '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> លេខកូដអ្នកណែនាំត្រូវមាន ៨ លេខគត់!</span>';
+            this.style.borderColor = "#ef4444";
+            isReferralValid = false;
+            return;
+          }
+          try {
+            const res = await fetch("/api/check-referral-code", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ referralCode: val }),
+            });
+            const data = await res.json();
+            if (data.valid) {
+              feedback.innerHTML = `<span style="color:#10b981;"><i class="fa-solid fa-circle-check"></i> អ្នកណែនាំ៖ <b>${data.referrerName}</b></span>`;
+              this.style.borderColor = "#10b981";
+              isReferralValid = true;
+            } else {
+              feedback.innerHTML =
+                '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> លេខកូដអ្នកណែនាំមិនត្រឹមត្រូវទេ!</span>';
+              this.style.borderColor = "#ef4444";
+              isReferralValid = false;
+            }
+          } catch (e) {
+            console.log(e);
+          }
+        });
+
+      // ==========================================
+      // ⌨️ គ្រប់គ្រងការចុច Keyboard (Enter, Home, End)
+      // ==========================================
+      document.addEventListener("keydown", function (e) {
+        if (document.querySelector(".swal2-container")) return;
+
+        if (e.key === "Home") {
+          e.preventDefault();
+          if (currentStep > 1) prevStep(currentStep - 1);
+        }
+
+        if (e.key === "End") {
+          e.preventDefault();
+          if (currentStep === 1) handleStep1OTP();
+          else if (currentStep >= 2 && currentStep <= 5) {
+            if (currentStep === 5) {
+              const pin = getPinValue();
+              if (pin.length === 4) nextStep(6);
+              else {
+                Swal.fire({
+                  target: ".app-container",
+                  toast: true,
+                  position: "top-end",
+                  icon: "warning",
+                  title: "សូមបញ្ចូលលេខ PIN ឱ្យបាន ៤ខ្ទង់!",
+                  showConfirmButton: false,
+                  timer: 2000,
+                });
+              }
+            } else {
+              nextStep(currentStep + 1);
+            }
+          } else if (currentStep === 6) {
+            finalSubmit();
+          }
+        }
+
+        if (e.key === "Enter") {
+          if (
+            document.activeElement.tagName === "TEXTAREA" ||
+            document.activeElement.type === "checkbox"
+          ) {
+            return;
+          }
+
+          e.preventDefault();
+
+          // 1. Step 1
+          if (currentStep === 1) {
+            const phoneInput = document.getElementById("phone");
+            const emailInput = document.getElementById("email");
+            const otpCodeInput = document.getElementById("otpCode");
+
+            if (document.activeElement === phoneInput) {
+              emailInput.focus();
+              return;
+            } else if (document.activeElement === emailInput) {
+              handleStep1OTP();
+              return;
+            } else if (document.activeElement === otpCodeInput) {
+              handleStep1OTP();
+              return;
+            }
+          }
+
+          // 2. Step 2 (ID Card & Inputs)
+          if (currentStep === 2) {
+            const fullNameInput = document.getElementById("fullName");
+            const dobInput = document.getElementById("dob");
+            const genderSelect = document.getElementById("gender");
+            const idNumberInput = document.getElementById("idNumber");
+            const referralCodeInput = document.getElementById("referralCode");
+
+            if (document.activeElement === fullNameInput) {
+              dobInput.focus();
+              return;
+            } else if (document.activeElement === dobInput) {
+              genderSelect.focus();
+              return;
+            } else if (document.activeElement === genderSelect) {
+              idNumberInput.focus();
+              return;
+            } else if (document.activeElement === idNumberInput) {
+              referralCodeInput.focus();
+              return;
+            } else if (document.activeElement === referralCodeInput) {
+              nextStep(3);
+              return;
+            }
+          }
+
+          // 3. Step 4 (Create Account Info)
+          if (currentStep === 4) {
+            const usernameInput = document.getElementById("username");
+            const passwordInput = document.getElementById("password");
+            const confirmPassInput = document.getElementById("confirmPass");
+
+            if (document.activeElement === usernameInput) {
+              passwordInput.focus();
+              return;
+            } else if (document.activeElement === passwordInput) {
+              confirmPassInput.focus();
+              return;
+            } else if (document.activeElement === confirmPassInput) {
+              nextStep(5);
+              return;
+            }
+          }
+
+          // Step ផ្សេងៗ
+          if (currentStep === 3) {
+            nextStep(4);
+          } else if (currentStep === 5) {
+            const pin = getPinValue();
+            if (pin.length === 4) nextStep(6);
+          } else if (currentStep === 6) {
+            finalSubmit();
+          }
+        }
+      });
     </script>
   </body>
 </html>

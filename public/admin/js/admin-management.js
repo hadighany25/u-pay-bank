@@ -1,12 +1,15 @@
 // js/admin-management.js
 
 // ========================================================================
-// 🧑‍💼 SECTION: ADMIN ACCOUNTS WIZARD & MANAGEMENT
+// 🧑‍💼 SECTION 1: ADMIN ACCOUNTS WIZARD & MANAGEMENT (ការគ្រប់គ្រងបុគ្គលិក និង Wizard)
 // ========================================================================
 let globalAdminsData = [];
 let currentAdminStep = 1;
 const TOTAL_STEPS = 4;
 
+/**
+ * 📌 ១.១ ទាញយក និងបង្ហាញបញ្ជីឈ្មោះ Admin ទាំងអស់
+ */
 async function loadAdminList() {
   if (typeof adminRole === "undefined" || adminRole !== "super_admin") return;
 
@@ -18,101 +21,143 @@ async function loadAdminList() {
 
     if (data.success) {
       globalAdminsData = data.admins || [];
-      const tbody = document.getElementById("adminTableBody");
-      if (!tbody) return;
 
-      if (globalAdminsData.length === 0) {
-        tbody.innerHTML =
-          '<tr><td colspan="5" style="text-align: center; padding: 20px;">គ្មានទិន្នន័យបុគ្គលិក</td></tr>';
-        return;
+      // 🟢 ជំនួសមកហៅ filterAdminList() វិញ ដើម្បីឱ្យវាទាញទិន្នន័យមកតម្រៀបជាមួយប្រអប់ Search ស្រាប់
+      if (typeof filterAdminList === "function") {
+        filterAdminList();
+      } else {
+        renderAdminTable(globalAdminsData);
       }
-
-      // 🔄 កែសម្រួលក្បាលតារាង HTML
-      tbody.innerHTML = globalAdminsData
-        .map((a) => {
-          let displayRole =
-            a.role === "custom" && a.permissions?.customRoleName
-              ? a.permissions.customRoleName
-              : a.role || "support_agent";
-
-          const isActive = a.isActive !== false;
-
-          return `
-            <tr>
-              <!-- 1. NAME & STAFF ID -->
-              <td>
-                <div style="font-weight: 700; color: var(--text-main); text-transform: uppercase;">
-                  ${a.fullName || a.username}
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">
-                  ${a.staffId || "N/A"}
-                </div>
-              </td>
-
-              <!-- 2. ROLE -->
-              <td>
-                <span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem;">
-                  ${displayRole.toUpperCase()}
-                </span>
-              </td>
-
-              <!-- 3. ម៉ោងធ្វើការ -->
-              <td>${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
-
-              <!-- 4. STATUS & TOGGLE SWITCH -->
-              <td>
-                <label style="position: relative; display: inline-block; width: 46px; height: 24px; cursor: pointer;">
-                  <input type="checkbox" ${isActive ? "checked" : ""} 
-                    onchange="toggleAdminStatusAccount('${a._id}')" 
-                    style="opacity: 0; width: 0; height: 0;">
-                  <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isActive ? "#10b981" : "#cbd5e1"}; transition: .3s; border-radius: 24px;"></span>
-                  <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isActive ? "24px" : "3px"}; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
-                </label>
-                <div style="font-size: 0.75rem; margin-top: 2px; font-weight: 600; color: ${isActive ? "#10b981" : "#ef4444"};">
-                  ${isActive ? "ACTIVE" : "INACTIVE"}
-                </div>
-              </td>
-
-              <!-- 5. ACTION -->
-              <td style="text-align: right; white-space: nowrap;">
-                <!-- 📡 ប៊ូតុង NFC Wi-Fi -->
-                ${
-                  a.nfcUid
-                    ? `<button class="btn-action" style="background: #3b82f6;" onclick="showNfcUid('${a.nfcUid}')" title="មើលលេខកាត NFC">
-                       <i class="fa-solid fa-wifi"></i>
-                     </button>`
-                    : ""
-                }
-
-                <!-- 🔑 ប៊ូតុង Reset Password -->
-                <button class="btn-action" style="background: #f59e0b;" onclick="promptResetAdminPassword('${a._id}', '${a.username}')" title="Reset Password">
-                  <i class="fa-solid fa-key"></i>
-                </button>
-
-                <!-- ✏️ ប៊ូតុង Edit -->
-                <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}')" title="កែប្រែ">
-                  <i class="fa-solid fa-pen"></i>
-                </button>
-
-                <!-- 🗑️ ប៊ូតុង Delete -->
-                ${
-                  a.username !== "admin"
-                    ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')" title="លុប">
-                       <i class="fa-solid fa-trash"></i>
-                     </button>`
-                    : ""
-                }
-              </td>
-            </tr>
-          `;
-        })
-        .join("");
     }
   } catch (e) {
     console.error("Error loading admins:", e);
   }
 }
 setTimeout(loadAdminList, 1000);
+
+/**
+ * 📌 ១.២ មុខងារស្វែងរកស្តង់ដារ (Universal Search Filter) សម្រាប់បញ្ជី Admin 🚀
+ */
+function filterAdminList() {
+  const searchBox = document.getElementById("searchAdminBox"); // (ប្រសិនបើមានប្រអប់ Search ក្នុង HTML)
+  const keyword = searchBox ? searchBox.value : "";
+  const allAdmins = globalAdminsData || [];
+
+  if (typeof window.standardDataSearch === "function") {
+    const filteredList = window.standardDataSearch(allAdmins, keyword, [
+      "fullName",
+      "username",
+      "staffId",
+      "role",
+      "department",
+      "phone",
+      "email",
+    ]);
+    renderAdminTable(filteredList);
+  } else {
+    const lowerKeyword = keyword.toLowerCase().trim();
+    const filteredList = allAdmins.filter((a) => {
+      const text =
+        `${a.fullName || ""} ${a.username || ""} ${a.staffId || ""}`.toLowerCase();
+      return text.includes(lowerKeyword);
+    });
+    renderAdminTable(filteredList);
+  }
+}
+
+/**
+ * 📌 ១.៣ គូរតារាងបង្ហាញបញ្ជី Admin (Render Admin Table)
+ */
+function renderAdminTable(admins) {
+  const tbody = document.getElementById("adminTableBody");
+  if (!tbody) return;
+
+  if (!admins || admins.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">គ្មានទិន្នន័យបុគ្គលិក</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = admins
+    .map((a) => {
+      let displayRole =
+        a.role === "custom" && a.permissions?.customRoleName
+          ? a.permissions.customRoleName
+          : a.role || "support_agent";
+
+      const isActive = a.isActive !== false;
+
+      return `
+        <tr>
+          <!-- 1. NAME & STAFF ID -->
+          <td>
+            <div style="font-weight: 700; color: var(--text-main); text-transform: uppercase;">
+              ${a.fullName || a.username}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">
+              ${a.staffId || "N/A"}
+            </div>
+          </td>
+
+          <!-- 2. ROLE -->
+          <td>
+            <span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 0.8rem;">
+              ${displayRole.toUpperCase()}
+            </span>
+          </td>
+
+          <!-- 3. ម៉ោងធ្វើការ -->
+          <td>${a.permissions?.workStart || "00:00"} - ${a.permissions?.workEnd || "23:59"}</td>
+
+          <!-- 4. STATUS & TOGGLE SWITCH -->
+          <td>
+            <label style="position: relative; display: inline-block; width: 46px; height: 24px; cursor: pointer;">
+              <input type="checkbox" ${isActive ? "checked" : ""} 
+                onchange="toggleAdminStatusAccount('${a._id}')" 
+                style="opacity: 0; width: 0; height: 0;">
+              <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isActive ? "#10b981" : "#cbd5e1"}; transition: .3s; border-radius: 24px;"></span>
+              <span style="position: absolute; content: ''; height: 18px; width: 18px; left: ${isActive ? "24px" : "3px"}; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
+            </label>
+            <div style="font-size: 0.75rem; margin-top: 2px; font-weight: 600; color: ${isActive ? "#10b981" : "#ef4444"};">
+              ${isActive ? "ACTIVE" : "INACTIVE"}
+            </div>
+          </td>
+
+          <!-- 5. ACTION -->
+          <td style="text-align: right; white-space: nowrap;">
+            <!-- 📡 ប៊ូតុង NFC Wi-Fi -->
+            ${
+              a.nfcUid
+                ? `<button class="btn-action" style="background: #3b82f6;" onclick="showNfcUid('${a.nfcUid}')" title="មើលលេខកាត NFC">
+                   <i class="fa-solid fa-wifi"></i>
+                 </button>`
+                : ""
+            }
+
+            <!-- 🔑 ប៊ូតុង Reset Password -->
+            <button class="btn-action" style="background: #f59e0b;" onclick="promptResetAdminPassword('${a._id}', '${a.username}')" title="Reset Password">
+              <i class="fa-solid fa-key"></i>
+            </button>
+
+            <!-- ✏️ ប៊ូតុង Edit -->
+            <button class="btn-action btn-edit" onclick="openAdminModal('${a._id}')" title="កែប្រែ">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <!-- 🗑️ ប៊ូតុង Delete -->
+            ${
+              a.username !== "admin"
+                ? `<button class="btn-action btn-delete" onclick="deleteAdminAcc('${a._id}')" title="លុប">
+                   <i class="fa-solid fa-trash"></i>
+                 </button>`
+                : ""
+            }
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
 
 function toggleCustomPermissions(role) {
   const customBox = document.getElementById("customPermissionBox");
@@ -337,7 +382,6 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
-// => 🔴 PASTE កូដ normalizeUID នៅត្រង់នេះ 🔴 <=
 function normalizeUID(uid) {
   if (!uid) return "";
   uid = String(uid).trim().toUpperCase();
@@ -354,10 +398,9 @@ function normalizeUID(uid) {
 }
 
 // ========================================================================
-// 📡 NFC SCANNING & MANAGEMENT
+// 📡 SECTION 2: NFC SCANNING & MANAGEMENT (ការស្កេន និងគ្រប់គ្រងកាត NFC)
 // ========================================================================
 
-// 🟢 មុខងារសម្រាប់ Update ផ្ទាំង UI ប៊ូតុង NFC
 function renderNfcUiBox(uid) {
   const box = document.getElementById("nfcStatusBox");
   const btnContainer = document.getElementById("nfcActionBtnContainer");
@@ -406,7 +449,6 @@ function renderNfcUiBox(uid) {
   }
 }
 
-// 🟢 ហៅមុខងារនេះពេល Admin ចុចផ្តាច់កាត
 function removeAdminNfc() {
   Swal.fire({
     title: "ផ្តាច់កាតនេះ?",
@@ -432,9 +474,7 @@ function removeAdminNfc() {
   });
 }
 
-// 🟢 មុខងារជំនួយបញ្ជូនទិន្នន័យស្កេនរួចទៅកាន់ Server
 async function processScannedUID(serialNumber) {
-  // លុបសញ្ញា : និងដកឃ្លាចេញ ដើម្បីឱ្យកូដកាតស្អាត
   const cleanSerialNumber = serialNumber
     .replaceAll(":", "")
     .replace(/\s/g, "")
@@ -484,10 +524,9 @@ async function processScannedUID(serialNumber) {
   }
 }
 
-// 🟢 មុខងារ Scan NFC គាំទ្រទាំង POS (Web NFC API) និង USB Scanner (ការពារបញ្ហាខុសភាសា Keyboard)
 async function scanAdminNfc() {
   let isScanning = true;
-  let scanBuffer = ""; // បង្កើតអថេរទុកលេខកូដកាតដោយផ្ទាល់
+  let scanBuffer = "";
 
   Swal.fire({
     title: "កំពុងស្វែងរកកាត...",
@@ -498,7 +537,6 @@ async function scanAdminNfc() {
       <p style="color: #64748b; font-size: 0.95rem; font-family: 'Kantumruy Pro';">
         សូមផ្អឹបកាត NFC លើទូរស័ព្ទ ម៉ាស៊ីន POS ឬ <b>ម៉ាស៊ីន USB Scanner</b>
       </p>
-      <!-- 🔴 ប្រអប់លាក់មុខ សម្រាប់ចាប់សញ្ញា Hardware Keyboard -->
       <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1; top: 0; left: 0;" autocomplete="off">
     `,
     showCancelButton: true,
@@ -511,32 +549,26 @@ async function scanAdminNfc() {
       const hiddenInput = document.getElementById("hiddenUsbScannerInput");
       if (hiddenInput) {
         hiddenInput.focus();
-
         hiddenInput.addEventListener("blur", () => {
           if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
         });
 
-        // 🔴 ប្រើ keydown និង e.code ដើម្បីចាប់យក Hardware Key មិនខ្វល់ពីភាសាខ្មែរឬអង់គ្លេស
         hiddenInput.addEventListener("keydown", function (e) {
-          e.preventDefault(); // បិទមិនឱ្យវាយចេញជាអក្សរចូលប្រអប់ (ការពារការលោតអក្សរខ្មែរ)
-
+          e.preventDefault();
           if (e.code === "Enter" || e.code === "NumpadEnter") {
             if (scanBuffer.length >= 4) {
               isScanning = false;
               Swal.close();
-              // សម្រាប់ USB Scanner
               processScannedUID(normalizeUID(scanBuffer));
             }
-            scanBuffer = ""; // Clear ទុកស្កេនម្តងទៀតបើ Error
+            scanBuffer = "";
           } else {
-            // ទាញយកតែលេខ និងអក្សរអង់គ្លេសចេញពី e.code (ឧទាហរណ៍: "Digit1" ទៅជា "1", "KeyA" ទៅជា "A")
-            if (e.code.startsWith("Digit")) {
+            if (e.code.startsWith("Digit"))
               scanBuffer += e.code.replace("Digit", "");
-            } else if (e.code.startsWith("Numpad")) {
+            else if (e.code.startsWith("Numpad"))
               scanBuffer += e.code.replace("Numpad", "");
-            } else if (e.code.startsWith("Key")) {
+            else if (e.code.startsWith("Key"))
               scanBuffer += e.code.replace("Key", "");
-            }
           }
         });
       }
@@ -546,10 +578,8 @@ async function scanAdminNfc() {
     },
   });
 
-  // ដំណើរការ Web NFC (សម្រាប់ POS / Android) ស្របពេលគ្នា
   if ("NDEFReader" in window) {
     const abortController = new AbortController();
-
     Swal.getPopup().addEventListener("cancel", () => {
       abortController.abort();
     });
@@ -560,12 +590,9 @@ async function scanAdminNfc() {
 
       ndef.onreading = async (event) => {
         if (!isScanning) return;
-
         isScanning = false;
         abortController.abort();
         Swal.close();
-
-        // សម្រាប់ Web NFC
         processScannedUID(normalizeUID(event.serialNumber));
       };
     } catch (error) {
@@ -580,10 +607,9 @@ async function scanAdminNfc() {
 }
 
 // ========================================================================
-// 💾 SAVE & DELETE API CALLS
+// 💾 SECTION 3: SAVE, RESET & DELETE API CALLS (ការរក្សាទុក លុប និងប្តូរលេខសម្ងាត់)
 // ========================================================================
 
-// 🟢 មុខងារ Save បញ្ជូនទៅ API
 async function saveAdminAccount() {
   const id = document.getElementById("manageAdminId").value;
   const role = document.getElementById("manageAdminRole").value;
@@ -684,7 +710,6 @@ async function deleteAdminAcc(id) {
   }
 }
 
-// 🟢 មុខងារបើក SweetAlert ឱ្យ Super Admin រိုက် Password ថ្មី
 async function promptResetAdminPassword(adminId, username) {
   const { value: newPassword } = await Swal.fire({
     title: `<span style="font-family: 'Kantumruy Pro', sans-serif;">Reset Password ជូន @${username}</span>`,
@@ -700,9 +725,7 @@ async function promptResetAdminPassword(adminId, username) {
     cancelButtonColor: "#64748b",
     customClass: { popup: "premium-swal" },
     inputValidator: (value) => {
-      if (!value || value.trim() === "") {
-        return "សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី!";
-      }
+      if (!value || value.trim() === "") return "សូមបញ្ចូលពាក្យសម្ងាត់ថ្មី!";
     },
   });
 
@@ -711,7 +734,6 @@ async function promptResetAdminPassword(adminId, username) {
   }
 }
 
-// 🟢 មុខងារបញ្ជូន Password ថ្មីទៅកាន់ API
 async function executeResetAdminPassword(adminId, newPassword) {
   try {
     Swal.fire({
@@ -755,7 +777,6 @@ async function executeResetAdminPassword(adminId, newPassword) {
   }
 }
 
-// 🟢 មុខងារបង្ហាញ UID ពេលចុចលើ icon Wi-Fi
 function showNfcUid(uid) {
   Swal.fire({
     title:
@@ -775,7 +796,6 @@ function showNfcUid(uid) {
   });
 }
 
-// 🟢 មុខងារបញ្ជូនសំណើបិទ/បើក Status ទៅកាន់ Server
 async function toggleAdminStatusAccount(adminId) {
   try {
     const res = await fetch("/api/admin/toggle-admin-status", {

@@ -1,10 +1,10 @@
 // js/lang.js
 const translations = {
-  // English Translation
+  // ==========================================
+  // 🇺🇸 ENGLISH TRANSLATIONS
+  // ==========================================
   en: {
-    // =====================================
     // --- DASHBOARD ---
-    // =====================================
     greeting_morning: "Good Morning",
     greeting_afternoon: "Good Afternoon",
     greeting_evening: "Good Evening",
@@ -35,9 +35,6 @@ const translations = {
     card_khr_balance: "Available Balance (KHR)",
     card_usd_balance: "Available Balance (USD)",
     promo_title: "Promotions & Offers",
-    // =====================================
-    // --- DASHBOARD (Update) ដាក់ក្នុង 'en' ---
-    // =====================================
     promo_cashback_title: "Cashback 10%",
     promo_cashback_desc: "When you pay at AEON Mall using U-Pay KHQR.",
     promo_claim_btn: "Claim Now",
@@ -84,9 +81,7 @@ const translations = {
     swal_rejecting: "Rejecting...",
     processing: "Processing...",
 
-    // =====================================
-    // --- HISTORY & MESSAGES (ដាក់ក្នុង 'en') ---
-    // =====================================
+    // --- HISTORY & MESSAGES ---
     history_export_btn: "Export Statement",
     history_tab_trx: "Transactions",
     history_tab_msg: "Messages",
@@ -127,9 +122,7 @@ const translations = {
     msg_status_accepted: "Accepted",
     msg_status_rejected: "Rejected",
 
-    // =====================================
     // --- My Accounts ---
-    // =====================================
     acc_title: "My Accounts",
     acc_total: "Total",
     acc_usd_label: "USD Accounts",
@@ -157,15 +150,12 @@ const translations = {
     acc_junior: "Junior",
     acc_sub: "Sub",
     acc_savings: "Savings",
-    history_load_more: "Load More",
-    acc_opt_info: "Account Info",
     acc_opt_limit: "Set Spending Limit",
     acc_opt_freeze: "Freeze Account Temporarily",
     acc_opt_unfreeze: "Unfreeze Account",
     btn_close: "Close",
-    // =====================================
+
     // --- TRANSFER & PAYMENT ---
-    // =====================================
     transfer_title: "Transfer Money",
     title_transfer: "Transfer Money",
     recent_contacts: "Recent Contacts",
@@ -182,9 +172,7 @@ const translations = {
     btn_skip: "Skip & View Slip",
     transfer_success: "Transfer Successful",
 
-    // ====================================
-    //--- Card ----
-    // ====================================
+    // --- Card ----
     title_card: "Virtual Cards",
     no_card_title: "You don't have a card yet",
     no_card_desc: "Create a Virtual U PAY Card now to shop online securely!",
@@ -215,18 +203,14 @@ const translations = {
     card_trx_desc: "Tap to see usage history",
     daily_limit: "Daily Limit",
 
-    // =====================================
     // --- SCAN QR (NEW) ---
-    // =====================================
     title_scan: "SCAN QR",
     scan_desc: "Place QR Code inside the frame",
     set_amount: "Specify Amount",
     save_qr: "Save to Gallery",
     error_qr: "No QR code found!",
 
-    // =====================================
     // --- SETTINGS ---
-    // =====================================
     settings_title: "Settings",
     profile_role: "Personal Account",
     security_header: "SECURITY",
@@ -260,9 +244,7 @@ const translations = {
     kyc_verify: "Identity Verification (KYC)",
     support_ticket: "Support Tickets",
 
-    // =====================================
     // --- MERCHANT FEATURES ---
-    // =====================================
     merch_title: "Manage Business",
     merch_add: "Add Branch",
     merch_setup: "Setup Merchant",
@@ -313,9 +295,7 @@ const translations = {
     filter_month: "This Month",
     filter_total: "Total",
 
-    //================================
     // --- Fixed Deposit ---
-    //================================
     fd_title: "Fixed Deposit",
     fd_total_text: "Summary",
     fd_total_usd: "Total Amount USD :",
@@ -362,9 +342,7 @@ const translations = {
     r_share: "Share<br>Image",
     r_download: "Download<br>Certificate",
 
-    // =====================================
     // --- Analytics / History ---
-    // =====================================
     title_analytics: "Analytics",
     expenses: "Expenses",
     monthly_expenses: "Monthly Expenses",
@@ -377,20 +355,13 @@ const translations = {
     filter_year: "This Year",
     nav_history_title: "Transaction History",
 
-    // ====================================
     // --- Payroll ---
-    //======================================
-    // =====================================
-    // 💼 AUTO PAYOUTS (PAYROLL) - ENGLISH
-    // =====================================
     title_auto_payouts: "Auto Payouts",
     lbl_select_type: "Select Payout Type",
     card_single_title: "Single Payout",
     card_single_desc: "Schedule payment for one person or bill.",
     card_bulk_title: "Bulk (Payroll)",
     card_bulk_desc: "Process salary or pay multiple people at once.",
-
-    // Forms & Inputs
     lbl_source_acc: "Source Account",
     lbl_receiver_info: "Receiver Info",
     lbl_acc_num: "Account Number",
@@ -401,8 +372,6 @@ const translations = {
     btn_confirm_transfer: "Confirm Transfer",
     lbl_main_acc_usd: "Main Account ($)",
     lbl_main_acc_khr: "Main Account (៛)",
-
-    // Schedule Options
     lbl_schedule: "Schedule",
     lbl_frequency: "Frequency",
     opt_once: "Once",
@@ -425,8 +394,6 @@ const translations = {
     lbl_every_month_day: "Every month on the",
     lbl_every_week: "Every week",
     lbl_every_year: "Every year",
-
-    // Bulk / Web Sheet
     lbl_data_source: "Data Source",
     lbl_upload_file: "Upload File or Template",
     lbl_upload_desc: "Tap to select source",
@@ -447,8 +414,6 @@ const translations = {
     lbl_name_auto: "Name (Auto)",
     btn_add_row: "Add Row",
     btn_save_template: "Save Template",
-
-    // Modals & History
     ph_search_history: "Search by name or account...",
     lbl_history_detail: "Payment Details",
     lbl_select_source: "Select Source",
@@ -477,8 +442,6 @@ const translations = {
     lbl_status_kh: "Status:",
     lbl_recipient_list: "Recipient List",
     lbl_total_amt_kh: "Total Amount:",
-
-    // Alerts & Swal Messages
     lbl_searching: "Searching...",
     lbl_not_found: "Not Found",
     lbl_error: "Error",
@@ -533,9 +496,7 @@ const translations = {
     title_edit_single: "Edit Single Payout",
     title_edit_bulk: "Edit Bulk Payout",
 
-    // ====================================
     // --- U-Fund ---
-    //======================================
     ufund_title: "U-Fund (Savings)",
     ufund_no_fund_title: "No U-Funds Yet",
     ufund_no_fund_desc:
@@ -583,9 +544,6 @@ const translations = {
     ufund_dep_select: "Select Operation:",
     ufund_dep_enter_amt: "Enter Amount:",
     ufund_dep_self: "👤 Advance Payment (Self)",
-    // ====================================
-    // --- U-Fund SweetAlerts (សម្រាប់ដាក់ក្នុង 'en') ---
-    //======================================
     ufund_processing: "Processing...",
     ufund_success: "Success!",
     ufund_failed: "Failed!",
@@ -633,9 +591,72 @@ const translations = {
     ufund_cancel_req_desc:
       "Do you want to cancel your request and continue saving with the group?",
     ufund_btn_cont_saving: "Continue Saving",
+
+    // --- REGISTER ---
+    create_acc: "Create Account",
+    join_upay: "Join U-Pay Digital Banking",
+    verify_contact: "Verify Contact",
+    phone_number: "Phone Number",
+    email_address: "Email Address",
+    otp_sent_msg: "A 6-digit code has been sent to your Email",
+    send_otp_btn: "Send OTP Code",
+    back_to_login: "Back to Login",
+    identity_info: "Identity Information",
+    upload_id_front: "Click to Upload ID Card (Front)",
+    full_name: "Full Name (Surname & Given Name)",
+    date_of_birth: "Date of Birth",
+    gender: "Gender",
+    select_gender: "Select...",
+    male: "Male",
+    female: "Female",
+    national_id: "National ID Number",
+    duplicate_id_warning:
+      "This ID is already registered! Please state your reason for creating a new account:",
+    referral_code: "Referral Code (Optional)",
+    live_selfie: "Live Selfie",
+    selfie_desc: "To verify against your ID Card",
+    upload_selfie: "Click to Upload Selfie",
+    create_account_step: "Create Account Info",
+    username_label: "Username (for Login)",
+    password_label: "Password",
+    confirm_pass_label: "Confirm Password",
+    transaction_security: "Transaction Security",
+    create_pin_desc: "Create a 4-digit PIN",
+    confirm_pin_desc: "Confirm a 4-digit PIN",
+    pin_matched: "PIN Matched!",
+    pin_mismatch: "PIN does not match! Please try again.",
+    verify_final: "Final Verification",
+    verify_final_desc:
+      "Please review your information before creating the account",
+    id_card: "ID Card",
+    selfie: "Selfie Image",
+    full_name_label: "Full Name:",
+    email_label: "Email:",
+    phone_label: "Phone:",
+    dob_label: "Date of Birth:",
+    gender_label: "Gender:",
+    id_number_label: "ID Number:",
+    username_label_short: "Username:",
+    i_agree: "I have read and agree to the",
+    terms: "Terms of Service",
+    create_account_btn: "Create Account",
+    back_btn: "Back",
+    continue_btn: "Continue",
+
+    // Placeholder (អក្សរស្រមោល) សម្រាប់ EN
+    phone_placeholder: "012 345 678",
+    email_placeholder: "E.g. sok.dara",
+    name_placeholder: "E.g. SOK DARA",
+    id_placeholder: "0123456789",
+    ref_placeholder: "Enter referral code (Optional)",
+    username_placeholder: "E.g. dara_99",
+    pass_placeholder: "Create a password",
+    confirm_placeholder: "Type password again",
   },
 
-  // ភាសាខ្មែរ (Khmer) Translation
+  // ==========================================
+  // 🇰🇭 KHMER TRANSLATIONS
+  // ==========================================
   kh: {
     // --- DASHBOARD ---
     greeting_morning: "អរុណសួស្ដី",
@@ -668,9 +689,6 @@ const translations = {
     card_khr_balance: "សមតុល្យដែលអាចប្រើបាន (KHR)",
     card_usd_balance: "សមតុល្យដែលអាចប្រើបាន (USD)",
     promo_title: "ប្រូម៉ូសិន & ការផ្តល់ជូន",
-    // =====================================
-    // --- DASHBOARD (Update) ដាក់ក្នុង 'kh' ---
-    // =====================================
     promo_cashback_title: "ទទួលបានប្រាក់ត្រលប់ 10%",
     promo_cashback_desc: "នៅពេលអ្នកទូទាត់នៅផ្សារទំនើប AEON តាមរយៈ U-Pay KHQR។",
     promo_claim_btn: "ទទួលយកឥឡូវនេះ",
@@ -719,9 +737,7 @@ const translations = {
     swal_rejecting: "កំពុងបដិសេធ...",
     processing: "កំពុងដំណើរការ...",
 
-    // =====================================
-    // --- HISTORY & MESSAGES (ដាក់ក្នុង 'kh') ---
-    // =====================================
+    // --- HISTORY & MESSAGES ---
     history_export_btn: "ទាញយករបាយការណ៍",
     history_tab_trx: "ប្រតិបត្តិការ",
     history_tab_msg: "សារដំណឹង",
@@ -763,9 +779,7 @@ const translations = {
     msg_status_accepted: "បានយល់ព្រម",
     msg_status_rejected: "បានបដិសេធ",
 
-    // =====================================
     // --- My Accounts ---
-    // =====================================
     acc_title: "គណនីរបស់ខ្ញុំ",
     acc_total: "សរុប",
     acc_usd_label: "គណនីដុល្លារ (USD)",
@@ -780,7 +794,7 @@ const translations = {
     acc_cat_lend: "ប្រតិបត្តិការឱ្យគេខ្ចី (LENDING)",
     acc_cat_owe: "ប្រតិបត្តិការជំពាក់គេ (BORROWING)",
     acc_no_trx: "គ្មានប្រតិបត្តិការទេ",
-    acc_opt_info: "ព័ត៌មានគណនី",
+    acc_opt_info: "ព័ត៌មានលម្អិត",
     acc_opt_copy: "ចម្លងលេខកុង",
     acc_opt_rename: "ប្តូរឈ្មោះគណនី",
     acc_opt_hide: "លាក់គណនី",
@@ -793,8 +807,6 @@ const translations = {
     acc_junior: "គណនីកូន",
     acc_sub: "គណនីរង",
     acc_savings: "សន្សំ",
-    history_load_more: "បង្ហាញបន្ថែម...",
-    acc_opt_info: "ព័ត៌មានលម្អិត",
     acc_opt_limit: "កំណត់កម្រិតចំណាយ",
     acc_opt_freeze: "ផ្អាកកុងបណ្តោះអាសន្ន",
     acc_opt_unfreeze: "បើកកុងវិញ",
@@ -1002,17 +1014,12 @@ const translations = {
     nav_history_title: "ប្រវត្តិប្រតិបត្តិការ",
 
     // --- Payroll ---
-    // =====================================
-    // 💼 AUTO PAYOUTS (PAYROLL) - KHMER
-    // =====================================
     title_auto_payouts: "ប្រព័ន្ធទូទាត់ស្វ័យប្រវត្តិ",
     lbl_select_type: "ជ្រើសរើសប្រភេទនៃការទូទាត់",
     card_single_title: "ទូទាត់បុគ្គល (Single)",
     card_single_desc: "កំណត់កាលវិភាគវេរប្រាក់ទៅកាន់បុគ្គលម្នាក់ៗ។",
     card_bulk_title: "បើកប្រាក់បៀវត្សរ៍ (Bulk)",
     card_bulk_desc: "បើកប្រាក់ខែ ឬវេរប្រាក់ទៅកាន់មនុស្សច្រើននាក់ក្នុងពេលតែមួយ។",
-
-    // Forms & Inputs
     lbl_source_acc: "គណនីប្រភព",
     lbl_receiver_info: "ព័ត៌មានអ្នកទទួល",
     lbl_acc_num: "លេខគណនី",
@@ -1023,8 +1030,6 @@ const translations = {
     btn_confirm_transfer: "បញ្ជាក់ការវេរប្រាក់",
     lbl_main_acc_usd: "គណនីចម្បង ($)",
     lbl_main_acc_khr: "គណនីចម្បង (៛)",
-
-    // Schedule Options
     lbl_schedule: "កាលវិភាគ",
     lbl_frequency: "ភាពញឹកញាប់",
     opt_once: "តែម្តងគត់ (Once)",
@@ -1047,8 +1052,6 @@ const translations = {
     lbl_every_month_day: "រៀងរាល់ថ្ងៃទី",
     lbl_every_week: "រៀងរាល់សប្តាហ៍",
     lbl_every_year: "រៀងរាល់ឆ្នាំ",
-
-    // Bulk / Web Sheet
     lbl_data_source: "ប្រភពទិន្នន័យ",
     lbl_upload_file: "បញ្ចូលឯកសារ ឬ Template",
     lbl_upload_desc: "ចុចទីនេះដើម្បីជ្រើសរើស",
@@ -1069,8 +1072,6 @@ const translations = {
     lbl_name_auto: "ឈ្មោះ (ស្វ័យប្រវត្តិ)",
     btn_add_row: "បន្ថែមជួរ",
     btn_save_template: "រក្សាទុក Template",
-
-    // Modals & History
     ph_search_history: "ស្វែងរកតាមឈ្មោះ ឬ លេខកុង...",
     lbl_history_detail: "ព័ត៌មានលម្អិតការទូទាត់",
     lbl_select_source: "ជ្រើសរើសប្រភព",
@@ -1099,8 +1100,6 @@ const translations = {
     lbl_status_kh: "ស្ថានភាព:",
     lbl_recipient_list: "បញ្ជីឈ្មោះអ្នកទទួល",
     lbl_total_amt_kh: "ទឹកប្រាក់សរុប:",
-
-    // Alerts & Swal Messages
     lbl_searching: "កំពុងស្វែងរក...",
     lbl_not_found: "រកមិនឃើញទេ",
     lbl_error: "កំហុស",
@@ -1154,9 +1153,7 @@ const translations = {
     title_edit_single: "កែសម្រួលការទូទាត់បុគ្គល",
     title_edit_bulk: "កែសម្រួលការទូទាត់រួម",
 
-    // ====================================
     // --- U-Fund ---
-    //======================================
     ufund_title: "U-Fund (សន្សំប្រាក់)",
     ufund_no_fund_title: "មិនទាន់មានគម្រោងសន្សំទេ",
     ufund_no_fund_desc:
@@ -1204,9 +1201,6 @@ const translations = {
     ufund_dep_select: "ជ្រើសរើសប្រតិបត្តិការ:",
     ufund_dep_enter_amt: "បញ្ចូលទឹកប្រាក់:",
     ufund_dep_self: "👤 បង់ប្រាក់ចូលគណនីខ្លួនឯង (Advance)",
-    // ====================================
-    // --- U-Fund SweetAlerts (សម្រាប់ដាក់ក្នុង 'kh') ---
-    //======================================
     ufund_processing: "កំពុងដំណើរការ...",
     ufund_success: "ជោគជ័យ!",
     ufund_failed: "បរាជ័យ!",
@@ -1254,26 +1248,106 @@ const translations = {
     ufund_cancel_req_desc:
       "តើអ្នកចង់បោះបង់សំណើសុំចាកចេញ ហើយបន្តសន្សំជាមួយក្រុមវិញមែនទេ?",
     ufund_btn_cont_saving: "បន្តសន្សំជាមួយក្រុម",
+
+    // --- REGISTER ---
+    create_acc: "បង្កើតគណនី",
+    join_upay: "ចូលរួមជាមួយ U-Pay Digital Banking",
+    verify_contact: "ផ្ទៀងផ្ទាត់ទំនាក់ទំនង",
+    phone_number: "លេខទូរស័ព្ទ",
+    email_address: "អាសយដ្ឋានអ៊ីមែល (Email)",
+    otp_sent_msg: "លេខកូដ ៦ខ្ទង់បានផ្ញើទៅ Email របស់អ្នក",
+    send_otp_btn: "ផ្ញើកូដ OTP (Send)",
+    back_to_login: "ត្រឡប់ទៅទំព័រ Login",
+    identity_info: "ព័ត៌មានអត្តសញ្ញាណ",
+    upload_id_front: "ចុច Upload អត្តសញ្ញាណប័ណ្ណ (មុខ)",
+    full_name: "ឈ្មោះពេញ (នាមត្រកូល និងនាមខ្លួន)",
+    date_of_birth: "ថ្ងៃខែឆ្នាំកំណើត",
+    gender: "ភេទ",
+    select_gender: "ជ្រើសរើស...",
+    male: "ប្រុស (Male)",
+    female: "ស្រី (Female)",
+    national_id: "លេខអត្តសញ្ញាណប័ណ្ណ",
+    duplicate_id_warning:
+      "លេខអត្តសញ្ញាណប័ណ្ណនេះមានក្នុងប្រព័ន្ធហើយ! សូមបញ្ជាក់មូលហេតុចង់បង្កើតគណនីថ្មី៖",
+    referral_code: "លេខកូដអ្នកណែនាំ (បើមាន)",
+    live_selfie: "ថតរូបផ្ទៃមុខផ្ទាល់",
+    selfie_desc: "ដើម្បីផ្ទៀងផ្ទាត់ជាមួយអត្តសញ្ញាណប័ណ្ណ",
+    upload_selfie: "ចុច Upload រូបភាព Selfie",
+    create_account_step: "បង្កើតគណនី (Account)",
+    username_label: "ឈ្មោះគណនី (សម្រាប់ Login)",
+    password_label: "ពាក្យសម្ងាត់ (Password)",
+    confirm_pass_label: "បញ្ជាក់ពាក្យសម្ងាត់ (Confirm)",
+    transaction_security: "សុវត្ថិភាពប្រតិបត្តិការ",
+    create_pin_desc: "បង្កើតលេខ PIN ៤ខ្ទង់",
+    confirm_pin_desc: "សូមបញ្ជាក់លេខ PIN ៤ខ្ទង់ម្តងទៀត",
+    pin_matched: "PIN ត្រូវគ្នាត្រឹមត្រូវ!",
+    pin_mismatch: "លេខ PIN មិនដូចគ្នាទេ! សូមវាយម្តងទៀត។",
+    verify_final: "ផ្ទៀងផ្ទាត់ព័ត៌មានចុងក្រោយ",
+    verify_final_desc: "សូមពិនិត្យព័ត៌មានរបស់អ្នកមុនពេលបង្កើតគណនី",
+    id_card: "អត្តសញ្ញាណប័ណ្ណ",
+    selfie: "រូបថតផ្ទាល់ខ្លួន",
+    full_name_label: "ឈ្មោះពេញ:",
+    email_label: "អ៊ីមែល:",
+    phone_label: "លេខទូរស័ព្ទ:",
+    dob_label: "ថ្ងៃខែឆ្នាំកំណើត:",
+    gender_label: "ភេទ:",
+    id_number_label: "លេខអត្តសញ្ញាណប័ណ្ណ:",
+    username_label_short: "ឈ្មោះគណនី:",
+    i_agree: "ខ្ញុំបានអាន និងយល់ព្រមតាម",
+    terms: "លក្ខខណ្ឌប្រើប្រាស់",
+    create_account_btn: "បង្កើតគណនី",
+    back_btn: "ថយក្រោយ",
+    continue_btn: "បន្តទៅមុខ",
+
+    // Placeholder (អក្សរស្រមោល) សម្រាប់ KH
+    phone_placeholder: "012 345 678",
+    email_placeholder: "ឧ. sok.dara",
+    name_placeholder: "ឧ. SOK DARA",
+    id_placeholder: "0123456789",
+    ref_placeholder: "បញ្ចូលលេខអ្នកណែនាំ (បើមាន)",
+    username_placeholder: "ឧ. dara_99",
+    pass_placeholder: "បង្កើតពាក្យសម្ងាត់",
+    confirm_placeholder: "វាយបញ្ជាក់ម្តងទៀត",
   },
 };
 
+// ==========================================
+// 🔄 LANGUAGE APPLIER LOGIC
+// ==========================================
 function applyLanguage() {
   const lang = localStorage.getItem("lang") || "en";
 
-  // 1. ប្តូរអក្សរតាម Tag data-i18n
+  // ១. ប្តូរអត្ថបទធម្មតា (Normal Text / Inner HTML) ដោយប្រើ data-i18n
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     if (translations[lang] && translations[lang][key]) {
-      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-        el.placeholder = translations[lang][key];
-      } else if (el.tagName === "OPTION") {
+      // ប្រសិនបើជាជម្រើសក្នុង Dropdown
+      if (el.tagName === "OPTION") {
         el.innerText = translations[lang][key];
       } else {
-        el.innerText = translations[lang][key];
+        // រក្សាសញ្ញាផ្កាយពណ៌ក្រហម (*) មិនអោយបាត់
+        if (
+          el.innerHTML.includes('<span style="color: red">*</span>') ||
+          el.innerHTML.includes('<span style="color:red">*</span>')
+        ) {
+          el.innerHTML =
+            translations[lang][key] + ' <span style="color: red">*</span>';
+        } else {
+          el.innerHTML = translations[lang][key];
+        }
       }
     }
   });
 
+  // ២. ប្តូរអក្សរស្រមោល (Placeholders) ដោយប្រើ data-i18n-placeholder
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (translations[lang] && translations[lang][key]) {
+      el.setAttribute("placeholder", translations[lang][key]);
+    }
+  });
+
+  // ៣. ប្ដូរ Font និងរចនាបថបន្ថែម
   if (typeof updateGreeting === "function") updateGreeting();
 
   if (lang === "kh") {
@@ -1285,6 +1359,7 @@ function applyLanguage() {
   const langLabel = document.getElementById("currentLangLabel");
   if (langLabel) langLabel.innerText = lang === "en" ? "EN" : "KH";
 
+  // ការគ្រប់គ្រងប៊ូតុងភាសាប្រសិនបើមាននៅលើ UI ផ្សេងៗ
   if (document.getElementById("check-en")) {
     document.getElementById("check-en").style.display =
       lang === "en" ? "block" : "none";
@@ -1299,4 +1374,5 @@ function applyLanguage() {
   }
 }
 
+// ហៅអោយវាដំណើរការនៅពេលវេបសាយដើរពេញ
 document.addEventListener("DOMContentLoaded", applyLanguage);

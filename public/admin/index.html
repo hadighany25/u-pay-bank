@@ -579,8 +579,131 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០២ ] User Management -->
+      <!-- [ ផ្ទាំង ០២ ] User Management (Modern Drawer UI) -->
       <!-- ------------------------------------------------------- -->
+      <style>
+        .user-mgmt-layout {
+          display: flex;
+          height: calc(100vh - 120px);
+          gap: 20px;
+          position: relative;
+          overflow: hidden;
+        }
+        .user-list-section {
+          flex: 1;
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+          transition: 0.3s;
+        }
+        .user-list-header {
+          padding: 20px;
+          border-bottom: 1px solid var(--border);
+        }
+        .user-list-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .modern-user-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 15px;
+          background: var(--bg-body);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .modern-user-card:hover {
+          border-color: var(--secondary);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        .modern-user-card.selected {
+          border-color: var(--secondary);
+          background: rgba(16, 185, 129, 0.05);
+        }
+
+        .user-detail-drawer {
+          width: 0;
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: -5px 0 25px rgba(0, 0, 0, 0.05);
+          overflow-y: auto;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        .user-detail-drawer.open {
+          width: 450px;
+          opacity: 1;
+          transform: translateX(0);
+          padding: 0;
+        }
+
+        .drawer-cover {
+          height: 120px;
+          background: linear-gradient(135deg, var(--secondary), var(--primary));
+          position: relative;
+          border-radius: 16px 16px 0 0;
+        }
+        .drawer-avatar {
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          border: 4px solid var(--bg-card);
+          position: absolute;
+          bottom: -45px;
+          left: 25px;
+          background: #fff;
+          object-fit: cover;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .drawer-close-btn {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          background: rgba(0, 0, 0, 0.3);
+          border: none;
+          color: white;
+          width: 35px;
+          height: 35px;
+          border-radius: 50%;
+          cursor: pointer;
+          backdrop-filter: blur(5px);
+          transition: 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+        .drawer-close-btn:hover {
+          background: rgba(239, 68, 68, 0.8);
+          transform: rotate(90deg);
+        }
+
+        .drawer-content {
+          padding: 60px 25px 25px 25px;
+        }
+        .info-block {
+          background: var(--bg-body);
+          padding: 15px;
+          border-radius: 12px;
+          margin-bottom: 15px;
+          border: 1px solid var(--border);
+        }
+      </style>
+
       <div
         id="sec-users"
         style="
@@ -592,33 +715,279 @@
           padding: 0 15px;
         "
       >
-        <div class="table-header-controls">
-          <h2 class="dash-title" data-i18n="user-management">
-            User Management
-          </h2>
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i
-            ><input
-              type="text"
-              id="searchBox"
-              placeholder="Search by name or account..."
-              onkeyup="filterUsers()"
-            />
+        <div class="table-header-controls" style="margin-bottom: 15px">
+          <div>
+            <h2 class="dash-title" data-i18n="user-management">
+              User Directory
+            </h2>
+            <p class="dash-desc">
+              គ្រប់គ្រងគណនី ស្ថានភាព និងសិទ្ធិរបស់អតិថិជន។
+            </p>
           </div>
         </div>
-        <div class="table-container">
-          <table id="userTable">
-            <thead>
-              <tr>
-                <th data-i18n="profile-info">Profile Info</th>
-                <th data-i18n="account-no">Account No.</th>
-                <th data-i18n="current-balance">Current Balance</th>
-                <th data-i18n="status-freeze">Status / Freeze</th>
-                <th style="text-align: right" data-i18n="actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+
+        <div class="user-mgmt-layout">
+          <!-- ផ្នែកខាងឆ្វេង៖ បញ្ជីឈ្មោះអតិថិជន -->
+          <div class="user-list-section">
+            <div class="user-list-header">
+              <div
+                class="search-box"
+                style="
+                  margin: 0;
+                  width: 100%;
+                  background: var(--bg-body);
+                  border: 1px solid var(--border);
+                "
+              >
+                <i
+                  class="fa-solid fa-magnifying-glass"
+                  style="color: var(--text-muted)"
+                ></i>
+                <input
+                  type="text"
+                  id="searchBox"
+                  placeholder="ស្វែងរកតាម ឈ្មោះ, គណនី, លេខទូរស័ព្ទ..."
+                  onkeyup="filterUsers()"
+                  style="
+                    border: none;
+                    background: transparent;
+                    outline: none;
+                    width: 100%;
+                    margin-left: 10px;
+                    font-family: &quot;Kantumruy Pro&quot;;
+                    color: var(--text-main);
+                  "
+                />
+              </div>
+            </div>
+
+            <!-- កន្លែងនេះ JS នឹងបោះទិន្នន័យពិតចូល -->
+            <div class="user-list-body" id="userDirectoryList">
+              <div
+                style="
+                  text-align: center;
+                  padding: 40px;
+                  color: var(--text-muted);
+                "
+              >
+                <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i
+                ><br /><br />កំពុងទាញយកទិន្នន័យ...
+              </div>
+            </div>
+          </div>
+
+          <!-- ផ្នែកខាងស្តាំ៖ ផ្ទាំងលម្អិត (Drawer) -->
+          <div class="user-detail-drawer" id="userDetailDrawer">
+            <div class="drawer-cover">
+              <button class="drawer-close-btn" onclick="closeUserDrawer()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+              <img
+                src="../images/default-avatar.png"
+                class="drawer-avatar"
+                id="drawerAvatar"
+              />
+            </div>
+
+            <div class="drawer-content">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: flex-start;
+                  margin-bottom: 25px;
+                "
+              >
+                <div>
+                  <h2
+                    style="
+                      margin: 0;
+                      color: var(--text-main);
+                      font-size: 1.5rem;
+                    "
+                    id="drawerName"
+                  >
+                    ...
+                  </h2>
+                  <p
+                    style="
+                      margin: 5px 0 0;
+                      color: var(--accent);
+                      font-weight: bold;
+                      font-family: &quot;Inter&quot;, monospace;
+                    "
+                    id="drawerUsername"
+                  >
+                    @...
+                  </p>
+                </div>
+                <label class="switch" title="បិទ/បើក គណនី (Freeze)">
+                  <input type="checkbox" id="drawerFreezeToggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <h4 style="margin: 0 0 10px; color: var(--text-muted)">
+                <i class="fa-solid fa-building-columns"></i> គណនីគោល (Main
+                Accounts)
+              </h4>
+              <div
+                class="info-block"
+                style="display: flex; flex-direction: column; gap: 10px"
+              >
+                <div style="display: flex; justify-content: space-between">
+                  <span style="color: #0ea5e9; font-weight: bold">USD ($)</span>
+                  <span
+                    style="
+                      font-family: &quot;Inter&quot;, monospace;
+                      font-weight: bold;
+                      color: var(--text-main);
+                    "
+                    id="drawerUsdAcc"
+                    >...</span
+                  >
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    border-top: 1px dashed var(--border);
+                    padding-top: 10px;
+                  "
+                >
+                  <span style="color: #10b981; font-weight: bold">KHR (៛)</span>
+                  <span
+                    style="
+                      font-family: &quot;Inter&quot;, monospace;
+                      font-weight: bold;
+                      color: var(--text-main);
+                    "
+                    id="drawerKhrAcc"
+                    >...</span
+                  >
+                </div>
+              </div>
+              <!-- 🟢 បន្ថែមកន្លែងនេះសម្រាប់បញ្ចេញ Sub-Accounts ស្វ័យប្រវត្តិ -->
+              <div id="drawerSubAccountsContainer"></div>
+
+              <h4 style="margin: 0 0 10px; color: var(--text-muted)">
+                <i class="fa-solid fa-address-book"></i> ព័ត៌មានទំនាក់ទំនង
+              </h4>
+              <div class="info-block">
+                <p
+                  style="
+                    margin: 0 0 10px;
+                    font-size: 0.95rem;
+                    color: var(--text-main);
+                  "
+                >
+                  <i
+                    class="fa-solid fa-phone"
+                    style="width: 25px; color: var(--text-muted)"
+                  ></i>
+                  <span id="drawerPhone">...</span>
+                </p>
+                <p
+                  style="
+                    margin: 0 0 10px;
+                    font-size: 0.95rem;
+                    color: var(--text-main);
+                  "
+                >
+                  <i
+                    class="fa-solid fa-envelope"
+                    style="width: 25px; color: var(--text-muted)"
+                  ></i>
+                  <span id="drawerEmail">...</span>
+                </p>
+                <p
+                  style="margin: 0; font-size: 0.95rem; color: var(--text-main)"
+                >
+                  <i
+                    class="fa-solid fa-id-card"
+                    style="width: 25px; color: var(--text-muted)"
+                  ></i>
+                  KYC: <span id="drawerKyc">...</span>
+                </p>
+              </div>
+
+              <h4 style="margin: 20px 0 10px; color: var(--text-muted)">
+                <i class="fa-solid fa-bolt"></i> សកម្មភាពរហ័ស (Quick Actions)
+              </h4>
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+              >
+                <!-- ជំនួសដោយប៊ូតុងផ្ញើសារ -->
+                <button
+                  id="btnMessageDrawer"
+                  class="btn-action kh-text"
+                  style="
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    border: 1px solid var(--border);
+                    width: 100%;
+                    padding: 12px;
+                    border-radius: 10px;
+                  "
+                >
+                  <i class="fa-solid fa-paper-plane" style="color: #3b82f6"></i>
+                  ផ្ញើសារផ្ទាល់
+                </button>
+
+                <!-- ជំនួសដោយប៊ូតុង Force Logout -->
+                <button
+                  id="btnForceLogoutDrawer"
+                  class="btn-action kh-text"
+                  style="
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    border: 1px solid var(--border);
+                    width: 100%;
+                    padding: 12px;
+                    border-radius: 10px;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-right-from-bracket"
+                    style="color: #f59e0b"
+                  ></i>
+                  ផ្តាច់គណនី
+                </button>
+
+                <!-- ប៊ូតុង Customer 360 និង លុប នៅរក្សាដដែល -->
+                <button
+                  id="btnC360Drawer"
+                  class="btn-primary kh-text"
+                  style="
+                    grid-column: 1 / -1;
+                    width: 100%;
+                    padding: 14px;
+                    border-radius: 10px;
+                    background: var(--secondary);
+                    font-size: 1.05rem;
+                  "
+                >
+                  <i class="fa-solid fa-users-viewfinder"></i> មើលប្រវត្តិលម្អិត
+                  (Customer 360°)
+                </button>
+                <button
+                  id="btnDeleteDrawer"
+                  class="btn-action btn-delete kh-text"
+                  style="
+                    grid-column: 1 / -1;
+                    width: 100%;
+                    padding: 12px;
+                    border-radius: 10px;
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    background: rgba(239, 68, 68, 0.05);
+                    color: #ef4444;
+                  "
+                >
+                  <i class="fa-solid fa-trash"></i> លុបគណនីនេះចោល
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -882,15 +1251,13 @@
           </div>
 
           <div class="input-group" style="margin-bottom: 25px">
-            <label class="input-label"
-              >ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី ឬ Username)</label
-            >
+            <label class="input-label">ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី)</label>
             <div style="display: flex; gap: 10px">
               <input
                 type="text"
                 id="targetUserSearch"
                 class="custom-input"
-                placeholder="ឧ. dara123 ឬ 012345678"
+                placeholder="ឧ.012345678"
                 onkeypress="if (event.key === 'Enter') searchTargetUser();"
               />
               <button
@@ -1757,35 +2124,148 @@
           padding: 0 15px;
         "
       >
-        <div class="table-header-controls">
-          <div>
-            <h2 class="dash-title" data-i18n="kyc-approvals">
-              KYC & Identity Approvals
-            </h2>
-            <p class="dash-desc" data-i18n="review-pending-documents">
-              Review pending user documents.
-            </p>
+        <!-- ផ្ទាំងតារាងបញ្ជី (List View) -->
+        <div id="kyc-list-view">
+          <div class="table-header-controls">
+            <div>
+              <h2 class="dash-title" data-i18n="kyc-approvals">
+                KYC & Identity Approvals
+              </h2>
+              <p class="dash-desc" data-i18n="review-pending-documents">
+                Review pending user documents.
+              </p>
+            </div>
+            <!-- ប្រអប់ Search -->
+            <div class="search-box" style="margin: 0">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchKycBox"
+                placeholder="ស្វែងរកតាម ឈ្មោះ, អ៊ីមែល, លេខកាត..."
+                onkeyup="filterKycTable()"
+              />
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="user-info">User Info</th>
+                  <th data-i18n="document-type">Document Type</th>
+                  <th data-i18n="submitted-date">Submitted Date</th>
+                  <th data-i18n="status">Status</th>
+                  <th style="text-align: right" data-i18n="action">Action</th>
+                </tr>
+              </thead>
+              <tbody id="kycTableBody">
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px">
+                    Loading pending KYC...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Footer -->
+          <div
+            id="kycPaginationFooter"
+            style="
+              display: none;
+              justify-content: space-between;
+              align-items: center;
+              margin-top: 15px;
+              padding: 10px 0;
+            "
+          >
+            <button
+              onclick="changeKycPage(-1)"
+              id="kycPrevBtn"
+              style="
+                height: 40px;
+                padding: 0 20px;
+                background: #f1f5f9;
+                color: #64748b;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              "
+            >
+              <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+            </button>
+            <span
+              id="kycPageInfo"
+              style="font-weight: bold; color: var(--text-main)"
+              >ទំព័រទី 1 / 1</span
+            >
+            <button
+              onclick="changeKycPage(1)"
+              id="kycNextBtn"
+              style="
+                height: 40px;
+                padding: 0 20px;
+                background: #0f172a;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              "
+            >
+              បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+            </button>
           </div>
         </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th data-i18n="user-info">User Info</th>
-                <th data-i18n="document-type">Document Type</th>
-                <th data-i18n="submitted-date">Submitted Date</th>
-                <th data-i18n="status">Status</th>
-                <th style="text-align: right" data-i18n="action">Action</th>
-              </tr>
-            </thead>
-            <tbody id="kycTableBody">
-              <tr>
-                <td colspan="5" style="text-align: center; padding: 20px">
-                  Loading pending KYC...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <!-- ផ្ទាំងលម្អិត (Details View) -->
+        <div id="kyc-details-view" style="display: none">
+          <div
+            class="table-header-controls"
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <button
+              class="btn-cancel"
+              onclick="closeKycDetails()"
+              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            >
+              <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+            </button>
+            <h2
+              class="dash-title"
+              style="
+                margin: 0;
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              "
+            >
+              ព័ត៌មានលម្អិតអតិថិជន (KYC Details)
+            </h2>
+            <div></div>
+            <!-- Spacer -->
+          </div>
+
+          <!-- កន្លែងសម្រាប់ឱ្យ admin-kyc.js បោះទិន្នន័យចូល -->
+          <div
+            id="kyc-details-content"
+            style="
+              background: var(--bg-card);
+              color: var(--text-main);
+              padding: 25px;
+              border-radius: 12px;
+              border: 1px solid var(--border);
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+              margin-top: 15px;
+            "
+          >
+            <!-- ទិន្នន័យនឹងត្រូវ Generate ដោយ JS នៅទីនេះ -->
+          </div>
         </div>
       </div>
 
@@ -1943,19 +2423,33 @@
               គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
             </p>
           </div>
-          <button
-            class="btn-primary"
-            onclick="openAdminModal()"
-            style="
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-              font-size: 0.95rem;
-              font-weight: 600;
-              border-radius: 10px;
-            "
-          >
-            <i class="fa-solid fa-plus"></i>
-            <span data-i18n="create-new-admin">បង្កើតគណនីបុគ្គលិកថ្មី</span>
-          </button>
+
+          <!-- 🟢 ដាក់បន្ថែមប្រអប់ Search កន្លែងនេះ -->
+          <div style="display: flex; align-items: center; gap: 10px">
+            <div class="search-box" style="margin: 0">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchAdminBox"
+                placeholder="ស្វែងរកឈ្មោះ, Staff ID, នាយកដ្ឋាន..."
+                onkeyup="filterAdminList()"
+              />
+            </div>
+
+            <button
+              class="btn-primary"
+              onclick="openAdminModal()"
+              style="
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                font-size: 0.95rem;
+                font-weight: 600;
+                border-radius: 10px;
+              "
+            >
+              <i class="fa-solid fa-plus"></i>
+              <span data-i18n="create-new-admin">បង្កើតគណនីបុគ្គលិកថ្មី</span>
+            </button>
+          </div>
         </div>
         <div class="table-container">
           <table>
@@ -2180,99 +2674,6 @@
     <!-- ======================================================= -->
     <!-- [ ផ្នែកទី៣ ] ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
     <!-- ======================================================= -->
-    <!-- 3.1 Modal កែប្រែគណនីអ្នកប្រើប្រាស់ -->
-    <div id="editUserModal" class="modal-overlay">
-      <div class="modal-card">
-        <div class="modal-header">
-          <i class="fa-solid fa-user-pen" style="font-size: 1.2rem"></i>
-          <h3 data-i18n="edit-client-profile">Edit Client Profile</h3>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="editUserId" />
-          <div
-            style="display: flex; justify-content: center; margin-bottom: 20px"
-          >
-            <img
-              id="e-preview"
-              src=""
-              style="
-                width: 80px;
-                height: 80px;
-                border-radius: 20px;
-                object-fit: cover;
-                border: 3px solid #f1f5f9;
-                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-              "
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="upload-profile-image">Upload Profile Image</label>
-            <input
-              type="file"
-              id="uploadProfileBtn"
-              class="form-input"
-              accept="image/*"
-              style="padding: 10px; cursor: pointer"
-              onchange="handleProfileImageUpload(event)"
-            />
-            <input type="hidden" id="editProfileImg" />
-          </div>
-          <div class="form-group">
-            <label data-i18n="full-name-username">Full Name / Username</label
-            ><input id="editUsername" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label data-i18n="account-number-usd">Account Number (USD)</label
-            ><input id="editAccNum" class="form-input" type="number" />
-          </div>
-          <div class="form-group">
-            <label data-i18n="account-number-khr">Account Number (KHR)</label
-            ><input
-              type="number"
-              id="editAccNumKHR"
-              class="form-input"
-              placeholder="គ្មាន"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="reset-pin">Reset PIN</label
-            ><input
-              id="editPin"
-              type="text"
-              maxlength="4"
-              class="form-input"
-              placeholder="4-digit PIN"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="change-password">Change Password</label
-            ><input
-              id="editPassword"
-              type="text"
-              class="form-input"
-              placeholder="Leave blank to keep current"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button
-            class="btn-cancel"
-            onclick="closeModal('editUserModal')"
-            data-i18n="cancel"
-          >
-            Cancel
-          </button>
-          <button
-            class="btn-save btn-primary"
-            onclick="saveUserEdit()"
-            data-i18n="save"
-          >
-            Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- 3.2 Modal គ្រប់គ្រងគណនីបុគ្គលិក (Admin Account WIZARD) -->
     <div id="adminAccModal" class="modal-overlay">
       <div class="modal-card" style="max-width: 650px">
@@ -2899,13 +3300,23 @@
     <!-- [ ផ្នែកទី៤ ] តំណភ្ជាប់ File JavaScript (SCRIPTS) -->
     <!-- ======================================================= -->
     <script src="js/admin-lang.js"></script>
-    <script src="js/admin-core.js?v=99"></script>
-    <script src="js/admin-users.js?v=99"></script>
-    <script src="js/admin-finance.js?v=99"></script>
-    <script src="js/admin-ops.js?v=99"></script>
-    <script src="js/admin-merchants.js?v=99"></script>
-    <script src="js/admin-customer360.js?v=99"></script>
+    <script src="js/admin-core.js?v=1"></script>
+    <script src="js/admin-users.js?v=1"></script>
+    <!-- <script src="js/admin-finance.js?v=99"></script> -->
+    <script src="js/admin-fx.js?v=1"></script>
+    <script src="js/admin-fees.js?v=1"></script>
+    <script src="js/admin-promo.js?v=1"></script>
+    <script src="js/admin-cashier.js?v=1"></script>
+    <!-- <script src="js/admin-ops.js?v=99"></script> -->
+    <script src="js/admin-card.js?v=1"></script>
+    <script src="js/admin-trx.js?v=1"></script>
+    <script src="js/admin-tickets.js?v=1"></script>
+    <script src="js/admin-broadcast.js?v=1"></script>
+    <script src="js/admin-logs.js?v=1"></script>
+    <script src="js/admin-merchants.js?v=1"></script>
+    <script src="js/admin-customer360.js?v=1"></script>
     <script src="js/admin-chat.js"></script>
     <script src="js/admin-management.js"></script>
+    <script src="js/admin-kyc.js?v=1"></script>
   </body>
 </html>

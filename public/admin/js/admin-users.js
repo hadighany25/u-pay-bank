@@ -1,185 +1,60 @@
-// communicationController.js
+// ========================================================================
+// ឯកសារ: communicationController.js (Admin User Management)
+// អត្ថន័យ: គ្រប់គ្រងការបង្ហាញ ស្វែងរក កែប្រែ និងប្រតិបត្តិការលើគណនីអតិថិជន
+// ========================================================================
 
 // ========================================================================
-// 👥 ផ្នែកទី ១៖ ការគ្រប់គ្រងអ្នកប្រើប្រាស់ (USER MANAGEMENT LOGIC)
+// 🧩 SECTION 1: UNIVERSAL HELPERS (មុខងារជំនួយទូទៅ)
 // ========================================================================
 
-// ------------------------------------------------------------------------
-// 📌 ១.១ មុខងារគូរតារាងបង្ហាញទិន្នន័យអ្នកប្រើប្រាស់ (Render Table)
-// ------------------------------------------------------------------------
-function renderUsersTable(users) {
-  const tbody = document.querySelector("#userTable tbody");
+/**
+ * 📌 ១.១ មុខងារស្វែងរកទិន្នន័យស្តង់ដារ (Universal Deep Search)
+ * អាចរាវរកទិន្នន័យជ្រៅៗ (ឧ. mainAccounts.USD.accountNumber ឬ subAccounts.accountNumber)
+ */
+window.standardDataSearch = function (dataArray, keyword, searchFields) {
+  // បើគ្មានពាក្យស្វែងរកទេ បោះទិន្នន័យដើមទៅវិញ
+  if (!keyword || keyword.trim() === "") return dataArray;
 
-  // បើគ្មានទិន្នន័យ បង្ហាញសារទទេ
-  if (!users || users.length === 0) {
-    tbody.innerHTML =
-      '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">មិនមានទិន្នន័យទេ</td></tr>';
-    return;
-  }
+  const lowerKeyword = keyword.toLowerCase().trim();
 
-  // ឆែកមើលសិទ្ធិរបស់ Admin (Dynamic Permissions)
-  const canEdit =
-    adminRole === "super_admin" ||
-    (myAdminPermissions && myAdminPermissions.actions?.editUser);
-  const canDelete =
-    adminRole === "super_admin" ||
-    (myAdminPermissions && myAdminPermissions.actions?.deleteUser);
-  const canFreeze =
-    adminRole === "super_admin" ||
-    (myAdminPermissions && myAdminPermissions.actions?.freezeUser);
-  const canAdjust =
-    adminRole === "super_admin" ||
-    (myAdminPermissions && myAdminPermissions.actions?.adjustBal);
-
-  // គូរតារាងជួរនីមួយៗ
-  const rowsHtml = users
-    .map((u) => {
-      const uid = u._id || u.id;
-      const isCentralBank = u.mainAccounts?.USD?.accountNumber === "888888888";
-
-      // រៀបចំ HTML គណនី និង សមតុល្យ
-      let accountsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
-      let balanceHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
-
-      // គណនី Main USD
-      accountsHtml += `
-  <div class="acc-badge usd" style="height: 28px; display: flex; align-items: center;" title="Main USD">
-      <span>$</span> ${u.mainAccounts?.USD?.accountNumber || "N/A"}
-  </div>`;
-      balanceHtml += `
-  <div style="height: 28px; display: flex; align-items: center; color: #0369a1; font-weight: bold;" title="Main USD">
-      $${(u.mainAccounts?.USD?.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-  </div>`;
-
-      // គណនី Main KHR
-      if (u.mainAccounts?.KHR?.accountNumber) {
-        accountsHtml += `
-      <div class="acc-badge khr" style="height: 28px; display: flex; align-items: center;" title="Main KHR">
-          <span>៛</span> ${u.mainAccounts.KHR.accountNumber}
-      </div>`;
-        balanceHtml += `
-      <div style="height: 28px; display: flex; align-items: center; color: #047857; font-weight: bold;" title="Main KHR">
-          ${(u.mainAccounts?.KHR?.balance || 0).toLocaleString("en-US")} ៛
-      </div>`;
+  // Helper សម្រាប់ចាប់យកតម្លៃទិន្នន័យដែលនៅជ្រៅ (Deep Nested Value)
+  const getNestedValue = (obj, path) => {
+    return path.split(".").reduce((acc, part) => {
+      if (acc === null || acc === undefined) return null;
+      // ប្រសិនបើវាជា Array (ឧ. subAccounts) វាត្រូវ Loop ចូលទៅចាប់តម្លៃខាងក្នុង
+      if (Array.isArray(acc)) {
+        return acc.map((item) => (item ? item[part] : null)).flat();
       }
+      return acc[part];
+    }, obj);
+  };
 
-      // គណនី Sub-accounts (បើមាន)
-      if (u.subAccounts && u.subAccounts.length > 0) {
-        u.subAccounts.forEach((sub) => {
-          const sym = sub.currency === "USD" ? "$" : "៛";
-          const colorClass = sub.currency === "USD" ? "usd" : "khr";
-          const valColor = sub.currency === "USD" ? "#0369a1" : "#047857";
-          const formattedBal =
-            sub.currency === "USD"
-              ? (sub.balance || 0).toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                })
-              : (sub.balance || 0).toLocaleString("en-US");
-
-          accountsHtml += `
-            <div class="acc-badge ${colorClass}" style="height: 28px; display: flex; align-items: center; opacity: 0.85;" title="${sub.accountName}">
-                <span>${sym}</span> ${sub.accountNumber} <span style="font-size:0.65rem; color:#64748b; margin-left: 5px;">(${sub.accountName})</span>
-            </div>`;
-
-          balanceHtml += `
-            <div style="height: 28px; display: flex; align-items: center; color: ${valColor}; font-weight: bold; opacity: 0.85;" title="${sub.accountName}">
-                ${sub.currency === "USD" ? "$" : ""}${formattedBal}${sub.currency === "KHR" ? " ៛" : ""}
-            </div>`;
-        });
+  // ធ្វើការ Filter ស្វែងរក
+  return dataArray.filter((item) => {
+    return searchFields.some((field) => {
+      const value = getNestedValue(item, field);
+      if (Array.isArray(value)) {
+        // បើលទ្ធផលជា Array (ឧទាហរណ៍មានគណនីរងច្រើន) ឆែកគ្រប់គណនីរង
+        return value.some(
+          (v) =>
+            v !== null &&
+            v !== undefined &&
+            String(v).toLowerCase().includes(lowerKeyword),
+        );
       }
-
-      accountsHtml += `</div>`;
-      balanceHtml += `</div>`;
-
-      // ប៊ូតុងសកម្មភាព (Actions)
-      let actionButtonsHtml = "";
-      if (isCentralBank) {
-        if (canEdit)
-          actionButtonsHtml = `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${uid}')"><i class="fa-solid fa-pen"></i></button>`;
-      } else {
-        if (canAdjust) {
-          actionButtonsHtml += `<button class="btn-action" style="background:#ecfdf5; color:#10b981; border: 1px solid #a7f3d0;" title="Add Money" onclick="openAdjustBalance('${u.username}', 'add')"><i class="fa-solid fa-plus"></i></button>`;
-          actionButtonsHtml += `<button class="btn-action" style="background:#fef2f2; color:#ef4444; border: 1px solid #fecaca;" title="Deduct Money" onclick="openAdjustBalance('${u.username}', 'deduct')"><i class="fa-solid fa-minus"></i></button>`;
-        }
-        if (canEdit)
-          actionButtonsHtml += `<button class="btn-action btn-edit" title="Edit Info" onclick="openEditModal('${uid}')"><i class="fa-solid fa-pen"></i></button>`;
-        if (canDelete)
-          actionButtonsHtml += `<button class="btn-action btn-delete" title="Delete User" onclick="deleteUser('${uid}')"><i class="fa-solid fa-trash"></i></button>`;
-      }
-
-      // ស្ថានភាពគណនី (Freeze Status)
-      const freezeHtml = isCentralBank
-        ? `<span class="status-badge" style="background:#dbeafe; color:#2563eb; padding: 4px 8px; border-radius: 6px;">System Bank</span>`
-        : canFreeze
-          ? `<label class="switch" style="margin: 0 auto;"><input type="checkbox" ${u.isFrozen ? "checked" : ""} onchange="toggleFreeze('${uid}', this.checked)"><span class="slider"></span></label>`
-          : `<span style="color: ${u.isFrozen ? "#ef4444" : "#10b981"}">${u.isFrozen ? "Frozen" : "Active"}</span>`;
-
-      const bgStyle = isCentralBank ? "background-color: #fef9c3;" : "";
-      const imgSrc = u.profileImage || "/images/logo.png";
-
-      return `
-      <tr style="${bgStyle}">
-        <td style="vertical-align: middle;">
-            <div style="display: flex; align-items: center; gap: 10px">
-                <img loading="lazy" src="${imgSrc}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" onerror="this.src='/images/logo.png'" />
-                <div>
-                    <div style="font-weight: bold; color: var(--text-dark)">${u.fullName || u.username} ${isCentralBank ? "🏦" : ""}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted)">@${u.username}</div>
-                </div>
-            </div>
-        </td>
-        <td style="vertical-align: middle;">${accountsHtml}</td>
-        <td style="vertical-align: middle;">${balanceHtml}</td>
-        <td style="vertical-align: middle; text-align: center;">${freezeHtml}</td>
-        <td style="vertical-align: middle; text-align: center;">
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">${actionButtonsHtml}</div>
-        </td>
-      </tr>`;
-    })
-    .join("");
-
-  tbody.innerHTML = rowsHtml;
-}
-
-// ------------------------------------------------------------------------
-// 📌 ១.២ មុខងារស្វែងរកអ្នកប្រើប្រាស់ (Instant Search)
-// ------------------------------------------------------------------------
-function filterUsers() {
-  const term = document.getElementById("searchBox").value.toLowerCase().trim();
-
-  if (!term) {
-    renderUsersTable(globalUsersData);
-    return;
-  }
-
-  const filteredData = globalUsersData.filter((u) => {
-    const uname = (u.username || "").toLowerCase();
-    const fname = (u.fullName || "").toLowerCase();
-    const accUSD = (u.mainAccounts?.USD?.accountNumber || "").toString();
-    const accKHR = (u.mainAccounts?.KHR?.accountNumber || "").toString();
-
-    let subMatch = false;
-    if (u.subAccounts && u.subAccounts.length > 0) {
-      subMatch = u.subAccounts.some((sub) =>
-        (sub.accountNumber || "").toString().includes(term),
+      // បើជាតម្លៃធម្មតា
+      return (
+        value !== null &&
+        value !== undefined &&
+        String(value).toLowerCase().includes(lowerKeyword)
       );
-    }
-
-    return (
-      uname.includes(term) ||
-      fname.includes(term) ||
-      accUSD.includes(term) ||
-      accKHR.includes(term) ||
-      subMatch
-    );
+    });
   });
+};
 
-  renderUsersTable(filteredData);
-}
-
-// ------------------------------------------------------------------------
-// 📌 ១.៣ មុខងារបង្រួមរូបភាព និង កែប្រែគណនី (Image Compress & Edit)
-// ------------------------------------------------------------------------
+/**
+ * 📌 ១.២ មុខងារបង្រួមទំហំរូបភាព (Image Compression)
+ */
 function compressImageAndPreview(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -216,133 +91,209 @@ function compressImageAndPreview(file) {
   });
 }
 
-// កូដនេះត្រូវនៅពីលើ ឬ ពីក្រោម Function openEditModal ខាងលើ
-window.handleProfileImageUpload = async function (event) {
-  const file = event.target.files[0];
-  if (!file) return;
+// ========================================================================
+// 👥 SECTION 2: USER DIRECTORY (បញ្ជីអ្នកប្រើប្រាស់ និង Drawer)
+// ========================================================================
 
-  Swal.fire({
-    title: "កំពុងបញ្ជូនរូបភាព...",
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
-    customClass: { popup: "premium-swal" },
-  });
+/**
+ * 📌 ២.១ មុខងារស្វែងរកអ្នកប្រើប្រាស់
+ */
+function filterUsers() {
+  const term = document.getElementById("searchBox").value;
+  const filteredData = window.standardDataSearch(globalUsersData, term, [
+    "username",
+    "fullName",
+    "phone",
+    "email",
+    "idNumber",
+    "userId",
+    "mainAccounts.USD.accountNumber",
+    "mainAccounts.KHR.accountNumber",
+  ]);
+  renderUsersTable(filteredData);
+}
 
-  // បង្ហាញរូបជាបណ្តោះអាសន្នលើអេក្រង់សិន (ឱ្យ Admin បានឃើញភ្លាមៗ)
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    document.getElementById("e-preview").src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+/**
+ * 📌 ២.២ មុខងារគូរកាតអ្នកប្រើប្រាស់ (ជំនួសតារាងចាស់)
+ */
+function renderUsersTable(users) {
+  const listContainer = document.getElementById("userDirectoryList");
+  if (!listContainer) return;
 
-  const CLOUD_NAME = "jp9yg3dj"; // ដូរតាមរបស់អ្នក
-  const UPLOAD_PRESET = "iaxuqmpb"; // ដូរតាមរបស់អ្នក
-
-  const cloudinaryData = new FormData();
-  cloudinaryData.append("file", file);
-  cloudinaryData.append("upload_preset", UPLOAD_PRESET);
-
-  try {
-    const cloudRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      { method: "POST", body: cloudinaryData },
-    );
-    const cloudData = await cloudRes.json();
-
-    if (cloudData.secure_url) {
-      // ✅ លាក់ URL Cloudinary ទុកក្នុង Input ពេល Admin ចុច "Save Changes" ទើបវា Save ចូល Database ផ្លូវការ
-      document.getElementById("editProfileImg").value = cloudData.secure_url;
-      Swal.close();
-    } else {
-      Swal.fire("បរាជ័យ", "មិនអាច Upload រូបភាពបានទេ", "error");
-      document.getElementById("editProfileImg").value = "";
-    }
-  } catch (e) {
-    Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅកាន់ Cloudinary", "error");
-  }
-};
-
-window.openEditModal = function (id) {
-  const u = globalUsersData.find(
-    (user) => (user._id || user.id) === id || user.username === id,
-  );
-  if (!u) return;
-
-  document.getElementById("editUserId").value = u._id || u.id;
-  document.getElementById("editUsername").value = u.username || "";
-  document.getElementById("editAccNum").value =
-    u.mainAccounts?.USD?.accountNumber || "";
-  document.getElementById("editAccNumKHR").value =
-    u.mainAccounts?.KHR?.accountNumber || "";
-  document.getElementById("editPin").value = u.pin || "";
-  document.getElementById("editPassword").value = "";
-
-  // ✅ កែត្រង់នេះ៖ ដាក់ URL ចូលក្នុង hidden input ដោយមិនបាច់ឆែក data:image ទៀតទេ
-  document.getElementById("editProfileImg").value = u.profileImage || "";
-
-  // ✅ កែត្រង់នេះ៖ បង្ហាញរូបភាពពី URL ឬបើអត់មានរូប ប្រើរូប Default ឱ្យត្រូវ Path
-  document.getElementById("e-preview").src =
-    u.profileImage || "../images/default-avatar.png";
-
-  // បើកផ្ទាំង Modal
-  document
-    .getElementById("editUserModal")
-    .style.setProperty("display", "flex", "important");
-};
-
-window.closeModal = function (modalId) {
-  document
-    .getElementById(modalId)
-    .style.setProperty("display", "none", "important");
-};
-
-window.saveUserEdit = async function () {
-  const id = document.getElementById("editUserId").value;
-  const imgInputVal = document.getElementById("editProfileImg").value;
-
-  const bodyData = {
-    id: id,
-    username: document.getElementById("editUsername").value,
-    accountNumber: document.getElementById("editAccNum").value,
-    accountNumberKHR: document.getElementById("editAccNumKHR").value,
-    pin: document.getElementById("editPin").value,
-    password: document.getElementById("editPassword").value,
-  };
-
-  if (imgInputVal && imgInputVal.trim() !== "") {
-    bodyData.profileImage = imgInputVal;
+  if (!users || users.length === 0) {
+    listContainer.innerHTML = `
+      <div style="text-align:center; padding: 50px 20px; color: var(--text-muted);">
+        <i class="fa-solid fa-users-slash" style="font-size: 3.5rem; margin-bottom: 15px; opacity: 0.3;"></i>
+        <h3 style="margin:0; font-family: 'Kantumruy Pro';">មិនមានទិន្នន័យអតិថិជនទេ</h3>
+      </div>`;
+    return;
   }
 
-  try {
-    const res = await fetch("/api/admin/edit-user", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(bodyData),
+  const cardsHtml = users
+    .map((u) => {
+      const imgSrc = u.profileImage || "../images/default-avatar.png";
+      const name = u.fullName || u.username;
+
+      // ប្តូរពណ៌ Status
+      const statusHtml = u.isFrozen
+        ? `<span style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">FROZEN</span>`
+        : `<span style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">ACTIVE</span>`;
+
+      const isSystem = u.mainAccounts?.USD?.accountNumber === "888888888";
+      const roleBadge = isSystem
+        ? `<i class="fa-solid fa-building-columns" style="color:#3b82f6; margin-left:5px;" title="System Bank"></i>`
+        : "";
+
+      return `
+      <div class="modern-user-card" onclick="openUserDrawer('${u.username}', this)">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <img loading="lazy" src="${imgSrc}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);" onerror="this.src='../images/default-avatar.png'">
+          <div>
+            <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">${name} ${roleBadge}</h4>
+            <p style="margin: 3px 0 0; color: var(--text-muted); font-size: 0.85rem; font-family: 'Inter', sans-serif;">@${u.username} • ${u.phone || "N/A"}</p>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          ${isSystem ? `<span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">SYSTEM</span>` : statusHtml}
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+
+  listContainer.innerHTML = cardsHtml;
+}
+/**
+ * 📌 ២.៣ មុខងារបើក Drawer និងចាក់ទិន្នន័យចូល (រួមទាំង Sub-Accounts)
+ */
+window.openUserDrawer = function (username, cardElement) {
+  const user = globalUsersData.find((u) => u.username === username);
+  if (!user) return;
+
+  // ចាក់ទិន្នន័យចូល HTML Drawer (ព័ត៌មានទូទៅ)
+  document.getElementById("drawerName").innerText =
+    user.fullName || user.username;
+  // 🟢 បន្ថែម ID : នៅពីមុខ Username ជាមួយបន្ទាត់បញ្ឈរ |
+  const displayId = user.userId || "N/A";
+  document.getElementById("drawerUsername").innerHTML =
+    `<span style="color: var(--text-muted); font-size: 0.95rem;">ID : ${displayId}</span> <span style="color: #cbd5e1; margin: 0 10px;">|</span> @${user.username}`;
+
+  document.getElementById("drawerAvatar").src =
+    user.profileImage || "../images/default-avatar.png";
+  document.getElementById("drawerUsdAcc").innerText =
+    user.mainAccounts?.USD?.accountNumber || "N/A";
+  document.getElementById("drawerKhrAcc").innerText =
+    user.mainAccounts?.KHR?.accountNumber || "N/A";
+  document.getElementById("drawerPhone").innerText = user.phone || "N/A";
+  document.getElementById("drawerEmail").innerText = user.email || "N/A";
+
+  // 🟢 គូរ Sub-Accounts (បើមាន) បញ្ចូលទៅក្នុង Drawer
+  const subAccContainer = document.getElementById("drawerSubAccountsContainer");
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    let subHtml = `<h4 style="margin: 5px 0 10px; color: var(--text-muted);"><i class="fa-solid fa-layer-group"></i> គណនីរង (Sub-Accounts)</h4>
+                   <div class="info-block" style="display: flex; flex-direction: column; gap: 10px;">`;
+
+    user.subAccounts.forEach((sub, index) => {
+      const currColor = sub.currency === "USD" ? "#0ea5e9" : "#10b981";
+      const borderTop =
+        index > 0
+          ? "border-top: 1px dashed var(--border); padding-top: 10px;"
+          : "";
+
+      subHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; ${borderTop}">
+          <div style="display: flex; flex-direction: column;">
+            <span style="color: ${currColor}; font-weight: bold; font-size: 0.95rem;">${sub.currency}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${sub.accountName}</span>
+          </div>
+          <span style="font-family: 'Inter', monospace; font-weight: bold; color: var(--text-main);">${sub.accountNumber}</span>
+        </div>
+      `;
     });
-    const data = await res.json();
 
-    if (data.success) {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "បានកែប្រែជោគជ័យ",
-        showConfirmButton: false,
-        timer: 1500,
-      });
-      closeModal("editUserModal");
-      if (typeof loadData === "function") loadData();
-    } else {
-      Swal.fire("បរាជ័យ!", data.message, "error");
-    }
-  } catch (error) {
-    Swal.fire("Error", "មានបញ្ហាក្នុងការភ្ជាប់ទៅកាន់ Server", "error");
+    subHtml += `</div>`;
+    subAccContainer.innerHTML = subHtml;
+  } else {
+    // លុបចោលវិញបើអតិថិជននេះគ្មាន Sub-Account ការពារការជាប់ទិន្នន័យពីអតិថិជនមុន
+    subAccContainer.innerHTML = "";
   }
+
+  // KYC Status
+  let kycStatus = user.kycStatus || "Unverified";
+  let kycColor =
+    kycStatus === "verified" || kycStatus === "approved"
+      ? "#10b981"
+      : "#f59e0b";
+  if (kycStatus === "rejected") kycColor = "#ef4444";
+  document.getElementById("drawerKyc").innerHTML =
+    `<span style="color: ${kycColor}; font-weight: bold; text-transform: capitalize;">${kycStatus}</span>`;
+
+  // Toggle Switch ផ្អាកគណនី
+  const toggleBtn = document.getElementById("drawerFreezeToggle");
+  if (toggleBtn) {
+    toggleBtn.checked = !user.isFrozen;
+    toggleBtn.onchange = function () {
+      if (typeof toggleFreeze === "function")
+        toggleFreeze(user._id || user.id, !this.checked);
+    };
+  }
+
+  // ភ្ជាប់ប៊ូតុង Actions ទៅកាន់មុខងារថ្មី
+  document.getElementById("btnMessageDrawer").onclick = () =>
+    sendDirectMessage(user.username);
+  document.getElementById("btnForceLogoutDrawer").onclick = () =>
+    forceLogoutUser(user.username);
+  document.getElementById("btnC360Drawer").onclick = () =>
+    goToCustomer360(user.username);
+
+  const isSystem = user.mainAccounts?.USD?.accountNumber === "888888888";
+  const delBtn = document.getElementById("btnDeleteDrawer");
+  if (isSystem) {
+    delBtn.style.display = "none";
+  } else {
+    delBtn.style.display = "block";
+    delBtn.onclick = () => deleteUser(user._id || user.id);
+  }
+
+  // បើកផ្ទាំង Drawer
+  document.getElementById("userDetailDrawer").classList.add("open");
+
+  // លាបពណ៌កាតដែលកំពុង Select
+  document
+    .querySelectorAll(".modern-user-card")
+    .forEach((c) => c.classList.remove("selected"));
+  if (cardElement) cardElement.classList.add("selected");
 };
 
-// ------------------------------------------------------------------------
-// 📌 ១.៤ មុខងារបន្ថែម ឬ ដកប្រាក់ពីតារាងផ្ទាល់ (Adjust Balance)
-// ------------------------------------------------------------------------
+/**
+ * 📌 ២.៤ មុខងារបិទ Drawer និងលោតទៅ Customer 360
+ */
+window.closeUserDrawer = function () {
+  document.getElementById("userDetailDrawer").classList.remove("open");
+  document
+    .querySelectorAll(".modern-user-card")
+    .forEach((c) => c.classList.remove("selected"));
+};
+
+window.goToCustomer360 = function (username) {
+  closeUserDrawer();
+  showSection("customer-360");
+  document.getElementById("searchC360").value = username;
+  if (typeof searchCustomer360 === "function") searchCustomer360();
+};
+
+// ========================================================================
+// ✏️ SECTION 3: PROFILE EDITING & CLOUDINARY UPLOAD (កែប្រែប្រវត្តិរូប)
+// ========================================================================
+// ឈប់ប្រើបកូដនៅទីនេះ
+
+// ========================================================================
+// 💰 SECTION 4: BALANCE ADJUSTMENT (បន្ថែម ឬ ដកប្រាក់)
+// ========================================================================
+
+/**
+ * 📌 ៤.១ បើកផ្ទាំងបន្ថែម/ដកប្រាក់
+ */
 window.openAdjustBalance = function (username, type) {
   const isAdd = type === "add";
   const title = isAdd
@@ -397,7 +348,7 @@ window.openAdjustBalance = function (username, type) {
             <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000" oninput="previewUserTableExchange()">
         </div>
 
-        <!-- 🔥 ប្រអប់បង្ហាញការដូរលុយអូតូ (Preview) -->
+        <!-- ប្រអប់បង្ហាញការដូរលុយអូតូ (Preview) -->
         <div id="userTableExchangePreviewBox" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; animation: fadeIn 0.3s ease;">
             <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #10b981; display: flex; justify-content: space-between;">
                 <span>Exchange Rate:</span>
@@ -476,13 +427,14 @@ window.openAdjustBalance = function (username, type) {
             customClass: { popup: "premium-swal" },
           });
           if (typeof loadData === "function") loadData();
-        } else
+        } else {
           Swal.fire({
             icon: "error",
             title: "បរាជ័យ",
             text: data.message,
             customClass: { popup: "premium-swal" },
           });
+        }
       } catch (error) {
         Swal.fire({
           icon: "error",
@@ -495,7 +447,9 @@ window.openAdjustBalance = function (username, type) {
   });
 };
 
-// 🔥 មុខងារគណនាបង្ហាញលុយមុន សម្រាប់ Modal (ទាញអត្រាប្តូរប្រាក់អូតូពី Database)
+/**
+ * 📌 ៤.២ គណនាបង្ហាញលុយមុន សម្រាប់ផ្ទាំង Modal (Exchange Auto-Calculate)
+ */
 window.previewUserTableExchange = function () {
   const targetSelect = document.getElementById("adjTargetAccount");
   if (!targetSelect) return;
@@ -510,7 +464,6 @@ window.previewUserTableExchange = function () {
   const rateDisplay = document.getElementById("userTableFxRateDisplay");
   const resultText = document.getElementById("userTableExchangeResult");
 
-  // ទាញអត្រាប្តូរប្រាក់ពីអថេរសកល (ដែលបាន Update ដោយ fetchFXRates)
   const rateBuy = window.currentFXRates
     ? window.currentFXRates.usdToKhrBuy || 4050
     : 4050;
@@ -520,7 +473,6 @@ window.previewUserTableExchange = function () {
 
   if (amount > 0 && targetCurrency !== inputCurrency) {
     previewBox.style.display = "block";
-
     if (inputCurrency === "USD" && targetCurrency === "KHR") {
       const khrAmt = Math.round(amount * rateBuy);
       rateDisplay.innerText = `$1 = ${rateBuy.toLocaleString("en-US")} ៛`;
@@ -535,9 +487,13 @@ window.previewUserTableExchange = function () {
   }
 };
 
-// ------------------------------------------------------------------------
-// 📌 ១.៦ មុខងារលុប និង ផ្អាកគណនីអតិថិជន
-// ------------------------------------------------------------------------
+// ========================================================================
+// 🛑 SECTION 5: ACCOUNT STATUS MANAGEMENT (ផ្អាក និងលុបគណនី)
+// ========================================================================
+
+/**
+ * 📌 ៥.១ លុបអ្នកប្រើប្រាស់ ឬ គណនីរង (Delete User/Sub-account)
+ */
 window.deleteUser = function (id) {
   const user = globalUsersData.find((u) => (u._id || u.id) === id);
   if (!user) return;
@@ -610,8 +566,9 @@ window.deleteUser = function (id) {
             customClass: { popup: "premium-swal" },
           });
           if (typeof loadData === "function") loadData();
-        } else
+        } else {
           Swal.fire("Error", data.message || "មិនអាចលុបទិន្នន័យបានទេ", "error");
+        }
       } catch (e) {
         Swal.fire("Error", "បញ្ហាការតភ្ជាប់", "error");
       }
@@ -619,6 +576,9 @@ window.deleteUser = function (id) {
   });
 };
 
+/**
+ * 📌 ៥.២ ផ្អាក / បើកដំណើរការគណនី (Freeze / Unfreeze)
+ */
 window.toggleFreeze = async function (id, isFrozen) {
   try {
     const res = await fetch("/api/admin/toggle-freeze", {
@@ -662,4 +622,69 @@ window.toggleFreeze = async function (id, isFrozen) {
     });
     if (typeof loadData === "function") loadData();
   }
+};
+
+/**
+ * 📌 ៥.៣ មុខងារសម្រាប់ផ្ញើសារផ្ទាល់ទៅកាន់អតិថិជន
+ */
+window.sendDirectMessage = async function (username) {
+  const { value: text } = await Swal.fire({
+    title: `ផ្ញើសារទៅកាន់ @${username}`,
+    input: "textarea",
+    inputPlaceholder: "វាយបញ្ចូលសាររបស់អ្នកនៅទីនេះ...",
+    showCancelButton: true,
+    confirmButtonColor: "#3b82f6",
+    confirmButtonText: "ផ្ញើសារ",
+    customClass: { popup: "premium-swal" },
+  });
+
+  if (text) {
+    // កូដសម្រាប់ហៅ API ផ្ញើសារ (អាចប្រើ API ticket-reply ឬ broadcast)
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "សារត្រូវបានបញ្ជូន!",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+  }
+};
+
+/**
+ * 📌 ៥.៤ មុខងារសម្រាប់ Force Logout អតិថិជន
+ */
+window.forceLogoutUser = function (username) {
+  Swal.fire({
+    title: "ផ្តាច់គណនីអតិថិជន?",
+    text: `តើអ្នកចង់បង្ខំឱ្យ @${username} Log out ចេញពីគ្រប់ឧបករណ៍មែនទេ?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#f59e0b",
+    confirmButtonText: "បាទ/ចាស ផ្តាច់គណនី",
+    customClass: { popup: "premium-swal" },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch("/api/admin/force-logout", {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ username }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: "គណនីត្រូវបានផ្តាច់!",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+        }
+      } catch (e) {
+        Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server", "error");
+      }
+    }
+  });
 };

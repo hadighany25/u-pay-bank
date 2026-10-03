@@ -1,4 +1,4 @@
-//admin-customer360.js
+// admin-customer360.js
 // ========================================================================
 // 🛡️ CUSTOMER 360° VIEW LOGIC (ALL-IN-ONE SYSTEM)
 // រក្សាទុកកូដចាស់ទាំងអស់ និងបន្ថែមមុខងារបញ្ជាទិន្នន័យ (Actions)
@@ -7,7 +7,7 @@
 let currentC360User = null;
 
 // =======================================================
-// ១. មុខងារស្វែងរកអតិថិជន (Live Search API - ចាប់ ១០០% ពី Database)
+// ១. មុខងារស្វែងរកអតិថិជន (Live Search & Standard Data Search)
 // =======================================================
 async function searchCustomer360() {
   const term = document.getElementById("searchC360").value.trim();
@@ -15,37 +15,66 @@ async function searchCustomer360() {
 
   Swal.fire({
     title: "កំពុងស្វែងរក...",
-    text: "ឆែកមើលក្នុងមូលដ្ឋានទិន្នន័យផ្ទាល់",
+    text: "ឆែកមើលក្នុងមូលដ្ឋានទិន្នន័យ...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
     customClass: { popup: "premium-swal" },
   });
 
   try {
-    // បាញ់ API ទៅស្វែងរក User ក្នុង Database ផ្ទាល់
-    const res = await fetch("/api/admin/search-user", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ searchTerm: term }),
-    });
-    const data = await res.json();
+    let foundUser = null;
+
+    // 🟢 ១.១ ប្រើប្រាស់មុខងារស្តង់ដារ (Universal Search) ស្វែងរកក្នុង Local Data មុន (លឿនរហ័ស)
+    if (
+      typeof window.standardDataSearch === "function" &&
+      typeof globalUsersData !== "undefined"
+    ) {
+      const results = window.standardDataSearch(globalUsersData, term, [
+        "username",
+        "fullName",
+        "phone",
+        "phoneNumber",
+        "email",
+        "idNumber",
+        "userId",
+        "mainAccounts.USD.accountNumber",
+        "mainAccounts.KHR.accountNumber",
+        "subAccounts.accountNumber",
+      ]);
+      if (results && results.length > 0) {
+        foundUser = results[0]; // យកអតិថិជនដែលរកឃើញមុនគេ
+      }
+    }
+
+    // 🟡 ១.២ Fallback: បើរកក្នុង Local មិនឃើញ ទើបបាញ់ API ទៅស្វែងរកក្នុង Database ផ្ទាល់ (រក្សាកូដចាស់)
+    if (!foundUser) {
+      const res = await fetch("/api/admin/search-user", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ searchTerm: term }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        foundUser = data.user;
+      }
+    }
 
     Swal.close();
 
-    if (data.success && data.user) {
-      currentC360User = data.user;
+    if (foundUser) {
+      currentC360User = foundUser;
 
       // Update ទិន្នន័យចូល Global Array ដើម្បីអោយប្រើបានកន្លែងផ្សេង
       if (typeof globalUsersData !== "undefined") {
         const index = globalUsersData.findIndex(
-          (u) => u.username === data.user.username,
+          (u) => u.username === foundUser.username,
         );
-        if (index !== -1) globalUsersData[index] = data.user;
-        else globalUsersData.push(data.user);
+        if (index !== -1) globalUsersData[index] = foundUser;
+        else globalUsersData.push(foundUser);
       }
 
       // បង្ហាញទិន្នន័យលើអេក្រង់
-      renderCustomerProfile(data.user);
+      renderCustomerProfile(foundUser);
     } else {
       Swal.fire({
         icon: "error",

@@ -7,7 +7,7 @@
     <title>Settings - U-Pay</title>
 
     <!-- ==========================================
-         🔗 ១. ការភ្ជាប់ឯកសារ CSS & JS
+         🔗 ១. ការភ្ជាប់ឯកសារ CSS & JS (Libraries)
          ========================================== -->
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Inter:wght@400;600;700&display=swap"
@@ -25,7 +25,7 @@
 
     <style>
       /* ==========================================
-         🎯 ១. BASE STYLES & HEADER
+         🎨 ២. រចនាប័ទ្មមូលដ្ឋាន (BASE STYLES)
          ========================================== */
       body {
         margin: 0;
@@ -48,6 +48,13 @@
         flex-direction: column;
         position: relative;
       }
+      .kh-text {
+        font-family: "Kantumruy Pro", sans-serif !important;
+      }
+
+      /* ==========================================
+         🏷️ ៣. ផ្នែកខាងលើ (HEADER)
+         ========================================== */
       .header {
         background: linear-gradient(135deg, #004d40, #00695c);
         color: white;
@@ -98,7 +105,7 @@
       }
 
       /* ==========================================
-         🔄 ២. VIEW STATES (SPA)
+         🔄 ៤. គ្រប់គ្រងផ្ទាំង (VIEW STATES - SPA)
          ========================================== */
       .view-state {
         display: none;
@@ -122,7 +129,7 @@
       }
 
       /* ==========================================
-         👤 ៣. PROFILE CARD
+         👤 ៥. កាតប្រវត្តិរូប (PROFILE CARD)
          ========================================== */
       .profile-section {
         margin-top: -65px;
@@ -168,7 +175,7 @@
         position: absolute;
         bottom: 0;
         right: 0;
-        background: var(--primary);
+        background: var(--primary, #004d40);
         color: white;
         width: 32px;
         height: 32px;
@@ -205,7 +212,7 @@
       }
 
       /* ==========================================
-         ⚙️ ៤. SETTINGS LIST
+         ⚙️ ៦. បញ្ជីការកំណត់ (SETTINGS LIST)
          ========================================== */
       .settings-group {
         margin: 25px 20px;
@@ -253,7 +260,7 @@
         height: 38px;
         border-radius: 12px;
         background: #e0f2f1;
-        color: var(--primary);
+        color: var(--primary, #004d40);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -261,7 +268,7 @@
       }
 
       /* ==========================================
-         🔘 ៥. BUTTONS & SWITCHES
+         🔘 ៧. ប៊ូតុង និង កុងតាក់ (BUTTONS & SWITCHES)
          ========================================== */
       .logout-btn {
         margin: 10px 20px 30px;
@@ -321,16 +328,40 @@
       input:checked + .slider:before {
         transform: translateX(20px);
       }
+      .btn-main {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        font-family: inherit;
+        background: #004d40;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .btn-main:active {
+        transform: scale(0.98);
+      }
+      .btn-main:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
 
       /* ==========================================
-         🔒 ៦. SECURITY FLOW (4 STEPS - PROFESSIONAL)
+         🔒 ៨. ទម្រង់សុវត្ថិភាព (SECURITY FLOW 4 STEPS)
          ========================================== */
       .security-container {
         padding: 30px 20px;
         text-align: center;
       }
-
-      /* Progress Bar (Fix Centered & No Overflow) */
       .progress-bar-container {
         display: flex;
         justify-content: space-between;
@@ -343,7 +374,7 @@
         position: absolute;
         top: 50%;
         left: 35px;
-        right: 35px; /* Stay between circles */
+        right: 35px;
         height: 3px;
         background: #e2e8f0;
         z-index: 1;
@@ -386,7 +417,6 @@
         border-color: #004d40;
         color: white;
       }
-
       .step-title {
         font-size: 1.25rem;
         font-weight: 700;
@@ -399,8 +429,6 @@
         margin-bottom: 25px;
         line-height: 1.5;
       }
-
-      /* Input Box Container (For Eye Icon) */
       .input-box {
         position: relative;
         width: 100%;
@@ -426,8 +454,10 @@
         background: white;
         box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1);
       }
-
-      /* Toggle Password Icon */
+      .styled-input.pin-centered {
+        padding-left: 45px !important;
+        text-align: center !important;
+      }
       .toggle-password {
         position: absolute;
         right: 15px;
@@ -442,7 +472,6 @@
       .toggle-password:hover {
         color: #0f172a;
       }
-
       .otp-input {
         letter-spacing: 15px;
         font-size: 1.8rem;
@@ -460,34 +489,6 @@
         padding: 10px;
         border-radius: 8px;
       }
-
-      .btn-main {
-        width: 100%;
-        padding: 16px;
-        border: none;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: 0.2s;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        font-family: inherit;
-        background: #004d40;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-      }
-      .btn-main:active {
-        transform: scale(0.98);
-      }
-      .btn-main:disabled {
-        background: #94a3b8;
-        cursor: not-allowed;
-        box-shadow: none;
-      }
-
       .form-group {
         text-align: left;
         margin-bottom: 15px;
@@ -502,7 +503,7 @@
       }
 
       /* ==========================================
-         📱 ៧. TELEGRAM VIEW STYLES
+         📱 ៩. ផ្ទាំង TELEGRAM (TELEGRAM VIEW)
          ========================================== */
       .tele-icon-box {
         width: 80px;
@@ -603,13 +604,8 @@
         margin: 0 0 5px;
       }
 
-      /* 🌟 បន្ថែម CSS នេះសម្រាប់រុញអក្សរឱ្យចំកណ្តាលពេលជា PIN */
-      .styled-input.pin-centered {
-        padding-left: 45px !important; /* ធ្វើឱ្យ Padding សងខាងស្មើគ្នា (ស្តាំ 45px, ឆ្វេង 45px) */
-        text-align: center !important;
-      }
       /* ==========================================
-         📝 ៨. SweetAlert Modal Styles
+         📝 ១០. កំណត់ SWEETALERT ឱ្យស្អាត (MODAL STYLES)
          ========================================== */
       .swal2-container {
         z-index: 99999 !important;
@@ -685,7 +681,7 @@
       }
 
       /* ==========================================
-         🌙 ៩. មុខងារងងឹត (DARK MODE OVERRIDES)
+         🌙 ១១. មុខងារងងឹត (DARK MODE OVERRIDES)
          ========================================== */
       body.dark-mode .app-container {
         background: #0f172a;
@@ -735,6 +731,7 @@
         box-shadow: none !important;
       }
 
+      /* Dark Mode for Security Forms */
       body.dark-mode .step-title {
         color: white !important;
       }
@@ -773,6 +770,7 @@
         background: #10b981 !important;
       }
 
+      /* Dark Mode for Telegram Flow */
       body.dark-mode .tele-icon-box {
         background: #1e293b !important;
         color: #38bdf8 !important;
@@ -806,6 +804,8 @@
         background: #2a1515 !important;
         color: #ff6b6b !important;
       }
+
+      /* Dark Mode for Modals */
       body.dark-mode .premium-swal {
         background: #1e293b !important;
       }
@@ -840,7 +840,7 @@
   <body>
     <div class="app-container">
       <!-- ==============================================================
-           🟢 VIEW 1: MAIN SETTINGS
+           🟢 VIEW 1: MAIN SETTINGS (ផ្ទាំងការកំណត់ចម្បង)
            ============================================================== -->
       <div id="view-settings" class="view-state active">
         <div class="header">
@@ -879,10 +879,11 @@
           </div>
         </div>
 
-        <!-- GENERAL SETTINGS -->
+        <!-- GENERAL SETTINGS (ការកំណត់ទូទៅ) -->
         <div class="settings-group">
           <div class="group-title" data-i18n="sec_general">General</div>
           <div class="setting-wrapper">
+            <!-- Dark Mode -->
             <div class="setting-item">
               <div class="setting-left">
                 <div
@@ -893,13 +894,16 @@
                 </div>
                 <span data-i18n="dark_mode">Dark Mode</span>
               </div>
-              <label class="switch"
-                ><input
+              <label class="switch">
+                <input
                   type="checkbox"
                   id="darkModeToggle"
-                  onchange="toggleDarkMode()" /><span class="slider"></span
-              ></label>
+                  onchange="toggleDarkMode()"
+                />
+                <span class="slider"></span>
+              </label>
             </div>
+            <!-- Language -->
             <div class="setting-item" onclick="toggleLang()">
               <div class="setting-left">
                 <div
@@ -926,11 +930,11 @@
           </div>
         </div>
 
-        <!-- SECURITY SETTINGS -->
+        <!-- SECURITY SETTINGS (ការកំណត់សុវត្ថិភាព) -->
         <div class="settings-group">
           <div class="group-title" data-i18n="sec_security">Security</div>
           <div class="setting-wrapper">
-            <!-- 🔴 NEW SECURITY FLOW BUTTONS -->
+            <!-- Change Password -->
             <div class="setting-item" onclick="openSecurityFlow('password')">
               <div class="setting-left">
                 <div class="setting-icon"><i class="fa-solid fa-lock"></i></div>
@@ -938,6 +942,7 @@
               </div>
               <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
             </div>
+            <!-- Change PIN -->
             <div class="setting-item" onclick="openSecurityFlow('pin')">
               <div class="setting-left">
                 <div class="setting-icon"><i class="fa-solid fa-key"></i></div>
@@ -945,8 +950,7 @@
               </div>
               <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
             </div>
-
-            <!-- 🔵 TELEGRAM LINK BUTTON -->
+            <!-- Telegram Alert -->
             <div class="setting-item" onclick="openTelegramView()">
               <div class="setting-left">
                 <div
@@ -968,33 +972,17 @@
               </div>
               <i class="fa-solid fa-chevron-right" style="color: #cbd5e1"></i>
             </div>
-
-            <div class="setting-item">
-              <div class="setting-left">
-                <div
-                  class="setting-icon"
-                  style="color: #f59e0b; background: #fef3c7"
-                >
-                  <i class="fa-solid fa-fingerprint"></i>
-                </div>
-                <span data-i18n="biometric">Biometric Login</span>
-              </div>
-              <label class="switch"
-                ><input
-                  type="checkbox"
-                  id="bioToggle"
-                  onchange="toggleBio()" /><span class="slider"></span
-              ></label>
-            </div>
+            <!-- ⚠️ Biometric Switch was entirely removed from here based on User Request ⚠️ -->
           </div>
         </div>
 
-        <!-- SUPPORT SETTINGS -->
+        <!-- SUPPORT SETTINGS (សេវាកម្ម និងឯកសារ) -->
         <div class="settings-group">
           <div class="group-title" data-i18n="sec_support">
             Support & Verification
           </div>
           <div class="setting-wrapper">
+            <!-- KYC Upload -->
             <div class="setting-item" onclick="triggerKycUpload()">
               <div class="setting-left">
                 <div
@@ -1027,6 +1015,7 @@
               onchange="uploadKyc(event)"
             />
 
+            <!-- Support Tickets -->
             <div class="setting-item" onclick="openTicketModal()">
               <div class="setting-left">
                 <div
@@ -1042,14 +1031,15 @@
           </div>
         </div>
 
+        <!-- Logout Button -->
         <div class="logout-btn" onclick="logout()">
-          <i class="fa-solid fa-right-from-bracket"></i
-          ><span data-i18n="logout">Log Out</span>
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span data-i18n="logout">Log Out</span>
         </div>
       </div>
 
       <!-- ==============================================================
-           🔒 VIEW 2: SECURITY FLOW (4 STEPS - PROFESSIONAL)
+           🔒 VIEW 2: SECURITY FLOW (4 STEPS - ប្តូរ Password និង PIN)
            ============================================================== -->
       <div id="view-security" class="view-state">
         <div class="header header-flat">
@@ -1063,7 +1053,7 @@
         </div>
 
         <div class="security-container">
-          <!-- 🟢 Progress Bar (Centered properly) -->
+          <!-- Progress Bar -->
           <div class="progress-bar-container">
             <div class="progress-track">
               <div class="progress-line-active" id="secProgressLine"></div>
@@ -1076,13 +1066,12 @@
             </div>
           </div>
 
-          <!-- STEP 1: Current Password Verification -->
+          <!-- STEP 1: Current Password / PIN Verification -->
           <div id="sec-step-1">
             <h3 class="step-title">Verify Identity</h3>
             <p class="step-desc">
               សូមវាយពាក្យសម្ងាត់គណនីចាស់របស់អ្នក ដើម្បីបន្ត។
             </p>
-
             <div class="form-group">
               <label>Current Password</label>
               <div class="input-box">
@@ -1098,7 +1087,6 @@
                 ></i>
               </div>
             </div>
-
             <button
               class="btn-main"
               id="btnVerifyOldPass"
@@ -1115,11 +1103,9 @@
               ដើម្បីសុវត្ថិភាព យើងនឹងបញ្ជូនលេខកូដ OTP ៦ខ្ទង់
               ទៅកាន់អ៊ីមែលខាងក្រោម៖
             </p>
-
             <div class="otp-display-email" id="secEmailDisplay">
               sok.dara@gmail.com
             </div>
-
             <button
               class="btn-main"
               id="btnSendOtp"
@@ -1135,7 +1121,6 @@
             <p class="step-desc">
               សូមបញ្ចូលលេខកូដ ៦ខ្ទង់ ដែលបានផ្ញើទៅកាន់អ៊ីមែលរបស់អ្នក។
             </p>
-
             <div class="input-box">
               <input
                 type="number"
@@ -1151,7 +1136,6 @@
                 "
               />
             </div>
-
             <button
               class="btn-main"
               id="btnVerifyOtp"
@@ -1167,7 +1151,6 @@
             <p class="step-desc" id="finalFormDesc">
               ឥឡូវនេះ អ្នកអាចកំណត់លេខសម្ងាត់ថ្មីរបស់អ្នកបានហើយ។
             </p>
-
             <div class="form-group">
               <label id="lblNewVal">New Password</label>
               <div class="input-box">
@@ -1183,7 +1166,6 @@
                 ></i>
               </div>
             </div>
-
             <div class="form-group">
               <label id="lblConfirmVal">Confirm Password</label>
               <div class="input-box">
@@ -1199,7 +1181,6 @@
                 ></i>
               </div>
             </div>
-
             <button
               class="btn-main"
               id="btnSaveSec"
@@ -1212,7 +1193,7 @@
       </div>
 
       <!-- ==============================================================
-           📱 VIEW 3: TELEGRAM LINK VIEW
+           📱 VIEW 3: TELEGRAM LINK VIEW (ផ្ទាំងភ្ជាប់ Telegram Alert)
            ============================================================== -->
       <div id="view-telegram" class="view-state">
         <div class="header header-flat">
@@ -1303,15 +1284,16 @@
     </div>
 
     <!-- ==============================================================
-         ⚙️ JAVASCRIPT LOGIC
+         ⚙️ JAVASCRIPT LOGIC (រាល់មុខងារទាំងអស់)
          ============================================================== -->
     <script>
-      // 🛡️ User Session Check
+      // ==========================================
+      // 🛡️ ១. គ្រប់គ្រង Session (Session Management)
+      // ==========================================
       let user = JSON.parse(sessionStorage.getItem("user"));
       let userToken = sessionStorage.getItem("userToken");
       if (!user || !userToken) window.location.href = "index.html";
 
-      // --- INITIAL LOAD ---
       document.getElementById("u-name").innerText =
         user.fullName || user.username;
       document.getElementById("u-phone").innerText =
@@ -1319,52 +1301,12 @@
       document.getElementById("u-img").src =
         user.profileImage || "images/logo.png";
       document.getElementById("secEmailDisplay").innerText =
-        user.email || "No Email Bound"; // Update Step 2 Email Text
-
-      function updateTeleStatusText() {
-        const teleStatus = document.getElementById("teleStatus");
-        teleStatus.innerHTML = user.telegramChatId
-          ? '<span style="color: #10b981; font-weight: bold;">Linked</span>'
-          : '<span style="color: #ef4444;">Not Linked</span>';
-      }
-      updateTeleStatusText();
-
-      const kycEl = document.getElementById("kycStatusText");
-      function updateKycUI() {
-        if (user.kycStatus === "approved" || user.kycStatus === "verified") {
-          kycEl.innerText = "Verified";
-          kycEl.style.color = "#10b981";
-        } else if (user.kycStatus === "pending") {
-          kycEl.innerText = "Pending";
-          kycEl.style.color = "#f59e0b";
-        } else {
-          kycEl.innerText = "Unverified";
-          kycEl.style.color = "#ef4444";
-        }
-      }
-      updateKycUI();
+        user.email || "No Email Bound";
 
       // ==========================================
-      // 👁️ មុខងារបិទ/បើកភ្នែក (Show/Hide Password)
-      // ==========================================
-      function toggleVisibility(inputId, iconElement) {
-        const input = document.getElementById(inputId);
-        if (input.type === "password") {
-          input.type = "text";
-          iconElement.classList.remove("fa-eye");
-          iconElement.classList.add("fa-eye-slash");
-        } else {
-          input.type = "password";
-          iconElement.classList.remove("fa-eye-slash");
-          iconElement.classList.add("fa-eye");
-        }
-      }
-
-      // ==========================================
-      // 🌐 LANGUAGE & THEME
+      // 🎨 ២. ស្បែក និង ភាសា (Theme & Language Settings)
       // ==========================================
       const userThemeKey = "darkMode_" + user.username;
-      const userBioKey = "useBiometric_" + user.username;
 
       function applyTheme() {
         const isDark =
@@ -1374,10 +1316,6 @@
           document.body.classList.add("dark-mode");
           const toggle = document.getElementById("darkModeToggle");
           if (toggle) toggle.checked = true;
-        }
-        if (localStorage.getItem(userBioKey) === "true") {
-          const bioToggle = document.getElementById("bioToggle");
-          if (bioToggle) bioToggle.checked = true;
         }
       }
 
@@ -1394,12 +1332,7 @@
         const isDarkModeActive = document.body.classList.toggle("dark-mode");
         localStorage.setItem(userThemeKey, isDarkModeActive);
       }
-      function toggleBio() {
-        localStorage.setItem(
-          userBioKey,
-          document.getElementById("bioToggle").checked,
-        );
-      }
+
       function toggleLang() {
         let currentLang = localStorage.getItem("lang") || "en";
         let newLang = currentLang === "en" ? "kh" : "en";
@@ -1409,9 +1342,21 @@
         if (typeof applyLanguage === "function") applyLanguage();
       }
 
-      // ==========================================
-      // 📝 SWEETALERT CONFIG
-      // ==========================================
+      // មុខងារបិទ/បើកភ្នែក (Show/Hide Password)
+      function toggleVisibility(inputId, iconElement) {
+        const input = document.getElementById(inputId);
+        if (input.type === "password") {
+          input.type = "text";
+          iconElement.classList.remove("fa-eye");
+          iconElement.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          iconElement.classList.remove("fa-eye-slash");
+          iconElement.classList.add("fa-eye");
+        }
+      }
+
+      // 📝 SweetAlert Config
       const swalConfig = {
         buttonsStyling: false,
         customClass: {
@@ -1427,10 +1372,10 @@
       };
 
       // ==========================================
-      // 🔒 SECURITY FLOW LOGIC (4 STEPS)
+      // 🔒 ៣. សុវត្ថិភាពគណនី (Security Flow Logic - 4 Steps)
       // ==========================================
       let securityMode = ""; // 'password' or 'pin'
-      let tempOldPassword = ""; // រក្សាទុក password ចាស់បណ្តោះអាសន្ន
+      let tempOldPassword = "";
 
       function openSecurityFlow(mode) {
         if (!user.email) {
@@ -1442,15 +1387,13 @@
         }
 
         securityMode = mode;
-        tempOldPassword = ""; // Reset old pass
+        tempOldPassword = "";
         document.getElementById("view-settings").classList.remove("active");
         document.getElementById("view-security").classList.add("active");
 
-        // 🌟 ១. កំណត់ចំណងជើងផ្ទាំងតាម Mode
+        // UI Updates for Step 1
         document.getElementById("secTitle").innerText =
           mode === "password" ? "Change Password" : "Change PIN";
-
-        // 🌟 ២. កំណត់ UI សម្រាប់ Step 1 (បែងចែកដាច់រវាង Password និង PIN)
         const step1Title = document.querySelector("#sec-step-1 .step-title");
         const step1Desc = document.querySelector("#sec-step-1 .step-desc");
         const step1Label = document.querySelector(
@@ -1463,48 +1406,34 @@
           step1Desc.innerText =
             "សូមបញ្ចូលលេខ PIN ៤ ខ្ទង់បច្ចុប្បន្នរបស់អ្នក ដើម្បីបន្ត។";
           step1Label.innerText = "Current PIN (4 digits)";
-
           inputOldVal.placeholder = "* * * *";
           inputOldVal.maxLength = 4;
           inputOldVal.type = "password";
           inputOldVal.inputMode = "numeric";
           inputOldVal.pattern = "[0-9]*";
           inputOldVal.style.letterSpacing = "12px";
-          inputOldVal.style.textAlign = "center";
-          inputOldVal.style.fontSize = "1.2rem";
-          inputOldVal.style.fontWeight = "bold";
-
-          // 🌟 ថែមទីនេះ៖ រុញផ្កាយឱ្យចំកណ្តាលប្រអប់ Step 1
           inputOldVal.classList.add("pin-centered");
         } else {
           step1Title.innerText = "Verify Identity";
           step1Desc.innerText =
             "សូមវាយពាក្យសម្ងាត់គណនីចាស់របស់អ្នក ដើម្បីបន្ត។";
           step1Label.innerText = "Current Password";
-
           inputOldVal.placeholder = "បញ្ចូលពាក្យសម្ងាត់បច្ចុប្បន្ន";
           inputOldVal.maxLength = 50;
           inputOldVal.type = "password";
           inputOldVal.inputMode = "text";
           inputOldVal.removeAttribute("pattern");
           inputOldVal.style.letterSpacing = "normal";
-          inputOldVal.style.textAlign = "left";
-          inputOldVal.style.fontSize = "1rem";
-          inputOldVal.style.fontWeight = "600";
-
-          // 🌟 លុបចេញវិញពេលជា Password
           inputOldVal.classList.remove("pin-centered");
         }
 
-        // 🌟 ៣. រៀបចំ UI សម្រាប់ Step 4 (New Password ឬ New PIN)
+        // UI Updates for Step 4
         document.getElementById("finalFormTitle").innerText =
           mode === "password" ? "Set New Password" : "Set New PIN";
         document.getElementById("lblNewVal").innerText =
           mode === "password" ? "New Password" : "New PIN (4 digits)";
         document.getElementById("lblConfirmVal").innerText =
           mode === "password" ? "Confirm Password" : "Confirm New PIN";
-
-        // កំណត់ទម្រង់ប្រអប់ New/Confirm វាយអក្សរ
         const inputNewVal = document.getElementById("inputNewVal");
         const inputConfirmVal = document.getElementById("inputConfirmVal");
 
@@ -1516,14 +1445,6 @@
           inputConfirmVal.placeholder = "* * * *";
           inputNewVal.style.letterSpacing = "10px";
           inputConfirmVal.style.letterSpacing = "10px";
-          inputNewVal.style.textAlign = "center";
-          inputConfirmVal.style.textAlign = "center";
-          inputNewVal.style.fontSize = "1.2rem";
-          inputNewVal.style.fontWeight = "bold";
-          inputConfirmVal.style.fontSize = "1.2rem";
-          inputConfirmVal.style.fontWeight = "bold";
-
-          // 🌟 ថែមទីនេះ៖ រុញផ្កាយប្រអប់ New/Confirm ឱ្យចំកណ្តាលដែរ
           inputNewVal.classList.add("pin-centered");
           inputConfirmVal.classList.add("pin-centered");
         } else {
@@ -1533,13 +1454,6 @@
           inputNewVal.placeholder = "********";
           inputConfirmVal.placeholder = "********";
           inputNewVal.style.letterSpacing = "normal";
-          inputConfirmVal.style.textAlign = "left";
-          inputNewVal.style.fontSize = "1rem";
-          inputNewVal.style.fontWeight = "600";
-          inputConfirmVal.style.fontSize = "1rem";
-          inputConfirmVal.style.fontWeight = "600";
-
-          // 🌟 លុបចេញវិញពេលជា Password
           inputNewVal.classList.remove("pin-centered");
           inputConfirmVal.classList.remove("pin-centered");
         }
@@ -1577,19 +1491,14 @@
         document.getElementById("secStepIcon4").className =
           `progress-step ${step >= 4 ? "active" : ""}`;
 
-        // Line width: 0%, 33.3%, 66.6%, 100%
         const lineWidths = { 1: "0%", 2: "33.33%", 3: "66.66%", 4: "100%" };
         document.getElementById("secProgressLine").style.width =
           lineWidths[step];
       }
 
-      // Step 1: Verify Old Password
-      // ==========================================
-      // Step 1: Verify Old Password or PIN
-      // ==========================================
       async function verifyOldPasswordStep() {
         const oldVal = document.getElementById("inputOldVal").value.trim();
-        if (!oldVal) {
+        if (!oldVal)
           return Toast.fire({
             icon: "warning",
             title:
@@ -1597,7 +1506,6 @@
                 ? "សូមវាយបញ្ចូលពាក្យសម្ងាត់ចាស់សិន!"
                 : "សូមបញ្ចូលលេខ PIN ចាស់សិន!",
           });
-        }
 
         const btn = document.getElementById("btnVerifyOldPass");
         const originalText = btn.innerHTML;
@@ -1606,17 +1514,14 @@
         btn.disabled = true;
 
         try {
-          // 🌟 កែតម្រូវ URL ដោយដកពាក្យ /auth ចេញ
           const url =
             securityMode === "password"
               ? "/api/verify-password"
               : "/api/verify-pin";
-
           const payload =
             securityMode === "password"
               ? { username: user.username, password: oldVal }
               : { username: user.username, pin: oldVal };
-
           const res = await fetch(url, {
             method: "POST",
             headers: {
@@ -1626,17 +1531,13 @@
             body: JSON.stringify(payload),
           });
           const data = await res.json();
-
           if (data.success) {
-            // បើលេខចាស់ត្រូវ រក្សាទុកបណ្តោះអាសន្ន រួចទៅ Step 2
             tempOldPassword = oldVal;
             setSecurityStep(2);
-
-            // 🌟 ធ្វើការ Auto-Send OTP ភ្លាមៗ (មិនបាច់ឲ្យភ្ញៀវចុចប៊ូតុង Send ខ្លួនឯងទេ)
             sendSecurityOtp();
           } else {
             Swal.fire("បរាជ័យ", data.message, "error");
-            document.getElementById("inputOldVal").value = ""; // លុបចោលអោយវាយម្តងទៀត
+            document.getElementById("inputOldVal").value = "";
           }
         } catch (err) {
           Swal.fire("បរាជ័យ", "មានបញ្ហាតភ្ជាប់ទៅ Server", "error");
@@ -1646,18 +1547,14 @@
         }
       }
 
-      // Step 2: Request OTP to Email
       async function sendSecurityOtp() {
         const btn = document.getElementById("btnSendOtp");
         btn.innerHTML =
           '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...';
         btn.disabled = true;
-
         try {
-          // 🌟 បាញ់ទៅ API ថ្មីរបស់យើង ដោយបញ្ជូន purpose ទៅតាម mode ជាក់ស្តែង
           const purposeType =
             securityMode === "password" ? "security_pass" : "security_pin";
-
           const res = await fetch("/api/send-security-otp", {
             method: "POST",
             headers: {
@@ -1681,21 +1578,18 @@
         }
       }
 
-      // Step 3: Verify OTP Code
       async function verifySecurityOtp() {
         const otpCode = document.getElementById("secOtpInput").value;
-        if (!otpCode || otpCode.length !== 6) {
+        if (!otpCode || otpCode.length !== 6)
           return Toast.fire({
             icon: "warning",
             title: "សូមបញ្ចូលលេខកូដ ៦ខ្ទង់",
           });
-        }
 
         const btn = document.getElementById("btnVerifyOtp");
         btn.innerHTML =
           '<i class="fa-solid fa-circle-notch fa-spin"></i> Verifying...';
         btn.disabled = true;
-
         try {
           const res = await fetch("/api/forgot-password/verify-otp", {
             method: "POST",
@@ -1719,10 +1613,6 @@
         }
       }
 
-      // Step 4: Final Save (New Password or PIN)
-      // ==========================================
-      // Step 4: Final Save (New Password or PIN)
-      // ==========================================
       async function saveNewCredentials() {
         const newVal = document.getElementById("inputNewVal").value;
         const confirmVal = document.getElementById("inputConfirmVal").value;
@@ -1732,7 +1622,6 @@
             icon: "warning",
             title: "សូមបំពេញព័ត៌មានអោយគ្រប់ជ្រុងជ្រោយ",
           });
-
         if (newVal !== confirmVal)
           return Toast.fire({
             icon: "error",
@@ -1741,13 +1630,11 @@
                 ? "លេខសម្ងាត់ថ្មីមិនត្រូវគ្នាទេ!"
                 : "លេខ PIN ថ្មីមិនត្រូវគ្នាទេ!",
           });
-
-        if (securityMode === "pin" && (newVal.length !== 4 || isNaN(newVal))) {
+        if (securityMode === "pin" && (newVal.length !== 4 || isNaN(newVal)))
           return Toast.fire({
             icon: "error",
             title: "លេខ PIN ត្រូវមាន ៤ខ្ទង់!",
           });
-        }
 
         const btn = document.getElementById("btnSaveSec");
         const originalText = btn.innerHTML;
@@ -1756,13 +1643,10 @@
         btn.disabled = true;
 
         try {
-          // 🌟 កែតម្រូវ URL ដោយដកពាក្យ /auth ចេញ
           let url =
             securityMode === "password"
               ? "/api/change-password"
               : "/api/change-pin";
-
-          // 🌟 ប្រើ oldPin ជំនួស password សម្រាប់ Mode PIN
           let payload =
             securityMode === "password"
               ? {
@@ -1785,7 +1669,6 @@
             body: JSON.stringify(payload),
           });
           const data = await res.json();
-
           if (data.success) {
             Swal.fire({
               icon: "success",
@@ -1798,10 +1681,9 @@
               allowOutsideClick: false,
               customClass: { popup: "premium-swal" },
             }).then(() => {
-              if (securityMode === "password") {
-                // 🟢 មិនបាច់ Logout ទេ រក្សាទុក session ហើយរត់ទៅ dashboard តែម្តង
+              if (securityMode === "password")
                 window.location.href = "dashboard.html";
-              } else {
+              else {
                 user.pin = newVal;
                 sessionStorage.setItem("user", JSON.stringify(user));
                 closeSecurityFlow();
@@ -1819,44 +1701,30 @@
       }
 
       // ==========================================
-      // 📞 SUPPORT TICKET & KYC & PROFILE UPLOAD...
+      // 👤 ៤. គណនី និង អត្តសញ្ញាណ (Profile Upload & KYC)
       // ==========================================
-      async function openTicketModal() {
-        const { value: v } = await Swal.fire({
-          ...swalConfig,
-          title: "Support Ticket",
-          html: `<div style="text-align:left; margin-bottom:5px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Subject</label></div><input id="t-s" class="swal2-input swal-custom-input"><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Priority</label></div><select id="t-p" class="swal2-select swal-custom-input"><option value="Normal">Normal</option><option value="High">High</option></select><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Message</label></div><textarea id="t-d" class="swal2-textarea swal-custom-input" style="min-height:100px;"></textarea>`,
-          preConfirm: () => ({
-            subject: document.getElementById("t-s").value,
-            priority: document.getElementById("t-p").value,
-            description: document.getElementById("t-d").value,
-          }),
-        });
-        if (v && v.subject && v.description) {
-          const res = await fetch("/api/ticket/create", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer " + userToken,
-            },
-            body: JSON.stringify({ username: user.username, ...v }),
-          });
-          const d = await res.json();
-          if (d.success)
-            Swal.fire("Sent", "We will review your issue", "success");
+      function updateKycUI() {
+        const kycEl = document.getElementById("kycStatusText");
+        if (user.kycStatus === "approved" || user.kycStatus === "verified") {
+          kycEl.innerText = "Verified";
+          kycEl.style.color = "#10b981";
+        } else if (user.kycStatus === "pending") {
+          kycEl.innerText = "Pending";
+          kycEl.style.color = "#f59e0b";
+        } else {
+          kycEl.innerText = "Unverified";
+          kycEl.style.color = "#ef4444";
         }
       }
+      updateKycUI();
 
       async function triggerKycUpload() {
         const status = (user.kycStatus || "").toLowerCase();
-
-        // 🟢 ករណី Status ជា approved, verified ឬ pending
         if (
           status === "approved" ||
           status === "verified" ||
           status === "pending"
         ) {
-          // 🌟 ហៅទិន្នន័យថ្មីស្រឡាងពី Server ផ្ទាល់ ដើម្បីធានាថាបាន Link `kycDocument` ពិតប្រាកដ
           let docUrl = "";
           try {
             Swal.fire({
@@ -1864,7 +1732,6 @@
               didOpen: () => Swal.showLoading(),
               customClass: { popup: "premium-swal" },
             });
-
             const res = await fetch(`/api/users`, {
               headers: { Authorization: "Bearer " + userToken },
             });
@@ -1875,12 +1742,9 @@
                 u.username &&
                 u.username.toLowerCase() === user.username.toLowerCase(),
             );
-
             Swal.close();
-
             if (freshUser && freshUser.kycDocument) {
               docUrl = freshUser.kycDocument;
-              // អាប់ដេត sessionStorage ទុកជាមុន
               user = freshUser;
               sessionStorage.setItem("user", JSON.stringify(user));
             }
@@ -1888,20 +1752,14 @@
             Swal.close();
           }
 
-          // បើនៅតែអត់មាន យកតម្លៃក្នុង session មកទប់
-          if (!docUrl) {
-            docUrl = user.kycDocument || user.kycUrl || "";
-          }
-
-          if (!docUrl) {
+          if (!docUrl) docUrl = user.kycDocument || user.kycUrl || "";
+          if (!docUrl)
             return Swal.fire(
               "ព័ត៌មានអត្តសញ្ញាណ",
-              `ស្ថានភាព KYC របស់អ្នកបច្ចុប្បន្នគឺ៖ <b>${status.toUpperCase()}</b> ប៉ុន្តែរកមិនឃើញរូបភាពឯកសារទេ។`,
+              `ស្ថានភាព KYC៖ <b>${status.toUpperCase()}</b> ប៉ុន្តែរកមិនឃើញរូបភាពឯកសារទេ។`,
               "info",
             );
-          }
 
-          // 🌟 បង្ហាញរូបភាព KYC ក្នុង SweetAlert Modal យ៉ាងស្អាត
           return Swal.fire({
             title: "ឯកសារអត្តសញ្ញាណរបស់អ្នក (KYC)",
             html: `
@@ -1910,16 +1768,13 @@
                   ស្ថានភាពបច្ចុប្បន្ន៖ <strong style="color: ${status === "pending" ? "#f59e0b" : "#10b981"}; text-transform: uppercase;">${status}</strong>
                 </p>
                 <div style="border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #f8fafc; max-height: 320px; display: flex; align-items: center; justify-content: center; padding: 5px;">
-                  <img src="${docUrl}" alt="KYC Document" style="width: 100%; height: auto; max-height: 300px; object-fit: contain; display: block; border-radius: 8px;" onerror="this.onerror=null; this.src='images/logo.png';" />
+                  <img src="${docUrl}" style="width: 100%; height: auto; max-height: 300px; object-fit: contain; border-radius: 8px;" onerror="this.onerror=null; this.src='images/logo.png';" />
                 </div>
-              </div>
-            `,
+              </div>`,
             confirmButtonText: "បិទ (Close)",
             customClass: { popup: "premium-swal" },
           });
         }
-
-        // 🔴 បើ Unverified ឱ្យបើក File Picker ដើម្បី Upload ធម្មតា
         document.getElementById("kycUploadInput").click();
       }
 
@@ -1981,6 +1836,7 @@
           e.target.value = "";
           return;
         }
+
         Swal.fire({
           title: "កំពុងបញ្ជូនរូបភាព...",
           didOpen: () => Swal.showLoading(),
@@ -2030,40 +1886,87 @@
         e.target.value = "";
       }
 
+      // 🎫 Support Ticket
+      async function openTicketModal() {
+        const { value: v } = await Swal.fire({
+          ...swalConfig,
+          title: "Support Ticket",
+          html: `<div style="text-align:left; margin-bottom:5px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Subject</label></div><input id="t-s" class="swal2-input swal-custom-input"><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Priority</label></div><select id="t-p" class="swal2-select swal-custom-input"><option value="Normal">Normal</option><option value="High">High</option></select><div style="text-align:left; margin-bottom:5px; margin-top:15px;"><label style="font-size:0.85rem; color:#64748b; font-weight:bold;">Message</label></div><textarea id="t-d" class="swal2-textarea swal-custom-input" style="min-height:100px;"></textarea>`,
+          preConfirm: () => ({
+            subject: document.getElementById("t-s").value,
+            priority: document.getElementById("t-p").value,
+            description: document.getElementById("t-d").value,
+          }),
+        });
+        if (v && v.subject && v.description) {
+          const res = await fetch("/api/ticket/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify({ username: user.username, ...v }),
+          });
+          const d = await res.json();
+          if (d.success)
+            Swal.fire("Sent", "We will review your issue", "success");
+        }
+      }
+
+      // 🚪 Logout (ចាកចេញពីគណនី)
       function logout() {
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("userToken");
-        localStorage.removeItem("userToken");
-        window.location.href = "index.html";
+        Swal.fire({
+          title: "ចាកចេញពីគណនី",
+          html: "<span class='kh-text' style='color: #64748b; font-size: 0.95rem;'>តើអ្នកពិតជាចង់ចាកចេញពីប្រព័ន្ធ U-Pay មែនទេ?</span>",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "បាទ/ចាស ចាកចេញ",
+          cancelButtonText: "បោះបង់",
+          customClass: {
+            popup: "premium-swal",
+            title: "premium-swal-title",
+            confirmButton: "premium-btn-confirm",
+            cancelButton: "premium-btn-cancel",
+          },
+          buttonsStyling: false,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // បើ User ចុចយល់ព្រម ទើបយើងលុប Session នឹងរុញទៅកន្លែង Login វិញ
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("userToken");
+            localStorage.removeItem("userToken");
+            window.location.href = "index.html";
+          }
+        });
       }
 
       // ==========================================
-      // 📱 TELEGRAM VIEW LOGIC
+      // 🤖 ៥. តភ្ជាប់ Telegram (Telegram Integration)
       // ==========================================
+      function updateTeleStatusText() {
+        const teleStatus = document.getElementById("teleStatus");
+        teleStatus.innerHTML = user.telegramChatId
+          ? '<span style="color: #10b981; font-weight: bold;">Linked</span>'
+          : '<span style="color: #ef4444;">Not Linked</span>';
+      }
+      updateTeleStatusText();
+
       let pollingInterval;
       const socket = io();
       socket.on("connect", () => {
         if (user && user.username) socket.emit("joinRoom", user.username);
       });
 
-      // 🌟 មុខងារមេសម្រាប់ធ្វើបច្ចុប្បន្នភាពទិន្នន័យពេល Telegram ភ្ជាប់ជោគជ័យ
       function handleTelegramSuccess(chatId) {
         if (pollingInterval) clearInterval(pollingInterval);
-
-        // ធ្វើបច្ចុប្បន្នភាពលើអថេរ user និង Session Storage
         user.telegramChatId = chatId || "linked";
         sessionStorage.setItem("user", JSON.stringify(user));
-
-        // បិទកូដ និងបង្ហាញ UI ថាភ្ជាប់ជោគជ័យ
         document.getElementById("codeContainer").style.display = "none";
         document.getElementById("instructions").style.display = "none";
         showTeleSuccessUI();
-
-        // អាប់ដេតអត្ថបទ Status ទាំងក្នុងផ្ទាំង Telegram និងផ្ទាំង Settings ខាងក្រៅភ្លាមៗ
         updateTeleStatusText();
       }
 
-      // 🌟 ប្រើប្រាស់ handleTelegramSuccess ក្នុង Socket
       socket.on("telegramLinked", (data) => {
         if (data.success) {
           handleTelegramSuccess(data.telegramChatId);
@@ -2090,16 +1993,19 @@
           document.getElementById("btnUnlink").style.display = "none";
         }
       }
+
       function closeTelegramView() {
         document.getElementById("view-telegram").classList.remove("active");
         document.getElementById("view-settings").classList.add("active");
         updateTeleStatusText();
       }
+
       function showTeleSuccessUI() {
         document.getElementById("btnGenerate").style.display = "none";
         document.getElementById("successBox").style.display = "block";
         document.getElementById("btnUnlink").style.display = "block";
       }
+
       async function generateLinkCode() {
         const btn = document.getElementById("btnGenerate");
         btn.innerHTML =
@@ -2131,13 +2037,13 @@
           resetGenBtn();
         }
       }
+
       function resetGenBtn() {
         const btn = document.getElementById("btnGenerate");
         btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> ទាញយកលេខកូដ';
         btn.disabled = false;
       }
 
-      // 🌟 ប្រើប្រាស់ handleTelegramSuccess ក្នុង Polling ផងដែរ
       function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
         pollingInterval = setInterval(async () => {
@@ -2161,9 +2067,7 @@
                 customClass: { popup: "premium-swal" },
               });
             }
-          } catch (e) {
-            console.error("Polling error:", e);
-          }
+          } catch (e) {}
         }, 2000);
       }
 

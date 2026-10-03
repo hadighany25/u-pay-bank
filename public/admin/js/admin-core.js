@@ -2,6 +2,7 @@
 
 // ========================================================================
 // ⚙️ SECTION 1: GLOBAL VARIABLES & AUTHENTICATION
+// គ្រប់គ្រងអថេរសកល និងការផ្ទៀងផ្ទាត់សិទ្ធិចូលប្រព័ន្ធ
 // ========================================================================
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
@@ -9,10 +10,12 @@ let myAdminPermissions = null;
 let myChart = null;
 let globalUsersData = [];
 
+// ទាត់អ្នកប្រើប្រាស់ចេញ បើគ្មាន Token ត្រឹមត្រូវ
 if (!adminToken || !adminRole) {
   window.location.href = "admin-login.html";
 }
 
+// មុខងារសម្រាប់ភ្ជាប់ Token ទៅរាល់ API Requests
 const getAuthHeaders = () => {
   return {
     "Content-Type": "application/json",
@@ -20,7 +23,7 @@ const getAuthHeaders = () => {
   };
 };
 
-// 🟢 យកទិន្នន័យ Profile មកបង្ហាញលើ Sidebar ឱ្យចេញជា "FULL NAME" និង "ID : UPAY-xxxxxx"
+// 🟢 បង្ហាញឈ្មោះ Admin និង Staff ID នៅលើ Sidebar Menu
 const adminFullName =
   sessionStorage.getItem("adminFullName") ||
   "U-PAY " + (adminRole ? adminRole.split("_")[0].toUpperCase() : "ADMIN");
@@ -30,7 +33,8 @@ document.getElementById("adminNameDisplay").innerText = adminFullName;
 document.getElementById("adminRoleDisplay").innerText = "ID : " + adminStaffId;
 
 // ========================================================================
-// 🌙 SECTION 2: UI & THEME MANAGEMENT (DARK / LIGHT MODE)
+// 🌙 SECTION 2: UI & THEME MANAGEMENT
+// គ្រប់គ្រង Dark Mode / Light Mode និងការបិទបើក Sidebar
 // ========================================================================
 let isDarkMode = localStorage.getItem("adminDarkMode") === "true";
 
@@ -57,10 +61,6 @@ function applyTheme() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  applyTheme();
-});
-
 function toggleSidebar(force) {
   const sb = document.getElementById("sidebar");
   const ov = document.querySelector(".overlay");
@@ -75,6 +75,7 @@ function toggleSidebar(force) {
 
 // ========================================================================
 // 🧭 SECTION 3: MENU NAVIGATION & LOGOUT
+// គ្រប់គ្រងការផ្លាស់ប្តូរទំព័រ (Tabs) និងការចាកចេញពីប្រព័ន្ធ
 // ========================================================================
 function showSection(id, btn) {
   sessionStorage.setItem("activeSection", id);
@@ -99,26 +100,25 @@ function showSection(id, btn) {
     "system",
   ];
 
+  // លាក់ទំព័រទាំងអស់ រួចបង្ហាញតែទំព័រដែលបានជ្រើសរើស
   sections.forEach((sec) => {
     const el = document.getElementById("sec-" + sec);
     if (el) el.style.display = "none";
   });
   document.getElementById("sec-" + id).style.display = "block";
 
+  // ហៅទិន្នន័យជាក់លាក់ពេលចូលដល់ទំព័រនីមួយៗ
   if (id === "broadcast-history" && typeof loadBroadcastHistory === "function")
     loadBroadcastHistory();
   if (id === "fx" && typeof fetchFXRates === "function") fetchFXRates();
   if (id === "logs" && typeof loadAdminLogs === "function") loadAdminLogs();
   if (id === "promo" && typeof loadPromoCodes === "function") loadPromoCodes();
 
+  // ដូរពណ៌ប៊ូតុង Menu ឱ្យសកម្ម (Active State)
   document
     .querySelectorAll(".menu-item")
     .forEach((m) => m.classList.remove("active"));
   if (btn) btn.classList.add("active");
-  if (id === "broadcast-history") {
-    // ដូរមកប្រើ id វិញ
-    if (typeof loadBroadcastHistory === "function") loadBroadcastHistory();
-  }
 }
 
 function logout() {
@@ -137,13 +137,14 @@ function logout() {
     if (result.isConfirmed) {
       sessionStorage.removeItem("adminToken");
       sessionStorage.removeItem("adminRole");
-      window.location.href = window.location.href = "admin-login.html";
+      window.location.href = "admin-login.html";
     }
   });
 }
 
 // ========================================================================
 // 📊 SECTION 4: DASHBOARD CHART RENDERER
+// គូរតារាងក្រាហ្វិក (Chart.js) សម្រាប់ប្រតិបត្តិការ ៧ ថ្ងៃចុងក្រោយ
 // ========================================================================
 let trxChartInstance = null;
 
@@ -172,9 +173,7 @@ function renderDashboardChart(usersData) {
     if (trxDateStr) {
       const justDate = new Date(trxDateStr).toLocaleDateString();
       const index = last7DaysLabels.indexOf(justDate);
-      if (index !== -1) {
-        dailyDataCounts[index] += 1;
-      }
+      if (index !== -1) dailyDataCounts[index] += 1;
     }
   });
 
@@ -214,10 +213,14 @@ function renderDashboardChart(usersData) {
 }
 
 // ========================================================================
-// 🔄 SECTION 5: CORE DATA FETCHING (Load Data)
+// 🔄 SECTION 5: CORE DATA FETCHING (MASTER LOADER)
+// ទាញយកទិន្នន័យសំខាន់ៗទាំងអស់ពី Server ម្តងរួមគ្នា (Users, Stats, Activities)
 // ========================================================================
 async function loadData() {
   try {
+    // --------------------------------------------------
+    // ៥.១ ទាញយកទិន្នន័យពី APIs
+    // --------------------------------------------------
     const [userRes, chartRes, extraRes] = await Promise.all([
       fetch("/api/users", { headers: getAuthHeaders() }),
       fetch("/api/admin/stats", { headers: getAuthHeaders() }),
@@ -235,9 +238,10 @@ async function loadData() {
       renderUsersTable(globalUsersData);
     renderDashboardChart(globalUsersData);
 
-    let kycHtml = "";
-    let ticketsHtml = "";
-
+    // --------------------------------------------------
+    // ៥.២ អថេរសម្រាប់គណនាស្ថិតិ (Statistics Initialization)
+    // --------------------------------------------------
+    let ticketsHtml = ""; // រក្សាទុកកូដសាងសង់តារាង Ticket
     let activeToday = 0,
       newUsers = 0,
       totalFunds = 0,
@@ -247,25 +251,31 @@ async function loadData() {
       totalWithdrawals = 0,
       totalTransfers = 0,
       frozenCount = 0;
+
     let allAdminNotifs = new Set();
     const todayStr = new Date().toISOString().split("T")[0];
-
     let allIssuedCards = [];
 
+    // --------------------------------------------------
+    // ៥.៣ ដំណើរការទិន្នន័យរបស់អតិថិជនម្នាក់ៗ (Data Processing Loop)
+    // --------------------------------------------------
     clients.forEach((u) => {
+      // គណនាស្ថិតិមូលដ្ឋាន
       if (u.isOnline) activeToday++;
       if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
       if (u.isFrozen) frozenCount++;
+
       const balUSD = u.mainAccounts?.USD?.balance || 0;
-      // បើចង់បូក KHR បញ្ចូលគ្នា គឺត្រូវយកទៅចែកជាមួយអត្រាប្តូរប្រាក់ (ឧ. ៤១០០)
       const balKHRinUSD = (u.mainAccounts?.KHR?.balance || 0) / 4100;
       totalFunds += balUSD + balKHRinUSD;
 
-      if (u.deposits && Array.isArray(u.deposits))
+      if (u.deposits && Array.isArray(u.deposits)) {
         u.deposits.forEach(
           (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
         );
+      }
 
+      // គណនាស្ថិតិប្រតិបត្តិការ
       if (u.transactions && Array.isArray(u.transactions)) {
         totalTrxCount += u.transactions.length;
         u.transactions.forEach((trx) => {
@@ -275,52 +285,71 @@ async function loadData() {
             (trx.type === "Withdrawal" ||
               trx.type === "Transfer" ||
               trx.trxMethod === "U-PAY Transfer")
-          )
+          ) {
             totalWithdrawals += Math.abs(Number(trx.amount || 0));
+          }
           if (trx.type === "Transfer" || trx.trxMethod === "U-PAY Transfer")
             totalTransfers++;
         });
       }
 
-      if (u.notifications && Array.isArray(u.notifications))
+      // ប្រមូលសារ Broadcast
+      if (u.notifications && Array.isArray(u.notifications)) {
         u.notifications.forEach((n) => {
           if (n.sender === "admin")
             allAdminNotifs.add(n.id || n.title + n.date);
         });
+      }
 
+      // ប្រមូលកាតនិម្មិតទាំងអស់
       if (u.virtualCards && u.virtualCards.length > 0) {
         u.virtualCards.forEach((c) => {
           allIssuedCards.push({ user: u, card: c });
         });
       }
 
-      // KYC
-      if (u.kycStatus === "pending") {
-        kycHtml += `<tr><td><div style="font-weight:600;">${u.fullName || u.username}</div><div style="font-size:0.8rem; color:var(--text-muted);">Account: ${u.accountNumber}</div></td><td>Identity Document</td><td>${u.kycSubmittedAt || "Recent"}</td><td><span style="background:#fef3c7; color:#d97706; padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">PENDING</span></td><td style="text-align: right;"><button class="btn-action" style="background:#10b981;" onclick="kycAction('${u.username}', 'approved')" title="Approve"><i class="fa-solid fa-check"></i></button><button class="btn-action" style="background:#ef4444;" onclick="kycAction('${u.username}', 'rejected')" title="Reject"><i class="fa-solid fa-xmark"></i></button><button class="btn-action" style="background:var(--primary);" onclick="viewKycDocument('${u.kycDocument}')" title="View Docs"><i class="fa-solid fa-eye"></i></button></td></tr>`;
-      }
-
-      // Support Tickets
+      // ប្រមូល Support Tickets
       if (u.tickets) {
         u.tickets.forEach((t) => {
           const statusColor =
             t.status === "Open"
               ? "color:#d97706; background:#fef3c7;"
               : "color:#10b981; background:#dcfce7;";
-          ticketsHtml += `<tr><td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td><td><div style="font-weight:600;">${u.username}</div></td><td>${t.subject}</td><td style="text-align: center;"><button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message"><i class="fa-solid fa-eye"></i></button></td><td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td><td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td><td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td></tr>`;
+          ticketsHtml += `<tr>
+            <td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td>
+            <td><div style="font-weight:600;">${u.username}</div></td>
+            <td>${t.subject}</td>
+            <td style="text-align: center;"><button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message"><i class="fa-solid fa-eye"></i></button></td>
+            <td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td>
+            <td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td>
+            <td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td>
+          </tr>`;
         });
       }
     });
 
+    // --------------------------------------------------
+    // ៥.៤ បញ្ជូនទិន្នន័យទៅឱ្យឯកសារខាងក្រៅគ្រប់គ្រង (Delegation)
+    // --------------------------------------------------
+
+    // បញ្ជូនទិន្នន័យកាតទៅឱ្យម៉ូឌុល Card Render
     window.globalCardsData = allIssuedCards;
     if (!window.currentCardPage) window.currentCardPage = 1;
     renderCardTablePage();
 
-    document.getElementById("kycTableBody").innerHTML =
-      kycHtml ||
-      '<tr><td colspan="5" style="text-align:center; padding: 20px;">No pending KYC requests.</td></tr>';
+    // បញ្ជូនទិន្នន័យ KYC ទៅឱ្យម៉ូឌុល admin-kyc.js
+    let pendingKycUsers = clients.filter((u) => u.kycStatus === "pending");
+    window.globalPendingKycData = pendingKycUsers;
+    if (typeof initKycTable === "function") {
+      initKycTable();
+    }
+
+    // --------------------------------------------------
+    // ៥.៥ បច្ចុប្បន្នភាព UI នៅលើអេក្រង់ (DOM Updates)
+    // --------------------------------------------------
     document.getElementById("ticketTableBody").innerHTML =
       ticketsHtml ||
-      '<tr><td colspan="6" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
+      '<tr><td colspan="7" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
 
     document.getElementById("d-users").innerText = clients.length;
     document.getElementById("d-active").innerText = activeToday;
@@ -339,7 +368,7 @@ async function loadData() {
     document.getElementById("d-transfers").innerText = totalTransfers;
     document.getElementById("d-frozen").innerText = frozenCount;
 
-    // Activity Feed
+    // Activity Feed (ចំណូលប្រព័ន្ធ និងសកម្មភាពថ្មីៗ)
     try {
       if (extraData.success || extraData.revenue !== undefined) {
         document.getElementById("d-revenue").innerText =
@@ -349,6 +378,7 @@ async function loadData() {
           });
         const activityBox = document.getElementById("activity-feed");
         const currentDataStr = JSON.stringify(extraData.activities);
+
         if (activityBox.dataset.lastData !== currentDataStr) {
           activityBox.dataset.lastData = currentDataStr;
           if (!extraData.activities || extraData.activities.length === 0) {
@@ -381,11 +411,14 @@ async function loadData() {
         }
       }
     } catch (err) {}
-  } catch (e) {}
+  } catch (e) {
+    console.error("Dashboard Load Data Error:", e);
+  }
 }
 
 // ========================================================================
-// 💳 SECTION 6: CARD PAGINATION RENDERER (៨កាត/ទំព័រ)
+// 💳 SECTION 6: CARD PAGINATION RENDERER
+// រៀបចំការបង្ហាញកាតនិម្មិត/NFC និងការបែងចែកទំព័រ (៨កាត/ទំព័រ)
 // ========================================================================
 const CARDS_PER_PAGE = 8;
 
@@ -497,7 +530,8 @@ function changeCardPage(step) {
 }
 
 // ========================================================================
-// 🔐 SECTION 7: DYNAMIC MENU PERMISSION ENFORCER (CSS Injection)
+// 🔐 SECTION 7: DYNAMIC MENU PERMISSION ENFORCER
+// ចាក់សោរ និងលាក់ម៉ឺនុយទៅតាមតួនាទី (Roles & Permissions) របស់បុគ្គលិក
 // ========================================================================
 async function applyDynamicPermissions() {
   try {
@@ -507,7 +541,6 @@ async function applyDynamicPermissions() {
     if (data.success && data.admin && data.admin.permissions) {
       window.myAdminPermissions = data.admin.permissions;
 
-      // បង្ហាញឈ្មោះ Custom Role លើ Header
       if (
         data.admin.role === "custom" &&
         data.admin.permissions.customRoleName
@@ -516,7 +549,7 @@ async function applyDynamicPermissions() {
           data.admin.permissions.customRoleName.toUpperCase();
       }
 
-      // 🔴 ប្រព័ន្ធលាក់ម៉ឺនុយដ៏រឹងមាំ (បាញ់ CSS)
+      // 🔴 លាក់ម៉ឺនុយដោយប្រើប្រព័ន្ធ CSS (Injection)
       if (adminRole !== "super_admin") {
         const menus = data.admin.permissions.menus || {};
         let cssRules = "";
@@ -551,7 +584,7 @@ async function applyDynamicPermissions() {
         style.innerHTML = cssRules;
         document.head.appendChild(style);
 
-        // លាក់ Title Group បើកូនៗវាបាត់អស់
+        // លាក់ក្រុមចំណងជើង (Group Labels) ប្រសិនបើកូនៗវាត្រូវបាត់អស់
         setTimeout(() => {
           const checkGroupLabel = (labelId, menuIds) => {
             const label = document.getElementById(labelId);
@@ -591,6 +624,7 @@ async function applyDynamicPermissions() {
     console.error("Error fetching permissions:", err);
   }
 
+  // ចាប់ផ្តើមទាញយកទិន្នន័យរៀងរាល់ ១៥វិនាទី
   setInterval(loadData, 15000);
   loadData();
 }
@@ -622,7 +656,7 @@ async function toggleSystemFreeze() {
           headers: getAuthHeaders(),
         });
         const toggleData = await toggleRes.json();
-        if (toggleData.success)
+        if (toggleData.success) {
           Swal.fire({
             title: toggleData.isSystemFrozen
               ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
@@ -634,6 +668,7 @@ async function toggleSystemFreeze() {
             background: "#1e293b",
             color: "white",
           });
+        }
       }
     });
   } catch (e) {}
@@ -641,10 +676,11 @@ async function toggleSystemFreeze() {
 
 // ========================================================================
 // 🔔 SECTION 8: NOTIFICATIONS & SOUND ALERTS POLLING
+// ប្រព័ន្ធផ្តល់សញ្ញាដំណឹង និងសំឡេងរោទ៍ពេលមាន Ticket, Chat, ឬ KYC ថ្មីៗ
 // ========================================================================
 let previousTotalUnread = 0,
-  previousQueueLength = 0,
-  previousPendingKyc = 0,
+  previousQueueLength = 0;
+let previousPendingKyc = 0,
   previousOpenTickets = 0;
 let isFirstLoadNotif = true;
 
@@ -674,8 +710,8 @@ async function checkAdminNotifications() {
 
     if (chatData.success && Array.isArray(userData)) {
       let currentTotalUnread = 0,
-        currentQueueLength = chatData.contacts.length,
-        currentPendingKyc = 0,
+        currentQueueLength = chatData.contacts.length;
+      let currentPendingKyc = 0,
         currentOpenTickets = 0;
 
       chatData.contacts.forEach((c) => {
@@ -683,10 +719,11 @@ async function checkAdminNotifications() {
       });
       userData.forEach((u) => {
         if (u.kycStatus === "pending") currentPendingKyc++;
-        if (u.tickets && Array.isArray(u.tickets))
+        if (u.tickets && Array.isArray(u.tickets)) {
           u.tickets.forEach((t) => {
             if (t.status === "Open") currentOpenTickets++;
           });
+        }
       });
 
       if (!isFirstLoadNotif) {
@@ -744,10 +781,12 @@ function playCustomNotif(message, soundObj, iconColorHex) {
   });
 }
 
+// ឆែកមើលសារថ្មីៗរៀងរាល់ ៣ វិនាទី
 setInterval(checkAdminNotifications, 3000);
 
 // ========================================================================
-// 🎬 SECTION 9: EVENT LISTENERS
+// 🎬 SECTION 9: SYSTEM INITIALIZATION & EVENT LISTENERS
+// ដំណើរការកូដជាមូលដ្ឋាននៅពេលវេបសាយដើរចប់ (On Load)
 // ========================================================================
 window.addEventListener("DOMContentLoaded", () => {
   const savedSection = sessionStorage.getItem("activeSection");
@@ -758,8 +797,9 @@ window.addEventListener("DOMContentLoaded", () => {
       if (
         item.getAttribute("onclick") &&
         item.getAttribute("onclick").includes(`'${savedSection}'`)
-      )
+      ) {
         targetBtn = item;
+      }
     });
     showSection(savedSection, targetBtn);
   }
@@ -777,3 +817,23 @@ window.addEventListener("DOMContentLoaded", () => {
   // ហៅមុខងារអានសិទ្ធិពេល Load ទំព័រ
   applyDynamicPermissions();
 });
+
+// ========================================================================
+// 🔍 មុខងារស្វែងរកស្តង់ដារ (Universal Search Helper)
+// ========================================================================
+window.standardDataSearch = function (dataArray, keyword, searchFields) {
+  // បើគ្មានពាក្យស្វែងរកទេ បោះទិន្នន័យដើមទៅវិញទាំងមូល
+  if (!keyword || keyword.trim() === "") return dataArray;
+
+  const lowerKeyword = keyword.toLowerCase().trim();
+
+  return dataArray.filter((item) => {
+    return searchFields.some((field) => {
+      // បំបែកឈ្មោះ field (ឧ. 'user.fullName' ទៅជាចាប់យកតម្លៃខាងក្នុង)
+      const value = field
+        .split(".")
+        .reduce((obj, key) => (obj ? obj[key] : null), item);
+      return value && String(value).toLowerCase().includes(lowerKeyword);
+    });
+  });
+};

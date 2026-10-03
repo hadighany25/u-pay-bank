@@ -1,11 +1,11 @@
-// admin-finance.js
 // ========================================================================
-// 📊 ផ្នែកទី ២៖ ហិរញ្ញវត្ថុ បេឡាករ និងការកំណត់ (FINANCE & CASHIER LOGIC)
+// ឯកសារ: admin-finance.js
+// អត្ថន័យ: គ្រប់គ្រងផ្នែកហិរញ្ញវត្ថុ បេឡាករ (Cashier) អត្រាប្តូរប្រាក់ ដែនកំណត់ និងប្រូម៉ូសិន
 // ========================================================================
 
-// ------------------------------------------------------------------------
-// 📌 ២.១ ការកំណត់អត្រាប្តូរប្រាក់ (FX Rates ដែលទាញពី Database)
-// ------------------------------------------------------------------------
+// ========================================================================
+// 💱 SECTION 1: EXCHANGE RATES (អត្រាប្តូរប្រាក់)
+// ========================================================================
 window.currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 }; // អថេរសកល (Global Variable)
 
 async function fetchFXRates() {
@@ -15,7 +15,7 @@ async function fetchFXRates() {
     });
     const data = await res.json();
     if (data.success && data.rates) {
-      window.currentFXRates = data.rates; // រក្សាទុកតម្លៃដែលទាញពី Database
+      window.currentFXRates = data.rates;
 
       const buyInput = document.getElementById("fxBuy");
       const sellInput = document.getElementById("fxSell");
@@ -26,7 +26,7 @@ async function fetchFXRates() {
     console.error("Error loading FX rates", e);
   }
 }
-fetchFXRates(); // ហៅឱ្យរត់ពេលបើក Script ភ្លាម
+fetchFXRates(); // ទាញយកអត្រាប្តូរប្រាក់ពេល Load ទំព័រភ្លាម
 
 window.updateFX = async function () {
   const buy = document.getElementById("fxBuy").value;
@@ -54,13 +54,14 @@ window.updateFX = async function () {
         customClass: { popup: "premium-swal" },
       });
       fetchFXRates(); // Refresh លេខកូដសកលឡើងវិញ
-    } else
+    } else {
       Swal.fire({
         icon: "error",
         title: "បរាជ័យ!",
         text: data.message || "មិនអាចកែប្រែបានទេ",
         customClass: { popup: "premium-swal" },
       });
+    }
   } catch (error) {
     Swal.fire({
       icon: "error",
@@ -71,9 +72,9 @@ window.updateFX = async function () {
   }
 };
 
-// ------------------------------------------------------------------------
-// 📌 ២.២ ការកំណត់កម្រៃសេវា និងដែនកំណត់ (Fees & Limits)
-// ------------------------------------------------------------------------
+// ========================================================================
+// ⚙️ SECTION 2: FEES & LIMITS (កម្រៃសេវា និងដែនកំណត់ផ្ទេរប្រាក់)
+// ========================================================================
 let feeTiersList = [];
 
 window.loadFeeSettings = async function () {
@@ -181,6 +182,7 @@ window.addFeeTier = function () {
   feeTiersList.push({ min: 0, max: 0, fee: 0 });
   renderFeeTiers();
 };
+
 window.removeTier = function (index) {
   feeTiersList.splice(index, 1);
   renderFeeTiers();
@@ -213,13 +215,14 @@ window.saveFeeSettings = async function () {
         customClass: { popup: "premium-swal" },
       });
       loadFeeSettings();
-    } else
+    } else {
       Swal.fire({
         icon: "error",
         title: "បរាជ័យ",
         text: data.message,
         customClass: { popup: "premium-swal" },
       });
+    }
   } catch (err) {
     Swal.fire({
       icon: "error",
@@ -229,11 +232,13 @@ window.saveFeeSettings = async function () {
     });
   }
 };
-setTimeout(loadFeeSettings, 1000);
+setTimeout(loadFeeSettings, 1000); // ហៅការកំណត់សេវាកម្មពេលចាប់ផ្តើម
 
-// ------------------------------------------------------------------------
-// 📌 ២.៣ ការបង្កើតប្រូម៉ូសិនកូដ (Promo Codes)
-// ------------------------------------------------------------------------
+// ========================================================================
+// 🎫 SECTION 3: PROMO CODES (លេខកូដប្រូម៉ូសិនទាក់ទាញអតិថិជន)
+// ========================================================================
+let allPromoCodes = []; // រក្សាទុកកូដប្រូម៉ូសិនទាំងអស់សម្រាប់ស្វែងរក
+
 window.openPromoModal = function () {
   document.getElementById("prmCode").value = "";
   document.getElementById("prmReward").value = "";
@@ -250,13 +255,15 @@ window.savePromoCode = async function () {
   const max = document.getElementById("prmMax").value;
   const expiry = document.getElementById("prmExpiry").value;
 
-  if (!code || !reward)
+  if (!code || !reward) {
     return Swal.fire({
       icon: "warning",
       title: "បំពេញមិនគ្រប់",
       text: "សូមបញ្ចូលឈ្មោះកូដ និងទឹកប្រាក់រង្វាន់!",
       customClass: { popup: "premium-swal" },
     });
+  }
+
   Swal.fire({
     title: "កំពុងបង្កើត...",
     didOpen: () => Swal.showLoading(),
@@ -284,13 +291,14 @@ window.savePromoCode = async function () {
       });
       closeModal("promoModal");
       loadPromoCodes();
-    } else
+    } else {
       Swal.fire({
         icon: "error",
         title: "បរាជ័យ",
         text: data.message,
         customClass: { popup: "premium-swal" },
       });
+    }
   } catch (e) {
     Swal.fire({
       icon: "error",
@@ -305,26 +313,72 @@ window.loadPromoCodes = async function () {
   try {
     const res = await fetch("/api/admin/promos", { headers: getAuthHeaders() });
     const data = await res.json();
-    const tbody = document.getElementById("promoTableBody");
-    if (!tbody) return;
-
     if (data.success && data.promos && data.promos.length > 0) {
-      tbody.innerHTML = data.promos
-        .map((p) => {
-          const status = p.isActive
-            ? `<span style="color:var(--secondary); font-weight:bold;">Active 🟢</span>`
-            : `<span style="color:#ef4444; font-weight:bold;">Disabled 🛑</span>`;
-          const usage = `${p.usedCount} / ${p.maxUsage}`;
-          const expiry = p.expiresAt
-            ? new Date(p.expiresAt).toLocaleDateString("en-GB")
-            : "គ្មានកំណត់";
-          return `<tr style="border-bottom: 1px solid var(--border);"><td style="font-weight:900; color:var(--accent); font-size:1.1rem; letter-spacing:1.5px;">${p.code}</td><td style="color:var(--secondary); font-weight:bold; font-size:1.1rem;">$${p.rewardValue.toFixed(2)}</td><td><b>${usage} នាក់</b><br><span style="font-size:0.8rem; color:var(--text-muted);">ផុតកំណត់: ${expiry}</span></td><td>${status}</td><td style="text-align: right;"><label class="switch"><input type="checkbox" ${p.isActive ? "checked" : ""} onchange="togglePromoStatus('${p._id}')"><span class="slider"></span></label></td></tr>`;
-        })
-        .join("");
-    } else
-      tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-ticket" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i><br>មិនទាន់មានកូដប្រូម៉ូសិននៅឡើយទេ</td></tr>';
+      allPromoCodes = data.promos;
+      renderPromoCodes(allPromoCodes);
+    } else {
+      allPromoCodes = [];
+      const tbody = document.getElementById("promoTableBody");
+      if (tbody)
+        tbody.innerHTML =
+          '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fa-solid fa-ticket" style="font-size:2rem; margin-bottom:10px; opacity:0.5;"></i><br>មិនទាន់មានកូដប្រូម៉ូសិននៅឡើយទេ</td></tr>';
+    }
   } catch (e) {}
+};
+
+/**
+ * 📌 ៣.១ មុខងារស្វែងរកកូដប្រូម៉ូសិន (Universal Search)
+ */
+window.filterPromoCodes = function () {
+  const searchBox = document.getElementById("searchPromoBox"); // (ត្រូវប្រាកដថាអ្នកបានបន្ថែម Input នេះក្នុង HTML)
+  const keyword = searchBox ? searchBox.value : "";
+
+  if (typeof window.standardDataSearch === "function") {
+    const filteredPromos = window.standardDataSearch(allPromoCodes, keyword, [
+      "code",
+    ]);
+    renderPromoCodes(filteredPromos);
+  } else {
+    const lowerKeyword = keyword.toLowerCase().trim();
+    const filteredPromos = allPromoCodes.filter((p) =>
+      p.code.toLowerCase().includes(lowerKeyword),
+    );
+    renderPromoCodes(filteredPromos);
+  }
+};
+
+window.renderPromoCodes = function (promosToRender) {
+  const tbody = document.getElementById("promoTableBody");
+  if (!tbody) return;
+
+  if (!promosToRender || promosToRender.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">រកមិនឃើញកូដនេះទេ</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = promosToRender
+    .map((p) => {
+      const status = p.isActive
+        ? `<span style="color:var(--secondary); font-weight:bold;">Active 🟢</span>`
+        : `<span style="color:#ef4444; font-weight:bold;">Disabled 🛑</span>`;
+      const usage = `${p.usedCount} / ${p.maxUsage}`;
+      const expiry = p.expiresAt
+        ? new Date(p.expiresAt).toLocaleDateString("en-GB")
+        : "គ្មានកំណត់";
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="font-weight:900; color:var(--accent); font-size:1.1rem; letter-spacing:1.5px;">${p.code}</td>
+          <td style="color:var(--secondary); font-weight:bold; font-size:1.1rem;">$${p.rewardValue.toFixed(2)}</td>
+          <td><b>${usage} នាក់</b><br><span style="font-size:0.8rem; color:var(--text-muted);">ផុតកំណត់: ${expiry}</span></td>
+          <td>${status}</td>
+          <td style="text-align: right;">
+            <label class="switch"><input type="checkbox" ${p.isActive ? "checked" : ""} onchange="togglePromoStatus('${p._id}')"><span class="slider"></span></label>
+          </td>
+        </tr>`;
+    })
+    .join("");
 };
 
 window.togglePromoStatus = async function (id) {
@@ -336,9 +390,9 @@ window.togglePromoStatus = async function (id) {
   loadPromoCodes();
 };
 
-// ------------------------------------------------------------------------
-// 📌 ២.៤ បេឡាករ (CASHIER SYSTEM) - ដាក់ប្រាក់/ដកប្រាក់
-// ------------------------------------------------------------------------
+// ========================================================================
+// 🏦 SECTION 4: CASHIER SYSTEM (បេឡាករ និងប្រតិបត្តិការដាក់ប្រាក់/ដកប្រាក់)
+// ========================================================================
 let currentTargetUser = null;
 let currentDepositorUser = null;
 
@@ -362,6 +416,9 @@ window.searchTargetUser = async function () {
   const searchVal = document.getElementById("targetUserSearch").value.trim();
   if (!searchVal) return;
 
+  // បើអ្នកចង់ប្រើ Universal Search សម្រាប់ទិន្នន័យ Local អ្នកអាចឆែក `globalUsersData` ជាមុនបាន
+  // តែដោយសារ Cashier ទាមទារទិន្នន័យ Balance ច្បាស់លាស់ ១០០% ការទាញផ្ទាល់ពី API គឺល្អជាង។
+
   Swal.fire({
     title: "កំពុងស្វែងរក...",
     didOpen: () => Swal.showLoading(),
@@ -381,14 +438,11 @@ window.searchTargetUser = async function () {
       document.getElementById("targetUserCard").style.display = "flex";
       document.getElementById("transactionForm").style.display = "block";
 
-      // ✅ កែត្រង់នេះ៖ បន្ថែមការបង្ហាញរូបភាព Profile របស់អតិថិជន
       document.getElementById("cardAvatar").src =
         currentTargetUser.profileImage || "../images/default-avatar.png";
-
       document.getElementById("cardName").textContent =
         `${currentTargetUser.fullName} (@${currentTargetUser.username})`;
 
-      // ១. ទាញយកសមតុល្យពី mainAccounts
       const balUSD = currentTargetUser.mainAccounts?.USD?.balance || 0;
       const balKHR = currentTargetUser.mainAccounts?.KHR?.balance || 0;
 
@@ -400,7 +454,6 @@ window.searchTargetUser = async function () {
       const accountSelect = document.getElementById("targetAccountSelect");
       let optionHTML = "";
 
-      // ២. ទាញយកលេខគណនីពី mainAccounts
       const accUSD = currentTargetUser.mainAccounts?.USD?.accountNumber;
       const accKHR = currentTargetUser.mainAccounts?.KHR?.accountNumber;
 
@@ -443,7 +496,6 @@ window.searchTargetUser = async function () {
       if (!foundExactMatch)
         document.getElementById("cashCurrency").value = "USD";
 
-      // ហៅ Preview Exchange សារថ្មីពេលរកឃើញ
       if (typeof previewCashierExchange === "function")
         previewCashierExchange();
     } else {
@@ -520,7 +572,6 @@ window.viewKYC = function () {
   });
 };
 
-// 🔥 មុខងារគណនាបង្ហាញលុយមុន (Live Preview) សម្រាប់ Cashier ដោយទាញអត្រាប្តូរប្រាក់អូតូពី Database
 window.previewCashierExchange = function () {
   const targetSelect = document.getElementById("targetAccountSelect");
   if (!targetSelect || targetSelect.options.length === 0) return;
@@ -544,7 +595,6 @@ window.previewCashierExchange = function () {
 
   if (!previewBox || !rateDisplay || !resultText) return;
 
-  // ទាញអត្រាប្តូរប្រាក់ពីអថេរសកល (Global Variable ដែលបាន Update ដោយ fetchFXRates)
   const rateBuy = window.currentFXRates
     ? window.currentFXRates.usdToKhrBuy || 4050
     : 4050;
@@ -553,7 +603,7 @@ window.previewCashierExchange = function () {
     : 4100;
 
   if (amount > 0 && destCurrency !== inputCurrency) {
-    previewBox.style.display = "block"; // លោតបង្ហាញ
+    previewBox.style.display = "block";
 
     if (inputCurrency === "USD" && destCurrency === "KHR") {
       const khrAmt = Math.round(amount * rateBuy);
@@ -565,7 +615,7 @@ window.previewCashierExchange = function () {
       resultText.innerText = `$${usdAmt}`;
     }
   } else {
-    previewBox.style.display = "none"; // លាក់វិញ
+    previewBox.style.display = "none";
   }
 };
 
@@ -652,6 +702,7 @@ window.processCashTransaction = async function () {
             customClass: { popup: "premium-swal" },
           });
 
+          // Clear ទិន្នន័យចេញពី Form ពេលជោគជ័យ
           document.getElementById("cashAmount").value = "";
           document.getElementById("cashRemark").value = "";
           document.getElementById("depositorSearch").value = "";
@@ -661,6 +712,7 @@ window.processCashTransaction = async function () {
           document.getElementById("transactionForm").style.display = "none";
           const preBox = document.getElementById("cashierExchangePreview");
           if (preBox) preBox.style.display = "none";
+
           currentTargetUser = null;
           currentDepositorUser = null;
         } else {

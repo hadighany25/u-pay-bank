@@ -11,11 +11,20 @@ const userSchema = new mongoose.Schema(
     // 👤 ១. ព័ត៌មានគណនីមូលដ្ឋាន (Basic User Info)
     // ==========================================
     id: { type: String, default: () => Date.now().toString() },
+    userId: { type: String, unique: true, sparse: true }, // លេខសម្គាល់អតិថិជន ៨ខ្ទង់ (សម្រាប់ជា Referral Code)
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     fullName: { type: String, default: "" },
+
+    // ទិន្នន័យអត្តសញ្ញាណ (ទាញចេញពី Step 2)
+    dob: { type: String, default: "" }, // ថ្ងៃខែឆ្នាំកំណើត
+    gender: { type: String, default: "" }, // ភេទ (Male/Female)
+    idNumber: { type: String, default: "" }, // លេខអត្តសញ្ញាណប័ណ្ណ / លិខិតឆ្លងដែន
     phone: { type: String, default: "" },
     email: { type: String, default: "" },
+    // អ្នកណែនាំ (បើមាន)
+    referredBy: { type: String, default: "" },
+    duplicateIdReason: { type: String, default: "" }, // 🟢 ថ្មី៖ សម្រាប់ទុកមូលហេតុបង្កើតគណនីទាំងដែលមាន ID ស្ទួន
 
     // ==========================================
     // 🏦 ២. គណនីចម្បង (Main Accounts - ញែក USD និង KHR ដាច់ពីគ្នា)
@@ -26,7 +35,7 @@ const userSchema = new mongoose.Schema(
           type: String,
           default: () => "MAIN_USD_" + Date.now().toString(),
         },
-        accountNumber: { type: String, unique: true, sparse: true },
+        accountNumber: { type: String, unique: true, sparse: true }, // លេខគណនី USD
         accountName: { type: String, default: "Main Account USD" },
         accountType: { type: String, default: "main" },
         currency: { type: String, default: "USD" },
@@ -47,7 +56,7 @@ const userSchema = new mongoose.Schema(
           type: String,
           default: () => "MAIN_KHR_" + Date.now().toString(),
         },
-        accountNumber: { type: String, unique: true, sparse: true },
+        accountNumber: { type: String, unique: true, sparse: true }, // លេខគណនី KHR
         accountName: { type: String, default: "Main Account KHR" },
         accountType: { type: String, default: "main" },
         currency: { type: String, default: "KHR" },
@@ -83,8 +92,9 @@ const userSchema = new mongoose.Schema(
     // ==========================================
     // 📝 ៥. ព័ត៌មាន KYC (Identity Verification)
     // ==========================================
-    kycStatus: { type: String, default: "unverified" },
-    kycDocument: { type: String, default: "" },
+    kycStatus: { type: String, default: "unverified" }, // ពេលចុះឈ្មោះរួចនឹងលោតទៅ "pending"
+    kycDocument: { type: String, default: "" }, // រូបអត្តសញ្ញាណប័ណ្ណ
+    selfieUrl: { type: String, default: "" }, // រូបថត Selfie ផ្ទាល់
     kycSubmittedAt: { type: String, default: "" },
 
     // ==========================================
@@ -97,11 +107,9 @@ const userSchema = new mongoose.Schema(
     linkCode: { type: String, default: null },
 
     // ==========================================
-    // 📦 ៧. បញ្ជីទិន្នន័យពាក់ព័ន្ធ (Related Data Arrays)
+    // 💸 ៧. សេវាកម្ម និងកាត (P2P Debts, Virtual Cards, Sub-Accounts)
     // ==========================================
-    // ❌ បានលុប `tickets`, `savings`, `deposits`, និង `transactions` ចេញ ដើម្បីអោយ Database ស្រាល និងដើរលឿន!
-
-    // 🌟 ប្រព័ន្ធកត់ត្រាបំណុលទ្វេភាគ (Double-Entry P2P Debt)
+    // ប្រព័ន្ធកត់ត្រាបំណុលទ្វេភាគ (Double-Entry P2P Debt)
     p2pDebts: [
       {
         type: { type: String, enum: ["owe", "lend"], default: "owe" },
@@ -114,7 +122,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // 💳 កាតនិម្មិត (Virtual & Physical Cards)
+    // កាតនិម្មិត (Virtual & Physical Cards)
     virtualCards: [
       {
         id: { type: String },
@@ -136,7 +144,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // 👥 គណនីរង និង គណនីរួម (Sub-Accounts & Joint Accounts)
+    // គណនីរង និង គណនីរួម (Sub-Accounts & Joint Accounts)
     subAccounts: [
       {
         accountId: {

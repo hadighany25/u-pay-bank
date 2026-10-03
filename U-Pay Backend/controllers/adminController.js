@@ -434,12 +434,10 @@ const getFeeSettings = async (req, res) => {
 
 const updateFeeSettings = async (req, res) => {
   if (req.admin.role !== "super_admin") {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិកែប្រែតម្លៃសេវាកម្មនេះទេ!",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិកែប្រែតម្លៃសេវាកម្មនេះទេ!",
+    });
   }
   const { transferLimit, feeTiers } = req.body;
   try {
@@ -1034,12 +1032,10 @@ const getTransaction = async (req, res) => {
       });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
-      });
+    res.status(500).json({
+      success: false,
+      message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
+    });
   }
 };
 
@@ -1512,9 +1508,10 @@ const refundTransaction = async (req, res) => {
 const searchCashierUser = async (req, res) => {
   try {
     const { identifier } = req.params;
+
+    // 🟢 កំណត់ឱ្យស្វែងរកតែតាមលេខគណនី (Main USD, Main KHR ឬ Sub/Joint Account Number) ប៉ុណ្ណោះ
     const user = await User.findOne({
       $or: [
-        { username: identifier },
         { "mainAccounts.USD.accountNumber": identifier },
         { "mainAccounts.KHR.accountNumber": identifier },
         { "subAccounts.accountNumber": identifier },
@@ -1522,7 +1519,10 @@ const searchCashierUser = async (req, res) => {
     }).select("-password -pin");
 
     if (!user)
-      return res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដែលមានលេខកុងនេះទេ!",
+      });
 
     let userDetails = user.toObject();
     userDetails.kycDocument =
@@ -1985,12 +1985,10 @@ const adminCreateMerchant = async (req, res) => {
 
 const createPromoCode = async (req, res) => {
   if (req.admin.role !== "super_admin" && req.admin.role !== "finance_admin") {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិបង្កើត Promo Code ទេ!",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "បម្រាម៖ អ្នកគ្មានសិទ្ធិបង្កើត Promo Code ទេ!",
+    });
   }
 
   const { code, rewardValue, maxUsage, expiresAt } = req.body;
@@ -2051,12 +2049,10 @@ const broadcast = async (req, res) => {
     if (req.admin.role !== "super_admin") {
       const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
       if (!adminAcc || !adminAcc.permissions?.menus?.broadcast)
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "សុំទោស! អ្នកគ្មានសិទ្ធិបញ្ជូនសារ Broadcast ទេ 🛑",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិបញ្ជូនសារ Broadcast ទេ 🛑",
+        });
     }
     const { title, message, sender } = req.body;
     const users = await User.find({ role: { $ne: "admin" } }).select(
@@ -2120,12 +2116,10 @@ const deleteBroadcast = async (req, res) => {
     if (req.admin.role !== "super_admin") {
       const adminAcc = await Admin.findById(req.admin.id || req.admin._id);
       if (!adminAcc || !adminAcc.permissions?.menus?.broadcast)
-        return res
-          .status(403)
-          .json({
-            success: false,
-            message: "សុំទោស! អ្នកគ្មានសិទ្ធិលុបសារ Broadcast ទេ 🛑",
-          });
+        return res.status(403).json({
+          success: false,
+          message: "សុំទោស! អ្នកគ្មានសិទ្ធិលុបសារ Broadcast ទេ 🛑",
+        });
     }
     const { notifId } = req.body;
     await Notification.deleteMany({ "metadata.broadcastId": notifId });

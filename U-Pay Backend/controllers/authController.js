@@ -10,6 +10,7 @@
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const Tesseract = require("tesseract.js");
 
 // 1.2 តារាងទិន្នន័យ (Database Models)
 const User = require("../models/User");
@@ -58,6 +59,22 @@ const generatePatternAccounts = async () => {
     if (!exists) isUnique = true;
   }
   return { usd: newAccUSD, khr: newAccKHR };
+};
+
+/**
+ * 📌 បង្កើត User ID ៨ ខ្ទង់ (សម្រាប់ធ្វើជា Referral Code ណែនាំមិត្តភ័ក្តិ)
+ */
+const generateUserId = async () => {
+  let isUnique = false;
+  let newUserId = "";
+
+  while (!isUnique) {
+    // បង្កើតលេខចៃដន្យ ៨ ខ្ទង់ (ចាប់ពី 10000000 ដល់ 99999999)
+    newUserId = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const exists = await User.findOne({ userId: newUserId });
+    if (!exists) isUnique = true;
+  }
+  return newUserId;
 };
 
 // ==========================================
@@ -168,6 +185,7 @@ const logout = async (req, res) => {
 
 /**
  * 📌 សុំលេខកូដ OTP (Request OTP) មុនពេលបង្កើតគណនី
+ * - ឆែកកុំឱ្យស្ទួន Username, Phone, Email
  */
 const requestRegisterOTP = async (req, res) => {
   const { username, phone, email } = req.body;
@@ -207,14 +225,30 @@ const requestRegisterOTP = async (req, res) => {
 };
 
 /**
- * 📌 ផ្ទៀងផ្ទាត់ OTP រួចទើបបង្កើតគណនីពិតប្រាកដ (Verify & Register)
+ * 📌 ផ្ទៀងផ្ទាត់ OTP រួចទើបបង្កើតគណនីពិតប្រាកដ (Verify & Register - អាប់ដេតថ្មី)
+ * - ទទួលយកទិន្នន័យ KYC, រូបថត, លេខអ្នកណែនាំ, ភេទ និងថ្ងៃខែឆ្នាំកំណើត
  */
 const verifyAndRegister = async (req, res) => {
-  const { username, password, fullName, phone, email, pin, otp } = req.body;
+  const {
+    username,
+    password,
+    fullName,
+    phone,
+    email,
+    pin,
+    otp,
+    dob,
+    gender,
+    idNumber,
+    referralCode,
+    duplicateReason,
+    idCardUrl,
+    selfieUrl,
+  } = req.body;
 
   try {
+    // ៤.១ ផ្ទៀងផ្ទាត់កូដ OTP
     const validOtp = await Otp.findOne({ email: email, otp: otp });
-
     if (!validOtp) {
       return res.status(400).json({
         success: false,
@@ -222,17 +256,48 @@ const verifyAndRegister = async (req, res) => {
       });
     }
 
+    // ៤.២ ឆែកការពារក្រែងលោមានអ្នកបង្កើតគណនីស្របគ្នាក្នុងពេលតែមួយ
+    const existingUser = await User.findOne({
+      $or: [{ username }, { phone }, { email }],
+    });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "គណនីនេះត្រូវបានចុះឈ្មោះរួចហើយ!" });
+    }
+
+    // ៤.៣ បង្កើតលេខគណនីធនាគារ និង លេខសម្គាល់អ្នកប្រើប្រាស់ ៨ខ្ទង់
     const newAccs = await generatePatternAccounts();
+    const newUserId = await generateUserId();
     const tsId = Date.now().toString();
 
+    // ៤.៤ រៀបចំស្ថានភាព KYC (បើមានរូប Upload គឺដាក់ Pending)
+    let initialKycStatus = "unverified";
+    if (idCardUrl && selfieUrl) {
+      initialKycStatus = "pending";
+    }
+
+    // ៤.៥ បង្កើតគណនីថ្មី
     const newUser = new User({
       id: tsId,
+      userId: newUserId,
       username,
       password,
       email,
       fullName: fullName || username,
       phone,
+      dob: dob || "",
+      gender: gender || "",
+      idNumber: idNumber || "",
+      referredBy: referralCode || "",
       pin,
+
+      duplicateIdReason: duplicateReason || "",
+      kycStatus: initialKycStatus,
+      kycDocument: idCardUrl || "",
+      selfieUrl: selfieUrl || "",
+      kycSubmittedAt: initialKycStatus === "pending" ? getFormattedDate() : "",
+
       mainAccounts: {
         USD: {
           accountId: "MAIN_USD_" + tsId,
@@ -269,8 +334,11 @@ const verifyAndRegister = async (req, res) => {
     });
 
     await newUser.save();
+
+    // ៤.៦ លុបកូដ OTP ចោលក្រោយប្រើប្រាស់រួច
     await Otp.deleteOne({ _id: validOtp._id });
 
+    // ៤.៧ បង្កើត Token សម្រាប់ Login ដោយស្វ័យប្រវត្តិ
     const token = jwt.sign(
       { id: newUser.id, username: newUser.username, role: newUser.role },
       process.env.JWT_SECRET,
@@ -297,6 +365,7 @@ const verifyAndRegister = async (req, res) => {
 
 /**
  * 📌 ការចុះឈ្មោះបែបចាស់ (Legacy Registration - API ចាស់អត់ត្រូវការ OTP)
+ * - រក្សាទុកដដែលដើម្បីកុំឱ្យ Error ជាមួយប្រព័ន្ធចាស់ៗ
  */
 const register = async (req, res) => {
   const { username, password, fullName, phone, pin } = req.body;
@@ -306,10 +375,12 @@ const register = async (req, res) => {
       return res.json({ success: false, message: "Username already taken!" });
 
     const newAccs = await generatePatternAccounts();
+    const newUserId = await generateUserId();
     const tsId = Date.now().toString();
 
     const newUser = new User({
       id: tsId,
+      userId: newUserId,
       username,
       password,
       fullName: fullName || username,
@@ -582,7 +653,7 @@ const uploadImage = async (req, res) => {
 };
 
 /**
- * 📌 បញ្ជូនឯកសារ KYC
+ * 📌 បញ្ជូនឯកសារ KYC (ពីមុខងារ Settings)
  */
 const submitKyc = async (req, res) => {
   const { username, kycUrl } = req.body;
@@ -602,6 +673,587 @@ const submitKyc = async (req, res) => {
     } else res.json({ success: false, message: "User not found" });
   } catch (err) {
     res.status(500).json({ success: false });
+  }
+};
+
+// ============================================================================
+// ⚙ MRZ HELPER FUNCTIONS & ICAO VALIDATION
+// ============================================================================
+const MRZ_LETTER_TO_DIGIT = {
+  O: "0",
+  Q: "0",
+  D: "0",
+  I: "1",
+  L: "1",
+  Z: "2",
+  S: "5",
+  G: "6",
+  T: "7",
+  B: "8",
+  A: "4",
+};
+
+function cleanOcrText(text = "") {
+  return text
+    .toUpperCase()
+    .replace(/[|¦]/g, "I")
+    .replace(/[“”"'`]/g, "")
+    .replace(/[‐-–—]/g, "-")
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function normalizeMrzChars(line = "") {
+  return line
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9<]/g, "");
+}
+
+function normalizeNumeric(value = "") {
+  return value
+    .toUpperCase()
+    .split("")
+    .map((ch) => (/^\d$/.test(ch) ? ch : MRZ_LETTER_TO_DIGIT[ch] || ch))
+    .join("");
+}
+
+// 🟢 ជួសជុល Filler << ដែល OCR អានខុសជា L ឬ K
+function repairMrzFiller(value = "") {
+  return normalizeMrzChars(value).replace(/[LK]{2,}/g, "<<");
+}
+
+function repairIdPrefix(value = "") {
+  let x = normalizeMrzChars(value);
+  if (/^BFKHM/i.test(x)) {
+    x = x.replace(/^BFKHM/i, "IDKHM");
+  } else if (/^1DKHM/i.test(x)) {
+    x = x.replace(/^1DKHM/i, "IDKHM");
+  } else if (/^IOKHM/i.test(x)) {
+    x = x.replace(/^IOKHM/i, "IDKHM");
+  }
+  return x;
+}
+
+// 🟢 កែសម្រួល cleanMrzName ឱ្យរក្សាទុកការដកឃ្លា (Space) រវាង නាមត្រកូល និងនាមខ្លួន
+function cleanMrzName(value = "") {
+  if (!value) return null;
+  const repaired = repairMrzFiller(value);
+  const cleaned = repaired
+    .replace(/</g, " ") // ប្តូរសញ្ញា < ទៅជា Space វិញ ដើម្បីឱ្យមានដកឃ្លា
+    .replace(/[^A-Z ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || null;
+}
+
+// 🧮 ICAO 7-3-1 Check Digit Algorithm
+function mrzCheckDigit(value = "") {
+  const weights = [7, 3, 1];
+  let sum = 0;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    let valueNumber = 0;
+    if (ch === "<") valueNumber = 0;
+    else if (/^\d$/.test(ch)) valueNumber = Number(ch);
+    else if (/^[A-Z]$/.test(ch)) valueNumber = ch.charCodeAt(0) - 55;
+    sum += valueNumber * weights[i % 3];
+  }
+  return String(sum % 10);
+}
+
+function validateMrzCheckDigit(data, checkDigit) {
+  if (!data || !/^\d$/.test(checkDigit)) return false;
+  return mrzCheckDigit(data) === checkDigit;
+}
+
+function parseMrzDate(value) {
+  if (!value) return null;
+  const normalized = normalizeNumeric(value);
+  if (!/^\d{6}$/.test(normalized)) return null;
+
+  const yy = Number(normalized.substring(0, 2));
+  const mm = Number(normalized.substring(2, 4));
+  const dd = Number(normalized.substring(4, 6));
+
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+
+  const currentYear = new Date().getFullYear();
+  const currentYY = currentYear % 100;
+  const fullYear = yy <= currentYY ? 2000 + yy : 1900 + yy;
+
+  const date = new Date(Date.UTC(fullYear, mm - 1, dd));
+  if (
+    date.getUTCFullYear() !== fullYear ||
+    date.getUTCMonth() !== mm - 1 ||
+    date.getUTCDate() !== dd
+  )
+    return null;
+
+  return `${fullYear}-${String(mm).padStart(2, "0")}-${String(dd).padStart(2, "0")}`;
+}
+
+// ============================================================================
+// 🛂 DOCUMENT SPECIFIC PARSERS
+// ============================================================================
+
+function parseKhmerIdMRZ(lines) {
+  if (!lines || lines.length < 3) return null;
+  const line1 = normalizeMrzChars(lines[0]);
+  const line2 = normalizeMrzChars(lines[1]);
+  const line3 = normalizeMrzChars(lines[2]);
+
+  // LINE 1: IDKHM + 9 digit ID
+  const idMatch = line1.match(
+    /^ID.?KHM([0-9OQDILZSGTBA]{9})([0-9OQDILZSGTBA])/i,
+  );
+  let idNumber = null,
+    idCheckDigit = null,
+    idCheckValid = false;
+
+  if (idMatch) {
+    idNumber = normalizeNumeric(idMatch[1]);
+    idCheckDigit = normalizeNumeric(idMatch[2]);
+    if (/^\d{9}$/.test(idNumber) && /^\d$/.test(idCheckDigit)) {
+      idCheckValid = validateMrzCheckDigit(idNumber, idCheckDigit);
+    }
+  }
+
+  // LINE 2: YYMMDD + CHECK + GENDER
+  let dob = null,
+    gender = null,
+    dobCheckValid = false;
+  if (line2.length >= 8) {
+    const dobRaw = line2.substring(0, 6);
+    const dobCheck = line2.substring(6, 7);
+    const genderRaw = line2.substring(7, 8);
+
+    const normalizedDob = normalizeNumeric(dobRaw);
+    if (/^\d{6}$/.test(normalizedDob)) {
+      dob = parseMrzDate(normalizedDob);
+      if (/^\d$/.test(dobCheck)) {
+        dobCheckValid = validateMrzCheckDigit(normalizedDob, dobCheck);
+      }
+    }
+
+    if (genderRaw === "M") gender = "Male";
+    else if (genderRaw === "F") gender = "Female";
+  }
+
+  // LINE 3: SURNAME<<GIVEN NAME
+  let fullName = null;
+  const repairedLine3 = repairMrzFiller(line3);
+
+  if (repairedLine3.includes("<<")) {
+    const nameParts = repairedLine3.split("<<").filter(Boolean);
+    if (nameParts.length > 0) {
+      const surname = nameParts[0];
+      const givenName = nameParts.slice(1).join(" ");
+      fullName = cleanMrzName(`${surname} ${givenName}`);
+    }
+  }
+
+  return {
+    documentType: "KHMER_ID_CARD",
+    idNumber,
+    passportNumber: null,
+    fullName,
+    dob,
+    gender,
+    validation: {
+      idNumber: /^\d{9}$/.test(idNumber || ""),
+      idCheckDigit: idCheckValid,
+      dob: dob !== null,
+      dobCheckDigit: dobCheckValid,
+      gender: gender !== null,
+      fullName: !!fullName,
+    },
+  };
+}
+
+function parseKhmerPassportMRZ(lines) {
+  if (!lines || lines.length < 2) return null;
+  const line1 = normalizeMrzChars(lines[0]);
+  const line2 = normalizeMrzChars(lines[1]);
+
+  let fullName = null;
+
+  if (/^P</i.test(line1) && line1.length >= 6) {
+    const issuingState = line1.substring(2, 5);
+    const namePart = line1.substring(5);
+
+    if (issuingState === "KHM" && namePart.includes("<<")) {
+      const parts = namePart.split("<<").filter(Boolean);
+      if (parts.length > 0) {
+        fullName = cleanMrzName(parts.join(" "));
+      }
+    }
+  }
+
+  let passportNumber = null,
+    passCheckValid = false,
+    dob = null,
+    gender = null,
+    dobCheckValid = false;
+
+  if (line2.length >= 21) {
+    const passRaw = line2.substring(0, 9);
+    const passCheck = line2.substring(9, 10);
+    passportNumber = passRaw.replace(/<+$/, "");
+
+    const normalizedPassCheck = normalizeNumeric(passCheck);
+
+    if (/^\d$/.test(normalizedPassCheck)) {
+      passCheckValid = validateMrzCheckDigit(passRaw, normalizedPassCheck);
+    }
+
+    const dobRaw = line2.substring(13, 19);
+    const dobCheck = line2.substring(19, 20);
+    const genderRaw = line2.substring(20, 21).toUpperCase();
+    const normalizedDob = normalizeNumeric(dobRaw);
+
+    if (/^\d{6}$/.test(normalizedDob)) {
+      dob = parseMrzDate(normalizedDob);
+      if (/^\d$/.test(dobCheck)) {
+        dobCheckValid = validateMrzCheckDigit(normalizedDob, dobCheck);
+      }
+    }
+    if (genderRaw === "M") gender = "Male";
+    else if (genderRaw === "F") gender = "Female";
+  }
+
+  return {
+    documentType: "KHMER_PASSPORT",
+    idNumber: null,
+    passportNumber,
+    fullName,
+    dob,
+    gender,
+    validation: {
+      documentNumber: !!passportNumber,
+      documentNumberCheckDigit: passCheckValid,
+      dob: dob !== null,
+      dobCheckDigit: dobCheckValid,
+      gender: gender !== null,
+      fullName: !!fullName,
+    },
+  };
+}
+
+// ============================================================================
+// 🏆 CANDIDATE VOTING & SCORING (ID Card & Passport)
+// ============================================================================
+
+function scoreIdCombination(line1, line2, line3) {
+  let score = 0;
+  const parsed = parseKhmerIdMRZ([line1, line2, line3]);
+
+  if (!parsed) return { score: -1, parsed: null };
+
+  if (line1.length >= 30) score += 10;
+  if (line2.length >= 30) score += 10;
+  if (line3.length >= 30) score += 10;
+
+  if (parsed.validation.idNumber) score += 20;
+  if (parsed.validation.idCheckDigit) score += 30;
+  if (parsed.validation.dob) score += 15;
+  if (parsed.validation.dobCheckDigit) score += 20;
+  if (parsed.validation.gender) score += 5;
+  if (parsed.validation.fullName) score += 10;
+
+  return { score, parsed };
+}
+
+function findBestIdMrzCombination(
+  line1Candidates,
+  line2Candidates,
+  line3Candidates,
+) {
+  let best = null;
+  for (const line1 of line1Candidates) {
+    for (const line2 of line2Candidates) {
+      for (const line3 of line3Candidates) {
+        const result = scoreIdCombination(line1, line2, line3);
+        if (result.parsed && (!best || result.score > best.score)) {
+          best = {
+            line1,
+            line2,
+            line3,
+            score: result.score,
+            parsed: result.parsed,
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function scorePassportCombination(line1, line2) {
+  const parsed = parseKhmerPassportMRZ([line1, line2]);
+  if (!parsed) return { score: -1, parsed: null };
+
+  let score = 0;
+  if (line1.length === 44) score += 20;
+  if (line2.length === 44) score += 20;
+
+  if (parsed.validation.documentNumber) score += 20;
+  if (parsed.validation.documentNumberCheckDigit) score += 30;
+  if (parsed.validation.dob) score += 15;
+  if (parsed.validation.dobCheckDigit) score += 20;
+  if (parsed.validation.gender) score += 5;
+  if (parsed.validation.fullName) score += 10;
+
+  return { score, parsed };
+}
+
+function findBestPassportMrzCombination(line1Candidates, line2Candidates) {
+  let best = null;
+  for (const line1 of line1Candidates) {
+    for (const line2 of line2Candidates) {
+      const result = scorePassportCombination(line1, line2);
+      if (result.parsed && (!best || result.score > best.score)) {
+        best = { line1, line2, score: result.score, parsed: result.parsed };
+      }
+    }
+  }
+  return best;
+}
+
+function extractMrzLines(lines = []) {
+  const normalized = [...new Set(lines.map(normalizeMrzChars).filter(Boolean))];
+
+  // ============================================================
+  // ID CARD CANDIDATES (TD1)
+  // ============================================================
+  const idLine1Candidates = normalized
+    .map(repairIdPrefix)
+    .filter((x) => /^(?:ID|1D|I[O0]).{0,3}KHM/i.test(x));
+
+  const idLine2Candidates = normalized.filter((x) =>
+    /^\d{6}\d[MF]/i.test(normalizeNumeric(x)),
+  );
+
+  // 🟢 រឹតបន្តឹង Line 3៖ បដិសេធដាច់ខាតនូវ Line 1 និង Line 2 កុំឱ្យមកធ្វើជា Line 3
+  const idLine3Candidates = normalized.filter((x) => {
+    if (/^(?:ID|1D|I[O0])/i.test(x)) return false;
+    if (/^\d{6}/.test(normalizeNumeric(x))) return false;
+
+    // បន្ទាប់ពីជួសជុល L ឬ K ត្រូវតែមាន << ទើបចាត់ទុកថាជាឈ្មោះ
+    return repairMrzFiller(x).includes("<<");
+  });
+
+  if (
+    idLine1Candidates.length &&
+    idLine2Candidates.length &&
+    idLine3Candidates.length
+  ) {
+    const best = findBestIdMrzCombination(
+      idLine1Candidates,
+      idLine2Candidates,
+      idLine3Candidates,
+    );
+    if (best) return [best.line1, best.line2, best.line3];
+  }
+
+  // ============================================================
+  // PASSPORT CANDIDATES (TD3)
+  // ============================================================
+  const passportLine1Candidates = normalized.filter(
+    (x) => /^P</i.test(x) || /^P.?KHM/i.test(x),
+  );
+
+  const passportLine2Candidates = normalized.filter((x) => {
+    if (x.length < 21) return false;
+    const normalizedLine = normalizeNumeric(x);
+    const dob = normalizedLine.substring(13, 19);
+    const gender = x.substring(20, 21).toUpperCase();
+    return /^\d{6}$/.test(dob) && ["M", "F"].includes(gender);
+  });
+
+  if (passportLine1Candidates.length && passportLine2Candidates.length) {
+    const best = findBestPassportMrzCombination(
+      passportLine1Candidates,
+      passportLine2Candidates,
+    );
+    if (best) return [best.line1, best.line2];
+  }
+
+  // 🔴 គ្មាន Generic Fallback ទេ!
+  return [];
+}
+
+// ============================================================================
+// 🔄 MULTI-PASS OCR ENGINE
+// ============================================================================
+async function runMultipleOCR(imageUrl) {
+  const configs = [
+    { psm: 6, name: "PSM6" },
+    { psm: 11, name: "PSM11" },
+    { psm: 12, name: "PSM12" },
+  ];
+  const results = [];
+
+  for (const config of configs) {
+    try {
+      const {
+        data: { text },
+      } = await Tesseract.recognize(imageUrl, "eng", {
+        logger: (m) => {
+          if (m.status === "recognizing text")
+            console.log(
+              `[${config.name}] OCR: ${Math.round(m.progress * 100)}%`,
+            );
+        },
+        tessedit_pageseg_mode: String(config.psm),
+        // 🟢 អនុញ្ញាត K ដើម្បីឱ្យ repairMrzFiller អាចកែវាទៅជា << វិញបាន
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<LKI",
+      });
+      results.push({ mode: config.name, text: text || "" });
+    } catch (error) {
+      console.error(`OCR ${config.name} failed:`, error.message);
+    }
+  }
+  return results;
+}
+
+// ============================================================================
+// 🚀 MAIN API CONTROLLER: scanIdCard
+// ============================================================================
+const scanIdCard = async (req, res) => {
+  const { imageUrl } = req.body;
+  if (!imageUrl)
+    return res.status(400).json({ success: false, message: "មិនមានរូបភាពទេ!" });
+
+  try {
+    console.log("====================================");
+    console.log("Starting Smart MRZ OCR (Strict Mode without Fallback)...");
+    console.log("====================================");
+
+    // 1. MULTI-PASS OCR
+    const ocrResults = await runMultipleOCR(imageUrl);
+    if (!ocrResults.length) {
+      return res
+        .status(400)
+        .json({ success: false, message: "មិនអាចអាន OCR បានទេ!" });
+    }
+
+    // 2. MERGE OCR TEXT
+    const allOcrLines = [];
+    for (const result of ocrResults) {
+      const cleaned = cleanOcrText(result.text);
+      allOcrLines.push(...cleaned);
+    }
+    const uniqueLines = [...new Set(allOcrLines)];
+
+    // 3. FIND MRZ
+    const mrzLines = extractMrzLines(uniqueLines);
+    if (!mrzLines || !mrzLines.length) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "មិនអាចរកខ្សែអក្សរ MRZ តាមស្តង់ដារបានទេ។ សូមថតឯកសារឱ្យច្បាស់ និងត្រង់។",
+        rawOcrText: ocrResults.map((x) => x.text).join("\n"),
+      });
+    }
+
+    // 4. DOCUMENT TYPE & PARSING
+    const mrzJoined = mrzLines.join("");
+    const isKhmerId = /^(?:ID|1D|I[O0])/i.test(mrzLines[0]);
+    const isPassport = /^P/i.test(mrzLines[0]);
+
+    let parsedResult = null;
+
+    if (isKhmerId) {
+      parsedResult = parseKhmerIdMRZ(mrzLines);
+    } else if (isPassport) {
+      parsedResult = parseKhmerPassportMRZ(mrzLines);
+    }
+
+    if (!parsedResult) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "មិនអាចបញ្ជាក់ថាជា Khmer ID Card ឬ Khmer Passport ពី MRZ បានទេ។",
+        mrzLines,
+      });
+    }
+
+    // 5. SMART CONFIDENCE SCORING
+    let confidence = 0;
+
+    if (parsedResult.documentType === "KHMER_ID_CARD") {
+      if (parsedResult.validation.idNumber) confidence += 20;
+      if (parsedResult.validation.idCheckDigit) confidence += 20;
+    } else {
+      if (parsedResult.validation.documentNumber) confidence += 20;
+      if (parsedResult.validation.documentNumberCheckDigit) confidence += 20;
+    }
+
+    if (parsedResult.validation.fullName) confidence += 20;
+    if (parsedResult.validation.dob) confidence += 15;
+    if (parsedResult.validation.dobCheckDigit) confidence += 15;
+    if (parsedResult.validation.gender) confidence += 10;
+
+    confidence = Math.min(100, confidence);
+
+    let status;
+    if (confidence >= 90) status = "VERY_HIGH";
+    else if (confidence >= 75) status = "HIGH";
+    else if (confidence >= 50) status = "MEDIUM";
+    else status = "LOW";
+
+    // 6. FINAL VERIFICATION
+    let mrzValid = false;
+    if (parsedResult.documentType === "KHMER_ID_CARD") {
+      mrzValid =
+        parsedResult.validation.idNumber &&
+        parsedResult.validation.idCheckDigit &&
+        parsedResult.validation.dob &&
+        parsedResult.validation.dobCheckDigit &&
+        parsedResult.validation.fullName &&
+        parsedResult.validation.gender;
+    } else if (parsedResult.documentType === "KHMER_PASSPORT") {
+      mrzValid =
+        parsedResult.validation.documentNumber &&
+        parsedResult.validation.documentNumberCheckDigit &&
+        parsedResult.validation.dob &&
+        parsedResult.validation.dobCheckDigit &&
+        parsedResult.validation.fullName &&
+        parsedResult.validation.gender;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        documentType: parsedResult.documentType,
+        idNumber:
+          parsedResult.documentType === "KHMER_ID_CARD"
+            ? parsedResult.idNumber
+            : null,
+        passportNumber: parsedResult.passportNumber || null,
+        fullName: parsedResult.fullName,
+        dob: parsedResult.dob,
+        gender: parsedResult.gender,
+      },
+      verification: {
+        mrzValid,
+        mrzConfidence: confidence,
+        documentAuthenticity: null,
+        status,
+      },
+      validation: parsedResult.validation,
+      mrz: { lines: mrzLines, joined: mrzLines.join("") },
+      rawOcrText: ocrResults.map((x) => x.text).join("\n--- OCR PASS ---\n"),
+    });
+  } catch (err) {
+    console.error("Smart OCR Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "បរាជ័យក្នុងការស្កេនឯកសារ។ សូមព្យាយាមថតរូបម្ដងទៀត។",
+    });
   }
 };
 
@@ -942,6 +1594,57 @@ const verifyAccount = async (req, res) => {
   }
 };
 
+/**
+ * 📌 ឆែកមើលថា Username មានអ្នកប្រើប្រាស់ហើយឬនៅ (Real-time check)
+ */
+const checkUsername = async (req, res) => {
+  try {
+    const { username } = req.body;
+    // ឆែករកឈ្មោះដោយបំប្លែងជាអក្សរតូចទាំងអស់
+    const user = await User.findOne({ username: username.toLowerCase() });
+    if (user) return res.json({ available: false });
+    return res.json({ available: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ឆែកមើលថា លេខអត្តសញ្ញាណប័ណ្ណ មានក្នុងប្រព័ន្ធហើយឬនៅ
+ */
+const checkIdNumber = async (req, res) => {
+  try {
+    const { idNumber } = req.body;
+    const user = await User.findOne({ idNumber: idNumber });
+    if (user) return res.json({ exists: true });
+    return res.json({ exists: false });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ឆែកមើលលេខកូដអ្នកណែនាំ (Referral Code) ថាមានពិតឬអត់
+ */
+const checkReferralCode = async (req, res) => {
+  try {
+    const { referralCode } = req.body;
+    // ស្វែងរកអ្នកប្រើប្រាស់ដែលមាន userId ស្មើនឹង referralCode
+    const user = await User.findOne({ userId: referralCode });
+
+    if (user) {
+      // បើមាន បោះឈ្មោះពេញរបស់គាត់ទៅឱ្យ Frontend បង្ហាញ
+      return res.json({
+        valid: true,
+        referrerName: user.fullName || user.username,
+      });
+    }
+    return res.json({ valid: false });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // ==========================================
 // 🤖 ផ្នែកទី ៩៖ ការតភ្ជាប់ជាមួយ Telegram
 // ==========================================
@@ -966,13 +1669,12 @@ const unlinkTelegram = async (req, res) => {
   try {
     const user = await User.findOne({ username });
     if (user) {
-      const oldChatId = user.telegramChatId; // 📌 រក្សាទុក Chat ID ទុកសិនមុនលុប
+      const oldChatId = user.telegramChatId;
       const userFullName = user.fullName || user.username;
 
       user.telegramChatId = null;
       await user.save();
 
-      // 🚀 ហៅ Telegram Bot ឱ្យបាញ់សារទៅប្រាប់ Group/Chat នោះថាបានផ្តាច់រួចរាល់
       if (oldChatId) {
         await bot.sendUserUnlinkAlert(oldChatId, userFullName);
       }
@@ -1151,7 +1853,7 @@ module.exports = {
 
   // Forgot Password
   verifyUserAccount,
-  verifyUser: verifyUserAccount, // ទុកឈ្មោះចាស់ការពារក្រែងលោ Frontend នៅហៅ
+  verifyUser: verifyUserAccount,
   verifyForgotOtp,
   resetPassword,
   sendSecurityOtp,
@@ -1163,6 +1865,7 @@ module.exports = {
   changePin,
   uploadImage,
   submitKyc,
+  scanIdCard,
 
   // Account Management
   renameAccount,
@@ -1174,6 +1877,9 @@ module.exports = {
   heartbeat,
   getUsers,
   verifyAccount,
+  checkUsername,
+  checkIdNumber,
+  checkReferralCode,
 
   // Telegram
   generateTelegramCode,

@@ -1,39 +1,4 @@
 // admin-ops.js
-
-// ========================================================================
-// 📂 SECTION 1: KYC & DOCUMENTS MANAGEMENT
-// ========================================================================
-function viewKycDocument(base64Image) {
-  Swal.fire({
-    title: "ឯកសារបញ្ជាក់អត្តសញ្ញាណ",
-    imageUrl: base64Image,
-    imageAlt: "KYC Document",
-    width: "600px",
-    customClass: { popup: "premium-swal" },
-  });
-}
-
-async function kycAction(username, action) {
-  const actionText = action === "approved" ? "Approve" : "Reject";
-  const confirm = await Swal.fire({
-    title: `${actionText} KYC?`,
-    icon: "question",
-    showCancelButton: true,
-  });
-  if (confirm.isConfirmed) {
-    const res = await fetch("/api/admin/kyc-action", {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ username, action }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      Swal.fire("Success", `KYC ${actionText}d.`, "success");
-      loadData();
-    }
-  }
-}
-
 // ========================================================================
 // 💳 SECTION 2: CARDS MANAGEMENT & NFC BINDING
 // ========================================================================
