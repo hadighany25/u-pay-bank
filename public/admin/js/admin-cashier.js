@@ -647,27 +647,22 @@ window.submitCashierTrx = async function () {
 
       document.getElementById("previewTitleText").innerHTML =
         `<i class="fa-solid fa-circle-check" style="color: #10b981;"></i> ប្រតិបត្តិការជោគជ័យ`;
-      document.getElementById("inlineSlipStatus").innerText =
-        "COMPLETED / PENDING APPROVAL";
-      document.getElementById("inlineSlipStatus").style.color = "#10b981";
 
-      // 🟢 យក Transaction ID ពី Backend មកបង្ហាញ (យក data.ticket.transactionId)
-      // ផ្អែកតាម Backend របស់អ្នក លេខកូដប្រតិបត្តិការ (Ref ID) គឺស្ថិតក្នុង ticket.transactionId (ឧទាហរណ៍: DEP-41164651)
+      // 🟢 ទាញយក Status ពិតប្រាកដដែលបានសន្សំក្នុង Database តាមរយៈ data.ticket.status
+      const dbStatus = data.ticket?.status || "pending_verify";
+      const formattedStatus = formatTicketStatus(dbStatus);
+
+      document.getElementById("inlineSlipStatus").innerText = formattedStatus;
+      document.getElementById("inlineSlipStatus").style.color =
+        dbStatus.includes("pending") ? "#d97706" : "#10b981";
+
       const realTrxId =
         data.ticket?.transactionId || data.transactionId || null;
-
       if (realTrxId) {
         document.getElementById("inlineSlipRef").innerText = realTrxId;
         document.getElementById("inlineSlipTrxBox").style.display = "block";
         document.getElementById("inlineSlipQRCode").src =
-          `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://u-pay-bank.fly.dev/admin/verify/${realTrxId}`;
-      } else if (data.ticket && data.ticket._id) {
-        // Fallback បើអត់មាន transactionId យក _id កាត់ ៦ ខ្ទង់
-        const fallbackId = data.ticket._id.toString().slice(-6).toUpperCase();
-        document.getElementById("inlineSlipRef").innerText = fallbackId;
-        document.getElementById("inlineSlipTrxBox").style.display = "block";
-        document.getElementById("inlineSlipQRCode").src =
-          `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://u-pay-bank.fly.dev/admin/verify/${fallbackId}`;
+          `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://u-pay-bank.fly.dev/receipt/${realTrxId}`;
       }
 
       document.getElementById("previewActionBtns").style.display = "none";
@@ -990,7 +985,10 @@ window.openTicketDrawer = function (id) {
   const displayRefId = t.transactionId ? t.transactionId : t._id.toUpperCase();
   document.getElementById("slipRef").innerText = displayRefId;
 
-  document.getElementById("slipStatus").innerText = t.status.toUpperCase();
+  // 🟢 យក Status ពិតប្រាកដពី Database មកបំលែងបង្ហាញលើ Drawer Slip
+  document.getElementById("slipStatus").innerText = formatTicketStatus(
+    t.status,
+  );
   document.getElementById("slipMaker").innerText = t.maker;
   document.getElementById("slipChecker").innerText = t.checker || "N/A";
   document.getElementById("slipCustomer").innerText =
@@ -1025,6 +1023,27 @@ window.openTicketDrawer = function (id) {
   }
 
   document.getElementById("ticketDrawer").classList.add("open");
+};
+
+// 🟢 មុខងារជំនួយសម្រាប់បម្លែង Status ពី Database ឱ្យទៅជាអក្សរស្អាតមានអនាម័យ
+window.formatTicketStatus = function (status) {
+  if (!status) return "UNKNOWN";
+  switch (status.toLowerCase()) {
+    case "pending_verify":
+      return "PENDING VERIFY";
+    case "pending_approve":
+      return "PENDING APPROVE";
+    case "verified":
+      return "VERIFIED";
+    case "approved":
+      return "APPROVED";
+    case "rejected":
+      return "REJECTED";
+    case "completed":
+      return "COMPLETED";
+    default:
+      return status.toUpperCase();
+  }
 };
 
 window.closeTicketDrawer = function () {

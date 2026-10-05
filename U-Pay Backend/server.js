@@ -91,9 +91,22 @@ app.get("/api/receipt/:txId", async (req, res) => {
   await streamOfficialReceiptPDF(txId, res);
 });
 
-// Route សម្រាប់ទំព័រដើម
+// ==========================================
+// 🟢 ជម្រើសទី ១៖ ទំព័រ Web វិក្កយបត្រ (Digital E-Receipt)
+// ==========================================
+const adminController = require("./controllers/adminController");
+
+// API សម្រាប់អោយ Web ទាញទិន្នន័យ
+app.get("/api/receipt-data/:id", adminController.getPublicReceipt);
+
+// បង្ហាញ Web ពេលអតិថិជនស្កេនចូល Link
+app.get("/receipt/:id", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "../public/receipt.html"));
+});
+
+// Route សម្រាប់ទំព័រដើម (UPAY)
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/upay.html"));
+  res.sendFile(path.resolve(__dirname, "../public/upay.html"));
 });
 
 // ==========================================

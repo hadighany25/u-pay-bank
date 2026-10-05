@@ -1511,6 +1511,133 @@ const refundTransaction = async (req, res) => {
   }
 };
 
+const getPublicReceipt = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let ticketQuery = [{ transactionId: id }];
+    if (mongoose.isValidObjectId(id)) {
+      ticketQuery.push({ _id: id });
+    }
+    let ticket = await CashierTicket.findOne({ $or: ticketQuery });
+
+    if (ticket) {
+      let ticketObj = ticket.toObject ? ticket.toObject() : ticket;
+
+      if (ticketObj.maker) {
+        const adminMaker = await Admin.findOne({ username: ticketObj.maker });
+        ticketObj.makerFullName = adminMaker
+          ? adminMaker.fullName || adminMaker.username
+          : ticketObj.maker;
+      }
+
+      // 🟢 បើក្នុង ticket.slipData គ្មានសមតុល្យ យើងគណនាជំនួសអោយ
+      if (!ticketObj.slipData) ticketObj.slipData = {};
+      if (ticketObj.slipData.priorBalance === undefined) {
+        const targetUser = await User.findById(ticketObj.userId);
+        if (targetUser) {
+          let currentBal = 0;
+          if (
+            ticketObj.targetAcc === targetUser.mainAccounts?.USD?.accountNumber
+          )
+            currentBal = targetUser.mainAccounts.USD.balance || 0;
+          else if (
+            ticketObj.targetAcc === targetUser.mainAccounts?.KHR?.accountNumber
+          )
+            currentBal = targetUser.mainAccounts.KHR.balance || 0;
+          else {
+            const sub = targetUser.subAccounts?.find(
+              (s) => s.accountNumber === ticketObj.targetAcc,
+            );
+            if (sub) currentBal = sub.balance || 0;
+          }
+
+          // គណនាសមតុល្យថយក្រោយរក Prior Balance
+          ticketObj.slipData.newBalance = currentBal;
+          ticketObj.slipData.priorBalance =
+            ticketObj.requestType === "Deposit"
+              ? currentBal - ticketObj.amount
+              : currentBal + ticketObj.amount;
+        }
+      }
+
+      return res.json({ success: true, data: ticketObj, source: "ticket" });
+    }
+
+    // ២. បើជា Transaction
+    const trx = await Transaction.findOne({ refId: id });
+    if (trx) {
+      const originalTicket = await CashierTicket.findOne({
+        transactionId: trx.refId,
+      });
+      let finalData = trx.toObject ? trx.toObject() : trx;
+
+      if (originalTicket && originalTicket.maker) {
+        const adminMaker = await Admin.findOne({
+          username: originalTicket.maker,
+        });
+        finalData.maker = adminMaker
+          ? adminMaker.fullName || adminMaker.username
+          : originalTicket.maker;
+        if (originalTicket.slipData) {
+          finalData.slipData = originalTicket.slipData;
+        }
+      } else {
+        finalData.maker = "System";
+      }
+
+      // 🟢 បើ transaction គ្មាន slipData សមតុល្យ យើងគណនារកអោយដូចគ្នា
+      if (!finalData.slipData) finalData.slipData = {};
+      if (finalData.slipData.priorBalance === undefined) {
+        const targetUser = await User.findOne({
+          $or: [
+            { username: finalData.username },
+            {
+              "mainAccounts.USD.accountNumber":
+                finalData.receiverAcc || finalData.senderAcc,
+            },
+            {
+              "mainAccounts.KHR.accountNumber":
+                finalData.receiverAcc || finalData.senderAcc,
+            },
+          ],
+        });
+
+        if (targetUser) {
+          let currentBal = targetUser.mainAccounts?.USD?.balance || 0;
+          const isDep = (finalData.type || "")
+            .toLowerCase()
+            .includes("deposit");
+
+          finalData.slipData.newBalance = currentBal;
+          finalData.slipData.priorBalance = isDep
+            ? currentBal - Math.abs(finalData.amount)
+            : currentBal + Math.abs(finalData.amount);
+          finalData.slipData.customerName =
+            targetUser.fullName || targetUser.username;
+          finalData.slipData.depositorAccount = "N/A";
+        }
+      }
+
+      return res.json({
+        success: true,
+        data: finalData,
+        source: "transaction",
+      });
+    }
+
+    return res.json({
+      success: false,
+      message: "រកមិនឃើញវិក្កយបត្រនេះទេ ឬលេខកូដមិនត្រឹមត្រូវ!",
+    });
+  } catch (error) {
+    console.error("Receipt Fetch Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal Database Error" });
+  }
+};
+
 // ==========================================
 // 🛍️ ផ្នែកទី ៨៖ បញ្ជរគិតប្រាក់ (Cashier System)
 // ==========================================
@@ -2456,6 +2583,7 @@ module.exports = {
   adjustBalance,
   approveTransaction,
   refundTransaction,
+  getPublicReceipt,
 
   // Cashier
   searchCashierUser,

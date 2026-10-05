@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="km">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>U-Pay Transaction Slip</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+      body {
+        font-family: "Kantumruy Pro", sans-serif;
+        background-color: #f1f5f9;
+        color: #0f172a;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* 🟢 រចនាបថដូចគ្នាបេះបិទទៅនឹង Cashier System */
+      .pro-slip {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+        font-family: "Kantumruy Pro", sans-serif;
+        color: #1e293b;
+        width: 100%;
+        max-width: 600px; /* ទំហំអតិបរមាអោយដូច A5/A4 ទទឹង */
+        box-sizing: border-box;
+      }
+
+      .pro-slip-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #cbd5e1;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+      }
+
+      .pro-slip-header img {
+        height: 40px;
+      }
+      .pro-slip-title {
+        text-align: right;
+      }
+      .pro-slip-title h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+      }
+
+      .pro-slip-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+      }
+
+      .pro-slip-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .pro-slip-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .pro-slip-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 600;
+      }
+      .pro-slip-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .pro-slip-value.acc-num {
+        font-family: "JetBrains Mono", monospace;
+        color: #2563eb;
+        font-size: 1.15rem;
+      }
+      .pro-slip-amount {
+        font-size: 1.8rem;
+        font-weight: 800;
+        font-family: "JetBrains Mono", monospace;
+        color: #10b981;
+      }
+
+      .signature-box {
+        flex: 1;
+        text-align: center;
+      }
+      .signature-line {
+        border-bottom: 1px dashed #94a3b8;
+        width: 100%;
+      }
+      .signature-label {
+        font-size: 0.65rem;
+        font-weight: bold;
+        color: #475569;
+        text-transform: uppercase;
+        line-height: 1.2;
+      }
+
+      /* ប៊ូតុង Download */
+      .action-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 400px;
+        background: #3b82f6;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        border: none;
+        font-size: 1.05rem;
+        font-weight: bold;
+        font-family: "Kantumruy Pro", sans-serif;
+        cursor: pointer;
+        margin-top: 20px;
+        margin-bottom: 40px;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        transition: 0.3s;
+      }
+      .action-btn:hover {
+        background: #2563eb;
+      }
+
+      .loading-text {
+        text-align: center;
+        font-weight: bold;
+        color: #64748b;
+        margin-top: 50px;
+      }
+
+      /* កំណត់ទំហំសម្រាប់ Mobile អោយនៅតូចល្មម */
+      @media (max-width: 600px) {
+        .pro-slip {
+          padding: 15px;
+          border-radius: 8px;
+        }
+        .pro-slip-title h2 {
+          font-size: 1rem;
+        }
+        .pro-slip-amount {
+          font-size: 1.4rem;
+        }
+        .pro-slip-header img {
+          height: 30px;
+        }
+        .pro-slip-box {
+          padding: 10px 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading" class="loading-text">
+      កំពុងទាញយកទិន្នន័យ... <i class="fa-solid fa-spinner fa-spin"></i>
+    </div>
+    <div
+      id="error"
+      class="loading-text"
+      style="display: none; color: #ef4444"
+    ></div>
+
+    <!-- ផ្ទាំងវិក្កយបត្រ -->
+    <div class="pro-slip" id="receiptArea" style="display: none">
+      <!-- Header -->
+      <div class="pro-slip-header">
+        <img
+          src="/images/logo.png"
+          alt="U-Pay Logo"
+          onerror="this.style.display = 'none'"
+        />
+        <div class="pro-slip-title">
+          <h2 id="rTypeTitle">CASH DEPOSIT</h2>
+          <div style="margin-top: 8px; font-size: 0.95rem">
+            <span style="color: #64748b; font-weight: 600">TRX ID:</span>
+            <span
+              id="rRef"
+              style="
+                font-weight: 800;
+                color: #10b981;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 1.05rem;
+              "
+              >...</span
+            >
+          </div>
+          <p
+            id="rDate"
+            style="margin: 5px 0 0 0; font-size: 0.85rem; color: #64748b"
+          >
+            ...
+          </p>
+        </div>
+      </div>
+
+      <!-- Section 1: Account Details -->
+      <div class="pro-slip-box" style="border-left: 4px solid #3b82f6">
+        <div class="pro-slip-row" style="align-items: flex-start">
+          <div>
+            <div class="pro-slip-label">ឈ្មោះគណនី / Account Name</div>
+            <div
+              class="pro-slip-value"
+              id="rCustomerName"
+              style="margin-top: 4px; font-size: 1.15rem"
+            >
+              ...
+            </div>
+          </div>
+          <div style="text-align: right">
+            <div class="pro-slip-label">លេខគណនី / Account No.</div>
+            <div
+              class="pro-slip-value acc-num"
+              id="rAccountNo"
+              style="margin-top: 4px"
+            >
+              ...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Transaction Details -->
+      <div class="pro-slip-box">
+        <div
+          class="pro-slip-row"
+          style="
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            align-items: flex-start;
+          "
+        >
+          <div style="flex: 1">
+            <div class="pro-slip-label" style="font-size: 0.95rem">
+              ចំនួនទឹកប្រាក់ / Amount
+            </div>
+            <div
+              id="rAmountWords"
+              style="
+                font-size: 0.8rem;
+                color: #64748b;
+                margin-top: 5px;
+                font-style: italic;
+                max-width: 250px;
+              "
+            >
+              ...
+            </div>
+          </div>
+          <div class="pro-slip-amount" id="rAmountVal">...</div>
+        </div>
+
+        <div class="pro-slip-row" style="margin-bottom: 6px">
+          <div class="pro-slip-label" style="font-size: 0.75rem">
+            កម្រៃសេវា / Fee
+          </div>
+          <div class="pro-slip-value" style="font-size: 0.85rem">$0.00</div>
+        </div>
+
+        <!-- 🟢 ផ្នែកបង្ហាញសមតុល្យចាស់ និងថ្មី ទាញពី Database -->
+        <div
+          class="pro-slip-row"
+          id="priorBalRow"
+          style="margin-bottom: 6px; display: none"
+        >
+          <div class="pro-slip-label" style="font-size: 0.75rem">
+            សមតុល្យមុន / Prior Balance
+          </div>
+          <div class="pro-slip-value" id="rPriorBal" style="font-size: 0.85rem">
+            ...
+          </div>
+        </div>
+        <div
+          class="pro-slip-row"
+          id="newBalRow"
+          style="margin-bottom: 15px; display: none"
+        >
+          <div class="pro-slip-label" style="font-size: 0.75rem">
+            សមតុល្យថ្មី / New Balance
+          </div>
+          <div
+            class="pro-slip-value"
+            id="rNewBal"
+            style="font-size: 0.9rem; color: #2563eb"
+          >
+            ...
+          </div>
+        </div>
+
+        <div
+          class="pro-slip-row"
+          style="
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 15px;
+            margin-top: 15px;
+          "
+        >
+          <div class="pro-slip-label" id="rDepositorLabel">
+            អ្នកតំណាង / Depositor
+          </div>
+          <div
+            class="pro-slip-value"
+            id="rDepositorName"
+            style="font-size: 0.95rem; text-align: right"
+          >
+            ...
+          </div>
+        </div>
+        <div class="pro-slip-row" style="margin-top: 8px">
+          <div class="pro-slip-label">ចំណាំ / Remark</div>
+          <div
+            class="pro-slip-value"
+            id="rRemark"
+            style="
+              font-weight: normal;
+              color: #475569;
+              font-size: 0.9rem;
+              text-align: right;
+              max-width: 70%;
+            "
+          >
+            ...
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Status -->
+      <div class="pro-slip-row" style="padding: 0 10px; margin-top: 20px">
+        <div>
+          <div class="pro-slip-label" style="font-size: 0.75rem">
+            បេឡាករ / Teller
+          </div>
+          <div
+            class="pro-slip-value"
+            id="rMaker"
+            style="
+              font-size: 0.85rem;
+              margin-top: 2px;
+              text-transform: uppercase;
+            "
+          >
+            ...
+          </div>
+        </div>
+        <div style="text-align: right">
+          <div class="pro-slip-label" style="font-size: 0.75rem">
+            ស្ថានភាព / Status
+          </div>
+          <div
+            class="pro-slip-value"
+            id="rStatus"
+            style="font-size: 0.85rem; margin-top: 2px; color: #10b981"
+          >
+            ...
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: QR Code & Signatures -->
+      <div
+        style="
+          margin-top: 25px;
+          padding-top: 20px;
+          border-top: 2px solid #e2e8f0;
+        "
+      >
+        <div style="display: flex; align-items: flex-end; gap: 20px">
+          <div style="width: 85px; text-align: center">
+            <img
+              id="rQrCode"
+              src=""
+              style="
+                width: 80px;
+                height: 80px;
+                box-sizing: border-box;
+                border: 1px solid #cbd5e1;
+                padding: 4px;
+                border-radius: 6px;
+                display: block;
+                margin: 0 auto;
+              "
+              alt="QR Code"
+            />
+          </div>
+          <div
+            style="
+              flex: 1;
+              display: flex;
+              justify-content: space-between;
+              gap: 15px;
+              padding-bottom: 5px;
+            "
+          >
+            <div class="signature-line" style="flex: 1"></div>
+            <div class="signature-line" style="flex: 1"></div>
+            <div class="signature-line" style="flex: 1"></div>
+          </div>
+        </div>
+
+        <div
+          style="
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-top: 5px;
+          "
+        >
+          <div
+            style="
+              width: 85px;
+              text-align: center;
+              font-size: 0.65rem;
+              color: #64748b;
+              line-height: 1.2;
+            "
+          >
+            ស្កេនដើម្បីពិនិត្យ<br />(Scan to Verify)
+          </div>
+          <div
+            style="
+              flex: 1;
+              display: flex;
+              justify-content: space-between;
+              gap: 15px;
+              text-align: center;
+            "
+          >
+            <div class="signature-label" id="rSigDepositor" style="flex: 1">
+              អ្នកដាក់ប្រាក់<br />DEPOSITOR
+            </div>
+            <div class="signature-label" style="flex: 1">
+              បេឡាករ<br />TELLER
+            </div>
+            <div class="signature-label" style="flex: 1">
+              អ្នកត្រួតពិនិត្យ<br />CHECKER
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button
+      id="downloadBtn"
+      class="action-btn"
+      style="display: none"
+      onclick="saveAsImage()"
+    >
+      <i class="fa-solid fa-download"></i> រក្សាទុករូបភាព (Save Image)
+    </button>
+
+    <script>
+      function numberToWordsUSD(amount) {
+        return (
+          amount.toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+          }) + " ONLY"
+        );
+      }
+      function numberToWordsKHR(amount) {
+        return amount.toLocaleString() + " RIELS ONLY";
+      }
+
+      window.onload = async function () {
+        const urlParts = window.location.pathname.split("/");
+        const receiptId = urlParts[urlParts.length - 1];
+
+        try {
+          const response = await fetch(`/api/receipt-data/${receiptId}`);
+          const data = await response.json();
+
+          if (data.success) {
+            const d = data.data;
+            const isKHR = d.currency === "KHR";
+            const symbol = isKHR ? "៛" : "$";
+            const amountNum = Math.abs(d.amount);
+            const amtStr = amountNum.toLocaleString("en-US", {
+              minimumFractionDigits: isKHR ? 0 : 2,
+            });
+
+            // 1. បញ្ចូលទិន្នន័យ Header
+            const rTypeTitle = document.getElementById("rTypeTitle");
+            const rRef = document.getElementById("rRef");
+
+            if (data.source === "ticket") {
+              const isDep = d.requestType === "Deposit";
+              rTypeTitle.innerText = isDep
+                ? "ប័ណ្ណដាក់ប្រាក់ / CASH DEPOSIT"
+                : "ប័ណ្ណដកប្រាក់ / CASH WITHDRAWAL";
+              rTypeTitle.style.color = isDep ? "#10b981" : "#ef4444";
+              rRef.innerText = d.transactionId || d._id;
+              rRef.style.color = isDep ? "#10b981" : "#ef4444";
+            } else {
+              const isDep =
+                (d.type || "").toLowerCase().includes("deposit") ||
+                (d.trxMethod || "").toLowerCase().includes("deposit");
+              rTypeTitle.innerText = isDep
+                ? "ប័ណ្ណដាក់ប្រាក់ / CASH DEPOSIT"
+                : "ប័ណ្ណដកប្រាក់ / CASH WITHDRAWAL";
+              rTypeTitle.style.color = isDep ? "#10b981" : "#ef4444";
+              rRef.innerText = d.refId;
+              rRef.style.color = isDep ? "#10b981" : "#ef4444";
+            }
+            document.getElementById("rDate").innerText = new Date(
+              d.date || d.createdAt,
+            ).toLocaleString();
+
+            // 2. បញ្ចូលទិន្នន័យ Account
+            document.getElementById("rCustomerName").innerText =
+              d.slipData?.customerName ||
+              d.receiverName ||
+              d.senderName ||
+              "Unknown Customer";
+            document.getElementById("rAccountNo").innerText =
+              d.targetAcc || d.receiverAcc || d.senderAcc || "N/A";
+
+            // 3. បញ្ចូលទិន្នន័យ Transaction Amount
+            const rAmountVal = document.getElementById("rAmountVal");
+            rAmountVal.innerText = `${symbol}${amtStr}`;
+            rAmountVal.style.color = rTypeTitle.style.color;
+            document.getElementById("rAmountWords").innerText = isKHR
+              ? numberToWordsKHR(amountNum)
+              : numberToWordsUSD(amountNum);
+
+            // 🟢 ទាញយកឈ្មោះអ្នកតំណាង និងលេខគណនីពី slipData មកបង្ហាញឱ្យបានត្រឹមត្រូវ
+            const depositorName = d.depositorName || d.senderName || "Unknown";
+            const depositorAcc = d.slipData?.depositorAccount || "";
+
+            document.getElementById("rDepositorName").innerText = depositorName;
+
+            // 🟢 បង្កើត Remark អូតូ (រៀបចំទម្រង់ឱ្យដូចទៅនឹង Cashier System ទាំងស្រុង)
+            const isDeposit = rTypeTitle.innerText.includes("DEPOSIT");
+            const actionText = isDeposit ? "ដាក់ប្រាក់ដោយ" : "ដកប្រាក់ដោយ";
+
+            // បើមានលេខកុងអ្នកដាក់/ដក បង្ហាញបញ្ចូលគ្នា តែបើអត់មានបង្ហាញត្រឹមឈ្មោះ
+            const autoRemark =
+              depositorAcc && depositorAcc !== "N/A"
+                ? `${actionText}: ${depositorName} (${depositorAcc})`
+                : `${actionText}: ${depositorName}`;
+
+            // បើមាន Remark ផ្សេងទៀតពី Admin យកมาต่อគ្នា បើគ្មានដាក់អូតូហ្មង
+            const userRemark = d.remark || "";
+            let finalRemarkText = "N/A";
+
+            if (userRemark && userRemark !== "N/A") {
+              // បើក្នុង Database មានសញ្ញា | រួចហើយ មិនបាច់ថែមទៀតទេ
+              finalRemarkText = userRemark.includes("|")
+                ? userRemark
+                : `${userRemark} | ${autoRemark}`;
+            } else {
+              finalRemarkText = autoRemark;
+            }
+
+            document.getElementById("rRemark").innerText = finalRemarkText;
+
+            // 🟢 4. បង្ហាញសមតុល្យចាស់ & ថ្មី ពី Database (ទាញពី slipData)
+            if (
+              d.slipData &&
+              d.slipData.priorBalance !== undefined &&
+              d.slipData.newBalance !== undefined
+            ) {
+              document.getElementById("priorBalRow").style.display = "flex";
+              document.getElementById("newBalRow").style.display = "flex";
+
+              document.getElementById("rPriorBal").innerText =
+                `${symbol}${Number(d.slipData.priorBalance).toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })}`;
+              document.getElementById("rNewBal").innerText =
+                `${symbol}${Number(d.slipData.newBalance).toLocaleString("en-US", { minimumFractionDigits: isKHR ? 0 : 2 })}`;
+            } else {
+              // លាក់ប្រអប់បើទិន្នន័យនេះមិនមាននៅក្នុង DB
+              document.getElementById("priorBalRow").style.display = "none";
+              document.getElementById("newBalRow").style.display = "none";
+            }
+
+            // 🟢 5. បញ្ចូលឈ្មោះ បេឡាករ (Teller)
+            document.getElementById("rMaker").innerText =
+              d.makerFullName || d.maker || "System";
+
+            // 🟢 6. កំណត់ស្ថានភាព (Status)
+            const statusElem = document.getElementById("rStatus");
+            const currentStatus = (d.status || "").toLowerCase();
+
+            if (
+              currentStatus === "approved" ||
+              currentStatus === "verified" ||
+              currentStatus === "success"
+            ) {
+              statusElem.innerText = "COMPLETED";
+              statusElem.style.color = "#10b981";
+            } else if (currentStatus.includes("pending")) {
+              statusElem.innerText = "PENDING APPROVAL";
+              statusElem.style.color = "#d97706";
+            } else {
+              statusElem.innerText = currentStatus.toUpperCase();
+              statusElem.style.color = "#ef4444";
+            }
+
+            // 7. កំណត់ QR Code
+            const currentUrl = window.location.href;
+            document.getElementById("rQrCode").src =
+              `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(currentUrl)}`;
+
+            // 8. បង្ហាញផ្ទាំងវិក្កយបត្រ និងប៊ូតុង Download
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("receiptArea").style.display = "block";
+            document.getElementById("downloadBtn").style.display = "flex";
+          } else {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("error").innerText = data.message;
+            document.getElementById("error").style.display = "block";
+          }
+        } catch (e) {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("error").innerText =
+            "មានបញ្ហាតភ្ជាប់ទៅកាន់ប្រព័ន្ធ: " + e.message;
+          document.getElementById("error").style.display = "block";
+          console.error(e);
+        }
+      };
+
+      // មុខងារ Save Image
+      function saveAsImage() {
+        const btn = document.getElementById("downloadBtn");
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងរក្សាទុក...`;
+
+        const receiptElement = document.getElementById("receiptArea");
+        html2canvas(receiptElement, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          const refId = document.getElementById("rRef").innerText;
+          link.download = `UPAY-Receipt-${refId}.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+
+          btn.innerHTML = `<i class="fa-solid fa-check"></i> រក្សាទុករួចរាល់`;
+          setTimeout(() => {
+            btn.innerHTML = `<i class="fa-solid fa-download"></i> រក្សាទុករូបភាព (Save Image)`;
+          }, 2000);
+        });
+      }
+    </script>
+  </body>
+</html>
