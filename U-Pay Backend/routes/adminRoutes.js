@@ -141,6 +141,11 @@ router.get(
 // 🔍 ផ្នែកទី ៦៖ គ្រប់គ្រងអតិថិជន (Customer 360)
 // ==========================================
 router.post(
+  "/create-user",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]), // កំណត់ថា Admin ណាខ្លះអាចបង្កើតបាន
+  safeHandler(adminController.adminCreateUser, "adminCreateUser"),
+);
+router.post(
   "/search-user",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.searchUserByAdmin, "searchUserByAdmin"),
@@ -211,20 +216,33 @@ router.post(
 );
 
 // ==========================================
-// 🛍️ ផ្នែកទី ៨៖ បញ្ជរគិតប្រាក់ (Cashier System)
+// 🛍️ ផ្នែកទី ៨៖ បញ្ជរគិតប្រាក់ (Cashier System & Approvals)
 // ==========================================
 router.get(
   "/cashier/search/:identifier",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.searchCashierUser, "searchCashierUser"),
 );
+
+// 🟢 បង្កើត Ticket ដោយ Maker
 router.post(
-  "/cashier/transaction",
+  "/cashier/ticket/create",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  safeHandler(
-    adminController.processCashierTransaction,
-    "processCashierTransaction",
-  ),
+  safeHandler(adminController.createCashierTicket, "createCashierTicket"),
+);
+
+// 🟢 ទាញយក Ticket ទាំងអស់មកឱ្យ Checker មើល
+router.get(
+  "/cashier/tickets",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getCashierTickets, "getCashierTickets"),
+);
+
+// 🟢 Checker ចុច Approve ឬ Reject
+router.post(
+  "/cashier/ticket/action",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]), // (Support ធម្មតាមិនឱ្យ Approve ទេ)
+  safeHandler(adminController.actionCashierTicket, "actionCashierTicket"),
 );
 
 // ==========================================
@@ -325,6 +343,12 @@ router.post(
   "/ai-reply",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   aiController.generateAdminAIReply,
+);
+
+router.post(
+  "/send-message",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.sendDirectMessage, "sendDirectMessage"),
 );
 
 // ==========================================

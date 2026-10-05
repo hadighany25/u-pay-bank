@@ -1775,10 +1775,8 @@
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem("darkMode_" + user.username) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
+        // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+        applyThemeLocally();
 
         updateUITexts(); // Apply translations on load
 
@@ -1789,6 +1787,30 @@
         document.body.classList.add("loaded");
         updateSlider("monthSlider", "monthBubble");
         updateSlider("yearSlider", "yearBubble");
+      });
+
+      // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
+      function applyThemeLocally() {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+      }
+
+      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          if (event.key === userThemeKey) {
+            applyThemeLocally();
+          }
+        }
       });
 
       function restrictPastDates() {

@@ -833,6 +833,9 @@
       let allMerchantAccounts = [];
 
       window.addEventListener("DOMContentLoaded", () => {
+        // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+        applyThemeLocally();
+
         if (typeof applyLanguage === "function") applyLanguage();
         if (
           typeof document.getElementById("searchTrx").placeholder !==
@@ -886,6 +889,28 @@
         populateAccountCheckboxes();
         renderTransactions();
         renderMessages(sessionUser.notifications);
+      });
+
+      // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
+      function applyThemeLocally() {
+        const userThemeKey = "theme_" + sessionUser.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
+
+      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (sessionUser) {
+          const userThemeKey = "theme_" + sessionUser.username;
+          if (event.key === userThemeKey) {
+            applyThemeLocally();
+          }
+        }
       });
 
       function switchHistoryTab(tab) {

@@ -530,6 +530,76 @@
         font-weight: 600;
         cursor: pointer;
       }
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES (សម្រាប់ Manage Kids)
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: none !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #00251f !important;
+      }
+      body.dark-mode .junior-card {
+        background: #1e1e1e !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid #2d2d2d;
+      }
+      body.dark-mode .kid-name h3 {
+        color: #ffffff !important;
+      }
+      body.dark-mode .kid-name p,
+      body.dark-mode .acc-number-sub,
+      body.dark-mode .act-text {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .account-list {
+        background: #121212 !important;
+        border-color: #2d2d2d !important;
+      }
+      body.dark-mode .acc-currency {
+        color: #e2e8f0 !important;
+      }
+      body.dark-mode .acc-balance {
+        color: #10b981 !important;
+      }
+      body.dark-mode .acc-divider {
+        background: #2d2d2d !important;
+      }
+      body.dark-mode .add-btn {
+        background: #064e3b !important;
+        border-color: #059669 !important;
+        color: #34d399 !important;
+      }
+      body.dark-mode .bottom-sheet {
+        background: #1e1e1e !important;
+        color: #fff !important;
+      }
+      body.dark-mode .sheet-header {
+        border-bottom-color: #2d2d2d !important;
+        color: #fff !important;
+      }
+      body.dark-mode .big-input {
+        background: #121212 !important;
+        border-color: #2d2d2d !important;
+        color: #fff !important;
+      }
+      body.dark-mode .currency-toggle {
+        background: #121212 !important;
+      }
+      body.dark-mode .cur-btn.active {
+        background: #2d2d2d !important;
+        color: #10b981 !important;
+      }
+      body.dark-mode .trx-item {
+        border-bottom-color: #2d2d2d !important;
+      }
+      body.dark-mode .trx-title {
+        color: #fff !important;
+      }
     </style>
   </head>
   <body>
@@ -719,9 +789,37 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         if (!currentUser) window.location.href = "index.html";
+
+        // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+        applyThemeLocally();
+
         renderJuniorCards();
         document.body.classList.add("loaded");
         setupEnterKeyListeners();
+      });
+
+      // 🌟 បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
+      function applyThemeLocally() {
+        if (currentUser && currentUser.username) {
+          const userThemeKey = "theme_" + currentUser.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+      }
+
+      // 🌟 ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (currentUser && currentUser.username) {
+          const userThemeKey = "theme_" + currentUser.username;
+          if (event.key === userThemeKey) {
+            applyThemeLocally();
+          }
+        }
       });
 
       // ==========================================

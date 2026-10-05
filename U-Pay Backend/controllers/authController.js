@@ -87,7 +87,8 @@ const generateUserId = async () => {
 const login = async (req, res) => {
   const { identifier, password } = req.body;
   try {
-    const user = await User.findOne({
+    // 🟢 ១. ស្វែងរកអតិថិជនសិន ដើម្បីឆែក Password និងស្ថានភាពគណនី
+    let user = await User.findOne({
       $or: [
         { username: identifier },
         { phone: identifier },
@@ -105,9 +106,18 @@ const login = async (req, res) => {
         });
       }
 
-      user.isOnline = true;
-      user.lastActive = new Date().toISOString();
-      await user.save();
+      // 🟢 ២. ប្រើប្រាស់ findOneAndUpdate ដើម្បីធានាថា Database ត្រូវបាន Update ពិតប្រាកដ ១០០%
+      user = await User.findOneAndUpdate(
+        { _id: user._id },
+        {
+          $set: {
+            forceLogout: false, // 🔓 ដោះសោរ
+            isOnline: true,
+            lastActive: new Date().toISOString(),
+          },
+        },
+        { new: true }, // យកទិន្នន័យដែល Update រួចមកប្រើបន្ត
+      );
 
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
@@ -117,7 +127,7 @@ const login = async (req, res) => {
 
       const safeUser = user.toObject();
 
-      // ការធ្វើបច្ចុប្បន្នភាពគណនី Joint
+      // ការធ្វើបច្ចុប្បន្នភាពគណនី Joint (រក្សាកូដចាស់ដដែល)
       if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
         const jointAccIds = safeUser.subAccounts
           .filter(
@@ -157,6 +167,7 @@ const login = async (req, res) => {
       res.json({ success: false, message: "Invalid Credentials" });
     }
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };

@@ -652,6 +652,92 @@ const translations = {
     username_placeholder: "E.g. dara_99",
     pass_placeholder: "Create a password",
     confirm_placeholder: "Type password again",
+
+    // --- New Account / Premium / Joint / Junior ---
+    new_acc_title: "New Account",
+    new_acc_desc:
+      "Choose an account from our various options and open it instantly.",
+    acc_premium_title: "Premium Account",
+    acc_premium_desc:
+      "Find an account number that is memorable and meaningful.",
+    acc_family_title: "Joint Account",
+    acc_family_desc:
+      "Link an account with your partner to manage money together.",
+    acc_junior_title: "U-Pay Junior Account",
+    acc_junior_desc:
+      "Create an account for your child and manage their spending remotely.",
+    fd_desc: "Deposit securely and earn high interest rates.",
+
+    junior_setup_title: "Create Junior Account",
+    select_acc_curr: "Select Account Currency:",
+    curr_usd: "USD",
+    curr_khr: "KHR",
+    curr_both: "BOTH",
+    junior_full_name: "Child's Full Name",
+    junior_name_ph: "e.g. John Doe",
+    junior_username: "Set Username (for Login)",
+    junior_username_ph: "e.g. john_upay",
+    junior_password: "Set Password (for Login)",
+    junior_password_ph: "Min. 4 characters",
+    junior_limit: "Daily Spending Limit",
+    junior_limit_note:
+      "* Your child cannot spend more than this amount per day.",
+
+    num_type_title: "Select Account Number",
+    num_type_desc: "What type of account number do you prefer?",
+    num_random_title: "Random Number",
+    num_random_desc: "System will generate a 9-digit number automatically.",
+    price_5: "Price: $5.00",
+    num_special_title: "Special Number",
+    num_special_desc: "Choose your preferred number (price varies).",
+
+    junior_confirm_title: "Confirm Junior Account",
+    service_fee: "Service Fee:",
+    junior_info_title: "Junior Account Info",
+    daily_spending_limit: "Daily Spending Limit",
+    junior_tnc:
+      "I agree to pay the fee and take responsibility for all transactions made by my child.",
+    btn_proceed_pay: "Proceed to Pay",
+
+    joint_setup_title: "Open Joint Account",
+    joint_add_member: "Add Member (Up to 2 persons):",
+    member_self: "Self",
+    member_owner: "Account Owner",
+    member_partner: "Partner",
+    btn_add_member: "Add Member",
+    search_partner_ph: "Username, Account No. or Phone...",
+    btn_search: "Search",
+    joint_note:
+      "Note: The joint account will be activated automatically once all members accept your invitation.",
+
+    search_num_title: "Search Account Number",
+    search_num_ph: "Type here (6 to 9 digits)",
+    suggested_numbers: "Suggested Numbers",
+    sort_low_high: "Price: Low to High",
+    sort_high_low: "Price: High to Low",
+
+    confirm_details_title: "Confirm Details",
+    num_available: "Number Available ✅",
+    price_label: "Price:",
+    curr_usd_sym: "USD ($)",
+    curr_khr_sym: "KHR (៛)",
+    curr_both_note: "The 2nd account will modify the last digit automatically.",
+    acc_name_label: "Account Name",
+    acc_name_ph: "e.g. Business Fund",
+    premium_tnc:
+      "I agree to pay the fee and comply with U-Pay Premium Account Terms of Use.",
+
+    joint_confirm_title: "Confirm Joint Account",
+    acc_members: "Account Members",
+    joint_tnc:
+      "I agree to pay the fee. If the partner does not accept the invitation within 24 hours, the account will be cancelled.",
+
+    success_title_default: "Success!",
+    success_desc_default: "Your account has been created successfully.",
+    receipt_acc_num: "Account No.",
+    receipt_acc_name: "Account Name",
+    receipt_paid_amt: "Paid Amount",
+    btn_back_home: "Back to Dashboard",
   },
 
   // ==========================================
@@ -1308,6 +1394,88 @@ const translations = {
     username_placeholder: "ឧ. dara_99",
     pass_placeholder: "បង្កើតពាក្យសម្ងាត់",
     confirm_placeholder: "វាយបញ្ជាក់ម្តងទៀត",
+
+    // --- New Account / Premium / Joint / Junior ---
+    new_acc_title: "គណនីថ្មី",
+    new_acc_desc:
+      "ជ្រើសរើសគណនីណាមួយ ក្នុងចំណោមជម្រើសជាច្រើនរបស់យើង ហើយបើកវាភ្លាមៗយ៉ាងងាយស្រួល។",
+    acc_premium_title: "គណនីលេខពិសេស",
+    acc_premium_desc: "ស្វែងរកលេខគណនីដែលងាយចំណាំ និងមានអត្ថន័យ។",
+    acc_family_title: "គណនីរួមគ្រួសារ",
+    acc_family_desc: "ភ្ជាប់គណនីជាមួយដៃគូ ដើម្បីគ្រប់គ្រងលុយជាមួយគ្នា។",
+    acc_junior_title: "គណនីកុមារ U-Pay Junior",
+    acc_junior_desc: "បង្កើតគណនីឱ្យកូនរបស់អ្នក និងគ្រប់គ្រងការចំណាយពីចម្ងាយ។",
+    fd_desc: "ដាក់ប្រាក់ដោយសុវត្ថិភាព និងទទួលបានអត្រាការប្រាក់ខ្ពស់។",
+
+    junior_setup_title: "បង្កើតគណនីកុមារ",
+    select_acc_curr: "ជ្រើសរើសរូបិយប័ណ្ណគណនី:",
+    curr_usd: "ដុល្លារ",
+    curr_khr: "រៀល",
+    curr_both: "ទាំងពីរ",
+    junior_full_name: "ឈ្មោះពេញរបស់កូន",
+    junior_name_ph: "ឧ. កូន សុខ ចិត្រា",
+    junior_username: "កំណត់ Username ឱ្យកូន (សម្រាប់ Login)",
+    junior_username_ph: "ឧ. chitra_upay",
+    junior_password: "កំណត់ Password ឱ្យកូន (សម្រាប់ Login)",
+    junior_password_ph: "យ៉ាងតិច ៤ ខ្ទង់",
+    junior_limit: "ដែនកំណត់ចំណាយប្រចាំថ្ងៃ (Daily Limit)",
+    junior_limit_note: "* កូនមិនអាចចាយលើសចំនួននេះក្នុងមួយថ្ងៃបានទេ។",
+
+    num_type_title: "ជ្រើសរើសលេខគណនី",
+    num_type_desc: "តើអ្នកចង់បានលេខគណនីបែបណា?",
+    num_random_title: "លេខចៃដន្យ (Random)",
+    num_random_desc: "ប្រព័ន្ធនឹងផ្តល់លេខ ៩ខ្ទង់ ដោយស្វ័យប្រវត្តិ។",
+    price_5: "តម្លៃ: $5.00",
+    num_special_title: "រើសលេខពិសេស",
+    num_special_desc: "ជ្រើសរើសលេខដែលអ្នកស្រលាញ់ (គិតថ្លៃតាមលេខ)។",
+
+    junior_confirm_title: "បញ្ជាក់ការបង្កើតគណនីកូន",
+    service_fee: "តម្លៃសេវា:",
+    junior_info_title: "ព័ត៌មានគណនីកុមារ",
+    daily_spending_limit: "កំណត់ការចាយប្រចាំថ្ងៃ",
+    junior_tnc:
+      "ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា។ ខ្ញុំយល់ព្រមទទួលខុសត្រូវរាល់ប្រតិបត្តិការដែលធ្វើឡើងដោយគណនីកូនរបស់ខ្ញុំ។",
+    btn_proceed_pay: "បន្តការទូទាត់",
+
+    joint_setup_title: "បើកគណនីរួម",
+    joint_add_member: "បន្ថែមសមាជិក (សម្រាប់ ២ នាក់):",
+    member_self: "ខ្លួនឯង",
+    member_owner: "ម្ចាស់គណនី (Owner)",
+    member_partner: "ដៃគូ (Partner)",
+    btn_add_member: "បន្ថែមសមាជិក",
+    search_partner_ph: "វាយ Username លេខគណនី ឬ ទូរស័ព្ទ...",
+    btn_search: "ស្វែងរក",
+    joint_note:
+      "ចំណាំ៖ គណនីរួមនឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិបន្ទាប់ពីសមាជិកទាំងអស់យល់ព្រមទទួលយកការអញ្ជើញរបស់អ្នក។",
+
+    search_num_title: "ស្វែងរកលេខគណនី",
+    search_num_ph: "វាយលេខទីនេះ (៦ ទៅ ៩ ខ្ទង់)",
+    suggested_numbers: "លេខណែនាំពិសេស",
+    sort_low_high: "តម្លៃ ថោក-ថ្លៃ",
+    sort_high_low: "តម្លៃ ថ្លៃ-ថោក",
+
+    confirm_details_title: "បញ្ជាក់ព័ត៌មាន",
+    num_available: "លេខនេះទំនេរ ✅",
+    price_label: "តម្លៃ:",
+    curr_usd_sym: "ដុល្លារ ($)",
+    curr_khr_sym: "រៀល (៛)",
+    curr_both_note: "គណនីទី២ នឹងកែខ្ទង់ចុងក្រោយដោយស្វ័យប្រវត្តិ។",
+    acc_name_label: "ឈ្មោះគណនី (Account Name)",
+    acc_name_ph: "ឧ. លុយអាជីវកម្ម",
+    premium_tnc:
+      "ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា និងគោរពតាមលក្ខខណ្ឌប្រើប្រាស់គណនីពិសេសរបស់ U-Pay។",
+
+    joint_confirm_title: "បញ្ជាក់ព័ត៌មានគណនីរួម",
+    acc_members: "សមាជិកគណនី",
+    joint_tnc:
+      "ខ្ញុំយល់ព្រមបង់ថ្លៃសេវា។ បើសមាជិកដៃគូមិនយល់ព្រមទទួលការអញ្ជើញក្នុងរយៈពេល ២៤ ម៉ោង គណនីនឹងត្រូវលុបចោល...",
+
+    success_title_default: "ជោគជ័យ!",
+    success_desc_default: "គណនីរបស់អ្នកត្រូវបានបង្កើតរួចរាល់។",
+    receipt_acc_num: "លេខគណនី",
+    receipt_acc_name: "ឈ្មោះគណនី",
+    receipt_paid_amt: "ប្រាក់បានទូទាត់",
+    btn_back_home: "ត្រឡប់ទៅទំព័រដើម",
   },
 };
 

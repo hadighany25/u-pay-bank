@@ -1,20 +1,21 @@
 // ============================================================================
 // ឯកសារ: accountController.js
-// អត្ថន័យ: គ្រប់គ្រងមុខងារទាំងអស់ទាក់ទងនឹងគណនី (Premium & Joint Accounts)
+// អត្ថន័យ: គ្រប់គ្រងមុខងារទាំងអស់ទាក់ទងនឹងគណនី (Premium, Joint និង Junior Accounts)
 // ============================================================================
 
+// 📦 ការនាំចូលម៉ូដែល និងសេវាកម្មចាំបាច់ (Dependencies)
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const JointAccount = require("../models/JointAccount");
-const Notification = require("../models/Notification"); // 🌟 ថែម Notification Model ថ្មី
+const Notification = require("../models/Notification");
 const { getFormattedDate } = require("../services/helpers");
 
-// ----------------------------------------------------------------------------
-// ផ្នែកទី ១៖ មុខងារជំនួយ (Helper Functions & Business Logic)
-// ----------------------------------------------------------------------------
+// ============================================================================
+// ផ្នែកទី ១៖ 🛠️ មុខងារជំនួយ (Helper Functions & Business Logic)
+// ============================================================================
 
 /**
- * បង្កើត Hash ស្ដង់ដារ (១០ ខ្ទង់ចៃដន្យរួមបញ្ចូលអក្សរ និងលេខ)
+ * 🔹 បង្កើត Hash ស្ដង់ដារ (១០ ខ្ទង់ចៃដន្យរួមបញ្ចូលអក្សរ និងលេខ)
  * @returns {string} ឧ. "A1B2C3D4E5"
  */
 const generateStandardHash = () => {
@@ -27,8 +28,8 @@ const generateStandardHash = () => {
 };
 
 /**
- * បង្កើត Reference ID ស្ដង់ដារ (៨ ខ្ទង់ចៃដន្យជាមួយ Prefix)
- * @param {string} prefix - អក្សរកាត់ខាងមុខ (ឧ. "PRM", "JNT")
+ * 🔹 បង្កើត Reference ID ស្ដង់ដារ (៨ ខ្ទង់ចៃដន្យជាមួយ Prefix)
+ * @param {string} prefix - អក្សរកាត់ខាងមុខ (ឧ. "PRM", "JNT", "JUN")
  * @returns {string} ឧ. "PRM-12345678"
  */
 const generateStandardRefId = (prefix) => {
@@ -37,7 +38,7 @@ const generateStandardRefId = (prefix) => {
 };
 
 /**
- * គណនាតម្លៃសម្រាប់លេខគណនីពិសេស (Premium Account Pricing)
+ * 🔹 គណនាតម្លៃសម្រាប់លេខគណនីពិសេស (Premium Account Pricing)
  * @param {string} numStr - លេខគណនីដែលបានស្នើ
  * @returns {number} តម្លៃគិតជាដុល្លារ
  */
@@ -66,12 +67,367 @@ function calculatePremiumPrice(numStr) {
   return 5;
 }
 
-// ----------------------------------------------------------------------------
-// ផ្នែកទី ២៖ គ្រប់គ្រងគណនីលំដាប់ខ្ពស់ (Premium Accounts Management)
-// ----------------------------------------------------------------------------
+// ============================================================================
+// ផ្នែកទី ២៖ 🧒 គ្រប់គ្រងគណនីកុមារ (Junior Accounts Management)
+// ============================================================================
 
 /**
- * បង្កើតគណនី Premium ថ្មី (Create Premium Account)
+ * 🔹 មុខងារបង្កើតគណនីកុមារ (Create Junior Account)
+ */
+exports.createJuniorAccount = async (req, res) => {
+  try {
+    const {
+      parentUsername,
+      childName,
+      childUsername,
+      childPassword,
+      dailyLimit,
+      requestedNumber,
+      price,
+      pin,
+      currencyOption,
+    } = req.body;
+
+    // ១. ផ្ទៀងផ្ទាត់អាណាព្យាបាល (Parent)
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
+
+    // ២. ផ្ទៀងផ្ទាត់ PIN របស់ប៉ាម៉ាក់ (ប្រៀបធៀបផ្ទាល់)
+    if (parent.pin !== pin) {
+      return res.status(400).json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវ!",
+      });
+    }
+
+    // ៣. ឆែកសមតុល្យលុយតាមរចនាសម្ព័ន្ធថ្មី (mainAccounts.USD.balance)
+    const parentUsdBal =
+      parent.mainAccounts?.USD?.balance || parent.balance || 0;
+    if (parentUsdBal < price) {
+      return res.status(400).json({
+        success: false,
+        message: "សមតុល្យមិនគ្រប់គ្រាន់សម្រាប់ការបង្កើតគណនីទេ!",
+      });
+    }
+
+    // ៤. ឆែកមើលក្រែងលោ Username ឬ លេខគណនីកូន ជាន់គ្នាជាមួយអ្នកផ្សេង
+    const existingUser = await User.findOne({ username: childUsername });
+    if (existingUser)
+      return res
+        .status(400)
+        .json({ success: false, message: "Username នេះមានអ្នកប្រើប្រាស់ហើយ!" });
+
+    const existingNum = await User.findOne({
+      $or: [
+        { "mainAccounts.USD.accountNumber": requestedNumber },
+        { "mainAccounts.KHR.accountNumber": requestedNumber },
+        { accountNumber: requestedNumber },
+        { accountNumberKHR: requestedNumber },
+        { "subAccounts.accountNumber": requestedNumber },
+      ],
+    });
+    if (existingNum)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខគណនីនេះត្រូវបានគេយកបាត់ហើយ!" });
+
+    // ៥. កំណត់លេខគណនីទី២ (បើ Parent ជ្រើសរើសយក 'BOTH')
+    let primaryNumber = requestedNumber;
+    let secondaryNumber = null;
+    if (currencyOption === "BOTH") {
+      let lastDigit = parseInt(primaryNumber.slice(-1));
+      let newLastDigit = lastDigit === 9 ? 8 : lastDigit + 1;
+      secondaryNumber = primaryNumber.slice(0, -1) + newLastDigit;
+    }
+
+    // ៦. 🔒 បង្កើតគណនីកុមារ (Shadow User)
+    const tsId = Date.now().toString();
+    const newJunior = new User({
+      id: tsId,
+      username: childUsername,
+      password: childPassword,
+      fullName: childName,
+      role: "junior",
+      parentUsername: parent.username,
+      dailyLimit: dailyLimit,
+      dailySpent: 0,
+      isFrozen: false,
+      joinDate: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
+
+      // រចនាសម្ព័ន្ធ Main Accounts ថ្មីសម្រាប់កូន (បើកតាមជម្រើស)
+      mainAccounts: {
+        ...(currencyOption !== "KHR" && {
+          USD: {
+            accountId: "MAIN_USD_" + tsId,
+            accountNumber: primaryNumber,
+            accountName: childName + " USD",
+            accountType: "main",
+            currency: "USD",
+            balance: 0,
+            dailyLimit: dailyLimit,
+            dailySpent: 0,
+          },
+        }),
+        ...(currencyOption !== "USD" && {
+          KHR: {
+            accountId: "MAIN_KHR_" + tsId,
+            accountNumber:
+              currencyOption === "BOTH" ? secondaryNumber : primaryNumber,
+            accountName: childName + " KHR",
+            accountType: "main",
+            currency: "KHR",
+            balance: 0,
+            dailyLimit: 0,
+            dailySpent: 0,
+          },
+        }),
+      },
+    });
+
+    await newJunior.save();
+
+    // ៧. កាត់លុយថ្លៃសេវាពីគណនីប៉ាម៉ាក់ និងបញ្ជូនចូល Sub-Account Fee (888000999) របស់ធនាគារកណ្តាល
+    if (price > 0) {
+      let superAdmin = await User.findOne({ username: "superadmin" });
+
+      if (parent.mainAccounts?.USD) {
+        parent.mainAccounts.USD.balance -= price;
+      } else {
+        parent.balance -= price;
+      }
+
+      if (superAdmin) {
+        let targetFeeSub = superAdmin.subAccounts?.find(
+          (sub) => sub.accountNumber === "888000999",
+        );
+        if (targetFeeSub) {
+          targetFeeSub.balance += price;
+          superAdmin.markModified("subAccounts");
+        } else if (superAdmin.mainAccounts?.USD) {
+          superAdmin.mainAccounts.USD.balance += price;
+        } else {
+          superAdmin.balance += price;
+        }
+        await superAdmin.save();
+      }
+
+      const sharedRefId = generateStandardRefId("JUN");
+      const sharedHash = generateStandardHash();
+      const dateStr = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Phnom_Penh",
+        hour12: true,
+      });
+
+      await Transaction.create([
+        {
+          userId: parent._id,
+          username: parent.username,
+          refId: sharedRefId,
+          hash: sharedHash,
+          date: dateStr,
+          type: "Junior Creation Fee",
+          amount: -price,
+          currency: "USD",
+          senderName: parent.fullName || parent.username,
+          receiverName: "Central Bank Fee Income",
+          senderAcc:
+            parent.mainAccounts?.USD?.accountNumber || parent.accountNumber,
+          receiverAcc: "888000999",
+          remark: `ថ្លៃសេវាបង្កើតគណនីកុមារ: ${childName}`,
+          status: "Success",
+        },
+        {
+          userId: superAdmin?._id,
+          username: superAdmin ? superAdmin.username : "superadmin",
+          refId: sharedRefId,
+          hash: sharedHash,
+          date: dateStr,
+          type: "System Income",
+          amount: price,
+          currency: "USD",
+          senderName: parent.fullName || parent.username,
+          receiverName: "Central Bank Fee Income",
+          receiverAcc: "888000999",
+          remark: `Junior Creation Fee: ${childName}`,
+          status: "Success",
+        },
+      ]);
+    }
+
+    // ៨. ភ្ជាប់គណនីកូនចូលទៅក្នុង Dropdown `subAccounts` របស់ប៉ាម៉ាក់
+    parent.subAccounts = parent.subAccounts || [];
+    parent.subAccounts.push({
+      accountId: newJunior.username,
+      accountNumber: primaryNumber,
+      accountName: childName + " (Junior)",
+      accountType: "junior",
+      balance: 0,
+      currency: currencyOption === "KHR" ? "KHR" : "USD",
+    });
+
+    // ⚠️ បានជួសជុល Bug ពី secondNumber ទៅជា secondaryNumber នៅទីនេះដើម្បីកុំអោយ Error
+    if (currencyOption === "BOTH" && secondaryNumber) {
+      parent.subAccounts.push({
+        accountId: newJunior.username + "_khr",
+        accountNumber: secondaryNumber,
+        accountName: childName + " (Junior KHR)",
+        accountType: "junior",
+        balance: 0,
+        currency: "KHR",
+      });
+    }
+
+    await parent.save();
+
+    // ៩. ជោគជ័យ! បោះទិន្នន័យត្រឡប់ទៅ Frontend វិញ
+    res.json({
+      success: true,
+      message: "គណនីកុមារត្រូវបានបង្កើតជោគជ័យ!",
+      secondNumber: secondaryNumber,
+      user: parent,
+    });
+  } catch (error) {
+    console.error("Junior Creation Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+/**
+ * 🔹 មុខងារ ផ្អាក ឬ បើកសោរគណនីកូន (Toggle Freeze)
+ */
+exports.toggleFreeze = async (req, res) => {
+  try {
+    const { parentUsername, childAccountNumber, pin, isFrozen } = req.body;
+
+    // ១. ផ្ទៀងផ្ទាត់អាណាព្យាបាល និង PIN
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
+    if (parent.pin !== pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
+
+    // ២. ស្វែងរកគណនីកូនពិតប្រាកដ (តាមរចនាសម្ព័ន្ធថ្មី)
+    const child = await User.findOne({
+      $or: [
+        { "mainAccounts.USD.accountNumber": childAccountNumber },
+        { "mainAccounts.KHR.accountNumber": childAccountNumber },
+        { accountNumber: childAccountNumber },
+      ],
+      role: "junior",
+    });
+    if (!child)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+
+    // ៣. Update ស្ថានភាពក្នុងគណនីកូន
+    child.isFrozen = isFrozen;
+    if (child.mainAccounts?.USD)
+      child.mainAccounts.USD.isSystemLocked = isFrozen;
+    if (child.mainAccounts?.KHR)
+      child.mainAccounts.KHR.isSystemLocked = isFrozen;
+    await child.save();
+
+    // ៤. Update ស្ថានភាពក្នុង subAccounts របស់ប៉ាម៉ាក់ ដើម្បីឱ្យ Frontend ឃើញភ្លាមៗ
+    const subAccIndex = parent.subAccounts.findIndex(
+      (acc) => acc.accountNumber === childAccountNumber,
+    );
+    if (subAccIndex !== -1) {
+      parent.subAccounts[subAccIndex].isLocked = isFrozen;
+      parent.markModified("subAccounts");
+      await parent.save();
+    }
+
+    res.json({
+      success: true,
+      message: `គណនីកូនត្រូវបាន ${isFrozen ? "ផ្អាក" : "បើក"} ជោគជ័យ!`,
+      user: parent,
+    });
+  } catch (error) {
+    console.error("Freeze Junior Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+/**
+ * 🔹 មុខងារ កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (Update Daily Limit)
+ */
+exports.updateDailyLimit = async (req, res) => {
+  try {
+    const { parentUsername, childAccountNumber, pin, dailyLimit } = req.body;
+
+    // ១. ផ្ទៀងផ្ទាត់អាណាព្យាបាល និង PIN
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីមេ!" });
+    if (parent.pin !== pin)
+      return res
+        .status(400)
+        .json({ success: false, message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!" });
+
+    // ២. ស្វែងរកគណនីកូន
+    const child = await User.findOne({
+      $or: [
+        { "mainAccounts.USD.accountNumber": childAccountNumber },
+        { "mainAccounts.KHR.accountNumber": childAccountNumber },
+        { accountNumber: childAccountNumber },
+      ],
+      role: "junior",
+    });
+    if (!child)
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+
+    // ៣. Update លីមីតក្នុងគណនីកូនផ្ទាល់
+    child.dailyLimit = Number(dailyLimit);
+    if (child.mainAccounts?.USD)
+      child.mainAccounts.USD.dailyLimit = Number(dailyLimit);
+    await child.save();
+
+    // ៤. Update លីមីតក្នុង subAccounts របស់ប៉ាម៉ាក់ ដើម្បីឱ្យ UI ស្គាល់
+    const subAccIndex = parent.subAccounts.findIndex(
+      (acc) => acc.accountNumber === childAccountNumber,
+    );
+    if (subAccIndex !== -1) {
+      parent.subAccounts[subAccIndex].dailyLimit = Number(dailyLimit);
+      parent.markModified("subAccounts");
+      await parent.save();
+    }
+
+    res.json({
+      success: true,
+      message: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃជោគជ័យ!",
+      user: parent,
+    });
+  } catch (error) {
+    console.error("Update Limit Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+// ============================================================================
+// ផ្នែកទី ៣៖ 🌟 គ្រប់គ្រងគណនីលំដាប់ខ្ពស់ (Premium Accounts Management)
+// ============================================================================
+
+/**
+ * 🔹 បង្កើតគណនី Premium ថ្មី (Create Premium Account)
  */
 exports.createPremiumAccount = async (req, res) => {
   const { username, requestedNumber, accountName, price, pin, currencyOption } =
@@ -264,7 +620,7 @@ exports.createPremiumAccount = async (req, res) => {
 };
 
 /**
- * ទាញយកបញ្ជីលេខណែនាំពិសេសៗ (Get Suggested Premium Numbers)
+ * 🔹 ទាញយកបញ្ជីលេខណែនាំពិសេសៗ (Get Suggested Premium Numbers)
  */
 exports.getSuggestedNumbers = async (req, res) => {
   try {
@@ -343,7 +699,7 @@ exports.getSuggestedNumbers = async (req, res) => {
 };
 
 /**
- * ត្រួតពិនិត្យភាពទំនេរនៃលេខគណនី (Check Availability)
+ * 🔹 ត្រួតពិនិត្យភាពទំនេរនៃលេខគណនី (Check Availability)
  */
 exports.checkAvailability = async (req, res) => {
   const { number } = req.body;
@@ -362,12 +718,12 @@ exports.checkAvailability = async (req, res) => {
   return res.json({ available: true });
 };
 
-// ----------------------------------------------------------------------------
-// ផ្នែកទី ៣៖ គ្រប់គ្រងគណនីរួម (Joint Accounts Management)
-// ----------------------------------------------------------------------------
+// ============================================================================
+// ផ្នែកទី ៤៖ 🤝 គ្រប់គ្រងគណនីរួម (Joint Accounts Management)
+// ============================================================================
 
 /**
- * ស្វែងរកគណនីដៃគូសម្រាប់អញ្ជើញ (Search User for Joint Account)
+ * 🔹 ស្វែងរកគណនីដៃគូសម្រាប់អញ្ជើញ (Search User for Joint Account)
  */
 exports.searchUserForJoint = async (req, res) => {
   try {
@@ -394,7 +750,7 @@ exports.searchUserForJoint = async (req, res) => {
 };
 
 /**
- * បង្កើតគណនីរួម និងបញ្ជូនការអញ្ជើញ (Create Joint Account & Invite)
+ * 🔹 បង្កើតគណនីរួម និងបញ្ជូនការអញ្ជើញ (Create Joint Account & Invite)
  */
 exports.createJointAccount = async (req, res) => {
   const {
@@ -519,7 +875,7 @@ exports.createJointAccount = async (req, res) => {
             user.mainAccounts?.USD?.accountNumber || user.accountNumber,
           remark: `Bought Joint Acc No: ${requestedNumber}`,
           status: "Success",
-          trxMethod: "Main Account",
+          trxMethod: "U-PAY System",
         },
         {
           userId: superAdmin?._id,
@@ -527,7 +883,7 @@ exports.createJointAccount = async (req, res) => {
           refId,
           hash,
           date: dateNow,
-          type: "System Income",
+          type: "U-PAY System",
           amount: actualPrice,
           currency: "USD",
           senderName: user.fullName || user.username,
@@ -619,7 +975,7 @@ exports.createJointAccount = async (req, res) => {
 };
 
 /**
- * ឆ្លើយតបទៅនឹងការអញ្ជើញ (Accept/Reject Joint Account Invitation)
+ * 🔹 ឆ្លើយតបទៅនឹងការអញ្ជើញ (Accept/Reject Joint Account Invitation)
  */
 exports.respondToJointInvite = async (req, res) => {
   const { inviteeUsername, ownerUsername, accountNumber, action } = req.body;

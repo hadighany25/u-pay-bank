@@ -234,8 +234,11 @@ async function loadData() {
     globalUsersData = users;
     const clients = users.filter((u) => u.role !== "admin");
 
-    if (typeof renderUsersTable === "function")
-      renderUsersTable(globalUsersData);
+    // 🔴 ជំនួសការហៅ renderUsersTable ចាស់ មកហៅ filterUsers() វិញ
+    if (typeof filterUsers === "function") {
+      filterUsers(); // មុខងារនេះនឹងយកទិន្នន័យទៅធ្វើ Pagination ៥នាក់
+    }
+
     renderDashboardChart(globalUsersData);
 
     // --------------------------------------------------

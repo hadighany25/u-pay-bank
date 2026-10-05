@@ -187,6 +187,11 @@ const userSchema = new mongoose.Schema(
     // ==========================================
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
+    // នៅក្នុង UserSchema បន្ថែមបន្ទាត់នេះ៖
+    forceLogout: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

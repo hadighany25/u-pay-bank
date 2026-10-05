@@ -778,6 +778,9 @@
       let lastBalance = user.mainAccounts?.USD?.balance || 0;
 
       document.addEventListener("DOMContentLoaded", () => {
+        // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់ភ្លាមៗពេល Load ដល់
+        applyThemeLocally();
+
         if (user.role === "junior") {
           document.body.classList.add("junior-mode");
           const adultFeatures = document.querySelectorAll(".adult-feature");
@@ -810,6 +813,26 @@
 
         updateUI(user);
         loadDashboardData(false);
+      });
+
+      // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
+      function applyThemeLocally() {
+        const userThemeKey = "theme_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
+
+      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        const userThemeKey = "theme_" + user.username;
+        if (event.key === userThemeKey) {
+          applyThemeLocally();
+        }
       });
 
       // --- ៥.៣. មុខងារវាយកូដប្រូម៉ូសិន (Claim Promo Code) ---

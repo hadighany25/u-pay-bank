@@ -2134,6 +2134,9 @@
 
         document.addEventListener("DOMContentLoaded", () => {
           if (window.currentUser) {
+            // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+            applyThemeLocally();
+
             if (!window.currentUser.merchantProfile) {
               window.currentUser.merchantProfile = { merchants: [] };
             }
@@ -2143,7 +2146,31 @@
                 window.currentUser.fullName || window.currentUser.username;
             }
             initApp();
-            initVoiceSettings(); // 🟢 ថែមបន្ទាត់នេះ
+            initVoiceSettings();
+          }
+        });
+
+        // 🌟 បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ (ក្នុងកន្លែង `<script>`)
+        function applyThemeLocally() {
+          if (window.currentUser && window.currentUser.username) {
+            const userThemeKey = "theme_" + window.currentUser.username;
+            const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+            if (isDark) {
+              document.body.classList.add("dark-mode");
+            } else {
+              document.body.classList.remove("dark-mode");
+            }
+          }
+        }
+
+        // 🌟 ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+        window.addEventListener("storage", (event) => {
+          if (window.currentUser && window.currentUser.username) {
+            const userThemeKey = "theme_" + window.currentUser.username;
+            if (event.key === userThemeKey) {
+              applyThemeLocally();
+            }
           }
         });
 

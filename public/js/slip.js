@@ -136,6 +136,14 @@ function openGlobalSlip(t, currentUsername) {
     titleText = "Cash Deposit";
     lblSenderText = "Deposited By";
     lblReceiverText = "Credited To";
+  } else if (tType.includes("withdrawal")) {
+    // 🟢 បន្ថែមលក្ខខណ្ឌសម្រាប់ Cash Withdrawal
+    bgColor = "#ef4444";
+    iconColor = "#ef4444";
+    iconClass = "fa-money-bill-transfer";
+    titleText = "Cash Withdrawal";
+    lblSenderText = "Withdrawn From";
+    lblReceiverText = "Withdrawn By";
   } else if (tType.includes("p2p debt record")) {
     // 🌟 លក្ខខណ្ឌថ្មីសម្រាប់បំណុល P2P
     bgColor = isIncome ? "#10b981" : "#ef4444";

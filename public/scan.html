@@ -670,13 +670,26 @@
       // 2. THEME & INIT
       // ==========================================
       function applyTheme() {
-        const userThemeKey = "darkMode_" + user.username;
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
-        else document.body.classList.remove("dark-mode");
+        // ប្រើប្រាស់ Key "theme_" តាមឈ្មោះ User ជាក់លាក់ និងតម្លៃ "dark"/"light"
+        const userThemeKey = "theme_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
       }
+
+      // ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          if (event.key === userThemeKey) {
+            applyTheme();
+          }
+        }
+      });
 
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme();

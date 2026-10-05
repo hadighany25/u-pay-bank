@@ -468,6 +468,92 @@
         background: #f0fdf4;
         border-color: #004d40;
       }
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES (សម្រាប់ Bill Payment)
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: none !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #00251f !important;
+      }
+      body.dark-mode .content-body {
+        background-color: #121212 !important;
+      }
+      body.dark-mode .biller-info-box {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+      }
+      body.dark-mode .biller-info-box.active {
+        background: #064e3b !important;
+        border-color: #10b981 !important;
+      }
+      body.dark-mode .biller-info-box.active .biller-name {
+        color: #34d399 !important;
+      }
+      body.dark-mode .biller-logo {
+        background: #2d2d2d !important;
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .biller-info-box.active .biller-logo {
+        background: #10b981 !important;
+        color: white !important;
+      }
+      body.dark-mode .main-input {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #ffffff !important;
+      }
+      body.dark-mode .main-input::placeholder {
+        color: #64748b !important;
+      }
+      body.dark-mode .scan-btn {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #38bdf8 !important;
+      }
+      body.dark-mode .bill-details-card {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+      }
+      body.dark-mode .info-label {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .info-value {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .total-amount {
+        color: #34d399 !important;
+        border-top-color: #2d2d2d !important;
+      }
+      body.dark-mode .slip-container {
+        background: #1e1e1e !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .slip-body {
+        background: #1e1e1e !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .d-value {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .qr-box {
+        background: #121212 !important;
+        border-color: #2d2d2d !important;
+      }
+      body.dark-mode .slip-actions {
+        background: #1e1e1e !important;
+        border-top-color: #2d2d2d !important;
+      }
+      body.dark-mode .action-circle {
+        background: #2d2d2d !important;
+        border-color: #444 !important;
+        color: #38bdf8 !important;
+      }
     </style>
   </head>
   <body>
@@ -720,6 +806,33 @@
         window.location.href = "index.html";
       }
       let user = JSON.parse(uPayUserString);
+
+      // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+      applyThemeLocally();
+
+      // 🌟 បន្ថែមមុខងារ applyThemeLocally នេះ
+      function applyThemeLocally() {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+      }
+
+      // 🌟 ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          if (event.key === userThemeKey) {
+            applyThemeLocally();
+          }
+        }
+      });
 
       // 🔥 កូដថ្មី៖ ទាញយក Token ឱ្យបានគ្រប់ជ្រុងជ្រោយ (ការពារករណីវា Save ក្នុង user)
       let myToken =

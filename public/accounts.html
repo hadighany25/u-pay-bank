@@ -1262,12 +1262,24 @@
       }
 
       function applyThemeLocally() {
-        const userThemeKey = "darkMode_" + user.username;
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
-        if (isDark) document.body.classList.add("dark-mode");
+        // ប្រើប្រាស់ Key តាមឈ្មោះ User ជាក់លាក់ និងតម្លៃ "dark"/"light" ដើម្បីកុំឱ្យជាន់គ្នា
+        const userThemeKey = "theme_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
       }
+
+      // ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        const userThemeKey = "theme_" + user.username;
+        if (event.key === userThemeKey) {
+          applyThemeLocally();
+        }
+      });
 
       function getSmartDateLabel(dateObj) {
         let l = localStorage.getItem("lang") || "en";

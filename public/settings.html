@@ -1306,31 +1306,69 @@
       // ==========================================
       // 🎨 ២. ស្បែក និង ភាសា (Theme & Language Settings)
       // ==========================================
-      const userThemeKey = "darkMode_" + user.username;
+      // បង្កើត Key សម្គាល់តែ User នោះ (ឧទាហរណ៍: theme_sokdara)
+      const userThemeKey = "theme_" + user.username;
 
       function applyTheme() {
-        const isDark =
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true";
+        // ទាញយកការកំណត់របស់ User នោះជាក់លាក់
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        const toggle = document.getElementById("darkModeToggle");
+
         if (isDark) {
           document.body.classList.add("dark-mode");
-          const toggle = document.getElementById("darkModeToggle");
           if (toggle) toggle.checked = true;
+        } else {
+          document.body.classList.remove("dark-mode");
+          if (toggle) toggle.checked = false;
         }
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        applyTheme();
+        // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+        applyThemeLocally();
+
         if (typeof applyLanguage === "function") applyLanguage();
-        let currentLang = localStorage.getItem("lang") || "en";
-        const langLabel = document.getElementById("currentLang");
-        if (langLabel) langLabel.innerText = currentLang === "en" ? "EN" : "KH";
-        document.body.classList.add("loaded");
+        fetchMyFunds();
+      });
+
+      // 🌟 ២. កែសម្រួលមុខងារ applyTheme ឱ្យប្រើប្រាស់ Key "theme_" តាមឈ្មោះ User ជាក់លាក់
+      function applyTheme() {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+      }
+
+      // សម្រាប់ភាពងាយស្រួល អាចប្រើឈ្មោះ applyThemeLocally ក៏បាន
+      function applyThemeLocally() {
+        applyTheme();
+      }
+
+      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          if (event.key === userThemeKey) {
+            applyTheme();
+          }
+        }
       });
 
       function toggleDarkMode() {
         const isDarkModeActive = document.body.classList.toggle("dark-mode");
-        localStorage.setItem(userThemeKey, isDarkModeActive);
+
+        // Save ទុកទៅតាមឈ្មោះ User
+        if (isDarkModeActive) {
+          localStorage.setItem(userThemeKey, "dark");
+        } else {
+          localStorage.setItem(userThemeKey, "light");
+        }
       }
 
       function toggleLang() {

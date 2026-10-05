@@ -891,9 +891,40 @@
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        applyTheme();
+        // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
+        applyThemeLocally();
+
         if (typeof applyLanguage === "function") applyLanguage();
         fetchMyFunds();
+      });
+
+      // 🌟 ២. កែសម្រួលមុខងារ applyTheme ឱ្យប្រើប្រាស់ Key "theme_" តាមឈ្មោះ User ជាក់លាក់
+      function applyTheme() {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+          if (isDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+        }
+      }
+
+      // សម្រាប់ភាពងាយស្រួល អាចប្រើឈ្មោះ applyThemeLocally ក៏បាន
+      function applyThemeLocally() {
+        applyTheme();
+      }
+
+      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      window.addEventListener("storage", (event) => {
+        if (user && user.username) {
+          const userThemeKey = "theme_" + user.username;
+          if (event.key === userThemeKey) {
+            applyTheme();
+          }
+        }
       });
 
       async function fetchAPI(endpoint, payload) {

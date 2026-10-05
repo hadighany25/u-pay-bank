@@ -477,15 +477,31 @@
           return;
         }
 
-        const userThemeKey = "darkMode_" + currentUser.username;
-        if (
-          localStorage.getItem("theme") === "dark" ||
-          localStorage.getItem(userThemeKey) === "true"
-        ) {
-          document.body.classList.add("dark-mode");
-        }
+        // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗ
+        applyThemeLocally();
 
         if (typeof applyLanguage === "function") applyLanguage();
+      });
+
+      // 🌟 បន្ថែមមុខងារ applyThemeLocally និង Event Listener សម្រាប់ការពារការឆ្លង Tab
+      function applyThemeLocally() {
+        const userThemeKey = "theme_" + currentUser.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+      }
+
+      window.addEventListener("storage", (event) => {
+        if (currentUser) {
+          const userThemeKey = "theme_" + currentUser.username;
+          if (event.key === userThemeKey) {
+            applyThemeLocally();
+          }
+        }
       });
 
       function populateSourceAccounts() {

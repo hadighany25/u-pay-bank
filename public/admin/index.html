@@ -579,7 +579,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០២ ] User Management (Modern Drawer UI) -->
+      <!-- [ ផ្ទាំង ០២ ] User Management (Modern Drawer UI + Inline Form) -->
       <!-- ------------------------------------------------------- -->
       <style>
         .user-mgmt-layout {
@@ -598,11 +598,27 @@
           flex-direction: column;
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
           transition: 0.3s;
+          position: relative;
         }
+
+        /* Header ថ្មី */
         .user-list-header {
           padding: 20px;
           border-bottom: 1px solid var(--border);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 15px;
+          flex-wrap: wrap;
         }
+        .user-list-header .search-box {
+          margin: 0;
+          max-width: 350px;
+          flex: 1;
+          background: var(--bg-body);
+          border: 1px solid var(--border);
+        }
+
         .user-list-body {
           flex: 1;
           overflow-y: auto;
@@ -702,6 +718,145 @@
           margin-bottom: 15px;
           border: 1px solid var(--border);
         }
+
+        /* រចនាបថ Pagination */
+        .pagination-controls {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px;
+          border-top: 1px solid var(--border);
+          background: var(--bg-card);
+          border-radius: 0 0 16px 16px;
+        }
+        .btn-page {
+          padding: 8px 15px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          background: var(--bg-body);
+          color: var(--text-main);
+          font-weight: bold;
+          cursor: pointer;
+          font-family: "Kantumruy Pro";
+          transition: 0.2s;
+        }
+        .btn-page:hover:not(:disabled) {
+          background: var(--secondary);
+          color: white;
+          border-color: var(--secondary);
+        }
+        .btn-page:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* រចនាបថ Inline Form */
+        .inline-create-form {
+          position: absolute;
+          inset: 0;
+          background: var(--bg-card);
+          z-index: 10;
+          border-radius: 16px;
+          display: none;
+          flex-direction: column;
+          animation: slideInUp 0.3s ease;
+          overflow: hidden;
+        }
+        .form-header {
+          padding: 20px;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #f8fafc;
+        }
+        .form-body {
+          padding: 25px;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .upload-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 25px;
+        }
+        .upload-card {
+          border: 2px dashed var(--border);
+          border-radius: 16px;
+          padding: 30px 15px;
+          text-align: center;
+          cursor: pointer;
+          background: var(--bg-body);
+          transition: 0.3s;
+          position: relative;
+          overflow: hidden;
+        }
+        .upload-card:hover {
+          border-color: var(--secondary);
+          background: rgba(16, 185, 129, 0.05);
+        }
+        .upload-card img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: none;
+        }
+        .upload-card i {
+          font-size: 2.5rem;
+          color: #94a3b8;
+          margin-bottom: 10px;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .input-group label {
+          display: block;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin-bottom: 8px;
+          color: var(--text-muted);
+        }
+        .custom-input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px 15px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          font-size: 0.95rem;
+          background: var(--bg-body);
+          color: var(--text-main);
+          font-family: inherit;
+          transition: 0.2s;
+        }
+        .custom-input:focus {
+          border-color: var(--secondary);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        @keyframes slideInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        /* លុបសញ្ញាឡើងចុះ (Spinners) របស់ប្រអប់ type="number" ចោលទាំងស្រុង */
+        input.no-spinner::-webkit-outer-spin-button,
+        input.no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
       </style>
 
       <div
@@ -730,38 +885,81 @@
           <!-- ផ្នែកខាងឆ្វេង៖ បញ្ជីឈ្មោះអតិថិជន -->
           <div class="user-list-section">
             <div class="user-list-header">
+              <!-- 🟢 ប៊ូតុងបង្កើតគណនីនៅខាងឆ្វេង -->
+              <button
+                id="btnToggleCreateForm"
+                class="btn-primary kh-text"
+                onclick="toggleUserCreateForm()"
+                style="border-radius: 10px; padding: 10px 20px"
+              >
+                <i class="fa-solid fa-user-plus"></i> បង្កើតគណនីថ្មី
+              </button>
+
               <div
-                class="search-box"
                 style="
-                  margin: 0;
-                  width: 100%;
-                  background: var(--bg-body);
-                  border: 1px solid var(--border);
+                  display: flex;
+                  gap: 10px;
+                  flex: 1;
+                  justify-content: flex-end;
                 "
               >
-                <i
-                  class="fa-solid fa-magnifying-glass"
-                  style="color: var(--text-muted)"
-                ></i>
-                <input
-                  type="text"
-                  id="searchBox"
-                  placeholder="ស្វែងរកតាម ឈ្មោះ, គណនី, លេខទូរស័ព្ទ..."
-                  onkeyup="filterUsers()"
+                <!-- 🟢 បន្ថែម តម្រង (Status Filter) ទីនេះ -->
+                <select
+                  id="statusFilter"
+                  class="custom-input"
                   style="
-                    border: none;
-                    background: transparent;
-                    outline: none;
-                    width: 100%;
-                    margin-left: 10px;
+                    width: auto;
+                    max-width: 170px;
+                    cursor: pointer;
+                    padding: 10px;
                     font-family: &quot;Kantumruy Pro&quot;;
-                    color: var(--text-main);
                   "
-                />
+                  onchange="filterUsers()"
+                >
+                  <option value="ALL">អតិថិជនទាំងអស់</option>
+                  <option value="ACTIVE">ធម្មតា (Active)</option>
+                  <option value="FROZEN">ផ្អាក (Frozen)</option>
+                  <option value="PENDING_KYC">រង់ចាំ KYC (Pending)</option>
+                  <option value="UNVERIFIED_KYC">មិនទាន់ KYC</option>
+                  <!-- 🟢 ថែមបន្ទាត់នេះ -->
+                </select>
+
+                <!-- 🟢 ប្រអប់ Search នៅខាងស្តាំ -->
+                <div
+                  class="search-box"
+                  style="
+                    margin: 0;
+                    max-width: 300px;
+                    width: 100%;
+                    border-radius: 10px;
+                    background: var(--bg-body);
+                    border: 1px solid var(--border);
+                  "
+                >
+                  <i
+                    class="fa-solid fa-magnifying-glass"
+                    style="color: var(--text-muted)"
+                  ></i>
+                  <input
+                    type="text"
+                    id="searchBox"
+                    placeholder="ស្វែងរក..."
+                    onkeyup="filterUsers()"
+                    style="
+                      border: none;
+                      background: transparent;
+                      outline: none;
+                      width: 100%;
+                      margin-left: 10px;
+                      font-family: &quot;Kantumruy Pro&quot;;
+                      color: var(--text-main);
+                    "
+                  />
+                </div>
               </div>
             </div>
 
-            <!-- កន្លែងនេះ JS នឹងបោះទិន្នន័យពិតចូល -->
+            <!-- បញ្ជីទិន្នន័យ -->
             <div class="user-list-body" id="userDirectoryList">
               <div
                 style="
@@ -774,10 +972,480 @@
                 ><br /><br />កំពុងទាញយកទិន្នន័យ...
               </div>
             </div>
+
+            <!-- 🟢 របារ Pagination នៅខាងក្រោម -->
+            <div class="pagination-controls">
+              <button
+                id="btnPrevUserPage"
+                class="btn-page"
+                onclick="changeUserPage(-1)"
+                disabled
+              >
+                <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+              </button>
+              <span
+                id="userPageInfo"
+                style="
+                  font-weight: bold;
+                  color: var(--text-main);
+                  font-size: 0.9rem;
+                "
+                >ទំព័រទី 1 / 1</span
+              >
+              <button
+                id="btnNextUserPage"
+                class="btn-page"
+                onclick="changeUserPage(1)"
+              >
+                បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- 🌟 INLINE CREATE FORM (ទម្រង់បង្កើតគណនីដោយ Admin) 🌟 -->
+            <!-- ============================================== -->
+            <style>
+              /* កែសម្រួល UI សម្រាប់ Form ថ្មី */
+              .inline-create-form {
+                position: absolute;
+                inset: 0;
+                background: var(--bg-card);
+                z-index: 10;
+                border-radius: 16px;
+                display: none;
+                flex-direction: column;
+                animation: slideInUp 0.3s ease;
+                overflow: hidden;
+              }
+              .form-header {
+                padding: 20px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: var(--bg-body);
+                text-align: center;
+                position: relative;
+              }
+              .form-body {
+                padding: 25px;
+                overflow-y: auto;
+                flex: 1;
+              }
+
+              .upload-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 25px;
+              }
+              .upload-card {
+                border: 2px dashed var(--border);
+                border-radius: 16px;
+                padding: 20px 15px;
+                text-align: center;
+                cursor: pointer;
+                background: var(--bg-main);
+                transition: 0.3s;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+              }
+              .upload-card.id-box,
+              .upload-card.selfie-box {
+                height: 220px;
+              }
+              .upload-card:hover {
+                border-color: var(--secondary);
+                background: rgba(16, 185, 129, 0.05);
+              }
+              /* ប្រើ object-fit: contain និង background ខ្មៅព្រាល ដើម្បកុំឱ្យកាត់រូប */
+              .upload-card img {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                display: none;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 2;
+              }
+              .upload-card i {
+                font-size: 2.5rem;
+                color: #94a3b8;
+                margin-bottom: 10px;
+                z-index: 1;
+              }
+
+              .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+              }
+              .input-group label {
+                display: block;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: var(--text-muted);
+              }
+              .custom-input {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 12px 15px;
+                border-radius: 10px;
+                border: 1px solid var(--border);
+                font-size: 0.95rem;
+                background: var(--bg-body);
+                color: var(--text-main);
+                font-family: inherit;
+                transition: 0.2s;
+              }
+              .custom-input:focus {
+                border-color: var(--secondary);
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+              }
+              .custom-input:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+              }
+            </style>
+
+            <div class="inline-create-form" id="inlineCreateUserForm">
+              <div class="form-header">
+                <!-- ប៊ូតុងថយក្រោយ (Back Button) -->
+                <button
+                  onclick="confirmCloseCreateForm()"
+                  class="kh-text"
+                  style="
+                    position: absolute;
+                    left: 20px;
+                    border: 1px solid var(--border);
+                    background: var(--bg-main);
+                    color: var(--text-main);
+                    padding: 8px 15px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    transition: 0.2s;
+                  "
+                >
+                  <i class="fa-solid fa-arrow-left"></i> ថយក្រោយ
+                </button>
+                <div>
+                  <h3
+                    style="
+                      margin: 0;
+                      color: var(--text-main);
+                      font-family: &quot;Kantumruy Pro&quot;;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-user-plus"
+                      style="color: var(--secondary)"
+                    ></i>
+                    ទម្រង់បង្កើតគណនីអតិថិជន
+                  </h3>
+                  <p
+                    style="
+                      margin: 5px 0 0;
+                      font-size: 0.85rem;
+                      color: var(--text-muted);
+                    "
+                  >
+                    សូមបញ្ជូលព័ត៌មានខាងក្រោមទាំងអស់ជាការចាំបាច់ (<span
+                      style="color: red"
+                      >*</span
+                    >)
+                  </p>
+                </div>
+              </div>
+
+              <div class="form-body">
+                <!-- ផ្នែក Upload រូបថត -->
+                <div class="upload-grid">
+                  <!-- ID Card Box (រាងបណ្តោយ) -->
+                  <div
+                    class="upload-card id-box"
+                    onclick="document.getElementById('adminIdUpload').click()"
+                    id="adminIdCardContainer"
+                  >
+                    <img id="adminIdPreview" />
+                    <i class="fa-solid fa-id-card"></i>
+                    <div
+                      style="
+                        font-family: &quot;Kantumruy Pro&quot;;
+                        font-weight: bold;
+                        color: var(--text-main);
+                        z-index: 1;
+                      "
+                    >
+                      Upload អត្តសញ្ញាណប័ណ្ណ <span style="color: red">*</span>
+                    </div>
+                    <div
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--text-muted);
+                        margin-top: 5px;
+                        z-index: 1;
+                      "
+                    >
+                      (ID Card Front - AI នឹងទាញទិន្នន័យអូតូ)
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    id="adminIdUpload"
+                    accept="image/*"
+                    style="display: none"
+                    onchange="handleAdminIdOcrUpload(event)"
+                  />
+                  <input type="hidden" id="hiddenIdUrl" />
+
+                  <!-- Selfie Box (រាងបញ្ឈរ) -->
+                  <div
+                    class="upload-card selfie-box"
+                    onclick="
+                      document.getElementById('adminSelfieUpload').click()
+                    "
+                  >
+                    <img id="adminSelfiePreview" />
+                    <i class="fa-solid fa-camera-retro"></i>
+                    <div
+                      style="
+                        font-family: &quot;Kantumruy Pro&quot;;
+                        font-weight: bold;
+                        color: var(--text-main);
+                        z-index: 1;
+                      "
+                    >
+                      Upload រូបថត Selfie <span style="color: red">*</span>
+                    </div>
+                    <div
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--text-muted);
+                        margin-top: 5px;
+                        z-index: 1;
+                      "
+                    >
+                      (Face Photo)
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    id="adminSelfieUpload"
+                    accept="image/*"
+                    style="display: none"
+                    onchange="
+                      handleAdminFormUpload(
+                        event,
+                        'adminSelfiePreview',
+                        'hiddenSelfieUrl',
+                      )
+                    "
+                  />
+                  <input type="hidden" id="hiddenSelfieUrl" />
+                </div>
+
+                <!-- ផ្នែកបញ្ចូលព័ត៌មាន -->
+                <div class="form-grid">
+                  <div class="input-group">
+                    <label
+                      >ឈ្មោះពេញ (Full Name)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="newFullName"
+                      class="custom-input"
+                      placeholder="ឧ. SOK DARA"
+                      oninput="this.value = this.value.toUpperCase()"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >ឈ្មោះគណនី (Username)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="newUsername"
+                      class="custom-input"
+                      placeholder="ឧ. dara_123"
+                      onblur="adminCheckUsername()"
+                      oninput="
+                        this.value = this.value
+                          .replace(/[^a-zA-Z0-9]/g, '')
+                          .toLowerCase();
+                        document.getElementById(
+                          'newUsernameFeedback',
+                        ).innerHTML = '';
+                      "
+                    />
+                    <div
+                      id="newUsernameFeedback"
+                      style="
+                        font-size: 0.8rem;
+                        margin-top: 5px;
+                        font-weight: bold;
+                      "
+                    ></div>
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >លេខទូរស័ព្ទ (Phone)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="tel"
+                      id="newPhone"
+                      class="custom-input"
+                      placeholder="ឧ. 012345678"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >អ៊ីមែល (Email) <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="email"
+                      id="newEmail"
+                      class="custom-input"
+                      placeholder="ឧ. dara@gmail.com"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >ថ្ងៃខែឆ្នាំកំណើត (DOB)
+                      <span style="color: red">*</span></label
+                    >
+                    <input type="date" id="newDob" class="custom-input" />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >ភេទ (Gender) <span style="color: red">*</span></label
+                    >
+                    <select id="newGender" class="custom-input">
+                      <option value="" disabled selected>ជ្រើសរើស...</option>
+                      <option value="Male">ប្រុស (Male)</option>
+                      <option value="Female">ស្រី (Female)</option>
+                    </select>
+                  </div>
+
+                  <div class="input-group" style="grid-column: 1 / -1">
+                    <label
+                      >លេខអត្តសញ្ញាណប័ណ្ណ (ID Number)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="newIdNumber"
+                      class="custom-input"
+                      placeholder="0123456789"
+                      onblur="adminCheckIdNumber()"
+                    />
+
+                    <!-- ប្រអប់ព្រមានលេខ ID ស្ទួន (ពណ៌ទឹកក្រូច) -->
+                    <div
+                      id="adminDuplicateReasonBox"
+                      style="
+                        display: none;
+                        padding: 15px;
+                        border-radius: 12px;
+                        margin-top: 15px;
+                        background: rgba(249, 115, 22, 0.05);
+                        border: 1px dashed #f97316;
+                      "
+                    >
+                      <label
+                        style="
+                          color: #ea580c;
+                          font-size: 0.85rem;
+                          margin-bottom: 8px;
+                          line-height: 1.5;
+                        "
+                        ><i class="fa-solid fa-triangle-exclamation"></i>
+                        លេខអត្តសញ្ញាណប័ណ្ណនេះមានក្នុងប្រព័ន្ធរួចហើយ!
+                        សូមបញ្ជាក់មូលហេតុបង្កើតថ្មី៖
+                        <span style="color: red">*</span></label
+                      >
+                      <textarea
+                        id="adminDuplicateReason"
+                        class="custom-input"
+                        rows="2"
+                        placeholder="ឧ. គាត់បានបាត់គណនីចាស់..."
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <!-- ប្រអប់ Password និង PIN (អាចកែបាន តែលោត 1234 ស្រាប់) -->
+                  <div class="input-group">
+                    <label
+                      >លេខសម្ងាត់ (Password)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="newPassword"
+                      class="custom-input"
+                      value="1234"
+                      placeholder="លេខសម្ងាត់"
+                    />
+                  </div>
+
+                  <div class="input-group">
+                    <label
+                      >លេខកូដសុវត្ថិភាព (PIN Code)
+                      <span style="color: red">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="newPin"
+                      class="custom-input"
+                      value="1234"
+                      maxlength="4"
+                      placeholder="លេខ ៤ ខ្ទង់"
+                      oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    />
+                  </div>
+                </div>
+
+                <!-- របារប៊ូតុងខាងក្រោម -->
+                <div style="display: flex; gap: 15px; margin-top: 30px">
+                  <button
+                    class="btn-primary kh-text"
+                    onclick="submitNewUserByAdmin()"
+                    style="
+                      width: 100%;
+                      padding: 15px;
+                      font-size: 1.1rem;
+                      border-radius: 12px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      gap: 8px;
+                    "
+                  >
+                    <i class="fa-solid fa-user-check"></i> បង្កើតគណនីឥឡូវនេះ
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <!-- ផ្នែកខាងស្តាំ៖ ផ្ទាំងលម្អិត (Drawer) -->
+          <!-- ផ្នែកខាងស្តាំ៖ ផ្ទាំងលម្អិត (Drawer - នៅរក្សាទុកដដែល) -->
           <div class="user-detail-drawer" id="userDetailDrawer">
+            <!-- (រក្សាកូដ HTML ចាស់របស់ Drawer ដដែល) -->
             <div class="drawer-cover">
               <button class="drawer-close-btn" onclick="closeUserDrawer()">
                 <i class="fa-solid fa-xmark"></i>
@@ -867,7 +1535,6 @@
                   >
                 </div>
               </div>
-              <!-- 🟢 បន្ថែមកន្លែងនេះសម្រាប់បញ្ចេញ Sub-Accounts ស្វ័យប្រវត្តិ -->
               <div id="drawerSubAccountsContainer"></div>
 
               <h4 style="margin: 0 0 10px; color: var(--text-muted)">
@@ -917,7 +1584,6 @@
               <div
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
               >
-                <!-- ជំនួសដោយប៊ូតុងផ្ញើសារ -->
                 <button
                   id="btnMessageDrawer"
                   class="btn-action kh-text"
@@ -933,8 +1599,6 @@
                   <i class="fa-solid fa-paper-plane" style="color: #3b82f6"></i>
                   ផ្ញើសារផ្ទាល់
                 </button>
-
-                <!-- ជំនួសដោយប៊ូតុង Force Logout -->
                 <button
                   id="btnForceLogoutDrawer"
                   class="btn-action kh-text"
@@ -953,8 +1617,6 @@
                   ></i>
                   ផ្តាច់គណនី
                 </button>
-
-                <!-- ប៊ូតុង Customer 360 និង លុប នៅរក្សាដដែល -->
                 <button
                   id="btnC360Drawer"
                   class="btn-primary kh-text"
@@ -1212,8 +1874,133 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៥ ] បេឡាករ (Cashier) ដាក់/ដកប្រាក់ -->
+      <!-- [ ផ្ទាំង ០៥ ] បេឡាករ (Cashier) ដាក់/ដកប្រាក់ និង អនុម័ត -->
       <!-- ------------------------------------------------------- -->
+      <style>
+        .cashier-tabs {
+          display: flex;
+          width: 100%;
+          background: var(--bg-card);
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          margin-bottom: 25px;
+          padding: 5px;
+          box-sizing: border-box;
+        }
+        .cashier-tab {
+          flex: 1;
+          text-align: center;
+          padding: 14px 20px;
+          font-family: "Kantumruy Pro";
+          font-weight: bold;
+          color: var(--text-muted);
+          cursor: pointer;
+          border-radius: 10px;
+          border-bottom: none;
+          transition: 0.2s;
+        }
+        .cashier-tab.active {
+          background: var(--secondary);
+          color: white;
+          border-bottom-color: transparent;
+          box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        }
+        .cashier-tab:hover:not(.active) {
+          background: var(--bg-body);
+          color: var(--text-main);
+        }
+
+        /* Split Screen Teller */
+        .teller-layout {
+          display: flex;
+          gap: 20px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .teller-left {
+          flex: 1;
+          min-width: 300px;
+          background: var(--bg-card);
+          padding: 25px;
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        }
+        .teller-right {
+          flex: 1.5;
+          min-width: 400px;
+          background: var(--bg-card);
+          padding: 25px;
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .radio-segment {
+          display: flex;
+          background: var(--bg-main);
+          border-radius: 10px;
+          overflow: hidden;
+          border: 1px solid var(--border);
+        }
+        .radio-segment label {
+          flex: 1;
+          text-align: center;
+          padding: 10px;
+          cursor: pointer;
+          font-weight: bold;
+          color: var(--text-muted);
+          transition: 0.2s;
+          border-right: 1px solid var(--border);
+          margin: 0;
+        }
+        .radio-segment label:last-child {
+          border-right: none;
+        }
+        .radio-segment input[type="radio"] {
+          display: none;
+        }
+        .radio-segment label.active {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+        }
+
+        /* Slip Drawer */
+        .slip-drawer {
+          width: 0;
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: -5px 0 25px rgba(0, 0, 0, 0.05);
+          overflow-y: auto;
+          transition: 0.4s ease;
+          opacity: 0;
+          transform: translateX(50px);
+          position: absolute;
+          right: 15px;
+          top: 15px;
+          bottom: 15px;
+          z-index: 100;
+        }
+        .slip-drawer.open {
+          width: 400px;
+          opacity: 1;
+          transform: translateX(0);
+          padding: 0;
+        }
+        .slip-paper {
+          background: #fff;
+          color: #000;
+          padding: 25px;
+          margin: 20px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          border-top: 10px solid var(--primary);
+          font-family: "JetBrains Mono", monospace;
+          font-size: 0.85rem;
+        }
+      </style>
+
       <div
         id="sec-cashier"
         style="
@@ -1222,259 +2009,1607 @@
           max-width: 1400px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 20px 15px;
+          padding: 0 15px;
+          position: relative;
+          overflow: hidden;
         "
       >
-        <div
-          class="cashier-container"
-          style="
-            max-width: 900px;
-            width: 100%;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-          "
-        >
-          <div
-            class="cashier-title"
-            style="
-              font-size: 1.5rem;
-              margin-bottom: 25px;
-              padding-bottom: 15px;
-              border-bottom: 1px solid #e2e8f0;
-            "
-            data-i18n="cashier"
-          >
-            <i class="fa-solid fa-cash-register"></i> បេឡាករ
+        <div class="table-header-controls" style="margin-bottom: 10px">
+          <div>
+            <h2 class="dash-title">
+              <i class="fa-solid fa-cash-register"></i> ប្រព័ន្ធបេឡាករ (Cashier
+              System)
+            </h2>
+            <p class="dash-desc">
+              គ្រប់គ្រងការដាក់/ដកប្រាក់ និងអនុម័តប្រតិបត្តិការធំៗ។
+            </p>
           </div>
+        </div>
 
-          <div class="input-group" style="margin-bottom: 25px">
-            <label class="input-label">ស្វែងរកអ្នកទទួលប្រាក់ (លេខគណនី)</label>
-            <div style="display: flex; gap: 10px">
-              <input
-                type="text"
-                id="targetUserSearch"
-                class="custom-input"
-                placeholder="ឧ.012345678"
-                onkeypress="if (event.key === 'Enter') searchTargetUser();"
-              />
-              <button
-                class="btn-primary"
+        <!-- 🟢 របារ Tabs -->
+        <div class="cashier-tabs">
+          <div
+            class="cashier-tab active"
+            id="tabTeller"
+            onclick="switchCashierTab('teller')"
+          >
+            <i class="fa-solid fa-desktop"></i> បញ្ជរប្រតិបត្តិការ (Teller Desk)
+          </div>
+          <div
+            class="cashier-tab"
+            id="tabApproval"
+            onclick="switchCashierTab('approval')"
+          >
+            <i class="fa-solid fa-shield-halved"></i> ត្រួតពិនិត្យ & អនុម័ត
+            (Approvals)
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 🏦 TAB 1: TELLER DESK (Split Screen)           -->
+        <!-- ============================================== -->
+        <div id="viewTeller" class="teller-layout">
+          <!-- ផ្នែកខាងឆ្វេង៖ រើសប្រភេទប្រតិបត្តិការ និងស្វែងរកអតិថិជន -->
+          <div class="teller-left">
+            <h4
+              style="
+                margin: 0 0 15px 0;
+                color: var(--text-main);
+                font-family: &quot;Kantumruy Pro&quot;;
+              "
+            >
+              <i class="fa-solid fa-list-check"></i> ជ្រើសរើសប្រភេទប្រតិបត្តិការ
+            </h4>
+
+            <div
+              class="radio-segment"
+              style="
+                margin-bottom: 20px;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 2px solid var(--border);
+              "
+            >
+              <label
+                id="extLblDep"
+                class="active"
+                onclick="setExternalTrxType('Deposit')"
                 style="
-                  width: 130px;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  gap: 8px;
-                  font-family:
-                    &quot;Kantumruy Pro&quot;, sans-serif; /* បន្ថែម font នៅទីនេះ */
+                  padding: 12px;
+                  text-align: center;
+                  cursor: pointer;
+                  font-weight: bold;
+                  background: rgba(16, 185, 129, 0.1);
+                  color: #10b981;
+                  transition: 0.2s;
                 "
-                onclick="searchTargetUser()"
               >
-                <i class="fa-solid fa-search"></i> ស្វែងរក
-              </button>
+                <input
+                  type="radio"
+                  name="extTrxType"
+                  value="Deposit"
+                  checked
+                  style="display: none"
+                />
+                <i class="fa-solid fa-arrow-down"></i> ដាក់ប្រាក់ (Deposit)
+              </label>
+              <label
+                id="extLblWit"
+                onclick="setExternalTrxType('Withdrawal')"
+                style="
+                  padding: 12px;
+                  text-align: center;
+                  cursor: pointer;
+                  font-weight: bold;
+                  color: var(--text-muted);
+                  transition: 0.2s;
+                "
+              >
+                <input
+                  type="radio"
+                  name="extTrxType"
+                  value="Withdrawal"
+                  style="display: none"
+                />
+                <i class="fa-solid fa-arrow-up"></i> ដកប្រាក់ (Withdrawal)
+              </label>
             </div>
-          </div>
 
-          <div
-            id="targetUserCard"
-            class="user-card"
-            style="
-              display: none;
-              border: 1px solid #e2e8f0;
-              padding: 20px;
-              border-radius: 10px;
-              margin-bottom: 25px;
-            "
-          >
-            <img
-              src="https://via.placeholder.com/60"
-              id="cardAvatar"
-              class="user-avatar"
-              alt="User"
-            />
-            <div class="user-details">
-              <div
-                style="font-weight: bold; color: #0f172a; font-size: 1.1rem"
-                id="cardName"
-              >
-                កំពុងស្វែងរក...
-              </div>
-              <div style="margin-top: 5px">
-                <span class="balance-badge" id="cardBalUSD">USD: $0.00</span>
-                <span
-                  class="balance-badge"
-                  style="background: #dcfce7; color: #166534"
-                  id="cardBalKHR"
-                  >KHR: ៛0</span
+            <h4
+              style="
+                margin: 0 0 15px 0;
+                color: var(--text-main);
+                font-family: &quot;Kantumruy Pro&quot;;
+              "
+            >
+              <i class="fa-solid fa-magnifying-glass"></i> ស្វែងរកអតិថិជន
+            </h4>
+
+            <div
+              class="input-group"
+              style="margin-bottom: 20px; position: relative"
+            >
+              <div style="display: flex; gap: 10px">
+                <div style="position: relative; flex: 1">
+                  <input
+                    type="text"
+                    id="targetUserSearch"
+                    class="custom-input"
+                    placeholder="វាយលេខគណនី ឬ Username..."
+                    oninput="checkSearchInput()"
+                    onkeypress="if (event.key === 'Enter') searchTargetUser();"
+                    style="padding-right: 35px"
+                  />
+                  <button
+                    id="btnCancelSearch"
+                    onclick="resetCashierSearch()"
+                    style="
+                      position: absolute;
+                      right: 10px;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      background: none;
+                      border: none;
+                      color: #ef4444;
+                      cursor: pointer;
+                      display: none;
+                      font-size: 1rem;
+                    "
+                    title="បោះបង់ / ស្វែងរកថ្មី"
+                  >
+                    <i class="fa-solid fa-circle-xmark"></i>
+                  </button>
+                </div>
+                <button
+                  id="btnSearchAction"
+                  class="btn-primary kh-text"
+                  style="padding: 0 20px; border-radius: 10px"
+                  onclick="searchTargetUser()"
                 >
+                  ស្វែងរក
+                </button>
               </div>
             </div>
-            <div>
+
+            <!-- កាតអតិថិជន -->
+            <div
+              id="targetUserCard"
+              style="
+                display: none;
+                border: 1px solid var(--border);
+                padding: 24px;
+                border-radius: 20px;
+                background: var(--bg-body);
+                text-align: left;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 15px;
+                  border-bottom: 1px solid var(--border);
+                  padding-bottom: 18px;
+                  margin-bottom: 18px;
+                "
+              >
+                <img
+                  src=""
+                  id="cardAvatar"
+                  style="
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 3px solid var(--secondary);
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                  "
+                  onerror="this.src = '../images/default-avatar.png'"
+                />
+                <div style="flex: 1; overflow: hidden">
+                  <h3
+                    id="cardName"
+                    style="
+                      margin: 0;
+                      color: var(--text-main);
+                      font-size: 1.25rem;
+                      font-weight: 700;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                    "
+                  >
+                    ...
+                  </h3>
+                  <div
+                    style="
+                      font-size: 0.85rem;
+                      color: var(--text-muted);
+                      margin-top: 5px;
+                      font-family: &quot;Inter&quot;, monospace;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 2px;
+                      font-weight: 600;
+                    "
+                  >
+                    <div id="cardUserId">ID : ...</div>
+                    <div id="cardUIdNum">CARD ID : ...</div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="cardBalancesContainer"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 10px;
+                  margin-bottom: 18px;
+                  max-height: 220px;
+                  overflow-y: auto;
+                "
+              ></div>
+
+              <div
+                style="
+                  background: var(--bg-card);
+                  padding: 15px;
+                  border-radius: 14px;
+                  border: 1px solid var(--border);
+                  margin-bottom: 18px;
+                "
+              >
+                <div
+                  style="
+                    color: var(--text-muted);
+                    font-weight: 700;
+                    font-size: 0.8rem;
+                    text-transform: uppercase;
+                    margin-bottom: 8px;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  ព័ត៌មានទំនាក់ទំនង
+                </div>
+                <div
+                  style="
+                    font-size: 0.95rem;
+                    color: var(--text-main);
+                    margin-bottom: 6px;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-phone"
+                    style="width: 20px; color: var(--text-muted)"
+                  ></i>
+                  <span
+                    id="cardPhone"
+                    style="font-family: monospace; font-weight: 600"
+                    >...</span
+                  >
+                </div>
+                <div
+                  style="
+                    font-size: 0.95rem;
+                    color: var(--text-main);
+                    margin-bottom: 12px;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-envelope"
+                    style="width: 20px; color: var(--text-muted)"
+                  ></i>
+                  <span
+                    id="cardEmail"
+                    style="font-family: monospace; font-weight: 600"
+                    >...</span
+                  >
+                </div>
+
+                <div
+                  style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 12px;
+                    border-top: 1px dashed var(--border);
+                    padding-top: 12px;
+                  "
+                >
+                  <span
+                    id="cardKycBadge"
+                    style="
+                      flex: 1;
+                      text-align: center;
+                      padding: 6px 10px;
+                      border-radius: 20px;
+                      font-size: 0.8rem;
+                      font-weight: bold;
+                    "
+                    >KYC: ...</span
+                  >
+                  <span
+                    id="cardStatusBadge"
+                    style="
+                      flex: 1;
+                      text-align: center;
+                      padding: 6px 10px;
+                      border-radius: 20px;
+                      font-size: 0.8rem;
+                      font-weight: bold;
+                    "
+                    >...</span
+                  >
+                </div>
+              </div>
+
               <button
-                class="kyc-btn"
-                style="display: flex; align-items: center; gap: 5px"
+                class="kh-text"
+                style="
+                  width: 100%;
+                  padding: 13px;
+                  border-radius: 12px;
+                  cursor: pointer;
+                  font-weight: 700;
+                  font-size: 1rem;
+                  background: var(--bg-card);
+                  border: 1px solid var(--border);
+                  color: var(--text-main);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 8px;
+                  transition: 0.2s;
+                  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+                "
                 onclick="viewKYC()"
               >
-                <i class="fa-solid fa-id-card"></i> មើល KYC
+                <i
+                  class="fa-solid fa-id-card"
+                  style="color: var(--secondary)"
+                ></i>
+                មើលអត្តសញ្ញាណប័ណ្ណ
               </button>
             </div>
           </div>
 
-          <div id="transactionForm" style="display: none">
-            <div class="input-group" style="margin-bottom: 20px">
-              <label
-                class="input-label"
-                style="font-weight: bold; color: #0369a1"
-                >ជ្រើសរើសគណនីទទួលប្រាក់ <span style="color: red">*</span></label
+          <!-- ផ្នែកខាងស្តាំ៖ ទម្រង់បំពេញទឹកប្រាក់ / ផ្ទៀងផ្ទាត់ / ជោគជ័យ -->
+          <div
+            class="teller-right"
+            id="transactionForm"
+            style="display: none; position: relative"
+          >
+            <!-- ============================================== -->
+            <!-- ដំណាក់កាលទី ១៖ ផ្ទាំងបំពេញទិន្នន័យ (Input State) -->
+            <!-- ============================================== -->
+            <div id="step1_InputForm">
+              <h4
+                style="
+                  margin: 0 0 20px 0;
+                  color: var(--text-main);
+                  font-family: &quot;Kantumruy Pro&quot;;
+                "
+                id="formTitleText"
               >
-              <select
-                id="targetAccountSelect"
-                class="custom-input"
-                style="border-color: #7dd3fc; background-color: #f0f9ff"
-                onchange="previewCashierExchange()"
-              >
-                <option value="">-- សូមស្វែងរកអ្នកទទួលសិន --</option>
-              </select>
-            </div>
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+                បំពេញទិន្នន័យដាក់ប្រាក់
+              </h4>
 
-            <div class="input-group" style="margin-bottom: 20px">
-              <label class="input-label">តើនរណាជាអ្នកយកប្រាក់មកដាក់?</label>
-              <div class="radio-group">
-                <label class="radio-option">
+              <div class="form-grid" style="margin-bottom: 15px">
+                <div class="input-group" style="grid-column: 1 / -1">
+                  <label
+                    >គណនីធ្វើប្រតិបត្តិការ
+                    <span style="color: red">*</span></label
+                  >
                   <input
-                    type="radio"
-                    name="depositorType"
-                    value="self"
-                    checked
-                    onchange="toggleDepositorType()"
+                    type="text"
+                    id="targetAccountDisplay"
+                    class="custom-input"
+                    readonly
+                    style="
+                      background: var(--bg-main);
+                      font-weight: bold;
+                      font-family: monospace;
+                      color: var(--secondary);
+                      cursor: not-allowed;
+                    "
                   />
-                  ម្ចាស់គណនីផ្ទាល់
-                </label>
-                <label class="radio-option">
+                  <input type="hidden" id="targetAccountSelect" />
+                </div>
+              </div>
+
+              <div class="form-grid" style="margin-bottom: 15px">
+                <div class="input-group">
+                  <label
+                    >រូបិយប័ណ្ណសាច់ប្រាក់
+                    <span style="color: red">*</span></label
+                  >
+                  <select
+                    id="cashCurrency"
+                    class="custom-input"
+                    onchange="previewCashierExchange()"
+                  >
+                    <option value="USD">ដុល្លារ (USD)</option>
+                    <option value="KHR">រៀល (KHR)</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label
+                    >ចំនួនទឹកប្រាក់ <span style="color: red">*</span></label
+                  >
                   <input
-                    type="radio"
-                    name="depositorType"
-                    value="other"
-                    onchange="toggleDepositorType()"
+                    type="text"
+                    id="cashAmount"
+                    class="custom-input no-spinner"
+                    placeholder="0.00"
+                    oninput="
+                      formatCurrencyInput(this);
+                      previewCashierExchange();
+                    "
+                    style="
+                      font-size: 1.2rem;
+                      font-weight: bold;
+                      font-family: monospace;
+                    "
                   />
-                  អ្នកផ្សេងដាក់ឱ្យ (តំណាង)
-                </label>
+                </div>
               </div>
-            </div>
 
-            <div
-              id="otherDepositorDiv"
-              style="display: none; margin-bottom: 20px"
-            >
-              <label class="input-label"
-                >លេខគណនី ឬ Username (អ្នកយកលុយមកដាក់)</label
+              <!-- Preview Exchange -->
+              <div
+                id="cashierExchangePreview"
+                style="
+                  display: none;
+                  background: rgba(16, 185, 129, 0.1);
+                  border: 1px dashed #10b981;
+                  padding: 15px;
+                  border-radius: 10px;
+                  margin-bottom: 20px;
+                "
               >
-              <input
-                type="text"
-                id="depositorSearch"
-                class="custom-input"
-                placeholder="វាយលេខគណនីអ្នកដាក់..."
-                oninput="verifyDepositor()"
-              />
-              <div id="depositorName" class="depositor-name">
-                <i class="fa-solid fa-check-circle"></i> ឈ្មោះ:
-                <span id="depNameText">...</span>
-              </div>
-            </div>
-
-            <div style="display: flex; gap: 15px; margin-bottom: 20px">
-              <div class="input-group" style="width: 40%">
-                <label class="input-label">រូបិយប័ណ្ណ (Currency)</label>
-                <select
-                  id="cashCurrency"
-                  class="custom-input"
-                  onchange="previewCashierExchange()"
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.85rem;
+                    color: #047857;
+                    margin-bottom: 5px;
+                  "
                 >
-                  <option value="USD">ដុល្លារ (USD)</option>
-                  <option value="KHR">រៀល (KHR)</option>
-                </select>
+                  <span>អត្រាប្តូរប្រាក់ (Rate):</span>
+                  <span id="cashierFxRateDisplay" style="font-weight: bold"
+                    >...</span
+                  >
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.95rem;
+                    color: #047857;
+                    font-weight: bold;
+                  "
+                >
+                  <span id="previewActionText">លុយចូលគណនី:</span>
+                  <span id="cashierExchangeResult" style="font-size: 1.2rem"
+                    >...</span
+                  >
+                </div>
               </div>
-              <div class="input-group" style="width: 60%">
-                <label class="input-label">ចំនួនទឹកប្រាក់</label>
+
+              <!-- ផ្នែកអ្នកដាក់ប្រាក់ (Depositor) -->
+              <div
+                class="input-group"
+                id="depositorSection"
+                style="margin-bottom: 15px"
+              >
+                <label
+                  >អ្នកដាក់ប្រាក់ (Depositor)
+                  <span style="color: red">*</span></label
+                >
+                <div class="radio-segment" style="margin-bottom: 10px">
+                  <label
+                    class="active"
+                    id="lblSelf"
+                    onclick="setDepositorType('self')"
+                    ><input
+                      type="radio"
+                      name="depositorType"
+                      value="self"
+                      checked
+                    />
+                    <span>ម្ចាស់គណនីផ្ទាល់</span></label
+                  >
+                  <label id="lblOther" onclick="setDepositorType('other')"
+                    ><input type="radio" name="depositorType" value="other" />
+                    <span>អ្នកតំណាង</span></label
+                  >
+                </div>
+
+                <div
+                  id="depositorInputWrapper"
+                  style="display: none; position: relative"
+                >
+                  <input
+                    type="text"
+                    id="depositorSearchInput"
+                    class="custom-input"
+                    placeholder="វាយលេខកុង ឬ Username អ្នកដាក់ប្រាក់..."
+                    oninput="verifyDepositorAccount(this.value)"
+                    style="font-family: monospace"
+                  />
+                </div>
+
+                <div
+                  id="depositorCardPreview"
+                  style="
+                    display: none;
+                    margin-top: 10px;
+                    background: var(--bg-body);
+                    border: 1px solid var(--border);
+                    padding: 12px;
+                    border-radius: 12px;
+                    align-items: center;
+                    gap: 12px;
+                  "
+                >
+                  <img
+                    id="depAvatar"
+                    src="../images/default-avatar.png"
+                    style="
+                      width: 45px;
+                      height: 45px;
+                      border-radius: 50%;
+                      object-fit: cover;
+                      border: 2px solid var(--secondary);
+                    "
+                  />
+                  <div style="flex: 1; overflow: hidden">
+                    <div
+                      id="depName"
+                      style="
+                        font-weight: bold;
+                        color: var(--text-main);
+                        font-size: 0.95rem;
+                      "
+                    >
+                      ...
+                    </div>
+                    <div
+                      id="depInfo"
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--text-muted);
+                        font-family: monospace;
+                      "
+                    >
+                      ID: ... | Tel: ...
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    style="
+                      padding: 6px 10px;
+                      font-size: 0.75rem;
+                      border-radius: 6px;
+                    "
+                    onclick="viewDepositorKYC()"
+                  >
+                    <i class="fa-solid fa-id-card"></i> KYC
+                  </button>
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 25px">
+                <label>ចំណាំ (Remark)</label>
                 <input
-                  type="number"
-                  id="cashAmount"
+                  type="text"
+                  id="cashRemark"
                   class="custom-input"
-                  placeholder="ឧ. 100.00"
-                  oninput="previewCashierExchange()"
+                  placeholder="មូលហេតុ ឬ ប្រភពទឹកប្រាក់..."
                 />
               </div>
-            </div>
 
-            <div
-              id="cashierExchangePreview"
-              class="cashier-preview-box"
-              style="margin-bottom: 20px"
-            >
-              <p
+              <button
+                class="btn-primary kh-text"
+                id="btnSubmitTrx"
+                onclick="goToPreviewStep()"
                 style="
-                  margin: 0 0 5px 0;
-                  font-size: 0.85rem;
+                  width: 100%;
+                  padding: 15px;
+                  font-size: 1.1rem;
+                  border-radius: 12px;
                   display: flex;
-                  justify-content: space-between;
-                "
-                class="cashier-preview-text"
-              >
-                <span>អត្រាប្តូរប្រាក់ (Exchange Rate):</span>
-                <span id="cashierFxRateDisplay" style="font-weight: 600"
-                  >...</span
-                >
-              </p>
-              <p
-                style="
-                  margin: 0;
-                  font-size: 0.85rem;
-                  display: flex;
-                  justify-content: space-between;
-                  font-weight: bold;
+                  justify-content: center;
+                  gap: 10px;
                   align-items: center;
                 "
-                class="cashier-preview-text"
               >
-                <span>អតិថិជនទទួលបាន (Receiver Gets):</span>
-                <span
-                  id="cashierExchangeResult"
-                  style="font-size: 1.15rem; font-weight: 800"
-                  >...</span
-                >
-              </p>
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>ពិនិត្យវិក្កយបត្របណ្តោះអាសន្ន</span>
+              </button>
             </div>
 
-            <div class="input-group" style="margin-bottom: 25px">
-              <label class="input-label">ចំណាំ (Remark)</label>
+            <!-- ============================================== -->
+            <!-- ដំណាក់កាលទី ២ និង ៣៖ ផ្ទាំងផ្ទៀងផ្ទាត់ / វិក្កយបត្រ -->
+            <!-- ============================================== -->
+            <style>
+              /* រចនាបថថ្មីសម្រាប់ Slip បែប Professional Banking */
+              .pro-slip {
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 30px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+                font-family: "Kantumruy Pro", sans-serif;
+                color: #1e293b;
+              }
+              .pro-slip-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid #cbd5e1;
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+              }
+              .pro-slip-title {
+                text-align: right;
+              }
+              .pro-slip-title h2 {
+                margin: 0;
+                font-size: 1.3rem;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+              }
+              .pro-slip-box {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 15px 20px;
+                margin-bottom: 15px;
+              }
+              .pro-slip-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              }
+              .pro-slip-row:last-child {
+                margin-bottom: 0;
+              }
+              .pro-slip-label {
+                font-size: 0.8rem;
+                color: #64748b;
+                font-weight: 600;
+              }
+              .pro-slip-value {
+                font-size: 1.05rem;
+                font-weight: 700;
+                color: #0f172a;
+              }
+              .pro-slip-value.acc-num {
+                font-family: "JetBrains Mono", monospace;
+                color: #2563eb;
+                font-size: 1.15rem;
+              }
+              .pro-slip-amount {
+                font-size: 1.8rem;
+                font-weight: 800;
+                font-family: "JetBrains Mono", monospace;
+              }
+              .signature-box {
+                flex: 1;
+                text-align: center;
+              }
+              .signature-line {
+                border-bottom: 1px dashed #94a3b8;
+                width: 100%;
+              }
+              .signature-label {
+                font-size: 0.65rem;
+                font-weight: bold;
+                color: #475569;
+                text-transform: uppercase;
+                line-height: 1.2;
+              }
+            </style>
+
+            <div id="step2_PreviewForm" style="display: none">
+              <h4
+                style="
+                  margin: 0 0 20px 0;
+                  color: var(--text-main);
+                  font-family: &quot;Kantumruy Pro&quot;;
+                  text-align: center;
+                "
+                id="previewTitleText"
+              >
+                <i class="fa-solid fa-magnifying-glass"></i>
+                ផ្ទៀងផ្ទាត់ប្រតិបត្តិការ
+              </h4>
+
+              <!-- ទម្រង់ Slip ថ្មី -->
+              <div
+                class="pro-slip"
+                id="inlineSlipArea"
+                style="margin: 0 0 20px 0"
+              >
+                <!-- Header: Logo & Title -->
+                <div class="pro-slip-header">
+                  <img
+                    src="../images/logo.png"
+                    style="height: 40px"
+                    alt="U-Pay Logo"
+                  />
+                  <div class="pro-slip-title">
+                    <h2 id="inlineSlipType">CASH DEPOSIT</h2>
+                    <!-- 🟢 TRX ID ប្តូរទីតាំងមកនៅខាងលើ Date វិញ -->
+                    <div
+                      id="inlineSlipTrxBox"
+                      style="display: none; margin-top: 8px; font-size: 0.95rem"
+                    >
+                      <span style="color: #64748b; font-weight: 600"
+                        >TRX ID:</span
+                      >
+                      <span
+                        id="inlineSlipRef"
+                        style="
+                          font-weight: 800;
+                          color: #10b981;
+                          font-family: &quot;JetBrains Mono&quot;, monospace;
+                          font-size: 1.05rem;
+                        "
+                        >...</span
+                      >
+                    </div>
+                    <p
+                      id="inlineSlipDate"
+                      style="
+                        margin: 5px 0 0 0;
+                        font-size: 0.85rem;
+                        color: #64748b;
+                      "
+                    >
+                      ...
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Section 1: Account Details -->
+                <div
+                  class="pro-slip-box"
+                  style="border-left: 4px solid #3b82f6"
+                >
+                  <div class="pro-slip-row" style="align-items: flex-start">
+                    <div>
+                      <div class="pro-slip-label">ឈ្មោះគណនី / Account Name</div>
+                      <div
+                        class="pro-slip-value"
+                        id="inlineSlipCustomer"
+                        style="margin-top: 4px; font-size: 1.15rem"
+                      >
+                        ...
+                      </div>
+                    </div>
+                    <div style="text-align: right">
+                      <div class="pro-slip-label">លេខគណនី / Account No.</div>
+                      <div
+                        class="pro-slip-value acc-num"
+                        id="inlineSlipAccount"
+                        style="margin-top: 4px"
+                      >
+                        ...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 2: Transaction Details (Amount & Balance) -->
+                <div class="pro-slip-box">
+                  <div
+                    class="pro-slip-row"
+                    style="
+                      border-bottom: 1px dashed #cbd5e1;
+                      padding-bottom: 15px;
+                      margin-bottom: 15px;
+                      align-items: flex-start;
+                    "
+                  >
+                    <div style="flex: 1">
+                      <div class="pro-slip-label" style="font-size: 0.95rem">
+                        ចំនួនទឹកប្រាក់ / Amount
+                      </div>
+                      <div
+                        id="inlineSlipAmountWords"
+                        style="
+                          font-size: 0.8rem;
+                          color: #64748b;
+                          margin-top: 5px;
+                          font-style: italic;
+                          max-width: 250px;
+                        "
+                      >
+                        ...
+                      </div>
+                    </div>
+                    <div
+                      class="pro-slip-amount"
+                      id="inlineSlipAmount"
+                      style="color: #10b981"
+                    >
+                      ...
+                    </div>
+                  </div>
+
+                  <div class="pro-slip-row" style="margin-bottom: 6px">
+                    <div class="pro-slip-label" style="font-size: 0.75rem">
+                      កម្រៃសេវា / Fee
+                    </div>
+                    <div class="pro-slip-value" style="font-size: 0.85rem">
+                      $0.00
+                    </div>
+                  </div>
+                  <div class="pro-slip-row" style="margin-bottom: 6px">
+                    <div class="pro-slip-label" style="font-size: 0.75rem">
+                      សមតុល្យមុន / Prior Balance
+                    </div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipOldBal"
+                      style="font-size: 0.85rem"
+                    >
+                      ...
+                    </div>
+                  </div>
+                  <div class="pro-slip-row" style="margin-bottom: 15px">
+                    <div class="pro-slip-label" style="font-size: 0.75rem">
+                      សមតុល្យថ្មី / New Balance
+                    </div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipNewBal"
+                      style="font-size: 0.9rem; color: #2563eb"
+                    >
+                      ...
+                    </div>
+                  </div>
+
+                  <div
+                    class="pro-slip-row"
+                    style="
+                      border-top: 1px dashed #cbd5e1;
+                      padding-top: 15px;
+                      margin-top: 15px;
+                    "
+                  >
+                    <div class="pro-slip-label" id="inlineSlipDepositorLabel">
+                      អ្នកតំណាង / Depositor
+                    </div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipDepositor"
+                      style="font-size: 0.95rem"
+                    >
+                      ...
+                    </div>
+                  </div>
+                  <div class="pro-slip-row" style="margin-top: 8px">
+                    <div class="pro-slip-label">ចំណាំ / Remark</div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipRemark"
+                      style="
+                        font-weight: normal;
+                        color: #475569;
+                        font-size: 0.9rem;
+                      "
+                    >
+                      ...
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 3: Status -->
+                <div
+                  class="pro-slip-row"
+                  style="padding: 0 10px; margin-top: 20px"
+                >
+                  <div>
+                    <div class="pro-slip-label" style="font-size: 0.75rem">
+                      បេឡាករ / Teller
+                    </div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipMaker"
+                      style="font-size: 0.85rem; margin-top: 2px"
+                    >
+                      ...
+                    </div>
+                  </div>
+                  <div style="text-align: right">
+                    <div class="pro-slip-label" style="font-size: 0.75rem">
+                      ស្ថានភាព / Status
+                    </div>
+                    <div
+                      class="pro-slip-value"
+                      id="inlineSlipStatus"
+                      style="
+                        font-size: 0.85rem;
+                        margin-top: 2px;
+                        color: #d97706;
+                      "
+                    >
+                      PENDING VERIFICATION
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Section 4: QR Code & Signatures -->
+                <div
+                  style="
+                    margin-top: 25px;
+                    padding-top: 20px;
+                    border-top: 2px solid #e2e8f0;
+                  "
+                >
+                  <!-- ជួរទី១៖ រូប QR និង បន្ទាត់ (តម្រឹមបាតស្មើគ្នា ១០០%) -->
+                  <div style="display: flex; align-items: flex-end; gap: 20px">
+                    <div style="width: 85px; text-align: center">
+                      <img
+                        id="inlineSlipQRCode"
+                        src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://u-pay-bank.fly.dev/"
+                        style="
+                          width: 80px;
+                          height: 80px;
+                          box-sizing: border-box;
+                          border: 1px solid #cbd5e1;
+                          padding: 4px;
+                          border-radius: 6px;
+                          display: block;
+                          margin: 0 auto;
+                        "
+                        alt="QR Code"
+                      />
+                    </div>
+                    <!-- បន្ទាត់ហត្ថលេខាទាំង ៣ -->
+                    <div
+                      style="
+                        flex: 1;
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 15px;
+                        padding-bottom: 5px;
+                      "
+                    >
+                      <div
+                        class="signature-line"
+                        style="flex: 1; border-bottom: 1px dashed #94a3b8"
+                      ></div>
+                      <div
+                        class="signature-line"
+                        style="flex: 1; border-bottom: 1px dashed #94a3b8"
+                      ></div>
+                      <div
+                        class="signature-line"
+                        style="flex: 1; border-bottom: 1px dashed #94a3b8"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <!-- ជួរទី២៖ អក្សរក្រោម QR និង អក្សរអ្នកស៊ីញ៉េ (តម្រឹមស្មើគ្នា) -->
+                  <div
+                    style="
+                      display: flex;
+                      align-items: flex-start;
+                      gap: 20px;
+                      margin-top: 5px;
+                    "
+                  >
+                    <div
+                      class="qr-text"
+                      style="
+                        width: 85px;
+                        text-align: center;
+                        font-size: 0.65rem;
+                        color: #64748b;
+                        line-height: 1.2;
+                      "
+                    >
+                      ស្កេនដើម្បីពិនិត្យ<br />(Scan to Verify)
+                    </div>
+                    <div
+                      style="
+                        flex: 1;
+                        display: flex;
+                        justify-content: space-between;
+                        gap: 15px;
+                        text-align: center;
+                      "
+                    >
+                      <div
+                        class="signature-label"
+                        id="sigLabelDepositor"
+                        style="
+                          flex: 1;
+                          font-size: 0.65rem;
+                          font-weight: bold;
+                          color: #475569;
+                          line-height: 1.2;
+                          text-transform: uppercase;
+                        "
+                      >
+                        អ្នកដាក់ប្រាក់<br />DEPOSITOR
+                      </div>
+                      <div
+                        class="signature-label"
+                        style="
+                          flex: 1;
+                          font-size: 0.65rem;
+                          font-weight: bold;
+                          color: #475569;
+                          line-height: 1.2;
+                          text-transform: uppercase;
+                        "
+                      >
+                        បេឡាករ<br />TELLER
+                      </div>
+                      <div
+                        class="signature-label"
+                        style="
+                          flex: 1;
+                          font-size: 0.65rem;
+                          font-weight: bold;
+                          color: #475569;
+                          line-height: 1.2;
+                          text-transform: uppercase;
+                        "
+                      >
+                        អ្នកត្រួតពិនិត្យ<br />CHECKER
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Warning Box -->
+                <div
+                  id="inlineSlipWarning"
+                  style="
+                    display: none;
+                    margin-top: 20px;
+                    padding: 12px;
+                    background: rgba(245, 158, 11, 0.1);
+                    border: 1px dashed rgba(245, 158, 11, 0.5);
+                    border-radius: 8px;
+                    color: #d97706;
+                    font-size: 0.85rem;
+                    text-align: center;
+                    font-weight: bold;
+                  "
+                >
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  ប្រតិបត្តិការនេះមានទំហំធំ ទាមទារការអនុម័ត (Pending Approval)
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <!-- 🟢 ប៊ូតុងរៀបចំ Flex អោយអក្សរ និង Icon នៅចំកណ្តាលស្អាត -->
+              <div
+                id="previewActionBtns"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+              >
+                <button
+                  class="btn-secondary kh-text"
+                  onclick="backToInputForm()"
+                  style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                    font-size: 1.05rem;
+                  "
+                >
+                  <i class="fa-solid fa-arrow-left"></i> ថយក្រោយ
+                </button>
+                <button
+                  class="btn-primary kh-text"
+                  id="btnFinalSubmit"
+                  onclick="submitCashierTrx()"
+                  style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                    font-size: 1.05rem;
+                  "
+                >
+                  <i class="fa-solid fa-check-circle"></i> យល់ព្រម
+                </button>
+              </div>
+
+              <div
+                id="successActionBtns"
+                style="display: none; grid-template-columns: 1fr 1fr; gap: 10px"
+              >
+                <button
+                  class="btn-secondary kh-text"
+                  onclick="executeFormReset()"
+                  style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                    font-size: 1.05rem;
+                  "
+                >
+                  <i class="fa-solid fa-rotate-right"></i> បញ្ចប់ / ធ្វើថ្មី
+                </button>
+                <button
+                  class="btn-primary kh-text"
+                  onclick="printInlineSlip()"
+                  style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 14px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                    font-size: 1.05rem;
+                  "
+                >
+                  <i class="fa-solid fa-print"></i> បោះពុម្ព (Print)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+
+        <!-- 🛡️ TAB 2: APPROVALS (តារាងត្រួតពិនិត្យ) -->
+
+        <!-- ============================================== -->
+
+        <div id="viewApproval" style="display: none">
+          <!-- តម្រង Filters -->
+
+          <div
+            style="
+              display: flex;
+
+              gap: 10px;
+
+              margin-bottom: 15px;
+
+              flex-wrap: wrap;
+
+              background: var(--bg-card);
+
+              padding: 15px;
+
+              border-radius: 12px;
+
+              border: 1px solid var(--border);
+            "
+          >
+            <div
+              class="search-box"
+              style="
+                margin: 0;
+
+                flex: 1;
+
+                min-width: 250px;
+
+                background: var(--bg-body);
+
+                border: 1px solid var(--border);
+              "
+            >
+              <i class="fa-solid fa-magnifying-glass"></i>
+
               <input
                 type="text"
-                id="cashRemark"
-                class="custom-input"
-                placeholder="ទុកទទេ ប្រព័ន្ធនឹងបំពេញស្វ័យប្រវត្តិ..."
+                id="searchTicket"
+                placeholder="ស្វែងរក លេខ Ref, ឈ្មោះអ្នកធ្វើ..."
+                onkeyup="filterTickets()"
+                style="
+                  border: none;
+
+                  background: transparent;
+
+                  outline: none;
+
+                  width: 100%;
+
+                  font-family: &quot;Kantumruy Pro&quot;;
+
+                  color: var(--text-main);
+                "
               />
             </div>
 
-            <button
-              class="btn-primary btn-success"
-              style="
-                width: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 8px;
-                font-size: 1.1rem;
-                padding: 12px;
-                font-family:
-                  &quot;Kantumruy Pro&quot;, sans-serif; /* បានបន្ថែម font នៅទីនេះ */
-              "
-              onclick="processCashTransaction()"
+            <input
+              type="date"
+              id="ticketDate"
+              class="custom-input"
+              style="width: auto"
+              onchange="filterTickets()"
+            />
+
+            <select
+              id="ticketStatus"
+              class="custom-input"
+              style="width: auto; cursor: pointer"
+              onchange="filterTickets()"
             >
-              <i class="fa-solid fa-check-circle"></i> បញ្ជាក់ការដាក់ប្រាក់
+              <option value="ALL">គ្រប់ស្ថានភាពទាំងអស់</option>
+
+              <option value="pending_approve">រង់ចាំអនុម័ត (> $10k)</option>
+
+              <option value="pending_verify">
+                រង់ចាំផ្ទៀងផ្ទាត់ (<= $10k)
+              </option>
+
+              <option value="approved">អនុម័តរួច (Approved)</option>
+
+              <option value="verified">ផ្ទៀងផ្ទាត់រួច (Verified)</option>
+
+              <option value="rejected">បដិសេធ (Rejected)</option>
+            </select>
+
+            <button class="btn-secondary" onclick="loadCashierTickets()">
+              <i class="fa-solid fa-rotate-right"></i>
             </button>
+          </div>
+
+          <!-- តារាង -->
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>កាលបរិច្ឆេទ</th>
+
+                  <th>Ref ID</th>
+
+                  <th>ប្រភេទ</th>
+
+                  <th>អតិថិជន</th>
+
+                  <th>ទឹកប្រាក់</th>
+
+                  <th>អ្នកបញ្ចូល (Maker)</th>
+
+                  <th>ស្ថានភាព</th>
+
+                  <th style="text-align: right">សកម្មភាព</th>
+                </tr>
+              </thead>
+
+              <tbody id="ticketsTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 30px">
+                    កំពុងទាញយកទិន្នន័យ...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            class="pagination-controls"
+            id="ticketPagination"
+            style="
+              display: flex;
+
+              justify-content: space-between;
+
+              margin-top: 10px;
+            "
+          >
+            <button
+              id="btnPrevTicket"
+              class="btn-page"
+              onclick="changeTicketPage(-1)"
+            >
+              <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+            </button>
+
+            <span
+              id="ticketPageInfo"
+              style="font-weight: bold; color: var(--text-main)"
+              >ទំព័រ 1 / 1</span
+            >
+
+            <button
+              id="btnNextTicket"
+              class="btn-page"
+              onclick="changeTicketPage(1)"
+            >
+              បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ============================================== -->
+
+        <!-- 🧾 SLIP DRAWER (ផ្ទាំង Slip ពេលចុចមើល ឬ Approve) -->
+
+        <!-- ============================================== -->
+
+        <div class="slip-drawer" id="ticketDrawer">
+          <div class="drawer-cover" style="height: 60px; border-radius: 0">
+            <button
+              class="drawer-close-btn"
+              onclick="closeTicketDrawer()"
+              style="top: 12px; right: 12px"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h3
+              style="
+                color: white;
+
+                margin: 0;
+
+                padding: 18px 20px;
+
+                font-family: &quot;Kantumruy Pro&quot;;
+              "
+            >
+              <i class="fa-solid fa-receipt"></i> ព័ត៌មានប្រតិបត្តិការ
+            </h3>
+          </div>
+
+          <!-- រូបរាង Slip -->
+
+          <div class="slip-paper" id="printSlipArea">
+            <div
+              style="
+                text-align: center;
+
+                margin-bottom: 20px;
+
+                border-bottom: 1px dashed #ccc;
+
+                padding-bottom: 10px;
+              "
+            >
+              <img
+                src="../images/logo.png"
+                style="
+                  height: 40px;
+
+                  margin-bottom: 10px;
+
+                  filter: grayscale(100%);
+                "
+              />
+
+              <div
+                style="
+                  font-weight: bold;
+
+                  font-size: 1.1rem;
+
+                  text-transform: uppercase;
+                "
+                id="slipType"
+              >
+                CASH DEPOSIT
+              </div>
+
+              <div style="color: #666; font-size: 0.8rem" id="slipDate">
+                ...
+              </div>
+            </div>
+
+            <div style="margin-bottom: 15px">
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Ticket Ref:</span><strong id="slipRef">...</strong>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Status:</span><strong id="slipStatus">...</strong>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Maker:</span><strong id="slipMaker">...</strong>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Checker:</span><strong id="slipChecker">...</strong>
+              </div>
+            </div>
+
+            <div
+              style="
+                border-top: 1px dashed #ccc;
+
+                padding-top: 15px;
+
+                margin-bottom: 15px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Customer:</span><strong id="slipCustomer">...</strong>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Account:</span><strong id="slipAccount">...</strong>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  margin-bottom: 5px;
+                "
+              >
+                <span>Depositor:</span><strong id="slipDepositor">...</strong>
+              </div>
+            </div>
+
+            <div
+              style="
+                border-top: 1px dashed #ccc;
+
+                padding-top: 15px;
+
+                margin-bottom: 15px;
+
+                background: #f8f9fa;
+
+                padding: 10px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+
+                  justify-content: space-between;
+
+                  font-weight: bold;
+
+                  font-size: 1.1rem;
+                "
+              >
+                <span>AMOUNT:</span><strong id="slipAmount">...</strong>
+              </div>
+            </div>
+
+            <div style="font-size: 0.75rem; color: #666">
+              Remark: <span id="slipRemark">...</span>
+            </div>
+          </div>
+
+          <!-- ប៊ូតុង Action ក្នុង Drawer -->
+
+          <div
+            style="
+              padding: 20px;
+
+              display: flex;
+
+              flex-direction: column;
+
+              gap: 10px;
+            "
+            id="drawerActionBtns"
+          >
+            <button class="btn-secondary" onclick="printSlip()">
+              <i class="fa-solid fa-print"></i> បោះពុម្ព (Print Slip)
+            </button>
+
+            <div
+              id="checkerActionArea"
+              style="
+                display: grid;
+
+                grid-template-columns: 1fr 1fr;
+
+                gap: 10px;
+
+                margin-top: 10px;
+              "
+            >
+              <button
+                class="btn-action kh-text"
+                style="
+                  background: rgba(239, 68, 68, 0.1);
+
+                  color: #ef4444;
+
+                  border: 1px solid rgba(239, 68, 68, 0.3);
+
+                  padding: 12px;
+
+                  border-radius: 8px;
+                "
+                onclick="rejectTicket()"
+              >
+                ❌ បដិសេធ (Reject)
+              </button>
+
+              <button
+                class="btn-primary kh-text"
+                style="
+                  background: var(--secondary);
+
+                  padding: 12px;
+
+                  border-radius: 8px;
+                "
+                onclick="approveTicket()"
+              >
+                ✅ យល់ព្រម (Approve)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3306,7 +5441,7 @@
     <script src="js/admin-fx.js?v=1"></script>
     <script src="js/admin-fees.js?v=1"></script>
     <script src="js/admin-promo.js?v=1"></script>
-    <script src="js/admin-cashier.js?v=1"></script>
+    <script src="js/admin-cashier.js?v=99"></script>
     <!-- <script src="js/admin-ops.js?v=99"></script> -->
     <script src="js/admin-card.js?v=1"></script>
     <script src="js/admin-trx.js?v=1"></script>
