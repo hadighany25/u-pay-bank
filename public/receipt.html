@@ -50,7 +50,7 @@
       }
 
       .pro-slip-header img {
-        height: 40px;
+        height: 70px;
       }
       .pro-slip-title {
         text-align: right;
@@ -164,7 +164,7 @@
           font-size: 1.4rem;
         }
         .pro-slip-header img {
-          height: 30px;
+          height: 70px;
         }
         .pro-slip-box {
           padding: 10px 15px;
@@ -193,7 +193,7 @@
         />
         <div class="pro-slip-title">
           <h2 id="rTypeTitle">CASH DEPOSIT</h2>
-          <div style="margin-top: 8px; font-size: 0.95rem">
+          <div style="margin-top: 8px; font-size: 1.05rem">
             <span style="color: #64748b; font-weight: 600">TRX ID:</span>
             <span
               id="rRef"
@@ -279,7 +279,6 @@
           <div class="pro-slip-value" style="font-size: 0.85rem">$0.00</div>
         </div>
 
-        <!-- 🟢 ផ្នែកបង្ហាញសមតុល្យចាស់ និងថ្មី ទាញពី Database -->
         <div
           class="pro-slip-row"
           id="priorBalRow"
@@ -510,7 +509,13 @@
                 ? "ប័ណ្ណដាក់ប្រាក់ / CASH DEPOSIT"
                 : "ប័ណ្ណដកប្រាក់ / CASH WITHDRAWAL";
               rTypeTitle.style.color = isDep ? "#10b981" : "#ef4444";
-              rRef.innerText = d.transactionId || d._id;
+
+              // 🟢 កែសម្រួល៖ ឱ្យវាចាប់យក transactionId មុន, បើគ្មានយក ticketId (TCK), ជាជម្រើសចុងក្រោយទើបយក _id
+              rRef.innerText =
+                d.transactionId ||
+                d.ticketId ||
+                d._id.substring(0, 10).toUpperCase();
+
               rRef.style.color = isDep ? "#10b981" : "#ef4444";
             } else {
               const isDep =

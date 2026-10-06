@@ -92,11 +92,13 @@ router.get(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getMe, "getMe"),
 );
+
 router.get(
-  "/list-admins",
-  checkRole([ROLE_SUPER]),
+  "/list",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getAdminsList, "getAdminsList"),
 );
+
 router.post(
   "/save-admin",
   checkRole([ROLE_SUPER]),

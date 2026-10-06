@@ -9,6 +9,10 @@ const cashierTicketSchema = new mongoose.Schema(
   {
     // 🔗 ការតភ្ជាប់ទៅកាន់ User & Transaction
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+
+    // 🟢 បន្ថែមថ្មី៖ លេខកូដ Ticket ផ្ទាល់ខ្លួន (ឧទាហរណ៍ TCK-12345678) សម្រាប់សំណើដែលមិនទាន់ Approve
+    ticketId: { type: String },
+
     transactionId: { type: String, default: null }, // លេខ Ref ID បើលុយចូល/កាត់ជោគជ័យ
 
     // 👤 Maker - Checker

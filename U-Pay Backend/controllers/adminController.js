@@ -143,7 +143,7 @@ const getMe = async (req, res) => {
 
 const getAdminsList = async (req, res) => {
   try {
-    const admins = await Admin.find({}, "-password");
+    const admins = await Admin.find({}, "-password"); // ទាញយកទាំងអស់ដោយលាក់លេខសម្ងាត់
     res.json({ success: true, admins });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1515,7 +1515,8 @@ const getPublicReceipt = async (req, res) => {
   try {
     const { id } = req.params;
 
-    let ticketQuery = [{ transactionId: id }];
+    // 🟢 ថែម { ticketId: id } ចូលទីនេះ ដើម្បីឱ្យវាស្គាល់លេខ TCK-... ពេលស្កេន QR
+    let ticketQuery = [{ transactionId: id }, { ticketId: id }];
     if (mongoose.isValidObjectId(id)) {
       ticketQuery.push({ _id: id });
     }
@@ -1688,10 +1689,11 @@ const executeCashierTransaction = async (
   targetAccount,
   requestType,
   depositorName,
-  depositorAccount, // 🟢 ទទួលយកលេខកុងអ្នកដាក់ពិតប្រាកដ
+  depositorAccount,
   currency,
   cashAmount,
   remark,
+  actionType = "FULL",
 ) => {
   const centralBank = await User.findOne({
     "mainAccounts.USD.accountNumber": "888888888",
@@ -1724,38 +1726,68 @@ const executeCashierTransaction = async (
     finalReceiveAmount = cashAmount / currentFXRates.usdToKhrSell;
 
   const bankModifier = requestType === "Deposit" ? -cashAmount : cashAmount;
-  if (isInputKHR)
-    centralBank.mainAccounts.KHR.balance =
-      (centralBank.mainAccounts.KHR.balance || 0) + bankModifier;
-  else
-    centralBank.mainAccounts.USD.balance =
-      (centralBank.mainAccounts.USD.balance || 0) + bankModifier;
-
   const userModifier =
     requestType === "Deposit" ? finalReceiveAmount : -finalReceiveAmount;
 
-  if (targetAccount === targetUser.mainAccounts?.USD?.accountNumber) {
+  // 🟢 ផ្នែកទី ១៖ ធ្វើការកាត់ ឬ បញ្ចូលលុយ (Hold ឬ ទូទាត់ពិតប្រាកដ)
+  if (
+    [
+      "FULL",
+      "HOLD_WITHDRAWAL",
+      "APPROVE_DEPOSIT",
+      "REVERT_WITHDRAWAL",
+    ].includes(actionType)
+  ) {
+    let finalUserMod = userModifier;
+    let finalBankMod = bankModifier;
+
+    if (actionType === "REVERT_WITHDRAWAL") {
+      finalUserMod = Math.abs(userModifier);
+      finalBankMod = -cashAmount;
+    }
+
     if (
-      requestType === "Withdrawal" &&
-      targetUser.mainAccounts.USD.balance < finalReceiveAmount
-    )
-      return { success: false, message: "លុយមិនគ្រប់គ្រាន់!" };
-    targetUser.mainAccounts.USD.balance += userModifier;
-  } else if (targetAccount === targetUser.mainAccounts?.KHR?.accountNumber) {
-    if (
-      requestType === "Withdrawal" &&
-      (targetUser.mainAccounts.KHR.balance || 0) < finalReceiveAmount
-    )
-      return { success: false, message: "លុយមិនគ្រប់គ្រាន់!" };
-    targetUser.mainAccounts.KHR.balance =
-      (targetUser.mainAccounts.KHR.balance || 0) + userModifier;
-  } else if (subIndex !== -1) {
-    if (
-      requestType === "Withdrawal" &&
-      targetUser.subAccounts[subIndex].balance < finalReceiveAmount
-    )
-      return { success: false, message: "លុយមិនគ្រប់គ្រាន់!" };
-    targetUser.subAccounts[subIndex].balance += userModifier;
+      ["FULL", "HOLD_WITHDRAWAL"].includes(actionType) &&
+      requestType === "Withdrawal"
+    ) {
+      let currentBal = 0;
+      if (destCurrency === "USD" && subIndex === -1)
+        currentBal = targetUser.mainAccounts.USD.balance;
+      else if (destCurrency === "KHR" && subIndex === -1)
+        currentBal = targetUser.mainAccounts.KHR.balance || 0;
+      else if (subIndex !== -1)
+        currentBal = targetUser.subAccounts[subIndex].balance;
+
+      if (currentBal < finalReceiveAmount) {
+        return {
+          success: false,
+          message: "បរាជ័យ! លុយក្នុងគណនីអតិថិជនមិនគ្រប់គ្រាន់ទេ!",
+        };
+      }
+    }
+
+    if (destCurrency === "USD" && subIndex === -1)
+      targetUser.mainAccounts.USD.balance += finalUserMod;
+    else if (destCurrency === "KHR" && subIndex === -1)
+      targetUser.mainAccounts.KHR.balance =
+        (targetUser.mainAccounts.KHR.balance || 0) + finalUserMod;
+    else if (subIndex !== -1)
+      targetUser.subAccounts[subIndex].balance += finalUserMod;
+
+    if (isInputKHR)
+      centralBank.mainAccounts.KHR.balance =
+        (centralBank.mainAccounts.KHR.balance || 0) + finalBankMod;
+    else
+      centralBank.mainAccounts.USD.balance =
+        (centralBank.mainAccounts.USD.balance || 0) + finalBankMod;
+
+    await targetUser.save();
+    await centralBank.save();
+  }
+
+  // 🟢 បើគ្រាន់តែ Hold លុយ ឬ សងលុយ គឺបញ្ចប់ត្រឹមនេះ
+  if (actionType === "HOLD_WITHDRAWAL" || actionType === "REVERT_WITHDRAWAL") {
+    return { success: true, transactionId: "HELD_OR_REVERTED" };
   }
 
   const dateStr = new Date().toLocaleString("en-US", {
@@ -1766,18 +1798,19 @@ const executeCashierTransaction = async (
     requestType === "Deposit" ? "DEP" : "WIT",
   );
 
-  // 🟢 ១. កំណត់ Remark ដោយយកឈ្មោះ និងលេខគណនីរបស់អ្នកដាក់ផ្ទាល់
   const autoRemark =
     requestType === "Deposit"
       ? `ដាក់ប្រាក់ដោយ: ${depositorName} (${depositorAccount})`
       : `ដកប្រាក់ដោយ: ${depositorName} (${depositorAccount})`;
 
-  const finalRemark =
-    remark && remark.trim() !== ""
-      ? `${remark.trim()} | ${autoRemark}`
-      : autoRemark;
+  let finalRemark = remark || "";
+  if (!finalRemark.includes(autoRemark)) {
+    finalRemark =
+      remark && remark.trim() !== ""
+        ? `${remark.trim()} | ${autoRemark}`
+        : autoRemark;
+  }
 
-  // 🟢 ២. កែសម្រួល Sender/Receiver ឱ្យចេញពាក្យ Cash Deposit លើ Slip
   const targetTrx = await Transaction.create({
     userId: targetUser._id,
     username: targetUser.username,
@@ -1788,16 +1821,14 @@ const executeCashierTransaction = async (
     amount: userModifier,
     currency: destCurrency,
     fee: 0,
-    // ប្តូរឈ្មោះអ្នកផ្ញើឱ្យទៅជាពាក្យ Cash Deposit / Withdrawal មិនឱ្យចេញឈ្មោះ MENG SENG
     senderName:
       requestType === "Deposit" ? "Cash Deposit" : targetUser.fullName,
-    senderAcc: requestType === "Deposit" ? "" : actualReceiverAcc, // បញ្ចេញទទេកុំឱ្យលោតកុងក្រោមពាក្យ Cash Deposit
+    senderAcc: requestType === "Deposit" ? "" : actualReceiverAcc,
     receiverName:
       requestType === "Deposit" ? targetUser.fullName : "Cash Withdrawal",
     receiverAcc: requestType === "Deposit" ? actualReceiverAcc : "",
     remark: finalRemark,
     status: "Success",
-    // 🟢 ៣. កែប្រែ Payment Via ឱ្យចេញ Cash Deposit មិនមែន U-PAY Cashier ទេ[cite: 18]
     trxMethod: `Cash ${requestType}`,
   });
 
@@ -1811,22 +1842,17 @@ const executeCashierTransaction = async (
     type: requestType === "Deposit" ? "Fund Disbursement" : "Fund Recovery",
   });
 
-  // 🟢 ៤. Notification ជូនដំណឹងដល់អតិថិជន
   const sign = requestType === "Deposit" ? "+" : "-";
   const formattedAmount = `${sign}${destCurrency === "USD" ? "$" : "៛"}${finalReceiveAmount.toLocaleString("en-US", { minimumFractionDigits: destCurrency === "USD" ? 2 : 0 })}`;
 
-  // បង្កើតប្រយោគដើម
   let notifMsg =
     requestType === "Deposit"
-      ? `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដាក់ចូលគណនី (${actualReceiverAcc}) របស់អ្នក។ ដាក់ប្រាក់ដោយ: ${depositorName}`
-      : `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដកចេញពីគណនី (${actualReceiverAcc}) របស់អ្នក។ ដកប្រាក់ដោយ: ${depositorName}`;
+      ? `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដាក់បញ្ចូលទៅក្នុងគណនី (${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ (Cashier)។ [អ្នកដាក់ប្រាក់: ${depositorName}]`
+      : `ទឹកប្រាក់ ${formattedAmount} ត្រូវបានដកចេញពីគណនី (${actualReceiverAcc}) របស់អ្នកដោយជោគជ័យ តាមរយៈបញ្ជរធនាគារ (Cashier)។ [អ្នកដកប្រាក់: ${depositorName}]`;
 
-  // 🟢 បន្ថែមចំណាំ (Remark) ចូលទៅចុងប្រយោគ ប្រសិនបើ Admin បានវាយបញ្ជូល
-  if (remark && remark.trim() !== "") {
-    notifMsg += `។ ចំណាំ៖ ${remark.trim()}`;
-  } else {
-    notifMsg += `។`; // បិទប្រយោគដោយសញ្ញាខណ្ឌធម្មតា
-  }
+  let cleanRemark = remark ? remark.trim() : "";
+  if (cleanRemark.includes(" | ")) cleanRemark = cleanRemark.split(" | ")[0];
+  if (cleanRemark && cleanRemark !== "") notifMsg += `\nចំណាំ៖ ${cleanRemark}`;
 
   await Notification.create({
     userId: targetUser._id,
@@ -1840,8 +1866,6 @@ const executeCashierTransaction = async (
     metadata: { refId: refId, sender: "system" },
   });
 
-  await targetUser.save();
-  await centralBank.save();
   return { success: true, transactionId: refId };
 };
 
@@ -1866,13 +1890,86 @@ const createCashierTicket = async (req, res) => {
       return res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
 
     const cashAmount = parseFloat(amount);
+
+    // 🟢 គណនាសមតុល្យ (Balance) ឱ្យហើយ សម្រាប់ទាំង Withdrawal និង Deposit
+    let currentBal = 0;
+    let targetCurrency = "USD";
+
+    if (targetAccount === targetUser.mainAccounts?.USD?.accountNumber) {
+      currentBal = targetUser.mainAccounts.USD.balance || 0;
+      targetCurrency = "USD";
+    } else if (targetAccount === targetUser.mainAccounts?.KHR?.accountNumber) {
+      currentBal = targetUser.mainAccounts.KHR.balance || 0;
+      targetCurrency = "KHR";
+    } else {
+      const subAcc = targetUser.subAccounts?.find(
+        (s) => s.accountNumber === targetAccount,
+      );
+      if (subAcc) {
+        currentBal = subAcc.balance || 0;
+        targetCurrency = subAcc.currency;
+      }
+    }
+
+    // គណនាទឹកប្រាក់ (ករណីជាន់រូបិយប័ណ្ណ)
+    let finalReceiveAmount = cashAmount;
+    const currentFXRates = readFXRates();
+    if (currency === "USD" && targetCurrency === "KHR") {
+      finalReceiveAmount = cashAmount * currentFXRates.usdToKhrBuy;
+    } else if (currency === "KHR" && targetCurrency === "USD") {
+      finalReceiveAmount = cashAmount / currentFXRates.usdToKhrSell;
+    }
+
+    if (requestType === "Withdrawal") {
+      if (currentBal < finalReceiveAmount) {
+        return res.json({
+          success: false,
+          message: `ប្រតិបត្តិការបរាជ័យ! លុយក្នុងគណនី (${targetAccount}) មិនគ្រប់គ្រាន់ទេ!`,
+        });
+      }
+    }
+
     const isBigTrx =
       (currency === "USD" && cashAmount > 10000) ||
       (currency === "KHR" && cashAmount > 40000000);
     const ticketStatus = isBigTrx ? "pending_approve" : "pending_verify";
+    const newTicketId = generateStandardRefId("TCK");
+
+    if (isBigTrx && requestType === "Withdrawal") {
+      const holdResult = await executeCashierTransaction(
+        targetUser,
+        targetAccount,
+        requestType,
+        depositorName,
+        depositorAccount,
+        currency,
+        cashAmount,
+        remark,
+        "HOLD_WITHDRAWAL",
+      );
+      if (!holdResult.success)
+        return res.json({ success: false, message: holdResult.message });
+    }
+
+    const autoRemark =
+      requestType === "Deposit"
+        ? `ដាក់ប្រាក់ដោយ: ${depositorName} (${depositorAccount || "N/A"})`
+        : `ដកប្រាក់ដោយ: ${depositorName} (${depositorAccount || "N/A"})`;
+    const finalRemark =
+      remark && remark.trim() !== ""
+        ? `${remark.trim()} | ${autoRemark}`
+        : autoRemark;
+
+    // 🟢 កំណត់ Prior Balance និង New Balance ឱ្យច្បាស់លាស់ ទុកបង្ហាញលើ Slip
+    const priorBalance = currentBal;
+    const newBalance =
+      requestType === "Deposit"
+        ? currentBal + finalReceiveAmount
+        : currentBal - finalReceiveAmount;
 
     const newTicket = new CashierTicket({
       userId: targetUser._id,
+      ticketId: newTicketId,
       maker: req.admin.username,
       requestType,
       amount: cashAmount,
@@ -1880,11 +1977,12 @@ const createCashierTicket = async (req, res) => {
       targetAcc: targetAccount,
       depositorName,
       status: ticketStatus,
-      remark,
-      // 🟢 ថែរក្សាលេខកុងអ្នកដាក់ចូលទៅក្នុង slipData សម្រាប់ពេល Approve ក្រោយ
+      remark: finalRemark,
       slipData: {
         customerName: targetUser.fullName || targetUser.username,
         depositorAccount: depositorAccount || "N/A",
+        priorBalance: priorBalance, // 🟢 Save សមតុល្យចាស់ចូល DB
+        newBalance: newBalance, // 🟢 Save សមតុល្យថ្មីចូល DB
       },
     });
 
@@ -1898,6 +1996,7 @@ const createCashierTicket = async (req, res) => {
         currency,
         cashAmount,
         remark,
+        "FULL",
       );
       if (!result.success)
         return res.json({ success: false, message: result.message });
@@ -1915,7 +2014,7 @@ const createCashierTicket = async (req, res) => {
     res.json({
       success: true,
       message: isBigTrx
-        ? "រង់ចាំការអនុម័ត (Pending Approval)"
+        ? "ប្រព័ន្ធបានឃាត់ប្រាក់ទុក! រង់ចាំការអនុម័ត (Pending Approval)"
         : "ប្រតិបត្តិការជោគជ័យ! លុយបានបញ្ចូលរួចរាល់",
       ticket: newTicket,
     });
@@ -1937,6 +2036,7 @@ const getCashierTickets = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
 // ========================================================================
 // 🏦 MAIN API 3: អនុម័ត / បដិសេធ ប្រតិបត្តិការ (Checker Action)
 // ========================================================================
@@ -1952,18 +2052,27 @@ const actionCashierTicket = async (req, res) => {
         message: "អ្នកមិនអាចអនុម័តប្រតិបត្តិការដែលខ្លួនឯងបញ្ចូលបានទេ!",
       });
 
+    const targetUser = await User.findById(ticket.userId);
+    if (!targetUser)
+      return res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
+
     if (action === "approve") {
       if (ticket.status === "pending_approve") {
-        const targetUser = await User.findById(ticket.userId);
+        const actionType =
+          ticket.requestType === "Withdrawal"
+            ? "APPROVE_WITHDRAWAL"
+            : "APPROVE_DEPOSIT";
+
         const result = await executeCashierTransaction(
           targetUser,
           ticket.targetAcc,
           ticket.requestType,
           ticket.depositorName,
-          ticket.slipData?.depositorAccount || "N/A", // 🟢 ទាញលេខកុងពី slipData មកប្រើ
+          ticket.slipData?.depositorAccount || "N/A",
           ticket.currency,
           ticket.amount,
           ticket.remark,
+          actionType,
         );
         if (!result.success)
           return res.json({ success: false, message: result.message });
@@ -1976,13 +2085,52 @@ const actionCashierTicket = async (req, res) => {
       await ticket.save();
       res.json({ success: true, message: "បានអនុម័តជោគជ័យ!" });
     } else if (action === "reject") {
+      if (
+        ticket.status === "pending_approve" &&
+        ticket.requestType === "Withdrawal"
+      ) {
+        await executeCashierTransaction(
+          targetUser,
+          ticket.targetAcc,
+          ticket.requestType,
+          ticket.depositorName,
+          ticket.slipData?.depositorAccount || "N/A",
+          ticket.currency,
+          ticket.amount,
+          ticket.remark,
+          "REVERT_WITHDRAWAL",
+        );
+
+        const curSymbol = ticket.currency === "USD" ? "$" : "៛";
+        const dateStr = new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Phnom_Penh",
+          hour12: true,
+        });
+
+        await Notification.create({
+          userId: targetUser._id,
+          username: targetUser.username,
+          title: "Withdrawal Rejected ❌",
+          message: `សំណើដកប្រាក់ចំនួន ${curSymbol}${ticket.amount.toLocaleString()} ត្រូវបានបដិសេធ។ ទឹកប្រាក់ត្រូវបានបង្វិលចូលគណនីរបស់អ្នកវិញរួចរាល់។ មូលហេតុ: ${reason}`,
+          date: dateStr,
+          type: "info",
+          isRead: false,
+          metadata: { sender: "system" },
+        });
+      }
+
       ticket.status = "rejected";
       ticket.rejectReason = reason;
       ticket.checker = req.admin.username;
       await ticket.save();
-      res.json({ success: true, message: "បានបដិសេធជោគជ័យ!" });
+
+      res.json({
+        success: true,
+        message: "បានបដិសេធជោគជ័យ និងបានបង្វិលប្រាក់ត្រលប់ចូលគណនីវិញ!",
+      });
     }
   } catch (err) {
+    console.error("Action Ticket Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
