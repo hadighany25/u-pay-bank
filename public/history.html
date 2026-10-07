@@ -833,7 +833,6 @@
       let allMerchantAccounts = [];
 
       window.addEventListener("DOMContentLoaded", () => {
-        // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
         applyThemeLocally();
 
         if (typeof applyLanguage === "function") applyLanguage();
@@ -857,7 +856,6 @@
           .split("T")[0];
         document.getElementById("endDate").value = todayStr;
 
-        // 🌟 កូដចាប់យក URL Parameter មកបើក Tab Messages ដោយស្វ័យប្រវត្តិ
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get("tab") === "msg") {
           switchHistoryTab("msg");
@@ -891,7 +889,6 @@
         renderMessages(sessionUser.notifications);
       });
 
-      // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
       function applyThemeLocally() {
         const userThemeKey = "theme_" + sessionUser.username;
         const isDark = localStorage.getItem(userThemeKey) === "dark";
@@ -903,7 +900,6 @@
         }
       }
 
-      // 🌟 ៣. ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
       window.addEventListener("storage", (event) => {
         if (sessionUser) {
           const userThemeKey = "theme_" + sessionUser.username;
@@ -933,7 +929,6 @@
           toolsBox.style.display = "none";
           containerMsg.style.display = "block";
 
-          // 🌟 បាញ់ API ទៅកាន់ communicationController ដើម្បីប្រាប់ DB ថាអានសារទាំងអស់រួចរាល់
           fetch("/api/communication/notifications/read", {
             method: "POST",
             headers: authHeadersFetch,
@@ -942,12 +937,10 @@
             .then((res) => res.json())
             .then((data) => {
               if (data.success) {
-                // កែប្រែស្ថានភាព isRead ក្នុង sessionUser ផ្ទាល់ដើម្បីឱ្យ Badge លេខក្រហមបាត់ទៅវិញភ្លាមៗ
                 if (sessionUser.notifications) {
                   sessionUser.notifications.forEach((n) => (n.isRead = true));
                   sessionStorage.setItem("user", JSON.stringify(sessionUser));
                 }
-                // លាក់ Badge ក្រហមលើកណ្តឹង (ถ้าមាន)
                 const badge = document.getElementById("notiBadge");
                 if (badge) badge.style.display = "none";
               }
@@ -999,6 +992,7 @@
             "rotate(0deg)";
         }
       });
+
       function populateAccountCheckboxes() {
         const dropdown = document.getElementById("accountDropdown");
         allAvailableAccounts = [];
@@ -1009,7 +1003,6 @@
             </div>
         `;
 
-        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
         if (
           sessionUser.mainAccounts &&
           sessionUser.mainAccounts.USD &&
@@ -1024,7 +1017,6 @@
                 </div>
             `;
         } else if (sessionUser.accountNumber) {
-          // Legacy Fallback
           allAvailableAccounts.push(sessionUser.accountNumber);
           htmlStr += `
                 <div class="checkbox-item">
@@ -1034,7 +1026,6 @@
             `;
         }
 
-        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
         if (
           sessionUser.mainAccounts &&
           sessionUser.mainAccounts.KHR &&
@@ -1049,7 +1040,6 @@
                 </div>
             `;
         } else if (sessionUser.accountNumberKHR) {
-          // Legacy Fallback
           allAvailableAccounts.push(sessionUser.accountNumberKHR);
           htmlStr += `
                 <div class="checkbox-item">
@@ -1059,10 +1049,9 @@
             `;
         }
 
-        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (sessionUser.subAccounts && sessionUser.subAccounts.length > 0) {
           sessionUser.subAccounts.forEach((sub) => {
-            if (sub.isHidden) return; // បើលាក់កុង គឺមិនឱ្យឃើញក្នុងប្រវត្តិទេ
+            if (sub.isHidden) return;
 
             allAvailableAccounts.push(sub.accountNumber);
             let accTypeName =
@@ -1202,13 +1191,11 @@
               sessionUser.notifications = serverUser.notifications || [];
               fullUserTransactions = serverUser.transactions || [];
 
-              // 🌟 បច្ចុប្បន្នភាពទម្រង់ថ្មី
               sessionUser.mainAccounts = serverUser.mainAccounts;
               sessionUser.subAccounts = serverUser.subAccounts;
-
-              // ទុក Legacy
               sessionUser.accountNumber = serverUser.accountNumber;
               sessionUser.accountNumberKHR = serverUser.accountNumberKHR;
+              sessionUser.p2pDebts = serverUser.p2pDebts || []; // 🌟 អាប់ដេតទិន្នន័យបំណុលថ្មី
 
               sessionStorage.setItem("user", JSON.stringify(sessionUser));
 
@@ -1229,7 +1216,7 @@
         const tFn = window.t || ((k) => k);
 
         if (selectedAccountNumbers.length === 0) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><i class="fa-solid fa-folder-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p class="kh-text">${tFn("history_pls_select_acc")}</p></div>`;
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><i class="fa-solid fa-folder-open" style="font-size:3rem; margin-bottom:15px; opacity:0.5;"></i><p class="kh-text">${tFn("history_pls_select_acc") || "Please select an account"}</p></div>`;
           return;
         }
 
@@ -1285,7 +1272,6 @@
             !t.senderAcc &&
             !t.receiverAcc
           ) {
-            // ឆែក USD តាមទម្រង់ថ្មី
             const mainUsdNum =
               sessionUser.mainAccounts && sessionUser.mainAccounts.USD
                 ? sessionUser.mainAccounts.USD.accountNumber
@@ -1298,7 +1284,6 @@
               matchMain = true;
             }
 
-            // ឆែក KHR តាមទម្រង់ថ្មី
             const mainKhrNum =
               sessionUser.mainAccounts && sessionUser.mainAccounts.KHR
                 ? sessionUser.mainAccounts.KHR.accountNumber
@@ -1314,6 +1299,7 @@
           return matchDirectAcc || matchMerchantAcc || matchMain;
         });
 
+        // 🌟 ១. កុំទាត់ចោលប្រតិបត្តិការ Hold
         filtered = filtered.filter(
           (tx) => tx.status !== "Pending" || tx.isHold,
         );
@@ -1350,28 +1336,7 @@
 
         currentTransactions = filtered;
 
-        // 🚀 SMART CACHE: បើលក្ខខណ្ឌ Filter ឬ ទិន្នន័យដូចដើម មិនបាច់គូរថ្មីរំខានដល់ការ Scroll ឡើយ!
-        const currentState =
-          JSON.stringify(currentTransactions) +
-          displayLimit +
-          currentFilterType +
-          selectedAccountNumbers.join(",");
-        if (currentState === window.lastTrxState) return;
-        window.lastTrxState = currentState;
-
-        if (currentTransactions.length === 0) {
-          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><p class="kh-text">${tFn("history_no_trx")}</p></div>`;
-          return;
-        }
-
-        let holdTrxs = currentTransactions
-          .filter((tx) => tx.status === "Hold" || tx.isHold)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-        let successTrxs = currentTransactions
-          .filter((tx) => tx.status !== "Hold" && !tx.isHold)
-          .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        // 🌟 ថែមថ្មី៖ ទាញយកប្រវត្តិបំណុល P2P (Lend / Owe) បើ User ជ្រើសរើសមើល Main Account
+        // 🌟 ២. ទាញយកប្រវត្តិបំណុល P2P (Lend / Owe)
         let lendTrxs = [];
         let oweTrxs = [];
         const mainUsdNum =
@@ -1384,15 +1349,46 @@
           sessionUser.p2pDebts.length > 0
         ) {
           sessionUser.p2pDebts.forEach((d) => {
-            if (d.type === "lend") lendTrxs.push(d);
-            else if (d.type === "owe") oweTrxs.push(d);
+            if (d.amount > 0) {
+              if (d.type === "lend") lendTrxs.push(d);
+              else if (d.type === "owe") oweTrxs.push(d);
+            }
           });
+        }
+
+        let holdTrxs = currentTransactions
+          .filter((tx) => tx.status === "Hold" || tx.isHold)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        let successTrxs = currentTransactions
+          .filter((tx) => tx.status !== "Hold" && !tx.isHold)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const currentState =
+          JSON.stringify(currentTransactions) +
+          displayLimit +
+          currentFilterType +
+          selectedAccountNumbers.join(",") +
+          JSON.stringify(lendTrxs) +
+          JSON.stringify(oweTrxs);
+
+        if (currentState === window.lastTrxState) return;
+        window.lastTrxState = currentState;
+
+        if (
+          currentTransactions.length === 0 &&
+          holdTrxs.length === 0 &&
+          lendTrxs.length === 0 &&
+          oweTrxs.length === 0
+        ) {
+          list.innerHTML = `<div style="text-align:center; color:#94a3b8; margin-top:50px"><p class="kh-text">${tFn("history_no_trx") || "No transactions found."}</p></div>`;
+          return;
         }
 
         let htmlStr = "";
 
+        // 🌟 គូររបា HOLD
         if (holdTrxs.length > 0) {
-          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("history_on_hold")}</div>`;
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("history_on_hold") || "ON HOLD TRANSACTIONS"}</div>`;
           holdTrxs.forEach((tx) => {
             const originalIndex = fullUserTransactions.indexOf(tx);
             const isIncome = tx.amount > 0;
@@ -1426,24 +1422,24 @@
                     <div class="trx-icon bg-orange text-orange"><i class="fa-solid fa-hourglass-half"></i></div>
                     <div class="trx-info">
                       <h4 class="kh-text" style="text-transform: capitalize;">${escapeHTML(title)}</h4>
-                      <p class="kh-text">${timeStr} • <span style="color:#f59e0b; font-weight:bold;">${tFn("history_hold_badge")}</span></p>
+                      <p class="kh-text">${timeStr} • <span style="color:#f59e0b; font-weight:bold;">${tFn("history_hold_badge") || "HOLD"}</span></p>
                     </div>
                   </div>
-                  <div class="trx-amount text-orange">${isIncome ? "+" : ""}${currSym}${formatMoney(tx.amount, isKHR)}</div>
+                  <div class="trx-amount text-orange">${isIncome ? "+" : "-"}${currSym}${formatMoney(tx.amount, isKHR)}</div>
                 </div>`;
           });
         }
 
         // 🌟 គូររបា LENDING (ប្រាក់ឱ្យគេខ្ចី)
         if (lendTrxs.length > 0) {
-          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #10b981; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_lend") || "RECEIVABLE (LENDING)"}</div>`;
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #10b981; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_lend") || "LENDING TRANSACTIONS"}</div>`;
           lendTrxs.forEach((d) => {
             let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             });
             htmlStr += `
-                <div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="border: 1px dashed #6ee7b7; background: #ecfdf5;">
+                <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', true)" style="border: 1px dashed #6ee7b7; background: #ecfdf5; cursor: pointer;">
                   <div class="trx-left">
                     <div class="trx-icon bg-green text-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                     <div class="trx-info">
@@ -1458,14 +1454,14 @@
 
         // 🌟 គូររបា OWE (ប្រាក់ជំពាក់គេ)
         if (oweTrxs.length > 0) {
-          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_owe") || "PAYABLE (DEBT)"}</div>`;
+          htmlStr += `<div class="kh-text" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px;">${tFn("acc_cat_owe") || "BORROWING TRANSACTIONS"}</div>`;
           oweTrxs.forEach((d) => {
             let timeStr = new Date(d.date).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
             });
             htmlStr += `
-                <div class="trx-item" onclick="openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="border: 1px dashed #fca5a5; background: #fef2f2;">
+                <div class="trx-item" onclick="if(typeof openDebtSlip === 'function') openDebtSlip(${d.amount}, '${d.date}', '${d.refId || "N/A"}', '${d.partnerName || d.partnerUsername}', '${d.fundName}', false)" style="border: 1px dashed #fca5a5; background: #fef2f2; cursor: pointer;">
                   <div class="trx-left">
                     <div class="trx-icon bg-red text-red"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                     <div class="trx-info">
@@ -1484,9 +1480,9 @@
         displaySuccess.forEach((tx) => {
           const originalIndex = fullUserTransactions.indexOf(tx);
           const isIncome = tx.amount > 0;
-          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
           let bgClass = isIncome ? "bg-green" : "bg-red";
           let textClass = isIncome ? "text-green" : "text-red";
+          let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
           const isKHR = tx.currency === "KHR";
           const currSym = isKHR ? "៛" : "$";
 
@@ -1494,15 +1490,15 @@
           const tMethod = (tx.trxMethod || "").toLowerCase();
           const tSender = (tx.senderName || "").toLowerCase();
 
-          // 🌟 កំណត់ Icon អោយគ្រប់ប្រភេទ (Merchant ត្រូវនៅខាងលើគេបង្អស់)
+          // 🌟 ៣. កំណត់ Icon អោយគ្រប់ប្រភេទ (Merchant ត្រូវនៅខាងលើគេបង្អស់ ដូច account.html)
           if (
             tx.merchantName ||
+            tx.merchantId ||
             tType.includes("merchant") ||
             tType.includes("sale") ||
             tType.includes("store") ||
             tMethod.includes("merchant") ||
-            tMethod.includes("b2b") ||
-            tx.merchantId
+            tMethod.includes("b2b")
           ) {
             iconClass = "fa-store";
           } else if (tType.includes("transfer")) {
@@ -1544,7 +1540,7 @@
             tMethod.includes("bill")
           ) {
             iconClass = "fa-file-invoice-dollar";
-            if (tType.includes("fee")) {
+            if (tType.includes("fee") || tType.includes("penalty")) {
               bgClass = "bg-orange";
               textClass = "text-orange";
             }
@@ -1556,7 +1552,9 @@
             tSender.includes("deposit")
           ) {
             iconClass = "fa-vault";
-          } else if (isIncome && sessionUser.role === "junior") {
+          } else if (tType.includes("e-gift") || tType.includes("gift")) {
+            iconClass = "fa-gift";
+          } else if (isIncome && sessionUser && sessionUser.role === "junior") {
             iconClass = "fa-child-reaching";
           }
 
@@ -1602,13 +1600,13 @@
                   <p class="kh-text">${timeStr} • ${escapeHTML(tx.trxMethod || "U-Pay")}</p>
                 </div>
               </div>
-              <div class="trx-amount ${textClass}">${isIncome ? "+" : ""}${currSym}${formatMoney(tx.amount, isKHR)}</div>
+              <div class="trx-amount ${textClass}">${isIncome ? "+" : "-"}${currSym}${formatMoney(tx.amount, isKHR)}</div>
             </div>
           `;
         });
 
         if (successTrxs.length > displayLimit) {
-          htmlStr += `<button class="load-more-btn kh-text" onclick="loadMoreTrx()"><i class="fa-solid fa-angle-down"></i> ${tFn("history_load_more")}</button>`;
+          htmlStr += `<button class="load-more-btn kh-text" onclick="loadMoreTrx()"><i class="fa-solid fa-angle-down"></i> ${tFn("history_load_more") || "Load More"}</button>`;
         }
 
         list.innerHTML = htmlStr;

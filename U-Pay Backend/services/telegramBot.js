@@ -127,7 +127,7 @@ bot.sendUserUnlinkAlert = async (chatId, userFullName) => {
     if (!chatId) return;
 
     const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram ជោគជ័យ!</b>
-━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 👤 ម្ចាស់គណនី៖ <b>${userFullName}</b>
 
 គណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay របស់អ្នកដោយជោគជ័យ។ ចាប់ពីពេលនេះតទៅនឹងគ្មានសារជូនដំណឹងពីប្រតិបត្តិការលុយណាមួយលោតចូលទីនេះទៀតទេ។`;
@@ -156,7 +156,7 @@ bot.sendUserPaymentAlert = async (userId, paymentData) => {
           : paymentData.amount.toLocaleString();
 
       const alertMsg = `🔔 <b>ទទួលបានការផ្ទេរប្រាក់ថ្មី!</b>
-━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 💵 ចំនួនទឹកប្រាក់៖ <b>+${symbol}${amountStr}</b>
 👤 ពីគណនី៖ ${paymentData.senderName}
 📝 លេខប្រតិបត្តិការ៖ <code>${paymentData.refId}</code>
@@ -190,7 +190,7 @@ bot.sendMerchantPaymentAlert = async (merchantId, paymentData) => {
           : paymentData.amount.toLocaleString();
 
       const alertMsg = `🔔 <b>ទទួលបានការទូទាត់ប្រាក់ថ្មី!</b>
-━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━
 🏪 ហាង៖ <b>${merchant.name}</b>
 💵 ចំនួនទឹកប្រាក់៖ <b>+${symbol}${amountStr}</b>
 👤 ពីអតិថិជន៖ ${paymentData.senderName}
@@ -232,7 +232,7 @@ bot.sendMerchantUnlinkAlert = async (chatId, merchantName) => {
     if (!chatId) return;
 
     const unlinkMsg = `⚠️ <b>ការផ្តាច់គណនី Telegram (Unlinked)</b>
-━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━
 🏪 ហាង៖ <b>${merchantName}</b>
 
 គណនី Telegram នេះត្រូវបានផ្តាច់ចេញពីប្រព័ន្ធ U-Pay របស់ហាងអ្នកដោយជោគជ័យ។ 

@@ -685,13 +685,19 @@ const initCronJobs = () => {
                   d.partnerUsername === debtor.username &&
                   d.fundName === debt.fundName,
               );
+
               if (lendRecordIndex !== -1) {
                 creditor.p2pDebts[lendRecordIndex].amount -= payAmount;
+                // 🌟 បើគេសងអស់ ខាងអ្នកឱ្យខ្ចីអត់លុបចោលទេ (រក្សាទុកឱ្យឃើញ $0) តាមការចង់បានរបស់បង
                 if (creditor.p2pDebts[lendRecordIndex].amount <= 0) {
-                  creditor.p2pDebts.splice(lendRecordIndex, 1);
+                  creditor.p2pDebts[lendRecordIndex].amount = 0;
                 }
                 creditor.markModified("p2pDebts");
               }
+
+              // 🌟 នេះហើយដែលកូដចាស់បាត់ ធ្វើឱ្យលុយខាងអ្នកឱ្យខ្ចីអត់ថយចុះ!
+              creditor.markModified("mainAccounts");
+              await creditor.save();
 
               const dateStr = getFormattedDate();
               const refId = generateRefId();
