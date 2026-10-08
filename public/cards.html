@@ -1164,6 +1164,9 @@
       body.dark-mode .history-item:hover {
         background: #2d2d2d;
       }
+      body.dark-mode .history-item h4 {
+        color: #f8fafc !important;
+      }
       body.dark-mode .reorder-item {
         background: #121212;
         border-color: #2d2d2d;
@@ -2412,9 +2415,25 @@
         const c = cards[currentCardIndex];
         if (!c) return;
 
-        const trxs = (user.transactions || []).filter(
-          (t) => t.cardId === c.id || t.senderAcc === c.number,
-        );
+        // 🌟 ១. ស្វែងរកប្រតិបត្តិការដែលពាក់ព័ន្ធនឹងកាតនេះ (ដោយប្រើ cardId ឬ លេខកាត)
+        let trxs = [];
+        (user.transactions || []).forEach((t, originalIndex) => {
+          const sAcc = t.senderAcc || t.senderAccount || "";
+          const rAcc = t.receiverAcc || t.receiverAccount || "";
+
+          if (
+            t.cardId === c.id ||
+            sAcc === c.number ||
+            rAcc === c.number ||
+            sAcc === c.id ||
+            rAcc === c.id
+          ) {
+            trxs.push({ ...t, originalIndex });
+          }
+        });
+
+        // 🌟 ២. តម្រៀបតាមកាលបរិច្ឆេទ (ថ្មីជាងគេនៅខាងលើ)
+        trxs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (trxs.length === 0) {
           container.innerHTML = `<p style="text-align:center; color:#94a3b8; font-size:0.85rem; padding:20px;" class="kh-text">មិនមានប្រវត្តិប្រតិបត្តិការទេ</p>`;
@@ -2423,54 +2442,47 @@
 
         trxs.forEach((t) => {
           const isIncome = t.amount > 0;
-
-          // 🟢 កំណត់ឈ្មោះដែលត្រូវបង្ហាញ (បើចំណាយចេញ បង្ហាញឈ្មោះហាង | បើលុយចូល/Refund បង្ហាញអ្នកផ្ញើ)
           const displayName = isIncome
             ? t.senderName || t.receiverName
             : t.receiverName || t.senderName;
 
-          // 🟢 កំណត់ Icon និងពណ៌ តាមលក្ខខណ្ឌ (ដូចរូបទី២)
           let icon = "fa-store";
-          let iconBg = "#fee2e2"; // ផ្ទៃពណ៌ក្រហមស្រាល (ចំណាយ)
-          let iconColor = "#ef4444"; // ពណ៌ក្រហម (ចំណាយ)
+          let iconBg = "#fee2e2";
+          let iconColor = "#ef4444";
 
           if (isIncome) {
-            iconBg = "#ecfdf5"; // ផ្ទៃពណ៌បៃតងស្រាល (ចំណូល)
-            iconColor = "#10b981"; // ពណ៌បៃតង (ចំណូល)
-            if (t.type.includes("Refund")) {
-              icon = "fa-arrow-rotate-left"; // Icon លុយបង្វិលចូលពីការ Refund
+            iconBg = "#ecfdf5";
+            iconColor = "#10b981";
+            if (t.type && t.type.includes("Refund")) {
+              icon = "fa-arrow-rotate-left";
             } else {
-              icon = "fa-arrow-down"; // Icon លុយចូលទូទៅ
+              icon = "fa-arrow-down";
             }
           } else {
-            // សម្រាប់ប្រតិបត្តិការចំណាយ (ទោះបីជាវាត្រូវ Refunded វិញ ក៏នៅរក្សារូបហាងដដែល)
             iconBg = "#fee2e2";
             iconColor = "#ef4444";
             icon = "fa-store";
           }
 
-          // ឆែកមើលថាវាជាប្រតិបត្តិការដែលជាប់ពាក់ព័ន្ធនឹងការ Refund ដែរឬទេ
           const isRefundedStatus =
-            t.status === "Refunded" || t.type.includes("Refund");
-
+            t.status === "Refunded" || (t.type && t.type.includes("Refund"));
           const sign = isIncome ? "+" : "-";
-          const amountColor = isIncome ? "#10b981" : "#ef4444"; // ពណ៌លុយ (បៃតងបើចូល, ក្រហមបើចេញ)
+          const amountColor = isIncome ? "#10b981" : "#ef4444";
 
           const currSym = t.currency === "KHR" ? "៛" : "$";
           const amtFormat = Math.abs(t.amount).toLocaleString("en-US", {
             minimumFractionDigits: t.currency === "USD" ? 2 : 0,
           });
 
-          const trxJson = encodeURIComponent(JSON.stringify(t));
-
+          // 🌟 ៣. ភ្ជាប់ទៅកាន់ slip.js តាមរយៈអនុគមន៍ openGlobalSlip ដោយប្រើ originalIndex ជៀសវាង Error ដាច់កូដ
           container.innerHTML += `
-            <div class="history-item" onclick="openSlipFromData('${trxJson}')">
+            <div class="history-item" onclick="if(typeof openGlobalSlip === 'function') openGlobalSlip(user.transactions[${t.originalIndex}], '${user.username}')">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div class="history-icon" style="background:${iconBg}; color:${iconColor};">
                   <i class="fa-solid ${icon}"></i>
                 </div>
-                <div>
-                  <h4 style="margin:0; font-size:0.9rem; color:#1e293b;">${displayName || t.type}</h4>
+                <div style="text-align: left;">
+                  <h4 style="margin:0; font-size:0.9rem; color:var(--text-main);">${displayName || t.type}</h4>
                   <p style="margin:2px 0 0; font-size:0.7rem; color:#94a3b8;">${t.date}</p>
                 </div>
               </div>
@@ -2480,16 +2492,6 @@
               </div>
             </div>`;
         });
-      }
-
-      function openSlipFromData(encodedJson) {
-        try {
-          const trx = JSON.parse(decodeURIComponent(encodedJson));
-          if (typeof openGlobalSlip === "function")
-            openGlobalSlip(trx, user.username);
-        } catch (e) {
-          console.error(e);
-        }
       }
 
       // ==========================================

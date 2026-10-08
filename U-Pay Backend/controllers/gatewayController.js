@@ -2,7 +2,7 @@
 const User = require("../models/User");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
-const Notification = require("../models/Notification"); // 🌟 ថែម Notification Model
+const Notification = require("../models/Notification");
 const crypto = require("crypto");
 const axios = require("axios");
 
@@ -19,7 +19,6 @@ const generateStandardHash = () => {
 };
 
 const generateStandardRefId = (prefix) => {
-  // បង្កើតលេខ ៨ខ្ទង់ចៃដន្យ (ពី 10000000 ដល់ 99999999)
   const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
   return `${prefix}-${random8Digits}`;
 };
@@ -69,7 +68,6 @@ exports.requestCardPayment = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីអាជីវកម្មនេះទេ!" });
 
-    // ផ្ទៀងផ្ទាត់សោរសម្ងាត់ (Signature)
     const dataToSign = `${merchantId}${orderId}${amount}${currency}${cardNumber}${timestamp}`;
     const expectedHash = crypto
       .createHmac("sha256", merchant.apiSecret)
@@ -102,7 +100,6 @@ exports.requestCardPayment = async (req, res) => {
     const cleanInputExpiry = String(expiry).trim();
     const cleanInputCvv = String(cvv).trim();
 
-    // ស្វែងរកកាត និងផ្ទៀងផ្ទាត់ព័ត៌មាន (Expiry, CVV)
     const card = user.virtualCards.find((c) => {
       if (!c.number || !c.expiry || !c.cvv) return false;
       const dbCardNum = String(c.number).replace(/\s+/g, "");
@@ -138,16 +135,19 @@ exports.requestCardPayment = async (req, res) => {
     let availableBalance = 0;
     let sourceAccNum = card.linkedAccount;
 
-    // ពិនិត្យប្រាក់ក្នុងគណនីដែលបានភ្ជាប់ជាមួយកាត
-    if (sourceAccNum === "USD" || sourceAccNum === user.accountNumber) {
-      availableBalance = user.balance;
-      sourceAccNum = user.accountNumber;
-    } else if (
-      sourceAccNum === "KHR" ||
-      sourceAccNum === user.accountNumberKHR
-    ) {
-      availableBalance = user.balanceKHR;
-      sourceAccNum = user.accountNumberKHR;
+    // 🌟 កែតម្រូវឱ្យស្គាល់ទម្រង់ User.js ថ្មី (Main Accounts)
+    const mainUsdNum =
+      user.mainAccounts?.USD?.accountNumber || user.accountNumber;
+    const mainKhrNum =
+      user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
+
+    if (sourceAccNum === "USD" || sourceAccNum === mainUsdNum) {
+      availableBalance = user.mainAccounts?.USD?.balance || user.balance || 0;
+      sourceAccNum = mainUsdNum;
+    } else if (sourceAccNum === "KHR" || sourceAccNum === mainKhrNum) {
+      availableBalance =
+        user.mainAccounts?.KHR?.balance || user.balanceKHR || 0;
+      sourceAccNum = mainKhrNum;
     } else {
       const sub = user.subAccounts.find(
         (s) => s.accountNumber === sourceAccNum,
@@ -162,24 +162,25 @@ exports.requestCardPayment = async (req, res) => {
       });
     }
 
-    // បង្កើត Transaction ជាប្រភេទ "Pending" ទុកសិន រង់ចាំម្ចាស់កាតយល់ព្រម
-    // 🌟 ចំណាំ៖ refId ប្រើប្រាស់ orderId ដដែល ដើម្បីអោយ Webhook របស់ U-Mall ស្គាល់វិក្កយបត្រខ្លួនឯង
+    // 🌟 បន្ថែម cardId និង cardNumber ចូលដើម្បីកុំឱ្យគាំង Slip
     const pendingTrx = new Transaction({
-      userId: user._id, // 🌟 ថែម userId សម្រាប់សុវត្ថិភាព
+      userId: user._id,
       username: user.username,
-      refId: orderId, // រក្សាទុក orderId ដើម្បីអោយ U-Mall ផ្ទៀងផ្ទាត់វិញបាន
+      refId: orderId,
       hash: generateStandardHash(),
       type: "Online Payment",
       amount: -parseFloat(amount),
       currency: currency,
       senderName: user.fullName || user.username,
-      senderAcc: sourceAccNum,
+      senderAcc: sourceAccNum, // លេខកុងថ្មីពិតប្រាកដ
       receiverName: merchant.name,
       receiverAcc: isKHR
         ? merchant.accountNumbers.KHR
         : merchant.accountNumbers.USD,
       trxMethod: "Card Payment",
       merchantId: merchant.merchantId,
+      cardId: card.id, // 🔥 ការពារកុំឱ្យគាំង Slip
+      cardNumber: card.number, // 🔥 ការពារកុំឱ្យគាំង Slip
       date: new Date().toLocaleString("en-US", {
         timeZone: "Asia/Phnom_Penh",
         hour12: true,
@@ -189,12 +190,11 @@ exports.requestCardPayment = async (req, res) => {
     });
     await pendingTrx.save();
 
-    // 🌟 ប្រើប្រាស់ Notification.create ជំនួសឱ្យ user.notifications.push
     await Notification.create({
       userId: user._id,
       username: user.username,
       title: "សំណើទូទាត់ប្រាក់ 🛒",
-      message: `ហាង ${merchant.name} បានស្នើសុំកាត់ប្រាក់ $${parseFloat(amount).toFixed(2)}។ សូមចុចដើម្បីបញ្ជាក់ការទូទាត់!`,
+      message: `ហាង ${merchant.name} បានស្នើសុំកាត់ប្រាក់ ${isKHR ? "៛" : "$"}${parseFloat(amount).toLocaleString()}។ សូមចុចដើម្បីបញ្ជាក់ការទូទាត់!`,
       type: "card_payment_request",
       date: new Date().toLocaleString("en-US", {
         timeZone: "Asia/Phnom_Penh",
@@ -202,7 +202,7 @@ exports.requestCardPayment = async (req, res) => {
       }),
       isRead: false,
       metadata: {
-        transactionId: pendingTrx._id.toString(), // Convert to string
+        transactionId: pendingTrx._id.toString(),
         merchantName: merchant.name,
         amount: amount,
         currency: currency,
@@ -271,12 +271,25 @@ exports.confirmPayment = async (req, res) => {
     const amount = Math.abs(trx.amount);
     const isKHR = trx.currency === "KHR";
 
+    // 🌟 ការកាត់ប្រាក់ផ្អែកលើទម្រង់ User.js ថ្មី
     let deducted = false;
-    if (trx.senderAcc === user.accountNumber) {
-      user.balance -= amount;
+    const mainUsdNum =
+      user.mainAccounts?.USD?.accountNumber || user.accountNumber;
+    const mainKhrNum =
+      user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
+
+    if (trx.senderAcc === mainUsdNum || trx.senderAcc === user.accountNumber) {
+      if (user.mainAccounts?.USD) user.mainAccounts.USD.balance -= amount;
+      else user.balance -= amount;
+      user.markModified("mainAccounts");
       deducted = true;
-    } else if (trx.senderAcc === user.accountNumberKHR) {
-      user.balanceKHR -= amount;
+    } else if (
+      trx.senderAcc === mainKhrNum ||
+      trx.senderAcc === user.accountNumberKHR
+    ) {
+      if (user.mainAccounts?.KHR) user.mainAccounts.KHR.balance -= amount;
+      else user.balanceKHR -= amount;
+      user.markModified("mainAccounts");
       deducted = true;
     } else {
       const sub = user.subAccounts.find(
@@ -304,22 +317,20 @@ exports.confirmPayment = async (req, res) => {
     trx.status = "Hold";
     await trx.save();
 
-    // ទាញយកលេខកុងមេរបស់ម្ចាស់ហាង (Linked Account)
     let linkedAcc = isKHR
       ? merchant.linkedAccounts.KHR
       : merchant.linkedAccounts.USD;
     if (!linkedAcc)
       linkedAcc = merchant.linkedAccounts.USD || merchant.linkedAccounts.KHR;
 
-    // ទាញយក User របស់ហាងដើម្បីយក userId
     const merchantOwner = await User.findOne({ username: merchant.userId });
 
-    // ៤. កត់ត្រាប្រវត្តិ ទទួលលុយ អោយ Merchant ក៏ដាក់ Hold ដែរ
+    // 🌟 កត់ត្រាប្រវត្តិ ទទួលលុយ អោយ Merchant
     await Transaction.create({
-      userId: merchantOwner ? merchantOwner._id : undefined, // 🌟 ថែម userId សម្រាប់ម្ចាស់ហាង
+      userId: merchantOwner ? merchantOwner._id : undefined,
       username: merchant.userId,
-      refId: trx.refId, // រក្សា RefId ដូចម្ចាស់កាត ដើម្បីងាយផ្ទៀងផ្ទាត់
-      hash: trx.hash, // រក្សា Hash ដូចម្ចាស់កាត
+      refId: trx.refId,
+      hash: trx.hash,
       date: trx.date,
       type: "Receive",
       amount: amount,
@@ -332,11 +343,13 @@ exports.confirmPayment = async (req, res) => {
       remark: trx.remark,
       status: "Hold",
       merchantId: merchant.merchantId,
+      cardId: trx.cardId, // 🔥 ការពារកុំឱ្យគាំង Slip ពេលហាងមើល
+      cardNumber: trx.cardNumber, // 🔥 ការពារកុំឱ្យគាំង Slip ពេលហាងមើល
     });
 
     const webhookPayload = {
       orderId: trx.refId,
-      status: "SUCCESS", // U-Mall មើលឃើញ SUCCESS ទើបវាដើរ Process
+      status: "SUCCESS",
       amount: amount,
       currency: trx.currency,
       upayTransactionId: trx._id,
@@ -418,7 +431,6 @@ exports.releaseHoldPayment = async (req, res) => {
   try {
     const { transactionId } = req.body;
 
-    // ស្វែងរក Transaction ដែលកំពុងជាប់ Hold (របស់អ្នកទទួល/ហាង)
     const trx = await Transaction.findOne({
       _id: transactionId,
       status: "Hold",
@@ -431,7 +443,7 @@ exports.releaseHoldPayment = async (req, res) => {
       });
 
     const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
-    const user = await User.findOne({ username: merchant.userId }); // ថៅកែហាង
+    const user = await User.findOne({ username: merchant.userId });
 
     if (!merchant || !user)
       return res
@@ -441,20 +453,21 @@ exports.releaseHoldPayment = async (req, res) => {
     const amount = Math.abs(trx.amount);
     const isKHR = trx.currency === "KHR";
 
-    // ១. ដកលុយពីប្រអប់ Escrow បញ្ចូលទៅកុង Balance ធម្មតាវិញ
+    // 🌟 ការបញ្ចេញលុយចូលកុងថ្មី
     if (isKHR) {
       merchant.escrowHold.KHR -= amount;
-      user.balanceKHR += amount;
+      if (user.mainAccounts?.KHR) user.mainAccounts.KHR.balance += amount;
+      else user.balanceKHR += amount;
     } else {
       merchant.escrowHold.USD -= amount;
-      user.balance += amount;
+      if (user.mainAccounts?.USD) user.mainAccounts.USD.balance += amount;
+      else user.balance += amount;
     }
+    user.markModified("mainAccounts");
 
-    // ២. ប្តូរ Status ទៅជា Success ទាំងប្រតិបត្តិការអ្នកផ្ញើ និងអ្នកទទួល
     trx.status = "Success";
     await trx.save();
 
-    // ដូរ Status របស់ភ្ញៀវដែលកាត់លុយអោយទៅជា Success ដែរ
     await Transaction.updateMany(
       { refId: trx.refId, hash: trx.hash },
       { status: "Success" },
@@ -478,7 +491,6 @@ exports.releaseHoldPayment = async (req, res) => {
 // =======================================================
 const autoReleaseEscrow = async () => {
   try {
-    // ⏳ ត្រឡប់មកកំណត់ម៉ោង: ២៤ ម៉ោងវិញ (24 hours = 24 * 60 * 60 * 1000)
     const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const holdTrxs = await Transaction.find({
@@ -489,32 +501,33 @@ const autoReleaseEscrow = async () => {
     for (let trx of holdTrxs) {
       const trxDate = new Date(trx.createdAt || trx.date);
 
-      // បើប្រតិបត្តិការនោះ ហួស ២៤ ម៉ោង វានឹងចូលមកធ្វើការទម្លាក់លុយ
       if (trxDate <= timeLimit) {
         const merchant = await Merchant.findOne({ merchantId: trx.merchantId });
         if (!merchant) continue;
 
-        const user = await User.findOne({ username: merchant.userId }); // ថៅកែហាង
+        const user = await User.findOne({ username: merchant.userId });
 
         if (merchant && user) {
           const amount = Math.abs(trx.amount);
           const isKHR = trx.currency === "KHR";
 
-          // ដកពី Escrow បញ្ចូលទៅ Balance កុងធំ និង Update ចំណូលហាង (Collected)
+          // 🌟 ការបញ្ចេញលុយចូលកុងថ្មី
           if (isKHR) {
             merchant.escrowHold.KHR = (merchant.escrowHold.KHR || 0) - amount;
             merchant.collected.KHR = (merchant.collected.KHR || 0) + amount;
-            user.balanceKHR += amount;
+            if (user.mainAccounts?.KHR) user.mainAccounts.KHR.balance += amount;
+            else user.balanceKHR += amount;
           } else {
             merchant.escrowHold.USD = (merchant.escrowHold.USD || 0) - amount;
             merchant.collected.USD = (merchant.collected.USD || 0) + amount;
-            user.balance += amount;
+            if (user.mainAccounts?.USD) user.mainAccounts.USD.balance += amount;
+            else user.balance += amount;
           }
+          user.markModified("mainAccounts");
 
           trx.status = "Success";
           await trx.save();
 
-          // អាប់ដេតខាងកុងអ្នកបង់ប្រាក់អោយទៅជា Success ដែរ
           await Transaction.updateMany(
             { refId: trx.refId, hash: trx.hash },
             { status: "Success" },
@@ -533,5 +546,4 @@ const autoReleaseEscrow = async () => {
   }
 };
 
-// ⏳ កំណត់អោយប្រព័ន្ធឆែកមើលរាល់ ១ ម៉ោងម្តង (3600000 milliseconds)
 setInterval(autoReleaseEscrow, 3600000);

@@ -1924,7 +1924,11 @@
           const sAcc = t.senderAcc || t.senderAccount;
           const rAcc = t.receiverAcc || t.receiverAccount;
 
-          let matchDirectAcc = sAcc === accId || rAcc === accId;
+          // 🌟 ឆែកទាំង username និងលេខគណនី
+          let matchDirectAcc =
+            sAcc === accId ||
+            rAcc === accId ||
+            (t.username === user.username && (sAcc === "N/A" || !sAcc));
 
           const mainUsdNum =
             user.mainAccounts?.USD?.accountNumber || user.accountNumber;
@@ -1932,32 +1936,41 @@
             user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
 
           if (currency === "USD" && accId === mainUsdNum) {
-            if (sAcc === user.accountNumber || rAcc === user.accountNumber)
+            if (
+              sAcc === mainUsdNum ||
+              rAcc === mainUsdNum ||
+              t.username === user.username
+            )
               matchDirectAcc = true;
           }
           if (currency === "KHR" && accId === mainKhrNum) {
             if (
-              sAcc === user.accountNumberKHR ||
-              rAcc === user.accountNumberKHR
+              sAcc === mainKhrNum ||
+              rAcc === mainKhrNum ||
+              t.username === user.username
             )
               matchDirectAcc = true;
           }
 
           const matchMerchantAcc =
-            isLinkedToMerchant && merchantRelatedAccounts.includes(rAcc);
+            isLinkedToMerchant &&
+            (merchantRelatedAccounts.includes(rAcc) ||
+              t.username === user.username);
 
           let matchMain = false;
-          if (!matchDirectAcc && !matchMerchantAcc && !sAcc && !rAcc) {
+          if (!matchDirectAcc && !matchMerchantAcc) {
             if (
               currency === "USD" &&
               t.currency === "USD" &&
-              accId === mainUsdNum
+              accId === mainUsdNum &&
+              t.username === user.username
             )
               matchMain = true;
             if (
               currency === "KHR" &&
               t.currency === "KHR" &&
-              accId === mainKhrNum
+              accId === mainKhrNum &&
+              t.username === user.username
             )
               matchMain = true;
           }
@@ -2039,9 +2052,12 @@
 
         let totalHoldAmount = 0;
         filtered.forEach((t) => {
-          if (t.status === "Hold" || t.isHold)
+          if (t.status === "Hold" || t.isHold) {
+            // 🌟 បូកលុយ Hold ទាំងអស់ (ទាំងចេញ និងចូល) ទៅក្នុង Total Balance វិញ
             totalHoldAmount += Math.abs(t.amount);
+          }
         });
+
         let totalLendAmount = 0;
         let lendTrxs = [];
         let oweTrxs = [];

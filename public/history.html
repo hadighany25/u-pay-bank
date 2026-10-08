@@ -1252,46 +1252,39 @@
             });
           }
 
-          const accsToMatch = [
-            t.senderAcc,
-            t.receiverAcc,
-            t.senderAccount,
-            t.receiverAccount,
-          ];
-          const matchDirectAcc = accsToMatch.some((acc) =>
-            selectedAccountNumbers.includes(acc),
-          );
+          const sAcc = t.senderAcc || t.senderAccount;
+          const rAcc = t.receiverAcc || t.receiverAccount;
+
+          // 🌟 ឆែកគ្រប់ជ្រុងជ្រោយ ដើម្បីកុំឱ្យបាត់ទិន្នន័យអតិថិជន
+          let matchDirectAcc =
+            selectedAccountNumbers.includes(sAcc) ||
+            selectedAccountNumbers.includes(rAcc) ||
+            (t.username === sessionUser.username && (sAcc === "N/A" || !sAcc));
           const matchMerchantAcc =
-            isLinkedToMerchant &&
-            merchantRelatedAccounts.includes(t.receiverAcc);
+            isLinkedToMerchant && merchantRelatedAccounts.includes(rAcc);
 
           let matchMain = false;
-          if (
-            !matchDirectAcc &&
-            !matchMerchantAcc &&
-            !t.senderAcc &&
-            !t.receiverAcc
-          ) {
+          if (!matchDirectAcc && !matchMerchantAcc) {
             const mainUsdNum =
-              sessionUser.mainAccounts && sessionUser.mainAccounts.USD
-                ? sessionUser.mainAccounts.USD.accountNumber
-                : sessionUser.accountNumber;
+              sessionUser.mainAccounts?.USD?.accountNumber ||
+              sessionUser.accountNumber;
             if (
               t.currency === "USD" &&
               mainUsdNum &&
-              selectedAccountNumbers.includes(mainUsdNum)
+              selectedAccountNumbers.includes(mainUsdNum) &&
+              t.username === sessionUser.username
             ) {
               matchMain = true;
             }
 
             const mainKhrNum =
-              sessionUser.mainAccounts && sessionUser.mainAccounts.KHR
-                ? sessionUser.mainAccounts.KHR.accountNumber
-                : sessionUser.accountNumberKHR;
+              sessionUser.mainAccounts?.KHR?.accountNumber ||
+              sessionUser.accountNumberKHR;
             if (
               t.currency === "KHR" &&
               mainKhrNum &&
-              selectedAccountNumbers.includes(mainKhrNum)
+              selectedAccountNumbers.includes(mainKhrNum) &&
+              t.username === sessionUser.username
             ) {
               matchMain = true;
             }

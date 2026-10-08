@@ -746,12 +746,18 @@ exports.processTapToPay = async (req, res) => {
         message: "លេខសម្ងាត់កាត (PIN) មិនត្រឹមត្រូវទេ!",
       });
 
-    if (deductUsd > 0 && customer.balance < deductUsd)
+    // 🌟 ឆែកសមតុល្យតាមទម្រង់ User ថ្មី
+    const mainUsdBal =
+      customer.mainAccounts?.USD?.balance || customer.balance || 0;
+    const mainKhrBal =
+      customer.mainAccounts?.KHR?.balance || customer.balanceKHR || 0;
+
+    if (deductUsd > 0 && mainUsdBal < deductUsd)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ USD ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
       });
-    if (deductKhr > 0 && customer.balanceKHR < deductKhr)
+    if (deductKhr > 0 && mainKhrBal < deductKhr)
       return res.json({
         success: false,
         message: "សមតុល្យទឹកប្រាក់ KHR ក្នុងកុងមិនគ្រប់គ្រាន់ទេ!",
@@ -766,17 +772,25 @@ exports.processTapToPay = async (req, res) => {
     const dateStr = getKhmerDate();
     let amtInUsdForLimit = deductUsd > 0 ? deductUsd : deductKhr / exchangeRate;
 
-    let updateInc = {};
-    if (deductUsd > 0) updateInc.balance = -deductUsd;
-    if (deductKhr > 0) updateInc.balanceKHR = -deductKhr;
-    updateInc["virtualCards.$.dailySpentToday"] = amtInUsdForLimit;
+    // 🌟 កាត់ប្រាក់តាមទម្រង់ User ថ្មី
+    if (deductUsd > 0) {
+      if (customer.mainAccounts?.USD)
+        customer.mainAccounts.USD.balance -= deductUsd;
+      else customer.balance -= deductUsd;
+    }
+    if (deductKhr > 0) {
+      if (customer.mainAccounts?.KHR)
+        customer.mainAccounts.KHR.balance -= deductKhr;
+      else customer.balanceKHR -= deductKhr;
+    }
 
-    await User.updateOne(
-      { _id: customer._id, "virtualCards.uid": uid },
-      { $inc: updateInc },
-    );
+    // អាប់ដេតចំណាយកាត
+    card.dailySpentToday = (card.dailySpentToday || 0) + amtInUsdForLimit;
 
-    // 🌟 Notification ជូនអតិថិជន
+    customer.markModified("mainAccounts");
+    customer.markModified("virtualCards");
+    await customer.save();
+
     await Notification.create({
       userId: customer._id,
       username: customer.username,
@@ -809,9 +823,16 @@ exports.processTapToPay = async (req, res) => {
       merchantLinkedAcc =
         shop.linkedAccounts.USD || shop.linkedAccounts.KHR || "N/A";
 
+    // 🌟 ទាញយកលេខកុងពិតប្រាកដរបស់អតិថិជន
+    const actualCustomerAcc =
+      deductUsd > 0
+        ? customer.mainAccounts?.USD?.accountNumber || customer.accountNumber
+        : customer.mainAccounts?.KHR?.accountNumber ||
+          customer.accountNumberKHR;
+
     await Transaction.create({
       userId: customer._id,
-      username: customer.username,
+      username: customer.username, // 🌟 ថែម Username
       refId: trxRef,
       hash: trxHash,
       date: dateStr,
@@ -819,10 +840,7 @@ exports.processTapToPay = async (req, res) => {
       amount: deductUsd > 0 ? -deductUsd : -deductKhr,
       currency: effectiveCurrency,
       senderName: customer.fullName || customer.username,
-      senderAcc:
-        deductUsd > 0
-          ? customer.accountNumber || "N/A"
-          : customer.accountNumberKHR || "N/A",
+      senderAcc: actualCustomerAcc || "N/A", // 🌟 ជួសជុលបញ្ហា "N/A"
       receiverName: receiverDisplayName,
       receiverAcc: customerReceiverAcc,
       cardId: card.id,
@@ -830,12 +848,13 @@ exports.processTapToPay = async (req, res) => {
       status: "Hold",
       remark: `ទូទាត់កាតតាមអត្រាប្តូរប្រាក់ស្វ័យប្រវត្តិ`,
       trxMethod: "NFC Payment",
+      merchantId: shop.merchantId, // 🌟 ថែម Merchant ID
     });
 
     const shopOwner = await User.findOne({ username: shop.userId });
     await Transaction.create({
       userId: shopOwner ? shopOwner._id : undefined,
-      username: shop.userId,
+      username: shop.userId, // 🌟 ថែម Username
       refId: trxRef,
       hash: trxHash,
       date: dateStr,
@@ -843,10 +862,7 @@ exports.processTapToPay = async (req, res) => {
       amount: payAmount,
       currency: currency,
       senderName: customer.fullName || customer.username,
-      senderAcc:
-        deductUsd > 0
-          ? customer.accountNumber || "N/A"
-          : customer.accountNumberKHR || "N/A",
+      senderAcc: actualCustomerAcc || "N/A", // 🌟 ជួសជុលបញ្ហា "N/A"
       receiverName: receiverDisplayName,
       receiverAcc: merchantLinkedAcc,
       merchantId: shop.merchantId,
@@ -857,7 +873,6 @@ exports.processTapToPay = async (req, res) => {
       trxMethod: "NFC Payment",
     });
 
-    // 🌟 Telegram Merchant Alert ពេលមានអតិថិជនឈូតកាតចូលហាង
     if (typeof bot !== "undefined" && bot && bot.sendMerchantPaymentAlert) {
       bot
         .sendMerchantPaymentAlert(shop._id, {
@@ -1015,9 +1030,9 @@ exports.refundTransaction = async (req, res) => {
         message: "ប្រតិបត្តិការនេះត្រូវបានបង្វិលប្រាក់រួចហើយ!",
       });
 
-    const merchantTrx = trxs.find(
-      (t) => t.merchantId === shop.merchantId || t.amount > 0,
-    );
+    // 🌟 កែតម្រូវការស្វែងរក Transaction
+    // ប្រើ amount > 0 សម្រាប់ហាង (ព្រោះហាងអ្នកទទួលលុយ ទោះជា Hold ក៏ដោយ)
+    const merchantTrx = trxs.find((t) => t.amount > 0);
     if (!merchantTrx || merchantTrx.status !== "Hold") {
       return res.json({
         success: false,
@@ -1026,9 +1041,8 @@ exports.refundTransaction = async (req, res) => {
       });
     }
 
-    const customerTrx = trxs.find(
-      (t) => t.merchantId !== shop.merchantId && t.amount < 0,
-    );
+    // ប្រើ amount < 0 សម្រាប់អតិថិជន (ព្រោះអតិថិជនជាអ្នកចំណាយ)
+    const customerTrx = trxs.find((t) => t.amount < 0);
     if (!customerTrx)
       return res.json({ success: false, message: "រកមិនឃើញព័ត៌មានអតិថិជន!" });
 
@@ -1037,27 +1051,31 @@ exports.refundTransaction = async (req, res) => {
     const merchantCurrency = merchantTrx.currency;
     const customerUsername = customerTrx.username;
 
+    // ១. ដកលុយចេញពី Escrow របស់ហាង
     const decEscrow =
       merchantCurrency === "USD"
         ? { "escrowHold.USD": -merchantTrx.amount }
         : { "escrowHold.KHR": -merchantTrx.amount };
     await Merchant.updateOne({ _id: shop._id }, { $inc: decEscrow });
 
-    const incCustomerBalance =
-      customerCurrency === "USD"
-        ? { balance: refundAmount }
-        : { balanceKHR: refundAmount };
-    const dateStr = getKhmerDate();
-
-    await User.updateOne(
-      { username: customerUsername },
-      { $inc: incCustomerBalance },
-    );
-
+    // ២. បង្វិលលុយចូលគណនីអតិថិជនវិញ (Support ទម្រង់ User.js ថ្មី)
     const customerObj = await User.findOne({ username: customerUsername });
-
-    // 🌟 Notification ប្រាប់អតិថិជន
     if (customerObj) {
+      if (customerCurrency === "USD") {
+        if (customerObj.mainAccounts?.USD)
+          customerObj.mainAccounts.USD.balance += refundAmount;
+        else customerObj.balance += refundAmount;
+      } else {
+        if (customerObj.mainAccounts?.KHR)
+          customerObj.mainAccounts.KHR.balance += refundAmount;
+        else customerObj.balanceKHR += refundAmount;
+      }
+      customerObj.markModified("mainAccounts");
+      await customerObj.save();
+
+      const dateStr = getKhmerDate();
+
+      // 🌟 Notification ប្រាប់អតិថិជន
       await Notification.create({
         userId: customerObj._id,
         username: customerObj.username,
@@ -1067,76 +1085,81 @@ exports.refundTransaction = async (req, res) => {
         type: "refund_receive",
         isRead: false,
       });
-    }
 
-    await Transaction.updateMany(
-      { refId: refId },
-      { $set: { status: "Refunded" } },
-    );
+      await Transaction.updateMany(
+        { refId: refId },
+        { $set: { status: "Refunded" } },
+      );
 
-    const newRefId = generateStandardRefId("RFD");
-    const newHash = generateStandardHash();
+      const newRefId = generateStandardRefId("RFD");
+      const newHash = generateStandardHash();
 
-    await Transaction.create({
-      userId: customerObj ? customerObj._id : undefined,
-      username: customerUsername,
-      refId: newRefId,
-      hash: newHash,
-      date: dateStr,
-      type: "Refunded",
-      amount: refundAmount,
-      currency: customerCurrency,
-      senderName: shop.name,
-      receiverName: customerTrx.senderName,
-      status: "Success",
-      remark: `បង្វិលប្រាក់ត្រឡប់វិញពីហាង (Ref: ${refId})`,
-      trxMethod: "Refund",
-      cardId: customerTrx.cardId,
-      cardNumber: customerTrx.cardNumber,
-    });
-
-    await Transaction.create({
-      userId: owner._id,
-      username: shop.userId,
-      merchantId: shop.merchantId,
-      refId: newRefId,
-      hash: newHash,
-      date: dateStr,
-      type: "Refund",
-      amount: -merchantTrx.amount,
-      currency: merchantCurrency,
-      senderName: shop.name,
-      receiverName: customerTrx.senderName,
-      status: "Success",
-      remark: `បានធ្វើការបង្វិលប្រាក់ទៅអតិថិជន (Ref: ${refId})`,
-      trxMethod: "Refund",
-    });
-
-    // 🌟 Telegram Merchant Alert ពេលហាងធ្វើការ Refund ជោគជ័យ
-    if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
-      const refundMsg = `🔄 <b>ប្រាក់ត្រូវបានបង្វិល (Refunded)</b>\n\nហាងរបស់អ្នកបានបង្វិលប្រាក់ចំនួន <b>${merchantCurrency === "USD" ? "$" : "៛"}${Math.abs(merchantTrx.amount).toLocaleString()}</b> ទៅកាន់អតិថិជន <b>${customerTrx.senderName}</b> វិញជោគជ័យ។\nលេខយោង៖ #${newRefId}`;
-      bot.sendMerchantAlert(shop._id, refundMsg).catch(() => {});
-    }
-
-    if (global.io) {
-      global.io.to(shop.userId).emit("transactionUpdated");
-      global.io.to(customerUsername).emit("transactionUpdated");
-      global.io.to(shop.userId).emit("paymentReceived", {
-        amount: Math.abs(merchantTrx.amount),
-        currency: merchantCurrency,
-        senderName: customerTrx.senderName,
+      await Transaction.create({
+        userId: customerObj._id,
+        username: customerUsername,
         refId: newRefId,
         hash: newHash,
+        date: dateStr,
+        type: "Refunded",
+        amount: refundAmount,
+        currency: customerCurrency,
+        senderName: shop.name,
+        receiverName: customerTrx.senderName,
+        status: "Success",
+        remark: `បង្វិលប្រាក់ត្រឡប់វិញពីហាង (Ref: ${refId})`,
+        trxMethod: "Refund",
+        cardId: customerTrx.cardId,
+        cardNumber: customerTrx.cardNumber,
+      });
+
+      await Transaction.create({
+        userId: owner._id,
+        username: shop.userId,
+        merchantId: shop.merchantId,
+        refId: newRefId,
+        hash: newHash,
+        date: dateStr,
+        type: "Refund",
+        amount: -merchantTrx.amount,
+        currency: merchantCurrency,
+        senderName: shop.name,
+        receiverName: customerTrx.senderName,
+        status: "Success",
+        remark: `បានធ្វើការបង្វិលប្រាក់ទៅអតិថិជន (Ref: ${refId})`,
+        trxMethod: "Refund",
+      });
+
+      // 🌟 Telegram Merchant Alert
+      if (typeof bot !== "undefined" && bot && bot.sendMerchantAlert) {
+        const refundMsg = `🔄 <b>ប្រាក់ត្រូវបានបង្វិល (Refunded)</b>\n\nហាងរបស់អ្នកបានបង្វិលប្រាក់ចំនួន <b>${merchantCurrency === "USD" ? "$" : "៛"}${Math.abs(merchantTrx.amount).toLocaleString()}</b> ទៅកាន់អតិថិជន <b>${customerTrx.senderName}</b> វិញជោគជ័យ។\nលេខយោង៖ #${newRefId}`;
+        bot.sendMerchantAlert(shop._id, refundMsg).catch(() => {});
+      }
+
+      if (global.io) {
+        global.io.to(shop.userId).emit("transactionUpdated");
+        global.io.to(customerUsername).emit("transactionUpdated");
+        global.io.to(shop.userId).emit("paymentReceived", {
+          amount: Math.abs(merchantTrx.amount),
+          currency: merchantCurrency,
+          senderName: customerTrx.senderName,
+          refId: newRefId,
+          hash: newHash,
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "ការបង្វិលប្រាក់បានសម្រេចជោគជ័យ!",
+        refId: newRefId,
+        hash: newHash,
+        senderName: customerTrx.senderName,
+      });
+    } else {
+      res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីអតិថិជនដើម្បីបង្វិលប្រាក់ទេ!",
       });
     }
-
-    res.json({
-      success: true,
-      message: "ការបង្វិលប្រាក់បានសម្រេចជោគជ័យ!",
-      refId: newRefId,
-      hash: newHash,
-      senderName: customerTrx.senderName,
-    });
   } catch (error) {
     res
       .status(500)
