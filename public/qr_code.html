@@ -1,0 +1,596 @@
+<!-- public/qr_code.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>My QR Code - U-Pay</title>
+
+    <!-- 📦 បណ្ដុំ Script សំខាន់ៗ -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/lang.js"></script>
+    <script src="js/toast.js"></script>
+
+    <!-- 🔤 បណ្ដុំ Fonts និង Icons -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <style>
+      /* ==========================================
+         🚀 GLOBAL & THEME STYLES
+         ========================================== */
+      :root {
+        --primary: #00b894;
+        --primary-dark: #004d40;
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+      }
+      body {
+        background-color: #cbd5e1;
+        margin: 0;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      body.loaded {
+        visibility: visible;
+        opacity: 1;
+      }
+      .kh-text {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        min-height: 100vh;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+      }
+
+      /* ==========================================
+         📱 HEADER
+         ========================================== */
+      .header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        background: var(--primary-dark);
+        color: white;
+      }
+      .back-btn {
+        color: white;
+        font-size: 1.3rem;
+        text-decoration: none;
+        padding: 5px;
+      }
+      .header-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 600;
+        text-align: center;
+        flex: 1;
+      }
+
+      /* ==========================================
+         🖼️ QR CARD CONTAINER
+         ========================================== */
+      .qr-card-container {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .qr-white-box {
+        background: var(--bg-card);
+        width: 100%;
+        max-width: 350px;
+        padding: 30px 25px 25px;
+        border-radius: 30px;
+        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1);
+        text-align: center;
+        box-sizing: border-box;
+      }
+
+      /* 🌟 Account Selector Dropdown */
+      .account-selector {
+        width: 100%;
+        padding: 12px 15px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: inherit;
+        margin-bottom: 25px;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px top 50%;
+        background-size: 12px auto;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .account-selector:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
+      }
+
+      .qr-logo-top {
+        height: 40px;
+        margin-bottom: 10px;
+      }
+      .qr-user-name {
+        margin: 0;
+        font-size: 1.3rem;
+        color: var(--text-main);
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .qr-img-wrapper {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-bottom: 25px;
+        border: 1px solid var(--border-color);
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
+        margin-top: 15px;
+      }
+      #myQrImg {
+        width: 220px;
+        height: 220px;
+        display: block;
+        border-radius: 12px;
+      }
+
+      .qr-user-acc {
+        margin: 0 0 20px;
+        color: var(--primary);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+      }
+
+      /* ==========================================
+         ✨ MODERN AMOUNT INPUT
+         ========================================== */
+      .amount-input-area {
+        border-top: 1px dashed var(--border-color);
+        padding-top: 20px;
+        width: 100%;
+      }
+      .amount-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .modern-amount-wrapper {
+        background: #f8fafc;
+        border: 2px solid var(--border-color);
+        border-radius: 18px;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .modern-amount-wrapper:focus-within {
+        border-color: var(--secondary);
+        background: #ffffff;
+        box-shadow:
+          0 0 0 4px rgba(0, 184, 148, 0.15),
+          0 10px 20px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+      }
+
+      .currency-symbol {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #94a3b8;
+        transition: 0.3s;
+      }
+      .modern-amount-wrapper:focus-within .currency-symbol {
+        color: var(--primary);
+      }
+
+      /* 🌟 បិទសញ្ញាព្រួញឡើងចុះ (Spinners) */
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      #qrSetAmount {
+        border: none;
+        background: transparent;
+        width: 140px;
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--primary-dark);
+        outline: none;
+        font-family: "JetBrains Mono", sans-serif;
+        padding: 0;
+      }
+      #qrSetAmount::placeholder {
+        color: #cbd5e1;
+        font-weight: 600;
+      }
+
+      /* ==========================================
+         ⬇️ BOTTOM BUTTON
+         ========================================== */
+      .btn-save-qr {
+        width: calc(100% - 40px);
+        max-width: 350px;
+        padding: 18px;
+        background: var(--primary-dark);
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin: 0 auto 30px;
+        display: block;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 20px rgba(0, 77, 64, 0.2);
+      }
+      .btn-save-qr:active {
+        transform: scale(0.96);
+      }
+
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
+      }
+      body.dark-mode .header-bar {
+        background: #1a1a1a !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode .qr-white-box {
+        background-color: #1e1e1e !important;
+        border: 1px solid #333 !important;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8) !important;
+      }
+      body.dark-mode .qr-img-wrapper {
+        background: #ffffff !important;
+        border-color: #333 !important;
+      }
+      body.dark-mode .qr-user-name,
+      body.dark-mode .amount-label,
+      body.dark-mode .currency-symbol {
+        color: #ffffff !important;
+      }
+      body.dark-mode .qr-logo-top {
+        filter: brightness(0) invert(1) !important;
+      }
+      body.dark-mode .amount-input-area {
+        border-top-color: #444 !important;
+      }
+      body.dark-mode .account-selector {
+        background-color: #2a2a2a !important;
+        border-color: #444 !important;
+        color: #fff !important;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+      }
+      body.dark-mode .modern-amount-wrapper {
+        background: #121212;
+        border-color: #333;
+      }
+      body.dark-mode .modern-amount-wrapper:focus-within {
+        background: #1e1e1e;
+        border-color: #00b894;
+        box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
+      }
+      body.dark-mode #qrSetAmount {
+        color: #00b894 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- 📱 HEADER -->
+      <div class="header-bar">
+        <a href="dashboard.html" class="back-btn"
+          ><i class="fa-solid fa-arrow-left"></i
+        ></a>
+        <h2 class="header-title kh-text" data-lang="my_qr">QR របស់ខ្ញុំ</h2>
+        <div style="width: 24px"></div>
+      </div>
+
+      <!-- 🖼️ QR CARD -->
+      <div class="qr-card-container">
+        <div class="qr-white-box" id="myQRContent">
+          <select
+            id="accountSelector"
+            class="account-selector"
+            onchange="updateAccountSelection()"
+          ></select>
+
+          <img src="images/logo-nobg.png" class="qr-logo-top" alt="U-Pay" />
+          <h3 id="qrUserName" class="qr-user-name">...</h3>
+
+          <div class="qr-img-wrapper">
+            <img id="myQrImg" src="" alt="QR Code" />
+          </div>
+
+          <p id="qrUserAcc" class="qr-user-acc">...</p>
+
+          <div class="amount-input-area">
+            <div class="amount-label kh-text" data-lang="set_amount">
+              កំណត់ទឹកប្រាក់ចង់បាន
+            </div>
+            <div class="modern-amount-wrapper">
+              <span class="currency-symbol" id="qrCurrencySymbol">$</span>
+              <!-- 🌟 ការពារអត់អោយវាយសញ្ញាដក ឬអក្សរចូល ហើយដកព្រួញចេញ -->
+              <input
+                type="number"
+                id="qrSetAmount"
+                placeholder="0.00"
+                min="0"
+                oninput="
+                  if (this.value < 0) this.value = Math.abs(this.value);
+                  updateMyQR();
+                "
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onclick="downloadMyQR()"
+        class="btn-save-qr kh-text"
+        id="btnSaveQR"
+      >
+        <i class="fa-solid fa-download" style="margin-right: 8px"></i>
+        <span data-lang="save_qr">រក្សាទុកក្នុងទូរស័ព្ទ</span>
+      </button>
+    </div>
+
+    <!-- ⚡️ MY QR JAVASCRIPT LOGIC ⚡️ -->
+    <script>
+      let user = JSON.parse(sessionStorage.getItem("user"));
+      let token = sessionStorage.getItem("userToken");
+      if (!user || !token) window.location.href = "index.html";
+
+      let qrCurrency = "USD";
+
+      function applyTheme() {
+        const userThemeKey = "theme_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
+      }
+
+      window.addEventListener("storage", (event) => {
+        if (user && user.username && event.key === "theme_" + user.username)
+          applyTheme();
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") applyLanguage();
+        document.body.classList.add("loaded");
+        populateAccounts();
+      });
+
+      function populateAccounts() {
+        const selector = document.getElementById("accountSelector");
+        selector.innerHTML = "";
+
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          let optUSD = document.createElement("option");
+          optUSD.value = user.mainAccounts.USD.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.accName =
+            user.mainAccounts.USD.accountName || user.fullName || user.username;
+          optUSD.textContent = `Main USD - ${user.mainAccounts.USD.accountNumber}`;
+          selector.appendChild(optUSD);
+        } else if (user.accountNumber) {
+          let optUSD = document.createElement("option");
+          optUSD.value = user.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.accName = user.fullName || user.username;
+          optUSD.textContent = `Main USD - ${user.accountNumber}`;
+          selector.appendChild(optUSD);
+        }
+
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          let optKHR = document.createElement("option");
+          optKHR.value = user.mainAccounts.KHR.accountNumber;
+          optKHR.dataset.currency = "KHR";
+          optKHR.dataset.accName =
+            user.mainAccounts.KHR.accountName || user.fullName || user.username;
+          optKHR.textContent = `Main KHR - ${user.mainAccounts.KHR.accountNumber}`;
+          selector.appendChild(optKHR);
+        } else if (user.accountNumberKHR) {
+          let optKHR = document.createElement("option");
+          optKHR.value = user.accountNumberKHR;
+          optKHR.dataset.currency = "KHR";
+          optKHR.dataset.accName = user.fullName || user.username;
+          optKHR.textContent = `Main KHR - ${user.accountNumberKHR}`;
+          selector.appendChild(optKHR);
+        }
+
+        if (user.subAccounts && user.subAccounts.length > 0) {
+          user.subAccounts.forEach((acc) => {
+            if (acc.isHidden) return;
+            let opt = document.createElement("option");
+            opt.value = acc.accountNumber;
+            opt.dataset.currency = acc.currency;
+            opt.dataset.accName = acc.accountName;
+            let typeLabel =
+              acc.accountType === "joint" || acc.accountType === "joint_member"
+                ? "Joint"
+                : acc.accountType === "junior"
+                  ? "Junior"
+                  : "Premium";
+            opt.textContent = `${acc.accountName} (${typeLabel} ${acc.currency}) - ${acc.accountNumber}`;
+            selector.appendChild(opt);
+          });
+        }
+        updateAccountSelection();
+      }
+
+      function updateAccountSelection() {
+        const selector = document.getElementById("accountSelector");
+        const selectedOpt = selector.options[selector.selectedIndex];
+        qrCurrency = selectedOpt.dataset.currency;
+        document.getElementById("qrCurrencySymbol").innerText =
+          qrCurrency === "USD" ? "$" : "៛";
+        document.getElementById("qrUserName").textContent =
+          selectedOpt.dataset.accName.toUpperCase();
+
+        // Formatted Account Number
+        let accNumStr = selectedOpt.value.toString();
+        let formattedAcc =
+          accNumStr.length > 6
+            ? accNumStr.replace(/(\d{3})(\d{3})(\d+)/, "$1 $2 $3")
+            : accNumStr;
+        document.getElementById("qrUserAcc").textContent = formattedAcc;
+
+        // 🌟 Clear Input when changing account to prevent mistaking currencies
+        document.getElementById("qrSetAmount").value = "";
+
+        updateMyQR();
+      }
+
+      function updateMyQR() {
+        const amount = document.getElementById("qrSetAmount").value;
+        const targetAcc = document.getElementById("accountSelector").value;
+        let qrData =
+          amount && parseFloat(amount) > 0
+            ? `${targetAcc}:${amount}`
+            : targetAcc;
+        const qrColor = qrCurrency === "USD" ? "004d40" : "059669";
+
+        // 🌟 ប្រើប្រាស់ API រូបភាព QR ដែលលឿនជាងមុន និងគ្មានបញ្ហារូបភាពរត់ចូលគ្នា
+        document.getElementById("myQrImg").src =
+          `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&dark=${qrColor}&size=400&margin=1`;
+      }
+
+      function downloadMyQR() {
+        const btnSave = document.getElementById("btnSaveQR");
+        const selector = document.getElementById("accountSelector");
+        btnSave.style.display = "none";
+        selector.style.display = "none";
+
+        const isDark = document.body.classList.contains("dark-mode");
+        html2canvas(document.getElementById("myQRContent"), {
+          backgroundColor: isDark ? "#1e1e1e" : "#ffffff",
+          scale: 3,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `U-Pay-QR-${user.username}-${qrCurrency}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          btnSave.style.display = "block";
+          selector.style.display = "block";
+        });
+      }
+
+      // ==========================================
+      // 🔔 SOCKET.IO (Live Payment Notification)
+      // ==========================================
+      const socket = io("https://u-pay-bank.fly.dev");
+      socket.emit("joinRoom", user.username);
+
+      socket.on("paymentReceived", (data) => {
+        new Audio(
+          "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+        )
+          .play()
+          .catch(() => {});
+
+        const amountInput = document.getElementById("qrSetAmount").value;
+        const isAmountSet = amountInput && parseFloat(amountInput) > 0;
+        const symbol = data.currency === "USD" ? "$" : "៛";
+        const formattedAmount = Number(data.amount).toLocaleString("en-US", {
+          minimumFractionDigits: data.currency === "USD" ? 2 : 0,
+        });
+
+        if (isAmountSet) {
+          Swal.fire({
+            icon: "success",
+            title: '<span style="font-family: Kantumruy Pro">លុយចូលហើយ!</span>',
+            html: `<span style="font-family: Kantumruy Pro">អ្នកទទួលបាន <b>${symbol}${formattedAmount}</b> ពី ${data.senderName}</span>`,
+            confirmButtonText: "យល់ព្រម",
+            confirmButtonColor: "#00b894",
+            allowOutsideClick: false,
+          }).then(() => {
+            window.location.href = "dashboard.html";
+          });
+        } else {
+          const Toast = Swal.mixin({
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+              toast.addEventListener("mouseenter", Swal.stopTimer);
+              toast.addEventListener("mouseleave", Swal.resumeTimer);
+            },
+          });
+          Toast.fire({
+            icon: "success",
+            title: `<span style="font-family: Kantumruy Pro">ទទួលបាន ${symbol}${formattedAmount} ពី ${data.senderName}</span>`,
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

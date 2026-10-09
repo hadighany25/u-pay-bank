@@ -1,0 +1,1257 @@
+<!-- public/merchant_pay.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>POS Terminal - U-Pay</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <script src="js/lang.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="js/pin.js"></script>
+    <script src="js/slip.js"></script>
+
+    <style>
+      /* ==========================================
+       🎨 POS TERMINAL STYLES
+       ========================================== */
+      :root {
+        --primary: #004d40;
+        --secondary: #00b894;
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --danger: #ef4444;
+      }
+
+      body {
+        background-color: #cbd5e1;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        color: var(--text-main);
+        -webkit-font-smoothing: antialiased;
+      }
+      .kh-text {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 480px;
+        min-height: 100vh;
+        background: var(--bg-main);
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+      }
+      .swal2-container {
+        z-index: 9999 !important;
+      }
+
+      .header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        background: var(--primary);
+        color: white;
+      }
+      .back-btn {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.3rem;
+        cursor: pointer;
+        padding: 5px;
+      }
+      .header-title {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 600;
+        text-align: center;
+        flex: 1;
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Calculator Styles */
+      .calc-display {
+        background: var(--primary);
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .calc-display h4 {
+        margin: 0 0 10px;
+        font-weight: normal;
+        opacity: 0.9;
+      }
+      .calc-amount {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin: 5px 0;
+        font-family: "JetBrains Mono", sans-serif;
+      }
+      .calc-currency-toggle {
+        display: inline-flex;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        padding: 4px;
+      }
+      .calc-currency-toggle button {
+        background: transparent;
+        border: none;
+        color: white;
+        padding: 6px 18px;
+        border-radius: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+        font-family: inherit;
+      }
+      .calc-currency-toggle button.active {
+        background: white;
+        color: var(--primary);
+      }
+
+      .keypad {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        background: var(--bg-card);
+      }
+      .key-btn {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        border-left: none;
+        font-size: 1.6rem;
+        font-weight: 500;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-family: "JetBrains Mono", sans-serif;
+      }
+      .key-btn:active {
+        background: var(--bg-main);
+      }
+      .key-action {
+        background: var(--bg-main);
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .calc-footer {
+        padding: 15px 20px;
+        background: var(--bg-card);
+        display: flex;
+        gap: 15px;
+        border-top: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 16px;
+        border-radius: 14px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: 0.2s;
+        font-family: inherit;
+        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
+      }
+      .btn-primary:active {
+        transform: scale(0.97);
+      }
+
+      /* QR Modal Styles */
+      .qr-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        width: 100%;
+        max-width: 480px;
+        height: 100dvh;
+        background: #f1f5f9;
+        z-index: 2000;
+        flex-direction: column;
+        animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        transform: translateX(-50%);
+      }
+      @keyframes modalSlideUp {
+        from {
+          transform: translate(-50%, 100%);
+        }
+        to {
+          transform: translate(-50%, 0);
+        }
+      }
+      .qr-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 15px 20px;
+        box-sizing: border-box;
+        flex-shrink: 0;
+      }
+      .qr-modal-footer {
+        width: 100%;
+        padding: 15px 20px;
+        box-sizing: border-box;
+        flex-shrink: 0;
+        background: #f1f5f9;
+        display: flex;
+        justify-content: center;
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+      }
+      .qr-card-container {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        box-sizing: border-box;
+        overflow-y: auto;
+      }
+      .qr-white-box {
+        background: #ffffff;
+        width: 100%;
+        max-width: 350px;
+        padding: 30px 25px 25px;
+        border-radius: 30px;
+        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1);
+        text-align: center;
+        position: relative;
+        box-sizing: border-box;
+        margin: auto;
+      }
+
+      .currency-toggle {
+        display: flex;
+        background: #f1f5f9;
+        border-radius: 14px;
+        padding: 5px;
+        margin-bottom: 25px;
+        width: 100%;
+        box-sizing: border-box;
+        transition: 0.3s ease;
+      }
+      .toggle-btn {
+        flex: 1;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #64748b;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .toggle-btn.active {
+        background: white;
+        color: #004d40;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .qr-logo-top {
+        height: 40px;
+        margin-bottom: 15px;
+      }
+      /* 🌟 ពង្រីកអក្សរឈ្មោះហាង និង MID អោយធំ */
+      .qr-user-name {
+        margin: 0;
+        font-size: 1.6rem;
+        color: #1e293b;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      #qrMerchantID {
+        color: #64748b;
+        font-size: 1rem;
+        margin: 8px 0 25px;
+        font-weight: 500;
+      }
+
+      .qr-img-wrapper {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 15px;
+        border: 1px solid #e2e8f0;
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
+      }
+      #myQrImg {
+        width: 100%;
+        max-width: 220px;
+        height: auto;
+        aspect-ratio: 1;
+        display: block;
+        border-radius: 12px;
+      }
+
+      /* 🌟 លេខកុងខាងក្រោមរៀបចំពណ៌ថ្មី */
+      #qrAccountNum {
+        margin: 0 0 20px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        color: #00b894;
+        font-size: 1.2rem;
+        letter-spacing: 1.5px;
+      }
+
+      /* ==========================================
+       ✨ ម៉ូតប្រអប់វាយលុយទំនើបថ្មី (Modern Amount Input)
+       ========================================== */
+      .amount-input-area {
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 20px;
+        width: 100%;
+      }
+      .amount-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .modern-amount-wrapper {
+        background: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .modern-amount-wrapper:focus-within {
+        border-color: var(--secondary);
+        background: #ffffff;
+        box-shadow:
+          0 0 0 4px rgba(0, 184, 148, 0.15),
+          0 10px 20px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+      }
+
+      .modern-amount-wrapper.locked {
+        background: #f1f5f9;
+        border-color: transparent;
+        opacity: 0.9;
+      }
+      .modern-amount-wrapper.locked:focus-within {
+        transform: none;
+        box-shadow: none;
+        border-color: transparent;
+      }
+
+      .currency-symbol {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #94a3b8;
+        transition: 0.3s;
+      }
+      .modern-amount-wrapper:focus-within .currency-symbol {
+        color: var(--primary);
+      }
+
+      /* 🌟 បិទសញ្ញាព្រួញឡើងចុះ (Spinners) មិនអោយឃើញ */
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      #qrSetAmount {
+        border: none;
+        background: transparent;
+        width: 140px;
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #004d40;
+        outline: none;
+        font-family: "JetBrains Mono", sans-serif;
+        padding: 0;
+      }
+      #qrSetAmount::placeholder {
+        color: #cbd5e1;
+        font-weight: 600;
+      }
+
+      .close-qr-btn,
+      .save-qr-icon-btn,
+      .voice-toggle-btn {
+        position: static;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: 0.2s;
+      }
+      .close-qr-btn {
+        background: #fff;
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+      }
+      .close-qr-btn:active,
+      .save-qr-icon-btn:active,
+      .voice-toggle-btn:active {
+        transform: scale(0.9);
+      }
+      .save-qr-icon-btn {
+        background: #e0f2f1;
+        color: #004d40;
+        border: 1px solid #b2dfdb;
+      }
+      .voice-toggle-btn.active {
+        background: #e0f2f1;
+        color: #004d40;
+        border: 1px solid #b2dfdb;
+      }
+      .voice-toggle-btn.inactive {
+        background: #f1f5f9;
+        color: #94a3b8;
+        border: 1px solid #e2e8f0;
+      }
+
+      .btn-tap-to-pay {
+        width: 100%;
+        max-width: 350px;
+        padding: 18px;
+        background: #10b981;
+        margin: 0;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 1.15rem;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn-tap-to-pay:active {
+        transform: scale(0.96);
+      }
+
+      /* ==========================================
+         🌙 DARK MODE OVERRIDES
+         ========================================== */
+      body.dark-mode {
+        background-color: #000000 !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #121212 !important;
+        box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
+      }
+      body.dark-mode .header-bar {
+        background: #1a1a1a !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+      body.dark-mode .qr-modal {
+        background-color: #121212 !important;
+      }
+      body.dark-mode .qr-white-box {
+        background-color: #1e1e1e !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+        border: 1px solid #2d2d2d;
+      }
+      body.dark-mode .close-qr-btn {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #fff !important;
+      }
+      body.dark-mode .save-qr-icon-btn {
+        background: #004d40 !important;
+        border-color: #00b894 !important;
+        color: #fff !important;
+      }
+
+      body.dark-mode .amount-input-area {
+        border-top-color: #444 !important;
+      }
+      body.dark-mode .modern-amount-wrapper {
+        background: #121212;
+        border-color: #333;
+      }
+      body.dark-mode .modern-amount-wrapper:focus-within {
+        background: #1e1e1e;
+        border-color: #00b894;
+        box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
+      }
+      body.dark-mode .modern-amount-wrapper.locked {
+        background: #1a1a1a;
+        border-color: transparent;
+      }
+      body.dark-mode #qrSetAmount {
+        color: #00b894 !important;
+      }
+
+      body.dark-mode .currency-toggle {
+        background: #2d2d2d !important;
+      }
+      body.dark-mode .toggle-btn.active {
+        background: #1e1e1e !important;
+        color: #00b894 !important;
+        border: 1px solid #444;
+      }
+      body.dark-mode .keypad {
+        background: #1e1e1e !important;
+      }
+      body.dark-mode .key-btn {
+        border-color: #2d2d2d !important;
+        color: #fff !important;
+      }
+      body.dark-mode .key-action {
+        background: #2a2a2a !important;
+      }
+      body.dark-mode .calc-footer {
+        background: #1e1e1e !important;
+        border-top-color: #2d2d2d !important;
+      }
+      body.dark-mode .qr-modal-footer {
+        background: #121212 !important;
+      }
+      body.dark-mode .voice-toggle-btn.active {
+        background: #004d40 !important;
+        border-color: #00b894 !important;
+        color: #fff !important;
+      }
+      body.dark-mode .voice-toggle-btn.inactive {
+        background: #1e1e1e !important;
+        border-color: #2d2d2d !important;
+        color: #64748b !important;
+      }
+      body.dark-mode h2,
+      body.dark-mode h3,
+      body.dark-mode p {
+        color: #fff !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- 🧮 CALCULATOR UI -->
+      <div class="header-bar">
+        <button class="back-btn" onclick="goBack()">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h2 class="header-title" id="recvStoreName">POS Terminal</h2>
+        <div style="width: 24px"></div>
+      </div>
+
+      <div class="calc-display">
+        <h4 class="kh-text" data-i18n="merch_enter_amt">
+          បញ្ចូលចំនួនទឹកប្រាក់
+        </h4>
+        <div class="calc-amount">
+          <span id="calcSym">$</span><span id="calcDisplay">0</span>
+        </div>
+        <div class="calc-currency-toggle">
+          <button id="btnCurUSD" class="active" onclick="setCalcCur('USD')">
+            USD
+          </button>
+          <button id="btnCurKHR" onclick="setCalcCur('KHR')">KHR</button>
+        </div>
+      </div>
+
+      <div class="keypad">
+        <button class="key-btn" onclick="pressKey('1')">1</button>
+        <button class="key-btn" onclick="pressKey('2')">2</button>
+        <button class="key-btn" onclick="pressKey('3')">3</button>
+        <button class="key-btn" onclick="pressKey('00')">00</button>
+        <button class="key-btn" onclick="pressKey('4')">4</button>
+        <button class="key-btn" onclick="pressKey('5')">5</button>
+        <button class="key-btn" onclick="pressKey('6')">6</button>
+        <button class="key-btn" onclick="pressKey('0')">0</button>
+        <button class="key-btn" onclick="pressKey('7')">7</button>
+        <button class="key-btn" onclick="pressKey('8')">8</button>
+        <button class="key-btn" onclick="pressKey('9')">9</button>
+        <button
+          class="key-btn key-action"
+          style="color: var(--danger)"
+          onclick="pressKey('C')"
+        >
+          <i class="fa-solid fa-delete-left"></i>
+        </button>
+      </div>
+
+      <div class="calc-footer">
+        <button
+          class="btn-primary kh-text"
+          style="width: 100%"
+          onclick="generateQRFromCalc()"
+        >
+          <i class="fa-solid fa-qrcode" style="margin-right: 8px"></i>
+          <span data-i18n="merch_show_qr">បង្ហាញ QR សម្រាប់ទូទាត់</span>
+        </button>
+      </div>
+
+      <!-- 📱 QR & NFC MODAL -->
+      <div id="qrModal" class="qr-modal">
+        <div class="qr-modal-header">
+          <div class="close-qr-btn" onclick="closeQRModal()">
+            <i class="fa-solid fa-xmark"></i>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <div
+              class="voice-toggle-btn active"
+              id="btnVoiceToggle"
+              onclick="toggleVoiceAlert()"
+              title="បើក/បិទ សំឡេង"
+            >
+              <i class="fa-solid fa-volume-high" id="iconVoiceToggle"></i>
+            </div>
+            <div
+              class="save-qr-icon-btn"
+              onclick="downloadMyQR()"
+              id="btnSaveQR"
+              title="រក្សាទុក QR"
+            >
+              <i class="fa-solid fa-download"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-card-container">
+          <div class="qr-white-box" id="myQRContent">
+            <div class="currency-toggle" id="qrToggleBar">
+              <div
+                class="toggle-btn active"
+                id="btnQRUSD"
+                onclick="switchQRCurrency('USD')"
+              >
+                USD ($)
+              </div>
+              <div
+                class="toggle-btn"
+                id="btnQRKHR"
+                onclick="switchQRCurrency('KHR')"
+              >
+                KHR (៛)
+              </div>
+            </div>
+
+            <img
+              src="images/logo-nobg.png"
+              class="qr-logo-top"
+              alt="U-Pay"
+              onerror="this.style.display = 'none'"
+            />
+            <h3 id="qrUserName" class="qr-user-name">...</h3>
+            <p id="qrMerchantID"></p>
+
+            <div class="qr-img-wrapper">
+              <img id="myQrImg" src="" alt="QR Code" />
+            </div>
+
+            <p id="qrAccountNum"></p>
+
+            <div class="amount-input-area">
+              <div class="amount-label kh-text" data-i18n="set_amount">
+                កំណត់ទឹកប្រាក់ចង់បាន
+              </div>
+              <div class="modern-amount-wrapper">
+                <span class="currency-symbol" id="qrCurrencySymbol">$</span>
+                <!-- 🌟 ការពារអត់អោយវាយសញ្ញាដក ឬអក្សរចូល ហើយដកព្រួញចេញ -->
+                <input
+                  type="number"
+                  id="qrSetAmount"
+                  placeholder="0.00"
+                  min="0"
+                  oninput="
+                    if (this.value < 0) this.value = Math.abs(this.value);
+                    updateMyQR();
+                  "
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-modal-footer">
+          <button
+            onclick="startTapToPay()"
+            class="btn-tap-to-pay kh-text"
+            id="btnTapToPay"
+          >
+            <i
+              class="fa-solid fa-contactless"
+              style="margin-right: 10px; font-size: 1.4rem"
+            ></i>
+            <span>ទូទាត់ដោយកាត (Tap to Pay)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚡️ POS JAVASCRIPT LOGIC ⚡️ -->
+    <script>
+      let currentMerchant = null;
+      let calcValue = "";
+      let calcCurrency = "USD";
+      let qrCurrency = "USD";
+      let isProcessingNFC = false;
+      let isCashierQR = false;
+      let currentCashierObj = null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        if (window.currentUser) {
+          applyThemeLocally();
+          initPOS();
+        }
+      });
+
+      function applyThemeLocally() {
+        if (window.currentUser && window.currentUser.username) {
+          const userThemeKey = "theme_" + window.currentUser.username;
+          const isDark = localStorage.getItem(userThemeKey) === "dark";
+          if (isDark) document.body.classList.add("dark-mode");
+          else document.body.classList.remove("dark-mode");
+        }
+      }
+
+      function initPOS() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const mid = urlParams.get("mid");
+        const cashierAcc = urlParams.get("cashierAcc");
+
+        if (!mid) {
+          Swal.fire("Error", "Merchant ID is missing!", "error").then(() =>
+            goBack(),
+          );
+          return;
+        }
+
+        currentMerchant = window.currentUser.merchantProfile.merchants.find(
+          (m) => (m.id || m._id) === mid,
+        );
+        if (!currentMerchant) {
+          Swal.fire("Error", "Shop not found!", "error").then(() => goBack());
+          return;
+        }
+
+        if (cashierAcc) {
+          currentCashierObj = currentMerchant.cashiers.find(
+            (c) => c.accountNumber === cashierAcc,
+          );
+          if (currentCashierObj) isCashierQR = true;
+        }
+
+        const displayName = isCashierQR
+          ? `${currentMerchant.name.toUpperCase()} BY ${currentCashierObj.displayName.toUpperCase()}`
+          : currentMerchant.name.toUpperCase();
+
+        document.getElementById("recvStoreName").innerText = displayName;
+        document.getElementById("qrUserName").innerText = displayName;
+
+        initVoiceSettings();
+
+        const socket = io("https://u-pay-bank.fly.dev");
+        socket.emit("joinRoom", window.currentUser.username);
+        socket.on("paymentReceived", (data) => {
+          new Audio(
+            "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+          )
+            .play()
+            .catch(() => {});
+          playVoiceAlert(data.amount, data.currency);
+          Swal.fire({
+            icon: "success",
+            title: window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
+            text: `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
+            confirmButtonColor: "#004d40",
+          });
+        });
+      }
+
+      function goBack() {
+        if (!isCashierQR) window.location.href = "merchant.html";
+        else window.location.href = "merchant.html";
+      }
+
+      // --- CALCULATOR ---
+      function setCalcCur(cur) {
+        calcCurrency = cur;
+        document
+          .getElementById("btnCurUSD")
+          .classList.toggle("active", cur === "USD");
+        document
+          .getElementById("btnCurKHR")
+          .classList.toggle("active", cur === "KHR");
+        document.getElementById("calcSym").innerText =
+          cur === "USD" ? "$" : "៛";
+        updateCalcDisplay();
+      }
+
+      function pressKey(key) {
+        if (key === "C") calcValue = calcValue.slice(0, -1);
+        else {
+          if (calcValue === "0" && key !== "00") calcValue = key;
+          else if (calcValue.length < 10) calcValue += key;
+        }
+        updateCalcDisplay();
+      }
+
+      function updateCalcDisplay() {
+        document.getElementById("calcDisplay").innerText = calcValue
+          ? parseInt(calcValue).toLocaleString("en-US")
+          : "0";
+      }
+
+      function generateQRFromCalc() {
+        // 🌟 អនុញ្ញាតអោយបើក QR Modal ទោះអត់មានលុយក៏ដោយ
+        openQRModal(calcValue, calcCurrency);
+        calcValue = "";
+        updateCalcDisplay();
+      }
+
+      // --- QR CODE ---
+      function openQRModal(amount, currency = null) {
+        const modal = document.getElementById("qrModal");
+
+        let hasUSD = false,
+          hasKHR = false;
+
+        if (isCashierQR) {
+          document.getElementById("qrUserName").style.color = "#0284c7";
+          hasUSD = !!(
+            currentCashierObj.virtualAccounts &&
+            currentCashierObj.virtualAccounts.USD
+          );
+          hasKHR = !!(
+            currentCashierObj.virtualAccounts &&
+            currentCashierObj.virtualAccounts.KHR
+          );
+        } else {
+          document.getElementById("qrUserName").style.color = "#1e293b";
+          document.getElementById("qrMerchantID").textContent =
+            "MID: " + currentMerchant.merchantId;
+          hasUSD = !!currentMerchant.accountNumbers?.USD;
+          hasKHR = !!currentMerchant.accountNumbers?.KHR;
+        }
+
+        let targetCur = currency || (hasUSD ? "USD" : "KHR");
+        if (
+          (targetCur === "USD" && !hasUSD) ||
+          (targetCur === "KHR" && !hasKHR)
+        ) {
+          targetCur = hasUSD ? "USD" : "KHR";
+        }
+
+        const inputWrapper = document.querySelector(".modern-amount-wrapper");
+        const btnUSD = document.getElementById("btnQRUSD");
+        const btnKHR = document.getElementById("btnQRKHR");
+
+        // 🌟 ករណីទី ១៖ កំណត់លុយរួចរាល់ លាក់ប៊ូតុងដែលអត់រើសចេញ បង្ហាញតែប៊ូតុងដែលរើសអោយពេញប្រអប់
+        if (amount && parseFloat(amount) > 0) {
+          btnUSD.style.display = targetCur === "USD" ? "block" : "none";
+          btnKHR.style.display = targetCur === "KHR" ? "block" : "none";
+          document.getElementById("qrSetAmount").readOnly = true;
+          inputWrapper.classList.add("locked");
+        } else {
+          // 🌟 ករណីទី ២៖ អត់កំណត់លុយ បង្ហាញអោយរើសធម្មតា
+          btnUSD.style.display = hasUSD ? "block" : "none";
+          btnKHR.style.display = hasKHR ? "block" : "none";
+          document.getElementById("qrSetAmount").readOnly = false;
+          inputWrapper.classList.remove("locked");
+        }
+
+        switchQRCurrency(targetCur);
+        document.getElementById("qrSetAmount").value = amount || "";
+        window.isCashierQR = false;
+        updateMyQR();
+        modal.style.display = "flex";
+      }
+
+      function closeQRModal() {
+        document.getElementById("qrModal").style.display = "none";
+      }
+
+      function switchQRCurrency(currency) {
+        qrCurrency = currency;
+        document
+          .getElementById("btnQRUSD")
+          .classList.toggle("active", currency === "USD");
+        document
+          .getElementById("btnQRKHR")
+          .classList.toggle("active", currency === "KHR");
+        document.getElementById("qrCurrencySymbol").innerText =
+          currency === "USD" ? "$" : "៛";
+
+        // 🌟 លុបតម្លៃចោល ពេលប្តូររូបិយប័ណ្ណ (Clear Input)
+        if (!document.getElementById("qrSetAmount").readOnly) {
+          document.getElementById("qrSetAmount").value = "";
+        }
+
+        if (isCashierQR) {
+          let vAcc = currentCashierObj.virtualAccounts
+            ? currentCashierObj.virtualAccounts[currency]
+            : currentCashierObj.virtualAccount;
+          document.getElementById("qrAccountNum").style.color = "#0284c7";
+          document.getElementById("qrAccountNum").textContent = vAcc || "N/A";
+          document.getElementById("qrMerchantID").textContent =
+            "Cashier ID: " + (vAcc || "N/A");
+        } else {
+          const targetAcc = currentMerchant.accountNumbers
+            ? currentMerchant.accountNumbers[currency]
+            : null;
+          document.getElementById("qrAccountNum").style.color = "#00b894";
+          document.getElementById("qrAccountNum").textContent =
+            targetAcc || "N/A";
+        }
+        updateMyQR();
+      }
+
+      function updateMyQR() {
+        const amount = document.getElementById("qrSetAmount").value;
+        let qrData = "",
+          qrColor = "";
+
+        if (isCashierQR) {
+          qrColor = "0284c7";
+          let vAcc = currentCashierObj.virtualAccounts
+            ? currentCashierObj.virtualAccounts[qrCurrency]
+            : currentCashierObj.virtualAccount;
+          if (vAcc)
+            qrData =
+              amount && parseFloat(amount) > 0 ? `${vAcc}:${amount}` : vAcc;
+        } else {
+          qrColor = "004d40";
+          const targetAcc = currentMerchant.accountNumbers
+            ? currentMerchant.accountNumbers[qrCurrency]
+            : null;
+          qrData =
+            amount && parseFloat(amount) > 0
+              ? `${targetAcc}:${amount}`
+              : targetAcc || "";
+        }
+
+        // 🌟 ប្រើ API ផ្សេងអោយវាលោត QR លឿន និងមិនមានបញ្ហាជាន់គ្នា
+        document.getElementById("myQrImg").src =
+          `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&dark=${qrColor}&size=400&margin=1`;
+      }
+
+      function downloadMyQR() {
+        const btnSave = document.getElementById("btnSaveQR");
+        const btnClose = document.querySelector(".close-qr-btn");
+        const toggleBar = document.getElementById("qrToggleBar");
+        const btnTapToPay = document.getElementById("btnTapToPay");
+
+        btnSave.style.display = "none";
+        btnClose.style.display = "none";
+        const isToggleHidden = toggleBar.style.display === "none";
+        // លាក់បណ្ដោះអាសន្នពេល Save
+        if (!document.getElementById("qrSetAmount").readOnly)
+          toggleBar.style.display = "none";
+        btnTapToPay.style.display = "none";
+
+        html2canvas(document.getElementById("myQRContent"), {
+          backgroundColor: document.body.classList.contains("dark-mode")
+            ? "#1e1e1e"
+            : "#ffffff",
+          scale: 3,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+          btnSave.style.display = "flex";
+          btnClose.style.display = "flex";
+          if (!isToggleHidden) toggleBar.style.display = "flex";
+          btnTapToPay.style.display = "flex";
+        });
+      }
+
+      // --- NFC SCANNER ---
+      function normalizeUID(uid) {
+        if (!uid) return "";
+        uid = String(uid).trim().toUpperCase();
+        if (/^\d{10}$/.test(uid)) {
+          let hex = parseInt(uid, 10)
+            .toString(16)
+            .toUpperCase()
+            .padStart(8, "0");
+          return (
+            hex.substring(6, 8) +
+            hex.substring(4, 6) +
+            hex.substring(2, 4) +
+            hex.substring(0, 2)
+          );
+        }
+        return uid;
+      }
+
+      async function processNFCScan(serialNumber, amount, qrCurrency) {
+        if (isProcessingNFC) return;
+        isProcessingNFC = true;
+        if (serialNumber)
+          serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
+
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+        Swal.fire({
+          title: "កំពុងពិនិត្យកាត...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+
+        try {
+          const checkRes = await fetch("/api/merchants/check-card", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              uid: serialNumber,
+              amount: amount,
+              currency: qrCurrency,
+            }),
+          });
+          const checkData = await checkRes.json();
+          if (!checkData.success) {
+            isProcessingNFC = false;
+            return Swal.fire("មិនអាចទូទាត់បាន", checkData.message, "error");
+          }
+        } catch (e) {
+          isProcessingNFC = false;
+          return Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
+        }
+
+        let requirePin =
+          (qrCurrency === "USD" && amount > 20) ||
+          (qrCurrency === "KHR" && amount > 80000);
+
+        if (requirePin) {
+          requestPinVerification(
+            "បញ្ជាក់លេខសម្ងាត់ (PIN)",
+            `ទឹកប្រាក់ ${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()} លើសកម្រិត`,
+            function (pin) {
+              executeTapPayment(serialNumber, amount, qrCurrency, pin);
+            },
+            function () {
+              isProcessingNFC = false;
+            },
+          );
+        } else {
+          executeTapPayment(serialNumber, amount, qrCurrency, null);
+        }
+      }
+
+      async function executeTapPayment(uid, amount, currency, pin) {
+        Swal.fire({
+          title: "កំពុងទូទាត់ប្រាក់...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
+        });
+
+        let cashierAccToSend = isCashierQR
+          ? currentCashierObj.accountNumber
+          : null;
+
+        try {
+          const res = await fetch("/api/merchants/tap-to-pay", {
+            method: "POST",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              uid,
+              amount,
+              currency,
+              pin,
+              merchantId: currentMerchant.id,
+              cashierAcc: cashierAccToSend,
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            Swal.close();
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            )
+              .play()
+              .catch(() => {});
+            playVoiceAlert(amount, currency);
+            closeQRModal();
+            Swal.fire("ជោគជ័យ", "កាត់ប្រាក់រួចរាល់", "success");
+          } else {
+            Swal.fire("ប្រតិបត្តិការបរាជ័យ!", data.message, "error");
+          }
+        } catch (err) {
+          Swal.fire("Error", "Server Error", "error");
+        } finally {
+          isProcessingNFC = false;
+        }
+      }
+
+      async function startTapToPay() {
+        if (isProcessingNFC) return;
+        const amount = parseFloat(document.getElementById("qrSetAmount").value);
+        if (!amount || amount <= 0)
+          return Swal.fire("បញ្ជាក់", "សូមបញ្ចូលទឹកប្រាក់!", "warning");
+
+        let isScanning = true;
+        let scanBuffer = "";
+
+        Swal.fire({
+          title: "កំពុងរង់ចាំកាត...",
+          html: `<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #10b981;"></i></div>
+                   <h2 style="color: #10b981;">${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()}</h2>
+                   <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1;" autocomplete="off">`,
+          showCancelButton: true,
+          showConfirmButton: false,
+          allowOutsideClick: false,
+          didOpen: () => {
+            const hiddenInput = document.getElementById(
+              "hiddenUsbScannerInput",
+            );
+            if (hiddenInput) {
+              hiddenInput.focus();
+              hiddenInput.addEventListener("blur", () => {
+                if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
+              });
+              hiddenInput.addEventListener("keydown", function (e) {
+                if (e.code === "Enter" || e.code === "NumpadEnter") {
+                  if (scanBuffer.length >= 4) {
+                    isScanning = false;
+                    Swal.close();
+                    processNFCScan(
+                      normalizeUID(scanBuffer),
+                      amount,
+                      qrCurrency,
+                    );
+                  }
+                  scanBuffer = "";
+                } else {
+                  scanBuffer += e.key;
+                }
+              });
+            }
+          },
+          didClose: () => {
+            isScanning = false;
+          },
+        });
+
+        if ("NDEFReader" in window) {
+          const abortController = new AbortController();
+          Swal.getPopup().addEventListener("cancel", () =>
+            abortController.abort(),
+          );
+          try {
+            const ndef = new NDEFReader();
+            await ndef.scan({ signal: abortController.signal });
+            ndef.onreading = async (event) => {
+              if (!isScanning) return;
+              isScanning = false;
+              abortController.abort();
+              Swal.close();
+              processNFCScan(
+                normalizeUID(event.serialNumber),
+                amount,
+                qrCurrency,
+              );
+            };
+          } catch (error) {}
+        }
+      }
+
+      // --- VOICE ALERT ---
+      let isVoiceAlertOn = localStorage.getItem("voiceAlertOn") !== "false";
+
+      function initVoiceSettings() {
+        updateVoiceToggleButton();
+      }
+
+      function toggleVoiceAlert() {
+        isVoiceAlertOn = !isVoiceAlertOn;
+        localStorage.setItem("voiceAlertOn", isVoiceAlertOn);
+        updateVoiceToggleButton();
+        if (isVoiceAlertOn) playVoiceAlert("0", "TEST");
+      }
+
+      function updateVoiceToggleButton() {
+        const btn = document.getElementById("btnVoiceToggle");
+        const icon = document.getElementById("iconVoiceToggle");
+        if (btn && icon) {
+          btn.className = isVoiceAlertOn
+            ? "voice-toggle-btn active"
+            : "voice-toggle-btn inactive";
+          icon.className = isVoiceAlertOn
+            ? "fa-solid fa-volume-high"
+            : "fa-solid fa-volume-xmark";
+        }
+      }
+
+      function playVoiceAlert(amount, currency) {
+        if (!isVoiceAlertOn || !("speechSynthesis" in window)) return;
+        let textToSpeak =
+          currency === "TEST"
+            ? "សំឡេងត្រូវបានបើក"
+            : `ទទួលបាន ${amount} ${currency}`;
+        let msg = new SpeechSynthesisUtterance(textToSpeak);
+        msg.lang = "km-KH";
+
+        let selectedVoiceName = localStorage.getItem("selectedVoiceName");
+        let availableVoices = window.speechSynthesis.getVoices();
+
+        if (selectedVoiceName && availableVoices.length > 0) {
+          let foundVoice = availableVoices.find(
+            (v) => v.name === selectedVoiceName,
+          );
+          if (foundVoice) msg.voice = foundVoice;
+        }
+
+        window.speechSynthesis.speak(msg);
+      }
+    </script>
+  </body>
+</html>

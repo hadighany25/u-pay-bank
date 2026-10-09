@@ -190,7 +190,7 @@ bot.sendMerchantPaymentAlert = async (merchantId, paymentData) => {
           : paymentData.amount.toLocaleString();
 
       const alertMsg = `🔔 <b>ទទួលបានការទូទាត់ប្រាក់ថ្មី!</b>
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━
 🏪 ហាង៖ <b>${merchant.name}</b>
 💵 ចំនួនទឹកប្រាក់៖ <b>+${symbol}${amountStr}</b>
 👤 ពីអតិថិជន៖ ${paymentData.senderName}
