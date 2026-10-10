@@ -62,7 +62,6 @@ window.currentSlipData = null;
 
 // ==========================================
 // 🌟 មុខងារថ្មី សម្រាប់ហៅ Slip ទារបំណុល (P2P Debt)
-// វានឹងរុញទិន្នន័យក្លែងក្លាយ ទៅឱ្យមុខងារ Slip ធំខាងក្រោម
 // ==========================================
 window.openDebtSlip = function (
   amount,
@@ -89,7 +88,6 @@ window.openDebtSlip = function (
     remark: isLend ? `Receivable for ${fundName}` : `Debt for ${fundName}`,
   };
 
-  // បញ្ជូនទៅមុខងារខាងក្រោម
   openGlobalSlip(fakeTx, currentUserName);
 };
 
@@ -137,7 +135,6 @@ function openGlobalSlip(t, currentUsername) {
     lblSenderText = "Deposited By";
     lblReceiverText = "Credited To";
   } else if (tType.includes("withdrawal")) {
-    // 🟢 បន្ថែមលក្ខខណ្ឌសម្រាប់ Cash Withdrawal
     bgColor = "#ef4444";
     iconColor = "#ef4444";
     iconClass = "fa-money-bill-transfer";
@@ -145,7 +142,6 @@ function openGlobalSlip(t, currentUsername) {
     lblSenderText = "Withdrawn From";
     lblReceiverText = "Withdrawn By";
   } else if (tType.includes("p2p debt record")) {
-    // 🌟 លក្ខខណ្ឌថ្មីសម្រាប់បំណុល P2P
     bgColor = isIncome ? "#10b981" : "#ef4444";
     iconColor = bgColor;
     iconClass = "fa-handshake";
@@ -172,7 +168,8 @@ function openGlobalSlip(t, currentUsername) {
     lblSenderText = "Paid By";
     lblReceiverText = "Paid To (Merchant)";
   } else if (tType.includes("bill")) {
-    bgColor = "#f97316";
+    // 🌟 លក្ខខណ្ឌសម្រាប់ Bill Payment
+    bgColor = "#f97316"; // ពណ៌ទឹកក្រូច
     iconColor = "#f97316";
     iconClass = "fa-file-invoice-dollar";
     titleText = "Bill Paid";
@@ -397,6 +394,10 @@ async function shareSlipGlobal() {
 // ៤. មុខងារបិទ Slip
 function closeSlipGlobal() {
   document.getElementById("slipModal").style.display = "none";
+  // ប្រសិនបើបិទ Slip ក្នុងផ្ទាំង Bill Payment ត្រូវ Reload ដើម្បីរៀបចំផ្ទាំងថ្មី
+  if (window.location.pathname.includes("payment.html")) {
+    window.location.reload();
+  }
 }
 
 // ==========================================
@@ -474,7 +475,7 @@ async function downloadSlipPDF() {
         let lblSenderText = "Sender";
         let lblReceiverText = "Receiver";
 
-        // 🌟 កែសម្រួល PDF ឱ្យគាំទ្របំណុល P2P
+        // 🌟 កែសម្រួល PDF ឱ្យគាំទ្របំណុល P2P និង Bill
         if (tType.includes("deposit")) {
           lblSenderText = "Deposited By";
           lblReceiverText = "Credited To";
@@ -537,6 +538,7 @@ async function downloadSlipPDF() {
           displayTitle = "U-FUND";
         else if (t.type === "Merchant Payment" || t.trxMethod === "NFC Payment")
           displayTitle = t.receiverName || t.merchantName || "MERCHANT PAYMENT";
+        else if (tType.includes("bill")) displayTitle = "BILL PAYMENT";
         else if (tType.includes("gift"))
           displayTitle = isIncome ? "E-GIFT RECEIVED" : "E-GIFT SENT";
         else if (tType.includes("refund")) displayTitle = "REFUND RECEIVED";

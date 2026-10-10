@@ -709,10 +709,11 @@ const scanBankBill = async (req, res) => {
 };
 
 // ==========================================
-// 💳 ៦. មុខងារបង់វិក្កយបត្រ (Pay Bill)
+// 💳 ៦. មុខងារបង់វិក្កយបត្រ (Pay Bill) - U-Pay Backend
 // ==========================================
 const payBankBill = async (req, res) => {
-  const { bill_id, company, amount, username } = req.body;
+  const { bill_id, company, amount, username, senderAccount, pin } = req.body;
+
   try {
     let payingUser = await User.findOne({ username });
     if (!payingUser)
@@ -720,13 +721,103 @@ const payBankBill = async (req, res) => {
         .status(404)
         .json({ success: false, message: "រកមិនឃើញគណនីរបស់អ្នក!" });
 
-    const userBalance =
-      payingUser.mainAccounts?.USD?.balance || payingUser.balance || 0;
-    if (userBalance < amount)
+    // ១. ផ្ទៀងផ្ទាត់ PIN Code
+    if (payingUser.pin !== pin) {
       return res
         .status(400)
-        .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់!" });
+        .json({ success: false, message: "លេខកូដ PIN មិនត្រឹមត្រូវទេ!" });
+    }
 
+    const System = require("../models/System");
+    const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    const exchangeRate =
+      sys && sys.fxRates && sys.fxRates.usdToKhrSell
+        ? parseFloat(sys.fxRates.usdToKhrSell)
+        : 4110;
+
+    let isSenderKHR = false;
+    let deductAmount = amount;
+
+    // ២. កំណត់កុងដែលត្រូវកាត់លុយ និងឆែកសមតុល្យ
+    if (
+      payingUser.mainAccounts?.KHR?.accountNumber === senderAccount ||
+      payingUser.accountNumberKHR === senderAccount
+    ) {
+      isSenderKHR = true;
+      deductAmount = amount * exchangeRate; // បំប្លែងវិក្កយបត្រ USD ទៅ KHR ដើម្បីកាត់
+    } else {
+      const subAcc = payingUser.subAccounts.find(
+        (s) => s.accountNumber === senderAccount,
+      );
+      if (subAcc && subAcc.currency === "KHR") {
+        isSenderKHR = true;
+        deductAmount = amount * exchangeRate;
+      }
+    }
+
+    let hasEnoughBalance = false;
+    // ធ្វើការកាត់លុយពីគណនីជាក់លាក់ (Main ឬ Sub)
+    if (
+      payingUser.mainAccounts?.USD?.accountNumber === senderAccount ||
+      payingUser.accountNumber === senderAccount
+    ) {
+      if (
+        (payingUser.mainAccounts?.USD?.balance || payingUser.balance || 0) >=
+        deductAmount
+      ) {
+        if (payingUser.mainAccounts?.USD)
+          payingUser.mainAccounts.USD.balance -= deductAmount;
+        else payingUser.balance -= deductAmount;
+        hasEnoughBalance = true;
+      }
+    } else if (
+      payingUser.mainAccounts?.KHR?.accountNumber === senderAccount ||
+      payingUser.accountNumberKHR === senderAccount
+    ) {
+      if (
+        (payingUser.mainAccounts?.KHR?.balance || payingUser.balanceKHR || 0) >=
+        deductAmount
+      ) {
+        if (payingUser.mainAccounts?.KHR)
+          payingUser.mainAccounts.KHR.balance -= deductAmount;
+        else payingUser.balanceKHR -= deductAmount;
+        hasEnoughBalance = true;
+      }
+    } else {
+      const sub = payingUser.subAccounts.find(
+        (s) => s.accountNumber === senderAccount,
+      );
+      if (sub && sub.balance >= deductAmount) {
+        sub.balance -= deductAmount;
+        hasEnoughBalance = true;
+      }
+    }
+
+    if (!hasEnoughBalance) {
+      return res
+        .status(400)
+        .json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់ទេ!" });
+    }
+
+    // ៣. បូកលុយចូលគណនី PayHub ធម្មតា (ឧទាហរណ៍ 777888999) 🌟🌟🌟
+    const PAYHUB_ACCOUNT_NUMBER = "777888999";
+    // ស្វែងរកគណនីអ្នកទទួលលុយនេះក្នុង Database (ទោះបីជានៅ Main ឫ Legacy)
+    let payhubBankUser = await User.findOne({
+      $or: [
+        { "mainAccounts.USD.accountNumber": PAYHUB_ACCOUNT_NUMBER },
+        { accountNumber: PAYHUB_ACCOUNT_NUMBER },
+      ],
+    });
+
+    if (payhubBankUser) {
+      if (payhubBankUser.mainAccounts?.USD)
+        payhubBankUser.mainAccounts.USD.balance += amount;
+      else payhubBankUser.balance += amount;
+      payhubBankUser.markModified("mainAccounts");
+      await payhubBankUser.save();
+    }
+
+    // ៤. ភ្ជាប់ទៅ PayHub ដើម្បីប្តូរ Status វិក្កយបត្រ
     const currentRefId = generateStandardRefId("BIL");
     const response = await fetch("https://payhub-kh.fly.dev/api/gateway/pay", {
       method: "POST",
@@ -735,11 +826,10 @@ const payBankBill = async (req, res) => {
     });
 
     const payhubData = await response.json();
+
     if (payhubData && payhubData.success) {
-      if (payingUser.mainAccounts?.USD)
-        payingUser.mainAccounts.USD.balance -= amount;
-      else payingUser.balance -= amount;
       payingUser.markModified("mainAccounts");
+      payingUser.markModified("subAccounts");
 
       const newHash = generateStandardHash();
       const dateStr = new Date().toLocaleString("en-US", {
@@ -747,6 +837,7 @@ const payBankBill = async (req, res) => {
         hour12: true,
       });
 
+      // ៥. កត់ត្រា History អោយអ្នកបង់លុយ (Slip ចេញឈ្មោះក្រុមហ៊ុន តែលេខកុង 777888999) 🌟🌟🌟
       await Transaction.create({
         userId: payingUser._id,
         username: payingUser.username,
@@ -754,60 +845,104 @@ const payBankBill = async (req, res) => {
         hash: newHash,
         date: dateStr,
         type: "Bill Payment",
-        amount: -amount,
+        amount: -deductAmount,
+        currency: isSenderKHR ? "KHR" : "USD",
         senderName: payingUser.fullName || payingUser.username,
-        receiverName: company,
-        senderAcc:
-          payingUser.mainAccounts?.USD?.accountNumber ||
-          payingUser.accountNumber,
-        receiverAcc: bill_id,
-        trxMethod: "Bill Payment", // 🌟 ថែម Payment Via
-        remark: `ទូទាត់វិក្កយបត្រ: ${company}`, // 🌟 កែប្រែ Remark អោយច្បាស់
+        receiverName: company, // 🌟 បង្ហាញឈ្មោះក្រុមហ៊ុននៅលើ Slip
+        senderAcc: senderAccount,
+        receiverAcc: PAYHUB_ACCOUNT_NUMBER, // 🌟 លេខគណនី PayHub 777888999
+        trxMethod: "Bill Payment",
+        remark: `ទូទាត់វិក្កយបត្រ: ${company}`,
         status: "Success",
       });
 
+      // ៦. កត់ត្រា History អោយគណនី PayHub
+      if (payhubBankUser) {
+        await Transaction.create({
+          userId: payhubBankUser._id,
+          username: payhubBankUser.username,
+          refId: currentRefId,
+          hash: newHash,
+          date: dateStr,
+          type: "Bill Collection",
+          amount: amount,
+          currency: "USD",
+          senderName: payingUser.fullName || payingUser.username,
+          receiverName: "PayHub Central",
+          senderAcc: senderAccount,
+          receiverAcc: PAYHUB_ACCOUNT_NUMBER,
+          trxMethod: "Bill Collection",
+          remark: `ទទួលបានការទូទាត់វិក្កយបត្រ: ${company}`,
+          status: "Success",
+        });
+      }
+
       await payingUser.save();
 
-      // 🌟 ថែម Notification ពេលបង់លុយរួច
+      // ៧. ផ្តល់ដំណឹង Notification
+      const Notification = require("../models/Notification");
       await Notification.create({
         userId: payingUser._id,
         username: payingUser.username,
         title: "ទូទាត់វិក្កយបត្រជោគជ័យ! 📄",
-        message: `អ្នកបានទូទាត់ទឹកប្រាក់ $${parseFloat(amount).toLocaleString()} ទៅកាន់ ${company} រួចរាល់។`,
+        message: `អ្នកបានទូទាត់ទឹកប្រាក់ ${isSenderKHR ? "៛" : "$"}${parseFloat(deductAmount).toLocaleString()} ទៅកាន់ ${company} រួចរាល់។`,
         type: "payment_success",
         date: dateStr,
         isRead: false,
       });
 
-      // 🌟 ថែម Telegram Alert
+      // ៨. Telegram Alert
+      const bot = require("../services/telegramBot");
       if (typeof bot !== "undefined" && bot && bot.sendUserPaymentAlert) {
-        // អាចបង្កើតមុខងារ sendBillPaymentAlert ក្នុង bot ក៏បាន ឬប្រើ PaymentAlert ធម្មតា
         bot
           .sendUserPaymentAlert(payingUser._id, {
-            amount: -parseFloat(amount),
-            currency: "USD",
+            amount: -parseFloat(deductAmount),
+            currency: isSenderKHR ? "KHR" : "USD",
             senderName: company,
             refId: currentRefId,
           })
           .catch(() => {});
       }
 
+      // 🌟 បញ្ជូនទិន្នន័យត្រឡប់ទៅវិញ
       res.json({
         success: true,
-        newBalance: payingUser.mainAccounts?.USD?.balance || payingUser.balance,
+        user: payingUser,
         transaction_id: currentRefId,
         hash: newHash,
       });
     } else {
+      // ⚠️ បើ PayHub លោត Error យើងត្រូវសងលុយដែលកាត់មិញចូលកុងគាត់វិញ
+      if (
+        payingUser.mainAccounts?.USD?.accountNumber === senderAccount ||
+        payingUser.accountNumber === senderAccount
+      ) {
+        if (payingUser.mainAccounts?.USD)
+          payingUser.mainAccounts.USD.balance += deductAmount;
+        else payingUser.balance += deductAmount;
+      } else if (
+        payingUser.mainAccounts?.KHR?.accountNumber === senderAccount ||
+        payingUser.accountNumberKHR === senderAccount
+      ) {
+        if (payingUser.mainAccounts?.KHR)
+          payingUser.mainAccounts.KHR.balance += deductAmount;
+        else payingUser.balanceKHR += deductAmount;
+      } else {
+        const sub = payingUser.subAccounts.find(
+          (s) => s.accountNumber === senderAccount,
+        );
+        if (sub) sub.balance += deductAmount;
+      }
       res.status(400).json({
         success: false,
-        message: payhubData.message || "ការទូទាត់បរាជ័យ",
+        message: payhubData.message || "ការទូទាត់បរាជ័យពីខាងក្រុមហ៊ុន",
       });
     }
   } catch (err) {
-    res
-      .status(500)
-      .json({ success: false, message: "មិនអាចភ្ជាប់ទៅកាន់ PayHub បានទេ" });
+    res.status(500).json({
+      success: false,
+      message: "មិនអាចភ្ជាប់ទៅកាន់ម៉ាស៊ីនកណ្តាលបានទេ",
+    });
   }
 };
 

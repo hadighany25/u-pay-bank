@@ -1,3 +1,4 @@
+<!-- public/payment.html -->
 <!doctype html>
 <html lang="km">
   <head>
@@ -5,16 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <title>Bill Payment - U-Pay</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="js/lang.js"></script>
-    <script src="js/toast.js"></script>
     <script
       src="https://unpkg.com/html5-qrcode"
       type="text/javascript"
     ></script>
+    <script src="js/pin.js"></script>
+    <script src="js/slip.js"></script>
+    <!-- 🌟 ប្រើប្រាស់ slip.js រួម -->
+
     <link
       href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -22,29 +30,34 @@
 
     <style>
       body {
-        background-color: #e2e8f0;
+        background-color: #cbd5e1;
         margin: 0;
         display: flex;
         justify-content: center;
-        align-items: center;
         min-height: 100vh;
         font-family: "Inter", "Kantumruy Pro", sans-serif;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      body.loaded {
+        visibility: visible;
+        opacity: 1;
       }
       .kh-font {
-        font-family: "Kantumruy Pro", sans-serif !important;
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
 
       .app-container {
         width: 100%;
-        max-width: 400px;
-        height: 100vh;
-        max-height: 850px;
+        max-width: 480px;
+        min-height: 100vh;
         background: #f8fafc;
         display: flex;
         flex-direction: column;
         position: relative;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
+        overflow-x: hidden;
       }
 
       .nav-header {
@@ -56,14 +69,9 @@
         justify-content: space-between;
         font-size: 1.1rem;
         z-index: 10;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
-      .user-balance {
-        font-size: 0.85rem;
-        background: rgba(255, 255, 255, 0.2);
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-      }
+
       .content-body {
         padding: 25px 20px;
         flex: 1;
@@ -95,7 +103,7 @@
         color: #94a3b8;
       }
       .biller-name {
-        font-size: 1rem;
+        font-size: 1.1rem;
         font-weight: 700;
         color: #64748b;
       }
@@ -120,18 +128,19 @@
       }
       .main-input {
         flex: 1;
-        padding: 14px;
+        padding: 14px 15px;
         border: 1px solid #cbd5e1;
         border-radius: 12px;
-        font-size: 0.95rem;
+        font-size: 1rem;
         outline: none;
         background: #fff;
         transition: 0.3s;
         width: 100%;
+        box-sizing: border-box;
       }
       .main-input:focus {
-        border-color: #004d40;
-        box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
+        border-color: #00b894;
+        box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
       }
       .action-btn {
         border: none;
@@ -142,11 +151,15 @@
         align-items: center;
         justify-content: center;
         font-weight: 600;
+        font-size: 1rem;
       }
       .check-btn {
         background: #004d40;
         color: white;
         padding: 0 20px;
+      }
+      .check-btn:active {
+        transform: scale(0.95);
       }
       .scan-btn {
         background: #f1f5f9;
@@ -162,7 +175,7 @@
         padding: 20px;
         display: none;
         animation: fadeIn 0.3s ease-out;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       }
       @keyframes fadeIn {
         from {
@@ -178,7 +191,7 @@
         display: flex;
         justify-content: space-between;
         margin-bottom: 12px;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
       }
       .info-label {
         color: #64748b;
@@ -189,25 +202,58 @@
         text-align: right;
       }
       .total-amount {
-        font-size: 2rem;
-        color: #004d40;
+        font-size: 2.2rem;
+        color: #00b894;
         font-weight: 800;
         text-align: center;
-        margin: 15px 0;
+        margin: 15px 0 20px;
         padding-top: 15px;
         border-top: 1px dashed #cbd5e1;
+        font-family: "Inter", sans-serif;
       }
+
+      .account-selector-box {
+        margin-bottom: 20px;
+      }
+      .account-selector-box label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      #accountSelector {
+        width: 100%;
+        padding: 14px 15px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1e293b;
+        outline: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px top 50%;
+        background-size: 12px auto;
+      }
+
       .confirm-btn {
         width: 100%;
         padding: 16px;
         background: #004d40;
         color: white;
         border: none;
-        border-radius: 12px;
+        border-radius: 14px;
         font-size: 1.1rem;
         font-weight: bold;
         cursor: pointer;
         transition: 0.2s;
+        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
+      }
+      .confirm-btn:active {
+        transform: scale(0.97);
       }
 
       .scanner-overlay {
@@ -232,8 +278,8 @@
         background: rgba(0, 0, 0, 0.3);
       }
       .scanner-frame {
-        width: 280px;
-        height: 280px;
+        width: 300px;
+        height: 300px;
         border: 2px solid rgba(255, 255, 255, 0.2);
         position: relative;
         border-radius: 20px;
@@ -247,6 +293,7 @@
         width: 100%;
         height: 100%;
       }
+
       .upload-btn {
         background: rgba(255, 255, 255, 0.1);
         color: white;
@@ -260,216 +307,12 @@
         font-weight: 600;
       }
 
-      .modal-overlay {
-        display: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 60;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-      .pin-box {
-        display: flex;
-        gap: 15px;
-        margin: 20px 0;
-      }
-      .pin-digit {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
-        text-align: center;
-        border-radius: 12px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        outline: none;
+      .premium-swal {
+        border-radius: 20px !important;
       }
 
-      /* 🔥 PREMIUM U-PAY SLIP STYLES */
-      .slip-container {
-        width: 340px;
-        margin: 0 auto;
-        background: white;
-        border-radius: 20px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-        animation: slideUp 0.4s ease-out;
-      }
-      @keyframes slideUp {
-        from {
-          transform: translateY(50px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
-      }
-      .slip-header {
-        background: #004d40;
-        padding: 25px 20px 30px;
-        text-align: center;
-        color: white;
-        position: relative;
-      }
-      .slip-status-icon {
-        width: 60px;
-        height: 60px;
-        background: white;
-        color: #004d40;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        margin: 0 auto 10px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-      }
-      .slip-title {
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-top: 5px;
-      }
-      .slip-amount {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 5px 0 0;
-        letter-spacing: -1px;
-      }
-      .slip-body {
-        padding: 20px 25px;
-        background: white;
-        position: relative;
-      }
-
-      .dashed-line {
-        margin: 15px -25px;
-        border-top: 2px dashed #ddd;
-        position: relative;
-      }
-      .dashed-line::before,
-      .dashed-line::after {
-        content: "";
-        position: absolute;
-        top: -10px;
-        width: 20px;
-        height: 20px;
-        background: rgba(0, 0, 0, 0.85);
-        border-radius: 50%;
-      }
-      .dashed-line::before {
-        left: -10px;
-      }
-      .dashed-line::after {
-        right: -10px;
-      }
-
-      .detail-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 12px;
-        font-size: 0.9rem;
-      }
-      .d-label {
-        color: #888;
-        font-weight: 500;
-      }
-      .d-value {
-        font-weight: 700;
-        color: #1f2937;
-        text-align: right;
-        max-width: 60%;
-        word-break: break-word;
-      }
-      .d-mono {
-        font-family: "Courier New", monospace;
-        letter-spacing: 0.5px;
-        color: #004d40;
-        font-weight: bold;
-      }
-
-      .slip-footer-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 10px;
-      }
-      .qr-box {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid #eee;
-        padding: 5px 10px;
-        border-radius: 10px;
-        background: #f9fafb;
-      }
-      .qr-img {
-        width: 45px;
-        height: 45px;
-      }
-      .qr-text {
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #004d40;
-        display: flex;
-        flex-direction: column;
-        line-height: 1.1;
-      }
-      .footer-logo {
-        width: 80px;
-      }
-
-      .slip-actions {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        padding: 25px;
-        background: #fff;
-        border-top: 1px solid #f0f0f0;
-      }
-      .action-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: 0.2s;
-        color: #004d40;
-      }
-      .action-item:hover {
-        opacity: 0.8;
-        transform: translateY(-2px);
-      }
-      .action-circle {
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        border: 1px solid #eee;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3rem;
-        background: #fff;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        color: #004d40;
-      }
-      .action-text {
-        font-size: 0.85rem;
-        font-weight: 600;
-      }
-      .action-circle.done {
-        background: #f0fdf4;
-        border-color: #004d40;
-      }
       /* ==========================================
-         🌙 DARK MODE OVERRIDES (សម្រាប់ Bill Payment)
+         🌙 DARK MODE OVERRIDES
          ========================================== */
       body.dark-mode {
         background-color: #000000 !important;
@@ -479,7 +322,8 @@
         box-shadow: none !important;
       }
       body.dark-mode .nav-header {
-        background-color: #00251f !important;
+        background: #1a1a1a !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
       }
       body.dark-mode .content-body {
         background-color: #121212 !important;
@@ -489,19 +333,19 @@
         border-color: #2d2d2d !important;
       }
       body.dark-mode .biller-info-box.active {
-        background: #064e3b !important;
-        border-color: #10b981 !important;
+        background: #004d40 !important;
+        border-color: #00b894 !important;
       }
       body.dark-mode .biller-info-box.active .biller-name {
-        color: #34d399 !important;
+        color: #fff !important;
       }
       body.dark-mode .biller-logo {
         background: #2d2d2d !important;
         color: #94a3b8 !important;
       }
       body.dark-mode .biller-info-box.active .biller-logo {
-        background: #10b981 !important;
-        color: white !important;
+        background: #00b894 !important;
+        color: #000 !important;
       }
       body.dark-mode .main-input {
         background: #1e1e1e !important;
@@ -511,48 +355,34 @@
       body.dark-mode .main-input::placeholder {
         color: #64748b !important;
       }
+      body.dark-mode .main-input:focus {
+        border-color: #00b894 !important;
+      }
       body.dark-mode .scan-btn {
         background: #1e1e1e !important;
         border-color: #2d2d2d !important;
-        color: #38bdf8 !important;
+        color: #00b894 !important;
       }
       body.dark-mode .bill-details-card {
         background: #1e1e1e !important;
         border-color: #2d2d2d !important;
       }
-      body.dark-mode .info-label {
+      body.dark-mode .info-label,
+      body.dark-mode .account-selector-box label {
         color: #94a3b8 !important;
       }
       body.dark-mode .info-value {
         color: #f8fafc !important;
       }
       body.dark-mode .total-amount {
-        color: #34d399 !important;
+        color: #00b894 !important;
         border-top-color: #2d2d2d !important;
       }
-      body.dark-mode .slip-container {
-        background: #1e1e1e !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .slip-body {
-        background: #1e1e1e !important;
-        color: #f8fafc !important;
-      }
-      body.dark-mode .d-value {
-        color: #f8fafc !important;
-      }
-      body.dark-mode .qr-box {
-        background: #121212 !important;
-        border-color: #2d2d2d !important;
-      }
-      body.dark-mode .slip-actions {
-        background: #1e1e1e !important;
-        border-top-color: #2d2d2d !important;
-      }
-      body.dark-mode .action-circle {
-        background: #2d2d2d !important;
+      body.dark-mode #accountSelector {
+        background: #2a2a2a !important;
         border-color: #444 !important;
-        color: #38bdf8 !important;
+        color: #fff !important;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
       }
     </style>
   </head>
@@ -566,9 +396,13 @@
           >
             <i data-lucide="arrow-left" class="w-6 h-6"></i>
           </a>
-          <span class="kh-font font-bold tracking-wide">Bill Payment</span>
+          <span
+            class="kh-font font-bold tracking-wide"
+            data-lang="bill_payment_title"
+            >Bill Payment</span
+          >
         </div>
-        <div class="user-balance" id="topBalance">Bal: $0.00</div>
+        <div style="width: 32px"></div>
       </div>
 
       <div class="content-body">
@@ -576,10 +410,18 @@
           <div class="biller-logo" id="billerLogo">
             <i data-lucide="file-text" class="w-8 h-8"></i>
           </div>
-          <div class="biller-name kh-font" id="billerName">
+          <div
+            class="biller-name kh-font"
+            id="billerName"
+            data-lang="search_bill"
+          >
             ស្វែងរកវិក្កយបត្រ
           </div>
-          <p class="text-xs text-slate-400 mt-2" id="billerSub">
+          <p
+            class="text-xs text-slate-400 mt-2 kh-font"
+            id="billerSub"
+            data-lang="enter_bill_id"
+          >
             សូមវាយលេខកូដអតិថិជន ឬលេខវិក្កយបត្រ
           </p>
         </div>
@@ -588,61 +430,88 @@
           <input
             type="text"
             id="billId"
-            class="main-input"
-            placeholder="Enter ID here..."
+            class="main-input kh-font"
+            placeholder="បញ្ចូលលេខវិក្កយបត្រ..."
+            data-lang="bill_placeholder"
             onkeypress="if (event.key === 'Enter') checkBill();"
           />
           <button onclick="openCameraScanner()" class="action-btn scan-btn">
             <i data-lucide="qr-code" class="w-5 h-5"></i>
           </button>
-          <button onclick="checkBill()" class="action-btn check-btn kh-font">
-            Check
+          <button
+            onclick="checkBill()"
+            class="action-btn check-btn kh-font"
+            data-lang="btn_search"
+          >
+            ស្វែងរក
           </button>
         </div>
 
         <div id="billDetailsCard" class="bill-details-card kh-font">
           <div class="detail-info-row">
-            <span class="info-label">វិក្កយបត្រ (Bill ID):</span>
+            <span class="info-label" data-lang="bill_id"
+              >វិក្កយបត្រ (Bill ID):</span
+            >
             <span class="info-value" id="infoBillId">---</span>
           </div>
           <div class="detail-info-row">
-            <span class="info-label">អតិថិជន (Name):</span>
+            <span class="info-label" data-lang="bill_customer"
+              >អតិថិជន (Name):</span
+            >
             <span class="info-value" id="infoName">---</span>
           </div>
           <div class="detail-info-row">
-            <span class="info-label">សម្រាប់ខែ (Month):</span>
+            <span class="info-label" data-lang="bill_month"
+              >សម្រាប់ខែ (Month):</span
+            >
             <span class="info-value" id="infoMonth">---</span>
           </div>
           <div class="total-amount" id="infoAmount">$0.00</div>
+
+          <!-- 🌟 ប្រអប់រើសគណនី (Account Selector) -->
+          <div class="account-selector-box">
+            <label class="kh-font" data-lang="select_pay_account"
+              >ជ្រើសរើសគណនីសម្រាប់ទូទាត់</label
+            >
+            <select id="accountSelector" class="kh-font"></select>
+          </div>
+
           <button
             onclick="openPinModal()"
             id="btnConfirm"
             class="confirm-btn kh-font"
+            data-lang="btn_pay_now"
           >
             ទូទាត់ប្រាក់ (Pay Now)
           </button>
         </div>
       </div>
 
+      <!-- SCANNER MODAL -->
       <div id="scannerModal" class="scanner-overlay">
         <div class="scanner-header">
           <button
             onclick="closeCameraScanner()"
             class="text-white hover:text-rose-400 transition p-2"
           >
-            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            <i data-lucide="x" class="w-7 h-7"></i>
           </button>
-          <h3 class="text-lg font-bold kh-font">ស្កេន Barcode / QR</h3>
+          <h3 class="text-lg font-bold kh-font" data-lang="scan_qr_title">
+            ស្កេន Barcode / QR
+          </h3>
           <div style="width: 40px"></div>
         </div>
         <div class="scanner-frame"><div id="reader"></div></div>
         <div class="flex flex-col items-center">
-          <div class="text-slate-300 text-sm mb-5 kh-font">
+          <div
+            class="text-slate-300 text-sm mb-5 kh-font"
+            data-lang="scan_instruction"
+          >
             សូមដាក់ Barcode ឱ្យចំប្រអប់កណ្តាលកាមេរ៉ា
           </div>
           <label class="upload-btn kh-font">
-            <i data-lucide="image" class="w-5 h-5"></i> ទាញរូបពីទូរស័ព្ទ
-            (Upload)
+            <i data-lucide="image" class="w-5 h-5"></i>
+            <span data-lang="upload_image">ទាញរូបពីទូរស័ព្ទ</span>
             <input
               type="file"
               accept="image/*"
@@ -652,207 +521,117 @@
           </label>
         </div>
       </div>
-
-      <div id="pinModal" class="modal-overlay">
-        <h3 style="color: white; margin-bottom: 5px">Enter Payment PIN</h3>
-        <p
-          style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px"
-          id="pin-hint"
-        >
-          Enter your 4-digit PIN
-        </p>
-        <div class="pin-box">
-          <input
-            type="password"
-            class="pin-digit"
-            id="p1"
-            maxlength="1"
-            oninput="move(this, 'p2')"
-          />
-          <input
-            type="password"
-            class="pin-digit"
-            id="p2"
-            maxlength="1"
-            oninput="move(this, 'p3')"
-          />
-          <input
-            type="password"
-            class="pin-digit"
-            id="p3"
-            maxlength="1"
-            oninput="move(this, 'p4')"
-          />
-          <input
-            type="password"
-            class="pin-digit"
-            id="p4"
-            maxlength="1"
-            oninput="submitPay()"
-          />
-        </div>
-        <button
-          onclick="document.getElementById('pinModal').style.display = 'none'"
-          style="
-            margin-top: 30px;
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            text-decoration: underline;
-          "
-        >
-          Cancel
-        </button>
-      </div>
-
-      <div id="slipModal" class="modal-overlay">
-        <div id="captureArea" class="slip-container">
-          <div class="slip-header">
-            <div class="slip-status-icon">
-              <i data-lucide="check" class="w-8 h-8 font-bold"></i>
-            </div>
-            <div class="slip-title">Payment Successful</div>
-            <div class="slip-amount" id="slipAmount">$0.00</div>
-          </div>
-          <div class="slip-body">
-            <div class="detail-row">
-              <span class="d-label">Trx ID</span>
-              <span class="d-value d-mono" id="slipRef">...</span>
-            </div>
-            <div class="detail-row">
-              <span class="d-label">Hash</span>
-              <span
-                class="d-value d-mono text-slate-400"
-                id="slipHash"
-                style="font-size: 0.8rem"
-                >...</span
-              >
-            </div>
-            <div class="dashed-line"></div>
-            <div class="detail-row">
-              <span class="d-label">From</span>
-              <span class="d-value" id="slipFrom">...</span>
-            </div>
-            <div class="detail-row">
-              <span class="d-label">Biller</span>
-              <span class="d-value" id="slipBiller">...</span>
-            </div>
-            <div class="detail-row">
-              <span class="d-label">Customer</span>
-              <span class="d-value kh-font" id="slipCustomer">...</span>
-            </div>
-            <div class="detail-row">
-              <span class="d-label">Date</span>
-              <span class="d-value" id="slipDate">...</span>
-            </div>
-            <div class="detail-row">
-              <span class="d-label">Remark</span>
-              <span class="d-value" id="slipRemark">...</span>
-            </div>
-
-            <div class="slip-footer-info mt-4">
-              <div class="qr-box">
-                <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
-                  class="qr-img"
-                />
-                <div class="qr-text">
-                  <span>SCAN TO</span><span>CHECK</span>
-                </div>
-              </div>
-              <img
-                src="images/logo.png"
-                class="footer-logo"
-                onerror="
-                  this.src =
-                    'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
-                "
-              />
-            </div>
-          </div>
-          <div class="slip-actions no-print">
-            <div class="action-item" onclick="saveSlipImage()">
-              <div class="action-circle done">
-                <i data-lucide="share-2" class="w-6 h-6"></i>
-              </div>
-              <span class="action-text">Share</span>
-            </div>
-            <div class="action-item" onclick="window.location.reload()">
-              <div class="action-circle done">
-                <i data-lucide="rotate-cw" class="w-6 h-6"></i>
-              </div>
-              <span class="action-text">New Trx</span>
-            </div>
-            <div
-              class="action-item"
-              onclick="window.location.href = 'dashboard.html'"
-            >
-              <div class="action-circle done">
-                <i data-lucide="x" class="w-6 h-6"></i>
-              </div>
-              <span class="action-text">Done</span>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
+
     <script>
       lucide.createIcons();
 
-      // 1. Setup Environment
       const uPayUserString = sessionStorage.getItem("user");
       if (!uPayUserString) {
         window.location.href = "index.html";
       }
       let user = JSON.parse(uPayUserString);
+      let myToken = sessionStorage.getItem("userToken") || user.token;
 
-      // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
-      applyThemeLocally();
+      if (!myToken) {
+        Swal.fire(
+          "Error",
+          "រកមិនឃើញ Token ទេ! លោកអ្នកប្រហែលជាត្រូវ Login ម្តងទៀត។",
+          "error",
+        );
+      }
 
-      // 🌟 បន្ថែមមុខងារ applyThemeLocally នេះ
+      document.addEventListener("DOMContentLoaded", () => {
+        applyThemeLocally();
+        if (typeof applyLanguage === "function") applyLanguage();
+        populateAccounts();
+        document.body.classList.add("loaded");
+      });
+
       function applyThemeLocally() {
         if (user && user.username) {
           const userThemeKey = "theme_" + user.username;
           const isDark = localStorage.getItem(userThemeKey) === "dark";
-
-          if (isDark) {
-            document.body.classList.add("dark-mode");
-          } else {
-            document.body.classList.remove("dark-mode");
-          }
+          if (isDark) document.body.classList.add("dark-mode");
+          else document.body.classList.remove("dark-mode");
         }
       }
 
-      // 🌟 ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
       window.addEventListener("storage", (event) => {
         if (user && user.username) {
           const userThemeKey = "theme_" + user.username;
-          if (event.key === userThemeKey) {
-            applyThemeLocally();
-          }
+          if (event.key === userThemeKey) applyThemeLocally();
         }
       });
 
-      // 🔥 កូដថ្មី៖ ទាញយក Token ឱ្យបានគ្រប់ជ្រុងជ្រោយ (ការពារករណីវា Save ក្នុង user)
-      let myToken =
-        sessionStorage.getItem("token") || localStorage.getItem("token");
-      if (!myToken && user.token) {
-        myToken = user.token;
+      // 🌟 មុខងារទាញយកគណនី (Account Selector)
+      function populateAccounts() {
+        const selector = document.getElementById("accountSelector");
+        selector.innerHTML = "";
+
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.USD &&
+          user.mainAccounts.USD.accountNumber
+        ) {
+          let optUSD = document.createElement("option");
+          optUSD.value = user.mainAccounts.USD.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.balance = user.mainAccounts.USD.balance;
+          optUSD.textContent = `Main USD - $${Number(user.mainAccounts.USD.balance).toFixed(2)}`;
+          selector.appendChild(optUSD);
+        } else if (user.accountNumber) {
+          let optUSD = document.createElement("option");
+          optUSD.value = user.accountNumber;
+          optUSD.dataset.currency = "USD";
+          optUSD.dataset.balance = user.balance;
+          optUSD.textContent = `Main USD - $${Number(user.balance).toFixed(2)}`;
+          selector.appendChild(optUSD);
+        }
+
+        if (
+          user.mainAccounts &&
+          user.mainAccounts.KHR &&
+          user.mainAccounts.KHR.accountNumber
+        ) {
+          let optKHR = document.createElement("option");
+          optKHR.value = user.mainAccounts.KHR.accountNumber;
+          optKHR.dataset.currency = "KHR";
+          optKHR.dataset.balance = user.mainAccounts.KHR.balance;
+          optKHR.textContent = `Main KHR - ៛${Number(user.mainAccounts.KHR.balance).toLocaleString()}`;
+          selector.appendChild(optKHR);
+        } else if (user.accountNumberKHR) {
+          let optKHR = document.createElement("option");
+          optKHR.value = user.accountNumberKHR;
+          optKHR.dataset.currency = "KHR";
+          optKHR.dataset.balance = user.balanceKHR;
+          optKHR.textContent = `Main KHR - ៛${Number(user.balanceKHR).toLocaleString()}`;
+          selector.appendChild(optKHR);
+        }
+
+        if (user.subAccounts && user.subAccounts.length > 0) {
+          user.subAccounts.forEach((acc) => {
+            if (acc.isHidden) return;
+            let opt = document.createElement("option");
+            opt.value = acc.accountNumber;
+            opt.dataset.currency = acc.currency;
+            opt.dataset.balance = acc.balance;
+            let balDisplay =
+              acc.currency === "USD"
+                ? `$${Number(acc.balance).toFixed(2)}`
+                : `៛${Number(acc.balance).toLocaleString()}`;
+            opt.textContent = `${acc.accountName} (${acc.currency}) - ${balDisplay}`;
+            selector.appendChild(opt);
+          });
+        }
       }
 
-      // ប្រសិនបើរករឹតតែអត់ឃើញ Token ទៀត ឱ្យវាលោតប្រាប់
-      if (!myToken) {
-        console.error("រកមិនឃើញ Token ទេ! លោកអ្នកប្រហែលជាត្រូវ Login ម្តងទៀត។");
-      }
+      // 🔥 កែប្រែ URL ទៅ PayHub
+      const PAYHUB_SERVER_URL = "https://payhub-kh.fly.dev";
 
-      document.getElementById("topBalance").innerText =
-        `Bal: $${(user.balance || 0).toFixed(2)}`;
-
-      const UPAY_SERVER_URL = "https://u-pay-bank.fly.dev"; // អាសយដ្ឋាន Server ថ្មី
       let actualBillId = null;
       let actualCompany = null;
-      let actualCompanyAccount = null;
+      let actualAmountUSD = 0;
       let html5QrCode = null;
 
       function getBillerIcon(companyName) {
@@ -967,23 +746,21 @@
           title: "កំពុងស្វែងរក...",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
         });
 
         try {
-          const res = await fetch(`${UPAY_SERVER_URL}/api/bank/scan-bill`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ bill_id: query }),
-          });
+          const res = await fetch(
+            `${PAYHUB_SERVER_URL}/api/gateway/check-bill?query=${query}`,
+          );
           const data = await res.json();
           Swal.close();
 
-          if (data.success && data.billData) {
-            const b = data.billData;
+          if (data.success && data.bill) {
+            const b = data.bill;
             actualBillId = b.bill_id;
             actualCompany = b.company;
+            actualAmountUSD = parseFloat(b.total_amount_usd);
 
             document.getElementById("billerLogo").innerHTML = getBillerIcon(
               b.company,
@@ -997,13 +774,13 @@
             document.getElementById("infoName").innerText = b.customer_name;
             document.getElementById("infoMonth").innerText = b.month;
             document.getElementById("infoAmount").innerText =
-              `$${Number(b.total_amount_usd).toFixed(2)}`;
+              `$${actualAmountUSD.toFixed(2)}`;
 
             document.getElementById("billDetailsCard").style.display = "block";
             lucide.createIcons();
           } else {
             resetDetails();
-            Swal.fire("ព័ត៌មាន", data.message, "info");
+            Swal.fire("ព័ត៌មាន", data.message || "មិនមានវិក្កយបត្រទេ", "info");
           }
         } catch (error) {
           Swal.close();
@@ -1026,129 +803,100 @@
           "សូមវាយលេខកូដអតិថិជន ឬលេខវិក្កយបត្រ";
         actualBillId = null;
         actualCompany = null;
+        actualAmountUSD = 0;
         lucide.createIcons();
       }
 
       function openPinModal() {
-        const amtText = document
-          .getElementById("infoAmount")
-          .innerText.replace("$", "");
-        if (parseFloat(amtText) > user.balance)
+        const selector = document.getElementById("accountSelector");
+        const selectedOpt = selector.options[selector.selectedIndex];
+        const accBal = parseFloat(selectedOpt.dataset.balance);
+        const cur = selectedOpt.dataset.currency;
+
+        let requiredAmount = actualAmountUSD;
+        if (cur === "KHR") requiredAmount = actualAmountUSD * 4110;
+
+        if (accBal < requiredAmount) {
           return Swal.fire(
             "បរាជ័យ",
             "ទឹកប្រាក់ក្នុងគណនី U-Pay មិនគ្រប់គ្រាន់ទេ",
             "error",
           );
-        ["p1", "p2", "p3", "p4"].forEach(
-          (id) => (document.getElementById(id).value = ""),
-        );
-        document.getElementById("pinModal").style.display = "flex";
-        document.getElementById("p1").focus();
-      }
+        }
 
-      function move(c, n) {
-        if (c.value.length >= 1) document.getElementById(n).focus();
-      }
-
-      // 🔥 មុខងារទូទាត់ប្រាក់ដែលប្រើ myToken ត្រឹមត្រូវ
-      async function submitPay() {
-        const pin =
-          document.getElementById("p1").value +
-          document.getElementById("p2").value +
-          document.getElementById("p3").value +
-          document.getElementById("p4").value;
-
-        if (pin.length === 4) {
-          if (pin !== user.pin) {
-            document.getElementById("pinModal").style.display = "none";
-            return Swal.fire("បរាជ័យ", "លេខកូដ PIN មិនត្រឹមត្រូវ!", "error");
-          }
-
-          document.getElementById("pinModal").style.display = "none";
-          Swal.fire({
-            title: "កំពុងទូទាត់ប្រាក់...",
-            didOpen: () => Swal.showLoading(),
-          });
-
-          const payAmount = parseFloat(
-            document.getElementById("infoAmount").innerText.replace("$", ""),
+        if (typeof requestPinVerification === "function") {
+          requestPinVerification(
+            "បញ្ជាក់លេខសម្ងាត់ (PIN)",
+            `សម្រាប់ទូទាត់វិក្កយបត្រ $${actualAmountUSD.toFixed(2)}`,
+            function (pinCode) {
+              submitPay(pinCode);
+            },
           );
-
-          try {
-            // 🔥 បញ្ជូន myToken ទៅបញ្ជាក់ជាមួយ Server
-            const res = await fetch(`${UPAY_SERVER_URL}/api/bank/pay-bill`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${myToken}`,
-              },
-              body: JSON.stringify({
-                bill_id: actualBillId,
-                company: actualCompany,
-                username: user.username,
-                amount: payAmount,
-              }),
-            });
-            const data = await res.json();
-
-            if (data.success) {
-              user.balance =
-                data.newBalance !== undefined
-                  ? data.newBalance
-                  : user.balance - payAmount;
-              sessionStorage.setItem("user", JSON.stringify(user));
-              document.getElementById("topBalance").innerText =
-                `Bal: $${user.balance.toFixed(2)}`;
-
-              Swal.close();
-
-              const txId = data.transaction_id || `BP-${Date.now()}`;
-              const txHash = data.hash;
-
-              document.getElementById("slipAmount").innerText =
-                `$${payAmount.toFixed(2)}`;
-              document.getElementById("slipRef").innerText = txId;
-              document.getElementById("slipHash").innerText = txHash;
-              document.getElementById("slipFrom").innerText = user.username;
-              document.getElementById("slipBiller").innerText = actualCompany;
-              document.getElementById("slipCustomer").innerText =
-                document.getElementById("infoName").innerText;
-              document.getElementById("slipRemark").innerText =
-                `Bill: ${actualBillId}`;
-
-              const now = new Date();
-              document.getElementById("slipDate").innerText =
-                now.toLocaleString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                });
-
-              document.getElementById("slipModal").style.display = "flex";
-            } else {
-              Swal.fire("បរាជ័យ", data.message, "error");
-            }
-          } catch (e) {
-            Swal.fire("Error", "បរាជ័យក្នុងការភ្ជាប់ទៅធនាគារ", "error");
-          }
+        } else {
+          Swal.fire("Error", "មិនមានមុខងារ PIN ទេ", "error");
         }
       }
 
-      function saveSlipImage() {
-        document.querySelector(".slip-actions").style.display = "none";
-        html2canvas(document.getElementById("captureArea"), {
-          scale: 2,
-          backgroundColor: null,
-        }).then((canvas) => {
-          const link = document.createElement("a");
-          link.download = `UPay-BillReceipt-${Date.now()}.png`;
-          link.href = canvas.toDataURL("image/png");
-          link.click();
-          document.querySelector(".slip-actions").style.display = "flex";
+      async function submitPay(pinCode) {
+        Swal.fire({
+          title: "កំពុងទូទាត់ប្រាក់...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal" },
         });
+
+        const selector = document.getElementById("accountSelector");
+        const selectedAcc = selector.value;
+
+        try {
+          const res = await fetch("/api/pay-bill", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${myToken}`,
+            },
+            body: JSON.stringify({
+              bill_id: actualBillId,
+              company: actualCompany,
+              username: user.username,
+              amount: actualAmountUSD,
+              senderAccount: selectedAcc,
+              pin: pinCode,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            sessionStorage.setItem("user", JSON.stringify(data.user || user));
+            Swal.close();
+
+            // 🌟 ប្រើប្រាស់មុខងារ openGlobalSlip ដើម្បីបង្ហាញ Slip ធំដែលស្អាត
+            const transactionObj = {
+              amount: -actualAmountUSD,
+              currency: "USD",
+              date: new Date().toLocaleString("en-US", {
+                timeZone: "Asia/Phnom_Penh",
+                hour12: true,
+              }),
+              refId: data.transaction_id || `BP-${Date.now()}`,
+              hash: data.hash || "N/A",
+              senderName: user.fullName || user.username,
+              receiverName: actualCompany,
+              type: "Bill Payment",
+              trxMethod: "Bill Payment",
+              remark: `ទូទាត់វិក្កយបត្រ: ${actualCompany}`,
+              senderAcc: selectedAcc,
+              receiverAcc: actualBillId, // បង្ហាញលេខវិក្កយបត្រជំនួសលេខកុង
+            };
+
+            openGlobalSlip(transactionObj, user.username);
+          } else {
+            Swal.fire("បរាជ័យ", data.message, "error");
+          }
+        } catch (e) {
+          Swal.fire("Error", "បរាជ័យក្នុងការភ្ជាប់ទៅធនាគារ U-Pay", "error");
+        }
       }
     </script>
   </body>

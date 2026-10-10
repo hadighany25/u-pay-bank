@@ -731,13 +731,33 @@ const translations = {
     acc_members: "Account Members",
     joint_tnc:
       "I agree to pay the fee. If the partner does not accept the invitation within 24 hours, the account will be cancelled.",
-
     success_title_default: "Success!",
     success_desc_default: "Your account has been created successfully.",
     receipt_acc_num: "Account No.",
     receipt_acc_name: "Account Name",
     receipt_paid_amt: "Paid Amount",
     btn_back_home: "Back to Dashboard",
+
+    // Payment Bill
+    title_scan: "SCAN QR",
+    scan_desc: "Place QR code inside the frame to scan",
+    my_qr: "My QR",
+    set_amount: "Set Amount",
+    save_qr: "Save to Gallery",
+
+    bill_payment_title: "Bill Payment",
+    search_bill: "Search Bill",
+    enter_bill_id: "Please enter customer code or bill number",
+    bill_placeholder: "Enter Bill ID...",
+    btn_search: "Search",
+    bill_id: "Bill ID:",
+    bill_customer: "Customer Name:",
+    bill_month: "For Month:",
+    select_pay_account: "Select Payment Account",
+    btn_pay_now: "Pay Now",
+    scan_qr_title: "Scan Barcode / QR",
+    scan_instruction: "Please align Barcode within the frame",
+    upload_image: "Upload from Gallery",
   },
 
   // ==========================================
@@ -1476,6 +1496,27 @@ const translations = {
     receipt_acc_name: "ឈ្មោះគណនី",
     receipt_paid_amt: "ប្រាក់បានទូទាត់",
     btn_back_home: "ត្រឡប់ទៅទំព័រដើម",
+
+    // Payment Bill
+    title_scan: "ស្កេន QR",
+    scan_desc: "ដាក់កូដ QR ក្នុងប្រអប់ដើម្បីស្កេន",
+    my_qr: "QR របស់ខ្ញុំ",
+    set_amount: "កំណត់ទឹកប្រាក់ចង់បាន",
+    save_qr: "រក្សាទុកក្នុងទូរស័ព្ទ",
+
+    bill_payment_title: "បង់វិក្កយបត្រ",
+    search_bill: "ស្វែងរកវិក្កយបត្រ",
+    enter_bill_id: "សូមវាយលេខកូដអតិថិជន ឬលេខវិក្កយបត្រ",
+    bill_placeholder: "បញ្ចូលលេខវិក្កយបត្រ...",
+    btn_search: "ស្វែងរក",
+    bill_id: "វិក្កយបត្រ (Bill ID):",
+    bill_customer: "អតិថិជន (Name):",
+    bill_month: "សម្រាប់ខែ (Month):",
+    select_pay_account: "ជ្រើសរើសគណនីសម្រាប់ទូទាត់",
+    btn_pay_now: "ទូទាត់ប្រាក់ (Pay Now)",
+    scan_qr_title: "ស្កេន Barcode / QR",
+    scan_instruction: "សូមដាក់ Barcode ឱ្យចំប្រអប់កណ្តាលកាមេរ៉ា",
+    upload_image: "ទាញរូបពីទូរស័ព្ទ",
   },
 };
 

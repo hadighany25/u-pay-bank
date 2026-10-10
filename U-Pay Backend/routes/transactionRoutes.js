@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
 const transactionController = require("../controllers/transactionController");
-
 const {
   verifyUser,
   enforceSystemActive,
@@ -11,10 +9,7 @@ const {
 // ==========================================
 // 💸 មុខងារវេរលុយ និង ទូទាត់ប្រាក់
 // ==========================================
-// 🔥 កែទី១៖ ប្តូរពី /check ទៅ /check-account ឲ្យត្រូវនឹងការហៅរបស់ Frontend
 router.post("/check-account", verifyUser, transactionController.checkAccount);
-
-// 🔥 កែទី២៖ ប្តូរពី /submit ទៅ /transfer ឲ្យត្រូវនឹងការហៅរបស់ Frontend
 router.post(
   "/transfer",
   verifyUser,
@@ -25,9 +20,11 @@ router.post(
 // ==========================================
 // 🧾 មុខងារបង់វិក្កយបត្រ (PayHub)
 // ==========================================
-router.post("/bill/scan", verifyUser, transactionController.scanBankBill);
+router.post("/scan-bill", verifyUser, transactionController.scanBankBill);
+
+// 🔥 នេះជាកន្លែងដែលត្រូវកែអោយត្រូវ៖ បងត្រូវប្រាកដថាប្រើឈ្មោះ /pay-bill
 router.post(
-  "/bill/pay",
+  "/pay-bill",
   verifyUser,
   enforceSystemActive,
   transactionController.payBankBill,
@@ -36,14 +33,12 @@ router.post(
 // ==========================================
 // 🎁 មុខងាររង្វាន់ និង ប្រូម៉ូកូដ
 // ==========================================
-// 🔥 កែទី៣៖ ប្តូរពី /reward/spin ទៅ /reward/cashback ឲ្យត្រូវនឹង Frontend
 router.post(
   "/reward/cashback",
   verifyUser,
   enforceSystemActive,
   transactionController.rewardCashback,
 );
-
 router.post(
   "/reward/promo",
   verifyUser,
@@ -63,7 +58,7 @@ router.post(
 router.post("/egift/open", verifyUser, transactionController.egiftOpened);
 
 // ==========================================
-// 🤝 មុខងារ B2B (Server to Server) គ្មាន verifyUser ទេ
+// 🤝 មុខងារ B2B (Server to Server)
 // ==========================================
 router.post("/b2b/transfer", transactionController.b2bTransfer);
 
