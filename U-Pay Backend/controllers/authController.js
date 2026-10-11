@@ -11,6 +11,8 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Tesseract = require("tesseract.js");
+const crypto = require("crypto");
+const { sendOTP, sendResetLink } = require("../utils/sendEmail");
 
 // 1.2 តារាងទិន្នន័យ (Database Models)
 const User = require("../models/User");
@@ -21,7 +23,6 @@ const Notification = require("../models/Notification");
 const Otp = require("../models/Otp");
 
 // 1.3 មុខងារជំនួយ (Services & Utils)
-const sendOTP = require("../utils/sendEmail");
 const bot = require("../services/telegramBot");
 const { getFormattedDate } = require("../services/helpers");
 
@@ -293,7 +294,7 @@ const verifyAndRegister = async (req, res) => {
       id: tsId,
       userId: newUserId,
       username,
-      password,
+      password, // 🟢 រក្សាទុកជា Plain Text តាមការស្នើសុំ
       email,
       fullName: fullName || username,
       phone,
@@ -393,7 +394,7 @@ const register = async (req, res) => {
       id: tsId,
       userId: newUserId,
       username,
-      password,
+      password, // 🟢 រក្សាទុកជា Plain Text
       fullName: fullName || username,
       phone,
       pin,
@@ -519,7 +520,7 @@ const resetPassword = async (req, res) => {
       email: { $regex: new RegExp("^" + email.trim() + "$", "i") },
     });
     if (user) {
-      user.password = newPassword;
+      user.password = newPassword; // 🟢 រក្សាទុកជា Plain Text
       await user.save();
       await Otp.deleteOne({ _id: validOtp._id });
       res.json({
@@ -616,7 +617,7 @@ const changePassword = async (req, res) => {
   try {
     const user = await User.findOne({ username });
     if (user && user.password === oldPassword) {
-      user.password = newPassword;
+      user.password = newPassword; // 🟢 រក្សាទុកជា Plain Text
       await user.save();
       res.json({ success: true });
     } else
@@ -1850,6 +1851,113 @@ const migrateTransactions = async (req, res) => {
   }
 };
 
+// 🟢 អនុគមន៍ទី១៖ សម្រាប់ Admin ចុចផ្ញើ Link (Request Reset)
+const requestCredentialReset = async (req, res) => {
+  // អ្នកអាចឆែកសិទ្ធិ Admin នៅទីនេះបើសិនចង់ (ឧ. មានតែ Super Admin និង Support ទើបធ្វើបាន)
+  const { username, resetType } = req.body; // resetType: "PIN" ឬ "Password"
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    if (!user.email) {
+      return res.json({
+        success: false,
+        message: "អតិថិជននេះមិនទាន់មានអ៊ីមែល (Email) ទេ។ សូមឱ្យគាត់បញ្ចូលសិន。",
+      });
+    }
+
+    // បង្កើត Token សុវត្ថិភាព (Random 64 តួ)
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    // Hash Token មុន Save ចូល DB ដើម្បីសុវត្ថិភាពអតិបរមា (ជៀសវាងអ្នកលួច Database យកទៅប្រើបាន)
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    user.resetToken = hashedToken;
+    user.resetTokenExpire = Date.now() + 5 * 60 * 1000; // 5 នាទី
+    await user.save();
+
+    // បង្កើត URL សំរាប់ផ្ញើ (ប្រើ URL ពិតរបស់អ្នក)
+    const baseUrl = process.env.CLIENT_URL || "https://u-pay-bank.fly.dev";
+    const resetUrl = `${baseUrl}/reset-credential?token=${rawToken}&type=${resetType}`;
+
+    // ផ្ញើ Email
+    const emailSent = await sendResetLink(
+      user.email,
+      user.fullName || user.username,
+      resetUrl,
+      resetType,
+    );
+
+    if (!emailSent) {
+      return res.json({
+        success: false,
+        message: "មានបញ្ហាក្នុងការផ្ញើអ៊ីមែល!",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "បានផ្ញើ Link ទៅកាន់អ៊ីមែលរបស់អតិថិជនរួចរាល់!",
+    });
+  } catch (error) {
+    console.error("Request Reset Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// នៅក្នុង controllers/authController.js
+
+// 🟢 អនុគមន៍សម្រាប់ User បញ្ជាក់លេខថ្មី តាមរយៈ Link របស់គាត់
+const verifyAndSaveNewCredential = async (req, res) => {
+  const { token, type, newValue } = req.body;
+
+  try {
+    // ធ្វើការ Hash Token ដែល User ផ្ញើមក ដើម្បីប្រៀបធៀបជាមួយ Database
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // រកមើល User ដែលមាន Token នេះ ហើយមិនទាន់ហួសម៉ោង
+    const user = await User.findOne({
+      resetToken: hashedToken,
+      resetTokenExpire: { $gt: Date.now() }, // ត្រូវតែធំជាងពេលបច្ចុប្បន្ន
+    });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "តំណភ្ជាប់នេះមិនត្រឹមត្រូវ ឬបានផុតកំណត់ហើយ (លើសពី ៥ នាទី)!",
+      });
+    }
+
+    // Save លេខថ្មី
+    if (type === "PIN") {
+      user.pin = newValue;
+      user.pinAttempts = 0; // Reset ការសាកល្បងខុស
+    } else if (type === "Password") {
+      // 🟢 រក្សាទុកជា Plain Text តាមការចង់បានរបស់អ្នក
+      user.password = newValue;
+    } else {
+      return res.json({ success: false, message: "ប្រភេទមិនត្រឹមត្រូវ!" });
+    }
+
+    // 🔴 សំខាន់បំផុត៖ លុប Token ចោលភ្លាមៗ (Single-Use Only)
+    user.resetToken = undefined;
+    user.resetTokenExpire = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `${type} របស់អ្នកត្រូវបានផ្លាស់ប្តូរដោយជោគជ័យ!`,
+    });
+  } catch (error) {
+    console.error("Save Credential Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
@@ -1900,4 +2008,6 @@ module.exports = {
   adminLogin,
   adminNfcLogin,
   migrateTransactions,
+  requestCredentialReset,
+  verifyAndSaveNewCredential,
 };

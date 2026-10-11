@@ -88,6 +88,8 @@ const userSchema = new mongoose.Schema(
     profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
+    resetToken: { type: String, default: null },
+    resetTokenExpire: { type: Date, default: null },
 
     // ==========================================
     // 📝 ៥. ព័ត៌មាន KYC (Identity Verification)

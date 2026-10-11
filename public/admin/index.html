@@ -1687,11 +1687,13 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៤ ] Customer 360 View -->
+      <!-- [ ផ្ទាំង ០៤ ] Customer 360 View (Modern Card-Based Layout) -->
       <!-- ------------------------------------------------------- -->
-      <div
-        id="sec-customer-360"
-        style="
+      <style>
+        /* ==========================================
+           🎨 រចនាបថសម្រាប់ Customer 360° (New CSS)
+        ========================================== */
+        #sec-customer-360 {
           display: none;
           width: 100%;
           max-width: 1400px;
@@ -1699,175 +1701,549 @@
           box-sizing: border-box;
           padding: 0 15px;
           position: relative;
-        "
-      >
-        <div class="table-header-controls">
+        }
+
+        /* ស្ទាយប្រអប់ស្វែងរកធំ */
+        .c360-search-wrapper {
+          background: var(--bg-card);
+          padding: 20px 25px;
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+          margin-bottom: 25px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 15px;
+        }
+        .c360-search-wrapper h3 {
+          margin: 0;
+          color: var(--text-main);
+          font-family: "Kantumruy Pro", sans-serif;
+          font-size: 1.2rem;
+        }
+        .c360-search-box {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: var(--bg-body);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 12px 20px;
+          width: 100%;
+          max-width: 600px;
+          transition: all 0.3s ease;
+        }
+        .c360-search-box:focus-within {
+          border-color: var(--secondary);
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+        .c360-search-box input {
+          flex: 1;
+          border: none;
+          background: transparent;
+          outline: none;
+          font-size: 1.05rem;
+          color: var(--text-main);
+          font-family: "Kantumruy Pro", sans-serif;
+        }
+        .c360-search-box button {
+          background: var(--secondary);
+          color: white;
+          border: none;
+          padding: 8px 20px;
+          border-radius: 8px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: 0.2s;
+          font-family: "Kantumruy Pro", sans-serif;
+        }
+        .c360-search-box button:hover {
+          background: #059669;
+        }
+
+        /* ស្ទាយ Layout ថ្មី (ឆ្វេង: Profile, ស្តាំ: Tabs) */
+        .c360-layout {
+          display: flex;
+          gap: 25px;
+          align-items: flex-start;
+          flex-wrap: wrap; /* ឆ្លើយតបលើទូរស័ព្ទ */
+        }
+
+        .c360-sidebar {
+          flex: 1;
+          min-width: 320px;
+          max-width: 400px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .c360-main-content {
+          flex: 2;
+          min-width: 450px;
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+        }
+
+        /* Profile Card */
+        .c360-profile-card {
+          background: var(--bg-card);
+          border-radius: 16px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          padding: 25px;
+          text-align: center;
+          position: relative;
+        }
+        .c360-avatar-container {
+          position: relative;
+          width: 100px;
+          height: 100px;
+          margin: 0 auto 15px;
+        }
+        .c360-avatar-container img {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 4px solid var(--bg-body);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+        .c360-avatar-container img:hover {
+          transform: scale(1.05);
+        }
+        .c360-avatar-edit-icon {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          background: var(--secondary);
+          color: white;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.8rem;
+          border: 2px solid var(--bg-card);
+          cursor: pointer;
+        }
+
+        .c360-status-badge {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          font-size: 0.75rem;
+          font-weight: bold;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-family: "Kantumruy Pro", sans-serif;
+        }
+
+        /* ប៊ូតុង Quick Actions */
+        .c360-quick-action-btn {
+          width: 100%;
+          padding: 12px;
+          border-radius: 10px;
+          border: none;
+          font-weight: bold;
+          font-size: 0.95rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          font-family: "Kantumruy Pro", sans-serif;
+          transition: all 0.2s ease;
+        }
+
+        /* Navigation Tabs ថ្មី */
+        .c360-nav-tabs {
+          display: flex;
+          border-bottom: 1px solid var(--border);
+          overflow-x: auto;
+          white-space: nowrap;
+          background: var(--bg-body);
+        }
+        .c360-nav-tabs::-webkit-scrollbar {
+          height: 4px;
+        }
+        .c360-nav-tabs::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+
+        .c360-tab-btn {
+          padding: 16px 22px;
+          cursor: pointer;
+          font-family: "Kantumruy Pro", sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: var(--text-muted);
+          border-bottom: 3px solid transparent;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .c360-tab-btn:hover {
+          color: var(--text-main);
+          background: rgba(0, 0, 0, 0.02);
+        }
+        .c360-tab-btn.active {
+          color: var(--secondary);
+          border-bottom-color: var(--secondary);
+          background: white;
+        }
+
+        .c360-tab-pane {
+          padding: 30px;
+          display: none;
+          animation: fadeIn 0.3s ease;
+        }
+        .c360-tab-pane.active {
+          display: block;
+        }
+
+        /* ស្ទាយសង្ខេប (Summary Widgets) នៅ Sidebar */
+        .c360-widget {
+          background: var(--bg-body);
+          border-radius: 12px;
+          padding: 15px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          border: 1px solid var(--border);
+        }
+        .c360-widget-icon {
+          width: 45px;
+          height: 45px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+        }
+
+        @media (max-width: 992px) {
+          .c360-layout {
+            flex-direction: column;
+          }
+          .c360-sidebar,
+          .c360-main-content {
+            min-width: 100%;
+            width: 100%;
+          }
+        }
+      </style>
+
+      <div id="sec-customer-360">
+        <!-- Header -->
+        <div class="table-header-controls" style="margin-bottom: 10px">
           <div>
             <h2 class="dash-title" data-i18n="c360-title">
               Customer 360° View
             </h2>
             <p class="dash-desc" data-i18n="c360-desc">
-              ស្វែងរក និងមើលព័ត៌មានអតិថិជនលម្អិត.
+              ស្វែងរក និងវិភាគព័ត៌មានអតិថិជនលម្អិត.
             </p>
-          </div>
-          <div class="search-box" style="max-width: 400px">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input
-              type="text"
-              id="searchC360"
-              placeholder="ស្វែងរកតាម ឈ្មោះ, លេខទូរស័ព្ទ, គណនី..."
-              onkeyup="if (event.key === 'Enter') searchCustomer360();"
-            />
           </div>
         </div>
 
+        <!-- ប្រអប់ស្វែងរក (Search Bar) -->
+        <div class="c360-search-wrapper" id="c360-search-container">
+          <h3>
+            <i
+              class="fa-solid fa-users-viewfinder"
+              style="color: var(--secondary)"
+            ></i>
+            ស្វែងរកអតិថិជន
+          </h3>
+          <div class="c360-search-box">
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="color: var(--text-muted); font-size: 1.2rem"
+            ></i>
+            <input
+              type="text"
+              id="searchC360"
+              placeholder="វាយលេខទូរស័ព្ទ, លេខគណនី ឬ Username..."
+              onkeyup="if (event.key === 'Enter') searchCustomer360();"
+            />
+            <button onclick="searchCustomer360()">ស្វែងរក</button>
+          </div>
+        </div>
+
+        <!-- Empty State (មុនពេលស្វែងរក) -->
         <div
           id="c360-empty-state"
           style="
             text-align: center;
-            padding: 100px 20px;
+            padding: 60px 20px;
             color: var(--text-muted);
-            opacity: 0.6;
+            opacity: 0.7;
           "
         >
           <i
-            class="fa-solid fa-users-viewfinder"
-            style="font-size: 5rem; margin-bottom: 20px"
+            class="fa-solid fa-address-card"
+            style="font-size: 5rem; margin-bottom: 20px; color: #cbd5e1"
           ></i>
-          <h3>វាយបញ្ចូលទិន្នន័យនៅប្រអប់ខាងលើ ដើម្បីស្វែងរកអតិថិជន</h3>
+          <h3 class="kh-text">សូមវាយបញ្ចូលព័ត៌មានអតិថិជន ដើម្បីចាប់ផ្តើម</h3>
+          <p class="kh-text" style="font-size: 0.9rem">
+            អ្នកអាចស្វែងរកតាមឈ្មោះ, លេខទូរស័ព្ទ, អ៊ីមែល, ឬលេខគណនីធនាគារ។
+          </p>
         </div>
 
-        <div
-          id="c360-profile-view"
-          style="display: none; animation: fadeIn 0.4s ease"
-        >
-          <div
-            class="dash-card"
-            style="
-              margin-bottom: 20px;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              flex-wrap: wrap;
-              gap: 20px;
-            "
-          >
-            <div style="display: flex; gap: 20px; align-items: center">
-              <img
-                id="c360-avatar"
-                src="../images/default-avatar.png"
-                style="
-                  width: 80px;
-                  height: 80px;
-                  border-radius: 50%;
-                  border: 3px solid var(--border);
-                  object-fit: cover;
-                "
-              />
-              <div>
+        <!-- ផ្ទៃបង្ហាញទិន្នន័យ (Profile View) -->
+        <div id="c360-profile-view" style="display: none">
+          <div class="c360-layout">
+            <!-- ⬅️ របារខាងឆ្វេង (Sidebar: Profile Card & Actions) -->
+            <div class="c360-sidebar">
+              <!-- កាតប្រវត្តិរូប -->
+              <div class="c360-profile-card">
+                <div id="c360-status-badge" class="c360-status-badge"></div>
+
+                <div
+                  class="c360-avatar-container"
+                  onclick="c360ChangeProfileImage()"
+                >
+                  <img
+                    id="c360-avatar"
+                    src="../images/default-avatar.png"
+                    alt="Profile"
+                  />
+                  <div class="c360-avatar-edit-icon">
+                    <i class="fa-solid fa-camera"></i>
+                  </div>
+                </div>
+
                 <h2
                   id="c360-name"
-                  style="margin: 0 0 5px 0; color: var(--text-main)"
+                  style="
+                    margin: 0 0 5px;
+                    color: var(--text-main);
+                    font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                    font-size: 1.4rem;
+                  "
                 >
                   ...
                 </h2>
                 <div
+                  id="c360-username"
                   style="
-                    display: flex;
-                    gap: 15px;
-                    font-size: 0.9rem;
                     color: var(--text-muted);
+                    font-family: &quot;Inter&quot;, monospace;
+                    font-size: 0.9rem;
+                    margin-bottom: 15px;
                   "
                 >
-                  <span id="c360-username"
-                    ><i class="fa-solid fa-at"></i> ...</span
+                  @...
+                </div>
+
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    text-align: left;
+                    margin-top: 20px;
+                    padding-top: 15px;
+                    border-top: 1px dashed var(--border);
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      color: var(--text-main);
+                      font-size: 0.95rem;
+                    "
                   >
-                  <span id="c360-phone"
-                    ><i class="fa-solid fa-phone"></i> ...</span
+                    <i
+                      class="fa-solid fa-phone"
+                      style="color: var(--text-muted); width: 20px"
+                    ></i>
+                    <span
+                      id="c360-phone"
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-weight: 600;
+                      "
+                      >...</span
+                    >
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      color: var(--text-main);
+                      font-size: 0.95rem;
+                    "
                   >
-                  <span id="c360-status-badge"></span>
+                    <i
+                      class="fa-solid fa-envelope"
+                      style="color: var(--text-muted); width: 20px"
+                    ></i>
+                    <span
+                      id="c360-email"
+                      style="
+                        font-family: &quot;JetBrains Mono&quot;, monospace;
+                        font-weight: 600;
+                        font-size: 0.85rem;
+                      "
+                      >...</span
+                    >
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      color: var(--text-main);
+                      font-size: 0.95rem;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-id-badge"
+                      style="color: var(--text-muted); width: 20px"
+                    ></i>
+                    <span
+                      id="c360-kyc-status"
+                      class="kh-text"
+                      style="font-weight: bold"
+                      >...</span
+                    >
+                  </div>
                 </div>
               </div>
-            </div>
-            <div style="display: flex; gap: 10px" id="c360-quick-actions"></div>
-          </div>
 
-          <div class="dash-card" style="padding: 0">
-            <div
-              style="
-                display: flex;
-                border-bottom: 1px solid var(--border);
-                overflow-x: auto;
-                white-space: nowrap;
-              "
-              class="c360-tabs"
-            >
-              <div class="c360-tab active" onclick="switchC360Tab('info')">
-                <i class="fa-solid fa-circle-info"></i> Information
+              <!-- Widgets សង្ខេប -->
+              <div
+                id="c360-summary-widgets"
+                style="display: flex; flex-direction: column; gap: 12px"
+              >
+                <!-- ទិន្នន័យនឹងត្រូវ Generate ដោយ JS ត្រង់ renderSummaryWidgets() -->
               </div>
-              <div class="c360-tab" onclick="switchC360Tab('finance')">
-                <i class="fa-solid fa-wallet"></i> Wallets
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('cards')">
-                <i class="fa-solid fa-credit-card"></i> Cards
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('kyc')">
-                <i class="fa-solid fa-id-card"></i> KYC & Identity
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('trx')">
-                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('security')">
-                <i class="fa-solid fa-shield-halved"></i> Security
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('merchant')">
-                <i class="fa-solid fa-store"></i> Merchant
-              </div>
-              <div class="c360-tab" onclick="switchC360Tab('logs')">
-                <i class="fa-solid fa-clock-rotate-left"></i> Admin Logs
+
+              <!-- ប៊ូតុងបញ្ជាបន្ទាន់ (Quick Actions) -->
+              <div
+                style="
+                  background: var(--bg-card);
+                  border-radius: 16px;
+                  border: 1px solid var(--border);
+                  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+                  padding: 20px;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 10px;
+                "
+              >
+                <h4
+                  class="kh-text"
+                  style="
+                    margin: 0 0 10px;
+                    color: var(--text-muted);
+                    font-size: 0.9rem;
+                    text-transform: uppercase;
+                  "
+                >
+                  សកម្មភាពរហ័ស (Actions)
+                </h4>
+
+                <button
+                  onclick="c360RefreshData()"
+                  class="c360-quick-action-btn"
+                  style="
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    border: 1px solid var(--border);
+                  "
+                >
+                  <i
+                    class="fa-solid fa-arrows-rotate"
+                    id="c360-refresh-icon"
+                  ></i>
+                  Refresh ទិន្នន័យ
+                </button>
+                <button
+                  onclick="c360OpenFloatingChat()"
+                  class="c360-quick-action-btn"
+                  style="background: rgba(59, 130, 246, 0.1); color: #3b82f6"
+                >
+                  <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Direct
+                  Message)
+                </button>
+                <button
+                  id="c360-btn-freeze"
+                  onclick="c360ToggleFreeze()"
+                  class="c360-quick-action-btn"
+                  style="background: rgba(239, 68, 68, 0.1); color: #ef4444"
+                >
+                  <i class="fa-solid fa-lock"></i> ផ្អាកគណនី (Freeze)
+                </button>
               </div>
             </div>
-            <div style="padding: 25px">
-              <div
-                id="c360-tab-info"
-                class="c360-tab-content"
-                style="display: block"
-              ></div>
-              <div
-                id="c360-tab-finance"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-cards"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-kyc"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-trx"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-security"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-merchant"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
-              <div
-                id="c360-tab-logs"
-                class="c360-tab-content"
-                style="display: none"
-              ></div>
+
+            <!-- ➡️ ផ្ទៃខាងស្តាំ (Main Content: Tabs) -->
+            <div class="c360-main-content">
+              <!-- Navigation Tabs -->
+              <div class="c360-nav-tabs">
+                <div
+                  class="c360-tab-btn active"
+                  onclick="switchC360Tab('info', this)"
+                >
+                  <i class="fa-solid fa-user"></i> ព័ត៌មាន (Info)
+                </div>
+                <div
+                  class="c360-tab-btn"
+                  onclick="switchC360Tab('finance', this)"
+                >
+                  <i class="fa-solid fa-wallet"></i> ហិរញ្ញវត្ថុ (Wallets)
+                </div>
+                <div
+                  class="c360-tab-btn"
+                  onclick="switchC360Tab('cards', this)"
+                >
+                  <i class="fa-regular fa-credit-card"></i> កាត (Cards)
+                </div>
+                <div class="c360-tab-btn" onclick="switchC360Tab('trx', this)">
+                  <i class="fa-solid fa-money-bill-transfer"></i> ប្រតិបត្តិការ
+                  (Trx)
+                </div>
+                <div class="c360-tab-btn" onclick="switchC360Tab('kyc', this)">
+                  <i class="fa-solid fa-id-card-clip"></i> ឯកសារ (KYC)
+                </div>
+                <div
+                  class="c360-tab-btn"
+                  onclick="switchC360Tab('security', this)"
+                >
+                  <i class="fa-solid fa-shield-halved"></i> សន្តិសុខ (Security)
+                </div>
+                <div
+                  class="c360-tab-btn"
+                  id="c360-tab-btn-merchant"
+                  onclick="switchC360Tab('merchant', this)"
+                >
+                  <i class="fa-solid fa-store"></i> ហាង (Merchant)
+                </div>
+              </div>
+
+              <!-- Tab Contents -->
+              <div id="c360-tab-info" class="c360-tab-pane active"></div>
+              <div id="c360-tab-finance" class="c360-tab-pane"></div>
+              <div id="c360-tab-cards" class="c360-tab-pane"></div>
+              <div id="c360-tab-trx" class="c360-tab-pane"></div>
+              <div id="c360-tab-kyc" class="c360-tab-pane"></div>
+              <div id="c360-tab-security" class="c360-tab-pane"></div>
+              <div id="c360-tab-merchant" class="c360-tab-pane"></div>
             </div>
           </div>
         </div>

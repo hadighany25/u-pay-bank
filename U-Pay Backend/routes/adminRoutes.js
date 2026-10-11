@@ -163,6 +163,11 @@ router.post(
   safeHandler(adminController.editUser, "editUser"),
 );
 router.post(
+  "/request-reset",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.requestCredentialReset, "requestCredentialReset"),
+);
+router.post(
   "/delete-user",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   safeHandler(adminController.deleteUser, "deleteUser"),

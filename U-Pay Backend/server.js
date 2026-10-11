@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -102,6 +103,10 @@ app.get("/api/receipt-data/:id", adminController.getPublicReceipt);
 // បង្ហាញ Web ពេលអតិថិជនស្កេនចូល Link
 app.get("/receipt/:id", (req, res) => {
   res.sendFile(path.resolve(__dirname, "../public/receipt.html"));
+});
+
+app.get("/reset-credential", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "../public/reset-credential.html"));
 });
 
 // Route សម្រាប់ទំព័រដើម (UPAY)

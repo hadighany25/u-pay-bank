@@ -94,7 +94,7 @@ async function searchCustomer360() {
 }
 
 // =======================================================
-// ២. មុខងារបង្ហាញទិន្នន័យ Header និង Quick Actions
+// ២. មុខងារបង្ហាញទិន្នន័យ Header និង Quick Actions (ទម្រង់ Menu ឈរ)
 // =======================================================
 function renderCustomerProfile(user) {
   currentC360User = user;
@@ -105,54 +105,88 @@ function renderCustomerProfile(user) {
   const profileView = document.getElementById("c360-profile-view");
   if (profileView) profileView.style.display = "block";
 
-  // បង្ហាញទិន្នន័យខាងលើ (Header)
-  const avatarEl = document.getElementById("c360-avatar");
-  if (avatarEl) {
-    avatarEl.src = user.profileImage || "../images/default-avatar.png";
-    avatarEl.style.cursor = "pointer"; // បង្ហាញសញ្ញាដៃពេលយកកណ្តុរដាក់ពីលើ
-    avatarEl.title = "ចុចទីនេះដើម្បីប្តូររូបភាព Profile ថ្មី";
-    avatarEl.onclick = () => c360ChangeProfileImage(); // បន្ថែមមុខងារចុចដើម្បីដូររូប
-  }
-  const nameEl = document.getElementById("c360-name");
-  if (nameEl) nameEl.innerText = user.fullName || user.username || "Unknown";
+  // កំណត់ KYC Verified Icon (Blue Tick ដូច Facebook ឬ Grey Tick)
+  const isKycVerified =
+    user.kycStatus === "verified" || user.kycStatus === "approved";
+  const kycIcon = isKycVerified
+    ? `<i class="fa-solid fa-circle-check" style="color: #3b82f6; font-size: 1.1rem; margin-left: 5px;" title="KYC Verified"></i>`
+    : `<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 1.1rem; margin-left: 5px;" title="KYC Unverified"></i>`;
 
-  const userEl = document.getElementById("c360-username");
-  if (userEl)
-    userEl.innerHTML = `<i class="fa-solid fa-at"></i> ${user.username}`;
+  // គូរ Layout ថ្មីដែលមាន Sidebar ឈរ (Vertical) និង ផ្នែក Content ខាងស្តាំ
+  profileView.innerHTML = `
+    <style>
+      .c360-layout { display: flex; gap: 20px; align-items: flex-start; }
+      .c360-sidebar { flex: 0 0 260px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); position: sticky; top: 20px; }
+      .c360-content { flex: 1; background: transparent; min-width: 0; }
+      .c360-v-tabs { display: flex; flex-direction: column; gap: 5px; margin-top: 0px; }
+      .c360-v-tab { padding: 12px 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 12px; font-family: 'Kantumruy Pro', sans-serif; font-size: 0.95rem; }
+      .c360-v-tab:hover { background: rgba(16, 185, 129, 0.05); color: var(--secondary); }
+      .c360-v-tab.active { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+      .c360-action-btn { width: 100%; padding: 12px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; font-family: 'Kantumruy Pro', sans-serif; font-size: 0.9rem; transition: 0.2s; }
+    </style>
 
-  const phoneEl = document.getElementById("c360-phone");
-  if (phoneEl)
-    phoneEl.innerHTML = `<i class="fa-solid fa-phone"></i> ${user.phone || user.phoneNumber || "N/A"}`;
+    <div class="c360-layout">
+        <!-- 🔹 ផ្នែកខាងឆ្វេង (Sidebar) -->
+        <div class="c360-sidebar">
+            <!-- Profile Image & Name -->
+            <div style="text-align: center; margin-bottom: 0px;">
+                <div style="position: relative; display: inline-block;">
+                    <img src="${user.profileImage || "../images/default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); cursor: pointer;" onclick="c360ChangeProfileImage()" title="ចុចដើម្បីប្តូររូប" onerror="this.src='../images/default-avatar.png'">
+                </div>
+                <h3 style="margin: 10px 0 5px; color: var(--text-main); font-size: 1.1rem; text-transform: uppercase; display: flex; justify-content: center; align-items: center;">
+                    ${user.fullName || user.username} ${kycIcon}
+                </h3>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.85rem;">ID : ${user.userId || "N/A"}</p>
+            </div>
 
-  // Font ខ្មែរសម្រាប់ Status & ប៊ូតុង
-  let statusHtml = user.isFrozen
-    ? `<span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; font-family:'Kantumruy Pro';">FROZEN (ផ្អាក)</span> `
-    : `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; font-family:'Kantumruy Pro';">ACTIVE (ធម្មតា)</span> `;
+            <!-- Vertical Tabs -->
+            <div class="c360-v-tabs">
+                <div class="c360-v-tab active" id="tab-btn-info" onclick="switchC360Tab('info', this)"><i class="fa-solid fa-user"></i> ព័ត៌មាន (Info)</div>
+                <div class="c360-v-tab" id="tab-btn-finance" onclick="switchC360Tab('finance', this)"><i class="fa-solid fa-wallet"></i> កាបូបលុយ (Wallets)</div>
+                <div class="c360-v-tab" id="tab-btn-cards" onclick="switchC360Tab('cards', this)"><i class="fa-solid fa-credit-card"></i> កាត (Cards)</div>
+                <div class="c360-v-tab" id="tab-btn-trx" onclick="switchC360Tab('trx', this)"><i class="fa-solid fa-receipt"></i> ប្រតិបត្តិការ (Trx)</div>
+                <div class="c360-v-tab" id="tab-btn-kyc" onclick="switchC360Tab('kyc', this)"><i class="fa-solid fa-id-card"></i> ឯកសារ (KYC)</div>
+                 <div class="c360-v-tab" id="tab-btn-merchant" onclick="switchC360Tab('merchant', this)"><i class="fa-solid fa-store"></i> ហាង (Merchant)</div>
+                <div class="c360-v-tab" id="tab-btn-security" onclick="switchC360Tab('security', this)"><i class="fa-solid fa-shield-halved"></i> សន្តិសុខ (Security)</div> 
+                <div class="c360-v-tab" id="tab-btn-logs" onclick="switchC360Tab('logs', this)"><i class="fa-solid fa-list-check"></i> កំណត់ត្រា (Audit Logs)</div>
+            </div>
 
-  if (user.kycStatus === "verified" || user.kycStatus === "approved") {
-    statusHtml += `<span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; margin-left: 5px;"><i class="fa-solid fa-circle-check"></i> KYC</span>`;
-  }
+            <!-- Actions Section -->
+            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-main); margin-bottom: 15px;">Actions</div>
+                
+                <button class="c360-action-btn" style="background: var(--bg-body); border: 1px solid var(--border); color: var(--text-main);" onclick="c360RefreshData()">
+                    <i class="fa-solid fa-arrows-rotate" id="c360-refresh-icon"></i> Refresh ទិន្នន័យ
+                </button>
+                
+                 <button class="c360-action-btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;" onclick="c360ToggleFreeze()">
+                    <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "បើកគណនី (Unfreeze)" : "ផ្អាកគណនី (Freeze)"}
+                </button>
 
-  const statusBadge = document.getElementById("c360-status-badge");
-  if (statusBadge) statusBadge.innerHTML = statusHtml;
+                <button class="c360-action-btn" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;" onclick="c360OpenFloatingChat()">
+                    <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Direct Message)
+                </button>             
+            </div>
+        </div>
 
-  // ប៊ូតុងមាន Font ខ្មែរស្អាត និងថែមប៊ូតុង Refresh
-  const quickActions = document.getElementById("c360-quick-actions");
-  if (quickActions) {
-    quickActions.innerHTML = `
-      <button onclick="c360RefreshData()" class="kh-text" style="background: var(--bg-body); color: var(--text-muted); border: 1px solid var(--border); padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;" title="Refresh ទិន្នន័យអតិថិជននេះ">
-        <i class="fa-solid fa-arrows-rotate" id="c360-refresh-icon"></i>
-      </button>
-      <button onclick="c360ToggleFreeze()" class="kh-text" style="background: ${user.isFrozen ? "var(--secondary)" : "#ef4444"}; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
-        <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "ដោះសោរ (Unfreeze)" : "ផ្អាក (Freeze)"}
-      </button>
-      <button onclick="c360OpenFloatingChat()" class="kh-text" style="background: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;">
-        <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Chat)
-      </button>
-    `;
-  }
+        <!-- 🔹 ផ្នែកខាងស្តាំ (Content Area រក្សាទិន្នន័យដូចដើមទាំងអស់) -->
+        <div class="c360-content">
+            <!-- ប្រើថ្នាក់ dash-card ដើម្បីឱ្យមានស៊ុម (border) ដូចផ្ទាំងចាស់ -->
+            <div class="dash-card" style="padding: 25px;">
+                <div id="c360-tab-info" class="c360-tab-content" style="display: block;"></div>
+                <div id="c360-tab-finance" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-cards" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-trx" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-kyc" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-merchant" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-security" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-logs" class="c360-tab-content" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+  `;
 
-  // ហៅមុខងារគូរ Tab ទាំង ៨
+  // ហៅមុខងារគូរ Tab ទាំងអស់ឡើងវិញ
   renderInfoTab(user);
   renderWalletsTab(user);
   renderCardsTab(user);
@@ -163,14 +197,27 @@ function renderCustomerProfile(user) {
   renderLogsTab(user);
 }
 
-function switchC360Tab(tabName) {
-  document
-    .querySelectorAll(".c360-tab")
-    .forEach((t) => t.classList.remove("active"));
+function switchC360Tab(tabName, element = null) {
+  // លាក់ Content ចាស់ៗទាំងអស់
   document
     .querySelectorAll(".c360-tab-content")
     .forEach((c) => (c.style.display = "none"));
-  if (event && event.currentTarget) event.currentTarget.classList.add("active");
+
+  // ដកពណ៌បៃតង (Active) ពី Tab ទាំងអស់នៅ Menu ខាងឆ្វេង
+  document
+    .querySelectorAll(".c360-v-tab")
+    .forEach((t) => t.classList.remove("active"));
+
+  // បើមានចុចលើ Menu ណា កំណត់ពណ៌ Active ឱ្យ Menu នោះ
+  if (element) {
+    element.classList.add("active");
+  } else {
+    // Fallback ពេលកូដហៅដោយមិនបានចុចផ្ទាល់
+    const activeTabBtn = document.getElementById(`tab-btn-${tabName}`);
+    if (activeTabBtn) activeTabBtn.classList.add("active");
+  }
+
+  // បង្ហាញ Content គោលដៅនៅខាងស្តាំ
   const targetTab = document.getElementById(`c360-tab-${tabName}`);
   if (targetTab) targetTab.style.display = "block";
 }
@@ -233,122 +280,243 @@ async function c360RefreshData() {
 // =======================================================
 // ៣. អនុវត្ត TABS ទាំង ៨
 // =======================================================
-
-// ➡️ TAB 1: ព័ត៌មានទូទៅ (Information) - ធ្វើឱ្យ Professional
+// =======================================================
+// ➡️ TAB 1: ព័ត៌មានទូទៅ (Information) - GRID BOX & INLINE EDIT
+// =======================================================
 function renderInfoTab(user) {
   const container = document.getElementById("c360-tab-info");
   if (!container) return;
 
   const dateCreated = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("km-KH")
-    : "មិនស្គាល់";
+    ? new Date(user.createdAt).toISOString().split("T")[0]
+    : "N/A";
+
+  const dobText = user.dob || "N/A";
+  const idNumText = user.idNumber || "N/A";
+  const genderText =
+    user.gender === "Male" || user.gender === "ប្រុស"
+      ? "ប្រុស (Male)"
+      : user.gender === "Female" || user.gender === "ស្រី"
+        ? "ស្រី (Female)"
+        : "N/A";
+
+  let duplicateWarning = "";
+  if (user.duplicateIdReason) {
+    duplicateWarning = `<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> ប្រើលើសពី១គណនី! <br>(មូលហេតុ: ${user.duplicateIdReason})</div>`;
+  }
+
+  // រកមើលអ្នកណែនាំ
+  let referrerText = "N/A";
+  if (user.referredBy) {
+    referrerText = `${user.referredBy}`;
+  }
 
   container.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-      <div class="form-group">
-        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ឈ្មោះពេញ (Full Name)</label>
-        <input type="text" id="c360-edit-fullname" class="form-input kh-text" value="${user.fullName || ""}" />
-      </div>
-      <div class="form-group">
-        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ឈ្មោះប្រើប្រាស់ (Username)</label>
-        <input type="text" class="form-input" value="${user.username}" readonly style="background: var(--bg-body); cursor: not-allowed; color: var(--text-muted); font-weight:bold;" title="មិនអាចកែប្រែបានទេ ការពារការបាត់បង់ទិន្នន័យ" />
-      </div>
-      <div class="form-group">
-        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">លេខទូរស័ព្ទ (Phone)</label>
-        <input type="text" id="c360-edit-phone" class="form-input" value="${user.phone || user.phoneNumber || ""}" />
-      </div>
-    </div>
+    <style>
+      .c360-tab-title-main { margin: 0 0 20px 0; font-size: 1.2rem; color: #0f172a; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 10px; font-weight: 800; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+      
+      .c360-inner-card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+      .c360-inner-title { margin: 0 0 20px 0; font-size: 1rem; color: #1e293b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 10px; }
+      
+      .c360-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+      
+      .c360-data-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; display: flex; flex-direction: column; gap: 5px; transition: 0.2s; }
+      
+      .c360-label-small { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', 'Kantumruy Pro', sans-serif; }
+      .c360-value-text { font-size: 1.05rem; color: #0f172a; font-weight: 700; font-family: 'Inter', 'Kantumruy Pro', sans-serif; word-break: break-word; }
+      
+      /* Editable Box Styles */
+      .c360-data-box.editable:hover { border-color: #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+      .c360-data-box.editable .edit-icon { position: absolute; right: 15px; top: 15px; color: #3b82f6; cursor: pointer; opacity: 0; transition: 0.2s; padding: 5px; }
+      .c360-data-box.editable:hover .edit-icon { opacity: 1; }
+      .c360-data-box.editable .edit-icon:hover { color: #2563eb; transform: scale(1.1); }
+      
+      .c360-inline-input { width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 1rem; color: #0f172a; font-weight: 600; font-family: 'Inter', 'Kantumruy Pro', sans-serif; outline: none; box-sizing: border-box; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); margin-top: 5px; }
+      .inline-action-btns { display: flex; gap: 8px; margin-top: 10px; }
+      .inline-btn-save { flex: 1; background: #10b981; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+      .inline-btn-save:hover { background: #059669; }
+      .inline-btn-cancel { flex: 1; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; }
+      .inline-btn-cancel:hover { background: #e2e8f0; color: #0f172a; }
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
-      <div class="form-group">
-        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">អ៊ីមែល (Email)</label>
-        <input type="email" id="c360-edit-email" class="form-input" value="${user.email || ""}" />
-      </div>
-      <div class="form-group">
-        <label class="kh-text" style="font-weight:600; color:var(--text-muted);">ថ្ងៃបង្កើតគណនី</label>
-        <input type="text" class="form-input kh-text" value="${dateCreated}" readonly style="background: var(--bg-body); cursor: not-allowed;" />
-      </div>
-    </div>
+      .c360-security-section { background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.15); }
+      .c360-btn-reset-outline { flex: 1; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.2); background: white; color: #ef4444; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .c360-btn-reset-outline:hover { background: #fef2f2; border-color: #ef4444; }
+    </style>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; background: var(--bg-card);">
-        <label class="kh-text" style="color: #ef4444; font-weight:600;"><i class="fa-solid fa-key"></i> ប្តូរ ឬ Reset PIN</label>
-        <div style="position: relative; margin-top: 10px;">
-          <input type="password" maxlength="4" id="c360-edit-pin" class="form-input" placeholder="វាយ PIN ៤ខ្ទង់ថ្មី ទីនេះ" value="${user.pin || ""}" style="padding-right: 40px; margin:0;" />
-          <i class="fa-solid fa-eye-slash" onclick="toggleSensitiveView('c360-edit-pin', this, 'PIN')" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 1.1rem;"></i>
+    <h2 class="c360-tab-title-main"><i class="fa-solid fa-user-circle" style="color: #10b981;"></i> ព័ត៌មានអតិថិជន (Information)</h2>
+
+    <!-- 📦 កាតទី១៖ ព័ត៌មានគណនី (READ-ONLY) -->
+    <div class="c360-inner-card">
+        <h4 class="c360-inner-title"><i class="fa-solid fa-address-card" style="color: #64748b;"></i> ព័ត៌មានគណនី (Account Profile)</h4>
+        <div class="c360-grid-container">
+            <div class="c360-data-box">
+                <span class="c360-label-small">ឈ្មោះប្រើប្រាស់ (USERNAME)</span>
+                <span class="c360-value-text">@${user.username}</span>
+            </div>
+            <div class="c360-data-box">
+                <span class="c360-label-small">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
+                <span class="c360-value-text">${idNumText}</span>
+                ${duplicateWarning}
+            </div>
+            <div class="c360-data-box">
+                <span class="c360-label-small">ថ្ងៃខែឆ្នាំកំណើត (DOB)</span>
+                <span class="c360-value-text">${dobText}</span>
+            </div>
+            <div class="c360-data-box">
+                <span class="c360-label-small">ភេទ (GENDER)</span>
+                <span class="c360-value-text">${genderText}</span>
+            </div>
+            <div class="c360-data-box">
+                <span class="c360-label-small">ថ្ងៃបង្កើតគណនី (JOIN DATE)</span>
+                <span class="c360-value-text">${dateCreated}</span>
+            </div>
         </div>
-      </div>
-      <div class="form-group" style="border: 1px solid var(--border); padding: 15px; border-radius: 10px; background: var(--bg-card);">
-        <label class="kh-text" style="color: #ef4444; font-weight:600;"><i class="fa-solid fa-lock"></i> ប្តូរ Password ថ្មី</label>
-        <div style="position: relative; margin-top: 10px;">
-          <input type="password" id="c360-edit-pass" class="form-input" placeholder="ទុកទទេបើមិនចង់ប្តូរ" value="*********" style="padding-right: 40px; margin:0;" />
-          <i class="fa-solid fa-eye-slash" onclick="toggleSensitiveView('c360-edit-pass', this, 'Password')" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 1.1rem;"></i>
-        </div>
-      </div>
     </div>
 
-    <button class="btn-primary kh-text" style="width: 100%; display: block; text-align: center; margin-top: 25px; padding: 18px; font-size: 1.1rem; background: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.1);" onclick="saveC360Info()">
-      <i class="fa-solid fa-floppy-disk" style="margin-right: 8px;"></i> រក្សាទុកការកែប្រែ (Save Changes)
-    </button>
+    <!-- 📦 កាតទី២៖ ព័ត៌មានទំនាក់ទំនង (INLINE EDITABLE) -->
+    <div class="c360-inner-card">
+        <h4 class="c360-inner-title"><i class="fa-solid fa-address-book" style="color: #3b82f6;"></i> ព័ត៌មានទំនាក់ទំនង (Contact Info)</h4>
+        <div class="c360-grid-container">
+            
+            <!-- ឈ្មោះពេញ -->
+            <div class="c360-data-box editable" id="box-fullName">
+                <div id="view-fullName" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+                    <span class="c360-label-small">ឈ្មោះពេញ (FULL NAME)</span>
+                    <span class="c360-value-text">${user.fullName || "N/A"}</span>
+                    <i class="fa-solid fa-pen edit-icon" id="icon-fullName" onclick="c360ToggleEdit('fullName', 'text')" title="កែប្រែ"></i>
+                </div>
+                <div id="edit-fullName" style="display: none; width: 100%;">
+                    <span class="c360-label-small" style="color: #3b82f6;">កែប្រែឈ្មោះពេញ (FULL NAME)</span>
+                    <input type="text" id="input-fullName" class="c360-inline-input" value="${user.fullName || ""}">
+                    <div class="inline-action-btns">
+                        <button class="inline-btn-save" onclick="c360SaveField('fullName')"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
+                        <button class="inline-btn-cancel" onclick="c360CancelEdit('fullName')">បោះបង់</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- លេខទូរស័ព្ទ -->
+            <div class="c360-data-box editable" id="box-phone">
+                <div id="view-phone" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+                    <span class="c360-label-small">លេខទូរស័ព្ទ (PHONE)</span>
+                    <span class="c360-value-text">${user.phone || user.phoneNumber || "N/A"}</span>
+                    <i class="fa-solid fa-pen edit-icon" id="icon-phone" onclick="c360ToggleEdit('phone', 'tel')" title="កែប្រែ"></i>
+                </div>
+                <div id="edit-phone" style="display: none; width: 100%;">
+                    <span class="c360-label-small" style="color: #3b82f6;">កែប្រេលេខទូរស័ព្ទ (PHONE)</span>
+                    <input type="tel" id="input-phone" class="c360-inline-input" value="${user.phone || user.phoneNumber || ""}">
+                    <div class="inline-action-btns">
+                        <button class="inline-btn-save" onclick="c360SaveField('phone')"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
+                        <button class="inline-btn-cancel" onclick="c360CancelEdit('phone')">បោះបង់</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- អ៊ីមែល -->
+            <div class="c360-data-box editable" id="box-email">
+                <div id="view-email" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+                    <span class="c360-label-small">អ៊ីមែល (EMAIL)</span>
+                    <span class="c360-value-text">${user.email || "N/A"}</span>
+                    <i class="fa-solid fa-pen edit-icon" id="icon-email" onclick="c360ToggleEdit('email', 'email')" title="កែប្រែ"></i>
+                </div>
+                <div id="edit-email" style="display: none; width: 100%;">
+                    <span class="c360-label-small" style="color: #3b82f6;">កែប្រែអ៊ីមែល (EMAIL)</span>
+                    <input type="email" id="input-email" class="c360-inline-input" value="${user.email || ""}">
+                    <div class="inline-action-btns">
+                        <button class="inline-btn-save" onclick="c360SaveField('email')"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
+                        <button class="inline-btn-cancel" onclick="c360CancelEdit('email')">បោះបង់</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- អ្នកណែនាំ (Referred By) - READ ONLY -->
+             <div class="c360-data-box">
+                <span class="c360-label-small">អ្នកណែនាំ (REFERRED BY)</span>
+                <span class="c360-value-text">${referrerText}</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 📦 កាតទី៣៖ សុវត្ថិភាព (Reset Credentials) -->
+    <div class="c360-inner-card c360-security-section">
+        <h4 class="c360-inner-title" style="color: #ef4444;"><i class="fa-solid fa-shield-halved"></i> សុវត្ថិភាព (Security & Credentials)</h4>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px; line-height: 1.5; font-family: 'Kantumruy Pro', sans-serif;">
+            លេខសម្ងាត់ (Password) និង លេខកូដ (PIN) ត្រូវបានលាក់ដើម្បីសុវត្ថិភាព។ ប្រសិនបើអតិថិជនភ្លេច អ្នកអាចចុចប៊ូតុងខាងក្រោមដើម្បីកំណត់វាឡើងវិញ។
+        </p>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button class="c360-btn-reset-outline" onclick="c360TriggerReset('PIN')">
+                <i class="fa-solid fa-key"></i> កំណត់ PIN ថ្មី (Reset PIN)
+            </button>
+            <button class="c360-btn-reset-outline" onclick="c360TriggerReset('Password')">
+                <i class="fa-solid fa-lock"></i> កំណត់ Password ថ្មី (Reset Password)
+            </button>
+        </div>
+    </div>
   `;
 }
 
-async function toggleSensitiveView(inputId, iconEl, type) {
-  const input = document.getElementById(inputId);
-  const isPassword = input.type === "password";
+// =======================================================
+// មុខងារ Inline Edit Logic
+// =======================================================
 
-  if (isPassword) {
-    input.type = "text";
-    iconEl.classList.remove("fa-eye-slash");
-    iconEl.classList.add("fa-eye");
-    iconEl.style.color = "var(--accent)";
+function c360ToggleEdit(field, type) {
+  document.getElementById(`view-${field}`).style.display = "none";
+  document.getElementById(`edit-${field}`).style.display = "block";
 
-    if (type === "Password") {
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "info",
-        title: "Password ត្រូវបាន Hashed ការពារសុវត្ថិភាព",
-        customClass: { popup: "premium-swal" },
-      });
-    }
+  // ដក hover effect ចេញពេលកំពុង edit
+  document.getElementById(`box-${field}`).classList.remove("editable");
 
-    try {
-      await fetch("/api/admin/log-action", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: "Viewed Sensitive Data",
-          target: currentC360User.username,
-          details: `Admin បានចុចបើកមើល ${type}`,
-        }),
-      });
-    } catch (e) {}
-  } else {
-    input.type = "password";
-    iconEl.classList.remove("fa-eye");
-    iconEl.classList.add("fa-eye-slash");
-    iconEl.style.color = "var(--text-muted)";
-  }
+  const input = document.getElementById(`input-${field}`);
+  input.focus();
+  const val = input.value;
+  input.value = "";
+  input.value = val;
 }
 
-// Save ការកែប្រែក្នុង Tab 1 (ប្រើ API edit-user ពី admin-users.js)
-async function saveC360Info() {
-  const pinVal = document.getElementById("c360-edit-pin").value;
-  const passVal = document.getElementById("c360-edit-pass").value;
+function c360CancelEdit(field) {
+  document.getElementById(`edit-${field}`).style.display = "none";
+  document.getElementById(`view-${field}`).style.display = "flex";
+
+  // ដាក់ hover effect មកវិញ
+  document.getElementById(`box-${field}`).classList.add("editable");
+
+  const currentVal =
+    field === "phone"
+      ? currentC360User.phone || currentC360User.phoneNumber
+      : currentC360User[field];
+  document.getElementById(`input-${field}`).value = currentVal || "";
+}
+
+async function c360SaveField(field) {
+  const inputEl = document.getElementById(`input-${field}`);
+  const newValue = inputEl.value.trim();
+
+  if (!newValue && field !== "email") {
+    Swal.fire({
+      toast: true,
+      position: "top",
+      icon: "warning",
+      title: "សូមបញ្ចូលទិន្នន័យ!",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+    return inputEl.focus();
+  }
 
   const bodyData = {
     id: currentC360User._id || currentC360User.id,
     username: currentC360User.username,
-    // 🟢 កែត្រង់នេះ
-    accountNumber: currentC360User.mainAccounts?.USD?.accountNumber,
-    accountNumberKHR: currentC360User.mainAccounts?.KHR?.accountNumber,
-    pin: pinVal,
-    password: passVal === "*********" ? "" : passVal,
-    fullName: document.getElementById("c360-edit-fullname").value,
-    phone: document.getElementById("c360-edit-phone").value,
-    email: document.getElementById("c360-edit-email").value,
   };
+  bodyData[field] = newValue;
+
+  Swal.fire({
+    title: "កំពុងរក្សាទុក...",
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading(),
+  });
 
   try {
     const res = await fetch("/api/admin/edit-user", {
@@ -356,36 +524,133 @@ async function saveC360Info() {
       headers: getAuthHeaders(),
       body: JSON.stringify(bodyData),
     });
+
     const data = await res.json();
     if (data.success) {
+      // Update UI
+      document
+        .getElementById(`view-${field}`)
+        .querySelector(".c360-value-text").innerText = newValue || "N/A";
+
+      // Update State ក្នុង Local
+      if (field === "phone") {
+        currentC360User.phone = newValue;
+        currentC360User.phoneNumber = newValue;
+      } else {
+        currentC360User[field] = newValue;
+      }
+
+      // បិទ Edit Mode
+      c360CancelEdit(field);
+
+      // បើកែឈ្មោះពេញ ត្រូវអាប់ដេតឈ្មោះនៅលើ Sidebar ខាងឆ្វេងដែរ
+      if (field === "fullName") {
+        const isKycVerified =
+          currentC360User.kycStatus === "verified" ||
+          currentC360User.kycStatus === "approved";
+        const kycIcon = isKycVerified
+          ? `<i class="fa-solid fa-circle-check" style="color: #3b82f6; font-size: 1.1rem; margin-left: 5px;" title="KYC Verified"></i>`
+          : `<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 1.1rem; margin-left: 5px;" title="KYC Unverified"></i>`;
+        const sidebarTitle = document.querySelector(".c360-sidebar h3");
+        if (sidebarTitle) sidebarTitle.innerHTML = `${newValue} ${kycIcon}`;
+      }
+
       Swal.fire({
         icon: "success",
-        title: "រក្សាទុកជោគជ័យ",
-        showConfirmButton: false,
+        title: "បានរក្សាទុក!",
+        toast: true,
+        position: "top-end",
         timer: 1500,
-        customClass: { popup: "premium-swal kh-text" },
+        showConfirmButton: false,
       });
-
-      if (passVal !== "*********" || pinVal !== (currentC360User.pin || "")) {
-        await fetch("/api/admin/log-action", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            action: "Changed Credentials",
-            target: currentC360User.username,
-            details: `Admin បានកែប្រែ PIN/Password ថ្មី`,
-          }),
-        });
-      }
-      c360RefreshData(); // ហៅ Refresh ទិន្នន័យដើម្បីបង្ហាញថ្មី
-    } else throw new Error(data.message);
+    } else {
+      throw new Error(data.message);
+    }
   } catch (e) {
     Swal.fire({
       icon: "error",
       title: "បរាជ័យ",
-      text: "មិនអាចកែប្រែបានទេ",
+      text: e.message || "បញ្ហា Server",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
+}
+
+// =======================================================
+// មុខងារស្នើសុំ Reset PIN ឬ Password (ផ្ញើ Link ទៅ Email)
+// =======================================================
+async function c360TriggerReset(type) {
+  if (!currentC360User) return;
+
+  const email = currentC360User.email;
+  if (!email) {
+    Swal.fire({
+      icon: "warning",
+      title: "គ្មានអ៊ីមែល (No Email)",
+      text: "អតិថិជននេះមិនទាន់មានអ៊ីមែលក្នុងប្រព័ន្ធទេ។ សូមបញ្ចូលអ៊ីមែលនៅផ្នែកទំនាក់ទំនងខាងលើជាមុនសិន ទើបអាចផ្ញើ Link បាន។",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+    return;
+  }
+
+  // សុំការបញ្ជាក់ពី Admin មុននឹងផ្ញើ
+  const result = await Swal.fire({
+    title: `<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការផ្ញើ Link Reset ${type}</span>`,
+    html: `
+      <p class="kh-text" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5;">
+        តើអ្នកពិតជាចង់ផ្ញើតំណភ្ជាប់ (Link) ដើម្បីឱ្យអតិថិជនកំណត់ <strong>${type}</strong> ថ្មីដោយខ្លួនឯងមែនទេ?
+        <br><br>Link នឹងត្រូវផ្ញើទៅកាន់៖ <strong style="color: #0f172a;">${email}</strong>
+      </p>
+      <p style="font-size: 0.8rem; color: #eab308; font-family: 'Kantumruy Pro';"><i class="fa-solid fa-clock"></i> Link នេះមានសុពលភាពតែ ៥ នាទីប៉ុណ្ណោះ!</p>
+    `,
+    showCancelButton: true,
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-paper-plane"></i> ផ្ញើឥឡូវនេះ</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ef4444",
+    customClass: { popup: "modal-radius" },
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងផ្ញើអ៊ីមែល...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
       customClass: { popup: "premium-swal" },
     });
+
+    try {
+      const res = await fetch("/api/admin/request-reset", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          resetType: type, // "PIN" ឬ "Password"
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "បានផ្ញើជោគជ័យ!",
+          text: `Link ត្រូវបានផ្ញើទៅកាន់អ៊ីមែល ${email} រួចរាល់។`,
+          timer: 3000,
+          showConfirmButton: true,
+          confirmButtonText: "បិទ",
+          confirmButtonColor: "#10b981",
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (e) {
+      Swal.fire(
+        "បរាជ័យ",
+        "បញ្ហាក្នុងការផ្ញើ៖ " + (e.message || "Server Error"),
+        "error",
+      );
+    }
   }
 }
 

@@ -651,7 +651,15 @@ const editUser = async (req, res) => {
     accountNumber,
     accountNumberKHR,
     password,
+    // 🟢 បន្ថែម Fields ថ្មីដែលផ្ញើមកពី Frontend
+    fullName,
+    phone,
+    email,
+    dob,
+    gender,
+    idNumber,
   } = req.body;
+
   try {
     if (!id) return res.json({ success: false, message: "Invalid ID" });
 
@@ -674,12 +682,25 @@ const editUser = async (req, res) => {
         message: "បរាជ័យ! លេខគណនី USD និង KHR មិនអាចដូចគ្នាបានទេ។",
       });
 
+    // 🟢 Update ទិន្នន័យចូល Model
     if (accountNumber) u.mainAccounts.USD.accountNumber = accountNumber;
     if (accountNumberKHR) u.mainAccounts.KHR.accountNumber = accountNumberKHR;
     if (username) u.username = username;
     if (pin) u.pin = pin;
     if (profileImage !== undefined) u.profileImage = profileImage;
-    if (password && password.trim() !== "") u.password = password;
+    if (password && password.trim() !== "")
+      u.password = await bcrypt.hash(password, 10); // 🟢 ត្រូវ hash password ផងបើចង់ដូរ
+
+    // 🟢 Update Fields ថ្មី
+    if (fullName !== undefined) u.fullName = fullName;
+    if (phone !== undefined) {
+      u.phone = phone;
+      u.phoneNumber = phone; // update ទាំងពីរក្រែងលោមានកន្លែងផ្សេងហៅប្រើ
+    }
+    if (email !== undefined) u.email = email;
+    if (dob !== undefined) u.dob = dob;
+    if (gender !== undefined) u.gender = gender;
+    if (idNumber !== undefined) u.idNumber = idNumber;
 
     await u.save();
     await logAdminAction(
@@ -690,6 +711,76 @@ const editUser = async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
+    console.error("Edit User Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 🟢 អនុគមន៍ថ្មី៖ ផ្ញើ Reset Link ទៅកាន់អតិថិជន
+const requestCredentialReset = async (req, res) => {
+  const access = await checkAdminAccess(req.admin, "editUser"); // ឬកំណត់សិទ្ធិថ្មី "resetCredentials"
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
+  const { username, resetType } = req.body; // resetType = "PIN" ឬ "Password"
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    if (!user.email) {
+      return res.json({
+        success: false,
+        message:
+          "បរាជ័យ! អតិថិជននេះមិនទាន់មាន អ៊ីមែល (Email) ក្នុងប្រព័ន្ធទេ។ សូមបញ្ជូល Email ឱ្យគាត់ជាមុនសិន។",
+      });
+    }
+
+    // ១. បង្កើត Token សុវត្ថិភាព (Random 64 តួ)
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    // សម្រាប់សុវត្ថិភាពខ្ពស់ គួរតែ Hash token មុននឹង Save ចូល Database (តែដើម្បីងាយស្រួលយល់ ខ្ញុំ save វាផ្ទាល់សិន)
+    user.resetToken = rawToken;
+
+    // ២. កំណត់ពេលផុតកំណត់ ៥ នាទី (5 minutes = 5 * 60 * 1000 ms)
+    user.resetTokenExpire = Date.now() + 5 * 60 * 1000;
+
+    await user.save();
+
+    // ៣. បង្កើត URL សម្រាប់ទំព័រ Public (ដូរ domain តាមជាក់ស្តែងរបស់អ្នក)
+    // ឧទាហរណ៍ URL: https://u-pay-bank.fly.dev/reset-credential?token=xxxx&type=PIN
+    const baseUrl = process.env.CLIENT_URL || "https://u-pay-bank.fly.dev";
+    const resetUrl = `${baseUrl}/reset-credential.html?token=${rawToken}&type=${resetType}`;
+
+    // ៤. ផ្ញើ Email
+    const emailSent = await sendResetLink(
+      user.email,
+      user.fullName || user.username,
+      resetUrl,
+      resetType,
+    );
+
+    if (!emailSent) {
+      return res.json({
+        success: false,
+        message: "មានបញ្ហាក្នុងការផ្ញើអ៊ីមែល!",
+      });
+    }
+
+    // ៥. កត់ត្រាសកម្មភាព Admin
+    await logAdminAction(
+      req.admin.username,
+      `Request Reset ${resetType}`,
+      user.username,
+      `Sent reset link to ${user.email} (Expires in 5m)`,
+    );
+
+    res.json({
+      success: true,
+      message: "បានផ្ញើ Link ទៅកាន់អ៊ីមែលរបស់អតិថិជនរួចរាល់!",
+    });
+  } catch (error) {
+    console.error("Reset Request Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -2720,6 +2811,7 @@ module.exports = {
   getUserByAdmin,
   getSingleUser,
   editUser,
+  requestCredentialReset,
   deleteUser,
   toggleFreeze,
   adminForceLogout,

@@ -221,6 +221,20 @@ router.get(
   safeHandler(authController.migrateTransactions, "migrateTransactions"),
 );
 
+router.post(
+  "/admin/request-reset",
+  safeVerifyUser, // ប្រាកដថាជា Admin ទើបស្នើសុំបាន (បើយកតាម adminRoutes ប្រើ checkRole)
+  safeHandler(authController.requestCredentialReset, "requestCredentialReset"),
+);
+
+router.post(
+  "/public/save-credential",
+  safeHandler(
+    authController.verifyAndSaveNewCredential,
+    "verifyAndSaveNewCredential",
+  ),
+);
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
