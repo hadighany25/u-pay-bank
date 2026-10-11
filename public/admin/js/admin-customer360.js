@@ -5,9 +5,10 @@
 // ========================================================================
 
 let currentC360User = null;
+let currentC360ActiveTab = "info"; // 🟢 ចងចាំ Tab ដែលកំពុងបើក
 
 // =======================================================
-// ១. មុខងារស្វែងរកអតិថិជន (Live Search & Standard Data Search)
+// ១. មុខងារស្វែងរកអតិថិជន (Live Search & Get Fresh Data)
 // =======================================================
 async function searchCustomer360() {
   const term = document.getElementById("searchC360").value.trim();
@@ -15,16 +16,17 @@ async function searchCustomer360() {
 
   Swal.fire({
     title: "កំពុងស្វែងរក...",
-    text: "ឆែកមើលក្នុងមូលដ្ឋានទិន្នន័យ...",
+    text: "ទាញយកទិន្នន័យថ្មីពី Server...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
     customClass: { popup: "premium-swal" },
   });
 
   try {
-    let foundUser = null;
+    let foundUsername = null;
+    let finalUser = null;
 
-    // 🟢 ១.១ ប្រើប្រាស់មុខងារស្តង់ដារ (Universal Search) ស្វែងរកក្នុង Local Data មុន (លឿនរហ័ស)
+    // 🟢 ១.១ ស្វែងរកក្នុង Local Data មុនដើម្បីទាញយកត្រឹម Username (លឿនរហ័ស)
     if (
       typeof window.standardDataSearch === "function" &&
       typeof globalUsersData !== "undefined"
@@ -42,12 +44,25 @@ async function searchCustomer360() {
         "subAccounts.accountNumber",
       ]);
       if (results && results.length > 0) {
-        foundUser = results[0]; // យកអតិថិជនដែលរកឃើញមុនគេ
+        foundUsername = results[0].username;
       }
     }
 
-    // 🟡 ១.២ Fallback: បើរកក្នុង Local មិនឃើញ ទើបបាញ់ API ទៅស្វែងរកក្នុង Database ផ្ទាល់ (រក្សាកូដចាស់)
-    if (!foundUser) {
+    // 🟢 ១.២ បើរកឃើញ Username ក្នុង Local យើងបាញ់ API យក Full Profile ថ្មីៗពី Server (ដើម្បីបាន Referrer Name និង លុយថ្មីៗ)
+    if (foundUsername) {
+      const res = await fetch("/api/admin/get-user", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username: foundUsername }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        finalUser = data.user;
+      }
+    }
+
+    // 🟡 ១.៣ Fallback: បើ Local រកអត់ឃើញសោះ ទើបបាញ់ API ស្វែងរក (Search API) ផ្ទាល់តែម្តង
+    if (!finalUser) {
       const res = await fetch("/api/admin/search-user", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -55,26 +70,26 @@ async function searchCustomer360() {
       });
       const data = await res.json();
       if (data.success && data.user) {
-        foundUser = data.user;
+        finalUser = data.user;
       }
     }
 
     Swal.close();
 
-    if (foundUser) {
-      currentC360User = foundUser;
+    if (finalUser) {
+      currentC360User = finalUser;
 
-      // Update ទិន្នន័យចូល Global Array ដើម្បីអោយប្រើបានកន្លែងផ្សេង
+      // Update ទិន្នន័យចូល Global Array ដើម្បីអោយ Cache មានទិន្នន័យថ្មី (រួមទាំង Referrer Name)
       if (typeof globalUsersData !== "undefined") {
         const index = globalUsersData.findIndex(
-          (u) => u.username === foundUser.username,
+          (u) => u.username === finalUser.username,
         );
-        if (index !== -1) globalUsersData[index] = foundUser;
-        else globalUsersData.push(foundUser);
+        if (index !== -1) globalUsersData[index] = finalUser;
+        else globalUsersData.push(finalUser);
       }
 
       // បង្ហាញទិន្នន័យលើអេក្រង់
-      renderCustomerProfile(foundUser);
+      renderCustomerProfile(finalUser);
     } else {
       Swal.fire({
         icon: "error",
@@ -105,12 +120,28 @@ function renderCustomerProfile(user) {
   const profileView = document.getElementById("c360-profile-view");
   if (profileView) profileView.style.display = "block";
 
-  // កំណត់ KYC Verified Icon (Blue Tick ដូច Facebook ឬ Grey Tick)
+  // កំណត់ពណ៌ និងស្ថានភាព
+  const isFrozen = user.isFrozen;
+  const statusColor = isFrozen ? "#ef4444" : "#10b981";
+  const statusText = isFrozen ? "Frozen" : "Active";
+  const statusIcon = isFrozen ? "fa-lock" : "fa-circle-check";
+
+  let statusBadge = isFrozen
+    ? `<span style="position: absolute; top: 0; right: -25px; background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-lock"></i> Frozen</span>`
+    : `<span style="position: absolute; top: 0; right: -25px; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-circle-check"></i> Active</span>`;
+
+  // កំណត់ KYC Verified Icon
   const isKycVerified =
     user.kycStatus === "verified" || user.kycStatus === "approved";
   const kycIcon = isKycVerified
     ? `<i class="fa-solid fa-circle-check" style="color: #3b82f6; font-size: 1.1rem; margin-left: 5px;" title="KYC Verified"></i>`
     : `<i class="fa-solid fa-circle-check" style="color: #cbd5e1; font-size: 1.1rem; margin-left: 5px;" title="KYC Unverified"></i>`;
+
+  // 🟢 កំណត់ពណ៌ប៊ូតុង Actions ផ្នែកខាងឆ្វេងឱ្យប្រែប្រួលតាមស្ថានភាព
+  const actionFreezeBg = isFrozen
+    ? "rgba(16, 185, 129, 0.1)"
+    : "rgba(239, 68, 68, 0.1)";
+  const actionFreezeColor = isFrozen ? "#10b981" : "#ef4444";
 
   // គូរ Layout ថ្មីដែលមាន Sidebar ឈរ (Vertical) និង ផ្នែក Content ខាងស្តាំ
   profileView.innerHTML = `
@@ -118,7 +149,7 @@ function renderCustomerProfile(user) {
       .c360-layout { display: flex; gap: 20px; align-items: flex-start; }
       .c360-sidebar { flex: 0 0 260px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); position: sticky; top: 20px; }
       .c360-content { flex: 1; background: transparent; min-width: 0; }
-      .c360-v-tabs { display: flex; flex-direction: column; gap: 5px; margin-top: 0px; }
+      .c360-v-tabs { display: flex; flex-direction: column; gap: 5px; margin-top: 20px; }
       .c360-v-tab { padding: 12px 15px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 12px; font-family: 'Kantumruy Pro', sans-serif; font-size: 0.95rem; }
       .c360-v-tab:hover { background: rgba(16, 185, 129, 0.05); color: var(--secondary); }
       .c360-v-tab.active { background: rgba(16, 185, 129, 0.15); color: #10b981; }
@@ -129,7 +160,7 @@ function renderCustomerProfile(user) {
         <!-- 🔹 ផ្នែកខាងឆ្វេង (Sidebar) -->
         <div class="c360-sidebar">
             <!-- Profile Image & Name -->
-            <div style="text-align: center; margin-bottom: 0px;">
+            <div style="text-align: center; margin-bottom: 20px;">
                 <div style="position: relative; display: inline-block;">
                     <img src="${user.profileImage || "../images/default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); cursor: pointer;" onclick="c360ChangeProfileImage()" title="ចុចដើម្បីប្តូររូប" onerror="this.src='../images/default-avatar.png'">
                 </div>
@@ -146,8 +177,8 @@ function renderCustomerProfile(user) {
                 <div class="c360-v-tab" id="tab-btn-cards" onclick="switchC360Tab('cards', this)"><i class="fa-solid fa-credit-card"></i> កាត (Cards)</div>
                 <div class="c360-v-tab" id="tab-btn-trx" onclick="switchC360Tab('trx', this)"><i class="fa-solid fa-receipt"></i> ប្រតិបត្តិការ (Trx)</div>
                 <div class="c360-v-tab" id="tab-btn-kyc" onclick="switchC360Tab('kyc', this)"><i class="fa-solid fa-id-card"></i> ឯកសារ (KYC)</div>
-                 <div class="c360-v-tab" id="tab-btn-merchant" onclick="switchC360Tab('merchant', this)"><i class="fa-solid fa-store"></i> ហាង (Merchant)</div>
-                <div class="c360-v-tab" id="tab-btn-security" onclick="switchC360Tab('security', this)"><i class="fa-solid fa-shield-halved"></i> សន្តិសុខ (Security)</div> 
+                <div class="c360-v-tab" id="tab-btn-security" onclick="switchC360Tab('security', this)"><i class="fa-solid fa-shield-halved"></i> សន្តិសុខ (Security)</div>
+                <div class="c360-v-tab" id="tab-btn-merchant" onclick="switchC360Tab('merchant', this)"><i class="fa-solid fa-store"></i> ហាង (Merchant)</div>
                 <div class="c360-v-tab" id="tab-btn-logs" onclick="switchC360Tab('logs', this)"><i class="fa-solid fa-list-check"></i> កំណត់ត្រា (Audit Logs)</div>
             </div>
 
@@ -159,27 +190,27 @@ function renderCustomerProfile(user) {
                     <i class="fa-solid fa-arrows-rotate" id="c360-refresh-icon"></i> Refresh ទិន្នន័យ
                 </button>
                 
-                 <button class="c360-action-btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;" onclick="c360ToggleFreeze()">
-                    <i class="fa-solid ${user.isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${user.isFrozen ? "បើកគណនី (Unfreeze)" : "ផ្អាកគណនី (Freeze)"}
-                </button>
-
                 <button class="c360-action-btn" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;" onclick="c360OpenFloatingChat()">
                     <i class="fa-solid fa-comment-dots"></i> ផ្ញើសារ (Direct Message)
-                </button>             
+                </button>
+                
+                <!-- 🟢 ប៊ូតុងនេះឥឡូវឆ្លាតវៃហើយ (ប្តូរពណ៌អូតូ) -->
+                <button class="c360-action-btn" style="background: ${actionFreezeBg}; color: ${actionFreezeColor};" onclick="c360ToggleFreeze()">
+                    <i class="fa-solid ${isFrozen ? "fa-unlock" : "fa-lock"}"></i> ${isFrozen ? "បើកគណនី (Unfreeze)" : "ផ្អាកគណនី (Freeze)"}
+                </button>
             </div>
         </div>
 
         <!-- 🔹 ផ្នែកខាងស្តាំ (Content Area រក្សាទិន្នន័យដូចដើមទាំងអស់) -->
         <div class="c360-content">
-            <!-- ប្រើថ្នាក់ dash-card ដើម្បីឱ្យមានស៊ុម (border) ដូចផ្ទាំងចាស់ -->
             <div class="dash-card" style="padding: 25px;">
                 <div id="c360-tab-info" class="c360-tab-content" style="display: block;"></div>
                 <div id="c360-tab-finance" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-cards" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-trx" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-kyc" class="c360-tab-content" style="display: none;"></div>
-                <div id="c360-tab-merchant" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-security" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-merchant" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-logs" class="c360-tab-content" style="display: none;"></div>
             </div>
         </div>
@@ -195,9 +226,12 @@ function renderCustomerProfile(user) {
   renderSecurityTab(user);
   renderMerchantTab(user);
   renderLogsTab(user);
+  switchC360Tab(currentC360ActiveTab); // 🟢 បើក Tab ដើមមកវិញបន្ទាប់ពី Render
 }
 
 function switchC360Tab(tabName, element = null) {
+  currentC360ActiveTab = tabName; // 🟢 ចងចាំ Tab ដែល User កំពុងចុចមើល
+
   // លាក់ Content ចាស់ៗទាំងអស់
   document
     .querySelectorAll(".c360-tab-content")
@@ -305,11 +339,39 @@ function renderInfoTab(user) {
     duplicateWarning = `<div style="color: #ef4444; font-size: 0.75rem; margin-top: 5px; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> ប្រើលើសពី១គណនី! <br>(មូលហេតុ: ${user.duplicateIdReason})</div>`;
   }
 
-  // រកមើលអ្នកណែនាំ
-  let referrerText = "N/A";
-  if (user.referredBy) {
-    referrerText = `${user.referredBy}`;
+  // 🟢 គណនាសមតុល្យសរុប (Total Balance) គ្រប់គណនី (លើកលែង Junior)
+  let totalUSD = user.mainAccounts?.USD?.balance || 0;
+  let totalKHR = user.mainAccounts?.KHR?.balance || 0;
+
+  if (user.subAccounts && Array.isArray(user.subAccounts)) {
+    user.subAccounts.forEach((acc) => {
+      if (acc.accountType !== "junior") {
+        if (acc.currency === "USD") totalUSD += acc.balance || 0;
+        if (acc.currency === "KHR") totalKHR += acc.balance || 0;
+      }
+    });
   }
+
+  const formattedTotalUSD = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(totalUSD);
+  const formattedTotalKHR =
+    new Intl.NumberFormat("en-US").format(totalKHR) + " ៛";
+
+  // 🟢 រកមើលអ្នកណែនាំ (Referred By)
+  let referrerId = user.referredBy || "N/A";
+  let referrerNameHtml = user.referredBy
+    ? `<div style="font-size: 0.85rem; color: #64748b; margin-top: 5px; font-weight: 600; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; display: inline-block;">ឈ្មោះ: ${user.referrerName || "មិនមានទិន្នន័យឈ្មោះ"}</div>`
+    : "";
+
+  // 🟢 កំណត់ប៊ូតុង Freeze/Unfreeze
+  const freezeBtnStyle = user.isFrozen
+    ? "background: #10b981; color: white; border: none; box-shadow: 0 4px 10px rgba(16,185,129,0.2);"
+    : "background: #ef4444; color: white; border: none; box-shadow: 0 4px 10px rgba(239,68,68,0.2);";
+  const freezeBtnText = user.isFrozen
+    ? `<i class="fa-solid fa-unlock"></i> បើកគណនីវិញ`
+    : `<i class="fa-solid fa-lock"></i> ផ្អាកគណនី (Freeze)`;
 
   container.innerHTML = `
     <style>
@@ -318,11 +380,11 @@ function renderInfoTab(user) {
       .c360-inner-card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
       .c360-inner-title { margin: 0 0 20px 0; font-size: 1rem; color: #1e293b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 10px; }
       
-      .c360-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+      .c360-grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
       
-      .c360-data-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; display: flex; flex-direction: column; gap: 5px; transition: 0.2s; }
+      .c360-data-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 75px; transition: 0.2s; box-sizing: border-box; }
       
-      .c360-label-small { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', 'Kantumruy Pro', sans-serif; }
+      .c360-label-small { font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', 'Kantumruy Pro', sans-serif; margin-bottom: 4px; }
       .c360-value-text { font-size: 1.05rem; color: #0f172a; font-weight: 700; font-family: 'Inter', 'Kantumruy Pro', sans-serif; word-break: break-word; }
       
       /* Editable Box Styles */
@@ -332,7 +394,7 @@ function renderInfoTab(user) {
       .c360-data-box.editable .edit-icon:hover { color: #2563eb; transform: scale(1.1); }
       
       .c360-inline-input { width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 1rem; color: #0f172a; font-weight: 600; font-family: 'Inter', 'Kantumruy Pro', sans-serif; outline: none; box-sizing: border-box; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); margin-top: 5px; }
-      .inline-action-btns { display: flex; gap: 8px; margin-top: 10px; }
+      .inline-action-btns { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
       .inline-btn-save { flex: 1; background: #10b981; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
       .inline-btn-save:hover { background: #059669; }
       .inline-btn-cancel { flex: 1; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s; }
@@ -341,46 +403,25 @@ function renderInfoTab(user) {
       .c360-security-section { background: rgba(239, 68, 68, 0.02); border: 1px solid rgba(239, 68, 68, 0.15); }
       .c360-btn-reset-outline { flex: 1; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 1px solid rgba(239, 68, 68, 0.2); background: white; color: #ef4444; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; }
       .c360-btn-reset-outline:hover { background: #fef2f2; border-color: #ef4444; }
+
+      @media (max-width: 1000px) {
+          .c360-grid-container { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (max-width: 600px) {
+          .c360-grid-container { grid-template-columns: 1fr; }
+      }
     </style>
 
     <h2 class="c360-tab-title-main"><i class="fa-solid fa-user-circle" style="color: #10b981;"></i> ព័ត៌មានអតិថិជន (Information)</h2>
 
-    <!-- 📦 កាតទី១៖ ព័ត៌មានគណនី (READ-ONLY) -->
+    <!-- 📦 កាតទី១៖ ព័ត៌មានគណនី (ACCOUNT PROFILE) -->
     <div class="c360-inner-card">
         <h4 class="c360-inner-title"><i class="fa-solid fa-address-card" style="color: #64748b;"></i> ព័ត៌មានគណនី (Account Profile)</h4>
         <div class="c360-grid-container">
-            <div class="c360-data-box">
-                <span class="c360-label-small">ឈ្មោះប្រើប្រាស់ (USERNAME)</span>
-                <span class="c360-value-text">@${user.username}</span>
-            </div>
-            <div class="c360-data-box">
-                <span class="c360-label-small">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
-                <span class="c360-value-text">${idNumText}</span>
-                ${duplicateWarning}
-            </div>
-            <div class="c360-data-box">
-                <span class="c360-label-small">ថ្ងៃខែឆ្នាំកំណើត (DOB)</span>
-                <span class="c360-value-text">${dobText}</span>
-            </div>
-            <div class="c360-data-box">
-                <span class="c360-label-small">ភេទ (GENDER)</span>
-                <span class="c360-value-text">${genderText}</span>
-            </div>
-            <div class="c360-data-box">
-                <span class="c360-label-small">ថ្ងៃបង្កើតគណនី (JOIN DATE)</span>
-                <span class="c360-value-text">${dateCreated}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 📦 កាតទី២៖ ព័ត៌មានទំនាក់ទំនង (INLINE EDITABLE) -->
-    <div class="c360-inner-card">
-        <h4 class="c360-inner-title"><i class="fa-solid fa-address-book" style="color: #3b82f6;"></i> ព័ត៌មានទំនាក់ទំនង (Contact Info)</h4>
-        <div class="c360-grid-container">
             
-            <!-- ឈ្មោះពេញ -->
+            <!-- ១. ឈ្មោះពេញ (Editable) -->
             <div class="c360-data-box editable" id="box-fullName">
-                <div id="view-fullName" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+                <div id="view-fullName" style="display: flex; flex-direction: column; width: 100%;">
                     <span class="c360-label-small">ឈ្មោះពេញ (FULL NAME)</span>
                     <span class="c360-value-text">${user.fullName || "N/A"}</span>
                     <i class="fa-solid fa-pen edit-icon" id="icon-fullName" onclick="c360ToggleEdit('fullName', 'text')" title="កែប្រែ"></i>
@@ -395,9 +436,73 @@ function renderInfoTab(user) {
                 </div>
             </div>
 
-            <!-- លេខទូរស័ព្ទ -->
-            <div class="c360-data-box editable" id="box-phone">
-                <div id="view-phone" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <!-- ២. ឈ្មោះប្រើប្រាស់ -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">ឈ្មោះប្រើប្រាស់ (USERNAME)</span>
+                <span class="c360-value-text">@${user.username}</span>
+            </div>
+
+            <!-- ៣. ភេទ -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">ភេទ (GENDER)</span>
+                <span class="c360-value-text">${genderText}</span>
+            </div>
+
+            <!-- ៤. User ID -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">លេខសម្គាល់ (USER ID)</span>
+                <span class="c360-value-text">${user.userId || "N/A"}</span>
+            </div>
+
+            <!-- ៥. ប៊ូតុង Freeze/Unfreeze -->
+            <div class="c360-data-box" style="padding: 0; background: transparent; border: none; display: flex; align-items: center;">
+                <button onclick="c360ToggleFreeze()" style="width: 100%; padding: 12px; border-radius: 8px; font-family: 'Kantumruy Pro'; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; ${freezeBtnStyle}">
+                    ${freezeBtnText}
+                </button>
+            </div>
+
+            <!-- ៦. លេខអត្តសញ្ញាណប័ណ្ណ -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
+                <span class="c360-value-text">${idNumText}</span>
+                ${duplicateWarning}
+            </div>
+
+            <!-- ៧. ថ្ងៃខែឆ្នាំកំណើត -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">ថ្ងៃខែឆ្នាំកំណើត (DOB)</span>
+                <span class="c360-value-text">${dobText}</span>
+            </div>
+
+            <!-- ៨. ថ្ងៃបង្កើតគណនី -->
+            <div class="c360-data-box">
+                <span class="c360-label-small">ថ្ងៃបង្កើតគណនី (JOIN DATE)</span>
+                <span class="c360-value-text">${dateCreated}</span>
+            </div>
+
+            <!-- ៩. លុយដុល្លារសរុប -->
+            <div class="c360-data-box" style="border-left: 4px solid var(--secondary);">
+                <span class="c360-label-small">លុយដុល្លារសរុប (TOTAL USD)</span>
+                <span class="c360-value-text" style="color: var(--secondary); font-size: 1.2rem;">${formattedTotalUSD}</span>
+            </div>
+
+            <!-- ១0. លុយរៀលសរុប -->
+            <div class="c360-data-box" style="border-left: 4px solid var(--accent);">
+                <span class="c360-label-small">លុយរៀលសរុប (TOTAL KHR)</span>
+                <span class="c360-value-text" style="color: var(--accent); font-size: 1.2rem;">${formattedTotalKHR}</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 📦 កាតទី២៖ ព័ត៌មានទំនាក់ទំនង (CONTACT INFO) -->
+    <div class="c360-inner-card" style="background: #f8fafc;">
+        <h4 class="c360-inner-title"><i class="fa-solid fa-address-book" style="color: #3b82f6;"></i> ព័ត៌មានទំនាក់ទំនង (Contact Info)</h4>
+        <div class="c360-grid-container">
+            
+            <!-- ១. លេខទូរស័ព្ទ (Editable) -->
+            <div class="c360-data-box editable" id="box-phone" style="background: #ffffff;">
+                <div id="view-phone" style="display: flex; flex-direction: column; width: 100%;">
                     <span class="c360-label-small">លេខទូរស័ព្ទ (PHONE)</span>
                     <span class="c360-value-text">${user.phone || user.phoneNumber || "N/A"}</span>
                     <i class="fa-solid fa-pen edit-icon" id="icon-phone" onclick="c360ToggleEdit('phone', 'tel')" title="កែប្រែ"></i>
@@ -412,9 +517,9 @@ function renderInfoTab(user) {
                 </div>
             </div>
 
-            <!-- អ៊ីមែល -->
-            <div class="c360-data-box editable" id="box-email">
-                <div id="view-email" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <!-- ២. អ៊ីមែល (Editable) -->
+            <div class="c360-data-box editable" id="box-email" style="background: #ffffff;">
+                <div id="view-email" style="display: flex; flex-direction: column; width: 100%;">
                     <span class="c360-label-small">អ៊ីមែល (EMAIL)</span>
                     <span class="c360-value-text">${user.email || "N/A"}</span>
                     <i class="fa-solid fa-pen edit-icon" id="icon-email" onclick="c360ToggleEdit('email', 'email')" title="កែប្រែ"></i>
@@ -429,10 +534,11 @@ function renderInfoTab(user) {
                 </div>
             </div>
 
-            <!-- អ្នកណែនាំ (Referred By) - READ ONLY -->
-             <div class="c360-data-box">
+            <!-- ៣. អ្នកណែនាំ (Read-only) -->
+             <div class="c360-data-box" style="background: #ffffff;">
                 <span class="c360-label-small">អ្នកណែនាំ (REFERRED BY)</span>
-                <span class="c360-value-text">${referrerText}</span>
+                <span class="c360-value-text">${referrerId}</span>
+                ${referrerNameHtml}
             </div>
 
         </div>
@@ -442,7 +548,7 @@ function renderInfoTab(user) {
     <div class="c360-inner-card c360-security-section">
         <h4 class="c360-inner-title" style="color: #ef4444;"><i class="fa-solid fa-shield-halved"></i> សុវត្ថិភាព (Security & Credentials)</h4>
         <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px; line-height: 1.5; font-family: 'Kantumruy Pro', sans-serif;">
-            លេខសម្ងាត់ (Password) និង លេខកូដ (PIN) ត្រូវបានលាក់ដើម្បីសុវត្ថិភាព។ ប្រសិនបើអតិថិជនភ្លេច អ្នកអាចចុចប៊ូតុងខាងក្រោមដើម្បីកំណត់វាឡើងវិញ។
+            លេខសម្ងាត់ (Password) និង លេខកូដ (PIN) ត្រូវបានលាក់ដើម្បីសុវត្ថិភាព។ ប្រសិនបើអតិថិជនភ្លេច អ្នកអាចចុចប៊ូតុងខាងក្រោមដើម្បីផ្ញើ Link អោយគាត់កំណត់វាឡើងវិញដោយខ្លួនឯង។
         </p>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <button class="c360-btn-reset-outline" onclick="c360TriggerReset('PIN')">
@@ -654,41 +760,526 @@ async function c360TriggerReset(type) {
   }
 }
 
-// ➡️ TAB 2: Wallets (គណនីហិរញ្ញវត្ថុ)
+// =======================================================
+// ➡️ TAB 2: គ្រប់គ្រងកាបូបលុយ និងគណនី (Wallets & Accounts)
+// =======================================================
 function renderWalletsTab(user) {
   const container = document.getElementById("c360-tab-finance");
   if (!container) return;
 
-  // 🟢 កែប្រែការទាញយកទិន្នន័យនៅទីនេះ
-  const balUSD = user.mainAccounts?.USD?.balance || 0;
-  const accUSD = user.mainAccounts?.USD?.accountNumber || "N/A";
-  const balKHR = user.mainAccounts?.KHR?.balance || 0;
-  const accKHR = user.mainAccounts?.KHR?.accountNumber || "N/A";
+  const formatUSD = (val) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(val || 0);
+  const formatKHR = (val) =>
+    new Intl.NumberFormat("en-US").format(val || 0) + " ៛";
 
-  container.innerHTML = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-      <div class="dash-card" style="border-left: 5px solid var(--accent);">
-        <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី USD ($)</h4>
-        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">$${balUSD.toLocaleString("en-US", { minimumFractionDigits: 2 })}</h2>
-        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${accUSD}</p>
-      </div>
-      <div class="dash-card" style="border-left: 5px solid var(--secondary);">
-        <h4 style="margin: 0 0 10px; color: var(--text-muted);" class="kh-text">គណនី KHR (៛)</h4>
-        <h2 style="margin: 0 0 10px; color: var(--text-main); font-size: 2rem;">${balKHR.toLocaleString()} ៛</h2>
-        <p style="margin:0; font-family: monospace; color: var(--text-muted);">Acc: ${accKHR}</p>
-      </div>
-    </div>
-    
-    <div style="display: flex; gap: 15px; margin-top: 20px;">
-      <button class="btn-primary kh-text" style="background: #ef4444; flex:1; padding: 18px; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px;" onclick="if(typeof openAdjustBalance === 'function') openAdjustBalance('${user.username}', 'deduct')">
-          <i class="fa-solid fa-minus"></i> ដកប្រាក់
-      </button>
-      <button class="btn-primary kh-text" style="background: var(--secondary); flex:1; padding: 18px; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px;" onclick="if(typeof openAdjustBalance === 'function') openAdjustBalance('${user.username}', 'add')">
-          <i class="fa-solid fa-plus"></i> ដាក់ប្រាក់
-      </button>
+  // ----------------------------------------------------
+  // ១. គណនីចម្បង (Main Accounts)
+  // ----------------------------------------------------
+  const mainUSD = user.mainAccounts?.USD || {};
+  const mainKHR = user.mainAccounts?.KHR || {};
+
+  let mainAccountsHtml = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        
+        <!-- Main USD -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 20px; color: white; position: relative; box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15); font-family: 'Kantumruy Pro', sans-serif;">
+            
+            <div style="display: flex; gap: 5px; position: absolute; top: -10px; right: 10px;">
+                ${mainUSD.isHidden ? `<div style="background: #64748b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(100,116,139,0.3);"><i class="fa-solid fa-eye-slash"></i> HIDDEN</div>` : ""}
+                ${mainUSD.isFrozen ? `<div style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(239,68,68,0.3);"><i class="fa-solid fa-pause"></i> FROZEN</div>` : ""}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; margin-top: 5px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #38bdf8;">
+                        <i class="fa-solid fa-dollar-sign"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc;">${mainUSD.accountName || "Main Account USD"}</div>
+                        <div style="font-size: 0.8rem; color: #cbd5e1; font-family: 'Inter', monospace; margin-top: 2px; cursor: pointer; display: flex; align-items: center; gap: 5px;" onclick="navigator.clipboard.writeText('${mainUSD.accountNumber}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'បានចម្លង (Copied)!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">
+                            ${mainUSD.accountNumber || "N/A"} <i class="fa-regular fa-copy" style="opacity: 0.8;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Limit</div>
+                    <div style="font-size: 0.85rem; color: #f8fafc; font-weight: 600; font-family: 'Kantumruy Pro', sans-serif;">$${mainUSD.dailyLimit || 1000} / ថ្ងៃ</div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #ffffff;">${formatUSD(mainUSD.balance)}</div>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button onclick="c360JumpToTrx('${mainUSD.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-receipt"></i> របាយការណ៍</button>
+                
+                <button onclick="c360EditAccountLimit('${mainUSD.accountNumber}', ${mainUSD.dailyLimit || 1000})" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-sliders"></i> កំណត់ Limit</button>
+                
+                <button onclick="c360ToggleAccHide('${mainUSD.accountNumber}', ${mainUSD.isHidden})" style="background: ${mainUSD.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.1)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainUSD.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainUSD.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${mainUSD.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
+
+                <button onclick="c360ToggleAccFreeze('${mainUSD.accountNumber}', ${mainUSD.isFrozen})" style="background: ${mainUSD.isFrozen ? "#10b981" : "rgba(239,68,68,0.2)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainUSD.isFrozen ? "white" : "#fca5a5"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainUSD.isFrozen ? "បើកគណនីនេះវិញ" : "ផ្អាកគណនីនេះ"}"><i class="fa-solid ${mainUSD.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
+            </div>
+        </div>
+
+        <!-- Main KHR -->
+        <div style="background: linear-gradient(135deg, #0f766e 0%, #064e3b 100%); border-radius: 16px; padding: 20px; color: white; position: relative; box-shadow: 0 10px 20px rgba(6, 78, 59, 0.15); font-family: 'Kantumruy Pro', sans-serif;">
+            
+            <div style="display: flex; gap: 5px; position: absolute; top: -10px; right: 10px;">
+                ${mainKHR.isHidden ? `<div style="background: #64748b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(100,116,139,0.3);"><i class="fa-solid fa-eye-slash"></i> HIDDEN</div>` : ""}
+                ${mainKHR.isFrozen ? `<div style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(239,68,68,0.3);"><i class="fa-solid fa-pause"></i> FROZEN</div>` : ""}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; margin-top: 5px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #34d399;">
+                        ៛
+                    </div>
+                    <div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc;">${mainKHR.accountName || "Main Account KHR"}</div>
+                        <div style="font-size: 0.8rem; color: #cbd5e1; font-family: 'Inter', monospace; margin-top: 2px; cursor: pointer; display: flex; align-items: center; gap: 5px;" onclick="navigator.clipboard.writeText('${mainKHR.accountNumber}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'បានចម្លង (Copied)!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">
+                            ${mainKHR.accountNumber || "N/A"} <i class="fa-regular fa-copy" style="opacity: 0.8;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; color: #99f6e4; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Limit</div>
+                    <div style="font-size: 0.85rem; color: #f8fafc; font-weight: 600; font-family: 'Kantumruy Pro', sans-serif;">${(mainKHR.dailyLimit || 4000000).toLocaleString()} ៛ / ថ្ងៃ</div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #ffffff;">${formatKHR(mainKHR.balance)}</div>
+            </div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button onclick="c360JumpToTrx('${mainKHR.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-receipt"></i> របាយការណ៍</button>
+                
+                <button onclick="c360EditAccountLimit('${mainKHR.accountNumber}', ${mainKHR.dailyLimit || 4000000})" style="flex: 1; background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s; font-family: 'Kantumruy Pro';" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'"><i class="fa-solid fa-sliders"></i> កំណត់ Limit</button>
+                
+                <button onclick="c360ToggleAccHide('${mainKHR.accountNumber}', ${mainKHR.isHidden})" style="background: ${mainKHR.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.1)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainKHR.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainKHR.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${mainKHR.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
+
+                <button onclick="c360ToggleAccFreeze('${mainKHR.accountNumber}', ${mainKHR.isFrozen})" style="background: ${mainKHR.isFrozen ? "#10b981" : "rgba(239,68,68,0.2)"}; border: none; padding: 10px 15px; border-radius: 8px; color: ${mainKHR.isFrozen ? "white" : "#fca5a5"}; cursor: pointer; font-size: 0.85rem; font-weight: bold; transition: 0.2s;" title="${mainKHR.isFrozen ? "បើកគណនីនេះវិញ" : "ផ្អាកគណនីនេះ"}"><i class="fa-solid ${mainKHR.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
+            </div>
+        </div>
     </div>
   `;
+
+  // ----------------------------------------------------
+  // ២. គណនីរង គណនីសន្សំ និង គណនីកុមារ (Sub & Junior Accounts)
+  // ----------------------------------------------------
+  let subAccountsHtml = "";
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    const generateSubCard = (sub) => {
+      const isKHR = sub.currency === "KHR";
+      const isJunior = sub.accountType === "junior";
+      const isJoint =
+        sub.accountType === "joint" || sub.accountType === "joint_member";
+
+      let bgStyle = "";
+      let textColor = "white";
+      let badgeHtml = "";
+
+      if (isJunior && !isKHR) {
+        bgStyle =
+          "background: linear-gradient(135deg, #c2410c 0%, #f59e0b 100%); box-shadow: 0 8px 15px rgba(245, 158, 11, 0.2);";
+        badgeHtml = `<span style="background: white; color: #d97706; padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; margin-left: 8px;">JUNIOR</span>`;
+      } else if (isJunior && isKHR) {
+        bgStyle =
+          "background: linear-gradient(135deg, #b45309 0%, #fbbf24 100%); box-shadow: 0 8px 15px rgba(251, 191, 36, 0.2);";
+        badgeHtml = `<span style="background: white; color: #b45309; padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; margin-left: 8px;">JUNIOR</span>`;
+      } else if (isJoint && !isKHR) {
+        bgStyle =
+          "background: linear-gradient(135deg, #4c1d95 0%, #8b5cf6 100%); box-shadow: 0 8px 15px rgba(139, 92, 246, 0.2);";
+        badgeHtml = `<span style="background: white; color: #6d28d9; padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; margin-left: 8px;">JOINT</span>`;
+      } else if (isJoint && isKHR) {
+        bgStyle =
+          "background: linear-gradient(135deg, #831843 0%, #ec4899 100%); box-shadow: 0 8px 15px rgba(236, 72, 153, 0.2);";
+        badgeHtml = `<span style="background: white; color: #be185d; padding: 3px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: bold; margin-left: 8px;">JOINT</span>`;
+      } else if (!isKHR) {
+        bgStyle =
+          "background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); box-shadow: 0 8px 15px rgba(59, 130, 246, 0.2);";
+      } else {
+        bgStyle =
+          "background: linear-gradient(135deg, #134e4a 0%, #14b8a6 100%); box-shadow: 0 8px 15px rgba(20, 184, 166, 0.2);";
+      }
+
+      const balText = isKHR ? formatKHR(sub.balance) : formatUSD(sub.balance);
+
+      const dailyLimitVal = sub.dailyLimit || (isKHR ? 4000000 : 1000);
+      const limitDisplay = isKHR
+        ? `${dailyLimitVal.toLocaleString()} ៛ / ថ្ងៃ`
+        : `$${dailyLimitVal} / ថ្ងៃ`;
+
+      return `
+            <div style="${bgStyle} border-radius: 16px; padding: 20px; color: ${textColor}; position: relative; transition: 0.2s; font-family: 'Kantumruy Pro', sans-serif;" id="subcard-${sub.accountNumber}">
+                
+                <div style="display: flex; gap: 5px; position: absolute; top: -10px; right: 10px;">
+                    ${sub.isHidden ? `<div style="background: #64748b; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(100,116,139,0.3);"><i class="fa-solid fa-eye-slash"></i> HIDDEN</div>` : ""}
+                    ${sub.isFrozen ? `<div style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(239,68,68,0.3);"><i class="fa-solid fa-pause"></i> FROZEN</div>` : ""}
+                </div>
+
+                <!-- 🌟 មុខងារ VIEW ទម្រង់ដើម -->
+                <div id="view-mode-${sub.accountNumber}" style="margin-top: 5px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 35px; height: 35px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white; font-weight: bold;">
+                                ${isKHR ? "៛" : '<i class="fa-solid fa-dollar-sign"></i>'}
+                            </div>
+                            <div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center;">
+                                    ${sub.accountName} ${badgeHtml}
+                                </div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.8); font-family: 'Inter', monospace; margin-top: 2px; cursor: pointer; display: flex; align-items: center; gap: 5px;" onclick="navigator.clipboard.writeText('${sub.accountNumber}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'បានចម្លង (Copied)!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">
+                                    ${sub.accountNumber} <i class="fa-regular fa-copy"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.65rem; color: rgba(255,255,255,0.7); text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;">Limit</div>
+                            <div style="font-size: 0.85rem; color: #ffffff; font-weight: 600; font-family: 'Kantumruy Pro', sans-serif;">${limitDisplay}</div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: #ffffff; margin-bottom: 20px; line-height: 1;">
+                        ${balText}
+                    </div>
+
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button onclick="c360JumpToTrx('${sub.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.2); border: none; padding: 8px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; font-family: 'Kantumruy Pro'; transition: 0.2s;"><i class="fa-solid fa-receipt"></i> Trx</button>
+                        
+                        <button onclick="c360ToggleInlineEdit('${sub.accountNumber}')" style="background: rgba(255,255,255,0.2); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="កែប្រែគណនី (Edit)"><i class="fa-solid fa-pen"></i></button>
+                        
+                        <button onclick="c360EditAccountLimit('${sub.accountNumber}', ${sub.dailyLimit || (isKHR ? 4000000 : 1000)})" style="background: rgba(255,255,255,0.2); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="កំណត់ Limit (Set Limit)"><i class="fa-solid fa-sliders"></i></button>
+                        
+                        <button onclick="c360ToggleAccHide('${sub.accountNumber}', ${sub.isHidden})" style="background: ${sub.isHidden ? "#cbd5e1" : "rgba(255,255,255,0.2)"}; border: none; padding: 8px 12px; border-radius: 8px; color: ${sub.isHidden ? "#0f172a" : "white"}; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="${sub.isHidden ? "បង្ហាញវិញ (Unhide)" : "លាក់គណនី (Hide)"}"><i class="fa-solid ${sub.isHidden ? "fa-eye" : "fa-eye-slash"}"></i></button>
+
+                        <button onclick="c360ToggleAccFreeze('${sub.accountNumber}', ${sub.isFrozen})" style="background: ${sub.isFrozen ? "#10b981" : "rgba(255,255,255,0.2)"}; border: 1px solid ${sub.isFrozen ? "#10b981" : "transparent"}; padding: 8px 12px; border-radius: 8px; color: ${sub.isFrozen ? "white" : "#ef4444"}; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="${sub.isFrozen ? "បើកវិញ (Play)" : "ផ្អាក (Pause)"}"><i class="fa-solid ${sub.isFrozen ? "fa-play" : "fa-pause"}"></i></button>
+
+                        <button onclick="c360DeleteSubAccountConfirm('${sub.accountNumber}')" style="background: rgba(239, 68, 68, 0.4); border: none; padding: 8px 12px; border-radius: 8px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; transition: 0.2s;" title="លុបគណនី (Delete)"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+
+                <!-- 🌟 មុខងារ EDIT (លាក់សិន) -->
+                <div id="edit-mode-${sub.accountNumber}" style="display: none; margin-top: 5px;">
+                    <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; color: white;"><i class="fa-solid fa-pen"></i> កែប្រែគណនី</div>
+                    
+                    <label style="font-size: 0.7rem; opacity: 0.9; color: white;">ឈ្មោះគណនី (Account Name)</label>
+                    <input type="text" id="edit-name-${sub.accountNumber}" value="${sub.accountName}" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 6px; border: none; outline: none; color: #0f172a; font-weight: bold; font-family: 'Kantumruy Pro'; box-sizing: border-box;">
+                    
+                    <label style="font-size: 0.7rem; opacity: 0.9; color: white;">លេខគណនី (Account No)</label>
+                    <input type="text" id="edit-num-${sub.accountNumber}" value="${sub.accountNumber}" style="width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 6px; border: none; outline: none; color: #0f172a; font-weight: bold; font-family: monospace; box-sizing: border-box;">
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="c360SaveInlineEditSubAcc('${sub.accountNumber}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-family: 'Kantumruy Pro';"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
+                        <button onclick="c360ToggleInlineEdit('${sub.accountNumber}')" style="flex: 1; background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro';">បោះបង់</button>
+                    </div>
+                </div>
+            </div>
+          `;
+    };
+
+    subAccountsHtml = `
+        <h3 style="margin: 0 0 15px 0; font-size: 1.1rem; color: var(--text-main); font-family: 'Kantumruy Pro'; border-top: 1px solid var(--border); padding-top: 20px;">
+            <i class="fa-solid fa-layer-group" style="color: #8b5cf6;"></i> គណនីរង និង គណនីកុមារ (Sub & Junior Accounts)
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            ${user.subAccounts.map(generateSubCard).join("")}
+        </div>
+      `;
+  } else {
+    subAccountsHtml = `
+        <h3 style="margin: 0 0 15px 0; font-size: 1.1rem; color: var(--text-main); font-family: 'Kantumruy Pro'; border-top: 1px solid var(--border); padding-top: 20px;">
+            <i class="fa-solid fa-layer-group" style="color: #8b5cf6;"></i> គណនីរង និង គណនីកុមារ (Sub & Junior Accounts)
+        </h3>
+        <div style="text-align: center; padding: 30px; background: var(--bg-body); border-radius: 12px; border: 1px dashed var(--border); color: var(--text-muted); font-family: 'Kantumruy Pro';">
+            អតិថិជនមិនទាន់មានគណនីរង (Sub-Accounts) នោះទេ។
+        </div>
+      `;
+  }
+
+  container.innerHTML = `
+    <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+        <i class="fa-solid fa-wallet" style="color: var(--secondary);"></i> គ្រប់គ្រងកាបូបលុយ និងគណនី (Wallets & Accounts)
+    </h2>
+    ${mainAccountsHtml}
+    ${subAccountsHtml}
+  `;
 }
+
+// =======================================================
+// មុខងារបញ្ជាកាត Sub-Accounts (Inline Actions)
+// =======================================================
+
+// ១. បិទ/បើក ផ្ទាំង Edit នៅលើកាតផ្ទាល់
+window.c360ToggleInlineEdit = function (accountNumber) {
+  const viewMode = document.getElementById(`view-mode-${accountNumber}`);
+  const editMode = document.getElementById(`edit-mode-${accountNumber}`);
+
+  if (viewMode.style.display === "none") {
+    viewMode.style.display = "block";
+    editMode.style.display = "none";
+  } else {
+    viewMode.style.display = "none";
+    editMode.style.display = "block";
+  }
+};
+
+// ២. រក្សាទុកការកែប្រែ (Save Edit)
+window.c360SaveInlineEditSubAcc = async function (oldAccountNumber) {
+  const newName = document
+    .getElementById(`edit-name-${oldAccountNumber}`)
+    .value.trim();
+  const newNumber = document
+    .getElementById(`edit-num-${oldAccountNumber}`)
+    .value.trim();
+
+  if (!newName || !newNumber)
+    return Swal.fire({
+      toast: true,
+      position: "top",
+      icon: "warning",
+      title: "សូមបំពេញឈ្មោះ និងលេខគណនី!",
+      showConfirmButton: false,
+      timer: 2000,
+    });
+
+  const bodyData = {
+    username: currentC360User.username,
+    oldAccountNumber: oldAccountNumber,
+    newName: newName,
+    newAccountNumber: newNumber,
+  };
+
+  try {
+    const res = await fetch("/api/admin/account/edit-sub-account", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(bodyData),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      c360RefreshData();
+      Swal.fire({
+        icon: "success",
+        title: "ជោគជ័យ!",
+        text: data.message,
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text" },
+      });
+    } else {
+      Swal.fire("បរាជ័យ", data.message || "មិនអាចកែប្រែបានទេ!", "error");
+    }
+  } catch (e) {
+    Swal.fire("បរាជ័យ", "មានបញ្ហា Server!", "error");
+  }
+};
+
+// ៣. លុបគណនី (SweetAlert Delete Confirmation)
+window.c360DeleteSubAccountConfirm = async function (accountNumber) {
+  const result = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem; color: #ef4444;">បញ្ជាក់ការលុបគណនី</span>',
+    html: '<p class="kh-text" style="font-size: 0.95rem; margin-top: 10px;">តើអ្នកពិតជាចង់លុបគណនីរងនេះចោលមែនទេ?<br><br><b><i class="fa-solid fa-triangle-exclamation"></i> ចំណាំ៖</b> ប្រសិនបើមានសមតុល្យលុយសល់ វានឹងត្រូវបង្វិលចូលគណនីចម្បង (Main Account) វិញដោយស្វ័យប្រវត្តិ។</p>',
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-trash"></i> យល់ព្រមលុប',
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#ef4444",
+    customClass: { popup: "modal-radius kh-text" },
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងលុប...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/account/delete-sub-account", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          accountNumber: accountNumber,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានលុបជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else {
+        Swal.fire("បរាជ័យ", data.message || "មិនអាចលុបបានទេ!", "error");
+      }
+    } catch (e) {
+      Swal.fire("បរាជ័យ", "មានបញ្ហា Server!", "error");
+    }
+  }
+};
+
+// 🟢 មុខងារលាក់/បង្ហាញគណនី (Hide / Unhide Account)
+window.c360ToggleAccHide = async function (accountNumber, isCurrentlyHidden) {
+  Swal.fire({
+    title: "កំពុងដំណើរការ...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
+  try {
+    const res = await fetch("/api/admin/account/toggle-hide", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        username: currentC360User.username,
+        accountNumber,
+      }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      c360RefreshData();
+      Swal.fire({
+        icon: "success",
+        title: "ជោគជ័យ!",
+        text: data.message,
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text" },
+      });
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (e) {
+    Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+  }
+};
+
+// 🟢 មុខងារកែប្រែកម្រិតចំណាយប្រចាំថ្ងៃ (Edit Daily Limit)
+window.c360EditAccountLimit = async function (accountNumber, currentLimit) {
+  const { value: newLimit } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem;">កំណត់ទំហំចំណាយប្រចាំថ្ងៃ (Daily Limit)</span>',
+    input: "number",
+    inputValue: currentLimit,
+    inputPlaceholder: "បញ្ចូលចំនួនទឹកប្រាក់...",
+    showCancelButton: true,
+    confirmButtonText: "រក្សាទុក",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#8b5cf6",
+    customClass: { popup: "modal-radius kh-text" },
+    inputValidator: (value) => {
+      if (!value || value <= 0)
+        return "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!";
+    },
+  });
+
+  if (newLimit && Number(newLimit) !== Number(currentLimit)) {
+    Swal.fire({
+      title: "កំពុងរក្សាទុក...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/account/update-limit", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          accountNumber,
+          dailyLimit: Number(newLimit),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានកំណត់ Limit ថ្មីជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// 🟢 មុខងារផ្អាកគណនីជាក់លាក់ (Freeze Specific Account)
+window.c360ToggleAccFreeze = async function (accountNumber, isCurrentlyFrozen) {
+  const actionText = isCurrentlyFrozen
+    ? "បើកឱ្យដំណើរការវិញ (Unfreeze)"
+    : "ផ្អាកបណ្តោះអាសន្ន (Freeze)";
+  const color = isCurrentlyFrozen ? "#10b981" : "#ef4444";
+
+  const result = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.2rem; color: ${color};">${actionText} គណនីនេះ?</span>`,
+    text: `តើអ្នកពិតជាចង់ ${actionText} មែនទេ?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "យល់ព្រម",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: color,
+    customClass: { popup: "modal-radius kh-text" },
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/account/toggle-freeze", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          accountNumber,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: data.message,
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// 🟢 មុខងារលោតទៅមើលប្រវត្តិ (Jump to Trx Tab) របស់គណនីនីមួយៗ
+window.c360JumpToTrx = function (accountNumber) {
+  switchC360Tab("trx");
+  setTimeout(() => {
+    const accSelect = document.getElementById("c360-trx-acc-filter");
+    if (accSelect) {
+      accSelect.value = accountNumber;
+      c360FilterTrxList(true);
+    }
+  }, 100);
+};
 
 // =======================================================
 // ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management)

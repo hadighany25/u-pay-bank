@@ -1853,7 +1853,6 @@ const migrateTransactions = async (req, res) => {
 
 // 🟢 អនុគមន៍ទី១៖ សម្រាប់ Admin ចុចផ្ញើ Link (Request Reset)
 const requestCredentialReset = async (req, res) => {
-  // អ្នកអាចឆែកសិទ្ធិ Admin នៅទីនេះបើសិនចង់ (ឧ. មានតែ Super Admin និង Support ទើបធ្វើបាន)
   const { username, resetType } = req.body; // resetType: "PIN" ឬ "Password"
 
   try {
@@ -1863,24 +1862,36 @@ const requestCredentialReset = async (req, res) => {
     if (!user.email) {
       return res.json({
         success: false,
-        message: "អតិថិជននេះមិនទាន់មានអ៊ីមែល (Email) ទេ។ សូមឱ្យគាត់បញ្ចូលសិន。",
+        message: "អតិថិជននេះមិនទាន់មានអ៊ីមែល (Email) ទេ។ សូមឱ្យគាត់បញ្ចូលសិន។",
+      });
+    }
+
+    // 🛑 មុខងារថ្មី៖ ឆែកមើលក្រែងលោ Admin ទើបតែផ្ញើ Link មិនទាន់បាន ៥ នាទី
+    if (user.resetTokenExpire && user.resetTokenExpire > Date.now()) {
+      // គណនាថាសល់ប៉ុន្មាននាទីទៀតទើបផ្ញើបាន
+      const timeLeft = Math.ceil(
+        (user.resetTokenExpire - Date.now()) / 1000 / 60,
+      );
+      return res.json({
+        success: false,
+        message: `សូមរង់ចាំ ${timeLeft} នាទីទៀត ទើបអាចផ្ញើ Link សារជាថ្មីបាន! (ការពារការផ្ញើស្ទួន)`,
       });
     }
 
     // បង្កើត Token សុវត្ថិភាព (Random 64 តួ)
     const rawToken = crypto.randomBytes(32).toString("hex");
 
-    // Hash Token មុន Save ចូល DB ដើម្បីសុវត្ថិភាពអតិបរមា (ជៀសវាងអ្នកលួច Database យកទៅប្រើបាន)
+    // Hash Token មុន Save ចូល DB
     const hashedToken = crypto
       .createHash("sha256")
       .update(rawToken)
       .digest("hex");
 
     user.resetToken = hashedToken;
-    user.resetTokenExpire = Date.now() + 5 * 60 * 1000; // 5 នាទី
+    user.resetTokenExpire = Date.now() + 5 * 60 * 1000; // កំណត់ ៥ នាទី
     await user.save();
 
-    // បង្កើត URL សំរាប់ផ្ញើ (ប្រើ URL ពិតរបស់អ្នក)
+    // បង្កើត URL សំរាប់ផ្ញើ
     const baseUrl = process.env.CLIENT_URL || "https://u-pay-bank.fly.dev";
     const resetUrl = `${baseUrl}/reset-credential?token=${rawToken}&type=${resetType}`;
 
@@ -1909,20 +1920,16 @@ const requestCredentialReset = async (req, res) => {
   }
 };
 
-// នៅក្នុង controllers/authController.js
-
-// 🟢 អនុគមន៍សម្រាប់ User បញ្ជាក់លេខថ្មី តាមរយៈ Link របស់គាត់
+// 🟢 អនុគមន៍ទី២៖ សម្រាប់ User បញ្ជាក់លេខថ្មី តាមរយៈ Link របស់គាត់
 const verifyAndSaveNewCredential = async (req, res) => {
   const { token, type, newValue } = req.body;
 
   try {
-    // ធ្វើការ Hash Token ដែល User ផ្ញើមក ដើម្បីប្រៀបធៀបជាមួយ Database
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    // រកមើល User ដែលមាន Token នេះ ហើយមិនទាន់ហួសម៉ោង
     const user = await User.findOne({
       resetToken: hashedToken,
-      resetTokenExpire: { $gt: Date.now() }, // ត្រូវតែធំជាងពេលបច្ចុប្បន្ន
+      resetTokenExpire: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -1934,16 +1941,23 @@ const verifyAndSaveNewCredential = async (req, res) => {
 
     // Save លេខថ្មី
     if (type === "PIN") {
+      // 🛑 មុខងារថ្មី៖ ផ្ទៀងផ្ទាត់ PIN ត្រូវតែជាលេខសុទ្ធ និងមាន ៤ ខ្ទង់គត់
+      if (!/^\d{4}$/.test(newValue)) {
+        return res.json({
+          success: false,
+          message: "លេខ PIN ត្រូវតែជាលេខសុទ្ធ និងមាន ៤ ខ្ទង់គត់!",
+        });
+      }
       user.pin = newValue;
-      user.pinAttempts = 0; // Reset ការសាកល្បងខុស
+      user.pinAttempts = 0;
     } else if (type === "Password") {
-      // 🟢 រក្សាទុកជា Plain Text តាមការចង់បានរបស់អ្នក
+      // រក្សាទុក Password សេរីតាមការចង់បានរបស់អ្នកសិន
       user.password = newValue;
     } else {
       return res.json({ success: false, message: "ប្រភេទមិនត្រឹមត្រូវ!" });
     }
 
-    // 🔴 សំខាន់បំផុត៖ លុប Token ចោលភ្លាមៗ (Single-Use Only)
+    // លុប Token ចោលភ្លាមៗ (Single-Use Only)
     user.resetToken = undefined;
     user.resetTokenExpire = undefined;
     await user.save();
@@ -1955,6 +1969,39 @@ const verifyAndSaveNewCredential = async (req, res) => {
   } catch (error) {
     console.error("Save Credential Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 🟢 អនុគមន៍ថ្មី៖ សម្រាប់ឆែកមើលថា Token នេះនៅរស់ ឬផុតកំណត់ (ពេលបើកទំព័រភ្លាម)
+const verifyResetToken = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token)
+      return res.json({ success: false, message: "មិនមាន Token សម្ងាត់ទេ!" });
+
+    // Hash Token ដើម្បីយកទៅប្រៀបធៀបក្នុង Database
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // ស្វែងរកមើលថាតើមាន Token នេះអត់ ហើយវានៅមិនទាន់ផុតកំណត់ (ធំជាង Date.now)
+    const user = await User.findOne({
+      resetToken: hashedToken,
+      resetTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "តំណភ្ជាប់នេះមិនត្រឹមត្រូវ ឬមានអាយុកាលលើសពី ៥ នាទីហើយ។",
+      });
+    }
+
+    // បើនៅរស់ បោះ success: true ឱ្យ Frontend បើកទម្រង់ឱ្យវាយ
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Verify Reset Token Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបណ្តាញ (Server Error)" });
   }
 };
 
@@ -2010,4 +2057,5 @@ module.exports = {
   migrateTransactions,
   requestCredentialReset,
   verifyAndSaveNewCredential,
+  verifyResetToken,
 };

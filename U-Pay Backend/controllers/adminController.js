@@ -549,7 +549,6 @@ const getDashboardExtra = async (req, res) => {
 // ==========================================
 // 👥 ផ្នែកទី ៦៖ ការគ្រប់គ្រងអតិថិជន (Customer 360 & Management)
 // ==========================================
-
 const searchUserByAdmin = async (req, res) => {
   try {
     const { searchTerm } = req.body;
@@ -587,6 +586,17 @@ const searchUserByAdmin = async (req, res) => {
         userDetails.idCardImage ||
         "";
       userDetails.kycImage = userDetails.kycDocument;
+
+      // 🟢 ថែមការអូសយកឈ្មោះអ្នកណែនាំ (Referrer Name) មកជាមួយ
+      if (userDetails.referredBy) {
+        const referrer = await User.findOne({
+          userId: userDetails.referredBy,
+        }).select("fullName username");
+        if (referrer) {
+          userDetails.referrerName = referrer.fullName || referrer.username;
+        }
+      }
+
       res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
@@ -600,6 +610,7 @@ const getUserByAdmin = async (req, res) => {
   try {
     const { username } = req.body;
     const userObj = await User.findOne({ username }).select("-password");
+
     if (userObj) {
       let userDetails = userObj.toObject();
       const userTransactions = await Transaction.find({
@@ -619,6 +630,17 @@ const getUserByAdmin = async (req, res) => {
         userDetails.idCardImage ||
         "";
       userDetails.kycImage = userDetails.kycDocument;
+
+      // 🟢 ថែមការអូសយកឈ្មោះអ្នកណែនាំ (Referrer Name) មកជាមួយ
+      if (userDetails.referredBy) {
+        const referrer = await User.findOne({
+          userId: userDetails.referredBy,
+        }).select("fullName username");
+        if (referrer) {
+          userDetails.referrerName = referrer.fullName || referrer.username;
+        }
+      }
+
       res.json({ success: true, user: userDetails });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
@@ -927,6 +949,298 @@ const deleteUser = async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ==========================================
+// មុខងារកំណត់គណនីជាក់លាក់ដោយ Admin (Limit, Freeze, Hide, Edit, Delete)
+// ==========================================
+
+const editSubAccount = async (req, res) => {
+  const { username, oldAccountNumber, newName, newAccountNumber } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    if (oldAccountNumber !== newAccountNumber) {
+      const accExists = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": newAccountNumber },
+          { "mainAccounts.KHR.accountNumber": newAccountNumber },
+          { "subAccounts.accountNumber": newAccountNumber },
+        ],
+      });
+      if (accExists)
+        return res.json({
+          success: false,
+          message: "លេខគណនីថ្មីនេះ មានអ្នកប្រើប្រាស់រួចហើយ!",
+        });
+    }
+
+    const subIdx = user.subAccounts.findIndex(
+      (a) => String(a.accountNumber) === String(oldAccountNumber),
+    );
+    if (subIdx === -1)
+      return res.json({ success: false, message: "រកគណនីរងនេះមិនឃើញទេ!" });
+
+    user.subAccounts[subIdx].accountName = newName;
+    user.subAccounts[subIdx].accountNumber = newAccountNumber;
+    user.markModified("subAccounts");
+    await user.save();
+
+    if (oldAccountNumber !== newAccountNumber) {
+      await Transaction.updateMany(
+        { senderAcc: oldAccountNumber },
+        { $set: { senderAcc: newAccountNumber } },
+      );
+      await Transaction.updateMany(
+        { receiverAcc: oldAccountNumber },
+        { $set: { receiverAcc: newAccountNumber } },
+      );
+    }
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Edit Sub Account",
+        username,
+        `Changed ${oldAccountNumber} to ${newName} (${newAccountNumber})`,
+      );
+    }
+    res.json({ success: true, message: "កែប្រែជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+const deleteSubAccount = async (req, res) => {
+  const { username, accountNumber } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const subIdx = user.subAccounts.findIndex(
+      (a) => String(a.accountNumber) === String(accountNumber),
+    );
+    if (subIdx === -1)
+      return res.json({ success: false, message: "រកគណនីរងនេះមិនឃើញទេ!" });
+
+    const subAcc = user.subAccounts[subIdx];
+
+    if (subAcc.balance > 0) {
+      if (subAcc.currency === "USD") {
+        user.mainAccounts.USD.balance += subAcc.balance;
+      } else {
+        user.mainAccounts.KHR.balance =
+          (user.mainAccounts.KHR.balance || 0) + subAcc.balance;
+      }
+
+      await Transaction.create({
+        userId: user._id,
+        username: user.username,
+        refId: `SYS-${Date.now()}`,
+        date: new Date().toISOString(),
+        type: "System Auto-Transfer",
+        amount: subAcc.balance,
+        currency: subAcc.currency,
+        senderName: subAcc.accountName,
+        receiverName: "Main Account",
+        senderAcc: accountNumber,
+        receiverAcc:
+          subAcc.currency === "USD"
+            ? user.mainAccounts.USD.accountNumber
+            : user.mainAccounts.KHR.accountNumber,
+        remark: "លុបគណនីរងចោល: លុយត្រូវបានរុញចូលគណនីគោលដោយស្វ័យប្រវត្តិ",
+        status: "Success",
+      });
+    }
+
+    user.subAccounts.splice(subIdx, 1);
+    user.markModified("subAccounts");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Delete Sub Account",
+        username,
+        `Deleted ${accountNumber}. Balance recovered: ${subAcc.balance}`,
+      );
+    }
+    res.json({ success: true, message: "លុបជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+const adminUpdateAccountLimit = async (req, res) => {
+  const { username, accountNumber, dailyLimit } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
+
+    let updated = false;
+
+    if (
+      String(user.mainAccounts?.USD?.accountNumber) === String(accountNumber)
+    ) {
+      user.mainAccounts.USD.dailyLimit = dailyLimit;
+      updated = true;
+    } else if (
+      String(user.mainAccounts?.KHR?.accountNumber) === String(accountNumber)
+    ) {
+      user.mainAccounts.KHR.dailyLimit = dailyLimit;
+      updated = true;
+    } else {
+      const subIdx = user.subAccounts.findIndex(
+        (a) => String(a.accountNumber) === String(accountNumber),
+      );
+      if (subIdx !== -1) {
+        user.subAccounts[subIdx].dailyLimit = dailyLimit;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      user.markModified("mainAccounts");
+      user.markModified("subAccounts");
+      await user.save();
+      if (req.admin && req.admin.username) {
+        await logAdminAction(
+          req.admin.username,
+          "Update Account Limit",
+          username,
+          `កំណត់ Limit ថ្មីឱ្យគណនី ${accountNumber} ចំនួន: ${dailyLimit}`,
+        );
+      }
+      res.json({ success: true, message: "បានកំណត់ Limit ថ្មីជោគជ័យ!" });
+    } else {
+      res.json({
+        success: false,
+        message: "រកលេខគណនីនេះមិនឃើញក្នុងប្រវត្តិរូបទេ!",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "មានបញ្ហា Server" });
+  }
+};
+
+const adminToggleFreezeAccount = async (req, res) => {
+  const { username, accountNumber } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
+
+    let newStatus = false;
+    let updated = false;
+
+    if (
+      String(user.mainAccounts?.USD?.accountNumber) === String(accountNumber)
+    ) {
+      newStatus = !user.mainAccounts.USD.isFrozen;
+      user.mainAccounts.USD.isFrozen = newStatus;
+      updated = true;
+    } else if (
+      String(user.mainAccounts?.KHR?.accountNumber) === String(accountNumber)
+    ) {
+      newStatus = !user.mainAccounts.KHR.isFrozen;
+      user.mainAccounts.KHR.isFrozen = newStatus;
+      updated = true;
+    } else {
+      const subIdx = user.subAccounts.findIndex(
+        (a) => String(a.accountNumber) === String(accountNumber),
+      );
+      if (subIdx !== -1) {
+        newStatus = !user.subAccounts[subIdx].isFrozen;
+        user.subAccounts[subIdx].isFrozen = newStatus;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      user.markModified("mainAccounts");
+      user.markModified("subAccounts");
+      await user.save();
+      if (req.admin && req.admin.username) {
+        await logAdminAction(
+          req.admin.username,
+          "Toggle Account Freeze",
+          username,
+          `គណនី ${accountNumber} ត្រូវបាន ${newStatus ? "FROZEN" : "ACTIVE"}`,
+        );
+      }
+      res.json({
+        success: true,
+        message: newStatus
+          ? "គណនីត្រូវបានផ្អាកបណ្តោះអាសន្ន!"
+          : "គណនីត្រូវបានបើកដំណើរការវិញ!",
+      });
+    } else {
+      res.json({ success: false, message: "រកលេខគណនីមិនឃើញ!" });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "មានបញ្ហា Server" });
+  }
+};
+
+const adminToggleHideAccount = async (req, res) => {
+  const { username, accountNumber } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({ success: false, message: "រកគណនីអតិថិជនមិនឃើញទេ!" });
+
+    let updated = false;
+    let isHiddenNow = false;
+
+    if (
+      String(user.mainAccounts?.USD?.accountNumber) === String(accountNumber)
+    ) {
+      isHiddenNow = !user.mainAccounts.USD.isHidden;
+      user.mainAccounts.USD.isHidden = isHiddenNow;
+      updated = true;
+    } else if (
+      String(user.mainAccounts?.KHR?.accountNumber) === String(accountNumber)
+    ) {
+      isHiddenNow = !user.mainAccounts.KHR.isHidden;
+      user.mainAccounts.KHR.isHidden = isHiddenNow;
+      updated = true;
+    } else {
+      const subIdx = user.subAccounts.findIndex(
+        (a) => String(a.accountNumber) === String(accountNumber),
+      );
+      if (subIdx !== -1) {
+        isHiddenNow = !user.subAccounts[subIdx].isHidden;
+        user.subAccounts[subIdx].isHidden = isHiddenNow;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      user.markModified("mainAccounts");
+      user.markModified("subAccounts");
+      await user.save();
+      if (req.admin && req.admin.username) {
+        await logAdminAction(
+          req.admin.username,
+          "Toggle Account Visibility",
+          username,
+          `គណនី ${accountNumber} ត្រូវបាន ${isHiddenNow ? "HIDDEN" : "VISIBLE"}`,
+        );
+      }
+      res.json({
+        success: true,
+        message: isHiddenNow
+          ? "គណនីត្រូវបានលាក់ពីអតិថិជន!"
+          : "គណនីត្រូវបានបង្ហាញវិញ!",
+      });
+    } else {
+      res.json({ success: false, message: "រកលេខគណនីមិនឃើញ!" });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, message: "មានបញ្ហា Server" });
   }
 };
 
@@ -2811,6 +3125,11 @@ module.exports = {
   getUserByAdmin,
   getSingleUser,
   editUser,
+  editSubAccount,
+  deleteSubAccount,
+  adminUpdateAccountLimit,
+  adminToggleFreezeAccount,
+  adminToggleHideAccount,
   requestCredentialReset,
   deleteUser,
   toggleFreeze,

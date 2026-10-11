@@ -163,6 +163,38 @@ router.post(
   safeHandler(adminController.editUser, "editUser"),
 );
 router.post(
+  "/account/edit-sub-account",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]), // កំណត់សិទ្ធិ
+  safeHandler(adminController.editSubAccount, "editSubAccount"),
+);
+
+router.post(
+  "/account/delete-sub-account",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]), // កំណត់សិទ្ធិ
+  safeHandler(adminController.deleteSubAccount, "deleteSubAccount"),
+);
+router.post(
+  "/account/update-limit",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM, ROLE_FINANCE]),
+  safeHandler(
+    adminController.adminUpdateAccountLimit,
+    "adminUpdateAccountLimit",
+  ),
+);
+router.post(
+  "/account/toggle-freeze",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM, ROLE_FINANCE]),
+  safeHandler(
+    adminController.adminToggleFreezeAccount,
+    "adminToggleFreezeAccount",
+  ),
+);
+router.post(
+  "/account/toggle-hide",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM, ROLE_FINANCE]),
+  safeHandler(adminController.adminToggleHideAccount, "adminToggleHideAccount"),
+);
+router.post(
   "/request-reset",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.requestCredentialReset, "requestCredentialReset"),

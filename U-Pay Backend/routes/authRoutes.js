@@ -235,6 +235,10 @@ router.post(
   ),
 );
 
+router.get(
+  "/public/verify-reset-token",
+  safeHandler(authController.verifyResetToken, "verifyResetToken"),
+);
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
