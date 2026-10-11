@@ -314,7 +314,39 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   cardController.unbindNfcCard,
 );
-
+router.post(
+  "/update-card-limit",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminUpdateCardLimit, "adminUpdateCardLimit"),
+);
+router.post(
+  "/toggle-card-online",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminToggleCardOnline, "adminToggleCardOnline"),
+);
+router.post(
+  "/rename-card",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminRenameCard, "adminRenameCard"),
+);
+router.post(
+  "/change-card-account",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminChangeCardLinkedAccount,
+    "adminChangeCardLinkedAccount",
+  ),
+);
+router.post(
+  "/cards/bind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminBindNfcCard, "adminBindNfcCard"),
+);
+router.post(
+  "/cards/unbind-nfc",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.adminUnbindNfcCard, "adminUnbindNfcCard"),
+);
 // Merchants (តភ្ជាប់មកពី merchantController និង adminController)
 router.post(
   "/create-merchant",

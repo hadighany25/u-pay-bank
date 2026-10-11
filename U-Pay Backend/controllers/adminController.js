@@ -29,10 +29,9 @@ const Notification = require("../models/Notification");
 const Merchant = require("../models/Merchant");
 const CashierTicket = require("../models/CashierTicket");
 
-// ==========================================
-// 🛠️ ផ្នែកទី ២៖ មុខងារជំនួយ (Helpers & Audit Logs)
-// ==========================================
-
+// ========================================================
+// 🛠️ Function ជំនួយ (Helpers) សម្រាប់កាត (ចំលងពី cardController)
+// ========================================================
 const generateStandardHash = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
@@ -45,6 +44,37 @@ const generateStandardHash = () => {
 const generateStandardRefId = (prefix) => {
   const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
   return `${prefix}-${random8Digits}`;
+};
+
+// 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config) - ដូចគ្នាបេះបិទនឹង User
+const cardTiersConfig = {
+  standard: { name: "STANDARD", price: 5.0 },
+  fifa: { name: "FIFA WORLD CUP", price: 15.0 },
+  metal: { name: "METAL GOLD", price: 5.0 },
+  celebrity: { name: "BTS EDITION", price: 15.0 },
+  anime: { name: "NARUTO EDITION", price: 15.0 },
+  gamer: { name: "GAMER PRO", price: 15.0 },
+  eco: { name: "ECO GREEN", price: 5.0 },
+  platinum: { name: "PLATINUM PREMIUM", price: 25.0 },
+  animal: { name: "ANIMAL EDITION", price: 15.0 },
+  custom: { name: "CUSTOM VIP", price: 25.0 },
+};
+
+// មុខងារជំនួយ: បង្កើតលេខកាត Virtual ស្តង់ដារ (រហូតដល់ ៤ឆ្នាំដូចគ្នា)
+const generateCardDetails = () => {
+  const number =
+    "4" +
+    Math.floor(Math.random() * 900000000000000)
+      .toString()
+      .padStart(15, "0");
+  const cvv = Math.floor(100 + Math.random() * 900).toString();
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 4);
+  const expiry =
+    ("0" + (d.getMonth() + 1)).slice(-2) +
+    "/" +
+    d.getFullYear().toString().slice(-2);
+  return { number, cvv, expiry };
 };
 
 /**
@@ -2544,152 +2574,453 @@ const actionCashierTicket = async (req, res) => {
 // 💳 ផ្នែកទី ៩៖ កាតនិម្មិត និងហាងទំនិញ (Cards & Merchants)
 // ==========================================
 
-const toggleAdminCardLock = async (req, res) => {
-  const access = await checkAdminAccess(req.admin, "freezeUser");
-  if (!access.allowed)
-    return res.status(403).json({ success: false, message: access.message });
+// ==========================================
+// មុខងារគ្រប់គ្រងកាតដោយ Admin (STANDARDIZED)
+// ==========================================
 
+/**
+ * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (Standardized Flow)
+ */
+const adminCreateCard = async (req, res) => {
+  const { username, cardType, customBgUrl, linkedAccount, remark } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    // 🟢 កំណត់តម្លៃសេវា និងឈ្មោះតាមប្រភេទកាតជាក់លាក់
+    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
+    const issuanceFee = tier.price;
+
+    // 🌟 ឆែកសមតុល្យតាមទម្រង់ថ្មី (mainAccounts.USD.balance)
+    const userUsdBal = user.mainAccounts?.USD?.balance || user.balance || 0;
+    if (userUsdBal < issuanceFee)
+      return res.json({
+        success: false,
+        message: `សមតុល្យ USD របស់អតិថិជនមិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ $${issuanceFee.toFixed(2)} ទេ!`,
+      });
+
+    // 🌟 ស្វែងរក Super Admin និង Sub-Account សម្រាប់ប្រមូល Fee (888000999)
+    let superAdmin = await User.findOne({ username: "superadmin" });
+    let feeSubAcc = superAdmin?.subAccounts?.find(
+      (sub) => sub.accountNumber === "888000999",
+    );
+
+    if (!superAdmin || !feeSubAcc) {
+      if (superAdmin) {
+        superAdmin.subAccounts = superAdmin.subAccounts || [];
+        superAdmin.subAccounts.push({
+          accountId: "SUB_FEE_" + Date.now(),
+          accountNumber: "888000999",
+          accountName: "Central Bank Fee Income",
+          accountType: "fee_collection",
+          currency: "USD",
+          balance: issuanceFee,
+        });
+        superAdmin.markModified("subAccounts");
+        await superAdmin.save();
+      }
+    }
+
+    // កាត់លុយថ្លៃសេវាពី User
+    if (user.mainAccounts?.USD) {
+      user.mainAccounts.USD.balance -= issuanceFee;
+    } else {
+      user.balance -= issuanceFee;
+    }
+
+    const refId = generateStandardRefId("CARD");
+    const trxHash = generateStandardHash();
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    // 🧾 វិក្កយបត្រកាត់លុយ (User)
+    await Transaction.create({
+      userId: user._id,
+      username: user.username,
+      refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "Card Issuance Fee",
+      amount: -issuanceFee,
+      currency: "USD",
+      senderName: user.username,
+      receiverName: "Card Issuance Service",
+      status: "Success",
+      remark: `Issued ${tier.name} Virtual Card (By Admin: ${req.admin ? req.admin.username : "System"})`,
+    });
+
+    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
+    if (superAdmin) {
+      let targetFeeSub = superAdmin.subAccounts?.find(
+        (sub) => sub.accountNumber === "888000999",
+      );
+      if (targetFeeSub) {
+        targetFeeSub.balance += issuanceFee;
+        superAdmin.markModified("subAccounts");
+      } else if (superAdmin.mainAccounts?.USD) {
+        superAdmin.mainAccounts.USD.balance += issuanceFee;
+      } else {
+        superAdmin.balance += issuanceFee;
+      }
+      await superAdmin.save();
+    }
+
+    // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
+    await Transaction.create({
+      userId: superAdmin?._id,
+      username: superAdmin ? superAdmin.username : "superadmin",
+      refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "System Income",
+      amount: issuanceFee,
+      currency: "USD",
+      senderName: user.username,
+      receiverName: "Central Bank Fee Income",
+      senderAcc: user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+      receiverAcc: "888000999",
+      status: "Success",
+      remark: "Card Issuance Fee",
+    });
+
+    // 🟢 បង្កើតកាតថ្មី ស្តង់ដារដូចគ្នាបេះបិទនឹង User!
+    const details = generateCardDetails();
+    const newCard = {
+      id: "card_" + Date.now(),
+      type: cardType,
+      name: tier.name,
+      number: details.number,
+      cvv: details.cvv,
+      expiry: details.expiry, // ៤ឆ្នាំ
+      isLocked: false,
+      isOnlinePayEnabled: true,
+      dailyLimit: 500,
+      dailyTxCountLimit: 10,
+      linkedAccount: linkedAccount || "USD",
+      pin: "0000",
+      uid: null,
+      isPhysical: false,
+      customBgUrl: cardType === "custom" ? customBgUrl : "",
+    };
+
+    if (!user.virtualCards) user.virtualCards = [];
+    user.virtualCards.push(newCard);
+    user.markModified("virtualCards");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Create Virtual Card",
+        username,
+        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)})។ មូលហេតុ: ${remark || "គ្មាន"}`,
+      );
+    }
+
+    res.json({ success: true, message: "បង្កើតកាតបានជោគជ័យ!" });
+  } catch (err) {
+    console.error("Admin Create Card Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] លុបកាត
+ */
+const adminDeleteCard = async (req, res) => {
+  const { username, cardId, reason } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card)
+      return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
+
+    user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
+    user.markModified("virtualCards");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Delete Virtual Card",
+        username,
+        `លុបកាត ${card.number.slice(-4)}។ មូលហេតុ: ${reason}`,
+      );
+    }
+
+    res.json({ success: true, message: "លុបកាតជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] បិទ/បើកកាត (Lock/Unlock)
+ */
+const toggleAdminCardLock = async (req, res) => {
   const { username, cardId, isLocked } = req.body;
   try {
     const user = await User.findOne({ username });
     if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកមិនឃើញគណនី ឬកាតទេ!" });
+      return res.json({ success: false, message: "រកគណនីឬកាតមិនឃើញទេ!" });
 
     const card = user.virtualCards.find((c) => c.id === cardId);
-    if (!card)
-      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     card.isLocked = isLocked;
-    card.lockedByAdmin = isLocked;
+
+    // 🟢 ពេល Admin អ្នក Lock យើងកំណត់ Flag ជា lockedByAdmin ដើម្បីកុំឱ្យ User អាច Unlock ខ្លួនឯងបាន
+    if (isLocked) {
+      card.lockedByAdmin = true;
+    } else {
+      card.lockedByAdmin = false;
+    }
+
     user.markModified("virtualCards");
     await user.save();
 
-    await logAdminAction(
-      req.admin.username,
-      "Toggle Card",
-      user.username,
-      `Card ${card.number?.slice(-4) || ""} set to ${isLocked ? "FROZEN" : "ACTIVE"}`,
-    );
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Toggle Card Lock",
+        username,
+        `កាត ${card.number.slice(-4)} ត្រូវបាន ${isLocked ? "FROZEN" : "UNFROZEN"}`,
+      );
+    }
+
     res.json({
       success: true,
-      message: `កាតត្រូវបាន ${isLocked ? "បង្កក" : "បើកដំណើរការវិញ"} ជោគជ័យ!`,
+      message: isLocked ? "ផ្អាកកាតជោគជ័យ!" : "បើកកាតជោគជ័យ!",
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-const adminDeleteCard = async (req, res) => {
-  const { username, cardId, reason } = req.body;
+/**
+ * 📌 [Admin] ផ្លាស់ប្តូរដែនកំណត់កាត (Card Limit)
+ */
+const adminUpdateCardLimit = async (req, res) => {
+  const { username, cardId, newLimit, newCountLimit } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
-    user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
+    if (!user || !user.virtualCards)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
+
+    if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
+    if (newCountLimit !== undefined)
+      card.dailyTxCountLimit = parseInt(newCountLimit, 10);
+
+    user.markModified("virtualCards");
     await user.save();
-    res.json({ success: true });
-  } catch (error) {
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Update Card Limit",
+        username,
+        `កែ Limit កាត ${card.number.slice(-4)} ទៅ $${newLimit} និង ${newCountLimit} ដង/ថ្ងៃ`,
+      );
+    }
+    res.json({ success: true, message: "បានកំណត់ Limit កាតជោគជ័យ!" });
+  } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-const adminCreateCard = async (req, res) => {
-  const { username, cardType, customBgUrl, remark } = req.body;
+/**
+ * 📌 [Admin] បិទ/បើក ការទិញអនឡាញរបស់កាត (Toggle Online Pay)
+ */
+const adminToggleCardOnline = async (req, res) => {
+  const { username, cardId, isEnabled } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
+    if (!user || !user.virtualCards)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    const cardTiers = {
-      standard: 2.0,
-      fifa: 10.0,
-      metal: 15.0,
-      celebrity: 10.0,
-      anime: 8.0,
-      gamer: 8.0,
-      eco: 3.0,
-      platinum: 25.0,
-      animal: 8.0,
-      custom: 25.0,
-    };
-    const price = cardTiers[cardType] || 2.0;
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
-    if ((user.mainAccounts?.USD?.balance || 0) < price) {
+    card.isOnlinePayEnabled = isEnabled;
+    user.markModified("virtualCards");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Toggle Card Online Pay",
+        username,
+        `Online Pay សម្រាប់កាត ${card.number.slice(-4)} ត្រូវបាន ${isEnabled ? "ON" : "OFF"}`,
+      );
+    }
+    res.json({ success: true, message: "ធ្វើបច្ចុប្បន្នភាពជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] ប្តូរឈ្មោះកាត (Rename Card)
+ */
+const adminRenameCard = async (req, res) => {
+  const { username, cardId, name } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user || !user.virtualCards)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
+
+    const oldName = card.name;
+    card.name = name.toUpperCase();
+    user.markModified("virtualCards");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Rename Card",
+        username,
+        `ប្តូរឈ្មោះកាតពី ${oldName || "N/A"} ទៅជា ${card.name}`,
+      );
+    }
+    res.json({ success: true, message: "ប្តូរឈ្មោះកាតជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] ផ្លាស់ប្តូរគណនីដែលបានភ្ជាប់ជាមួយកាត (Change Linked Account)
+ */
+const adminChangeCardLinkedAccount = async (req, res) => {
+  const { username, cardId, linkedAccount } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user || !user.virtualCards)
+      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+
+    const card = user.virtualCards.find((c) => c.id === cardId);
+    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
+
+    const oldAcc = card.linkedAccount;
+    card.linkedAccount = linkedAccount;
+    user.markModified("virtualCards");
+    await user.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Change Card Account",
+        username,
+        `ប្តូរគណនីភ្ជាប់កាត ${card.number.slice(-4)} ពី ${oldAcc} ទៅជា ${linkedAccount}`,
+      );
+    }
+    res.json({ success: true, message: "បានប្តូរគណនីភ្ជាប់ជោគជ័យ!" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] ភ្ជាប់កាត NFC
+ */
+const adminBindNfcCard = async (req, res) => {
+  try {
+    const { username, cardId, pin, uid } = req.body;
+
+    const existingUid = await User.findOne({ "virtualCards.uid": uid });
+    if (existingUid) {
       return res.json({
         success: false,
-        message: `អតិថិជនមិនមានប្រាក់គ្រប់គ្រាន់ ($${price.toFixed(2)}) ដើម្បីបង្កើតកាតនេះទេ!`,
+        message:
+          "⚠️ កាត Physical នេះត្រូវបានភ្ជាប់រួចជាស្រេចជាមួយគណនីផ្សេងបាត់ទៅហើយ!",
       });
     }
 
-    user.mainAccounts.USD.balance -= price;
-    const dateStr = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Phnom_Penh",
-      hour12: true,
-    });
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញ!" });
 
-    await Transaction.create({
-      userId: user._id,
-      username: user.username,
-      refId: generateStandardRefId("FEE"),
-      hash: generateStandardHash(),
-      date: dateStr,
-      type: "Card Issuance Fee",
-      amount: -price,
-      currency: "USD",
-      fee: 0,
-      senderName: user.username,
-      senderAcc: user.mainAccounts.USD.accountNumber,
-      receiverName: "Card Issuance Service",
-      receiverAcc: "888888888",
-      remark: `ការកាត់សេវាបង្កើតកាត (${cardType.toUpperCase()}) - ${remark || "ដោយ Admin"}`,
-      status: "Success",
-      trxMethod: "U PAY Fee",
-    });
+    const targetCard = user.virtualCards.find((c) => c.id === cardId);
+    if (!targetCard)
+      return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
-    const systemAcc = await User.findOne({
-      "mainAccounts.USD.accountNumber": "888888888",
-    });
-    if (systemAcc) {
-      systemAcc.mainAccounts.USD.balance += price;
-      await systemAcc.save();
+    if (targetCard.uid && targetCard.uid !== "" && targetCard.uid !== null) {
+      return res.json({
+        success: false,
+        message:
+          "⚠️ គណនីនេះបានភ្ជាប់កាត NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
+      });
     }
 
-    const generateNumber = (length) =>
-      Math.floor(Math.random() * Math.pow(10, length))
-        .toString()
-        .padStart(length, "0");
+    targetCard.uid = uid;
+    targetCard.pin = pin || "0000";
+    targetCard.isPhysical = true;
 
-    const newCard = {
-      id: "card_" + Date.now(),
-      type: cardType,
-      number:
-        cardType === "platinum"
-          ? "43050521" + generateNumber(8)
-          : "47718680" + generateNumber(8),
-      expiryDate: "12/28",
-      cvv: generateNumber(3),
-      isLocked: false,
-      customBgUrl: customBgUrl || "",
-      createdAt: new Date(),
-    };
-
-    if (!user.virtualCards) user.virtualCards = [];
-    user.virtualCards.push(newCard);
-
-    await Notification.create({
-      userId: user._id,
-      username: user.username,
-      title: "កាតនិម្មិតថ្មីត្រូវបានបង្កើត",
-      message: `កាត ${cardType.toUpperCase()} ថ្មីរបស់អ្នកត្រូវបានបង្កើតរួចរាល់។ ទឹកប្រាក់ $${price.toFixed(2)} ត្រូវបានកាត់ចេញពីគណនីរបស់អ្នក។`,
-      date: dateStr,
-      type: "info",
-      isRead: false,
-    });
+    user.markModified("virtualCards");
     await user.save();
-    res.json({ success: true });
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Bind NFC Card",
+        username,
+        `ភ្ជាប់ NFC (${uid}) ទៅកាត ${targetCard.number.slice(-4)}`,
+      );
+    }
+
+    res.json({ success: true, message: "ភ្ជាប់ជោគជ័យ!" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
+/**
+ * 📌 [Admin] ផ្តាច់កាត NFC
+ */
+const adminUnbindNfcCard = async (req, res) => {
+  try {
+    const { username, cardId } = req.body;
+    const user = await User.findOne({ username });
+
+    if (user) {
+      const card = user.virtualCards.find((c) => c.id === cardId);
+      if (card) {
+        const oldUid = card.uid;
+        card.uid = null;
+        card.isPhysical = false;
+        user.markModified("virtualCards");
+        await user.save();
+
+        if (req.admin && req.admin.username) {
+          await logAdminAction(
+            req.admin.username,
+            "Unbind NFC Card",
+            username,
+            `ផ្តាច់ NFC (${oldUid}) ចេញពីកាត ${card.number.slice(-4)}`,
+          );
+        }
+        return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
+      }
+    }
+    res.json({ success: false, message: "បរាជ័យ" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ===============================
+// Create Merchant
+//================================
 const adminCreateMerchant = async (req, res) => {
   const { username, name, city, category, linkedAccount } = req.body;
   try {
@@ -3150,10 +3481,18 @@ module.exports = {
   actionCashierTicket,
   createCashierTicket,
 
-  // Cards & Merchants
-  toggleAdminCardLock,
-  adminDeleteCard,
+  // Cards
   adminCreateCard,
+  adminDeleteCard,
+  toggleAdminCardLock,
+  adminUpdateCardLimit,
+  adminToggleCardOnline,
+  adminRenameCard,
+  adminChangeCardLinkedAccount,
+  adminBindNfcCard,
+  adminUnbindNfcCard,
+
+  // Merchants
   adminCreateMerchant,
 
   // Promo, Tickets, Broadcast

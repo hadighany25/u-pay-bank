@@ -454,13 +454,6 @@ function renderInfoTab(user) {
                 <span class="c360-value-text">${user.userId || "N/A"}</span>
             </div>
 
-            <!-- ៥. ប៊ូតុង Freeze/Unfreeze -->
-            <div class="c360-data-box" style="padding: 0; background: transparent; border: none; display: flex; align-items: center;">
-                <button onclick="c360ToggleFreeze()" style="width: 100%; padding: 12px; border-radius: 8px; font-family: 'Kantumruy Pro'; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; ${freezeBtnStyle}">
-                    ${freezeBtnText}
-                </button>
-            </div>
-
             <!-- ៦. លេខអត្តសញ្ញាណប័ណ្ណ -->
             <div class="c360-data-box">
                 <span class="c360-label-small">លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)</span>
@@ -1284,49 +1277,66 @@ window.c360JumpToTrx = function (accountNumber) {
 // =======================================================
 // ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management)
 // =======================================================
+let adminCardsSliderInstance = null;
+let adminCurrentCardIndex = 0;
+
 function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
   if (!container) return;
 
-  let headerHtml = `
-    <div style="margin-bottom: 25px;">
-        <button class="btn-primary kh-text" style="width: 100%; padding: 18px; font-size: 1.1rem; background: var(--primary); border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s;" onclick="c360CreateCardForUser()">
-            <i class="fa-solid fa-plus-circle" style="font-size: 1.3rem;"></i> បង្កើតកាតថ្មីឱ្យអតិថិជន
-        </button>
-    </div>`;
-
-  if (!user.virtualCards || user.virtualCards.length === 0) {
-    container.innerHTML =
-      headerHtml +
-      `<div style="text-align:center; padding: 40px; color: var(--text-muted); font-size: 1.1rem;" class="kh-text">
-        <i class="fa-regular fa-credit-card" style="font-size: 4rem; opacity: 0.5; margin-bottom: 15px; display: block;"></i>
-        អតិថិជននេះមិនទាន់មានកាត (Virtual Card) នៅឡើយទេ។
-      </div>`;
-    return;
-  }
-
+  // ----------------------------------------------------
+  // ១. រចនាប័ទ្ម (CSS) សម្រាប់កាត និងប៊ូតុងបញ្ជា
+  // ----------------------------------------------------
   let stylesHtml = `
     <style>
-      .admin-cards-slider {
-        display: flex; overflow-x: auto; padding-bottom: 15px; gap: 20px;
-        scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      .admin-cards-slider-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 450px;
+        margin: 0 auto 30px auto;
+        overflow: hidden;
       }
-      .admin-cards-slider::-webkit-scrollbar { height: 6px; }
-      .admin-cards-slider::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      .admin-card-wrapper {
-        flex: 0 0 340px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 15px;
+      .admin-cards-slider {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        padding: 20px 10px;
+        gap: 15px;
+      }
+      .admin-cards-slider::-webkit-scrollbar { display: none; }
+      
+      .admin-card-perspective {
+        flex: 0 0 100%;
+        scroll-snap-align: center;
+        perspective: 1000px;
+        width: 100%;
+        height: 230px;
+        z-index: 10;
+        cursor: pointer;
       }
       
-      /* 🔥 3D Flip Effects */
-      .card-perspective { perspective: 1000px; width: 100%; height: 215px; z-index: 10; cursor: pointer; }
-      .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; border-radius: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
-      .card-inner.flipped { transform: rotateY(180deg); }
-      .u-card-front, .u-card-back {
-        position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+      .admin-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: left;
+        transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+        transform-style: preserve-3d;
+        border-radius: 20px;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+      }
+      .admin-card-inner.flipped { transform: rotateY(180deg); }
+      
+      .admin-card-front, .admin-card-back {
+        position: absolute; width: 100%; height: 100%;
+        -webkit-backface-visibility: hidden; backface-visibility: hidden;
         border-radius: 20px; box-sizing: border-box; color: #fff; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15);
       }
-      .u-card-front { padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
-      .u-card-back { transform: rotateY(180deg); padding: 0; display: flex; flex-direction: column; }
+      .admin-card-front { padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+      .admin-card-back { transform: rotateY(180deg); padding: 0; display: flex; flex-direction: column; }
       
       /* THEMES */
       .theme-standard { background: linear-gradient(135deg, #149a83 0%, #004d40 100%) !important; }
@@ -1340,26 +1350,66 @@ function renderCardsTab(user) {
       .theme-animal { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80") center/cover no-repeat !important; }
       .theme-custom { background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)) center/cover no-repeat !important; }
 
-      .u-chip {
-        width: 45px; height: 32px; background: linear-gradient(135deg, #e5e7eb, #94a3b8);
-        border-radius: 6px; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-      }
-      .theme-standard .u-chip, .theme-metal .u-chip, .theme-eco .u-chip {
-        background: linear-gradient(135deg, #fde047, #d97706);
-      }
-      .u-nfc { font-size: 1.4rem; color: rgba(255,255,255,0.8); transform: rotate(90deg); margin-left: 10px; }
+      .admin-u-chip { width: 40px; height: 28px; background: linear-gradient(135deg, #e5e7eb, #94a3b8); border-radius: 6px; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3); }
+      .theme-standard .admin-u-chip, .theme-metal .admin-u-chip, .theme-eco .admin-u-chip { background: linear-gradient(135deg, #fde047, #d97706); }
+      .admin-u-nfc { font-size: 1.2rem; color: rgba(255,255,255,0.8); transform: rotate(90deg); margin-left: 10px; }
       
-      .u-locked-overlay {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(3px) grayscale(80%);
-        display: flex; align-items: center; justify-content: center; z-index: 20;
-      }
-      .u-locked-text {
-        font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 4px;
-        border: 3px solid #fff; padding: 10px 20px; border-radius: 8px; transform: rotate(-15deg);
-      }
-      .cvv-box { background: #fff; color: #000; padding: 4px 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1.1rem; letter-spacing: 2px; }
+      .admin-locked-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(3px) grayscale(80%); display: none; align-items: center; justify-content: center; z-index: 20; border-radius: 20px;}
+      .admin-card-inner.locked .admin-locked-overlay { display: flex; }
+      .admin-locked-text { font-size: 1.8rem; font-weight: 900; color: #fff; letter-spacing: 4px; border: 3px solid #fff; padding: 10px 20px; border-radius: 8px; transform: rotate(-15deg); }
+      
+      .admin-slider-dots { display: flex; justify-content: center; gap: 8px; margin-top: 5px; margin-bottom: 25px; }
+      .admin-dot { width: 8px; height: 8px; background: #cbd5e1; border-radius: 50%; transition: 0.3s; }
+      .admin-dot.active { background: #10b981; width: 22px; border-radius: 10px; }
+
+      /* 🟢 3x3 Grid Actions */
+      .admin-card-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 450px; margin: 0 auto; }
+      .admin-action-btn { background: #ffffff; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+      .admin-action-btn:hover { border-color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.1); }
+      .admin-action-btn i { font-size: 1.3rem; color: #475569; }
+      .admin-action-btn span { font-size: 0.75rem; color: #1e293b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; text-align: center; line-height: 1.3;}
+      
+      .admin-action-btn.danger { background: #fef2f2; border-color: #fca5a5; }
+      .admin-action-btn.danger i, .admin-action-btn.danger span { color: #ef4444; }
+      .admin-action-btn.danger:hover { border-color: #ef4444; background: #fee2e2; }
+
+      /* 🟢 Information Box Styles */
+      .admin-card-info-box { max-width: 450px; margin: 20px auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-family: 'Kantumruy Pro', sans-serif; }
+      .admin-info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; }
+      .admin-info-row:last-child { border-bottom: none; }
+      .admin-info-label { font-size: 0.8rem; color: #64748b; font-weight: 600; }
+      .admin-info-value { font-size: 0.85rem; color: #0f172a; font-weight: 800; font-family: 'Inter', monospace; text-align: right; }
     </style>
+  `;
+
+  // ----------------------------------------------------
+  // ២. ការបង្ហាញពេលគ្មានកាត (Empty State)
+  // ----------------------------------------------------
+  if (!user.virtualCards || user.virtualCards.length === 0) {
+    container.innerHTML =
+      stylesHtml +
+      `
+      <div style="text-align:center; padding: 50px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; border: 2px dashed #e2e8f0; border-radius: 20px;">
+        <i class="fa-regular fa-credit-card" style="font-size: 4rem; opacity: 0.5; margin-bottom: 15px; display: block;"></i>
+        <h3 style="margin: 0 0 10px 0; color: #0f172a;">អតិថិជនមិនទាន់មានកាតទេ</h3>
+        <p style="margin: 0 0 20px 0; font-size: 0.9rem;">ចុចប៊ូតុងខាងក្រោមដើម្បីបង្កើតកាត Virtual ថ្មីឱ្យអតិថិជន។</p>
+        <button class="btn-primary kh-text" style="background: #10b981; border: none; padding: 12px 25px; border-radius: 12px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);" onclick="c360CreateCardModal()">
+          <i class="fa-solid fa-plus"></i> បង្កើតកាតថ្មី (Create Card)
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ----------------------------------------------------
+  // ៣. បង្កើតរចនាសម្ព័ន្ធកាត Slider 3D
+  // ----------------------------------------------------
+  let headerHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; max-width: 450px; margin: 0 auto 15px auto;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a; font-family: 'Kantumruy Pro';">កាតរបស់អតិថិជន (${user.virtualCards.length})</h3>
+        <button onclick="c360CreateCardModal()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro';">
+            <i class="fa-solid fa-plus"></i> បង្កើតថ្មី
+        </button>
+    </div>
   `;
 
   const getThemeClass = (type) => {
@@ -1378,19 +1428,14 @@ function renderCardsTab(user) {
     return map[type] || "theme-standard";
   };
 
-  let cardsHtml = `<div class="admin-cards-slider">`;
+  let cardsHtml = `<div class="admin-cards-slider-wrapper"><div class="admin-cards-slider" id="adminCardsSlider" onscroll="c360UpdateActiveCardDot()">`;
 
   user.virtualCards.forEach((c) => {
     let themeClass = getThemeClass(c.type);
     let isRealNFC = c.isPhysical || (c.uid && c.uid !== "");
-    let nfcIconHtml = isRealNFC ? `<i class="fa-solid fa-wifi u-nfc"></i>` : ``;
-    let isLocked = c.isLocked;
-
-    let customBgStyle = "";
-    if (c.type === "custom" && c.customBgUrl) {
-      customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
-    }
-
+    let nfcIconHtml = isRealNFC
+      ? `<i class="fa-solid fa-wifi admin-u-nfc"></i>`
+      : ``;
     let cardNameDisplay =
       c.name && c.name.trim() !== ""
         ? c.name
@@ -1398,126 +1443,691 @@ function renderCardsTab(user) {
           ? c.type.replace("-", " ").toUpperCase()
           : "STANDARD";
 
+    let customBgStyle = "";
+    if (c.type === "custom" && c.customBgUrl) {
+      customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
+    }
+
     cardsHtml += `
-      <div class="admin-card-wrapper">
-        <div class="card-perspective">
-          <div class="card-inner ${themeClass}" id="cardInner_${c.id}">
+      <div class="admin-card-perspective" data-id="${c.id}">
+        <div class="admin-card-inner ${themeClass} ${c.isLocked ? "locked" : ""}" id="adminCardInner_${c.id}">
+          
+          <!-- 💳 FRONT CARD -->
+          <div class="admin-card-front" ${customBgStyle} onclick="document.getElementById('adminCardInner_${c.id}').classList.toggle('flipped')">
+            <div class="admin-locked-overlay"><div class="admin-locked-text">FROZEN</div></div>
             
-            <!-- 💳 FRONT CARD -->
-            <div class="u-card-front" ${customBgStyle}>
-                ${isLocked ? `<div class="u-locked-overlay"><div class="u-locked-text">FROZEN</div></div>` : ""}
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
-                    <div style="display: flex; align-items: center;">
-                        <div class="u-chip"></div>
-                        ${nfcIconHtml}
-                    </div>
-                    <img src="../images/logo-nobg.png" style="height: 35px; filter: brightness(0) invert(1); opacity: 0.9;" onerror="this.style.display='none'">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
+                <div style="display: flex; align-items: center;">
+                    <div class="admin-u-chip"></div>
+                    ${nfcIconHtml}
                 </div>
-                
-                <div id="c360-cardnum-${c.id}" style="font-family: 'Courier New', monospace; font-size: 1.15rem; letter-spacing: 1.5px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.4); z-index: 2; margin-top: auto; margin-bottom: auto; white-space: nowrap;">
-                    **** **** **** ${c.number.slice(-4)}
+                <img src="../images/logo-nobg.png" style="height: 30px; filter: brightness(0) invert(1); opacity: 0.9;" onerror="this.style.display='none'">
+            </div>
+            
+            <div style="font-family: 'Courier New', monospace; font-size: 1.3rem; letter-spacing: 1.5px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.4); z-index: 2; margin-top: auto; margin-bottom: auto;">
+                **** **** **** ${c.number.slice(-4)}
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
+                <div style="flex: 1.2;">
+                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">CARD HOLDER</div>
+                    <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">${user.fullName || user.username}</div>
                 </div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; z-index: 2;">
-                    <div style="flex: 1.2;">
-                        <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">CARD HOLDER</div>
-                        <div style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.fullName || user.username}</div>
-                    </div>
-                    <div style="flex: 0.8; text-align: center;">
-                        <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">EXPIRES</div>
-                        <div id="c360-cardexp-${c.id}" style="font-size: 0.95rem; font-weight: 600;">**/**</div>
-                    </div>
-                    <div style="flex: 1.5; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 1rem; text-transform: uppercase; text-align: right; text-shadow: 0 1px 2px rgba(0,0,0,0.5); opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${cardNameDisplay}
-                    </div>
+                <div style="flex: 0.8; text-align: center;">
+                    <div style="font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; margin-bottom: 2px;">EXPIRES</div>
+                    <div style="font-size: 0.85rem; font-weight: 600;">${c.expiryDate || c.expiry || "12/28"}</div>
+                </div>
+                <div style="flex: 1.5; font-family: 'Inter', sans-serif; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; text-align: right; text-shadow: 0 1px 2px rgba(0,0,0,0.5); opacity: 0.95;">
+                    ${cardNameDisplay}
                 </div>
             </div>
-
-            <!-- 💳 BACK CARD -->
-            <div class="u-card-back" ${customBgStyle}>
-                ${isLocked ? `<div class="u-locked-overlay"><div class="u-locked-text">FROZEN</div></div>` : ""}
-                <div style="width: 100%; height: 40px; background: #111; margin-top: 20px;"></div>
-                <div style="padding: 15px 25px 5px; display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="font-size: 0.65rem; color: rgba(255, 255, 255, 0.95); max-width: 55%; line-height: 1.6;">
-                        <span style="font-weight: 800;">AUTHORIZED SIGNATURE</span><br>
-                        This card is issued by U-Pay PLC.
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center; z-index: 5;">
-                        <span style="font-size: 0.7rem; color: #fff; font-weight: bold; margin-bottom: 3px;">CVV</span>
-                        <div id="c360-cardcvv-${c.id}" class="cvv-box">***</div>
-                    </div>
-                </div>
-                <div style="padding: 0 25px 15px; margin-top: auto; text-align: right;">
-                    <img src="../images/logo-nobg.png" style="height: 30px; filter: brightness(0) invert(1);" onerror="this.style.display='none'">
-                </div>
-            </div>
-
           </div>
-        </div>
-        
-        <div style="background: var(--bg-card); border: 1px solid var(--border); padding: 12px 15px; border-radius: 12px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-            <div style="color: var(--text-main); font-weight: 600;">
-               <i class="fa-solid fa-gauge-high" style="color: #d97706; margin-right: 5px;"></i> Limit: $${c.dailyLimit || 500}
-            </div>
-            <div style="color: var(--text-main); font-weight: 600;">
-               <i class="fa-solid fa-globe" style="color: #059669; margin-right: 5px;"></i> Online: ${c.isOnlinePayEnabled !== false ? '<span style="color:#10b981;">ON</span>' : '<span style="color:#ef4444;">OFF</span>'}
-            </div>
-        </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-            <button onclick="c360RevealCard('${c.id}')" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--accent); color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                <i class="fa-solid fa-eye"></i> មើល
-            </button>
-            <button onclick="document.getElementById('cardInner_${c.id}').classList.toggle('flipped')" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                <i class="fa-solid fa-arrows-rotate"></i> ត្រឡប់
-            </button>
-            <button onclick="c360ToggleCard('${c.id}', ${!isLocked})" class="kh-text" style="flex: 1; padding: 10px; border-radius: 10px; border: none; background: ${isLocked ? "var(--secondary)" : "#ef4444"}; color: white; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                <i class="fa-solid ${isLocked ? "fa-unlock" : "fa-lock"}"></i> ${isLocked ? "បើក" : "បិទ"}
-            </button>
-            <button onclick="c360DeleteCard('${c.id}')" class="kh-text" style="width: 100%; padding: 10px; border-radius: 10px; border: none; background: var(--bg-body); color: #ef4444; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid var(--border);">
-                <i class="fa-solid fa-trash"></i> លុបកាតចោល
-            </button>
-        </div>
+          <!-- 💳 BACK CARD -->
+          <div class="admin-card-back" ${customBgStyle} onclick="document.getElementById('adminCardInner_${c.id}').classList.toggle('flipped')">
+            <div class="admin-locked-overlay"><div class="admin-locked-text">FROZEN</div></div>
+            <div style="width: 100%; height: 40px; background: #111; margin-top: 20px;"></div>
+            <div style="padding: 15px 20px 5px; display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="font-size: 0.6rem; color: rgba(255, 255, 255, 0.95); max-width: 60%; line-height: 1.5;">
+                    <span style="font-weight: 800;">AUTHORIZED SIGNATURE</span><br>
+                    This card is issued by U-Pay PLC.
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; z-index: 5;">
+                    <span style="font-size: 0.65rem; color: #fff; font-weight: bold; margin-bottom: 3px;">CVV</span>
+                    <div style="background: #fff; color: #000; padding: 4px 10px; border-radius: 4px; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1rem; letter-spacing: 2px;">
+                        ${c.cvv}
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 0 20px 15px; margin-top: auto; text-align: right;">
+                <img src="../images/logo-nobg.png" style="height: 25px; filter: brightness(0) invert(1);" onerror="this.style.display='none'">
+            </div>
+          </div>
 
+        </div>
       </div>`;
   });
 
-  cardsHtml += `</div>`;
-  container.innerHTML = stylesHtml + headerHtml + cardsHtml;
+  cardsHtml += `</div><div class="admin-slider-dots" id="adminCardsDots"></div></div>`;
+
+  // ----------------------------------------------------
+  // ៤. ប៊ូតុង Actions (ទម្រង់ 3x3 Grid បង្ហាញទាំងអស់)
+  // ----------------------------------------------------
+  let actionsHtml = `
+    <div class="admin-card-actions-container" style="max-width: 450px; margin: 0 auto;">
+        <div class="admin-card-actions">
+            
+            <div class="admin-action-btn" onclick="c360JumpToCardTrx()">
+                <i class="fa-solid fa-receipt" style="color: #3b82f6;"></i>
+                <span>ប្រវត្តិ (Trx)</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360RevealFullCardNumber()">
+                <i class="fa-solid fa-eye" style="color: #0ea5e9;"></i>
+                <span>មើលលេខពេញ</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360ToggleOnlinePay()">
+                <i class="fa-solid fa-globe" style="color: #10b981;" id="adminOnlinePayIcon"></i>
+                <span id="adminOnlinePayText">អនឡាញ: ON</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360ChangeCardLimit()">
+                <i class="fa-solid fa-sliders" style="color: #f59e0b;"></i>
+                <span>កែប្រែ Limit</span>
+            </div>
+
+            <div class="admin-action-btn" onclick="c360RenameCard()">
+                <i class="fa-solid fa-pen" style="color: #8b5cf6;"></i>
+                <span>ប្តូរឈ្មោះកាត</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360ChangeLinkedAccount()">
+                <i class="fa-solid fa-link" style="color: #eab308;"></i>
+                <span>ប្តូរគណនីភ្ជាប់</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360ToggleCardNFC()" id="adminNfcBtn">
+                <i class="fa-solid fa-wifi" style="color: #6366f1;" id="adminNfcIcon"></i>
+                <span id="adminNfcText">ភ្ជាប់ NFC</span>
+            </div>
+            
+            <div class="admin-action-btn" onclick="c360ToggleCardLock()">
+                <i class="fa-solid fa-lock" style="color: #64748b;" id="adminLockIcon"></i>
+                <span id="adminLockText">ផ្អាកកាត</span>
+            </div>
+            
+            <div class="admin-action-btn danger" onclick="c360DeleteCard()">
+                <i class="fa-solid fa-trash"></i>
+                <span>លុបកាតចោល</span>
+            </div>
+
+        </div>
+    </div>
+    
+    <!-- 🟢 ផ្នែកបង្ហាញព័ត៌មានលម្អិតរបស់កាតខាងក្រោម (Info Box) -->
+    <div class="admin-card-info-box" id="adminCardInfoBox">
+        <!-- Details នឹង Update តាមកាតដែលកំពុងមើល -->
+    </div>
+  `;
+
+  container.innerHTML = stylesHtml + headerHtml + cardsHtml + actionsHtml;
+
+  // Render Dots
+  const dotsContainer = document.getElementById("adminCardsDots");
+  user.virtualCards.forEach((_, i) => {
+    dotsContainer.innerHTML += `<div class="admin-dot ${i === 0 ? "active" : ""}"></div>`;
+  });
+
+  adminCurrentCardIndex = 0;
+  c360UpdateCardInfoBox();
 }
 
 // =======================================================
-// 🟢 បង្កើតកាតថ្មី (បូកបញ្ចូលតម្លៃ Dynamic Price)
+// 🟢 អនុគមន៍ជំនួយ UI (Update UI ពេលអូសកាត)
 // =======================================================
-async function c360CreateCardForUser() {
+window.c360UpdateActiveCardDot = function () {
+  const slider = document.getElementById("adminCardsSlider");
+  if (!slider) return;
+  let index = Math.round(slider.scrollLeft / slider.offsetWidth);
+  if (
+    index !== adminCurrentCardIndex &&
+    index >= 0 &&
+    index < currentC360User.virtualCards.length
+  ) {
+    adminCurrentCardIndex = index;
+    document
+      .querySelectorAll(".admin-dot")
+      .forEach((d, i) => d.classList.toggle("active", i === index));
+    c360UpdateCardInfoBox();
+  }
+};
+
+window.c360UpdateCardInfoBox = function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  // 1. Update Lock Button Status
+  const lockIcon = document.getElementById("adminLockIcon");
+  const lockText = document.getElementById("adminLockText");
+  if (c.isLocked) {
+    lockIcon.className = "fa-solid fa-unlock";
+    lockText.innerText = "បើកកាតវិញ";
+  } else {
+    lockIcon.className = "fa-solid fa-lock";
+    lockText.innerText = "ផ្អាកកាត";
+  }
+
+  // 2. Update Online Pay Button Status
+  const onlineIcon = document.getElementById("adminOnlinePayIcon");
+  const onlineText = document.getElementById("adminOnlinePayText");
+  if (c.isOnlinePayEnabled !== false) {
+    onlineIcon.className = "fa-solid fa-globe";
+    onlineIcon.style.color = "#10b981";
+    onlineText.innerText = "អនឡាញ: ON";
+  } else {
+    onlineIcon.className = "fa-solid fa-globe";
+    onlineIcon.style.color = "#94a3b8";
+    onlineText.innerText = "អនឡាញ: OFF";
+  }
+
+  // 3. Update NFC Button Status (ការពារមិនឱ្យភ្ជាប់ទៀត បើភ្ជាប់រួច)
+  const nfcBtn = document.getElementById("adminNfcBtn");
+  const nfcIcon = document.getElementById("adminNfcIcon");
+  const nfcText = document.getElementById("adminNfcText");
+  if (c.uid && c.uid !== "") {
+    nfcIcon.className = "fa-solid fa-wifi-slash";
+    nfcIcon.style.color = "#ef4444";
+    nfcText.innerText = "ផ្តាច់ NFC";
+    nfcBtn.classList.add("danger");
+  } else {
+    nfcIcon.className = "fa-solid fa-wifi";
+    nfcIcon.style.color = "#6366f1";
+    nfcText.innerText = "ភ្ជាប់ NFC";
+    nfcBtn.classList.remove("danger");
+  }
+
+  // 4. Update Detailed Info Box below buttons
+  const infoBox = document.getElementById("adminCardInfoBox");
+  let linkedName =
+    c.linkedAccount === "KHR"
+      ? "គណនីចម្បង KHR (៛)"
+      : c.linkedAccount === "USD"
+        ? "គណនីចម្បង USD ($)"
+        : c.linkedAccount;
+
+  // ថែមពាក្យកន្ទុយឱ្យច្បាស់លាស់
+  let limitCurrencySymbol = c.linkedAccount === "KHR" ? "៛" : "$";
+  let limitDisplay =
+    c.linkedAccount === "KHR"
+      ? (c.dailyLimit || 4000000).toLocaleString()
+      : c.dailyLimit || 500;
+
+  infoBox.innerHTML = `
+        <div class="admin-info-row">
+            <span class="admin-info-label">ប្រភេទកាត (Card Type)</span>
+            <span class="admin-info-value" style="color: #3b82f6;">${c.type.toUpperCase()}</span>
+        </div>
+        <div class="admin-info-row">
+            <span class="admin-info-label">គណនីភ្ជាប់ (Linked Account)</span>
+            <span class="admin-info-value" style="color: #10b981;">${linkedName}</span>
+        </div>
+        <div class="admin-info-row">
+            <span class="admin-info-label">ដែនកំណត់ចំណាយ (Daily Limit)</span>
+            <span class="admin-info-value">${limitCurrencySymbol}${limitDisplay} / ថ្ងៃ</span>
+        </div>
+        <div class="admin-info-row">
+            <span class="admin-info-label">ចំនួនប្រតិបត្តិការ (Tx Count Limit)</span>
+            <span class="admin-info-value">${c.dailyTxCountLimit || 10} ដង / ថ្ងៃ</span>
+        </div>
+        <div class="admin-info-row">
+            <span class="admin-info-label">ស្ថានភាពកាត (Status)</span>
+            <span class="admin-info-value" style="color: ${c.isLocked ? "#ef4444" : "#10b981"};">${c.isLocked ? '<i class="fa-solid fa-lock"></i> បានផ្អាក (Frozen)' : '<i class="fa-solid fa-circle-check"></i> ដំណើរការ (Active)'}</span>
+        </div>
+    `;
+};
+
+// =======================================================
+// 🟢 មុខងារបញ្ជាកាត (Card Operations API)
+// =======================================================
+
+// ១. មើលលេខកាតពេញ (Reveal Card Number)
+window.c360RevealFullCardNumber = function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  Swal.fire({
+    title: '<span class="kh-text">លេខកាតពេញ (Full Card Number)</span>',
+    html: `<div style="font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; padding: 20px; background: #f8fafc; border-radius: 12px; margin-top: 15px; cursor: pointer;" onclick="navigator.clipboard.writeText('${c.number}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Copied!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">${c.number.match(/.{1,4}/g).join(" ")}</div><p class="kh-text" style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">ចុចលើលេខដើម្បីចម្លង (Copy)</p>`,
+    confirmButtonText: "បិទ",
+    confirmButtonColor: "#3b82f6",
+    customClass: { popup: "premium-swal" },
+  });
+
+  fetch("/api/admin/log-action", {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      action: "Viewed Card Details",
+      target: currentC360User.username,
+      details: `មើលលេខកាតពេញ: **** ${c.number.slice(-4)}`,
+    }),
+  });
+};
+
+// ២. លោតទៅមើលប្រវត្តិ (Jump to Card Trx)
+window.c360JumpToCardTrx = function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+  switchC360Tab("trx");
+  setTimeout(() => {
+    const accSelect = document.getElementById("c360-trx-acc-filter");
+    if (accSelect) accSelect.value = "ALL";
+    c360FilterTrxList(true);
+    const globalSearch = document.getElementById("searchC360");
+    if (globalSearch) {
+      globalSearch.value = c.number;
+      Swal.fire({
+        toast: true,
+        position: "top",
+        icon: "info",
+        title: `បង្ហាញប្រវត្តិសម្រាប់កាតចុងក្រោយ: ${c.number.slice(-4)}`,
+        showConfirmButton: false,
+        timer: 2000,
+        customClass: { popup: "kh-text" },
+      });
+    }
+  }, 100);
+};
+
+// ៣. បិទ/បើក ការទិញអនឡាញ (Toggle Online Pay)
+window.c360ToggleOnlinePay = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  const isEnabled = c.isOnlinePayEnabled !== false;
+  const actionText = isEnabled ? "បិទមិនឱ្យចាយអនឡាញ" : "បើកឱ្យចាយអនឡាញវិញ";
+  const color = isEnabled ? "#ef4444" : "#10b981";
+
+  const result = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.2rem; color: ${color};">${actionText}?</span>`,
+    text: `តើអ្នកពិតជាចង់ ${actionText} មែនទេ?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">យល់ព្រម</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: color,
+    customClass: { popup: "modal-radius kh-text" },
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/toggle-card-online", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          isEnabled: !isEnabled,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: `ការទូទាត់អនឡាញត្រូវបានផ្លាស់ប្តូរ`,
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៤. កំណត់ Limit កាត (Change Limits)
+window.c360ChangeCardLimit = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+  const isKHR = c.linkedAccount === "KHR";
+
+  const { value: formValues } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem;">កំណត់ Limit កាត</span>',
+    html: `
+        <div style="text-align: left; margin-top: 10px;">
+            <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">ទំហំទឹកប្រាក់ចាយប្រចាំថ្ងៃ (${isKHR ? "៛" : "$"})</label>
+            <input id="swal-card-limit-amt" class="swal2-input" type="number" value="${c.dailyLimit || (isKHR ? 4000000 : 500)}" style="margin: 5px 0 15px; width: 100%; box-sizing: border-box; font-family: 'Kantumruy Pro';">
+            <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">ចំនួនដងប្រតិបត្តិការប្រចាំថ្ងៃ (Trx Count)</label>
+            <input id="swal-card-limit-count" class="swal2-input" type="number" value="${c.dailyTxCountLimit || 10}" style="margin: 5px 0 0; width: 100%; box-sizing: border-box; font-family: 'Kantumruy Pro';">
+        </div>
+    `,
+    showCancelButton: true,
+    confirmButtonColor: "#f59e0b",
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-check"></i> រក្សាទុក</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => {
+      return {
+        newLimit: document.getElementById("swal-card-limit-amt").value,
+        newCountLimit: document.getElementById("swal-card-limit-count").value,
+      };
+    },
+  });
+
+  if (formValues) {
+    Swal.fire({
+      title: "កំពុងរក្សាទុក...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/update-card-limit", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          newLimit: parseFloat(formValues.newLimit),
+          newCountLimit: parseInt(formValues.newCountLimit),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានកំណត់ Limit ថ្មី!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៥. ប្តូរឈ្មោះកាត (Rename Card)
+window.c360RenameCard = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  const { value: newName } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem;">ប្តូរឈ្មោះកាត</span>',
+    input: "text",
+    inputValue: c.name || "",
+    inputPlaceholder: "បញ្ចូលឈ្មោះកាតថ្មី...",
+    showCancelButton: true,
+    confirmButtonColor: "#8b5cf6",
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-check"></i> រក្សាទុក</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    customClass: { popup: "modal-radius kh-text" },
+    inputAttributes: { maxlength: 20, style: "font-family: 'Kantumruy Pro';" },
+    inputValidator: (value) => {
+      if (!value) return "សូមបញ្ចូលឈ្មោះកាត!";
+    },
+  });
+
+  if (newName && newName !== c.name) {
+    Swal.fire({
+      title: "កំពុងរក្សាទុក...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/rename-card", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          name: newName,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានប្តូរឈ្មោះជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៦. ប្តូរគណនីភ្ជាប់ (Change Linked Account)
+window.c360ChangeLinkedAccount = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  let accOptions = "";
+  if (currentC360User.mainAccounts?.USD)
+    accOptions += `<option value="USD" ${c.linkedAccount === "USD" ? "selected" : ""}>គណនីចម្បង USD ($)</option>`;
+  if (currentC360User.mainAccounts?.KHR)
+    accOptions += `<option value="KHR" ${c.linkedAccount === "KHR" ? "selected" : ""}>គណនីចម្បង KHR (៛)</option>`;
+  if (currentC360User.subAccounts) {
+    currentC360User.subAccounts.forEach((sub) => {
+      if (!sub.isHidden) {
+        // 🟢 កែសម្រួលការ Select ឱ្យចាប់យកលេខគណនី (accountNumber) ពេញលេញតែម្តង
+        let isSelected =
+          c.linkedAccount === sub.accountNumber ||
+          c.linkedAccount === `${sub.currency}_${sub.accountNumber}`
+            ? "selected"
+            : "";
+        accOptions += `<option value="${sub.accountNumber}" ${isSelected}>${sub.accountName} (${sub.accountNumber})</option>`;
+      }
+    });
+  }
+
+  const { value: newLinkedAcc } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size:1.2rem;">ប្តូរគណនីភ្ជាប់ (Linked Account)</span>',
+    html: `
+        <div style="text-align: left; margin-top: 15px;">
+            <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ជ្រើសរើសគណនីកាត់លុយថ្មី៖</label>
+            <select id="swal-edit-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 0; font-size: 0.9rem;">
+                ${accOptions}
+            </select>
+        </div>
+    `,
+    showCancelButton: true,
+    confirmButtonColor: "#eab308",
+    confirmButtonText: '<span class="kh-text">រក្សាទុក</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    customClass: { popup: "modal-radius" },
+    preConfirm: () => document.getElementById("swal-edit-linked-acc").value,
+  });
+
+  if (newLinkedAcc && newLinkedAcc !== c.linkedAccount) {
+    Swal.fire({
+      title: "កំពុងរក្សាទុក...",
+      didOpen: () => Swal.showLoading(),
+      allowOutsideClick: false,
+    });
+    try {
+      const res = await fetch("/api/admin/change-card-account", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        // 🟢 បញ្ជូនលេខគណនីពេញលេញទៅកាន់ Backend (លែងកាត់ផ្តាច់ទៀតហើយ)
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          linkedAccount: newLinkedAcc,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "ប្តូរគណនីភ្ជាប់ជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៧. ផ្អាកកាត (Freeze Card)
+window.c360ToggleCardLock = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  const actionText = c.isLocked
+    ? "បើកឱ្យដំណើរការវិញ (Unlock)"
+    : "ផ្អាកបណ្តោះអាសន្ន (Freeze)";
+  const color = c.isLocked ? "#10b981" : "#ef4444";
+
+  const result = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.2rem; color: ${color};">${actionText} កាតនេះ?</span>`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">យល់ព្រម</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: color,
+    customClass: { popup: "modal-radius kh-text" },
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/toggle-card-lock", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          isLocked: !c.isLocked,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៨. លុបកាតចោល (Delete Card)
+window.c360DeleteCard = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
+
+  const result = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem; color: #ef4444;">បញ្ជាក់ការលុបកាតចោល</span>',
+    html: '<p class="kh-text" style="font-size: 0.95rem; margin-top: 10px;">តើអ្នកពិតជាចង់លុបកាតនេះចោលមែនទេ? សកម្មភាពនេះមិនអាចទាញត្រឡប់វិញបានទេ។</p><input id="swal-del-reason" class="swal2-input kh-text" placeholder="មូលហេតុ (មិនដាក់ក៏បាន)..." style="font-size: 0.85rem; font-family: \'Kantumruy Pro\';">',
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-trash"></i> យល់ព្រមលុប</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ef4444",
+    customClass: { popup: "modal-radius kh-text" },
+    preConfirm: () => document.getElementById("swal-del-reason").value.trim(),
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងលុប...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/delete-card", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          cardId: c.id,
+          reason: result.value || "Admin លុប",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        adminCurrentCardIndex = 0;
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានលុបជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("បរាជ័យ", e.message || "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
+// ៩. បង្កើតកាតថ្មី (Create New Card Modal)
+window.c360CreateCardModal = async function () {
   const cardTiers = [
     {
       id: "standard",
       name: "Standard",
-      price: 2.0,
+      price: 5.0,
       styleClass: "theme-standard",
     },
     {
       id: "fifa",
       name: "FIFA World Cup",
-      price: 10.0,
+      price: 15.0,
       styleClass: "theme-fifa",
     },
-    { id: "metal", name: "Metal Gold", price: 15.0, styleClass: "theme-metal" },
+    { id: "metal", name: "Metal Gold", price: 5.0, styleClass: "theme-metal" },
     {
       id: "celebrity",
       name: "BTS Edition",
-      price: 10.0,
+      price: 15.0,
       styleClass: "theme-celebrity",
     },
     {
       id: "anime",
       name: "Naruto Edition",
-      price: 8.0,
+      price: 15.0,
       styleClass: "theme-anime",
     },
-    { id: "gamer", name: "Gamer Pro", price: 8.0, styleClass: "theme-gamer" },
-    { id: "eco", name: "Eco Green", price: 3.0, styleClass: "theme-eco" },
+    { id: "gamer", name: "Gamer Pro", price: 15.0, styleClass: "theme-gamer" },
+    { id: "eco", name: "Eco Green", price: 5.0, styleClass: "theme-eco" },
     {
       id: "platinum",
       name: "Platinum Premium",
@@ -1527,7 +2137,7 @@ async function c360CreateCardForUser() {
     {
       id: "animal",
       name: "Animal Edition",
-      price: 8.0,
+      price: 15.0,
       styleClass: "theme-animal",
     },
     {
@@ -1538,52 +2148,65 @@ async function c360CreateCardForUser() {
     },
   ];
 
+  let accOptions = "";
+  if (currentC360User.mainAccounts?.USD)
+    accOptions += `<option value="USD">គណនីចម្បង USD ($)</option>`;
+  if (currentC360User.mainAccounts?.KHR)
+    accOptions += `<option value="KHR">គណនីចម្បង KHR (៛)</option>`;
+  if (currentC360User.subAccounts) {
+    currentC360User.subAccounts.forEach((sub) => {
+      if (!sub.isHidden)
+        accOptions += `<option value="${sub.accountNumber}">${sub.accountName} (${sub.accountNumber})</option>`;
+    });
+  }
+
   let gridHtml = cardTiers
-    .map((t, index) => {
-      return `
-      <label style="cursor:pointer;">
-        <input type="radio" name="swal-card-type" value="${t.id}" data-price="${t.price}" ${index === 0 ? "checked" : ""} style="display:none;" 
-          onchange="document.querySelectorAll('.admin-tier-option').forEach(el=>el.classList.remove('selected')); this.nextElementSibling.classList.add('selected'); document.getElementById('adminCustomBgBox').style.display = (this.value==='custom') ? 'block' : 'none'; document.getElementById('swal-price-display').innerText = '$' + this.getAttribute('data-price');">
-        <div class="admin-tier-option ${index === 0 ? "selected" : ""}" style="border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; background: var(--bg-body);">
-            <div class="${t.styleClass}" style="width: 100%; height: 50px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"></div>
-            <div class="kh-text" style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); line-height: 1.2;">${t.name}</div>
-            <div style="font-size: 0.75rem; color: #ef4444; font-weight: bold; margin-top: 5px;">$${t.price.toFixed(2)}</div>
-        </div>
-      </label>
-    `;
-    })
+    .map(
+      (t, index) => `
+    <label style="cursor:pointer;">
+      <input type="radio" name="swal-card-type" value="${t.id}" data-price="${t.price}" ${index === 0 ? "checked" : ""} style="display:none;" 
+        onchange="document.querySelectorAll('.admin-tier-option').forEach(el=>el.classList.remove('selected')); this.nextElementSibling.classList.add('selected'); document.getElementById('adminCustomBgBox').style.display = (this.value==='custom') ? 'block' : 'none'; document.getElementById('swal-price-display').innerText = '$' + this.getAttribute('data-price');">
+      <div class="admin-tier-option ${index === 0 ? "selected" : ""}" style="border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; background: var(--bg-body);">
+          <div class="${t.styleClass}" style="width: 100%; height: 40px; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+          <div style="font-size: 0.75rem; font-weight: 700; font-family: 'Inter';">${t.name}</div>
+          <div style="font-size: 0.7rem; color: #ef4444; font-weight: bold;">$${t.price.toFixed(2)}</div>
+      </div>
+    </label>
+  `,
+    )
     .join("");
 
   const { value: formResult } = await Swal.fire({
     title:
-      '<span class="kh-text" style="font-size:1.4rem;">បង្កើតកាតថ្មី</span>',
+      '<span class="kh-text" style="font-size:1.3rem;">បង្កើតកាតថ្មីឱ្យអតិថិជន</span>',
     html: `
-      <style>
-        .admin-tier-option.selected { border-color: var(--secondary) !important; background: rgba(16, 185, 129, 0.05) !important; }
-      </style>
+      <style>.admin-tier-option.selected { border-color: var(--secondary) !important; background: rgba(16, 185, 129, 0.05) !important; }</style>
       <div style="text-align: left; margin-top: 15px;">
-          <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; display: block;">ជ្រើសរើសប្រភេទកាត (Design)</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-height: 300px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
+          <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">១. ជ្រើសរើសគណនីកាត់លុយ/ភ្ជាប់ (Linked Account)</label>
+          <select id="swal-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 15px; font-size: 0.9rem;">
+              ${accOptions}
+          </select>
+
+          <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 8px;">២. ជ្រើសរើសប្រភេទកាត (Card Design)</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
               ${gridHtml}
           </div>
           
           <div id="adminCustomBgBox" style="display: none; margin-bottom: 15px;">
-              <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">បញ្ចូល Link រូបភាព (សម្រាប់កាត Custom)</label>
-              <input id="swal-custom-url" type="text" class="swal2-input" placeholder="https://image.com/myphoto.jpg" style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem;">
+              <input id="swal-custom-url" type="text" class="swal2-input kh-text" placeholder="បញ្ចូល URL រូបភាព..." style="width: 100%; margin: 0; font-size: 0.85rem;">
           </div>
 
-          <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px; margin-bottom: 15px; text-align: center;">
-              <span class="kh-text" style="color: #ef4444; font-size: 0.9rem; font-weight: bold;">ថ្លៃសេវាកាត់ពីគណនីអតិថិជន៖ </span>
-              <span id="swal-price-display" style="color: #ef4444; font-size: 1.1rem; font-weight: 900;">$2.00</span>
+          <div style="background: rgba(239,68,68,0.1); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px;">
+              <span class="kh-text" style="color: #ef4444; font-size: 0.85rem; font-weight: bold;">ថ្លៃសេវាចេញកាត៖ </span>
+              <span id="swal-price-display" style="color: #ef4444; font-size: 1rem; font-weight: 900;">$5.00</span>
           </div>
 
-          <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ចំណាំ (Remark)</label>
-          <input id="swal-card-remark" class="swal2-input kh-text" placeholder="មូលហេតុ (ឧ. បង្កើតជំនួសអតិថិជន)" style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main);">
+          <input id="swal-card-remark" class="swal2-input kh-text" placeholder="ចំណាំ (ឧ. អតិថិជនស្នើសុំតាមទូរស័ព្ទ)" style="width: 100%; margin: 0; font-size: 0.85rem; font-family: 'Kantumruy Pro';">
       </div>`,
     showCancelButton: true,
-    confirmButtonText: '<span class="kh-text">កាត់លុយ & បង្កើត</span>',
+    confirmButtonText: '<span class="kh-text">បង្កើតកាត</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
-    confirmButtonColor: "var(--secondary)",
+    confirmButtonColor: "#10b981",
     customClass: { popup: "modal-radius" },
     preConfirm: () => {
       const radio = document.querySelector(
@@ -1593,22 +2216,24 @@ async function c360CreateCardForUser() {
       const customBgUrl = document
         .getElementById("swal-custom-url")
         .value.trim();
-      const remark =
-        document.getElementById("swal-card-remark").value.trim() ||
-        "Admin បង្កើតកាតជំនួស";
-
       if (cardType === "custom" && !customBgUrl) {
-        Swal.showValidationMessage("សូមបញ្ចូល Link រូបភាពសម្រាប់កាត Custom!");
+        Swal.showValidationMessage("សូមបញ្ចូល Link រូបភាព!");
         return false;
       }
-      return { cardType, customBgUrl, remark };
+      return {
+        linkedAccount: document.getElementById("swal-linked-acc").value,
+        cardType: cardType,
+        customBgUrl: customBgUrl,
+        remark: document.getElementById("swal-card-remark").value.trim(),
+      };
     },
   });
 
   if (formResult) {
     Swal.fire({
-      title: "កំពុងកាត់ប្រាក់ និងបង្កើតកាត...",
+      title: "កំពុងដំណើរការ...",
       didOpen: () => Swal.showLoading(),
+      allowOutsideClick: false,
       customClass: { popup: "premium-swal" },
     });
     try {
@@ -1617,180 +2242,186 @@ async function c360CreateCardForUser() {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           username: currentC360User.username,
-          cardType: formResult.cardType,
-          customBgUrl: formResult.customBgUrl,
-          remark: formResult.remark,
+          ...formResult,
         }),
       });
       const data = await res.json();
       if (data.success) {
+        c360RefreshData();
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
-          text: "កាត់លុយ និងបង្កើតកាតរួចរាល់។",
+          text: "កាតត្រូវបានបង្កើតរួចរាល់។",
           timer: 2000,
           showConfirmButton: false,
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
-        c360RefreshData();
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "បរាជ័យ",
-          text: data.message,
-          customClass: { popup: "premium-swal" },
-        });
+        Swal.fire("បរាជ័យ", data.message, "error");
       }
     } catch (e) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "មានបញ្ហា Server",
-        customClass: { popup: "premium-swal" },
-      });
+      Swal.fire("Error", "មានបញ្ហា Server", "error");
     }
   }
-}
+};
 
-// =======================================================
-// 👀 មុខងារបង្ហាញលេខកាត, ថ្ងៃផុតកំណត់, និង CVV
-// =======================================================
-async function c360RevealCard(cardId) {
-  const card = currentC360User.virtualCards.find((c) => c.id === cardId);
-  const numEl = document.getElementById(`c360-cardnum-${cardId}`);
+// ១០. បិទ/បើក NFC (Bind / Unbind NFC)
+window.c360ToggleCardNFC = async function () {
+  const c = currentC360User.virtualCards[adminCurrentCardIndex];
+  if (!c) return;
 
-  // បើកំពុងបង្ហាញស្រាប់ ចុចម្ដងទៀតដើម្បីលាក់វិញ
-  if (numEl.innerText.includes(card.number.slice(0, 4))) {
-    numEl.innerText = `**** **** **** ${card.number.slice(-4)}`;
-    document.getElementById(`c360-cardexp-${cardId}`).innerText = "**/**";
-    document.getElementById(`c360-cardcvv-${cardId}`).innerText = "***";
-    return;
-  }
-
-  const { value: remark } = await Swal.fire({
-    title:
-      '<span class="kh-text" style="font-size:1.4rem;">មើលព័ត៌មានកាតសម្ងាត់</span>',
-    html: `
-      <div style="text-align: left; padding: 10px;">
-          <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">មូលហេតុ (Remark)</label>
-          <input id="swal-reveal-remark" class="swal2-input kh-text" placeholder="បញ្ចូលមូលហេតុ..." style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-      </div>`,
-    showCancelButton: true,
-    confirmButtonText: '<span class="kh-text">បញ្ជាក់ (Confirm)</span>',
-    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
-    confirmButtonColor: "var(--accent)",
-    customClass: { popup: "modal-radius" },
-    preConfirm: () => {
-      const r = document.getElementById("swal-reveal-remark").value.trim();
-      if (!r) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
-      return r;
-    },
-  });
-
-  if (remark) {
-    try {
-      await fetch("/api/admin/log-action", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          action: "Viewed Card Details",
-          target: currentC360User.username,
-          details: `មើលលេខកាត *${card.number.slice(-4)} - មូលហេតុ: ${remark}`,
-        }),
-      });
-
-      // បង្ហាញលេខទាំង ៣ កន្លែង
-      document.getElementById(`c360-cardnum-${cardId}`).innerText = card.number
-        .match(/.{1,4}/g)
-        .join(" ");
-      document.getElementById(`c360-cardexp-${cardId}`).innerText =
-        card.expiryDate || card.expiry || "12/28";
-      document.getElementById(`c360-cardcvv-${cardId}`).innerText = card.cvv;
-
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "បានបញ្ចេញព័ត៌មានកាត!",
-        showConfirmButton: false,
-        timer: 1500,
-        customClass: { popup: "premium-swal" },
-      });
-    } catch (e) {}
-  }
-}
-
-// (ហៅ API ពី admin-ops.js)
-async function c360ToggleCard(cardId, isLocked) {
-  if (typeof toggleCardLock === "function")
-    toggleCardLock(currentC360User.username, cardId, !isLocked);
-  // setTimeout ចាំឱ្យ Server Update រួច ទើបហៅ Refresh
-  setTimeout(() => c360RefreshData(), 1500);
-}
-
-async function c360DeleteCard(cardId) {
-  const { value: remark } = await Swal.fire({
-    title:
-      '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">លុបកាតនេះចោល?</span>',
-    html: `<input id="swal-del-remark" class="swal2-input kh-text" placeholder="មូលហេតុលុបកាត..." style="width: 100%; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">`,
-    showCancelButton: true,
-    confirmButtonText: '<span class="kh-text">លុបចោល (Delete)</span>',
-    confirmButtonColor: "#ef4444",
-    customClass: { popup: "modal-radius" },
-    preConfirm: () => document.getElementById("swal-del-remark").value.trim(),
-  });
-
-  if (remark) {
-    Swal.fire({
-      title: "កំពុងលុប...",
-      didOpen: () => Swal.showLoading(),
-      customClass: { popup: "premium-swal" },
+  if (c.uid && c.uid !== "") {
+    const result = await Swal.fire({
+      title:
+        '<span class="kh-text" style="color:#ef4444;">ផ្តាច់កាត NFC?</span>',
+      text: "កាត Physical នេះនឹងត្រូវបានផ្តាច់ចេញពីគណនី។",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: '<span class="kh-text">បាទ, ផ្តាច់ចោល</span>',
+      cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+      confirmButtonColor: "#ef4444",
+      customClass: { popup: "modal-radius kh-text" },
     });
-    try {
-      const res = await fetch("/api/admin/delete-card", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          username: currentC360User.username,
-          cardId,
-          reason: remark,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await fetch("/api/admin/log-action", {
+
+    if (result.isConfirmed) {
+      Swal.fire({ title: "កំពុងផ្តាច់...", didOpen: () => Swal.showLoading() });
+      try {
+        const res = await fetch("/api/admin/cards/unbind-nfc", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            action: "Deleted Card",
-            target: currentC360User.username,
-            details: `លុបកាតចោល - មូលហេតុ: ${remark}`,
+            username: currentC360User.username,
+            cardId: c.id,
           }),
         });
-        Swal.fire({
-          icon: "success",
-          title: "ជោគជ័យ!",
-          text: "លុបកាតរួចរាល់។",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { popup: "premium-swal" },
-        });
-        c360RefreshData();
-      } else
-        Swal.fire({
-          icon: "error",
-          title: "បរាជ័យ",
-          text: data.message,
-          customClass: { popup: "premium-swal" },
-        });
-    } catch (e) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "មានបញ្ហា Server",
-        customClass: { popup: "premium-swal" },
-      });
+        const data = await res.json();
+        if (data.success) {
+          c360RefreshData();
+          Swal.fire({
+            icon: "success",
+            title: "បានផ្តាច់កាត NFC ចេញវិញហើយ!",
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: "premium-swal kh-text" },
+          });
+        } else {
+          Swal.fire("បរាជ័យ", data.message, "error");
+        }
+      } catch (e) {
+        Swal.fire("បរាជ័យ", "មានបញ្ហា Server", "error");
+      }
     }
+    return;
+  }
+
+  let isScanning = true;
+  let scanBuffer = "";
+
+  Swal.fire({
+    title: '<span class="kh-text">📡 កំពុងរង់ចាំស្កេនកាត NFC...</span>',
+    html: `
+        <div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #6366f1;"></i></div>
+        <p style="color: #64748b; font-family: 'Kantumruy Pro';">សូមយកកាតមកផ្អឹបនឹងផ្នែកខាងក្រោយទូរស័ព្ទ ឬម៉ាស៊ីន POS / USB Scanner</p>
+        <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1; top: 0; left: 0;" autocomplete="off">
+    `,
+    showConfirmButton: false,
+    showCancelButton: true,
+    cancelButtonText: '<span class="kh-text">បោះបង់ (Cancel)</span>',
+    cancelButtonColor: "#ef4444",
+    allowOutsideClick: false,
+    customClass: { popup: "premium-swal" },
+    didOpen: () => {
+      const hiddenInput = document.getElementById("hiddenUsbScannerInput");
+      if (hiddenInput) {
+        hiddenInput.focus();
+        hiddenInput.addEventListener("blur", () => {
+          if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
+        });
+        hiddenInput.addEventListener("keydown", function (e) {
+          e.preventDefault();
+          if (e.code === "Enter" || e.code === "NumpadEnter") {
+            if (scanBuffer.length >= 4) {
+              isScanning = false;
+              Swal.close();
+              processAdminNFCBind(c.id, scanBuffer);
+            }
+            scanBuffer = "";
+          } else {
+            if (e.code.startsWith("Digit"))
+              scanBuffer += e.code.replace("Digit", "");
+            else if (e.code.startsWith("Numpad"))
+              scanBuffer += e.code.replace("Numpad", "");
+            else if (e.code.startsWith("Key"))
+              scanBuffer += e.code.replace("Key", "");
+          }
+        });
+      }
+    },
+    didClose: () => {
+      isScanning = false;
+    },
+  });
+
+  if ("NDEFReader" in window) {
+    const abortController = new AbortController();
+    Swal.getPopup().addEventListener("cancel", () => abortController.abort());
+    try {
+      const ndef = new NDEFReader();
+      await ndef.scan({ signal: abortController.signal });
+      ndef.onreading = async (event) => {
+        if (!isScanning) return;
+        isScanning = false;
+        abortController.abort();
+        Swal.close();
+        let serialNumber = event.serialNumber;
+        if (serialNumber)
+          serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        processAdminNFCBind(c.id, serialNumber);
+      };
+    } catch (error) {}
+  }
+};
+
+async function processAdminNFCBind(cardId, rawUid) {
+  let uid = String(rawUid).trim().toUpperCase();
+  if (/^\d{10}$/.test(uid)) {
+    let hex = parseInt(uid, 10).toString(16).toUpperCase();
+    hex = hex.padStart(8, "0");
+    uid =
+      hex.substring(6, 8) +
+      hex.substring(4, 6) +
+      hex.substring(2, 4) +
+      hex.substring(0, 2);
+  }
+
+  Swal.fire({ title: "កំពុងភ្ជាប់...", didOpen: () => Swal.showLoading() });
+  try {
+    const res = await fetch("/api/admin/cards/bind-nfc", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        username: currentC360User.username,
+        cardId,
+        uid,
+        pin: "0000",
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      c360RefreshData();
+      Swal.fire({
+        icon: "success",
+        title: "ភ្ជាប់ជោគជ័យ!",
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text" },
+      });
+    } else {
+      Swal.fire("បរាជ័យ", data.message, "error");
+    }
+  } catch (e) {
+    Swal.fire("បរាជ័យ", "បញ្ហាបច្ចេកទេសជាមួយ Server", "error");
   }
 }
 
