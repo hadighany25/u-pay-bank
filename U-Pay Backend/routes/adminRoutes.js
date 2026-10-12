@@ -94,7 +94,7 @@ router.get(
 );
 
 router.get(
-  "/list",
+  "/list-admins", // 🟢 កែត្រង់នេះឱ្យទៅជា /list-admins
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getAdminsList, "getAdminsList"),
 );
@@ -148,14 +148,14 @@ router.post(
   safeHandler(adminController.adminCreateUser, "adminCreateUser"),
 );
 router.post(
-  "/search-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  safeHandler(adminController.searchUserByAdmin, "searchUserByAdmin"),
+  "/get-user",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  safeHandler(adminController.getUserByAdmin, "getUserByAdmin"),
 );
 router.post(
-  "/get-user",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
-  safeHandler(adminController.getUserByAdmin, "getUserByAdmin"),
+  "/search-user",
+  checkRole([ROLE_SUPER, ROLE_CUSTOM, ROLE_SUPPORT]),
+  safeHandler(adminController.searchUserByAdmin, "searchUserByAdmin"),
 );
 router.post(
   "/edit-user",
@@ -347,6 +347,7 @@ router.post(
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   safeHandler(adminController.adminUnbindNfcCard, "adminUnbindNfcCard"),
 );
+
 // Merchants (តភ្ជាប់មកពី merchantController និង adminController)
 router.post(
   "/create-merchant",

@@ -872,7 +872,7 @@ window.loadTellerDashboard = async function () {
       globalAdminsList.length === 0
     ) {
       try {
-        const adminRes = await fetch("/api/admin/list", {
+        const adminRes = await fetch("/api/admin/list-admins", {
           headers: getAuthHeaders(),
         });
         const adminData = await adminRes.json();
@@ -1479,7 +1479,9 @@ let globalAdminsList = [];
 
 async function fetchAdminsForFilter() {
   try {
-    const res = await fetch("/api/admin/list", { headers: getAuthHeaders() });
+    const res = await fetch("/api/admin/list-admins", {
+      headers: getAuthHeaders(),
+    });
     const data = await res.json();
     if (data.success) {
       globalAdminsList = data.admins;
