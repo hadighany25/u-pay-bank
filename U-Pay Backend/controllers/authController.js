@@ -83,12 +83,12 @@ const generateUserId = async () => {
 // ==========================================
 
 /**
- * 📌 ចូលគណនី (Login)
+ * 📌 ចូលគណនី (Login) ជាមួយនឹងប្រព័ន្ធការពារវាយ Password ខុស
  */
 const login = async (req, res) => {
   const { identifier, password } = req.body;
   try {
-    // 🟢 ១. ស្វែងរកអតិថិជនសិន ដើម្បីឆែក Password និងស្ថានភាពគណនី
+    // 🟢 ១. ស្វែងរកអតិថិជនតាមរយៈឈ្មោះ, ទូរស័ព្ទ, អ៊ីមែល ឬ ឈ្មោះពេញ (មិនទាន់ឆែក Password ទេ)
     let user = await User.findOne({
       $or: [
         { username: identifier },
@@ -96,77 +96,144 @@ const login = async (req, res) => {
         { email: identifier },
         { fullName: identifier },
       ],
-      password: password,
     });
 
-    if (user) {
-      if (user.isFrozen) {
+    // បើរកឈ្មោះមិនឃើញទេ
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "ព័ត៌មានគណនីមិនត្រឹមត្រូវទេ (Invalid Credentials)",
+      });
+    }
+
+    // 🟢 ២. ឆែកមើលថាគណនីនេះជាប់សោរ (Frozen) ស្រាប់ហើយឬនៅ
+    if (user.isFrozen) {
+      return res.json({
+        success: false,
+        message: "គណនីរបស់អ្នកត្រូវបានបិទ (Frozen)! សូមទាក់ទងមកកាន់ធនាគារ។",
+      });
+    }
+
+    // 🟢 ៣. ផ្ទៀងផ្ទាត់លេខសម្ងាត់ (Password Verification)
+    if (user.password !== password) {
+      // បើវាយខុស បូកចំនួនដង (Attempts) ថែម ១
+      user.passwordAttempts = (user.passwordAttempts || 0) + 1;
+
+      // ឆែកមើលថាបើវាយខុសដល់ ៥ ដង យើងបិទគណនី (Auto-Freeze) តែម្តង
+      if (user.passwordAttempts >= 5) {
+        user.isFrozen = true;
+        await user.save();
         return res.json({
           success: false,
-          message: "គណនីរបស់អ្នកត្រូវបានបិទដោយប្រព័ន្ធ (Admin Locked)!",
+          message:
+            "អ្នកបានវាយពាក្យសម្ងាត់ខុស ៥ដង! គណនីត្រូវបានផ្អាកជាបណ្តោះអាសន្ន ដើម្បីសុវត្ថិភាព។",
         });
       }
 
-      // 🟢 ២. ប្រើប្រាស់ findOneAndUpdate ដើម្បីធានាថា Database ត្រូវបាន Update ពិតប្រាកដ ១០០%
-      user = await User.findOneAndUpdate(
-        { _id: user._id },
-        {
-          $set: {
-            forceLogout: false, // 🔓 ដោះសោរ
-            isOnline: true,
-            lastActive: new Date().toISOString(),
+      // បើមិនទាន់ដល់ ៥ ដង គ្រាន់តែ Save ទុក ហើយលោតសារព្រមាន
+      await user.save();
+      return res.json({
+        success: false,
+        message: `ពាក្យសម្ងាត់មិនត្រឹមត្រូវ! អ្នកនៅសល់ឱកាស ${5 - user.passwordAttempts} ដងទៀត។`,
+      });
+    }
+
+    // ========================================================
+    // 🛡️ ៤. បើ Password ត្រូវ! យើងចាប់យក IP និង Device រួចឱ្យចូល
+    // ========================================================
+    const clientIp =
+      req.headers["x-forwarded-for"] ||
+      req.connection.remoteAddress ||
+      req.socket.remoteAddress ||
+      "Unknown IP";
+    const cleanIp = clientIp.replace(/^.*:/, "");
+
+    const rawUserAgent = req.headers["user-agent"] || "";
+    let deviceName = "Unknown Device";
+    if (rawUserAgent.includes("iPhone")) deviceName = "Apple iPhone";
+    else if (rawUserAgent.includes("iPad")) deviceName = "Apple iPad";
+    else if (rawUserAgent.includes("Android")) deviceName = "Android Device";
+    else if (rawUserAgent.includes("Windows")) deviceName = "Windows PC";
+    else if (rawUserAgent.includes("Mac")) deviceName = "Mac OS";
+    else if (rawUserAgent.includes("Postman")) deviceName = "Postman / API";
+    else deviceName = rawUserAgent.substring(0, 30) + "...";
+
+    const currentLoginTime = new Date().toISOString();
+
+    // 🟢 បង្កើត Object ឧបករណ៍ថ្មី
+    const newDeviceObj = {
+      ip: cleanIp,
+      device: deviceName,
+      time: currentLoginTime,
+    };
+
+    // 🟢 Update ស្ថានភាព និង រុញឧបករណ៍ថ្មីចូលក្នុង Array (រក្សាទុកត្រឹម ៤ ឧបករណ៍ចុងក្រោយ)
+    user = await User.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $set: {
+          forceLogout: false,
+          isOnline: true,
+          lastActive: currentLoginTime,
+          lastIp: cleanIp,
+          lastDevice: deviceName,
+          lastLogin: currentLoginTime,
+          passwordAttempts: 0,
+        },
+        $push: {
+          connectedDevices: {
+            $each: [newDeviceObj],
+            $position: 0, // ដាក់បញ្ចូលខាងដើមគេ (ថ្មីបំផុត)
+            $slice: 4, // កាត់រក្សាទុកត្រឹម ៤ គ្រឿងចុងក្រោយកុំឱ្យពេញ Database
           },
         },
-        { new: true }, // យកទិន្នន័យដែល Update រួចមកប្រើបន្ត
-      );
+      },
+      { new: true },
+    );
 
-      const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" },
-      );
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
 
-      const safeUser = user.toObject();
+    const safeUser = user.toObject();
 
-      // ការធ្វើបច្ចុប្បន្នភាពគណនី Joint (រក្សាកូដចាស់ដដែល)
-      if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
-        const jointAccIds = safeUser.subAccounts
-          .filter(
-            (sa) =>
-              sa.accountType === "joint" || sa.accountType === "joint_member",
-          )
-          .map((sa) => sa.accountId);
+    // ការធ្វើបច្ចុប្បន្នភាពគណនី Joint
+    if (safeUser.subAccounts && safeUser.subAccounts.length > 0) {
+      const jointAccIds = safeUser.subAccounts
+        .filter(
+          (sa) =>
+            sa.accountType === "joint" || sa.accountType === "joint_member",
+        )
+        .map((sa) => sa.accountId);
 
-        if (jointAccIds.length > 0) {
-          const jointAccounts = await JointAccount.find({
-            accountId: { $in: jointAccIds },
-          });
-          const jointMap = {};
-          jointAccounts.forEach((ja) => {
-            jointMap[ja.accountId] = ja.balance;
-          });
+      if (jointAccIds.length > 0) {
+        const jointAccounts = await JointAccount.find({
+          accountId: { $in: jointAccIds },
+        });
+        const jointMap = {};
+        jointAccounts.forEach((ja) => {
+          jointMap[ja.accountId] = ja.balance;
+        });
 
-          safeUser.subAccounts.forEach((sa) => {
-            if (
-              (sa.accountType === "joint" ||
-                sa.accountType === "joint_member") &&
-              jointMap[sa.accountId] !== undefined
-            ) {
-              sa.balance = jointMap[sa.accountId];
-            }
-          });
-        }
+        safeUser.subAccounts.forEach((sa) => {
+          if (
+            (sa.accountType === "joint" || sa.accountType === "joint_member") &&
+            jointMap[sa.accountId] !== undefined
+          ) {
+            sa.balance = jointMap[sa.accountId];
+          }
+        });
       }
-
-      if (safeUser.role === "junior") safeUser.kycStatus = "verified";
-
-      delete safeUser.password;
-      delete safeUser.pin;
-
-      res.json({ success: true, user: safeUser, token: token });
-    } else {
-      res.json({ success: false, message: "Invalid Credentials" });
     }
+
+    if (safeUser.role === "junior") safeUser.kycStatus = "verified";
+
+    delete safeUser.password;
+    delete safeUser.pin;
+
+    res.json({ success: true, user: safeUser, token: token });
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1530,6 +1597,7 @@ const heartbeat = async (req, res) => {
     const user = await User.findOne({ username });
     if (user) {
       user.lastActive = new Date().toISOString();
+      user.isOnline = true; // 🟢 បន្ថែមបន្ទាត់នេះ! ដើម្បីឱ្យវា Active វិញ
       await user.save();
       res.json({ success: true });
     } else res.json({ success: false });

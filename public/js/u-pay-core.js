@@ -776,3 +776,52 @@ window.deleteMessage = function (title, date) {
     }
   });
 };
+
+// =========================================================
+// 🟢 កូដ Smart Heartbeat: ដឹងភ្លាមៗពេល User ចូលមកកាន់ App វិញ
+// =========================================================
+function startSmartHeartbeat() {
+  async function sendHeartbeat() {
+    const token = sessionStorage.getItem("userToken"); // 🌟 ប្រើ sessionStorage តាមកូដដើមរបស់អ្នក
+    const userObj = JSON.parse(sessionStorage.getItem("user") || "{}");
+
+    if (userObj.username && token) {
+      try {
+        await fetch("/api/user/heartbeat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ username: userObj.username }),
+        });
+      } catch (error) {
+        console.log("Heartbeat Sync Failed");
+      }
+    }
+  }
+
+  // ១. បាញ់ប្រាប់ Server ភ្លាមៗពេលគាត់បើកទំព័រណាមួយ
+  sendHeartbeat();
+
+  // ២. បាញ់រៀងរាល់ ២ នាទីម្តង (ជាប្រចាំកុំឱ្យដាច់)
+  setInterval(sendHeartbeat, 120000);
+
+  // ៣. 🟢 [សំខាន់បំផុត] បាញ់ភ្លាមៗពេលគាត់ប្តូរ Tab ហើយត្រលប់មកវិញ (Visibility Change)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      sendHeartbeat();
+    }
+  });
+
+  // ៤. 🟢 [សំខាន់បំផុត] បាញ់ភ្លាមៗពេលគាត់ចុច ឬ Touch លើអេក្រង់បន្ទាប់ពីទុកចោលយូរ (Focus)
+  window.addEventListener("focus", sendHeartbeat);
+}
+
+// ហៅឱ្យកូដចាប់ផ្តើមធ្វើការ តែក្នុងករណីដែលគាត់មាន Token (Login រួច)
+document.addEventListener("DOMContentLoaded", () => {
+  if (sessionStorage.getItem("userToken")) {
+    // 🌟 ប្រើ sessionStorage
+    startSmartHeartbeat();
+  }
+});

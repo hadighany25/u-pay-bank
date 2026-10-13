@@ -85,6 +85,7 @@ const userSchema = new mongoose.Schema(
     // ==========================================
     pin: { type: String, default: "1111" },
     pinAttempts: { type: Number, default: 0 },
+    passwordAttempts: { type: Number, default: 0 },
     profileImage: { type: String, default: "" },
     isFrozen: { type: Boolean, default: false },
     isOnline: { type: Boolean, default: false },
@@ -97,8 +98,13 @@ const userSchema = new mongoose.Schema(
     kycStatus: { type: String, default: "unverified" }, // ពេលចុះឈ្មោះរួចនឹងលោតទៅ "pending"
     kycDocument: { type: String, default: "" }, // រូបអត្តសញ្ញាណប័ណ្ណ
     selfieUrl: { type: String, default: "" }, // រូបថត Selfie ផ្ទាល់
-    kycSubmittedAt: { type: String, default: "" },
-
+    kycSubmittedAt: { type: String, default: "" }, // កាលបរិច្ឆេទបញ្ជូន
+    kycUploadedBy: { type: String, default: "" }, // អ្នកបញ្ជូនសំណើ (Admin ឬ ទុកទទេរបើអតិថិជន)
+    kycApprovedBy: { type: String, default: "" }, // អ្នកអនុម័ត (Checker)
+    kycApprovedAt: { type: String, default: "" }, // កាលបរិច្ឆេទអនុម័ត
+    kycRejectedBy: { type: String, default: "" }, // អ្នកបដិសេធ
+    kycRejectedAt: { type: String, default: "" }, // កាលបរិច្ឆេទបដិសេធ
+    kycRejectReason: { type: String, default: "" }, // មូលហេតុនៃការបដិសេធ
     // ==========================================
     // 🎧 ៦. ការកំណត់សេវាកម្មអតិថិជន (Customer Support)
     // ==========================================
@@ -189,11 +195,14 @@ const userSchema = new mongoose.Schema(
     // ==========================================
     lastActive: { type: String, default: "" },
     joinDate: { type: String, default: "" },
-    // នៅក្នុង UserSchema បន្ថែមបន្ទាត់នេះ៖
     forceLogout: {
       type: Boolean,
       default: false,
     },
+    lastIp: { type: String, default: "" },
+    lastDevice: { type: String, default: "" },
+    lastLogin: { type: String, default: "" },
+    connectedDevices: { type: Array, default: [] },
   },
   { timestamps: true },
 );

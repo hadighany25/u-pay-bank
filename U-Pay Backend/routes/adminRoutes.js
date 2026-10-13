@@ -13,7 +13,6 @@ const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
 const cardController = require("../controllers/cardController");
 const aiController = require("../controllers/aiController");
-
 const { checkRole } = require("../middleware/authMiddleware");
 
 // ==========================================
@@ -218,6 +217,11 @@ router.post(
   "/kyc-action",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.kycAction, "kycAction"),
+);
+router.post(
+  "/upload-specific-kyc",
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.uploadSpecificKyc, "uploadSpecificKyc"),
 );
 router.post(
   "/upload-kyc",

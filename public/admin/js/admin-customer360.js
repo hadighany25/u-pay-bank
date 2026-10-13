@@ -3570,219 +3570,1138 @@ window.c360ExportStatementPDF = async function () {
 };
 
 // =======================================================
-// 🪪 TAB 5: KYC & Identity
+// 🪪 TAB 5: KYC & Identity (Maker-Checker Enforced + Edit Mode)
 // =======================================================
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   if (!container) return;
+
   const status = user.kycStatus || "unverified";
-
-  // ✅ FIX: ថែម user.kycDocument ព្រោះក្នុង Model (User.js) ឈ្មោះវា kycDocument
   const imgUrl = user.kycDocument || user.kycImage || user.idCardImage || "";
+  const selfieUrl = user.selfieUrl || "";
+  const kycSubmittedAt = user.kycSubmittedAt
+    ? new Date(user.kycSubmittedAt).toLocaleString()
+    : "N/A";
+  const kycRejectReason = user.kycRejectReason || "N/A";
 
-  let content = "";
+  // 🟢 ចាប់យក Username របស់ Admin ដែលកំពុង Log in
+  let currentAdminUser = "";
+  try {
+    let adminStr =
+      localStorage.getItem("admin") ||
+      sessionStorage.getItem("admin") ||
+      localStorage.getItem("user");
+    if (adminStr) {
+      currentAdminUser = JSON.parse(adminStr).username || "";
+    }
+    if (!currentAdminUser) {
+      let token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("adminToken");
+      if (token) {
+        currentAdminUser = JSON.parse(atob(token.split(".")[1])).username || "";
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to get Admin Username", e);
+  }
+
+  // កាត់ចន្លោះទទេ និងបំប្លែងជាអក្សរតូចដើម្បីងាយស្រួលផ្ទៀងផ្ទាត់
+  currentAdminUser = (currentAdminUser || "").trim().toLowerCase();
+  const kycUploadedBy = (user.kycUploadedBy || "អតិថិជនផ្ទាល់").trim();
+  const kycUploadedByLower = kycUploadedBy.toLowerCase();
+
+  let isMaker = false;
+  let makerDisplay = kycUploadedBy;
 
   if (
-    !imgUrl ||
-    status === "unverified" ||
-    status === "rejected" ||
-    status === "revoked"
+    kycUploadedBy !== "អតិថិជនផ្ទាល់" &&
+    kycUploadedByLower === currentAdminUser
   ) {
-    content = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 500px; margin: 0 auto; gap: 20px; padding: 20px 0;">
-          <div style="text-align: center; color: var(--text-muted);" class="kh-text">
-              <i class="fa-solid fa-id-card-clip" style="font-size: 4.5rem; color: #cbd5e1; margin-bottom: 15px;"></i>
-              <h3 style="color: var(--text-main); margin: 0 0 10px 0;">អតិថិជនមិនទាន់មានឯកសារ KYC ទេ</h3>
-              <p style="font-size: 0.9rem; margin: 0;">អ្នកអាចជួយបញ្ចូលឯកសារជំនួសអតិថិជនទីនេះ</p>
-          </div>
-          <label style="border: 2px dashed var(--secondary); border-radius: 18px; padding: 40px 20px; text-align: center; cursor: pointer; width: 100%; background: rgba(16, 185, 129, 0.05); transition: 0.2s;">
-              <input type="file" style="display: none;" accept="image/*" onchange="c360AdminUploadKyc(event)">
-              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 10px;"></i>
-              <div class="kh-text" style="color: var(--secondary); font-weight: bold; font-size: 1.1rem;">ចុចទីនេះដើម្បី Upload ឯកសារ KYC</div>
-          </label>
-      </div>`;
-  } else {
-    const isVerified = status === "verified" || status === "approved";
-    let buttonsHtml = "";
+    isMaker = true;
+    makerDisplay = `<span style="color: #3b82f6;">${kycUploadedBy} (អ្នក)</span>`;
+  }
 
-    if (isVerified) {
-      buttonsHtml = `
-        <button onclick="if(typeof kycAction === 'function') { kycAction('${user.username}', 'revoke'); setTimeout(c360RefreshData, 1500); }" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-ban"></i> បដិសេធសិទ្ធិវិញ (Revoke KYC)
-        </button>`;
-    } else {
-      buttonsHtml = `
-        <button onclick="if(typeof kycAction === 'function') { kycAction('${user.username}', 'approved'); setTimeout(c360RefreshData, 1500); }" class="kh-text" style="flex: 1; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)
-        </button>
-        <button onclick="if(typeof kycAction === 'function') { kycAction('${user.username}', 'rejected'); setTimeout(c360RefreshData, 1500); }" class="kh-text" style="flex: 1; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-times-circle"></i> បដិសេធ (Reject)
-        </button>`;
-    }
+  // 🟢 កំណត់ស្ថានភាព និងប៊ូតុងសកម្មភាព
+  let statusBadge = "";
+  let statusColor = "";
+  let isEditable = false;
+  let canUpload = false;
+  let infoBoxHtml = "";
+  let actionsHtml = ""; // 👈 កំណត់តែម្តងគត់នៅទីនេះ កុំឱ្យ Error ទៀត!
 
-    let statusBadge = isVerified
-      ? `<div style="position: absolute; top: 12px; left: 12px; background: rgba(16, 185, 129, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-check-circle"></i> បានអនុម័តរួច</div>`
-      : `<div style="position: absolute; top: 12px; left: 12px; background: rgba(245, 158, 11, 0.9); color: white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); backdrop-filter: blur(4px);" class="kh-text"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត</div>`;
-
-    content = `
-      <div style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; margin: 0 auto; gap: 20px;">
-          <h4 class="kh-text" style="margin: 0; color: var(--text-muted); width: 100%; text-align: left;">ឯកសារអត្តសញ្ញាណប័ណ្ណ / លិខិតឆ្លងដែន</h4>
-          <div style="width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.1); cursor: pointer; position: relative; border: 2px solid var(--border); aspect-ratio: 1.6/1; background: #000;" 
-               onclick="if(typeof viewKycDocument === 'function') viewKycDocument('${imgUrl}')" title="ចុចដើម្បីពង្រីកមើលឱ្យច្បាស់">
-              <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; opacity: 0.9;" 
-                   onmouseover="this.style.transform='scale(1.05)'; this.style.opacity='1'" 
-                   onmouseout="this.style.transform='scale(1)'; this.style.opacity='0.9'">
-              ${statusBadge}
-              <div style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; pointer-events: none; backdrop-filter: blur(4px);" class="kh-text">
-                  <i class="fa-solid fa-magnifying-glass-plus"></i> ចុចពង្រីក
+  if (status === "unverified") {
+    statusBadge = `<div class="kh-text" style="background: rgba(203, 213, 225, 0.3); color: #475569; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #cbd5e1;"><i class="fa-solid fa-circle-question"></i> មិនទាន់មានទិន្នន័យ</div>`;
+    statusColor = "#64748b";
+    canUpload = true;
+  } else if (status === "pending") {
+    statusBadge = `<div class="kh-text" style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fcd34d;"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត</div>`;
+    statusColor = "#f59e0b";
+    infoBoxHtml = `
+          <div style="background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px solid #e2e8f0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span style="color: #64748b;">អ្នកបញ្ជូន (Maker):</span>
+                  <span style="font-weight: bold; color: #1e293b;">${makerDisplay}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">កាលបរិច្ឆេទ (Date):</span>
+                  <span style="font-weight: bold; color: #1e293b;">${kycSubmittedAt}</span>
               </div>
           </div>
-          <div style="display: flex; gap: 15px; width: 100%;">
-              ${buttonsHtml}
+      `;
+
+    // 🛑 Maker-Checker Logic & Custom Actions
+    if (isMaker) {
+      isEditable = true;
+      canUpload = true;
+
+      // បង្ហាញប៊ូតុង "កែប្រែ" (Inline Edit) និង "ដកសំណើវិញ" (Revoke)
+      actionsHtml = `
+            <div style="display: flex; gap: 15px; width: 100%; align-items: center;">
+                <div class="kh-text" style="flex: 1; padding: 14px; background: #f0fdfa; color: #0d9488; border: 1px dashed #5eead4; border-radius: 12px; font-weight: bold; font-size: 1.05rem; display: flex; justify-content: center; align-items: center; gap: 8px; text-align: center;">
+                    <i class="fa-solid fa-pen-to-square"></i> របៀបកែប្រែ៖ ចុចលើរូប ឬទិន្នន័យដើម្បីកែប្រែ
+                </div>
+                <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="padding: 14px 25px; background: #fff5f5; color: #ef4444; border: 1px solid #fca5a5; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s;" title="លុបចោលសំណើដែលអ្នកបានបញ្ជូន">
+                    <i class="fa-solid fa-trash-can"></i> ដកសំណើវិញ
+                </button>
+            </div>`;
+    } else {
+      isEditable = false;
+      canUpload = false;
+
+      // បង្ហាញប៊ូតុង Approve និង Reject សម្រាប់ Checker (អ្នកផ្សេង)
+      actionsHtml = `
+            <div style="display: flex; gap: 15px; width: 100%;">
+                <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="flex: 1; padding: 14px; background: #fff5f5; color: #ef4444; border: 1px solid #fca5a5; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-xmark"></i> បដិសេធ (Reject)
+                </button>
+                <button onclick="processC360KycAction('${user.username}', 'approved')" class="kh-text" style="flex: 1; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)
+                </button>
+            </div>`;
+    }
+  } else if (status === "approved" || status === "verified") {
+    statusBadge = `<div class="kh-text" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #6ee7b7;"><i class="fa-solid fa-circle-check"></i> អនុម័តរួចរាល់</div>`;
+    statusColor = "#10b981";
+    isEditable = false;
+    infoBoxHtml = `
+          <div style="background: #ecfdf5; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px solid #a7f3d0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span style="color: #065f46;">អ្នកបញ្ជូន (Maker):</span>
+                  <span style="font-weight: bold; color: #064e3b;">${makerDisplay}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #065f46;">អនុម័តដោយ (Checker):</span>
+                  <span style="font-weight: bold; color: #064e3b;">${user.kycApprovedBy || "System"}</span>
+              </div>
+               <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                  <span style="color: #065f46;">កាលបរិច្ឆេទ (Date):</span>
+                  <span style="font-weight: bold; color: #064e3b;">${user.kycApprovedAt ? new Date(user.kycApprovedAt).toLocaleString() : kycSubmittedAt}</span>
+              </div>
+          </div>
+      `;
+    actionsHtml = `
+          <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-ban"></i> ដកហូតសិទ្ធិ (Revoke/Reject)
+          </button>`;
+  } else if (status === "rejected") {
+    statusBadge = `<div class="kh-text" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fca5a5;"><i class="fa-solid fa-circle-xmark"></i> ត្រូវបានបដិសេធ</div>`;
+    statusColor = "#ef4444";
+    canUpload = true;
+    infoBoxHtml = `
+          <div style="background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px dashed #f87171;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span style="color: #991b1b;">អ្នកបដិសេធ (Rejected By):</span>
+                  <span style="font-weight: bold; color: #7f1d1d;">${user.kycRejectedBy || "System"}</span>
+              </div>
+               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span style="color: #991b1b;">កាលបរិច្ឆេទ (Date):</span>
+                  <span style="font-weight: bold; color: #7f1d1d;">${user.kycRejectedAt ? new Date(user.kycRejectedAt).toLocaleString() : "N/A"}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; flex-direction: column;">
+                  <span style="color: #991b1b;">មូលហេតុ (Reason):</span>
+                  <span style="font-weight: bold; color: #7f1d1d; margin-top: 2px;">${kycRejectReason}</span>
+              </div>
+          </div>
+      `;
+  }
+
+  // 🟢 មុខងារចុចលើប្រអប់រូបភាព
+  const idClickAction = canUpload
+    ? `c360UploadSpecificKyc('idCard')`
+    : `c360ViewFullImage(document.getElementById('c360-img-id').src)`;
+  const selfieClickAction = canUpload
+    ? `c360UploadSpecificKyc('selfie')`
+    : `c360ViewFullImage(document.getElementById('c360-img-selfie').src)`;
+
+  // 🟢 រៀបចំរូបភាព
+  const idView = `
+      <div style="flex: 1; border-radius: 12px; overflow: hidden; border: ${canUpload && !imgUrl ? "2px dashed var(--secondary)" : "1px solid var(--border)"}; background: ${imgUrl ? "#000" : "rgba(16, 185, 129, 0.05)"}; position: relative; cursor: pointer; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s;" 
+           onclick="${idClickAction}" 
+           onmouseover="this.style.borderColor='var(--secondary)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.1)';" 
+           onmouseout="this.style.borderColor='${canUpload && !imgUrl ? "var(--secondary)" : "var(--border)"}'; this.style.boxShadow='none';">
+          
+          <img id="c360-img-id" src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; display: ${imgUrl ? "block" : "none"}; opacity: 0.9; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
+          
+          <div id="c360-img-id-placeholder" style="display: ${imgUrl ? "none" : "flex"}; flex-direction: column; align-items: center; color: var(--secondary); font-family: 'Kantumruy Pro'; gap: 10px;">
+              <i class="fa-solid fa-id-card-clip" style="font-size: 3rem;"></i>
+              <span style="font-weight: bold; font-size: 1.1rem;">ចុចទីនេះដើម្បី Upload ID</span>
+          </div>
+
+          <div id="c360-lbl-id" style="display: ${imgUrl ? "block" : "none"}; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: white; font-size: 0.8rem; background: rgba(0,0,0,0.6); padding: 6px; font-family: 'Kantumruy Pro'; backdrop-filter: blur(2px);">
+              ${canUpload ? '<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប ID ថ្មី' : "អត្តសញ្ញាណប័ណ្ណ (ID Card)"}
           </div>
       </div>`;
-  }
-  container.innerHTML = content;
+
+  const selfieView = `
+      <div style="flex: 1; border-radius: 12px; overflow: hidden; border: ${canUpload && !selfieUrl ? "2px dashed #3b82f6" : "1px solid var(--border)"}; background: ${selfieUrl ? "#000" : "rgba(59, 130, 246, 0.05)"}; position: relative; cursor: pointer; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s;" 
+           onclick="${selfieClickAction}"
+           onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.1)';" 
+           onmouseout="this.style.borderColor='${canUpload && !selfieUrl ? "#3b82f6" : "var(--border)"}'; this.style.boxShadow='none';">
+          
+          <img id="c360-img-selfie" src="${selfieUrl}" style="width: 100%; height: 100%; object-fit: cover; display: ${selfieUrl ? "block" : "none"}; opacity: 0.9; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
+          
+          <div id="c360-img-selfie-placeholder" style="display: ${selfieUrl ? "none" : "flex"}; flex-direction: column; align-items: center; color: #3b82f6; font-family: 'Kantumruy Pro'; gap: 10px;">
+              <i class="fa-solid fa-camera-retro" style="font-size: 3rem;"></i>
+              <span style="font-weight: bold; font-size: 1.1rem;">ចុចទីនេះដើម្បី Upload Selfie</span>
+          </div>
+
+          <div id="c360-lbl-selfie" style="display: ${selfieUrl ? "block" : "none"}; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: white; font-size: 0.8rem; background: rgba(0,0,0,0.6); padding: 6px; font-family: 'Kantumruy Pro'; backdrop-filter: blur(2px);">
+              ${canUpload ? '<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប Selfie ថ្មី' : "រូបថតផ្ទាល់ (Live Selfie)"}
+          </div>
+      </div>`;
+
+  let imagesHtml = `<div style="display: flex; gap: 15px; width: 100%;">${idView}${selfieView}</div>`;
+
+  // 🟢 ប្រអប់ទិន្នន័យ (Grid Boxes - Inline Edit)
+  const renderDataBox = (label, id, value, isEditableField) => {
+    const editIcon =
+      isEditable && isEditableField
+        ? `<i class="fa-solid fa-pen edit-icon" onclick="c360ToggleKycEdit('${id}')" style="position: absolute; right: 15px; top: 15px; color: #3b82f6; cursor: pointer; opacity: 0; transition: 0.2s; padding: 5px;" title="កែប្រែ"></i>`
+        : "";
+    const hoverClass = isEditable && isEditableField ? "editable-box" : "";
+
+    return `
+        <div class="c360-data-box ${hoverClass}" id="kyc-box-${id}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; min-height: 70px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;">
+            <div id="kyc-view-${id}">
+                <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: block; margin-bottom: 4px;">${label}</span>
+                <span id="kyc-val-${id}" style="font-size: 1.05rem; color: #0f172a; font-weight: 700; font-family: 'Inter', 'Kantumruy Pro', sans-serif;">${value || "N/A"}</span>
+                ${editIcon}
+            </div>
+            <div id="kyc-edit-${id}" style="display: none; width: 100%;">
+                <span style="font-size: 0.75rem; color: #3b82f6; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: block; margin-bottom: 4px;">កែប្រែ ${label}</span>
+                <input type="${id === "dob" ? "date" : "text"}" id="kyc-input-${id}" value="${value || ""}" style="width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 0.95rem; font-family: 'Inter', 'Kantumruy Pro', sans-serif; outline: none; box-sizing: border-box; margin-bottom: 8px;">
+                <div id="kyc-inline-actions-${id}" style="display: flex; gap: 8px;">
+                    <button onclick="c360SaveKycField('${id}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-check"></i> Save</button>
+                    <button onclick="c360CancelKycEdit('${id}')" style="flex: 1; background: #e2e8f0; color: #475569; border: none; padding: 6px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+      `;
+  };
+
+  const html = `
+    <style>
+        .editable-box:hover { border-color: #cbd5e1 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .editable-box:hover .edit-icon { opacity: 1 !important; }
+        .editable-box .edit-icon:hover { color: #2563eb !important; transform: scale(1.1); }
+    </style>
+    
+    <!-- Hidden inputs ទុកផ្ទុក URL ថ្មីបណ្តោះអាសន្ន -->
+    <input type="hidden" id="c360-temp-id" value="">
+    <input type="hidden" id="c360-temp-selfie" value="">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800;">
+            <i class="fa-solid fa-id-card-clip" style="color: ${statusColor};"></i> ឯកសារ (KYC & Identity)
+        </h2>
+        ${statusBadge}
+    </div>
+
+    ${infoBoxHtml}
+
+    <!-- 🖼️ ផ្នែករូបភាព (ចុចលើប្រអប់ផ្ទាល់) -->
+    ${imagesHtml}
+
+    <!-- 📝 ផ្នែកទិន្នន័យ OCR -->
+    <h4 class="kh-text" style="margin: 25px 0 15px 0; color: var(--text-main); border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
+        <i class="fa-solid fa-file-lines"></i> ទិន្នន័យអត្តសញ្ញាណ (Extracted Data)
+    </h4>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        ${renderDataBox("ឈ្មោះពេញ (FULL NAME)", "fullName", user.fullName, true)}
+        ${renderDataBox("លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)", "idNumber", user.idNumber, true)}
+        ${renderDataBox("ថ្ងៃខែឆ្នាំកំណើត (DOB)", "dob", user.dob, true)}
+        ${renderDataBox("ភេទ (GENDER)", "gender", user.gender, true)}
+    </div>
+
+    <!-- 🛠️ ប៊ូតុង Submit & Cancel (លេចឡើងពេលកំពុង Draft Upload រូបថ្មី) -->
+    <div id="kyc-draft-actions" style="display: none; gap: 15px; width: 100%; margin-top: 30px;">
+        <button onclick="c360CancelKycDraft()" class="kh-text" style="flex: 1; padding: 14px; background: #e2e8f0; color: #475569; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s;">
+            បោះបង់ (Cancel)
+        </button>
+        <button onclick="c360SubmitKycDraft()" class="kh-text" style="flex: 2; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);">
+            <i class="fa-solid fa-paper-plane"></i> បញ្ជូនសំណើ KYC ថ្មី
+        </button>
+    </div>
+
+    <!-- 🛠️ ផ្នែកប៊ូតុងអនុម័ត/បដិសេធដើម ឬ ប៊ូតុងរបស់ Maker -->
+    <div id="kyc-default-actions" style="display: flex; gap: 15px; width: 100%; margin-top: 30px;">
+        ${actionsHtml}
+    </div>
+  `;
+
+  container.innerHTML = html;
 }
 
 // =======================================================
-// ☁️ កន្លែងទី២៖ កែ Function c360AdminUploadKyc អោយបាញ់ទៅ Cloudinary
+// 🟢 មុខងារកែប្រែទិន្នន័យ KYC (Inline Edit)
 // =======================================================
-async function c360AdminUploadKyc(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+window.c360ToggleKycEdit = function (id) {
+  document.getElementById(`kyc-view-${id}`).style.display = "none";
+  document.getElementById(`kyc-edit-${id}`).style.display = "block";
+  document.getElementById(`kyc-box-${id}`).classList.remove("editable-box");
+};
+
+window.c360CancelKycEdit = function (id) {
+  document.getElementById(`kyc-edit-${id}`).style.display = "none";
+  document.getElementById(`kyc-view-${id}`).style.display = "block";
+  document.getElementById(`kyc-box-${id}`).classList.add("editable-box");
+  document.getElementById(`kyc-input-${id}`).value = currentC360User[id] || "";
+};
+
+window.c360SaveKycField = async function (id) {
+  const newVal = document.getElementById(`kyc-input-${id}`).value.trim();
+  if (!newVal && id !== "gender")
+    return Swal.fire({
+      toast: true,
+      position: "top",
+      icon: "warning",
+      title: "សូមបញ្ជូលទិន្នន័យ!",
+      showConfirmButton: false,
+      timer: 1500,
+    });
 
   Swal.fire({
-    title: "កំពុងរៀបចំឯកសារបញ្ជូនទៅ Server...",
+    title: "កំពុងរក្សាទុក...",
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    didOpen: () => Swal.showLoading(),
+  });
+
+  try {
+    const bodyData = {
+      id: currentC360User._id || currentC360User.id,
+      username: currentC360User.username,
+    };
+    bodyData[id] = newVal;
+
+    const res = await fetch("/api/admin/edit-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(bodyData),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      currentC360User[id] = newVal;
+      document.getElementById(`kyc-val-${id}`).innerText = newVal;
+      c360CancelKycEdit(id);
+      Swal.fire({
+        icon: "success",
+        title: "បានរក្សាទុក!",
+        toast: true,
+        position: "top-end",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "បរាជ័យ",
+      text: e.message || "បញ្ហា Server",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
+};
+
+// =======================================================
+// 🟢 មុខងារអនុម័ត និងបដិសេធ (Approve & Reject with Reason)
+// =======================================================
+window.c360PromptKycReject = async function (username) {
+  const { value: reason } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.3rem; color: #ef4444;">បញ្ជាក់ការបដិសេធ ឬដកសំណើ?</span>',
+    html: `
+            <p class="kh-text" style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px;">សូមបញ្ជាក់មូលហេតុ (ឧទាហរណ៍៖ រូបភាពព្រិល, ឯកសារផុតកំណត់...)</p>
+            <input id="swal-reject-reason" class="swal2-input kh-text" placeholder="វាយបញ្ចូលមូលហេតុទីនេះ..." style="font-size: 1rem; padding: 10px; border-radius: 8px;">
+        `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "យល់ព្រម",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text" },
+    preConfirm: () => {
+      const val = document.getElementById("swal-reject-reason").value.trim();
+      if (!val) Swal.showValidationMessage("អ្នកត្រូវតែបញ្ចូលមូលហេតុ!");
+      return val;
+    },
+  });
+
+  if (reason) {
+    processC360KycAction(username, "rejected", reason);
+  }
+};
+
+window.processC360KycAction = async function (
+  username,
+  action,
+  rejectReason = "",
+) {
+  if (action === "approved") {
+    const confirm = await Swal.fire({
+      title:
+        '<span class="kh-text" style="font-size: 1.3rem; color: #10b981;">អនុម័ត KYC?</span>',
+      text: "តើអ្នកប្រាកដថាឯកសារនេះត្រឹមត្រូវ ១០០% ហើយមែនទេ?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "បាទ/ចាស អនុម័ត",
+      cancelButtonText: "ពិនិត្យម្តងទៀត",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#64748b",
+      customClass: { popup: "modal-radius kh-text" },
+    });
+    if (!confirm.isConfirmed) return;
+  }
+
+  Swal.fire({
+    title: "កំពុងដំណើរការ...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+    customClass: { popup: "premium-swal kh-text" },
+  });
+
+  try {
+    const payload = { username, action, rejectReason };
+    const res = await fetch("/api/admin/kyc-action", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      Swal.fire({
+        icon: "success",
+        title: "ជោគជ័យ!",
+        text: `ទិន្នន័យត្រូវបានធ្វើបច្ចុប្បន្នភាព។`,
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text" },
+      });
+      c360RefreshData();
+
+      if (action === "rejected") {
+        setTimeout(() => {
+          Swal.fire({
+            title: "សូមចំណាំ!",
+            text: `សូមទំនាក់ទំនងទៅកាន់អតិថិជន ដើម្បីប្រាប់ពីមូលហេតុ: "${rejectReason}"`,
+            icon: "info",
+            confirmButtonText: "យល់ព្រម",
+            confirmButtonColor: "#3b82f6",
+            customClass: { popup: "premium-swal kh-text" },
+          });
+        }, 1600);
+      }
+    } else {
+      Swal.fire(
+        "បរាជ័យ",
+        data.message || "មានបញ្ហាក្នុងការធ្វើបច្ចុប្បន្នភាព",
+        "error",
+      );
+    }
+  } catch (e) {
+    Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
+  }
+};
+
+// =======================================================
+// 🟢 មុខងារ Upload រូបថតថ្មីដោយ Admin (ប្រព័ន្ធ Draft & OCR)
+// =======================================================
+window.c360UploadSpecificKyc = function (type) {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal kh-text" },
+    });
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "iaxuqmpb");
+
+    try {
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload`,
+        { method: "POST", body: formData },
+      );
+      const cloudData = await cloudRes.json();
+
+      if (cloudData.secure_url) {
+        const url = cloudData.secure_url;
+
+        if (type === "idCard") {
+          Swal.fire({
+            title: "កំពុងអានទិន្នន័យ AI...",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+            customClass: { popup: "premium-swal kh-text" },
+          });
+
+          const ocrRes = await fetch("/api/scan-id-card", {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ imageUrl: url }),
+          });
+          const ocrData = await ocrRes.json();
+
+          if (ocrData.success) {
+            document.getElementById("kyc-input-fullName").value =
+              ocrData.data.fullName || "";
+            document.getElementById("kyc-input-idNumber").value =
+              ocrData.data.idNumber || "";
+            document.getElementById("kyc-input-dob").value =
+              ocrData.data.dob || "";
+            document.getElementById("kyc-input-gender").value =
+              ocrData.data.gender || "";
+
+            ["fullName", "idNumber", "dob", "gender"].forEach((f) => {
+              document.getElementById(`kyc-view-${f}`).style.display = "none";
+              document.getElementById(`kyc-edit-${f}`).style.display = "block";
+              const inlineActions = document.getElementById(
+                `kyc-inline-actions-${f}`,
+              );
+              if (inlineActions) inlineActions.style.display = "none";
+            });
+
+            const idImg = document.getElementById("c360-img-id");
+            idImg.src = url;
+            idImg.style.display = "block";
+            idImg.parentElement.style.background = "#000";
+            idImg.parentElement.style.border = "1px solid var(--border)";
+            idImg.parentElement.style.borderStyle = "solid";
+
+            const idHolder = document.getElementById("c360-img-id-placeholder");
+            if (idHolder) idHolder.style.display = "none";
+
+            const idLabel = document.getElementById("c360-lbl-id");
+            if (idLabel) {
+              idLabel.style.display = "block";
+              idLabel.innerHTML = `<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប ID ថ្មី`;
+            }
+
+            document.getElementById("c360-temp-id").value = url;
+            Swal.close();
+          } else {
+            Swal.fire(
+              "បរាជ័យ",
+              ocrData.message || "AI មិនអាចអានអត្តសញ្ញាណប័ណ្ណបានទេ!",
+              "error",
+            );
+            return;
+          }
+        } else {
+          const selfieImg = document.getElementById("c360-img-selfie");
+          selfieImg.src = url;
+          selfieImg.style.display = "block";
+          selfieImg.parentElement.style.background = "#000";
+          selfieImg.parentElement.style.border = "1px solid var(--border)";
+          selfieImg.parentElement.style.borderStyle = "solid";
+
+          const selfieHolder = document.getElementById(
+            "c360-img-selfie-placeholder",
+          );
+          if (selfieHolder) selfieHolder.style.display = "none";
+
+          const selfieLabel = document.getElementById("c360-lbl-selfie");
+          if (selfieLabel) {
+            selfieLabel.style.display = "block";
+            selfieLabel.innerHTML = `<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប Selfie ថ្មី`;
+          }
+
+          document.getElementById("c360-temp-selfie").value = url;
+          Swal.close();
+        }
+
+        document.getElementById("kyc-draft-actions").style.display = "flex";
+        document.getElementById("kyc-default-actions").style.display = "none";
+      } else {
+        Swal.fire("បរាជ័យ", "មិនអាច Upload រូបភាពបានទេ", "error");
+      }
+    } catch (err) {
+      Swal.fire("Error", "បញ្ហាតភ្ជាប់", "error");
+    }
+  };
+  fileInput.click();
+};
+
+window.c360CancelKycDraft = function () {
+  renderKycTab(currentC360User);
+};
+
+window.c360SubmitKycDraft = async function () {
+  const fullName = document.getElementById("kyc-input-fullName").value.trim();
+  const idNumber = document.getElementById("kyc-input-idNumber").value.trim();
+  const dob = document.getElementById("kyc-input-dob").value;
+  const gender = document.getElementById("kyc-input-gender").value;
+
+  const tempIdUrl = document.getElementById("c360-temp-id").value;
+  const tempSelfieUrl = document.getElementById("c360-temp-selfie").value;
+
+  if (!fullName || !idNumber || !dob || !gender) {
+    return Swal.fire({
+      icon: "warning",
+      title: "សូមបំពេញចន្លោះ",
+      text: "ទិន្នន័យអត្តសញ្ញាណមិនទាន់គ្រប់គ្រាន់ទេ!",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
+
+  Swal.fire({
+    title: "កំពុងបញ្ជូនសំណើ...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+    customClass: { popup: "premium-swal kh-text" },
+  });
+
+  try {
+    const editRes = await fetch("/api/admin/edit-user", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        id: currentC360User._id || currentC360User.id,
+        username: currentC360User.username,
+        fullName,
+        idNumber,
+        dob,
+        gender,
+      }),
+    });
+
+    if (tempIdUrl) {
+      await fetch("/api/admin/upload-specific-kyc", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          type: "idCard",
+          url: tempIdUrl,
+          adminName:
+            document.getElementById("adminNameDisplay")?.innerText || "Admin",
+        }),
+      });
+    }
+    if (tempSelfieUrl) {
+      await fetch("/api/admin/upload-specific-kyc", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username: currentC360User.username,
+          type: "selfie",
+          url: tempSelfieUrl,
+          adminName:
+            document.getElementById("adminNameDisplay")?.innerText || "Admin",
+        }),
+      });
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "ជោគជ័យ!",
+      text: "សំណើ KYC ត្រូវបានបញ្ជូន។",
+      timer: 2000,
+      showConfirmButton: false,
+      customClass: { popup: "premium-swal kh-text" },
+    });
+    c360RefreshData();
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "បរាជ័យ",
+      text: "មានបញ្ហាភ្ជាប់ទៅកាន់ Server",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
+};
+
+window.c360ViewFullImage = function (url) {
+  if (!url || url === "" || url.includes("none")) return;
+  Swal.fire({
+    imageUrl: url,
+    imageAlt: "KYC Document",
+    width: "80%",
+    showConfirmButton: false,
+    showCloseButton: true,
+    background: "transparent",
+    backdrop: "rgba(0,0,0,0.9)",
+  });
+};
+
+// =======================================================
+// 🛡️ TAB 6: Security (សន្តិសុខ និងសុវត្ថិភាព)
+// =======================================================
+function renderSecurityTab(user) {
+  const container = document.getElementById("c360-tab-security");
+  if (!container) return;
+
+  const isFrozen = user.isFrozen || false;
+  const pinAttempts = user.pinAttempts || 0;
+  const passwordAttempts = user.passwordAttempts || 0;
+  const hasTelegram = user.telegramChatId ? true : false;
+  const hasEmail = user.email ? true : false;
+
+  // 🟢 ១. រៀបចំ UI សម្រាប់ស្ថានភាពគណនី
+  const freezeStatusHtml = isFrozen
+    ? `<span style="background: #fee2e2; color: #ef4444; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-lock" style="margin-right: 5px;"></i> បានផ្អាក (Frozen)</span>`
+    : `<span style="background: #dcfce7; color: #10b981; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem;"><i class="fa-solid fa-lock-open" style="margin-right: 5px;"></i> ដំណើរការ (Active)</span>`;
+
+  // 🟢 ២. រៀបចំ UI សម្រាប់ ស្ថានភាពអនឡាញ (Online Status) ពិតប្រាកដ
+  let isActuallyOnline = false;
+  if (user.lastActive) {
+    const lastActiveTime = new Date(user.lastActive).getTime();
+    const currentTime = new Date().getTime();
+    const diffInMinutes = (currentTime - lastActiveTime) / (1000 * 60);
+
+    // បើគាត់មានសកម្មភាព (Heartbeat) ក្នុងរយៈពេល ៥ នាទីចុងក្រោយ ចាត់ទុកថា Online
+    if (diffInMinutes <= 5 && user.isOnline) {
+      isActuallyOnline = true;
+    }
+  }
+
+  const onlineStatusHtml = isActuallyOnline
+    ? `<span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-circle" style="font-size: 0.6rem; vertical-align: middle; margin-right: 4px; animation: pulse 2s infinite;"></i> អនឡាញ (Online)</span>`
+    : `<span style="color: #94a3b8; font-weight: bold;"><i class="fa-solid fa-circle" style="font-size: 0.6rem; vertical-align: middle; margin-right: 4px;"></i> អហ្វឡាញ (Offline)</span>`;
+
+  // 🟢 ៣. រៀបចំ UI សម្រាប់ កម្រិតសុវត្ថិភាព (KYC Level)
+  const isKycVerified =
+    user.kycStatus === "verified" || user.kycStatus === "approved";
+  const kycLevelHtml = isKycVerified
+    ? `<span style="color: #3b82f6; font-weight: bold;"><i class="fa-solid fa-shield-check" style="margin-right: 4px;"></i> កម្រិតខ្ពស់ (Verified)</span>`
+    : `<span style="color: #f59e0b; font-weight: bold;"><i class="fa-solid fa-shield-halved" style="margin-right: 4px;"></i> កម្រិតទាប (Unverified)</span>`;
+
+  // 🟢 ៤. រៀបចំ UI សម្រាប់ PIN & Password Attempts
+  let pinColor = "#10b981",
+    pinLabel = "Normal";
+  if (pinAttempts >= 3) {
+    pinColor = "#ef4444";
+    pinLabel = "Locked 🔒";
+  } else if (pinAttempts > 0) {
+    pinColor = "#f59e0b";
+    pinLabel = "Warning ⚠️";
+  }
+  const pinStatusHtml = `<span style="color: ${pinColor}; font-weight: bold;">${pinAttempts} ដង (${pinLabel})</span>`;
+
+  let passColor = "#10b981",
+    passLabel = "Normal";
+  if (passwordAttempts >= 5) {
+    passColor = "#ef4444";
+    passLabel = "Locked 🔒";
+  } else if (passwordAttempts > 0) {
+    passColor = "#f59e0b";
+    passLabel = "Warning ⚠️";
+  }
+  const passwordStatusHtml = `<span style="color: ${passColor}; font-weight: bold;">${passwordAttempts} ដង (${passLabel})</span>`;
+
+  // 🟢 ៥. រៀបចំ UI សម្រាប់ Telegram
+  const telegramHtml = hasTelegram
+    ? `<span style="color: #0ea5e9; font-weight: bold;"><i class="fa-brands fa-telegram"></i> បានភ្ជាប់</span>`
+    : `<span style="color: #64748b; font-weight: bold;">មិនទាន់ភ្ជាប់ទេ</span>`;
+
+  // 🟢 ៦. រៀបចំបញ្ជីឧបករណ៍ដែលបានភ្ជាប់ (Connected Devices Array) 🚀 លេង Loop
+  let devicesHtml = "";
+
+  if (user.connectedDevices && user.connectedDevices.length > 0) {
+    devicesHtml = user.connectedDevices
+      .map((dev, index) => {
+        let deviceIcon = "fa-laptop";
+        const devName = dev.device ? dev.device.toLowerCase() : "";
+        if (
+          devName.includes("iphone") ||
+          devName.includes("android") ||
+          devName.includes("mobile")
+        )
+          deviceIcon = "fa-mobile-screen-button";
+        else if (devName.includes("ipad") || devName.includes("tablet"))
+          deviceIcon = "fa-tablet-screen-button";
+        else if (
+          devName.includes("pc") ||
+          devName.includes("mac") ||
+          devName.includes("windows")
+        )
+          deviceIcon = "fa-desktop";
+
+        const isActive = index === 0 && isActuallyOnline;
+        const deviceStatusText = isActive
+          ? `<span style="color: #10b981; font-weight: bold; font-size: 0.8rem;"><i class="fa-solid fa-circle" style="font-size: 0.5rem; vertical-align: middle; margin-right: 3px; animation: pulse 2s infinite;"></i> កំពុងប្រើ (Active)</span>`
+          : `<span style="color: #94a3b8; font-weight: bold; font-size: 0.8rem;"><i class="fa-solid fa-circle" style="font-size: 0.5rem; vertical-align: middle; margin-right: 3px;"></i> បានចេញ (Offline)</span>`;
+
+        const timeStr = dev.time ? new Date(dev.time).toLocaleString() : "N/A";
+
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 12px; transition: 0.2s;">
+              <div style="display: flex; align-items: center; gap: 18px;">
+                  <div style="width: 55px; height: 55px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; border: 1px solid #bfdbfe;">
+                      <i class="fa-solid ${deviceIcon}"></i>
+                  </div>
+                  <div>
+                      <div class="kh-text" style="font-weight: 800; color: #1e293b; font-size: 1.1rem; margin-bottom: 5px;">${dev.device || "Unknown"}</div>
+                      <div style="font-size: 0.85rem; color: #64748b; font-family: 'Inter', monospace; display: flex; align-items: center; gap: 6px;">
+                          <i class="fa-solid fa-globe" style="color: #94a3b8;"></i> IP: ${dev.ip || "N/A"}
+                      </div>
+                  </div>
+              </div>
+              <div style="text-align: right;">
+                  <div class="kh-text" style="margin-bottom: 5px;">${deviceStatusText}</div>
+                  <div class="kh-text" style="font-size: 0.8rem; color: #94a3b8;"><i class="fa-regular fa-clock"></i> ${timeStr}</div>
+              </div>
+          </div>`;
+      })
+      .join("");
+  } else {
+    // Fallback: ប្រើប្រាស់ទិន្នន័យចាស់ បើ Array អត់មានទិន្នន័យ
+    const lastIp = user.lastIp || "មិនមានទិន្នន័យ (N/A)";
+    const lastDevice = user.lastDevice || "មិនមានទិន្នន័យ (N/A)";
+    const lastLogin = user.lastLogin
+      ? new Date(user.lastLogin).toLocaleString()
+      : "មិនមានទិន្នន័យ (N/A)";
+
+    let deviceIcon = "fa-laptop";
+    const devName = lastDevice.toLowerCase();
+    if (
+      devName.includes("iphone") ||
+      devName.includes("android") ||
+      devName.includes("mobile")
+    )
+      deviceIcon = "fa-mobile-screen-button";
+    else if (devName.includes("ipad") || devName.includes("tablet"))
+      deviceIcon = "fa-tablet-screen-button";
+    else if (
+      devName.includes("pc") ||
+      devName.includes("mac") ||
+      devName.includes("windows")
+    )
+      deviceIcon = "fa-desktop";
+
+    const deviceStatusText = isActuallyOnline
+      ? `<span style="color: #10b981; font-weight: bold; font-size: 0.8rem;"><i class="fa-solid fa-circle" style="font-size: 0.5rem; vertical-align: middle; margin-right: 3px; animation: pulse 2s infinite;"></i> កំពុងប្រើ (Active Now)</span>`
+      : `<span style="color: #94a3b8; font-weight: bold; font-size: 0.8rem;"><i class="fa-solid fa-circle" style="font-size: 0.5rem; vertical-align: middle; margin-right: 3px;"></i> បានចេញ (Offline)</span>`;
+
+    devicesHtml = `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 18px;">
+                  <div style="width: 55px; height: 55px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; border: 1px solid #bfdbfe;">
+                      <i class="fa-solid ${deviceIcon}"></i>
+                  </div>
+                  <div>
+                      <div class="kh-text" style="font-weight: 800; color: #1e293b; font-size: 1.1rem; margin-bottom: 5px;">${lastDevice}</div>
+                      <div style="font-size: 0.85rem; color: #64748b; font-family: 'Inter', monospace; display: flex; align-items: center; gap: 6px;">
+                          <i class="fa-solid fa-globe" style="color: #94a3b8;"></i> IP: ${lastIp}
+                      </div>
+                  </div>
+              </div>
+              <div style="text-align: right;">
+                  <div class="kh-text" style="margin-bottom: 5px;">${deviceStatusText}</div>
+                  <div class="kh-text" style="font-size: 0.8rem; color: #94a3b8;"><i class="fa-regular fa-clock"></i> ${lastLogin}</div>
+              </div>
+          </div>`;
+  }
+
+  // 🟢 ៧. រៀបចំប៊ូតុង Freeze/Unfreeze
+  const freezeBtnHtml = isFrozen
+    ? `<button onclick="c360ToggleFreeze(false)" class="kh-text" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);">
+          <i class="fa-solid fa-unlock-keyhole"></i> បើកគណនីវិញ (Unfreeze)
+       </button>`
+    : `<button onclick="c360ToggleFreeze(true)" class="kh-text" style="width: 100%; padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);">
+          <i class="fa-solid fa-user-lock"></i> ផ្អាកគណនី (Freeze Account)
+       </button>`;
+
+  const html = `
+    <style>
+        .c360-sec-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .c360-sec-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-weight: 800; font-family: 'Kantumruy Pro', sans-serif; color: #1e293b; font-size: 1.1rem; }
+        .c360-sec-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; }
+        .c360-sec-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .c360-sec-label { color: #64748b; font-size: 0.9rem; font-family: 'Kantumruy Pro', sans-serif; font-weight: 600; }
+        .c360-sec-val { color: #0f172a; font-size: 0.95rem; font-family: 'Inter', 'Kantumruy Pro', sans-serif; font-weight: 700; text-align: right; }
+        
+        .c360-sec-action-card { border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid transparent; }
+        .c360-sec-action-title { font-family: 'Kantumruy Pro', sans-serif; font-weight: 800; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .c360-sec-action-desc { font-family: 'Kantumruy Pro', sans-serif; font-size: 0.85rem; line-height: 1.5; margin-bottom: 15px; }
+
+        @media (max-width: 900px) {
+            .c360-security-layout { flex-direction: column; }
+            .c360-security-left, .c360-security-right { width: 100% !important; }
+        }
+    </style>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+        <h2 style="margin: 0; font-size: 1.4rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i> សន្តិសុខ និងសុវត្ថិភាព (Security)
+        </h2>
+    </div>
+
+    <!-- ផ្នែកខាងលើ៖ ចែកជា ២ ជួរ -->
+    <div class="c360-security-layout" style="display: flex; gap: 25px; align-items: stretch; margin-bottom: 20px;">
+        
+        <!-- ជួរខាងឆ្វេង៖ ព័ត៌មានទូទៅ (Info Cards) -->
+        <div class="c360-security-left" style="flex: 1; min-width: 0;">
+            
+            <!-- កាតស្ថានភាពគណនី -->
+            <div class="c360-sec-card" style="background: #f8fafc; height: calc(100% - 20px);">
+                <div class="c360-sec-card-header">
+                    <i class="fa-solid fa-heart-pulse" style="color: #10b981;"></i> ស្ថានភាពគណនី (Account Health)
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">ស្ថានភាព (Status)</span>
+                    <span class="c360-sec-val">${freezeStatusHtml}</span>
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">កំពុងប្រើប្រាស់ (Online)</span>
+                    <span class="c360-sec-val">${onlineStatusHtml}</span>
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">កម្រិតសុវត្ថិភាព (KYC Level)</span>
+                    <span class="c360-sec-val">${kycLevelHtml}</span>
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">វាយ PIN ខុស (Attempts)</span>
+                    <span class="c360-sec-val">${pinStatusHtml}</span>
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">វាយ Password ខុស (Attempts)</span>
+                    <span class="c360-sec-val">${passwordStatusHtml}</span>
+                </div>
+                <div class="c360-sec-row">
+                    <span class="c360-sec-label">ភ្ជាប់ Telegram</span>
+                    <span class="c360-sec-val">${telegramHtml}</span>
+                </div>
+            </div>
+        </div>
+
+       <!-- ជួរខាងស្តាំ៖ សកម្មភាព (Action Cards) -->
+        <div class="c360-security-right" style="flex: 1; min-width: 0;">
+            
+            <!-- កាតគ្រប់គ្រងគណនី (លឿង) -->
+            <div class="c360-sec-action-card" style="background: #fffbeb; border-color: #fde68a; margin-bottom: 20px;">
+                <div class="c360-sec-action-title" style="color: #d97706;">
+                    <i class="fa-solid fa-sliders"></i> ការគ្រប់គ្រងគណនី
+                </div>
+                <p class="c360-sec-action-desc" style="color: #92400e;">
+                    បើក ឬបិទសិទ្ធិប្រើប្រាស់គណនីបណ្តោះអាសន្ន។ អតិថិជននឹងមិនអាចធ្វើប្រតិបត្តិការបានទេ ពេលគណនីត្រូវផ្អាក។
+                </p>
+                ${freezeBtnHtml}
+                
+                <hr style="border: 0; border-top: 1px dashed #fcd34d; margin: 20px 0;">
+                
+                 <div class="c360-sec-action-title" style="color: #3b82f6;">
+                    <i class="fa-solid fa-key"></i> កំណត់ពាក្យសម្ងាត់ថ្មី
+                </div>
+                <p class="c360-sec-action-desc" style="color: #92400e;">
+                    ស្នើសុំកំណត់ពាក្យសម្ងាត់ ឬ PIN ថ្មី។ ប្រព័ន្ធនឹងផ្ញើ Link ទៅកាន់ Email អតិថិជន។
+                </p>
+                <!-- 🟢 បំបែកប៊ូតុង Reset ជាពីរ -->
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="c360DirectRequestReset('Password', '${user.username}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
+                        <i class="fa-solid fa-key"></i> Reset Password
+                    </button>
+                    <button onclick="c360DirectRequestReset('PIN', '${user.username}')" ${!hasEmail ? 'disabled title="អតិថិជនមិនទាន់មាន Email ទេ"' : ""} class="kh-text" style="flex: 1; padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: ${!hasEmail ? "0.5" : "1"};">
+                        <i class="fa-solid fa-th-large"></i> Reset PIN
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- ផ្នែកកណ្តាល៖ ឧបករណ៍ភ្ជាប់ (Connected Devices Array) លាតពេញ -->
+    <div class="c360-sec-card" style="background: #f8fafc; width: 100%;">
+        <div class="c360-sec-card-header" style="margin-bottom: 20px;">
+            <i class="fa-solid fa-network-wired" style="color: #8b5cf6;"></i> ឧបករណ៍ដែលបានភ្ជាប់ចុងក្រោយ (Connected Devices)
+        </div>
+        
+        ${devicesHtml}
+        
+        <p class="kh-text" style="font-size: 0.85rem; color: #94a3b8; margin: 15px 0 0 0; text-align: center; display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-circle-info"></i> ប្រព័ន្ធរក្សាទុកត្រឹម ៤ ឧបករណ៍ចុងក្រោយប៉ុណ្ណោះ។ 
+        </p>
+    </div>
+
+    <!-- ផ្នែកខាងក្រោមបង្អស់៖ ភាពអាសន្ន (Emergency) លាតពេញ និងវែង -->
+    <div class="c360-sec-action-card" style="background: #fef2f2; border-color: #fecaca; width: 100%; margin-top: 20px;">
+        <div class="c360-sec-action-title" style="color: #ef4444;">
+            <i class="fa-solid fa-triangle-exclamation"></i> ភាពអាសន្ន (Emergency)
+        </div>
+        <p class="c360-sec-action-desc" style="color: #991b1b; max-width: 800px;">
+            ប្រសិនបើគណនីមានហានិភ័យ អ្នកអាចទាត់អតិថិជននេះចេញពីកម្មវិធីភ្លាមៗ (Force Logout) ពីគ្រប់ឧបករណ៍ទាំងអស់។ គាត់នឹងត្រូវតម្រូវឱ្យ Login ចូលម្តងទៀត។
+        </p>
+        <button onclick="c360ForceLogout('${user.username}')" class="kh-text" style="width: 100%; padding: 12px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី
+        </button>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+// =======================================================
+// 🟢 អនុគមន៍សកម្មភាពសុវត្ថិភាព (Security Actions)
+// =======================================================
+
+// ១. ផ្អាក / បើក គណនី (Toggle Freeze)
+window.c360ToggleFreeze = async function (freezeAction) {
+  const actionText = freezeAction ? "ផ្អាក" : "បើក";
+  const color = freezeAction ? "#f59e0b" : "#10b981";
+
+  const { isConfirmed } = await Swal.fire({
+    title: `<span class="kh-text" style="color: ${color};">បញ្ជាក់ការ${actionText}គណនី</span>`,
+    text: `តើអ្នកពិតជាចង់${actionText}គណនីរបស់ @${currentC360User.username} មែនទេ?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: color,
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "បាទ/ចាស",
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal kh-text" },
+  });
+
+  if (isConfirmed) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal" },
+    });
+    try {
+      const res = await fetch("/api/admin/toggle-freeze", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          id: currentC360User._id || currentC360User.id,
+          isFrozen: freezeAction,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: `គណនីត្រូវបាន${actionText}រួចរាល់។`,
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+        c360RefreshData();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "បរាជ័យ",
+          text: data.message,
+          customClass: { popup: "premium-swal" },
+        });
+      }
+    } catch (e) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "មានបញ្ហា Server",
+        customClass: { popup: "premium-swal" },
+      });
+    }
+  }
+};
+
+// ២. ផ្ញើ Link កំណត់ Password/PIN ថ្មី
+window.c360DirectRequestReset = async function (resetType, username) {
+  if (!username || username === "undefined") {
+    return Swal.fire("Error", "រកមិនឃើញទិន្នន័យអតិថិជនទេ!", "error");
+  }
+
+  Swal.fire({
+    title: `កំពុងផ្ញើ Link Reset ${resetType}...`,
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
     customClass: { popup: "premium-swal" },
   });
 
-  const CLOUD_NAME = "jp9yg3dj"; // Cloud Name
-  const UPLOAD_PRESET = "iaxuqmpb"; // Upload Preset
-
-  const cloudinaryData = new FormData();
-  cloudinaryData.append("file", file);
-  cloudinaryData.append("upload_preset", UPLOAD_PRESET);
-
   try {
-    // ជំហានទី ១: Upload ទៅ Cloudinary
-    const cloudRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: cloudinaryData,
-      },
-    );
-    const cloudData = await cloudRes.json();
-
-    if (cloudData.secure_url) {
-      // ជំហានទី ២: ផ្ញើ URL ទៅកាន់ Backend របស់អ្នក
-      const res = await fetch("/api/admin/upload-kyc", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          username: currentC360User.username,
-          kycDocument: cloudData.secure_url, // ផ្ញើឈ្មោះអោយត្រូវនឹង Database
-        }),
+    const res = await fetch("/api/admin/request-reset", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        username: username,
+        resetType: resetType,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        icon: "success",
+        title: "ជោគជ័យ!",
+        text: `Link សម្រាប់កំណត់ ${resetType} ថ្មីបានផ្ញើទៅកាន់ Email អតិថិជនហើយ។ (ផុតកំណត់ក្នុងរយៈពេល ៥នាទី)`,
+        customClass: { popup: "premium-swal kh-text" },
       });
-      const data = await res.json();
-
-      if (data.success) {
-        await fetch("/api/admin/log-action", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            action: "Uploaded KYC",
-            target: currentC360User.username,
-            details: `Admin បានបញ្ចូលឯកសារ KYC ជំនួសអតិថិជន`,
-          }),
-        });
-        Swal.fire({
-          icon: "success",
-          title: "ជោគជ័យ!",
-          text: "លោតចូលផ្ទាំងរង់ចាំអនុម័ត!",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { popup: "premium-swal" },
-        });
-        c360RefreshData();
-      } else {
-        Swal.fire("បរាជ័យ", data.message, "error");
-      }
     } else {
-      Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
+      Swal.fire({
+        icon: "error",
+        title: "បរាជ័យ",
+        text: data.message,
+        customClass: { popup: "premium-swal kh-text" },
+      });
     }
   } catch (e) {
     Swal.fire({
       icon: "error",
       title: "Error",
-      text: "មានបញ្ហាក្នុងការ Upload!",
+      text: "មានបញ្ហា Server",
       customClass: { popup: "premium-swal" },
     });
   }
-}
+};
 
-// =======================================================
-// 🛡️ TAB 6: Security (សុវត្ថិភាព និង Force Logout)
-// =======================================================
-function renderSecurityTab(user) {
-  const container = document.getElementById("c360-tab-security");
-  if (!container) return;
-  const lastIp = user.lastIp || "មិនមានទិន្នន័យ (N/A)";
-  const lastDevice = user.lastDevice || "មិនមានទិន្នន័យ (N/A)";
-  const lastLogin = user.lastLogin || "មិនមានទិន្នន័យ (N/A)";
+// ៣. ទាត់ចេញពីគណនី (Force Logout)
+window.c360ForceLogout = async function (username) {
+  if (!username || username === "undefined") {
+    return Swal.fire("Error", "រកមិនឃើញទិន្នន័យអតិថិជនទេ!", "error");
+  }
 
-  container.innerHTML = `
-    <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
-        <div style="background: var(--bg-card); border-radius: 18px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid var(--border);">
-            <h4 class="kh-text" style="margin: 0 0 15px; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i> ព័ត៌មានចូលប្រើប្រាស់ចុងក្រោយ
-            </h4>
-            <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--border);">
-                <span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">អាសយដ្ឋាន IP:</span>
-                <span style="font-weight: 600; color: var(--text-main); font-family: 'Inter', monospace; font-size: 0.9rem;">${lastIp}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--border);">
-                <span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">ឧបករណ៍ (Device):</span>
-                <span style="font-weight: 600; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 0.9rem;">${lastDevice}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 12px 0;">
-                <span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">ពេលវេលា:</span>
-                <span style="font-weight: 600; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 0.9rem;">${lastLogin}</span>
-            </div>
-        </div>
-
-        <div style="background: rgba(239, 68, 68, 0.1); border-radius: 18px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(239, 68, 68, 0.3);">
-            <h4 class="kh-text" style="margin: 0 0 10px; color: #ef4444; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> សកម្មភាពបន្ទាន់ (Emergency)
-            </h4>
-            <p class="kh-text" style="font-size: 0.85rem; color: #ef4444; margin-bottom: 20px; line-height: 1.6;">
-                ប្រសិនបើអ្នកសង្ស័យថាគណនីនេះត្រូវបានគេលួចប្រើប្រាស់ ឬមានហានិភ័យ អ្នកអាចទាត់អតិថិជននេះចេញពីកម្មវិធីភ្លាមៗ។ គាត់នឹងត្រូវតម្រូវឱ្យ Login ម្តងទៀត។
-            </p>
-            <button onclick="c360ForceLogout()" class="kh-text" style="width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25); display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-right-from-bracket"></i> ទាត់ចេញពីគណនី (Force Logout)
-            </button>
-        </div>
-    </div>`;
-}
-
-window.c360ForceLogout = async function () {
   const { value: remark } = await Swal.fire({
     title:
-      '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">Force Logout</span>',
+      '<span class="kh-text" style="font-size:1.4rem; color: #ef4444;">ទាត់ចេញ (Force Logout)</span>',
     html: `
-        <p class="kh-text" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">តើអ្នកពិតជាចង់ទាត់អតិថិជននេះចេញពីប្រព័ន្ធមែនទេ?</p>
+        <p class="kh-text" style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">តើអ្នកពិតជាចង់ទាត់អតិថិជន <b>@${username}</b> នេះចេញពីប្រព័ន្ធមែនទេ?</p>
         <div style="text-align: left; padding: 0 10px;">
-            <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">មូលហេតុ (Remark)</label>
-            <input id="swal-logout-remark" class="swal2-input kh-text" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
+            <label class="kh-text" style="font-size: 0.85rem; font-weight: 600; color: #64748b;">មូលហេតុ (Remark)</label>
+            <input id="swal-logout-remark" class="swal2-input kh-text" placeholder="បញ្ជាក់មូលហេតុ..." style="width: 100%; margin: 5px 0 0; border: 1px solid #cbd5e1; border-radius: 8px;">
         </div>`,
     showCancelButton: true,
     confirmButtonText: '<span class="kh-text">យល់ព្រមទាត់ចេញ</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
     confirmButtonColor: "#ef4444",
-    customClass: { popup: "modal-radius" },
+    customClass: { popup: "modal-radius kh-text" },
     preConfirm: () => {
       const remark = document.getElementById("swal-logout-remark").value.trim();
       if (!remark) Swal.showValidationMessage("សូមបញ្ចូលមូលហេតុ!");
@@ -3802,7 +4721,7 @@ window.c360ForceLogout = async function () {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          username: currentC360User.username,
+          username: username,
           reason: remark,
         }),
       });
@@ -3813,7 +4732,7 @@ window.c360ForceLogout = async function () {
           headers: getAuthHeaders(),
           body: JSON.stringify({
             action: "Force Logout",
-            target: currentC360User.username,
+            target: username,
             details: `បានទាត់អតិថិជនចេញពីប្រព័ន្ធ - មូលហេតុ: ${remark}`,
           }),
         });
@@ -3823,21 +4742,23 @@ window.c360ForceLogout = async function () {
           text: "អតិថិជនត្រូវបានទាត់ចេញពីប្រព័ន្ធ។",
           timer: 1500,
           showConfirmButton: false,
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
-      } else
+        c360RefreshData();
+      } else {
         Swal.fire({
           icon: "error",
           title: "បរាជ័យ",
           text: data.message,
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
+      }
     } catch (e) {
       Swal.fire({
         icon: "error",
         title: "Error",
         text: "មានបញ្ហា Server",
-        customClass: { popup: "premium-swal" },
+        customClass: { popup: "premium-swal kh-text" },
       });
     }
   }

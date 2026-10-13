@@ -1302,6 +1302,7 @@ const toggleFreeze = async (req, res) => {
     if (u) {
       u.isFrozen = isFrozen;
       if (!isFrozen) u.pinAttempts = 0;
+      u.passwordAttempts = 0;
       await u.save();
       await logAdminAction(
         req.admin.username,
@@ -1375,32 +1376,155 @@ const adminUploadKyc = async (req, res) => {
   }
 };
 
+// ==========================================
+// 🛡️ ផ្នែក KYC & Identity (Maker-Checker Flow)
+// ==========================================
+
+/**
+ * 📌 [Admin] អនុម័ត, បដិសេធ ឬ ដកហូតសិទ្ធិ KYC
+ */
 const kycAction = async (req, res) => {
-  const { username, action } = req.body;
+  const { username, action, rejectReason } = req.body;
   try {
     const u = await User.findOne({ username });
-    if (u) {
-      u.kycStatus = action;
+    if (!u)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជននេះទេ!" });
+
+    const currentAdmin = req.admin.username;
+
+    // 🛑 ១. គោលការណ៍ Maker-Checker: ហាម Admin អនុម័ត ឬ បដិសេធ ឯកសារដែលខ្លួនឯងជាអ្នក Upload
+    if (
+      (action === "approved" || action === "rejected") &&
+      u.kycUploadedBy === currentAdmin
+    ) {
+      return res.json({
+        success: false,
+        message:
+          "បម្រាម Maker-Checker៖ អ្នកមិនអាចអនុម័ត (Approve) ឬ បដិសេធ (Reject) សំណើដែលអ្នកបាន Upload ដោយខ្លួនឯងបានទេ! សូមរង់ចាំ Admin ផ្សេងទៀត។",
+      });
+    }
+
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    // 🛑 ២. ដំណើរការបដិសេធ (Reject) ឬ ដកហូតសិទ្ធិ (Revoke)
+    if (action === "rejected" || action === "revoke") {
+      if (!rejectReason || rejectReason.trim() === "") {
+        return res.json({
+          success: false,
+          message: "សូមបញ្ជាក់មូលហេតុនៃការបដិសេធ!",
+        });
+      }
+
+      u.kycStatus = "rejected";
+      u.kycRejectReason = rejectReason;
+
+      // 🟢 កត់ត្រាអ្នកបដិសេធ
+      u.kycRejectedBy = currentAdmin;
+      u.kycRejectedAt = dateStr;
+
+      // 🧹 លុបរូប KYC ចាស់ចោល តាមការស្នើសុំ ដើម្បីឱ្យ Admin អាច Upload ថ្មីបាន
+      u.kycDocument = "";
+      u.kycImage = "";
+      u.selfieUrl = "";
+      u.kycUploadedBy = ""; // Reset អ្នក Upload វិញ
+
+      // ផ្ញើសារប្រាប់អតិថិជន
       await Notification.create({
         userId: u._id,
         username: u.username,
-        title: "KYC Verification",
-        message: `ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបាន ${action === "approved" ? "អនុម័តជោគជ័យ ✅" : "បដិសេធ ❌"}។`,
+        title: "KYC Verification Failed ❌",
+        message: `ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានបដិសេធ។ មូលហេតុ: ${rejectReason}។ សូមទាក់ទងមកកាន់ធនាគារ។`,
         date: getFormattedDate(),
         type: "info",
         isRead: false,
         metadata: { sender: "system" },
       });
-      await u.save();
+
       await logAdminAction(
-        req.admin.username,
-        "KYC Action",
+        currentAdmin,
+        "Reject/Revoke KYC",
         u.username,
-        `KYC ${action.toUpperCase()}`,
+        `Rejected KYC. Reason: ${rejectReason}`,
       );
-      res.json({ success: true });
-    } else res.json({ success: false });
+    }
+    // ✅ ៣. ដំណើរការអនុម័ត (Approve)
+    else if (action === "approved" || action === "verified") {
+      u.kycStatus = "verified";
+      u.kycRejectReason = ""; // លុបមូលហេតុបដិសេធចាស់ចោល
+
+      // 🟢 កត់ត្រាអ្នកអនុម័ត
+      u.kycApprovedBy = currentAdmin;
+      u.kycApprovedAt = dateStr;
+
+      await Notification.create({
+        userId: u._id,
+        username: u.username,
+        title: "KYC Verification Success ✅",
+        message: `អបអរសាទរ! ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តដោយជោគជ័យ។`,
+        date: getFormattedDate(),
+        type: "info",
+        isRead: false,
+        metadata: { sender: "system" },
+      });
+
+      await logAdminAction(
+        currentAdmin,
+        "Approve KYC",
+        u.username,
+        `Approved KYC Document`,
+      );
+    }
+
+    await u.save();
+    res.json({ success: true, message: "បានធ្វើបច្ចុប្បន្នភាពជោគជ័យ!" });
   } catch (err) {
+    console.error("KYC Action Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] Upload រូបថតអត្តសញ្ញាណប័ណ្ណ ឬ Selfie ថ្មីជំនួសអតិថិជន
+ */
+const uploadSpecificKyc = async (req, res) => {
+  const { username, type, url, adminName } = req.body;
+  try {
+    const u = await User.findOne({ username });
+    if (!u) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញទេ!" });
+
+    // បញ្ចូលរូបតាមប្រភេទ (ID ឬ Selfie)
+    if (type === "idCard") {
+      u.kycDocument = url;
+      u.kycImage = url;
+    } else if (type === "selfie") {
+      u.selfieUrl = url;
+    }
+
+    // 🟢 បើមានរូបទាំង ២ គ្រប់គ្រាន់ហើយ លោតទៅជា Pending ស្វ័យប្រវត្តិ
+    if ((u.kycDocument || u.kycImage) && u.selfieUrl) {
+      u.kycStatus = "pending";
+      u.kycSubmittedAt = getFormattedDate();
+    } else {
+      u.kycStatus = "unverified"; // នៅខ្វះរូបមួយទៀត
+    }
+
+    // 🔒 កត់ត្រាទុកថា Admin មួយណាជាអ្នក Upload ដើម្បីបិទសិទ្ធិគាត់កុំឱ្យគាត់ Approve ខ្លួនឯង
+    u.kycUploadedBy = req.admin.username;
+
+    await u.save();
+    await logAdminAction(
+      req.admin.username,
+      `Upload KYC (${type})`,
+      username,
+      `Admin uploaded ${type}`,
+    );
+
+    res.json({ success: true, message: "Upload ជោគជ័យ!" });
+  } catch (error) {
+    console.error("Upload Specific KYC Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -3368,6 +3492,7 @@ const adminCreateUser = async (req, res) => {
       kycDocument: idCardUrl || "",
       selfieUrl: selfieUrl || "",
       kycSubmittedAt: initialKycStatus === "verified" ? getFormattedDate() : "",
+      kycUploadedBy: idCardUrl || selfieUrl ? req.admin.username : "",
 
       mainAccounts: {
         USD: {
@@ -3467,6 +3592,7 @@ module.exports = {
   adminForceLogout,
   adminUploadKyc,
   kycAction,
+  uploadSpecificKyc,
 
   // Transactions
   getTransaction,

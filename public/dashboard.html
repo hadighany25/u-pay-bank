@@ -776,7 +776,6 @@
       if (!user) window.location.href = "index.html";
       // 🌟 ចាប់យក Balance តាមទម្រង់ថ្មី
       let lastBalance = user.mainAccounts?.USD?.balance || 0;
-
       document.addEventListener("DOMContentLoaded", () => {
         // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់ភ្លាមៗពេល Load ដល់
         applyThemeLocally();
@@ -813,6 +812,39 @@
 
         updateUI(user);
         loadDashboardData(false);
+
+        // =========================================================
+        // 🟢 កូដ Heartbeat ថ្មីនៅទីនេះ: ប្រាប់ Server ថាអ្នកកំពុង Online
+        // =========================================================
+        function startHeartbeat() {
+          // បាញ់ប្រាប់ Server ភ្លាមៗម្តងសិន ពេលចូលដល់ទំព័រនេះ
+          sendHeartbeat();
+
+          // បន្ទាប់មកបាញ់រៀងរាល់ ២ នាទីម្តង (120000 ms)
+          setInterval(sendHeartbeat, 120000);
+        }
+
+        async function sendHeartbeat() {
+          const token = localStorage.getItem("token");
+          if (user && user.username && token) {
+            try {
+              await fetch("/api/user/heartbeat", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ username: user.username }),
+              });
+            } catch (error) {
+              console.log("Heartbeat Sync Failed", error);
+            }
+          }
+        }
+
+        // ហៅឱ្យកូដ Heartbeat ចាប់ផ្តើមធ្វើការ
+        startHeartbeat();
+        // =========================================================
       });
 
       // 🌟 ២. បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
