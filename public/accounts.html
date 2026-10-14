@@ -1903,9 +1903,9 @@
                   m.linkedAccounts.KHR === accId)
               ) {
                 isLinkedToMerchant = true;
-                if (m.accountNumbers.USD)
+                if (m.accountNumbers?.USD)
                   merchantRelatedAccounts.push(m.accountNumbers.USD);
-                if (m.accountNumbers.KHR)
+                if (m.accountNumbers?.KHR)
                   merchantRelatedAccounts.push(m.accountNumbers.KHR);
                 if (m.cashiers) {
                   m.cashiers.forEach((c) => {
@@ -1924,55 +1924,48 @@
           const sAcc = t.senderAcc || t.senderAccount;
           const rAcc = t.receiverAcc || t.receiverAccount;
 
-          // 🌟 ឆែកទាំង username និងលេខគណនី
-          let matchDirectAcc =
-            sAcc === accId ||
-            rAcc === accId ||
-            (t.username === user.username && (sAcc === "N/A" || !sAcc));
-
           const mainUsdNum =
             user.mainAccounts?.USD?.accountNumber || user.accountNumber;
           const mainKhrNum =
             user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR;
 
-          if (currency === "USD" && accId === mainUsdNum) {
-            if (
-              sAcc === mainUsdNum ||
-              rAcc === mainUsdNum ||
-              t.username === user.username
-            )
-              matchDirectAcc = true;
-          }
-          if (currency === "KHR" && accId === mainKhrNum) {
-            if (
-              sAcc === mainKhrNum ||
-              rAcc === mainKhrNum ||
-              t.username === user.username
-            )
-              matchDirectAcc = true;
-          }
+          // 🌟 ១. ឆែកមើលថាតើលេខគណនីក្នុងប្រតិបត្តិការ (sAcc ឬ rAcc) ត្រូវគ្នាផ្ទាល់ជាមួយកុងដែលកំពុងមើល (accId) ដែរឬទេ?
+          let matchDirectAcc = sAcc === accId || rAcc === accId;
 
+          // 🌟 ២. បើវាជាប្រតិបត្តិការហាង (Merchant) ដែលបានភ្ជាប់ជាមួយកុងនេះ (accId)
+          // ត្រូវឆែកមើលថាតើវាពិតជាបាញ់ចូលលេខកុងនេះ ឬបាញ់ចូលកុង Virtual របស់ហាងដែលភ្ជាប់ជាមួយកុងនេះមែនអត់ (ដក t.username ចេញកុំឱ្យវាចាប់ជាន់គ្នា)
           const matchMerchantAcc =
             isLinkedToMerchant &&
-            (merchantRelatedAccounts.includes(rAcc) ||
-              t.username === user.username);
+            (rAcc === accId || merchantRelatedAccounts.includes(rAcc));
 
+          // 🌟 ៣. សម្រាប់ទិន្នន័យចាស់ៗពីមុន (Fallback) ដែលអត់មានកត់ត្រាលេខកុង (គ្មាន sAcc និងគ្មាន rAcc)
+          // ទើបយើងឱ្យវាធ្លាក់ចូលទៅក្នុង Main Account ទៅតាមរូបិយប័ណ្ណ (USD ឬ KHR) ដើម្បីកុំឱ្យបាត់ប្រវត្តិចាស់ៗ
           let matchMain = false;
-          if (!matchDirectAcc && !matchMerchantAcc) {
+          const hasNoSpecificAccount =
+            (!sAcc || sAcc === "N/A") && (!rAcc || rAcc === "N/A");
+
+          if (!matchDirectAcc && !matchMerchantAcc && hasNoSpecificAccount) {
             if (
               currency === "USD" &&
               t.currency === "USD" &&
               accId === mainUsdNum &&
               t.username === user.username
-            )
+            ) {
               matchMain = true;
+            }
             if (
               currency === "KHR" &&
               t.currency === "KHR" &&
               accId === mainKhrNum &&
               t.username === user.username
-            )
+            ) {
               matchMain = true;
+            }
+          }
+
+          // 🌟 ៤. ការពារបន្ថែម៖ ធានាថារូបិយប័ណ្ណរបស់ប្រតិបត្តិការត្រូវគ្នាជាមួយរូបិយប័ណ្ណរបស់គណនី (កុំឱ្យកុង KHR លោតប្រវត្តិ USD ចូលដូចរូបមិញ)
+          if (t.currency && t.currency !== currency) {
+            return false;
           }
 
           return matchDirectAcc || matchMerchantAcc || matchMain;

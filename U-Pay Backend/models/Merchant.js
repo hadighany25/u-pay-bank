@@ -1,17 +1,31 @@
-// Merchant.js
+// ============================================================================
+// ឯកសារ: models/Merchant.js
+// អត្ថន័យ: Schema ស្តង់ដារសម្រាប់គ្រប់គ្រងហាងទំនិញ និងប្រព័ន្ធទូទាត់អាជីវករ
+// ============================================================================
+
 const mongoose = require("mongoose");
 
 const merchantSchema = new mongoose.Schema(
   {
-    userId: { type: String, required: true },
+    // 🛡️ សុវត្ថិភាព ៣ ជាន់ ភ្ជាប់ទៅកាន់ម្ចាស់ហាង (User)
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }, // ភ្ជាប់ជាមួយ user._id
+    userCustomId: { type: String, index: true }, // ភ្ជាប់ជាមួយ user.id ឬ user.userId
+    username: { type: String, index: true }, // ភ្ជាប់ជាមួយ user.username
+    userId: { type: String, required: true, index: true }, // រក្សាទុកសម្រាប់ទិន្នន័យចាស់ (Backward Compatibility)
+
     name: { type: String, required: true, trim: true },
     city: { type: String, required: true },
     category: { type: String, required: true, default: "Other" },
+
+    // 🔗 គណនីដែលភ្ជាប់សម្រាប់ទទួលប្រាក់ (អាចជា Main, Sub, ឬ Joint Account)
     linkedAccounts: {
       USD: { type: String, default: null },
       KHR: { type: String, default: null },
     },
-    merchantId: { type: String, required: true, unique: true },
+
+    merchantId: { type: String, required: true, unique: true, index: true },
+
+    // 💳 លេខគណនីសម្គាល់ QR របស់ហាង (888... និង 999...)
     accountNumbers: {
       USD: { type: String, default: null },
       KHR: { type: String, default: null },
@@ -20,15 +34,14 @@ const merchantSchema = new mongoose.Schema(
     // 👨‍💼 ប្រព័ន្ធគ្រប់គ្រងអ្នកគិតលុយ (Cashiers)
     cashiers: [
       {
-        accountNumber: { type: String, required: true }, // លេខកុង U-Pay ពិត
-        // 🔥 [អាប់ដេតថ្មី] បំបែក Virtual Accounts ជា ២ (USD និង KHR)
+        accountNumber: { type: String, required: true },
         virtualAccounts: {
           USD: { type: String, default: null },
           KHR: { type: String, default: null },
         },
-        virtualAccount: { type: String }, // (រក្សាទុកក្រែងលោមានទិន្នន័យចាស់កុំឲ្យគាំង)
-        originalName: { type: String, required: true }, // ឈ្មោះពិតក្នុងប្រព័ន្ធ (ការពារកុំឱ្យបន្លំ)
-        displayName: { type: String, required: true }, // ឈ្មោះដែលថៅកែដាក់ឱ្យ (ឧ. T.A)
+        virtualAccount: { type: String },
+        originalName: { type: String, required: true },
+        displayName: { type: String, required: true },
         status: {
           type: String,
           enum: ["Active", "Suspended"],

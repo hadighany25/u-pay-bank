@@ -1,11 +1,15 @@
-// controllers/cardController.js
+// ============================================================================
+// ឯកសារ: controllers/cardController.js
+// ============================================================================
 
 const User = require("../models/User");
+const Card = require("../models/Card");
 const Transaction = require("../models/Transaction");
-const { getFormattedDate } = require("../services/helpers");
+const System = require("../models/System");
+const JointAccount = require("../models/JointAccount");
 
 // ========================================================
-// 🛠️ Function ជំនួយ (Helpers) សម្រាប់បង្កើត Hash & Ref ID
+// 🛠️ Function ជំនួយ (Helpers)
 // ========================================================
 const generateStandardHash = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -17,14 +21,10 @@ const generateStandardHash = () => {
 };
 
 const generateStandardRefId = (prefix) => {
-  // បង្កើតលេខ ៨ខ្ទង់ចៃដន្យ (ពី 10000000 ដល់ 99999999)
   const random8Digits = Math.floor(10000000 + Math.random() * 90000000);
   return `${prefix}-${random8Digits}`;
 };
 
-// =======================================================
-// 💳 ការកំណត់តម្លៃ និងឈ្មោះប្រភេទកាតទាំង ៨ (Card Tiers Config)
-// =======================================================
 const cardTiersConfig = {
   standard: { name: "STANDARD", price: 5.0 },
   fifa: { name: "FIFA WORLD CUP", price: 15.0 },
@@ -35,10 +35,9 @@ const cardTiersConfig = {
   eco: { name: "ECO GREEN", price: 5.0 },
   platinum: { name: "PLATINUM PREMIUM", price: 25.0 },
   animal: { name: "ANIMAL EDITION", price: 15.0 },
-  custom: { name: "CUSTOM VIP", price: 25.0 }, // 🟢 កាតរើសរូបបាន
+  custom: { name: "CUSTOM VIP", price: 25.0 },
 };
 
-// មុខងារជំនួយ: បង្កើតលេខកាត Virtual
 const generateCardDetails = () => {
   const number =
     "4" +
@@ -55,11 +54,137 @@ const generateCardDetails = () => {
   return { number, cvv, expiry };
 };
 
+// 🔍 អនុគមន៍ជំនួយ៖ ស្វែងរកគណនីពិតប្រាកដរបស់ User (Main, Sub, ឬ Joint)
+async function resolveUserAccount(user, linkedAccStr) {
+  let rawAcc = String(linkedAccStr || "USD");
+  let accNum = rawAcc.includes("_") ? rawAcc.split("_")[1] : rawAcc;
+
+  if (accNum === "USD" || accNum === user.mainAccounts?.USD?.accountNumber) {
+    return {
+      type: "MAIN_USD",
+      accObj: user.mainAccounts.USD,
+      currency: "USD",
+      accountNumber:
+        user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+    };
+  }
+  if (accNum === "KHR" || accNum === user.mainAccounts?.KHR?.accountNumber) {
+    return {
+      type: "MAIN_KHR",
+      accObj: user.mainAccounts.KHR,
+      currency: "KHR",
+      accountNumber:
+        user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR,
+    };
+  }
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    const idx = user.subAccounts.findIndex(
+      (s) =>
+        s.accountNumber === accNum ||
+        `${s.currency}_${s.accountNumber}` === rawAcc,
+    );
+    if (idx !== -1) {
+      const sub = user.subAccounts[idx];
+      if (sub.accountType === "joint" || sub.accountType === "joint_member") {
+        const jointDoc = await JointAccount.findOne({
+          accountId: sub.accountId,
+        });
+        return {
+          type: "JOINT",
+          subIndex: idx,
+          accObj: sub,
+          jointDoc,
+          currency: sub.currency || "USD",
+          accountNumber: sub.accountNumber,
+        };
+      }
+      return {
+        type: "SUB",
+        subIndex: idx,
+        accObj: sub,
+        currency: sub.currency || "USD",
+        accountNumber: sub.accountNumber,
+      };
+    }
+  }
+  return null;
+}
+
 // =======================================================
-// ១. បង្កើតកាតថ្មី (Smart Issuance Flow)
+// ០. ទាញយកកាតទាំងអស់របស់ User (រួមទាំង Auto-Migrate កាតចាស់)
+// =======================================================
+const getMyCards = async (req, res) => {
+  try {
+    const username = req.user.username;
+    let cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+
+    // 🔄 AUTO-MIGRATION: បើក្នុងតារាង Card ថ្មីអត់ទាន់មាន តែក្នុង User ចាស់មាន គឺចម្លងចូលអូតូ!
+    if (cards.length === 0) {
+      const rawUser = await User.collection.findOne({ username });
+      if (rawUser && rawUser.virtualCards && rawUser.virtualCards.length > 0) {
+        const migrated = [];
+        for (let i = 0; i < rawUser.virtualCards.length; i++) {
+          const oldC = rawUser.virtualCards[i];
+          let linkAcc = oldC.linkedAccount || "USD";
+          if (linkAcc === "USD" && rawUser.mainAccounts?.USD?.accountNumber) {
+            linkAcc = rawUser.mainAccounts.USD.accountNumber;
+          } else if (
+            linkAcc === "KHR" &&
+            rawUser.mainAccounts?.KHR?.accountNumber
+          ) {
+            linkAcc = rawUser.mainAccounts.KHR.accountNumber;
+          } else if (linkAcc.includes("_")) {
+            linkAcc = linkAcc.split("_")[1];
+          }
+
+          const newCardDoc = await Card.create({
+            userId: rawUser._id,
+            username: rawUser.username,
+            userCustomId: rawUser.id || rawUser._id.toString(),
+            id: oldC.id || "card_" + Date.now() + "_" + i,
+            type: oldC.type || "standard",
+            name: oldC.name || "STANDARD",
+            number: oldC.number,
+            cvv: oldC.cvv,
+            expiry: oldC.expiry,
+            linkedAccount: linkAcc,
+            currency: oldC.linkedAccount === "KHR" ? "KHR" : "USD",
+            isLocked: oldC.isLocked || false,
+            lockedByAdmin: oldC.lockedByAdmin || false,
+            isOnlinePayEnabled: oldC.isOnlinePayEnabled !== false,
+            dailyLimit: oldC.dailyLimit || 500,
+            dailyTxCountLimit: oldC.dailyTxCountLimit || 10,
+            pin: oldC.pin || "0000",
+            uid: oldC.uid || null,
+            isPhysical: oldC.isPhysical || false,
+            customBgUrl: oldC.customBgUrl || "",
+            orderIndex: i,
+          });
+          migrated.push(newCardDoc);
+        }
+        // លុប virtualCards ចាស់ចេញពី User ក្នុង Database
+        await User.collection.updateOne(
+          { _id: rawUser._id },
+          { $unset: { virtualCards: "" } },
+        );
+        cards = migrated;
+      }
+    }
+
+    res.json({ success: true, cards });
+  } catch (err) {
+    console.error("Get My Cards Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =======================================================
+// ១. បង្កើតកាតថ្មី (Smart Issuance Flow - កាត់លុយពីកុងដែលភ្ជាប់ផ្ទាល់)
 // =======================================================
 const generateCard = async (req, res) => {
-  // 🟢 ទទួលយក linkedAccount ពី Frontend បន្ថែម
   const { username, cardType, customBgUrl, linkedAccount, pin } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false, message: "Unauthorized!" });
@@ -70,89 +195,143 @@ const generateCard = async (req, res) => {
     if (user.pin !== pin)
       return res.json({ success: false, message: "លេខ PIN មិនត្រឹមត្រូវទេ!" });
 
-    // 🟢 កំណត់តម្លៃសេវា និងឈ្មោះតាមប្រភេទកាតជាក់លាក់
-    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
-    const issuanceFee = tier.price;
-
-    // 🌟 ឆែកសមតុល្យតាមទម្រង់ថ្មី (mainAccounts.USD.balance)
-    const userUsdBal = user.mainAccounts?.USD?.balance || user.balance || 0;
-    if (userUsdBal < issuanceFee)
+    const existingCardsCount = await Card.countDocuments({ username });
+    if (existingCardsCount >= 10) {
       return res.json({
         success: false,
-        message: `សមតុល្យ USD មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ $${issuanceFee.toFixed(2)} ទេ!`,
+        message: "អ្នកអាចបង្កើតកាតបានត្រឹមតែ ១០ សន្លឹកប៉ុណ្ណោះ!",
       });
+    }
 
-    // 🌟 ស្វែងរក Super Admin និង Sub-Account សម្រាប់ប្រមូល Fee (888000999)
-    let superAdmin = await User.findOne({ username: "superadmin" });
-    let feeSubAcc = superAdmin?.subAccounts?.find(
-      (sub) => sub.accountNumber === "888000999",
-    );
+    // 🌟 ស្វែងរកគណនីដែលអតិថិជនជ្រើសរើសភ្ជាប់ជាមួយកាត
+    const targetAcc = await resolveUserAccount(user, linkedAccount);
+    if (!targetAcc || !targetAcc.accObj) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដែលអ្នកចង់ភ្ជាប់នោះទេ!",
+      });
+    }
 
-    if (!superAdmin || !feeSubAcc) {
-      // Fallback ក្រែងលោរកមិនឃើញ គឺបង្កើតជូនស្វ័យប្រវត្តិ
-      if (superAdmin) {
-        superAdmin.subAccounts = superAdmin.subAccounts || [];
-        superAdmin.subAccounts.push({
-          accountId: "SUB_FEE_" + Date.now(),
-          accountNumber: "888000999",
-          accountName: "Central Bank Fee Income",
-          accountType: "fee_collection",
-          currency: "USD",
-          balance: issuanceFee,
-        });
-        superAdmin.markModified("subAccounts");
-        await superAdmin.save();
+    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
+    const issuanceFeeUSD = tier.price;
+
+    let exchangeRate = 4110;
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
       }
+    } catch (e) {}
+
+    // គណនាថ្លៃសេវាតាមរូបិយប័ណ្ណរបស់គណនីដែលបានភ្ជាប់
+    const feeInAccCurrency =
+      targetAcc.currency === "USD"
+        ? issuanceFeeUSD
+        : issuanceFeeUSD * exchangeRate;
+
+    const currentBal =
+      targetAcc.type === "JOINT" && targetAcc.jointDoc
+        ? targetAcc.jointDoc.balance
+        : targetAcc.accObj.balance || 0;
+
+    if (currentBal < feeInAccCurrency) {
+      const feeStr =
+        targetAcc.currency === "USD"
+          ? `$${feeInAccCurrency.toFixed(2)}`
+          : `៛${feeInAccCurrency.toLocaleString()}`;
+      return res.json({
+        success: false,
+        message: `សមតុល្យក្នុងគណនី (${targetAcc.accountNumber}) មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ ${feeStr} ទេ!`,
+      });
     }
 
-    // កាត់លុយថ្លៃសេវា
-    // 🌟 កាត់លុយពី Main Account USD ថ្មី
-    if (user.mainAccounts?.USD) {
-      user.mainAccounts.USD.balance -= issuanceFee;
-    } else {
-      user.balance -= issuanceFee; // Legacy Fallback
+    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានភ្ជាប់នោះផ្ទាល់តែម្តង
+    if (targetAcc.type === "MAIN_USD") {
+      user.mainAccounts.USD.balance -= feeInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (targetAcc.type === "MAIN_KHR") {
+      user.mainAccounts.KHR.balance -= feeInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (targetAcc.type === "SUB") {
+      user.subAccounts[targetAcc.subIndex].balance -= feeInAccCurrency;
+      user.markModified("subAccounts");
+    } else if (targetAcc.type === "JOINT" && targetAcc.jointDoc) {
+      targetAcc.jointDoc.balance -= feeInAccCurrency;
+      await targetAcc.jointDoc.save();
+      user.subAccounts[targetAcc.subIndex].balance = targetAcc.jointDoc.balance;
+      user.markModified("subAccounts");
     }
+    await user.save();
 
-    // 🌟 ប្រើ Helper ស្តង់ដារថ្មី
-    const refId = generateStandardRefId("CARD");
-    const trxHash = generateStandardHash();
-
-    const dateStr = new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Phnom_Penh",
-      hour12: true,
-    });
-
-    // 🧾 វិក្កយបត្រកាត់លុយ (User)
-    await Transaction.create({
-      userId: user._id, // 🌟 ថែម userId
-      username: user.username,
-      refId,
-      hash: trxHash,
-      date: dateStr,
-      type: "Card Issuance Fee",
-      amount: -issuanceFee,
-      currency: "USD",
-      senderName: user.username,
-      receiverName: "Card Issuance Service",
-      status: "Success",
-      remark: `Issued ${tier.name} Virtual Card`,
-    });
-
-    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
+    // 🏦 បូកលុយថ្លៃសេវាចូលគណនីកណ្តាលរបស់ Super Admin (888000999)
+    let superAdmin = await User.findOne({ username: "superadmin" });
     if (superAdmin) {
       let targetFeeSub = superAdmin.subAccounts?.find(
         (sub) => sub.accountNumber === "888000999",
       );
       if (targetFeeSub) {
-        targetFeeSub.balance += issuanceFee;
+        targetFeeSub.balance += issuanceFeeUSD;
         superAdmin.markModified("subAccounts");
       } else if (superAdmin.mainAccounts?.USD) {
-        superAdmin.mainAccounts.USD.balance += issuanceFee; // Fallback ទៅ Main USD
-      } else {
-        superAdmin.balance += issuanceFee;
+        superAdmin.mainAccounts.USD.balance += issuanceFeeUSD;
+        superAdmin.markModified("mainAccounts");
       }
       await superAdmin.save();
     }
+
+    const refId = generateStandardRefId("CARD");
+    const trxHash = generateStandardHash();
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    const details = generateCardDetails();
+    const newCardId = "card_" + Date.now();
+
+    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី (ភ្ជាប់ទាំង _id, username, និង id)
+    await Card.create({
+      userId: user._id,
+      username: user.username,
+      userCustomId: user.id || user._id.toString(),
+      id: newCardId,
+      type: cardType,
+      name: tier.name,
+      number: details.number,
+      cvv: details.cvv,
+      expiry: details.expiry,
+      linkedAccount: targetAcc.accountNumber, // 🌟 រក្សាទុកលេខគណនីពិតប្រាកដ
+      currency: targetAcc.currency,
+      isLocked: false,
+      isOnlinePayEnabled: true,
+      dailyLimit: 500,
+      dailyTxCountLimit: 10,
+      pin: "0000",
+      uid: null,
+      isPhysical: false,
+      customBgUrl: cardType === "custom" ? customBgUrl : "",
+      orderIndex: existingCardsCount,
+    });
+
+    // 🧾 វិក្កយបត្រកាត់លុយ (បង្ហាញក្នុងគណនីដែលបានភ្ជាប់ និងក្នុងប្រវត្តិកាត)
+    await Transaction.create({
+      userId: user._id,
+      username: user.username,
+      refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "Card Issuance Fee",
+      amount: -feeInAccCurrency,
+      currency: targetAcc.currency,
+      senderName: user.fullName || user.username,
+      senderAcc: targetAcc.accountNumber, // 🌟 ចង្អុលចំលេខកុងដែលបានកាត់លុយ
+      receiverName: "Card Issuance Service",
+      receiverAcc: "888000999",
+      cardId: newCardId,
+      cardNumber: details.number,
+      status: "Success",
+      remark: `Issued ${tier.name} Virtual Card`,
+    });
 
     // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
     await Transaction.create({
@@ -162,63 +341,40 @@ const generateCard = async (req, res) => {
       hash: trxHash,
       date: dateStr,
       type: "System Income",
-      amount: issuanceFee,
+      amount: issuanceFeeUSD,
       currency: "USD",
       senderName: user.username,
       receiverName: "Central Bank Fee Income",
-      senderAcc: user.mainAccounts?.USD?.accountNumber || user.accountNumber,
-      receiverAcc: "888000999", // 🌟 ចង្អុលចំលេខកុង Sub-Account Fee
+      senderAcc: targetAcc.accountNumber,
+      receiverAcc: "888000999",
       status: "Success",
       remark: "Card Issuance Fee",
     });
 
-    // បង្កើតកាតថ្មី
-    const details = generateCardDetails();
-    const newCard = {
-      id: "card_" + Date.now(),
-      type: cardType,
-      name: tier.name, // 🟢 ឈ្មោះកំណត់អូតូ
-      number: details.number,
-      cvv: details.cvv,
-      expiry: details.expiry,
-      isLocked: false,
-      isOnlinePayEnabled: true,
-      dailyLimit: 500, // ដែនកំណត់លុយ Default
-      dailyTxCountLimit: 10, // 🟢 ដែនកំណត់ចំនួនដង Default
-      linkedAccount: linkedAccount || "USD", // 🟢 ភ្ជាប់គណនីអូតូពេលបង្កើត
-      pin: "0000",
-      uid: null,
-      isPhysical: false, // 🟢 សម្គាល់ថាវាគ្រាន់តែជា Virtual (គ្មានសញ្ញា NFC)
-      customBgUrl: cardType === "custom" ? customBgUrl : "", // 🟢 Save Link រូបភាព
-    };
-
-    if (!user.virtualCards) user.virtualCards = [];
-    user.virtualCards.push(newCard);
-    user.markModified("virtualCards");
-    await user.save();
+    const allCards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
 
     res.json({
       success: true,
-      cards: user.virtualCards,
-      newBalance: user.mainAccounts?.USD?.balance || user.balance,
+      cards: allCards,
+      user: user, // បោះ User ថ្មីទៅឱ្យ Frontend អាប់ដេតសមតុល្យតាមកុងនីមួយៗ
     });
   } catch (err) {
+    console.error("Generate Card Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
 // =======================================================
-// ២. បិទ/បើក កាត
+// ២. បិទ/បើក កាត (Freeze / Unfreeze)
 // =======================================================
 const toggleLock = async (req, res) => {
   const { cardId, isLocked } = req.body;
   const username = req.user ? req.user.username : req.body.username;
   try {
-    const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកមិនឃើញគណនី ឬកាតទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOne({ id: cardId, username });
     if (!card)
       return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
 
@@ -232,9 +388,8 @@ const toggleLock = async (req, res) => {
 
     card.isLocked = isLocked;
     if (isLocked === true) card.lockedByAdmin = false;
+    await card.save();
 
-    user.markModified("virtualCards");
-    await user.save();
     res.json({ success: true, isLocked: card.isLocked });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
@@ -249,14 +404,17 @@ const toggleOnlinePay = async (req, res) => {
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
-    const user = await User.findOne({ username });
-    const card = user.virtualCards.find((c) => c.id === cardId);
-    if (card) {
-      card.isOnlinePayEnabled = isEnabled;
-      user.markModified("virtualCards");
-      await user.save();
-      res.json({ success: true, cards: user.virtualCards });
-    } else res.json({ success: false });
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) return res.json({ success: false });
+
+    card.isOnlinePayEnabled = isEnabled;
+    await card.save();
+
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+    res.json({ success: true, cards });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -266,21 +424,23 @@ const toggleOnlinePay = async (req, res) => {
 // ៤. ផ្លាស់ប្តូរដែនកំណត់ ២ ជាន់ (Dual Limits)
 // =======================================================
 const updateLimit = async (req, res) => {
-  const { username, cardId, newLimit, newCountLimit } = req.body; // 🟢 ទទួលយកទាំង ២
+  const { username, cardId, newLimit, newCountLimit } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
-    const user = await User.findOne({ username });
-    const card = user.virtualCards.find((c) => c.id === cardId);
-    if (card) {
-      if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
-      if (newCountLimit !== undefined)
-        card.dailyTxCountLimit = parseInt(newCountLimit, 10);
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) return res.json({ success: false });
 
-      user.markModified("virtualCards");
-      await user.save();
-      res.json({ success: true, cards: user.virtualCards });
-    } else res.json({ success: false });
+    if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
+    if (newCountLimit !== undefined)
+      card.dailyTxCountLimit = parseInt(newCountLimit, 10);
+    await card.save();
+
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+    res.json({ success: true, cards });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -294,11 +454,12 @@ const deleteCard = async (req, res) => {
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
-    const user = await User.findOne({ username });
-    user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
-    user.markModified("virtualCards");
-    await user.save();
-    res.json({ success: true, cards: user.virtualCards });
+    await Card.findOneAndDelete({ id: cardId, username });
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+    res.json({ success: true, cards });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -312,20 +473,19 @@ const resetPin = async (req, res) => {
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
-    const user = await User.findOne({ username });
-    const card = user.virtualCards.find((c) => c.id === cardId);
-    if (card) {
-      const currentPin = card.pin || "0000";
-      if (currentPin !== oldPin)
-        return res.json({
-          success: false,
-          message: "លេខ PIN ចាស់មិនត្រឹមត្រូវទេ!",
-        });
-      card.pin = newPin;
-      user.markModified("virtualCards");
-      await user.save();
-      res.json({ success: true });
-    } else res.json({ success: false });
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) return res.json({ success: false, message: "រកមិនឃើញកាតទេ!" });
+
+    const currentPin = card.pin || "0000";
+    if (currentPin !== oldPin) {
+      return res.json({
+        success: false,
+        message: "លេខ PIN ចាស់មិនត្រឹមត្រូវទេ!",
+      });
+    }
+    card.pin = newPin;
+    await card.save();
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -339,14 +499,17 @@ const renameCard = async (req, res) => {
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
-    const user = await User.findOne({ username });
-    const card = user.virtualCards.find((c) => c.id === cardId);
-    if (card) {
-      card.name = name.toUpperCase();
-      user.markModified("virtualCards");
-      await user.save();
-      res.json({ success: true, cards: user.virtualCards });
-    } else res.json({ success: false });
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) return res.json({ success: false });
+
+    card.name = name.toUpperCase();
+    await card.save();
+
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+    res.json({ success: true, cards });
   } catch (err) {
     res.status(500).json({ success: false });
   }
@@ -358,8 +521,12 @@ const renameCard = async (req, res) => {
 const bindNfcCard = async (req, res) => {
   try {
     const { username, cardId, pin, uid } = req.body;
+    const cleanUid = String(uid || "")
+      .replaceAll(":", "")
+      .trim()
+      .toUpperCase();
 
-    const existingUid = await User.findOne({ "virtualCards.uid": uid });
+    const existingUid = await Card.findOne({ uid: cleanUid });
     if (existingUid) {
       return res.json({
         success: false,
@@ -368,27 +535,22 @@ const bindNfcCard = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញ!" });
-
-    const targetCard = user.virtualCards.find((c) => c.id === cardId);
+    const targetCard = await Card.findOne({ id: cardId, username });
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
-    if (targetCard.uid && targetCard.uid !== "" && targetCard.uid !== null) {
+    if (targetCard.uid && targetCard.uid !== "") {
       return res.json({
         success: false,
         message:
-          "⚠️ គណនីនេះបានភ្ជាប់កាត NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
+          "⚠️ កាតនេះបានភ្ជាប់ NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
       });
     }
 
-    targetCard.uid = uid;
-    targetCard.pin = pin;
-    targetCard.isPhysical = true; // 🟢 បង្ហាញសញ្ញា Wi-Fi/NFC លើកាត Frontend
-
-    user.markModified("virtualCards");
-    await user.save();
+    targetCard.uid = cleanUid;
+    if (pin) targetCard.pin = pin;
+    targetCard.isPhysical = true;
+    await targetCard.save();
 
     res.json({ success: true, message: "ភ្ជាប់ជោគជ័យ!" });
   } catch (error) {
@@ -402,17 +564,12 @@ const bindNfcCard = async (req, res) => {
 const unbindNfcCard = async (req, res) => {
   try {
     const { username, cardId } = req.body;
-    const user = await User.findOne({ username });
-
-    if (user) {
-      const card = user.virtualCards.find((c) => c.id === cardId);
-      if (card) {
-        card.uid = null;
-        card.isPhysical = false; // 🟢 លាក់សញ្ញា Wi-Fi/NFC ចេញពីកាត
-        user.markModified("virtualCards");
-        await user.save();
-        return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
-      }
+    const card = await Card.findOne({ id: cardId, username });
+    if (card) {
+      card.uid = null;
+      card.isPhysical = false;
+      await card.save();
+      return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
     }
     res.json({ success: false, message: "បរាជ័យ" });
   } catch (error) {
@@ -429,33 +586,28 @@ const reorderCards = async (req, res) => {
     return res.status(403).json({ success: false });
 
   try {
-    const user = await User.findOne({ username });
-    if (user && user.virtualCards) {
-      // តម្រៀបកាតចាស់ ឱ្យទៅតាមលំដាប់ ID ថ្មីដែល Frontend បោះមក
-      const newCardsArray = orderedIds
-        .map((id) => user.virtualCards.find((c) => c.id === id))
-        .filter(Boolean);
-
-      // ការពារក្រែងលោមានកាតណាមួយធ្លាក់ជ្រុះ ក៏យកមកតពីក្រោយគេ
-      const existingIds = newCardsArray.map((c) => c.id);
-      const missedCards = user.virtualCards.filter(
-        (c) => !existingIds.includes(c.id),
+    if (Array.isArray(orderedIds)) {
+      await Promise.all(
+        orderedIds.map((cardId, idx) =>
+          Card.updateOne(
+            { id: cardId, username },
+            { $set: { orderIndex: idx } },
+          ),
+        ),
       );
-
-      user.virtualCards = [...newCardsArray, ...missedCards];
-      user.markModified("virtualCards");
-      await user.save();
-
-      res.json({ success: true, cards: user.virtualCards });
-    } else {
-      res.json({ success: false });
     }
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+    res.json({ success: true, cards });
   } catch (err) {
     res.status(500).json({ success: false });
   }
 };
 
 module.exports = {
+  getMyCards,
   generateCard,
   toggleLock,
   toggleOnlinePay,

@@ -286,6 +286,17 @@ async function c360RefreshData() {
     const data = await res.json();
 
     if (data.success && data.user) {
+      // 🟢 ទាញយកកាតបន្ថែមពី Model Card មកបញ្ចូលក្នុង Object របស់ User ផ្ទាល់
+      const cardsRes = await fetch(`/api/admin/all-cards`, {
+        headers: getAuthHeaders(),
+      });
+      const cardsData = await cardsRes.json();
+      if (cardsData.success && cardsData.cards) {
+        data.user.virtualCards = cardsData.cards.filter(
+          (c) => c.username === data.user.username,
+        );
+      }
+
       renderCustomerProfile(data.user);
 
       if (typeof globalUsersData !== "undefined") {
@@ -303,22 +314,9 @@ async function c360RefreshData() {
         showConfirmButton: false,
         timer: 1500,
       });
-    } else {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: data.message || "រកមិនឃើញទិន្នន័យថ្មីទេ",
-        customClass: { popup: "premium-swal kh-text" },
-      });
     }
   } catch (e) {
     console.error("Refresh Error:", e);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "បញ្ហាភ្ជាប់ទៅកាន់ Server API",
-      customClass: { popup: "premium-swal kh-text" },
-    });
   } finally {
     if (icon) icon.classList.remove("fa-spin");
   }
@@ -1288,7 +1286,7 @@ window.c360JumpToTrx = function (accountNumber) {
 };
 
 // =======================================================
-// ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management)
+// ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management - Refactored)
 // =======================================================
 let adminCardsSliderInstance = null;
 let adminCurrentCardIndex = 0;
@@ -1681,7 +1679,6 @@ window.c360UpdateCardInfoBox = function () {
         ? "គណនីចម្បង USD ($)"
         : c.linkedAccount;
 
-  // ថែមពាក្យកន្ទុយឱ្យច្បាស់លាស់
   let limitCurrencySymbol = c.linkedAccount === "KHR" ? "៛" : "$";
   let limitDisplay =
     c.linkedAccount === "KHR"
@@ -1946,20 +1943,31 @@ window.c360ChangeLinkedAccount = async function () {
   if (!c) return;
 
   let accOptions = "";
-  if (currentC360User.mainAccounts?.USD)
-    accOptions += `<option value="USD" ${c.linkedAccount === "USD" ? "selected" : ""}>គណនីចម្បង USD ($)</option>`;
-  if (currentC360User.mainAccounts?.KHR)
-    accOptions += `<option value="KHR" ${c.linkedAccount === "KHR" ? "selected" : ""}>គណនីចម្បង KHR (៛)</option>`;
-  if (currentC360User.subAccounts) {
+  if (currentC360User.mainAccounts?.USD) {
+    const accNum = currentC360User.mainAccounts.USD.accountNumber;
+    let isSelected =
+      c.linkedAccount === accNum || c.linkedAccount === "USD" ? "selected" : "";
+    accOptions += `<option value="${accNum}" ${isSelected}>គណនីចម្បង USD ($) - ${accNum}</option>`;
+  }
+  if (currentC360User.mainAccounts?.KHR) {
+    const accNum = currentC360User.mainAccounts.KHR.accountNumber;
+    let isSelected =
+      c.linkedAccount === accNum || c.linkedAccount === "KHR" ? "selected" : "";
+    accOptions += `<option value="${accNum}" ${isSelected}>គណនីចម្បង KHR (៛) - ${accNum}</option>`;
+  }
+  if (currentC360User.subAccounts && currentC360User.subAccounts.length > 0) {
     currentC360User.subAccounts.forEach((sub) => {
-      if (!sub.isHidden) {
-        // 🟢 កែសម្រួលការ Select ឱ្យចាប់យកលេខគណនី (accountNumber) ពេញលេញតែម្តង
+      if (!sub.isHidden && sub.accountType !== "junior") {
+        let typeLabel =
+          sub.accountType === "joint" || sub.accountType === "joint_member"
+            ? "[Joint]"
+            : "[Sub]";
         let isSelected =
           c.linkedAccount === sub.accountNumber ||
           c.linkedAccount === `${sub.currency}_${sub.accountNumber}`
             ? "selected"
             : "";
-        accOptions += `<option value="${sub.accountNumber}" ${isSelected}>${sub.accountName} (${sub.accountNumber})</option>`;
+        accOptions += `<option value="${sub.accountNumber}" ${isSelected}>${typeLabel} ${sub.accountName} (${sub.accountNumber})</option>`;
       }
     });
   }
@@ -1968,22 +1976,22 @@ window.c360ChangeLinkedAccount = async function () {
     title:
       '<span class="kh-text" style="font-size:1.2rem;">ប្តូរគណនីភ្ជាប់ (Linked Account)</span>',
     html: `
-        <div style="text-align: left; margin-top: 15px;">
-            <label class="kh-text" style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ជ្រើសរើសគណនីកាត់លុយថ្មី៖</label>
-            <select id="swal-edit-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 0; font-size: 0.9rem;">
-                ${accOptions}
-            </select>
-        </div>
-    `,
+            <div style="text-align: left; margin-top: 15px;" class="kh-text">
+                <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-muted);">ជ្រើសរើសគណនីកាត់លុយថ្មី៖</label>
+                <select id="swal-edit-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 0; font-size: 0.9rem; padding: 10px; box-sizing: border-box;">
+                    ${accOptions}
+                </select>
+            </div>
+        `,
     showCancelButton: true,
-    confirmButtonColor: "#eab308",
+    confirmButtonColor: "var(--primary)",
     confirmButtonText: '<span class="kh-text">រក្សាទុក</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
-    customClass: { popup: "modal-radius" },
+    customClass: { popup: "modal-radius kh-text" },
     preConfirm: () => document.getElementById("swal-edit-linked-acc").value,
   });
 
-  if (newLinkedAcc && newLinkedAcc !== c.linkedAccount) {
+  if (newLinkedAcc) {
     Swal.fire({
       title: "កំពុងរក្សាទុក...",
       didOpen: () => Swal.showLoading(),
@@ -1993,19 +2001,19 @@ window.c360ChangeLinkedAccount = async function () {
       const res = await fetch("/api/admin/change-card-account", {
         method: "POST",
         headers: getAuthHeaders(),
-        // 🟢 បញ្ជូនលេខគណនីពេញលេញទៅកាន់ Backend (លែងកាត់ផ្តាច់ទៀតហើយ)
         body: JSON.stringify({
           username: currentC360User.username,
-          cardId: c.id,
+          cardId: c.id || c._id,
           linkedAccount: newLinkedAcc,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        c360RefreshData();
+        await c360RefreshData(); // Refresh ទិន្នន័យថ្មីមកបង្ហាញភ្លាមៗ
         Swal.fire({
           icon: "success",
-          title: "ប្តូរគណនីភ្ជាប់ជោគជ័យ!",
+          title: "ជោគជ័យ!",
+          text: data.message || "ប្តូរគណនីភ្ជាប់ជោគជ័យ!",
           timer: 1500,
           showConfirmButton: false,
           customClass: { popup: "premium-swal kh-text" },
@@ -4765,65 +4773,77 @@ window.c360ForceLogout = async function (username) {
 };
 
 // =======================================================
-// 🏪 TAB 7: Merchant
+// 🏪 TAB 7: Merchant (Admin Pro View - Full Integrated)
 // =======================================================
 let c360CurrentMerchantId = null;
+let c360MerchantTrxPage = 1;
+const c360MerchantTrxPerPage = 4;
+let c360CurrentMerchantsList = []; // អថេររក្សាទុកបញ្ជីហាងបណ្តោះអាសន្ន
 
 async function renderMerchantTab(user) {
   const container = document.getElementById("c360-tab-merchant");
   if (!container) return;
-  container.innerHTML = `<div style="text-align: center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i></div>`;
+
+  container.innerHTML = `<div style="text-align: center; padding: 50px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i><br><br><span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">កំពុងទាញយកទិន្នន័យហាង...</span></div>`;
 
   try {
-    const res = await fetch("/api/merchants/admin/all-merchants", {
+    const res = await fetch(`/api/admin/merchants-by-user/${user.username}`, {
       headers: getAuthHeaders(),
     });
     const data = await res.json();
 
     let userMerchants = [];
     if (data.success && data.merchants) {
-      userMerchants = data.merchants.filter(
-        (m) => m.userId === user.username || m.merchantId === user.merchantId,
-      );
+      userMerchants = data.merchants;
+      c360CurrentMerchantsList = userMerchants;
+    } else {
+      c360CurrentMerchantsList = [];
     }
 
+    // 🟢 ករណីគ្មានហាង
     if (userMerchants.length === 0) {
       container.innerHTML = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px;">
-            <i class="fa-solid fa-store-slash" style="font-size: 5rem; color: var(--text-muted); opacity: 0.5; margin-bottom: 20px;"></i>
-            <h3 class="kh-text" style="color: var(--text-main); margin: 0 0 10px;">អតិថិជននេះមិនទាន់មានអាជីវកម្មទេ</h3>
-            <p class="kh-text" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px;">អតិថិជននេះកំពុងប្រើប្រាស់គណនីជាទម្រង់បុគ្គលប៉ុណ្ណោះ។</p>
-            <button onclick="c360RegisterMerchant()" class="kh-text btn-primary" style="padding: 14px 30px; border-radius: 14px; font-size: 1.05rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
-                <i class="fa-solid fa-plus-circle"></i> ចុះឈ្មោះជាអាជីវកម្ម (Add Shop)
-            </button>
-        </div>`;
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border);">
+                <div style="width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                    <i class="fa-solid fa-store-slash" style="font-size: 2.5rem; color: #94a3b8;"></i>
+                </div>
+                <h3 class="kh-text" style="color: var(--text-main); margin: 0 0 10px; font-weight: 800;">អតិថិជននេះមិនទាន់មានអាជីវកម្មទេ</h3>
+                <p class="kh-text" style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; text-align: center; max-width: 400px;">អតិថិជននេះកំពុងប្រើប្រាស់គណនីជាទម្រង់បុគ្គល (Personal User) ប៉ុណ្ណោះ មិនទាន់បានចុះឈ្មោះហាងទទួលប្រាក់ទេ។</p>
+                <button onclick="c360RegisterMerchant()" class="kh-text" style="padding: 12px 24px; background: var(--secondary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); transition: 0.2s;">
+                    <i class="fa-solid fa-plus-circle"></i> ចុះឈ្មោះហាងឱ្យគាត់ (Add Shop)
+                </button>
+            </div>`;
       return;
     }
 
     if (
       !c360CurrentMerchantId ||
       !userMerchants.find((m) => m._id === c360CurrentMerchantId)
-    )
+    ) {
       c360CurrentMerchantId = userMerchants[0]._id;
+    }
+
     const m = userMerchants.find((m) => m._id === c360CurrentMerchantId);
     const isSuspended = m.status === "Suspended";
 
-    let branchSelector = "";
-    if (userMerchants.length > 1) {
-      let options = userMerchants
-        .map(
-          (branch) =>
-            `<option value="${branch._id}" ${branch._id === c360CurrentMerchantId ? "selected" : ""}>${branch.name || "Unnamed"} (MID: ${branch.merchantId})</option>`,
-        )
-        .join("");
-      branchSelector = `
-        <div style="margin-bottom: 15px; background: var(--bg-card); padding: 10px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-code-branch" style="color: var(--text-muted);"></i>
-            <select class="kh-text" style="flex: 1; border: none; outline: none; font-weight: bold; color: var(--text-main); background: transparent; font-size: 1rem;" onchange="c360CurrentMerchantId = this.value; renderMerchantTab(currentC360User);">
-                ${options}
-            </select>
-        </div>`;
-    }
+    // 🟢 ១. របារជ្រើសរើសសាខា (Branch Selector Pills)
+    let branchSelectorHtml = `<div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;">`;
+    userMerchants.forEach((branch) => {
+      const isActiveBranch = branch._id === c360CurrentMerchantId;
+      const bg = isActiveBranch ? "var(--secondary)" : "var(--bg-body)";
+      const color = isActiveBranch ? "white" : "var(--text-main)";
+      const border = isActiveBranch ? "none" : "1px solid var(--border)";
+      branchSelectorHtml += `
+                <div onclick="c360CurrentMerchantId='${branch._id}'; c360MerchantTrxPage=1; renderMerchantTab(currentC360User);" 
+                     class="kh-text" style="padding: 8px 16px; background: ${bg}; color: ${color}; border: ${border}; border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s;">
+                    <i class="fa-solid fa-store"></i> ${branch.name}
+                </div>`;
+    });
+    branchSelectorHtml += `
+                <div onclick="c360RegisterMerchant()" class="kh-text" style="padding: 8px 16px; background: transparent; color: var(--secondary); border: 1px dashed var(--secondary); border-radius: 20px; font-size: 0.9rem; font-weight: bold; cursor: pointer; white-space: nowrap; transition: 0.2s;" title="បង្កើតសាខាថ្មី">
+                    <i class="fa-solid fa-plus"></i> ថែមសាខា
+                </div>
+            </div>`;
 
     let balUSD =
       m.collected && m.collected.USD
@@ -4834,64 +4854,154 @@ async function renderMerchantTab(user) {
         ? parseFloat(m.collected.KHR).toLocaleString()
         : "0";
 
+    let hasUSD = !!m.linkedAccounts?.USD;
+    let hasKHR = !!m.linkedAccounts?.KHR;
+
+    // អនុគមន៍ជំនួយសម្រាប់ទាញយកឈ្មោះគណនី
+    function getAccName(accNum) {
+      if (!accNum) return "";
+      if (currentC360User.mainAccounts?.USD?.accountNumber === accNum)
+        return currentC360User.fullName || currentC360User.username;
+      if (currentC360User.mainAccounts?.KHR?.accountNumber === accNum)
+        return currentC360User.fullName || currentC360User.username;
+      if (
+        currentC360User.subAccounts &&
+        currentC360User.subAccounts.length > 0
+      ) {
+        const sub = currentC360User.subAccounts.find(
+          (s) => s.accountNumber === accNum,
+        );
+        if (sub) return sub.accountName;
+      }
+      return currentC360User.fullName || currentC360User.username;
+    }
+
+    const formatLinkedAcc = (accNum, iconClass) => {
+      const accName = getAccName(accNum);
+      return `
+            <div style="display: flex; align-items: center; width: 100%; overflow: hidden; margin-bottom: 4px;">
+                <i class="fa-solid ${iconClass}" style="color: #64748b; width: 18px; flex-shrink: 0;"></i>
+                <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--secondary); margin-right: 6px; flex-shrink: 0; font-size: 0.9rem;">${accNum}</span>
+                <span style="color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Kantumruy Pro', sans-serif; font-size: 0.8rem; flex: 1;">- ${accName}</span>
+            </div>`;
+    };
+
+    let linkedDescHtml = "";
+    if (hasUSD && hasKHR) {
+      linkedDescHtml =
+        formatLinkedAcc(m.linkedAccounts.USD, "fa-dollar-sign") +
+        formatLinkedAcc(m.linkedAccounts.KHR, "fa-r");
+    } else if (hasUSD) {
+      linkedDescHtml = formatLinkedAcc(m.linkedAccounts.USD, "fa-dollar-sign");
+    } else if (hasKHR) {
+      linkedDescHtml = formatLinkedAcc(m.linkedAccounts.KHR, "fa-r");
+    } else {
+      linkedDescHtml = `<span style="color: #ef4444; font-size: 0.85rem;">មិនមានគណនីភ្ជាប់</span>`;
+    }
+
+    const strAccountsStr = encodeURIComponent(
+      JSON.stringify(m.accountNumbers || {}),
+    );
+
     let html = `
-      <div style="display: flex; flex-direction: column; gap: 20px;">
-          ${branchSelector}
-          <div style="background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%); border-radius: 20px; padding: 25px; color: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 20px;">
-                  <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 1px solid rgba(255,255,255,0.2);">
-                      <i class="fa-solid fa-store"></i>
-                  </div>
-                  <div>
-                      <h2 class="kh-text" style="margin: 0 0 5px; font-size: 1.4rem;">${m.name}</h2>
-                      <p class="kh-text" style="margin: 0; font-size: 0.85rem; color: #e2e8f0;">MID: <span style="font-family: monospace;">${m.merchantId}</span> • ${m.category}</p>
-                  </div>
-              </div>
-              <div style="text-align: right;">
-                  <div style="font-size: 0.75rem; color: #e2e8f0; margin-bottom: 5px;">${isSuspended ? "បានផ្អាក" : "ដំណើរការ"}</div>
-                  <label class="switch" style="transform: scale(1.1);">
-                      <input type="checkbox" ${!isSuspended ? "checked" : ""} onchange="if(typeof toggleMerchantFreeze === 'function') toggleMerchantFreeze('${m._id}', !this.checked); setTimeout(()=>renderMerchantTab(currentC360User), 1000);">
-                      <span class="slider"></span>
-                  </label>
-              </div>
-          </div>
+        <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+            <i class="fa-solid fa-store" style="color: var(--secondary);"></i> គ្រប់គ្រងអាជីវកម្ម (Merchant)
+        </h2>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-              <div style="background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); position: relative;">
-                  <div class="kh-text" style="color: var(--text-muted); font-size: 0.85rem; font-weight: bold;">ចំណូលសរុប (Total Received)</div>
-                  <div style="font-size: 1.6rem; font-weight: 800; color: var(--secondary); margin: 5px 0 0; font-family: 'Inter', sans-serif;">$${balUSD}</div>
-                  <div style="font-size: 1.2rem; font-weight: 700; color: #047857; font-family: 'Inter', sans-serif;">៛${balKHR}</div>
-              </div>
-              
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                  <button onclick="if(typeof editMerchantByAdmin === 'function') { editMerchantByAdmin('${m._id}'); setTimeout(()=>renderMerchantTab(currentC360User), 2000); }" class="kh-text" style="background: rgba(59, 130, 246, 0.1); color: var(--accent); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
-                      <i class="fa-solid fa-pen" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> កែប្រែហាង
-                  </button>
-                  <button onclick="if(typeof deleteMerchantByAdmin === 'function') { deleteMerchantByAdmin('${m._id}'); setTimeout(c360RefreshData, 2000); }" class="kh-text" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;">
-                      <i class="fa-solid fa-trash" style="font-size: 1.3rem; display: block; margin-bottom: 5px;"></i> លុបហាង
-                  </button>
-                  <button onclick="c360RegisterMerchant()" class="kh-text" style="background: var(--bg-body); color: var(--text-main); border: 1px dashed var(--border); border-radius: 12px; padding: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; grid-column: span 2;">
-                      <i class="fa-solid fa-plus"></i> បង្កើតសាខាថ្មី
-                  </button>
-              </div>
-          </div>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            
+            ${branchSelectorHtml}
 
-          <div style="background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border);">
-              <h4 class="kh-text" style="margin: 0 0 15px; color: var(--text-main);"><i class="fa-solid fa-receipt" style="color: var(--secondary);"></i> ប្រវត្តិការលក់ (Transactions)</h4>
-              <div id="c360-merchant-trx-list">
-                  <div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i></div>
-              </div>
-          </div>
-      </div>`;
+            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                
+                <!-- ផ្នែកខាងឆ្វេង៖ ព័ត៌មានលម្អិត -->
+                <div style="flex: 2; min-width: 300px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="width: 55px; height: 55px; background: #e0f2fe; color: #0284c7; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 1px solid #bae6fd;">
+                                <i class="fa-solid fa-shop"></i>
+                            </div>
+                            <div>
+                                <h3 class="kh-text" style="margin: 0 0 5px; color: var(--text-main); font-size: 1.2rem; font-weight: 800;">${m.name}</h3>
+                                <p class="kh-text" style="margin: 0; font-size: 0.85rem; color: var(--text-muted); font-family: monospace;">MID: ${m.merchantId} | ទីតាំង: ${m.city || "N/A"}</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px; font-weight: bold;">${isSuspended ? "បានផ្អាក" : "ដំណើរការ"}</div>
+                            <label class="switch" title="បិទ/បើកហាង">
+                                <input type="checkbox" ${!isSuspended ? "checked" : ""} onchange="adminToggleMerchantFreeze('${m._id}', !this.checked);">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                        <div style="background: var(--bg-body); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 3px;">ប្រភេទអាជីវកម្ម (Category)</div>
+                            <div class="kh-text" style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">${m.category || "N/A"}</div>
+                        </div>
+                        <div style="background: var(--bg-body); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; overflow: hidden;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; margin-bottom: 3px;">គណនីទទួលប្រាក់ (Linked)</div>
+                            <div style="width: 100%;">
+                                ${linkedDescHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ប៊ូតុងសកម្មភាព -->
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="editMerchantByAdmin('${m._id}')" class="kh-text" style="flex: 1; padding: 10px; background: white; color: #3b82f6; border: 1px solid #bfdbfe; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-pen"></i> កែប្រែ</button>
+                        <button onclick="c360ShowMerchantQR('${m.merchantId}', '${m.name}', '${strAccountsStr}')" class="kh-text" style="flex: 1; padding: 10px; background: white; color: #8b5cf6; border: 1px solid #ddd6fe; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-qrcode"></i> QR Code</button>
+                        <button onclick="deleteMerchantByAdmin('${m._id}')" class="kh-text" style="flex: 1; padding: 10px; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;"><i class="fa-solid fa-trash"></i> លុបហាង</button>
+                    </div>
+                </div>
+
+                <!-- ផ្នែកខាងស្តាំ៖ ចំណូលសរុប -->
+                <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #004d40 0%, #059669 100%); border-radius: 16px; padding: 25px; color: white; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2);">
+                    <i class="fa-solid fa-chart-line" style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1;"></i>
+                    <h4 class="kh-text" style="margin: 0 0 15px; font-size: 1rem; color: #d1fae5;"><i class="fa-solid fa-sack-dollar"></i> ចំណូលសរុប (Total Revenue)</h4>
+                    <div style="font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 10px;">$${balUSD}</div>
+                    <div style="font-size: 1.4rem; font-weight: 700; font-family: 'Inter', sans-serif; color: #a7f3d0;">៛${balKHR}</div>
+                </div>
+            </div>
+
+            <!-- ៣. បញ្ជីប្រតិបត្តិការ និង Refund -->
+            <div style="background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4 class="kh-text" style="margin: 0; color: var(--text-main); font-size: 1.1rem; font-weight: 800;"><i class="fa-solid fa-receipt" style="color: var(--secondary);"></i> ប្រតិបត្តិការចូលហាងនេះ (Transactions)</h4>
+                    <button onclick="c360MerchantTrxPage=1; c360FetchMerchantTransactions('${m._id}')" style="background: var(--bg-body); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; color: var(--text-muted); cursor: pointer; font-family: 'Kantumruy Pro'; font-weight: bold;"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                </div>
+                
+                <div id="c360-merchant-trx-list" style="min-height: 250px;">
+                    <div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i></div>
+                </div>
+
+                <!-- 🟢 ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);">
+                    <button id="c360-btn-merch-prev" onclick="c360ChangeMerchantTrxPage(-1)" style="padding: 8px 15px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro';" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
+                    <span id="c360-merch-page-info" class="kh-text" style="font-weight: bold; color: var(--text-main);">ទំព័រ 1</span>
+                    <button id="c360-btn-merch-next" onclick="c360ChangeMerchantTrxPage(1)" style="padding: 8px 15px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); font-weight: bold; cursor: pointer; font-family: 'Kantumruy Pro';" disabled>បន្ទាប់ <i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>`;
+
     container.innerHTML = html;
     c360FetchMerchantTransactions(m._id);
   } catch (e) {
-    container.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: red;">មានបញ្ហាក្នុងការទាញទិន្នន័យ Server</div>`;
+    console.error("Merchant Render Error:", e);
+    container.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: red;">មានបញ្ហាក្នុងការទាញទិន្នន័យហាងពី Server</div>`;
   }
 }
 
+// =======================================================
+// 🟢 អនុគមន៍ជំនួយសម្រាប់ Tab Merchant (API Logic)
+// =======================================================
+let c360CachedMerchantTrx = [];
+
 async function c360FetchMerchantTransactions(mid) {
   const listDiv = document.getElementById("c360-merchant-trx-list");
+  listDiv.innerHTML = `<div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--text-muted);"></i><br><br><span class="kh-text" style="font-size: 0.9rem; color: var(--text-muted);">កំពុងទាញយកប្រវត្តិ...</span></div>`;
+
   try {
     const res = await fetch(`/api/merchants/transactions/${mid}?filter=total`, {
       headers: getAuthHeaders(),
@@ -4899,72 +5009,605 @@ async function c360FetchMerchantTransactions(mid) {
     const data = await res.json();
 
     if (data.success && data.transactions && data.transactions.length > 0) {
-      listDiv.innerHTML = data.transactions
-        .slice(0, 15)
-        .map((t) => {
-          let color =
-            t.type === "Received" || t.amount > 0
-              ? "var(--secondary)"
-              : "#ef4444";
-          let sign = t.type === "Received" || t.amount > 0 ? "+" : "";
-          return `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border);">
-                <div>
-                    <div class="kh-text" style="font-weight: 600; color: var(--text-main);">${t.senderName || t.receiverName}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${t.date}</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-weight: bold; color: ${color}; font-family: 'JetBrains Mono', monospace;">${sign}${t.amount} ${t.currency}</div>
-                    <div style="font-size: 0.7rem; background: var(--bg-body); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); display: inline-block; margin-top: 4px;">${t.status}</div>
-                </div>
-            </div>`;
-        })
-        .join("");
-    } else
-      listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: var(--text-muted); padding: 20px;">មិនទាន់មានប្រតិបត្តិការនៅឡើយទេ</div>`;
+      c360CachedMerchantTrx = data.transactions;
+      c360RenderMerchantTrxPage();
+    } else {
+      c360CachedMerchantTrx = [];
+      listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: var(--text-muted); padding: 40px; background: var(--bg-body); border-radius: 12px; border: 1px dashed var(--border);">មិនទាន់មានប្រតិបត្តិការនៅឡើយទេ</div>`;
+      document.getElementById("c360-merch-page-info").innerText =
+        "ទំព័រ 0 នៃ 0";
+      document.getElementById("c360-btn-merch-prev").disabled = true;
+      document.getElementById("c360-btn-merch-next").disabled = true;
+    }
   } catch (error) {
     listDiv.innerHTML = `<div class="kh-text" style="text-align: center; color: #ef4444; padding: 20px;">បរាជ័យក្នុងការទាញយកប្រតិបត្តិការ</div>`;
   }
 }
 
-window.c360RegisterMerchant = async function () {
+function c360ChangeMerchantTrxPage(step) {
+  c360MerchantTrxPage += step;
+  c360RenderMerchantTrxPage();
+}
+
+function c360RenderMerchantTrxPage() {
+  const listDiv = document.getElementById("c360-merchant-trx-list");
+  const totalPages = Math.ceil(
+    c360CachedMerchantTrx.length / c360MerchantTrxPerPage,
+  );
+
+  if (c360MerchantTrxPage > totalPages) c360MerchantTrxPage = totalPages;
+  if (c360MerchantTrxPage < 1) c360MerchantTrxPage = 1;
+
+  const startIndex = (c360MerchantTrxPage - 1) * c360MerchantTrxPerPage;
+  const endIndex = startIndex + c360MerchantTrxPerPage;
+  const pageItems = c360CachedMerchantTrx.slice(startIndex, endIndex);
+
+  listDiv.innerHTML = pageItems
+    .map((t, idx) => {
+      const globalIndex = startIndex + idx;
+      const isIncome = t.amount > 0 || t.type === "Received";
+      const color = isIncome ? "var(--secondary)" : "#ef4444";
+      const sign = isIncome ? "+" : "";
+      const curSym = t.currency === "USD" ? "$" : "៛";
+      const displayAmt =
+        t.currency === "USD"
+          ? Math.abs(t.amount).toFixed(2)
+          : Math.abs(t.amount).toLocaleString();
+
+      let statusBadge = `<span style="color: #10b981; font-weight: bold;">🟢 Success</span>`;
+      if (t.status === "Hold") {
+        statusBadge = `<span style="color: #f59e0b; font-weight: bold;">🟠 Hold</span>`;
+      } else if (t.status === "Refunded" || t.status === "Voided") {
+        statusBadge = `<span style="color: #ef4444; font-weight: bold;">🔴 ${t.status}</span>`;
+      }
+
+      // 🌟 បង្ហាញប៊ូតុងដោះ Hold (Approve) និង Refund ពេល Status ជា "Hold"
+      let refundBtnHtml = "";
+      if (isIncome && t.status === "Hold") {
+        refundBtnHtml = `
+            <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                <button onclick="event.stopPropagation(); c360AdminReleaseHold('${t.refId}', '${Math.abs(t.amount)}', '${t.currency}')" class="kh-text" style="padding: 5px 10px; background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.2s;" title="អនុម័តទម្លាក់ប្រាក់ភ្លាមៗ">
+                    <i class="fa-solid fa-check"></i> Approve
+                </button>
+                <button onclick="event.stopPropagation(); c360AdminRefundTrx('${t.refId}', '${Math.abs(t.amount)}', '${t.currency}')" class="kh-text" style="padding: 5px 10px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.2s;" title="បង្វិលប្រាក់សងភ្ញៀវ">
+                    <i class="fa-solid fa-rotate-left"></i> Refund
+                </button>
+            </div>`;
+      } else if (t.status === "Success") {
+        refundBtnHtml = `<span style="font-size: 0.75rem; color: #10b981; font-weight: bold; padding: 4px 8px; background: #ecfdf5; border-radius: 6px;"><i class="fa-solid fa-check-double"></i> Success</span>`;
+      } else if (t.status === "Refunded") {
+        refundBtnHtml = `<span style="font-size: 0.75rem; color: #94a3b8; font-weight: bold; padding: 4px 8px; background: var(--bg-body); border-radius: 6px;"><i class="fa-solid fa-check"></i> បាន Refund</span>`;
+      }
+
+      return `
+        <div onclick="c360OpenMerchantTrxSlip(${globalIndex})" 
+             style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s;" 
+             onmouseover="this.style.borderColor='var(--secondary)'; this.style.transform='translateY(-2px)'" 
+             onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'"
+             title="ចុចដើម្បីមើលវិក្កយបត្រ (View Slip)">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 45px; height: 45px; border-radius: 12px; background: ${isIncome ? "#ecfdf5" : "#fef2f2"}; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 1px solid ${isIncome ? "#a7f3d0" : "#fecaca"};">
+                    <i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i>
+                </div>
+                <div>
+                    <div class="kh-text" style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">${t.senderName || t.receiverName}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 3px;">
+                        Ref: ${t.refId} • ${t.date} • ${statusBadge}
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+                <div style="font-weight: 800; color: ${t.status === "Refunded" ? "#94a3b8" : color}; font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; text-decoration: ${t.status === "Refunded" ? "line-through" : "none"};">${sign}${curSym}${displayAmt}</div>
+                ${refundBtnHtml}
+            </div>
+        </div>`;
+    })
+    .join("");
+
+  document.getElementById("c360-merch-page-info").innerText =
+    `ទំព័រ ${c360MerchantTrxPage} នៃ ${totalPages}`;
+  document.getElementById("c360-btn-merch-prev").disabled =
+    c360MerchantTrxPage === 1;
+  document.getElementById("c360-btn-merch-next").disabled =
+    c360MerchantTrxPage === totalPages;
+}
+
+// 🌟 ប្រើប្រាស់គំរូដូច Tab 4 (ហៅ c360ViewTrxDetails ដើម្បីបង្ហាញ Slip យ៉ាងស្អាត)
+window.c360OpenMerchantTrxSlip = function (index) {
+  const trx = c360CachedMerchantTrx[index];
+  if (!trx) return;
+
+  if (!currentC360User.transactions) currentC360User.transactions = [];
+
+  let existIdx = currentC360User.transactions.findIndex(
+    (t) => t.refId === trx.refId || t.hash === trx.hash,
+  );
+  if (existIdx === -1) {
+    currentC360User.transactions.unshift(trx);
+    existIdx = 0;
+  }
+
+  if (typeof c360ViewTrxDetails === "function") {
+    c360ViewTrxDetails(existIdx);
+  } else {
+    Swal.fire(
+      "Error",
+      "មុខងារបង្ហាញ Slip (c360ViewTrxDetails) មិនមានទេ!",
+      "error",
+    );
+  }
+};
+
+window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
+  let accounts = {};
+  try {
+    accounts = JSON.parse(decodeURIComponent(strAccountsStr));
+  } catch (e) {
+    console.error("Parse Accounts Error", e);
+  }
+
+  let hasUSD = !!accounts.USD;
+  let hasKHR = !!accounts.KHR;
+
+  if (!hasUSD && !hasKHR) {
+    return Swal.fire(
+      "បញ្ជាក់",
+      "ហាងនេះមិនទាន់មានគណនីភ្ជាប់ ដើម្បីបង្កើត QR Code ទេ!",
+      "warning",
+    );
+  }
+
+  let defaultAcc = hasUSD ? accounts.USD : accounts.KHR;
+  let qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(defaultAcc)}&dark=004d40&size=400&margin=1`;
+
+  let toggleOrBadgeHtml = "";
+  if (hasUSD && hasKHR) {
+    toggleOrBadgeHtml = `
+            <div style="display: flex; background: #f1f5f9; border-radius: 14px; padding: 5px; margin-bottom: 25px; width: 100%; box-sizing: border-box;">
+                <div id="c360-qr-btn-usd" onclick="document.getElementById('c360-dynamic-qr').src='https://quickchart.io/qr?text=${encodeURIComponent(accounts.USD)}&dark=004d40&size=400&margin=1'; document.getElementById('c360-qr-mid').innerText='${accounts.USD}'; this.classList.add('active'); this.nextElementSibling.classList.remove('active'); document.getElementById('c360-qr-mid').style.color='#004d40';" style="flex: 1; text-align: center; padding: 10px 0; font-size: 0.9rem; font-weight: 700; color: #64748b; border-radius: 10px; cursor: pointer; transition: 0.3s;" class="active">
+                    USD ($)
+                </div>
+                <div id="c360-qr-btn-khr" onclick="document.getElementById('c360-dynamic-qr').src='https://quickchart.io/qr?text=${encodeURIComponent(accounts.KHR)}&dark=047857&size=400&margin=1'; document.getElementById('c360-qr-mid').innerText='${accounts.KHR}'; this.classList.add('active'); this.previousElementSibling.classList.remove('active'); document.getElementById('c360-qr-mid').style.color='#047857';" style="flex: 1; text-align: center; padding: 10px 0; font-size: 0.9rem; font-weight: 700; color: #64748b; border-radius: 10px; cursor: pointer; transition: 0.3s;">
+                    KHR (៛)
+                </div>
+            </div>
+        `;
+  } else {
+    const badgeColor = hasUSD ? "#004d40" : "#047857";
+    const badgeText = hasUSD ? "USD ($)" : "KHR (៛)";
+    toggleOrBadgeHtml = `
+            <div style="margin-bottom: 25px; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 12px; color: ${badgeColor}; font-weight: 800; font-size: 0.95rem; display: flex; justify-content: center; align-items: center;">
+                 ${badgeText}
+            </div>
+        `;
+  }
+
+  let initMidText = hasUSD ? accounts.USD : accounts.KHR;
+  let initMidColor = hasUSD ? "#004d40" : "#047857";
+
+  Swal.fire({
+    title: `<span class="kh-text" style="color: var(--primary); font-size: 1.4rem;">QR Code ហាង</span>`,
+    html: `
+            <style>
+                #c360-qr-btn-usd.active, #c360-qr-btn-khr.active {
+                    background: white !important;
+                    color: var(--primary) !important;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                }
+                .c360-qr-container {
+                    background: white; width: 100%; max-width: 350px; padding: 30px 25px 25px; border-radius: 30px; box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1); text-align: center; box-sizing: border-box; margin: auto; border: 1px solid var(--border);
+                }
+            </style>
+            
+            <div class="c360-qr-container">
+                ${toggleOrBadgeHtml}
+                <img src="../images/logo-nobg.png" style="height: 40px; margin-bottom: 15px;" alt="U-Pay" onerror="this.style.display='none'">
+                <h3 class="kh-text" style="margin: 0; font-size: 1.6rem; color: #1e293b; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">${name}</h3>
+                <p style="color: #64748b; font-size: 1rem; margin: 8px 0 25px; font-weight: 500; font-family: monospace;">MID: ${mid}</p>
+                <div style="background: #ffffff; padding: 15px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; border: 1px solid #e2e8f0; box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);">
+                    <img id="c360-dynamic-qr" src="${qrUrl}" style="width: 100%; max-width: 220px; height: auto; display: block; border-radius: 12px; transition: 0.3s;">
+                </div>
+                <p id="c360-qr-mid" style="margin: 0 0 20px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${initMidColor}; font-size: 1.2rem; letter-spacing: 1.5px;">${initMidText}</p>
+            </div>
+            <p class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 20px;">Admin អាចប្រើ QR នេះដើម្បីសាកល្បងស្កេនទូទាត់ប្រាក់ចូលហាងបាន។</p>
+        `,
+    showConfirmButton: true,
+    confirmButtonText: "បិទផ្ទាំង (Close)",
+    confirmButtonColor: "var(--primary)",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+  });
+};
+
+window.c360AdminRefundTrx = async function (refId, amount, currency) {
+  const { value: reason } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការបង្វិលប្រាក់ (Refund)</span>',
+    html: `<p class="kh-text" style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px;">តើអ្នកពិតជាចង់បង្វិលប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${Number(amount).toLocaleString()}</b> នេះត្រលប់ទៅគណនីដើមរបស់អតិថិជនវិញមែនទេ?</p>
+               <input id="swal-refund-reason" class="swal2-input kh-text" placeholder="វាយបញ្ជាក់មូលហេតុនៅទីនេះ..." style="font-size: 0.95rem; border-radius: 10px; width: 85%; margin: 0 auto;">`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "យល់ព្រមបង្វិលលុយសង",
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+    preConfirm: () => {
+      const r = document.getElementById("swal-refund-reason").value.trim();
+      if (!r)
+        Swal.showValidationMessage("អ្នកត្រូវតែបញ្ចូលមូលហេតុនៃការ Refund!");
+      return r;
+    },
+  });
+
+  if (reason) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal" },
+    });
+    try {
+      const res = await fetch("/api/admin/refund-transaction", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ refId: refId, reason: reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: data.message || "បានបង្វិលប្រាក់ត្រលប់ទៅអតិថិជនវិញរួចរាល់!",
+          timer: 2000,
+          showConfirmButton: false,
+          customClass: { popup: "kh-text premium-swal" },
+        });
+        if (typeof c360RefreshData === "function") {
+          c360RefreshData();
+        } else {
+          renderMerchantTab(currentC360User);
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "បរាជ័យ",
+          text: data.message,
+          customClass: { popup: "kh-text premium-swal" },
+        });
+      }
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+    }
+  }
+};
+
+window.adminToggleMerchantFreeze = async function (id, isFrozen) {
+  try {
+    const res = await fetch("/api/admin/toggle-merchant-freeze", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id, isFrozen }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "ប្តូរស្ថានភាពហាងជោគជ័យ!",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } else {
+      Swal.fire("Error", data.message, "error");
+      renderMerchantTab(currentC360User);
+    }
+  } catch (e) {
+    Swal.fire("Error", "Server Error", "error");
+    renderMerchantTab(currentC360User);
+  }
+};
+
+window.deleteMerchantByAdmin = async function (id) {
+  Swal.fire({
+    title: "តើអ្នកប្រាកដទេ?",
+    text: "ទិន្នន័យហាងនេះនឹងត្រូវលុបចោលទាំងស្រុងពីប្រព័ន្ធ!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "បាទ/ចាស, លុប!",
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "premium-swal kh-text" },
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: "កំពុងដំណើរការ...",
+        didOpen: () => Swal.showLoading(),
+      });
+      try {
+        const response = await fetch(`/api/admin/delete-merchant/${id}`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        });
+        const data = await response.json();
+        if (data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "លុបរួចរាល់",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+          c360CurrentMerchantId = null;
+          c360RefreshData();
+        } else {
+          Swal.fire("Error", data.message, "error");
+        }
+      } catch (err) {
+        Swal.fire("Error", "មានបញ្ហាបច្ចេកទេស", "error");
+      }
+    }
+  });
+};
+
+window.editMerchantByAdmin = async function (id) {
+  const mData = c360CurrentMerchantsList.find(
+    (m) => m._id === id || m.id === id,
+  );
+  if (!mData) return Swal.fire("Error", "រកទិន្នន័យហាងមិនឃើញទេ!", "error");
+
+  let usdOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
+  let khrOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
+
+  if (currentC360User.mainAccounts?.USD) {
+    let isSelected =
+      mData.linkedAccounts?.USD ===
+      currentC360User.mainAccounts.USD.accountNumber
+        ? "selected"
+        : "";
+    usdOptions += `<option value="${currentC360User.mainAccounts.USD.accountNumber}" ${isSelected}>គណនីចម្បង USD (${currentC360User.mainAccounts.USD.accountNumber})</option>`;
+  }
+  if (currentC360User.mainAccounts?.KHR) {
+    let isSelected =
+      mData.linkedAccounts?.KHR ===
+      currentC360User.mainAccounts.KHR.accountNumber
+        ? "selected"
+        : "";
+    khrOptions += `<option value="${currentC360User.mainAccounts.KHR.accountNumber}" ${isSelected}>គណនីចម្បង KHR (${currentC360User.mainAccounts.KHR.accountNumber})</option>`;
+  }
+
+  if (currentC360User.subAccounts && currentC360User.subAccounts.length > 0) {
+    currentC360User.subAccounts.forEach((sub) => {
+      if (sub.accountType !== "junior") {
+        let typeLabel =
+          sub.accountType === "joint" || sub.accountType === "joint_member"
+            ? "[Joint]"
+            : "[Sub]";
+        if (sub.currency === "USD") {
+          let isSelected =
+            mData.linkedAccounts?.USD === sub.accountNumber ? "selected" : "";
+          usdOptions += `<option value="${sub.accountNumber}" ${isSelected}>${typeLabel} ${sub.accountName} (${sub.accountNumber})</option>`;
+        } else {
+          let isSelected =
+            mData.linkedAccounts?.KHR === sub.accountNumber ? "selected" : "";
+          khrOptions += `<option value="${sub.accountNumber}" ${isSelected}>${typeLabel} ${sub.accountName} (${sub.accountNumber})</option>`;
+        }
+      }
+    });
+  }
+
   const { value: formValues } = await Swal.fire({
     title:
-      '<span class="kh-text" style="color:var(--secondary);">បង្កើតហាងថ្មី</span>',
+      '<h3 style="margin:0 0 10px 0; color: #0f172a; font-size: 1.25rem; font-weight: 700;">⚙️ កែប្រែព័ត៌មានហាង</h3>',
     html: `
-        <div style="text-align: left;">
-            <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted);">ឈ្មោះហាង</label>
-            <input id="m-name" class="swal2-input kh-text" placeholder="ឧ. Smart Shop" style="width:100%; margin: 5px 0 15px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-            <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted);">ទីក្រុង / ខេត្ត</label>
-            <input id="m-city" class="swal2-input kh-text" placeholder="ឧ. Phnom Penh" value="Phnom Penh" style="width:100%; margin: 5px 0 15px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-            <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted);">ប្រភេទអាជីវកម្ម</label>
-            <input id="m-category" class="swal2-input kh-text" placeholder="ឧ. Food & Beverage" value="Food & Beverage" style="width:100%; margin: 5px 0 15px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-            <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted);">គណនីទទួលប្រាក់</label>
-            <select id="m-linked" class="swal2-select kh-text" style="width:100%; margin: 5px 0 0; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
-                <option value="USD">គណនីប្រាក់ដុល្លារ (USD)</option>
-                <option value="KHR">គណនីប្រាក់រៀល (KHR)</option>
-            </select>
+        <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; padding: 5px 10px;">
+          <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ឈ្មោះហាងថ្មី (Shop Name)</label><input id="swal-edit-mname" class="swal2-input" value="${mData.name}" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px; font-family: 'Kantumruy Pro';"></div>
+          
+          <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ប្រភេទអាជីវកម្ម (Category)</label>
+             <select id="swal-edit-mcat" class="swal2-select" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px; font-family: 'Kantumruy Pro'; background: #fff;">
+                  <option value="Food & Beverage" ${mData.category === "Food & Beverage" ? "selected" : ""}>ម្ហូបអាហារ និងភេសជ្ជៈ</option>
+                  <option value="Health & Beauty" ${mData.category === "Health & Beauty" ? "selected" : ""}>សម្រស់ និងសុខភាព</option>
+                  <option value="Transportation" ${mData.category === "Transportation" ? "selected" : ""}>ដឹកជញ្ជូន</option>
+                  <option value="Fashion & Shopping" ${mData.category === "Fashion & Shopping" ? "selected" : ""}>សំលៀកបំពាក់ & ទំនិញ</option>
+                  <option value="Service & Cleaning" ${mData.category === "Service & Cleaning" ? "selected" : ""}>សេវាកម្ម</option>
+                  <option value="Education" ${mData.category === "Education" ? "selected" : ""}>ការអប់រំ និងបណ្ណាល័យ</option>
+                  <option value="Entertainment" ${mData.category === "Entertainment" ? "selected" : ""}>កម្សាន្ត និងទេសចរណ៍</option>
+                  <option value="Finance & Insurance" ${mData.category === "Finance & Insurance" ? "selected" : ""}>ហិរញ្ញវត្ថុ និងធានារ៉ាប់រង</option>
+                  <option value="Utilities" ${mData.category === "Utilities" ? "selected" : ""}>ទឹកភ្លើង និងសេវាសាធារណៈ</option>
+                  <option value="Others" ${mData.category === "Others" ? "selected" : ""}>ផ្សេងៗ</option>
+              </select>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
+              <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #334155; margin-bottom: 5px; display: block;">ប្តូរគណនីទទួលប្រាក់ (USD)</label>
+              <select id="swal-edit-linked-usd" class="swal2-select kh-text" style="width:100%; margin: 0 0 10px 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; padding: 5px 10px;">
+                  ${usdOptions}
+              </select>
+
+              <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #334155; margin-bottom: 5px; display: block;">ប្តូរគណនីទទួលប្រាក់ (KHR)</label>
+              <select id="swal-edit-linked-khr" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; padding: 5px 10px;">
+                  ${khrOptions}
+              </select>
+          </div>
         </div>`,
+    width: "500px",
     showCancelButton: true,
-    confirmButtonText: "រក្សាទុក (Save)",
-    confirmButtonColor: "var(--secondary)",
-    customClass: { popup: "modal-radius premium-swal" },
+    confirmButtonText: "រក្សាទុកការផ្លាស់ប្តូរ",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#004d40",
+    customClass: { popup: "kh-text premium-swal" },
     preConfirm: () => {
+      const newName = document.getElementById("swal-edit-mname").value.trim();
+      const linkedAccUSD = document.getElementById(
+        "swal-edit-linked-usd",
+      ).value;
+      const linkedAccKHR = document.getElementById(
+        "swal-edit-linked-khr",
+      ).value;
+
+      if (!newName) {
+        Swal.showValidationMessage("សូមបញ្ចូលឈ្មោះហាង!");
+        return false;
+      }
+      if (!linkedAccUSD && !linkedAccKHR) {
+        Swal.showValidationMessage("សូមជ្រើសរើសគណនីទទួលប្រាក់យ៉ាងហោចណាស់មួយ!");
+        return false;
+      }
+
       return {
-        name: document.getElementById("m-name").value,
+        name: newName,
+        category: document.getElementById("swal-edit-mcat").value,
+        linkedAccUSD: linkedAccUSD,
+        linkedAccKHR: linkedAccKHR,
+      };
+    },
+  });
+
+  if (formValues && formValues.name) {
+    try {
+      Swal.fire({
+        title: "កំពុងរក្សាទុក...",
+        didOpen: () => Swal.showLoading(),
+      });
+      const res = await fetch(`/api/admin/edit-merchant`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          id: mData._id || mData.id,
+          name: formValues.name,
+          category: formValues.category,
+          linkedAccount:
+            formValues.linkedAccUSD && formValues.linkedAccKHR
+              ? "BOTH"
+              : formValues.linkedAccUSD
+                ? "USD"
+                : "KHR",
+          linkedAccUSD: formValues.linkedAccUSD,
+          linkedAccKHR: formValues.linkedAccKHR,
+          merchantId: mData.merchantId,
+          username: currentC360User.username,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "បានកែប្រែជោគជ័យ",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+        c360RefreshData();
+      } else throw new Error(data.message);
+    } catch (e) {
+      Swal.fire("Error", e.message, "error");
+    }
+  }
+};
+
+window.c360RegisterMerchant = async function () {
+  if (!currentC360User)
+    return Swal.fire("Error", "សូមជ្រើសរើសអតិថិជនជាមុនសិន", "error");
+
+  let usdOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
+  let khrOptions = `<option value="">-- មិនភ្ជាប់ (None) --</option>`;
+
+  if (currentC360User.mainAccounts?.USD) {
+    usdOptions += `<option value="${currentC360User.mainAccounts.USD.accountNumber}">គណនីចម្បង USD (${currentC360User.mainAccounts.USD.accountNumber})</option>`;
+  }
+  if (currentC360User.mainAccounts?.KHR) {
+    khrOptions += `<option value="${currentC360User.mainAccounts.KHR.accountNumber}">គណនីចម្បង KHR (${currentC360User.mainAccounts.KHR.accountNumber})</option>`;
+  }
+
+  if (currentC360User.subAccounts && currentC360User.subAccounts.length > 0) {
+    currentC360User.subAccounts.forEach((sub) => {
+      if (sub.accountType !== "junior") {
+        let typeLabel =
+          sub.accountType === "joint" || sub.accountType === "joint_member"
+            ? "[Joint]"
+            : "[Sub]";
+        let opt = `<option value="${sub.accountNumber}">${typeLabel} ${sub.accountName} (${sub.accountNumber})</option>`;
+        if (sub.currency === "USD") usdOptions += opt;
+        else khrOptions += opt;
+      }
+    });
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title:
+      '<h3 style="margin: 0; color: var(--secondary); font-size: 1.5rem; font-weight: 800;"><i class="fa-solid fa-store"></i> បង្កើតហាងថ្មី (Admin)</h3>',
+    html: `
+          <div style="text-align: left; margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+              <div style="background: var(--bg-body); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ឈ្មោះហាង (Shop Name) <span style="color:red">*</span></label>
+                  <input id="m-name" class="swal2-input kh-text" placeholder="ឧ. Smart Shop" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                      <div>
+                          <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ទីក្រុង / ខេត្ត</label>
+                          <input id="m-city" class="swal2-input kh-text" placeholder="ឧ. Phnom Penh" value="Phnom Penh" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px;">
+                      </div>
+                      <div>
+                          <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ប្រភេទអាជីវកម្ម</label>
+                          <select id="m-category" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
+                              <option value="Food & Beverage">ម្ហូបអាហារ និងភេសជ្ជៈ</option>
+                              <option value="Health & Beauty">សម្រស់ និងសុខភាព</option>
+                              <option value="Transportation">ដឹកជញ្ជូន</option>
+                              <option value="Fashion & Shopping">សំលៀកបំពាក់ & ទំនិញ</option>
+                              <option value="Service & Cleaning">សេវាកម្ម</option>
+                              <option value="Others">ផ្សេងៗ</option>
+                          </select>
+                      </div>
+                  </div>
+              </div>
+              <div style="background: #f0fdfa; padding: 15px; border-radius: 12px; border: 1px dashed #5eead4;">
+                  <h4 class="kh-text" style="margin: 0 0 10px; color: #0f766e; font-size: 0.95rem;"><i class="fa-solid fa-link"></i> ជ្រើសរើសគណនីទទួលប្រាក់</h4>
+                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់ដុល្លារ (USD)</label>
+                  <select id="m-linked-usd" class="swal2-select kh-text" style="width:100%; margin: 0 0 10px 0; background: white; border: 1px solid #99f6e4; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
+                      ${usdOptions}
+                  </select>
+                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់រៀល (KHR)</label>
+                  <select id="m-linked-khr" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
+                      ${khrOptions}
+                  </select>
+              </div>
+          </div>`,
+    width: "550px",
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-plus-circle"></i> បង្កើតហាង',
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "var(--secondary)",
+    customClass: { popup: "modal-radius premium-swal kh-text" },
+    preConfirm: () => {
+      const name = document.getElementById("m-name").value.trim();
+      const linkedAccUSD = document.getElementById("m-linked-usd").value;
+      const linkedAccKHR = document.getElementById("m-linked-khr").value;
+
+      if (!name) {
+        Swal.showValidationMessage("សូមបញ្ចូលឈ្មោះហាង!");
+        return false;
+      }
+      if (!linkedAccUSD && !linkedAccKHR) {
+        Swal.showValidationMessage("សូមជ្រើសរើសគណនីទទួលប្រាក់យ៉ាងហោចណាស់មួយ!");
+        return false;
+      }
+
+      return {
+        name: name,
         city: document.getElementById("m-city").value,
         category: document.getElementById("m-category").value,
-        linkedAccount: document.getElementById("m-linked").value,
+        linkedAccUSD: linkedAccUSD,
+        linkedAccKHR: linkedAccKHR,
       };
     },
   });
 
   if (formValues && formValues.name) {
     Swal.fire({
-      title: "កំពុងបង្កើត...",
+      title: "កំពុងបង្កើតហាងថ្មី...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
-      customClass: { popup: "premium-swal" },
+      customClass: { popup: "premium-swal kh-text" },
     });
     try {
       const response = await fetch("/api/admin/create-merchant", {
@@ -4980,25 +5623,85 @@ window.c360RegisterMerchant = async function () {
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
+          text: "បានបង្កើតហាងរួចរាល់។",
           timer: 1500,
           showConfirmButton: false,
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
+        c360CurrentMerchantId = data.merchant._id;
         c360RefreshData();
-      } else
+      } else {
         Swal.fire({
           icon: "error",
           title: "បរាជ័យ",
           text: data.message,
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
+      }
     } catch (e) {
       Swal.fire({
         icon: "error",
         title: "Error",
         text: "បញ្ហា Server",
-        customClass: { popup: "premium-swal" },
+        customClass: { popup: "premium-swal kh-text" },
       });
+    }
+  }
+};
+
+// 🟢 មុខងារ Admin ចុចដោះ Hold (Approve Trx) ឱ្យហាងភ្លាមៗ
+window.c360AdminReleaseHold = async function (refId, amount, currency) {
+  const { isConfirmed } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="color: #10b981;">អនុម័តទម្លាក់ប្រាក់ (Release Hold)</span>',
+    html: `<p class="kh-text" style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px;">តើអ្នកពិតជាចង់អនុម័តទម្លាក់ទឹកប្រាក់ <b>${currency === "USD" ? "$" : "៛"}${Number(amount).toLocaleString()}</b> ចូលទៅក្នុងហាងនេះភ្លាមៗមែនទេ?</p>`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#10b981",
+    cancelButtonColor: "#64748b",
+    confirmButtonText: "បាទ/ចាស អនុម័ត",
+    cancelButtonText: "បោះបង់",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+  });
+
+  if (isConfirmed) {
+    Swal.fire({
+      title: "កំពុងដំណើរការ...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal" },
+    });
+    try {
+      const res = await fetch("/api/admin/release-merchant-hold", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ refId: refId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: data.message,
+          timer: 2000,
+          showConfirmButton: false,
+          customClass: { popup: "kh-text premium-swal" },
+        });
+        if (typeof c360RefreshData === "function") {
+          c360RefreshData();
+        } else {
+          renderMerchantTab(currentC360User);
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "បរាជ័យ",
+          text: data.message,
+          customClass: { popup: "kh-text premium-swal" },
+        });
+      }
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
     }
   }
 };

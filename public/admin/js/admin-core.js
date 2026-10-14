@@ -219,24 +219,53 @@ function renderDashboardChart(usersData) {
 async function loadData() {
   try {
     // --------------------------------------------------
-    // ៥.១ ទាញយកទិន្នន័យពី APIs
+    // ៥.១ ទាញយកទិន្នន័យពី APIs (ប្រើ .catch ការពារកុំឱ្យគាំង Promise.all)
     // --------------------------------------------------
-    const [userRes, chartRes, extraRes] = await Promise.all([
+    const [userRes, chartRes, extraRes, cardsRes] = await Promise.all([
       fetch("/api/users", { headers: getAuthHeaders() }),
       fetch("/api/admin/stats", { headers: getAuthHeaders() }),
       fetch("/api/admin/dashboard-extra", { headers: getAuthHeaders() }),
+      fetch("/api/admin/all-cards", { headers: getAuthHeaders() }).catch(
+        () => null,
+      ),
     ]);
 
     const users = await userRes.json();
     const chartData = await chartRes.json();
     const extraData = await extraRes.json();
 
+    let allCardsList = [];
+    if (cardsRes && cardsRes.ok) {
+      const cardsData = await cardsRes.json();
+      if (cardsData && Array.isArray(cardsData.cards)) {
+        allCardsList = cardsData.cards;
+      }
+    }
+
+    // 🟢 ភ្ជាប់កាតពីតារាង Card.js ចូលទៅក្នុង User ម្នាក់ៗវិញ (គាំទ្រទាំង username និង userId)
+    users.forEach((u) => {
+      const matchedCards = allCardsList.filter(
+        (c) =>
+          (c.username &&
+            u.username &&
+            c.username.toLowerCase() === u.username.toLowerCase()) ||
+          (c.userId &&
+            (String(c.userId) === String(u._id) ||
+              String(c.userId) === String(u.id))),
+      );
+      // បើមានក្នុងតារាង Card.js យកអាថ្មី តែបើអត់ទាន់មានទេ រក្សាទុកអាចាស់ដែលមកជាមួយ u.virtualCards
+      if (matchedCards.length > 0) {
+        u.virtualCards = matchedCards;
+      } else if (!Array.isArray(u.virtualCards)) {
+        u.virtualCards = [];
+      }
+    });
+
     globalUsersData = users;
     const clients = users.filter((u) => u.role !== "admin");
 
-    // 🔴 ជំនួសការហៅ renderUsersTable ចាស់ មកហៅ filterUsers() វិញ
     if (typeof filterUsers === "function") {
-      filterUsers(); // មុខងារនេះនឹងយកទិន្នន័យទៅធ្វើ Pagination ៥នាក់
+      filterUsers();
     }
 
     renderDashboardChart(globalUsersData);
@@ -335,17 +364,21 @@ async function loadData() {
     // ៥.៤ បញ្ជូនទិន្នន័យទៅឱ្យឯកសារខាងក្រៅគ្រប់គ្រង (Delegation)
     // --------------------------------------------------
 
+    // 🟢 ការពារបន្ថែម៖ បើ allCardsList មានកាត តែ allIssuedCards ចាប់អត់បាន យើងចាប់បញ្ចូលដោយផ្ទាល់
+    if (allIssuedCards.length === 0 && allCardsList.length > 0) {
+      allCardsList.forEach((c) => {
+        const owner = users.find((u) => u.username === c.username) || {
+          username: c.username || "Unknown",
+          fullName: c.username || "Unknown",
+        };
+        allIssuedCards.push({ user: owner, card: c });
+      });
+    }
+
     // បញ្ជូនទិន្នន័យកាតទៅឱ្យម៉ូឌុល Card Render
     window.globalCardsData = allIssuedCards;
     if (!window.currentCardPage) window.currentCardPage = 1;
     renderCardTablePage();
-
-    // បញ្ជូនទិន្នន័យ KYC ទៅឱ្យម៉ូឌុល admin-kyc.js
-    let pendingKycUsers = clients.filter((u) => u.kycStatus === "pending");
-    window.globalPendingKycData = pendingKycUsers;
-    if (typeof initKycTable === "function") {
-      initKycTable();
-    }
 
     // --------------------------------------------------
     // ៥.៥ បច្ចុប្បន្នភាព UI នៅលើអេក្រង់ (DOM Updates)
@@ -480,7 +513,10 @@ function renderCardTablePage() {
 
     const cardNumSlice = c.number ? c.number.slice(-4) : "XXXX";
 
-    let allUserAccounts = [u.accountNumber || "", u.accountNumberKHR || ""];
+    let allUserAccounts = [
+      u.mainAccounts?.USD?.accountNumber || u.accountNumber || "",
+      u.mainAccounts?.KHR?.accountNumber || u.accountNumberKHR || "",
+    ];
     if (u.subAccounts && Array.isArray(u.subAccounts)) {
       u.subAccounts.forEach((sub) => allUserAccounts.push(sub.accountNumber));
     }

@@ -13,7 +13,10 @@ const adminController = require("../controllers/adminController");
 const merchantController = require("../controllers/merchantController");
 const cardController = require("../controllers/cardController");
 const aiController = require("../controllers/aiController");
-const { checkRole } = require("../middleware/authMiddleware");
+
+// 🟢 ជួសជុលការ Import ទីនេះ! ទាញយក authMiddleware ទាំងមូលមកប្រើ
+const authMiddleware = require("../middleware/authMiddleware");
+const { checkRole } = authMiddleware;
 
 // ==========================================
 // 🛡️ ផ្នែកទី ២៖ កំណត់សិទ្ធិ (Roles) & មុខងារការពារ (Safe Wrapper)
@@ -93,7 +96,7 @@ router.get(
 );
 
 router.get(
-  "/list-admins", // 🟢 កែត្រង់នេះឱ្យទៅជា /list-admins
+  "/list-admins",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getAdminsList, "getAdminsList"),
 );
@@ -143,7 +146,7 @@ router.get(
 // ==========================================
 router.post(
   "/create-user",
-  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]), // កំណត់ថា Admin ណាខ្លះអាចបង្កើតបាន
+  checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.adminCreateUser, "adminCreateUser"),
 );
 router.post(
@@ -163,13 +166,13 @@ router.post(
 );
 router.post(
   "/account/edit-sub-account",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]), // កំណត់សិទ្ធិ
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   safeHandler(adminController.editSubAccount, "editSubAccount"),
 );
 
 router.post(
   "/account/delete-sub-account",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]), // កំណត់សិទ្ធិ
+  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
   safeHandler(adminController.deleteSubAccount, "deleteSubAccount"),
 );
 router.post(
@@ -284,13 +287,18 @@ router.get(
 // 🟢 Checker ចុច Approve ឬ Reject
 router.post(
   "/cashier/ticket/action",
-  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]), // (Support ធម្មតាមិនឱ្យ Approve ទេ)
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
   safeHandler(adminController.actionCashierTicket, "actionCashierTicket"),
 );
 
 // ==========================================
 // 💳 ផ្នែកទី ៩៖ កាត NFC និងហាងទំនិញ (Cards & Merchants)
 // ==========================================
+router.get(
+  "/all-cards",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.adminGetAllCards, "adminGetAllCards"),
+);
 router.post(
   "/create-card",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
@@ -307,17 +315,7 @@ router.post(
   safeHandler(adminController.toggleAdminCardLock, "toggleAdminCardLock"),
 );
 
-// NFC Cards (តភ្ជាប់មកពី cardController)
-router.post(
-  "/cards/bind-nfc",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  cardController.bindNfcCard,
-);
-router.post(
-  "/cards/unbind-nfc",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
-  cardController.unbindNfcCard,
-);
+// NFC Cards
 router.post(
   "/update-card-limit",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
@@ -352,7 +350,9 @@ router.post(
   safeHandler(adminController.adminUnbindNfcCard, "adminUnbindNfcCard"),
 );
 
-// Merchants (តភ្ជាប់មកពី merchantController និង adminController)
+// =======================================================
+// 🏪  Merchant (Admin Pro View)
+// =======================================================
 router.post(
   "/create-merchant",
   checkRole([ROLE_SUPER, ROLE_CUSTOM]),
@@ -361,17 +361,37 @@ router.post(
 router.post(
   "/toggle-merchant-freeze",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminToggleMerchantFreeze,
+  safeHandler(
+    adminController.adminToggleMerchantFreeze,
+    "adminToggleMerchantFreeze",
+  ),
 );
-router.put(
+router.post(
+  // 🟢 ដូរពី PUT មក POST អោយត្រូវជាមួយ Frontend
   "/edit-merchant",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminEditMerchant,
+  safeHandler(adminController.adminEditMerchant, "adminEditMerchant"),
 );
-router.delete(
+router.post(
+  // 🟢 ដូរពី DELETE មក POST អោយត្រូវជាមួយ Frontend
   "/delete-merchant/:id",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
-  merchantController.adminDeleteMerchant,
+  safeHandler(adminController.adminDeleteMerchant, "adminDeleteMerchant"),
+);
+
+router.get(
+  "/merchants-by-user/:username",
+  authMiddleware.verifyAdmin, // 🟢 ហៅប្រើ authMiddleware ដោយផ្ទាល់
+  safeHandler(
+    adminController.adminGetMerchantsByUser,
+    "adminGetMerchantsByUser",
+  ),
+);
+
+router.post(
+  "/release-merchant-hold",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.releaseMerchantHold, "releaseMerchantHold"),
 );
 
 // ==========================================

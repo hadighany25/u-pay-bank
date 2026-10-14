@@ -22,6 +22,7 @@ const AdminLog = require("../models/AdminLog");
 const Transaction = require("../models/Transaction");
 const System = require("../models/System");
 const User = require("../models/User");
+const Card = require("../models/Card");
 const Chat = require("../models/Chat");
 const PromoCode = require("../models/PromoCode");
 const JointAccount = require("../models/JointAccount");
@@ -577,7 +578,7 @@ const getDashboardExtra = async (req, res) => {
 };
 
 // ==========================================
-// 👥 ផ្នែកទី ៦៖ ការគ្រប់គ្រងអតិថិជន (Customer 360 & Management)
+// 👥 ផ្នែកទី ៦៖ ការគ្រប់គ្រងអតិថិជន (Customer 360 & Management - Updated with Card.js)
 // ==========================================
 const searchUserByAdmin = async (req, res) => {
   try {
@@ -610,6 +611,16 @@ const searchUserByAdmin = async (req, res) => {
       }).sort({ _id: -1 });
 
       userDetails.transactions = userTransactions || [];
+
+      // 🌟 ទាញយកកាតពី Model Card.js ថ្មីមកដាក់ក្នុង userDetails.virtualCards ឱ្យបានត្រឹមត្រូវ
+      userDetails.virtualCards = await Card.find({
+        $or: [
+          { username: userDetails.username },
+          { userId: userDetails._id },
+          { userCustomId: userDetails.userId },
+        ],
+      }).sort({ orderIndex: 1, createdAt: 1 });
+
       userDetails.kycDocument =
         userDetails.kycDocument ||
         userDetails.kycImage ||
@@ -617,7 +628,6 @@ const searchUserByAdmin = async (req, res) => {
         "";
       userDetails.kycImage = userDetails.kycDocument;
 
-      // 🟢 ថែមការអូសយកឈ្មោះអ្នកណែនាំ (Referrer Name) មកជាមួយ
       if (userDetails.referredBy) {
         const referrer = await User.findOne({
           userId: userDetails.referredBy,
@@ -632,6 +642,7 @@ const searchUserByAdmin = async (req, res) => {
       res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
     }
   } catch (error) {
+    console.error("Search User By Admin Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -654,6 +665,16 @@ const getUserByAdmin = async (req, res) => {
       }).sort({ _id: -1 });
 
       userDetails.transactions = userTransactions || [];
+
+      // 🌟 ទាញយកកាតពី Model Card.js ថ្មីមកដាក់ក្នុង userDetails.virtualCards ឱ្យបានត្រឹមត្រូវ
+      userDetails.virtualCards = await Card.find({
+        $or: [
+          { username: userDetails.username },
+          { userId: userDetails._id },
+          { userCustomId: userDetails.userId },
+        ],
+      }).sort({ orderIndex: 1, createdAt: 1 });
+
       userDetails.kycDocument =
         userDetails.kycDocument ||
         userDetails.kycImage ||
@@ -661,7 +682,6 @@ const getUserByAdmin = async (req, res) => {
         "";
       userDetails.kycImage = userDetails.kycDocument;
 
-      // 🟢 ថែមការអូសយកឈ្មោះអ្នកណែនាំ (Referrer Name) មកជាមួយ
       if (userDetails.referredBy) {
         const referrer = await User.findOne({
           userId: userDetails.referredBy,
@@ -676,6 +696,7 @@ const getUserByAdmin = async (req, res) => {
       res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
     }
   } catch (error) {
+    console.error("Get User By Admin Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -703,7 +724,6 @@ const editUser = async (req, res) => {
     accountNumber,
     accountNumberKHR,
     password,
-    // 🟢 បន្ថែម Fields ថ្មីដែលផ្ញើមកពី Frontend
     fullName,
     phone,
     email,
@@ -966,6 +986,7 @@ const deleteUser = async (req, res) => {
           { receiverAcc: user.mainAccounts?.KHR?.accountNumber },
         ],
       });
+      await Card.deleteMany({ username: user.username });
       await User.deleteOne({ _id: user._id });
       logDetail = `Deleted account completely. Recovered ${totalUSD} USD & ${totalKHR} KHR. Reason: ${reason}`;
     }
@@ -1903,119 +1924,367 @@ const approveTransaction = async (req, res) => {
   }
 };
 
+// ============================================================================
+// ↩️ អនុគមន៍ជំនួយ និង API សម្រាប់ Admin បង្វិលប្រាក់ (Universal Admin Refund)
+// គាំទ្រទាំង Main, Sub, Joint Accounts, Virtual Cards និង Merchant Escrow/Collected
+// ============================================================================
+async function adjustAccountByNumber(
+  userDoc,
+  accNum,
+  deltaAmount,
+  fallbackCurrency = "USD",
+) {
+  if (!userDoc) return { ok: false, message: "រកមិនឃើញគណនីអតិថិជន!" };
+
+  const cleanAcc = String(accNum || "").includes("_")
+    ? String(accNum).split("_")[1]
+    : String(accNum || "").trim();
+
+  // ១. ឆែកមើលគណនីចម្បង USD (Main USD)
+  if (cleanAcc && userDoc.mainAccounts?.USD?.accountNumber === cleanAcc) {
+    if (
+      deltaAmount < 0 &&
+      (userDoc.mainAccounts.USD.balance || 0) < Math.abs(deltaAmount)
+    ) {
+      return {
+        ok: false,
+        message: `សមតុល្យក្នុងគណនីគោល USD (${cleanAcc}) មិនគ្រប់គ្រាន់សម្រាប់កាត់បង្វិលទេ!`,
+      };
+    }
+    userDoc.mainAccounts.USD.balance =
+      (userDoc.mainAccounts.USD.balance || 0) + deltaAmount;
+    userDoc.markModified("mainAccounts");
+    await userDoc.save();
+    return { ok: true, accountNumber: cleanAcc, currency: "USD" };
+  }
+
+  // ២. ឆែកមើលគណនីចម្បង KHR (Main KHR)
+  if (cleanAcc && userDoc.mainAccounts?.KHR?.accountNumber === cleanAcc) {
+    if (
+      deltaAmount < 0 &&
+      (userDoc.mainAccounts.KHR.balance || 0) < Math.abs(deltaAmount)
+    ) {
+      return {
+        ok: false,
+        message: `សមតុល្យក្នុងគណនីគោល KHR (${cleanAcc}) មិនគ្រប់គ្រាន់សម្រាប់កាត់បង្វិលទេ!`,
+      };
+    }
+    userDoc.mainAccounts.KHR.balance =
+      (userDoc.mainAccounts.KHR.balance || 0) + deltaAmount;
+    userDoc.markModified("mainAccounts");
+    await userDoc.save();
+    return { ok: true, accountNumber: cleanAcc, currency: "KHR" };
+  }
+
+  // ៣. ឆែកមើលគណនីរង និង គណនីរួម (Sub & Joint Accounts)
+  if (
+    cleanAcc &&
+    Array.isArray(userDoc.subAccounts) &&
+    userDoc.subAccounts.length > 0
+  ) {
+    const subIdx = userDoc.subAccounts.findIndex(
+      (s) => s.accountNumber === cleanAcc,
+    );
+    if (subIdx !== -1) {
+      const subAcc = userDoc.subAccounts[subIdx];
+      if (
+        subAcc.accountType === "joint" ||
+        subAcc.accountType === "joint_member"
+      ) {
+        const jointDoc = await JointAccount.findOne({
+          accountId: subAcc.accountId,
+        });
+        if (jointDoc) {
+          if (
+            deltaAmount < 0 &&
+            (jointDoc.balance || 0) < Math.abs(deltaAmount)
+          ) {
+            return {
+              ok: false,
+              message: `សមតុល្យក្នុងគណនីរួម (${cleanAcc}) មិនគ្រប់គ្រាន់សម្រាប់កាត់បង្វិលទេ!`,
+            };
+          }
+          jointDoc.balance = (jointDoc.balance || 0) + deltaAmount;
+          await jointDoc.save();
+          userDoc.subAccounts[subIdx].balance = jointDoc.balance;
+          userDoc.markModified("subAccounts");
+          await userDoc.save();
+          return {
+            ok: true,
+            accountNumber: cleanAcc,
+            currency: subAcc.currency || fallbackCurrency,
+          };
+        }
+      } else {
+        if (deltaAmount < 0 && (subAcc.balance || 0) < Math.abs(deltaAmount)) {
+          return {
+            ok: false,
+            message: `សមតុល្យក្នុងគណនីរង (${cleanAcc}) មិនគ្រប់គ្រាន់សម្រាប់កាត់បង្វិលទេ!`,
+          };
+        }
+        userDoc.subAccounts[subIdx].balance =
+          (subAcc.balance || 0) + deltaAmount;
+        userDoc.markModified("subAccounts");
+        await userDoc.save();
+        return {
+          ok: true,
+          accountNumber: cleanAcc,
+          currency: subAcc.currency || fallbackCurrency,
+        };
+      }
+    }
+  }
+
+  // ៤. Fallback បើរកលេខគណនីមិនឃើញ ទម្លាក់ចូលគណនីគោលតាមរូបិយប័ណ្ណ
+  if (fallbackCurrency === "KHR" && userDoc.mainAccounts?.KHR) {
+    if (
+      deltaAmount < 0 &&
+      (userDoc.mainAccounts.KHR.balance || 0) < Math.abs(deltaAmount)
+    ) {
+      return {
+        ok: false,
+        message: `សមតុល្យ KHR របស់ @${userDoc.username} មិនគ្រប់គ្រាន់ទេ!`,
+      };
+    }
+    userDoc.mainAccounts.KHR.balance =
+      (userDoc.mainAccounts.KHR.balance || 0) + deltaAmount;
+    userDoc.markModified("mainAccounts");
+    await userDoc.save();
+    return {
+      ok: true,
+      accountNumber: userDoc.mainAccounts.KHR.accountNumber,
+      currency: "KHR",
+    };
+  } else if (userDoc.mainAccounts?.USD) {
+    if (
+      deltaAmount < 0 &&
+      (userDoc.mainAccounts.USD.balance || 0) < Math.abs(deltaAmount)
+    ) {
+      return {
+        ok: false,
+        message: `សមតុល្យ USD របស់ @${userDoc.username} មិនគ្រប់គ្រាន់ទេ!`,
+      };
+    }
+    userDoc.mainAccounts.USD.balance =
+      (userDoc.mainAccounts.USD.balance || 0) + deltaAmount;
+    userDoc.markModified("mainAccounts");
+    await userDoc.save();
+    return {
+      ok: true,
+      accountNumber: userDoc.mainAccounts.USD.accountNumber,
+      currency: "USD",
+    };
+  }
+
+  return { ok: false, message: "មិនអាចកែប្រែសមតុល្យគណនីបានទេ!" };
+}
+
 const refundTransaction = async (req, res) => {
   const access = await checkAdminAccess(req.admin, "refund");
   if (!access.allowed)
     return res.status(403).json({ success: false, message: access.message });
 
   const { refId, reason } = req.body;
-  const cleanRefId = String(refId).trim();
+  const cleanRefId = String(refId || "").trim();
 
   try {
-    const originalTrx = await Transaction.findOne({
+    // ១. ទាញយកប្រតិបត្តិការទាំងអស់ដែលមានលេខយោង (Ref ID) ឬ Hash នេះ
+    const trxs = await Transaction.find({
       $or: [{ refId: cleanRefId }, { hash: cleanRefId }],
     });
-    if (!originalTrx)
+
+    if (!trxs || trxs.length === 0) {
       return res.json({
         success: false,
-        message: "បរាជ័យ! រកប្រតិបត្តិការមិនឃើញទេ!",
-      });
-    if (originalTrx.status === "Refunded")
-      return res.json({
-        success: false,
-        message: "ប្រតិបត្តិការនេះត្រូវបាន Refund រួចរាល់ហើយ!",
-      });
-
-    const senderAcc = originalTrx.senderAcc;
-    const receiverAcc = originalTrx.receiverAcc;
-    if (!senderAcc || !receiverAcc)
-      return res.json({
-        success: false,
-        message: "Transaction នេះគ្មានទិន្នន័យលេខកុងគ្រប់គ្រាន់ទេ!",
-      });
-
-    const sender = await User.findOne({
-      $or: [
-        { "mainAccounts.USD.accountNumber": senderAcc },
-        { "mainAccounts.KHR.accountNumber": senderAcc },
-      ],
-    });
-    const receiver = await User.findOne({
-      $or: [
-        { "mainAccounts.USD.accountNumber": receiverAcc },
-        { "mainAccounts.KHR.accountNumber": receiverAcc },
-      ],
-    });
-
-    if (!sender || !receiver)
-      return res.json({ success: false, message: "រកគណនីពិតប្រាកដមិនឃើញទេ!" });
-
-    const isKHR = originalTrx.currency === "KHR";
-    const refundAmount = Math.abs(Number(originalTrx.amount));
-    const receiverBalance = isKHR
-      ? receiver.mainAccounts?.KHR?.balance || 0
-      : receiver.mainAccounts?.USD?.balance || 0;
-
-    if (receiverBalance < refundAmount) {
-      return res.json({
-        success: false,
-        message: `មិនអាច Refund បានទេ! អ្នកទទួល (@${receiver.username}) ចាយលុយអស់ខ្លះហើយ សល់ត្រឹម ${isKHR ? "៛" : "$"}${receiverBalance}។`,
+        message: "បរាជ័យ! រកប្រតិបត្តិការនេះមិនឃើញក្នុងប្រព័ន្ធទេ!",
       });
     }
 
-    if (isKHR) {
-      receiver.mainAccounts.KHR.balance -= refundAmount;
-      sender.mainAccounts.KHR.balance += refundAmount;
-    } else {
-      receiver.mainAccounts.USD.balance -= refundAmount;
-      sender.mainAccounts.USD.balance += refundAmount;
+    if (trxs.some((t) => t.status === "Refunded" || t.status === "Voided")) {
+      return res.json({
+        success: false,
+        message:
+          "ប្រតិបត្តិការនេះត្រូវបានធ្វើការបង្វិលប្រាក់ (Refund) រួចរាល់ហើយ!",
+      });
     }
 
+    // ២. ញែករកវិក្កយបត្រខាងអ្នកចំណាយ (amount < 0) និងខាងអ្នកទទួល/ហាង (amount > 0)
+    const senderTrx = trxs.find((t) => t.amount < 0) || trxs[0];
+    const receiverTrx = trxs.find((t) => t.amount > 0) || trxs[0];
+
+    const senderAccNum = senderTrx.senderAcc;
+    const receiverAccNum = receiverTrx.receiverAcc;
+
+    // ៣. ស្វែងរកគណនីអតិថិជនជាអ្នកចំណាយ (Sender / Customer)
+    let senderUser = null;
+    if (senderTrx.amount < 0 && senderTrx.username) {
+      senderUser = await User.findOne({ username: senderTrx.username });
+    }
+    if (!senderUser && senderAccNum && senderAccNum !== "N/A") {
+      senderUser = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": senderAccNum },
+          { "mainAccounts.KHR.accountNumber": senderAccNum },
+          { "subAccounts.accountNumber": senderAccNum },
+        ],
+      });
+    }
+    if (!senderUser && senderTrx.senderName) {
+      senderUser = await User.findOne({
+        $or: [
+          { username: senderTrx.senderName },
+          { fullName: senderTrx.senderName },
+        ],
+      });
+    }
+
+    // ៤. ស្វែងរកហាង (បើជាប្រតិបត្តិការហាង) និងម្ចាស់គណនីទទួលប្រាក់ (Receiver / Shop Owner)
+    const merchIdVal = receiverTrx.merchantId || senderTrx.merchantId;
+    let shop = null;
+    if (merchIdVal) {
+      shop = await Merchant.findOne({
+        $or: [
+          { merchantId: merchIdVal },
+          ...(mongoose.isValidObjectId(merchIdVal)
+            ? [{ _id: merchIdVal }]
+            : []),
+        ],
+      });
+    }
+    if (!shop && receiverAccNum) {
+      shop = await Merchant.findOne({
+        $or: [
+          { "accountNumbers.USD": receiverAccNum },
+          { "accountNumbers.KHR": receiverAccNum },
+          { "linkedAccounts.USD": receiverAccNum },
+          { "linkedAccounts.KHR": receiverAccNum },
+          { "cashiers.virtualAccounts.USD": receiverAccNum },
+          { "cashiers.virtualAccounts.KHR": receiverAccNum },
+        ],
+      });
+    }
+
+    let receiverUser = null;
+    if (shop) {
+      receiverUser = await User.findOne({
+        $or: [
+          { username: shop.username || shop.userId },
+          { _id: shop.ownerId },
+        ],
+      });
+    }
+    if (!receiverUser && receiverTrx.amount > 0 && receiverTrx.username) {
+      receiverUser = await User.findOne({ username: receiverTrx.username });
+    }
+    if (!receiverUser && receiverAccNum && receiverAccNum !== "N/A") {
+      receiverUser = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": receiverAccNum },
+          { "mainAccounts.KHR.accountNumber": receiverAccNum },
+          { "subAccounts.accountNumber": receiverAccNum },
+        ],
+      });
+    }
+
+    if (!senderUser || !receiverUser) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីអ្នកផ្ញើ ឬអ្នកទទួលពិតប្រាកដដើម្បីបង្វិលប្រាក់ទេ!",
+      });
+    }
+
+    // ៥. គណនាទឹកប្រាក់ដែលត្រូវដកពីអ្នកទទួល និងទឹកប្រាក់ដែលត្រូវបង្វិលចូលអ្នកចំណាយ
+    const receiverCurrency = receiverTrx.currency || "USD";
+    const senderCurrency = senderTrx.currency || receiverCurrency;
+
+    const deductFromReceiverAmt = Math.abs(Number(receiverTrx.amount));
+    const creditToSenderAmt = Math.abs(Number(senderTrx.amount));
+
+    // កំណត់លេខកុងពិតប្រាកដរបស់ហាង/អ្នកទទួល (បើ receiverAccNum ជាកុង Virtual 888/999 ត្រូវប្តូរទៅកុង Linked ពិតប្រាកដ)
+    let actualReceiverLinkedAcc = receiverAccNum;
+    if (shop) {
+      const isVirtualAcc =
+        receiverAccNum === shop.accountNumbers?.USD ||
+        receiverAccNum === shop.accountNumbers?.KHR ||
+        (shop.cashiers || []).some(
+          (c) =>
+            c.virtualAccounts?.USD === receiverAccNum ||
+            c.virtualAccounts?.KHR === receiverAccNum ||
+            c.virtualAccount === receiverAccNum,
+        );
+      if (
+        isVirtualAcc &&
+        shop.linkedAccounts &&
+        shop.linkedAccounts[receiverCurrency]
+      ) {
+        actualReceiverLinkedAcc = shop.linkedAccounts[receiverCurrency];
+      }
+    }
+
+    // ៦. ដកលុយពីគណនីអ្នកទទួល / ម្ចាស់ហាង
+    const deductRes = await adjustAccountByNumber(
+      receiverUser,
+      actualReceiverLinkedAcc,
+      -deductFromReceiverAmt,
+      receiverCurrency,
+    );
+
+    if (!deductRes.ok) {
+      return res.json({
+        success: false,
+        message: `មិនអាច Refund បានទេ! ${deductRes.message}`,
+      });
+    }
+
+    // បើជាហាង ត្រូវកាត់បន្ថយចំណូលក្នុង Escrow Hold ឬ Collected ផងដែរ
+    if (shop) {
+      if (receiverTrx.status === "Hold") {
+        if (receiverCurrency === "USD") {
+          shop.escrowHold.USD = Math.max(
+            0,
+            (shop.escrowHold?.USD || 0) - deductFromReceiverAmt,
+          );
+        } else {
+          shop.escrowHold.KHR = Math.max(
+            0,
+            (shop.escrowHold?.KHR || 0) - deductFromReceiverAmt,
+          );
+        }
+        shop.markModified("escrowHold");
+      } else {
+        if (receiverCurrency === "USD") {
+          shop.collected.USD = Math.max(
+            0,
+            (shop.collected?.USD || 0) - deductFromReceiverAmt,
+          );
+        } else {
+          shop.collected.KHR = Math.max(
+            0,
+            (shop.collected?.KHR || 0) - deductFromReceiverAmt,
+          );
+        }
+        shop.markModified("collected");
+      }
+      await shop.save();
+    }
+
+    // ៧. បង្វិលលុយចូលគណនីដើមរបស់អតិថិជន (Sender / Card's Linked Account)
+    const creditRes = await adjustAccountByNumber(
+      senderUser,
+      senderAccNum,
+      creditToSenderAmt,
+      senderCurrency,
+    );
+
+    // ៨. ប្តូរស្ថានភាពប្រតិបត្តិការចាស់ទៅជា "Refunded" និងបង្កើតវិក្កយបត្រ Refund ថ្មី
     const dateNow =
       typeof getFormattedDate === "function"
         ? getFormattedDate()
-        : new Date().toISOString();
+        : new Date().toLocaleString("en-US", {
+            timeZone: "Asia/Phnom_Penh",
+            hour12: true,
+          });
 
-    const refundTxSender = new Transaction({
-      userId: sender._id,
-      refId: generateStandardRefId("RFS"),
-      hash: generateStandardHash(),
-      date: dateNow,
-      type: "Refund Received",
-      amount: refundAmount,
-      currency: originalTrx.currency,
-      fee: 0,
-      username: sender.username,
-      senderName: receiver.username,
-      senderAcc: receiver.mainAccounts.USD.accountNumber,
-      receiverName: sender.username,
-      receiverAcc: sender.mainAccounts.USD.accountNumber,
-      remark: `Admin Refund: ${reason}`,
-      status: "Success",
-      trxMethod: "System Refund",
-    });
-
-    const refundTxReceiver = new Transaction({
-      userId: receiver._id,
-      refId: generateStandardRefId("RFR"),
-      hash: generateStandardHash(),
-      date: dateNow,
-      type: "Refund Deducted",
-      amount: -refundAmount,
-      currency: originalTrx.currency,
-      fee: 0,
-      username: receiver.username,
-      senderName: receiver.username,
-      senderAcc: receiver.mainAccounts.USD.accountNumber,
-      receiverName: sender.username,
-      receiverAcc: receiver.mainAccounts.USD.accountNumber,
-      remark: `Reversed by Admin: ${reason}`,
-      status: "Success",
-      trxMethod: "System Refund",
-    });
-
-    await refundTxSender.save();
-    await refundTxReceiver.save();
     await Transaction.updateMany(
       { $or: [{ refId: cleanRefId }, { hash: cleanRefId }] },
       {
@@ -2026,44 +2295,199 @@ const refundTransaction = async (req, res) => {
       },
     );
 
+    const newRefId = generateStandardRefId("RFD");
+    const newHash = generateStandardHash();
+    const shopOrReceiverName = shop
+      ? shop.name
+      : receiverUser.fullName || receiverUser.username;
+    const customerDisplayName = senderUser.fullName || senderUser.username;
+
+    // វិក្កយបត្រសម្រាប់អតិថិជន (ទទួលលុយវិញ)
+    await Transaction.create({
+      userId: senderUser._id,
+      username: senderUser.username,
+      refId: newRefId,
+      hash: newHash,
+      date: dateNow,
+      type: "Refunded",
+      amount: creditToSenderAmt,
+      currency: creditRes.currency || senderCurrency,
+      fee: 0,
+      senderName: shopOrReceiverName,
+      senderAcc: deductRes.accountNumber,
+      receiverName: customerDisplayName,
+      receiverAcc: creditRes.accountNumber,
+      cardId: senderTrx.cardId || receiverTrx.cardId,
+      cardNumber: senderTrx.cardNumber || receiverTrx.cardNumber,
+      remark: `បង្វិលប្រាក់ដោយ Admin (Ref: ${cleanRefId}) - ${reason}`,
+      status: "Success",
+      trxMethod: "Admin Refund",
+    });
+
+    // វិក្កយបត្រសម្រាប់ម្ចាស់ហាង/អ្នកទទួល (កាត់លុយចេញ)
+    await Transaction.create({
+      userId: receiverUser._id,
+      username: receiverUser.username,
+      merchantId: shop ? shop.merchantId : merchIdVal || null,
+      refId: newRefId,
+      hash: newHash,
+      date: dateNow,
+      type: "Refund",
+      amount: -deductFromReceiverAmt,
+      currency: deductRes.currency || receiverCurrency,
+      fee: 0,
+      senderName: shopOrReceiverName,
+      senderAcc: deductRes.accountNumber,
+      receiverName: customerDisplayName,
+      receiverAcc: creditRes.accountNumber,
+      remark: `កាត់បង្វិលប្រាក់ឱ្យអតិថិជនដោយ Admin (Ref: ${cleanRefId}) - ${reason}`,
+      status: "Success",
+      trxMethod: "Admin Refund",
+    });
+
+    // ៩. ផ្ញើសារជូនដំណឹង (In-App Notifications & Real-time Socket)
+    const senderSym =
+      (creditRes.currency || senderCurrency) === "KHR" ? "៛" : "$";
+    const receiverSym =
+      (deductRes.currency || receiverCurrency) === "KHR" ? "៛" : "$";
+
     await Notification.create([
       {
-        userId: sender._id,
-        username: sender.username,
-        title: "Refund Processed ✅",
-        message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} ពីប្រតិបត្តិការលេខ ${cleanRefId} ត្រូវបានបង្វិលចូលគណនីអ្នកវិញ។ មូលហេតុ: ${reason}`,
+        userId: senderUser._id,
+        username: senderUser.username,
+        title: "ប្រាក់ត្រូវបានបង្វិលត្រឡប់ (Refunded) ↩️",
+        message: `ទឹកប្រាក់ ${senderSym}${creditToSenderAmt.toLocaleString()} ពីប្រតិបត្តិការ #${cleanRefId} ត្រូវបានបង្វិលចូលគណនី (${creditRes.accountNumber}) របស់អ្នកវិញ។ មូលហេតុ: ${reason}`,
         date: dateNow,
         type: "refund_receive",
         isRead: false,
       },
       {
-        userId: receiver._id,
-        username: receiver.username,
-        title: "Refund Deducted ⚠️️",
-        message: `ទឹកប្រាក់ ${isKHR ? "៛" : "$"}${refundAmount} នៃប្រតិបត្តិការលេខ ${cleanRefId} ត្រូវបានដកចេញពីគណនីអ្នកដោយ Admin។ មូលហេតុ: ${reason}`,
+        userId: receiverUser._id,
+        username: receiverUser.username,
+        title: "កាត់ប្រាក់បង្វិលសងអតិថិជន (Refund Deducted) ⚠️",
+        message: `ទឹកប្រាក់ ${receiverSym}${deductFromReceiverAmt.toLocaleString()} នៃប្រតិបត្តិការ #${cleanRefId} ត្រូវបានដកចេញពីគណនី (${deductRes.accountNumber}) ដើម្បីបង្វិលជូនអតិថិជនវិញដោយ Admin។ មូលហេតុ: ${reason}`,
         date: dateNow,
         type: "info",
         isRead: false,
       },
     ]);
 
-    await sender.save();
-    await receiver.save();
-
-    if (typeof logAdminAction === "function") {
-      await logAdminAction(
-        req.admin.username,
-        "Refund Transaction",
-        `${receiver.username} -> ${sender.username}`,
-        `Refunded ${isKHR ? "៛" : "$"}${refundAmount}. Reason: ${reason}`,
-      );
+    if (global.io) {
+      global.io.to(senderUser.username).emit("transactionUpdated");
+      global.io.to(receiverUser.username).emit("transactionUpdated");
     }
+
+    await logAdminAction(
+      req.admin.username,
+      "Refund Transaction",
+      `${receiverUser.username} -> ${senderUser.username}`,
+      `Refunded ${receiverSym}${deductFromReceiverAmt} (Ref: ${cleanRefId}). Reason: ${reason}`,
+    );
 
     return res.json({
       success: true,
-      message: `កាត់លុយពី @${receiver.username} ត្រលប់មកអោយ @${sender.username} វិញបានជោគជ័យ ១០០%!`,
+      message: `បង្វិលប្រាក់ពី ${shopOrReceiverName} ទៅកាន់គណនី (${creditRes.accountNumber}) របស់ @${senderUser.username} បានជោគជ័យ ១០០%!`,
     });
   } catch (err) {
+    console.error("Admin Refund Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + err.message });
+  }
+};
+
+// =======================================================
+// 🟢 [Admin] ដោះ Hold ប្រតិបត្តិការហាង (Release Escrow Hold -> Success)
+// =======================================================
+const releaseMerchantHold = async (req, res) => {
+  const access = await checkAdminAccess(req.admin, "approveTransaction"); // ឬសិទ្ធិសមស្រប
+  if (!access.allowed)
+    return res.status(403).json({ success: false, message: access.message });
+
+  const { refId } = req.body;
+  const cleanRefId = String(refId || "").trim();
+
+  try {
+    const trx = await Transaction.findOne({
+      $or: [{ refId: cleanRefId }, { hash: cleanRefId }],
+      status: "Hold",
+    });
+
+    if (!trx) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញប្រតិបត្តិការដែលមានស្ថានភាព Hold ទេ!",
+      });
+    }
+
+    // ១. ប្តូរស្ថានភាព Transaction ពី Hold ទៅជា Success
+    trx.status = "Success";
+    await trx.save();
+
+    // មកអាប់ដេតគ្រប់ transaction ពាក់ព័ន្ធទាំងអស់ (ទាំងฝั่ง Sender និង Receiver)
+    await Transaction.updateMany(
+      { $or: [{ refId: cleanRefId }, { hash: cleanRefId }], status: "Hold" },
+      { $set: { status: "Success" } },
+    );
+
+    // ២. ຊອກរកហាង (Merchant) ដើម្បីកាត់លុយចេញពី Escrow Hold បូកចូល Collected ពិតប្រាកដ
+    const merchIdVal = trx.merchantId;
+    if (merchIdVal) {
+      const shop = await Merchant.findOne({
+        $or: [
+          { merchantId: merchIdVal },
+          ...(mongoose.isValidObjectId(merchIdVal)
+            ? [{ _id: merchIdVal }]
+            : []),
+        ],
+      });
+
+      if (shop) {
+        const amt = Math.abs(Number(trx.amount));
+        if (trx.currency === "KHR") {
+          shop.escrowHold.KHR = Math.max(0, (shop.escrowHold?.KHR || 0) - amt);
+          shop.collected.KHR = (shop.collected?.KHR || 0) + amt;
+        } else {
+          shop.escrowHold.USD = Math.max(0, (shop.escrowHold?.USD || 0) - amt);
+          shop.collected.USD = (shop.collected?.USD || 0) + amt;
+        }
+        shop.markModified("escrowHold");
+        shop.markModified("collected");
+        await shop.save();
+      }
+    }
+
+    // ៣. ផ្ញើសារជូនដំណឹងទៅកាន់អតិថិជន (User)
+    const u = await User.findOne({ username: trx.username });
+    if (u) {
+      const curSym = trx.currency === "KHR" ? "៛" : "$";
+      await Notification.create({
+        userId: u._id,
+        username: u.username,
+        title: "Payment Released ✅",
+        message: `ការទូទាត់ទឹកប្រាក់ ${curSym}${Math.abs(trx.amount).toLocaleString()} របស់អ្នកត្រូវបានអនុម័ត និងទម្លាក់ជូនហាងជោគជ័យ។ (Ref: ${cleanRefId})`,
+        date:
+          typeof getFormattedDate === "function"
+            ? getFormattedDate()
+            : new Date().toLocaleString(),
+        type: "info",
+        isRead: false,
+      });
+    }
+
+    await logAdminAction(
+      req.admin.username,
+      "Release Merchant Hold",
+      u ? u.username : "Merchant",
+      `Released Hold for Trx ID: ${cleanRefId}`,
+    );
+
+    return res.json({
+      success: true,
+      message: `ប្រាក់ត្រូវបានដោះ Hold និងទម្លាក់ចូលហាងដោយជោគជ័យ ១០០%!`,
+    });
+  } catch (err) {
+    console.error("Release Hold Error:", err);
     res
       .status(500)
       .json({ success: false, message: "Server Error: " + err.message });
@@ -2695,15 +3119,148 @@ const actionCashierTicket = async (req, res) => {
 };
 
 // ==========================================
-// 💳 ផ្នែកទី ៩៖ កាតនិម្មិត និងហាងទំនិញ (Cards & Merchants)
+// 💳 ផ្នែកទី ៩៖ កាតនិម្មិត និងហាងទំនិញ
 // ==========================================
 
-// ==========================================
-// មុខងារគ្រប់គ្រងកាតដោយ Admin (STANDARDIZED)
-// ==========================================
+// 🔍 អនុគមន៍ជំនួយ៖ ស្វែងរកគណនីពិតប្រាកដរបស់ User (Main, Sub, ឬ Joint)
+async function resolveAdminUserAccount(user, linkedAccStr) {
+  let rawAcc = String(linkedAccStr || "USD");
+  let accNum = rawAcc.includes("_") ? rawAcc.split("_")[1] : rawAcc;
+
+  if (accNum === "USD" || accNum === user.mainAccounts?.USD?.accountNumber) {
+    return {
+      type: "MAIN_USD",
+      accObj: user.mainAccounts.USD,
+      currency: "USD",
+      accountNumber:
+        user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+    };
+  }
+  if (accNum === "KHR" || accNum === user.mainAccounts?.KHR?.accountNumber) {
+    return {
+      type: "MAIN_KHR",
+      accObj: user.mainAccounts.KHR,
+      currency: "KHR",
+      accountNumber:
+        user.mainAccounts?.KHR?.accountNumber || user.accountNumberKHR,
+    };
+  }
+  if (user.subAccounts && user.subAccounts.length > 0) {
+    const idx = user.subAccounts.findIndex(
+      (s) =>
+        s.accountNumber === accNum ||
+        `${s.currency}_${s.accountNumber}` === rawAcc,
+    );
+    if (idx !== -1) {
+      const sub = user.subAccounts[idx];
+      if (sub.accountType === "joint" || sub.accountType === "joint_member") {
+        const jointDoc = await JointAccount.findOne({
+          accountId: sub.accountId,
+        });
+        return {
+          type: "JOINT",
+          subIndex: idx,
+          accObj: sub,
+          jointDoc,
+          currency: sub.currency || "USD",
+          accountNumber: sub.accountNumber,
+        };
+      }
+      return {
+        type: "SUB",
+        subIndex: idx,
+        accObj: sub,
+        currency: sub.currency || "USD",
+        accountNumber: sub.accountNumber,
+      };
+    }
+  }
+  return null;
+}
 
 /**
- * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (Standardized Flow)
+ * 📌 [Admin] ទាញយកកាតទាំងអស់ក្នុងប្រព័ន្ធ (រួមទាំង Auto-Migrate កាតចាស់ៗទាំងអស់ក្នុងប្រព័ន្ធ)
+ */
+const adminGetAllCards = async (req, res) => {
+  try {
+    // 🔄 ១. ឆែកមើលក្រែងលោមាន User ចាស់ៗណាខ្លះដែលនៅសល់ virtualCards ក្នុង Collection User
+    const rawUsersWithOldCards = await User.collection
+      .find({ "virtualCards.0": { $exists: true } })
+      .toArray();
+
+    if (rawUsersWithOldCards.length > 0) {
+      for (const rawU of rawUsersWithOldCards) {
+        if (Array.isArray(rawU.virtualCards)) {
+          for (let i = 0; i < rawU.virtualCards.length; i++) {
+            const oldC = rawU.virtualCards[i];
+            if (!oldC || !oldC.number) continue;
+
+            // ឆែកកុំឱ្យចម្លងជាន់គ្នា
+            const exists = await Card.findOne({
+              $or: [{ id: oldC.id }, { number: oldC.number }],
+            });
+
+            if (!exists) {
+              let linkAcc = oldC.linkedAccount || "USD";
+              if (linkAcc === "USD" && rawU.mainAccounts?.USD?.accountNumber) {
+                linkAcc = rawU.mainAccounts.USD.accountNumber;
+              } else if (
+                linkAcc === "KHR" &&
+                rawU.mainAccounts?.KHR?.accountNumber
+              ) {
+                linkAcc = rawU.mainAccounts.KHR.accountNumber;
+              } else if (linkAcc.includes("_")) {
+                linkAcc = linkAcc.split("_")[1];
+              }
+
+              await Card.create({
+                userId: rawU._id,
+                username: rawU.username,
+                userCustomId: rawU.id || rawU._id.toString(),
+                id: oldC.id || "card_" + Date.now() + "_" + i,
+                type: oldC.type || "standard",
+                name: oldC.name || "STANDARD",
+                number: oldC.number,
+                cvv: oldC.cvv || "000",
+                expiry: oldC.expiry || "12/28",
+                linkedAccount: linkAcc,
+                currency: oldC.linkedAccount === "KHR" ? "KHR" : "USD",
+                isLocked: oldC.isLocked || false,
+                lockedByAdmin: oldC.lockedByAdmin || false,
+                isOnlinePayEnabled: oldC.isOnlinePayEnabled !== false,
+                dailyLimit: oldC.dailyLimit || 500,
+                dailyTxCountLimit: oldC.dailyTxCountLimit || 10,
+                pin: oldC.pin || "0000",
+                uid: oldC.uid || null,
+                isPhysical: oldC.isPhysical || Boolean(oldC.uid),
+                customBgUrl: oldC.customBgUrl || "",
+                orderIndex: i,
+              });
+            }
+          }
+        }
+        // លុប virtualCards ចាស់ចេញពី User ក្រោយពេលចម្លងរួច
+        await User.collection.updateOne(
+          { _id: rawU._id },
+          { $unset: { virtualCards: "" } },
+        );
+      }
+    }
+
+    // 💳 ២. ទាញយកកាតទាំងអស់ពី Model Card.js ថ្មីបោះទៅឱ្យ Admin
+    const cards = await Card.find()
+      .sort({ createdAt: -1, orderIndex: 1 })
+      .lean();
+
+    res.json({ success: true, cards });
+  } catch (err) {
+    console.error("Admin Get All Cards Error:", err);
+    res.status(500).json({ success: false, cards: [] });
+  }
+};
+
+/**
+ * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (រក្សាទុកក្នុង Card.js & កាត់សេវាពីកុងដែលភ្ជាប់)
  */
 const adminCreateCard = async (req, res) => {
   const { username, cardType, customBgUrl, linkedAccount, remark } = req.body;
@@ -2712,45 +3269,86 @@ const adminCreateCard = async (req, res) => {
     const user = await User.findOne({ username });
     if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    // 🟢 កំណត់តម្លៃសេវា និងឈ្មោះតាមប្រភេទកាតជាក់លាក់
-    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
-    const issuanceFee = tier.price;
-
-    // 🌟 ឆែកសមតុល្យតាមទម្រង់ថ្មី (mainAccounts.USD.balance)
-    const userUsdBal = user.mainAccounts?.USD?.balance || user.balance || 0;
-    if (userUsdBal < issuanceFee)
+    const existingCount = await Card.countDocuments({ username });
+    if (existingCount >= 10) {
       return res.json({
         success: false,
-        message: `សមតុល្យ USD របស់អតិថិជនមិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ $${issuanceFee.toFixed(2)} ទេ!`,
+        message: "អតិថិជននេះមានកាតគ្រប់ ១០ សន្លឹកហើយ!",
       });
-
-    // 🌟 ស្វែងរក Super Admin និង Sub-Account សម្រាប់ប្រមូល Fee (888000999)
-    let superAdmin = await User.findOne({ username: "superadmin" });
-    let feeSubAcc = superAdmin?.subAccounts?.find(
-      (sub) => sub.accountNumber === "888000999",
-    );
-
-    if (!superAdmin || !feeSubAcc) {
-      if (superAdmin) {
-        superAdmin.subAccounts = superAdmin.subAccounts || [];
-        superAdmin.subAccounts.push({
-          accountId: "SUB_FEE_" + Date.now(),
-          accountNumber: "888000999",
-          accountName: "Central Bank Fee Income",
-          accountType: "fee_collection",
-          currency: "USD",
-          balance: issuanceFee,
-        });
-        superAdmin.markModified("subAccounts");
-        await superAdmin.save();
-      }
     }
 
-    // កាត់លុយថ្លៃសេវាពី User
-    if (user.mainAccounts?.USD) {
-      user.mainAccounts.USD.balance -= issuanceFee;
-    } else {
-      user.balance -= issuanceFee;
+    const targetAcc = await resolveAdminUserAccount(user, linkedAccount);
+    if (!targetAcc || !targetAcc.accObj) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដែលចង់ភ្ជាប់ជាមួយកាតទេ!",
+      });
+    }
+
+    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
+    const issuanceFeeUSD = tier.price;
+
+    let exchangeRate = 4110;
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
+      }
+    } catch (e) {}
+
+    const feeInAccCurrency =
+      targetAcc.currency === "USD"
+        ? issuanceFeeUSD
+        : issuanceFeeUSD * exchangeRate;
+
+    const currentBal =
+      targetAcc.type === "JOINT" && targetAcc.jointDoc
+        ? targetAcc.jointDoc.balance
+        : targetAcc.accObj.balance || 0;
+
+    if (currentBal < feeInAccCurrency) {
+      const feeStr =
+        targetAcc.currency === "USD"
+          ? `$${feeInAccCurrency.toFixed(2)}`
+          : `៛${feeInAccCurrency.toLocaleString()}`;
+      return res.json({
+        success: false,
+        message: `សមតុល្យក្នុងគណនី (${targetAcc.accountNumber}) មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ ${feeStr} ទេ!`,
+      });
+    }
+
+    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានភ្ជាប់នោះផ្ទាល់
+    if (targetAcc.type === "MAIN_USD") {
+      user.mainAccounts.USD.balance -= feeInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (targetAcc.type === "MAIN_KHR") {
+      user.mainAccounts.KHR.balance -= feeInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (targetAcc.type === "SUB") {
+      user.subAccounts[targetAcc.subIndex].balance -= feeInAccCurrency;
+      user.markModified("subAccounts");
+    } else if (targetAcc.type === "JOINT" && targetAcc.jointDoc) {
+      targetAcc.jointDoc.balance -= feeInAccCurrency;
+      await targetAcc.jointDoc.save();
+      user.subAccounts[targetAcc.subIndex].balance = targetAcc.jointDoc.balance;
+      user.markModified("subAccounts");
+    }
+    await user.save();
+
+    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
+    let superAdmin = await User.findOne({ username: "superadmin" });
+    if (superAdmin) {
+      let targetFeeSub = superAdmin.subAccounts?.find(
+        (sub) => sub.accountNumber === "888000999",
+      );
+      if (targetFeeSub) {
+        targetFeeSub.balance += issuanceFeeUSD;
+        superAdmin.markModified("subAccounts");
+      } else if (superAdmin.mainAccounts?.USD) {
+        superAdmin.mainAccounts.USD.balance += issuanceFeeUSD;
+        superAdmin.markModified("mainAccounts");
+      }
+      await superAdmin.save();
     }
 
     const refId = generateStandardRefId("CARD");
@@ -2758,6 +3356,33 @@ const adminCreateCard = async (req, res) => {
     const dateStr = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
       hour12: true,
+    });
+
+    const details = generateCardDetails();
+    const newCardId = "card_" + Date.now();
+
+    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី
+    await Card.create({
+      userId: user._id,
+      username: user.username,
+      userCustomId: user.id || user._id.toString(),
+      id: newCardId,
+      type: cardType,
+      name: tier.name,
+      number: details.number,
+      cvv: details.cvv,
+      expiry: details.expiry,
+      linkedAccount: targetAcc.accountNumber,
+      currency: targetAcc.currency,
+      isLocked: false,
+      isOnlinePayEnabled: true,
+      dailyLimit: 500,
+      dailyTxCountLimit: 10,
+      pin: "0000",
+      uid: null,
+      isPhysical: false,
+      customBgUrl: cardType === "custom" ? customBgUrl : "",
+      orderIndex: existingCount,
     });
 
     // 🧾 វិក្កយបត្រកាត់លុយ (User)
@@ -2768,29 +3393,17 @@ const adminCreateCard = async (req, res) => {
       hash: trxHash,
       date: dateStr,
       type: "Card Issuance Fee",
-      amount: -issuanceFee,
-      currency: "USD",
-      senderName: user.username,
+      amount: -feeInAccCurrency,
+      currency: targetAcc.currency,
+      senderName: user.fullName || user.username,
+      senderAcc: targetAcc.accountNumber,
       receiverName: "Card Issuance Service",
+      receiverAcc: "888000999",
+      cardId: newCardId,
+      cardNumber: details.number,
       status: "Success",
       remark: `Issued ${tier.name} Virtual Card (By Admin: ${req.admin ? req.admin.username : "System"})`,
     });
-
-    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
-    if (superAdmin) {
-      let targetFeeSub = superAdmin.subAccounts?.find(
-        (sub) => sub.accountNumber === "888000999",
-      );
-      if (targetFeeSub) {
-        targetFeeSub.balance += issuanceFee;
-        superAdmin.markModified("subAccounts");
-      } else if (superAdmin.mainAccounts?.USD) {
-        superAdmin.mainAccounts.USD.balance += issuanceFee;
-      } else {
-        superAdmin.balance += issuanceFee;
-      }
-      await superAdmin.save();
-    }
 
     // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
     await Transaction.create({
@@ -2800,47 +3413,22 @@ const adminCreateCard = async (req, res) => {
       hash: trxHash,
       date: dateStr,
       type: "System Income",
-      amount: issuanceFee,
+      amount: issuanceFeeUSD,
       currency: "USD",
       senderName: user.username,
       receiverName: "Central Bank Fee Income",
-      senderAcc: user.mainAccounts?.USD?.accountNumber || user.accountNumber,
+      senderAcc: targetAcc.accountNumber,
       receiverAcc: "888000999",
       status: "Success",
       remark: "Card Issuance Fee",
     });
-
-    // 🟢 បង្កើតកាតថ្មី ស្តង់ដារដូចគ្នាបេះបិទនឹង User!
-    const details = generateCardDetails();
-    const newCard = {
-      id: "card_" + Date.now(),
-      type: cardType,
-      name: tier.name,
-      number: details.number,
-      cvv: details.cvv,
-      expiry: details.expiry, // ៤ឆ្នាំ
-      isLocked: false,
-      isOnlinePayEnabled: true,
-      dailyLimit: 500,
-      dailyTxCountLimit: 10,
-      linkedAccount: linkedAccount || "USD",
-      pin: "0000",
-      uid: null,
-      isPhysical: false,
-      customBgUrl: cardType === "custom" ? customBgUrl : "",
-    };
-
-    if (!user.virtualCards) user.virtualCards = [];
-    user.virtualCards.push(newCard);
-    user.markModified("virtualCards");
-    await user.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
         req.admin.username,
         "Create Virtual Card",
         username,
-        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)})។ មូលហេតុ: ${remark || "គ្មាន"}`,
+        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)}) ភ្ជាប់កុង ${targetAcc.accountNumber}។ មូលហេតុ: ${remark || "គ្មាន"}`,
       );
     }
 
@@ -2857,16 +3445,9 @@ const adminCreateCard = async (req, res) => {
 const adminDeleteCard = async (req, res) => {
   const { username, cardId, reason } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOneAndDelete({ id: cardId, username });
     if (!card)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
-
-    user.virtualCards = user.virtualCards.filter((c) => c.id !== cardId);
-    user.markModified("virtualCards");
-    await user.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
@@ -2889,24 +3470,12 @@ const adminDeleteCard = async (req, res) => {
 const toggleAdminCardLock = async (req, res) => {
   const { username, cardId, isLocked } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកគណនីឬកាតមិនឃើញទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOne({ id: cardId, username });
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     card.isLocked = isLocked;
-
-    // 🟢 ពេល Admin អ្នក Lock យើងកំណត់ Flag ជា lockedByAdmin ដើម្បីកុំឱ្យ User អាច Unlock ខ្លួនឯងបាន
-    if (isLocked) {
-      card.lockedByAdmin = true;
-    } else {
-      card.lockedByAdmin = false;
-    }
-
-    user.markModified("virtualCards");
-    await user.save();
+    card.lockedByAdmin = Boolean(isLocked);
+    await card.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
@@ -2932,19 +3501,13 @@ const toggleAdminCardLock = async (req, res) => {
 const adminUpdateCardLimit = async (req, res) => {
   const { username, cardId, newLimit, newCountLimit } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOne({ id: cardId, username });
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
     if (newCountLimit !== undefined)
       card.dailyTxCountLimit = parseInt(newCountLimit, 10);
-
-    user.markModified("virtualCards");
-    await user.save();
+    await card.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
@@ -2966,16 +3529,11 @@ const adminUpdateCardLimit = async (req, res) => {
 const adminToggleCardOnline = async (req, res) => {
   const { username, cardId, isEnabled } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOne({ id: cardId, username });
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     card.isOnlinePayEnabled = isEnabled;
-    user.markModified("virtualCards");
-    await user.save();
+    await card.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
@@ -2997,17 +3555,12 @@ const adminToggleCardOnline = async (req, res) => {
 const adminRenameCard = async (req, res) => {
   const { username, cardId, name } = req.body;
   try {
-    const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
-
-    const card = user.virtualCards.find((c) => c.id === cardId);
+    const card = await Card.findOne({ id: cardId, username });
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
     const oldName = card.name;
     card.name = name.toUpperCase();
-    user.markModified("virtualCards");
-    await user.save();
+    await card.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
@@ -3024,34 +3577,54 @@ const adminRenameCard = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] ផ្លាស់ប្តូរគណនីដែលបានភ្ជាប់ជាមួយកាត (Change Linked Account)
+ * 📌 [Admin] ផ្លាស់ប្តូរគណនីដែលបានភ្ជាប់ជាមួយកាត (Change Card Linked Account - Fixed Model Card)
  */
 const adminChangeCardLinkedAccount = async (req, res) => {
   const { username, cardId, linkedAccount } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user || !user.virtualCards)
-      return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
+    if (!user) return res.json({ success: false, message: "រកគណនីមិនឃើញទេ!" });
 
-    const card = user.virtualCards.find((c) => c.id === cardId);
-    if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
+    // 🔍 ស្វែងរកកាតដោយផ្អែកលើ id ឬ _id ក្នុងតារាង Card.js
+    let card = await Card.findOne({
+      $or: [
+        { id: cardId },
+        ...(mongoose.isValidObjectId(cardId) ? [{ _id: cardId }] : []),
+      ],
+      username: username,
+    });
+
+    if (!card)
+      return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
+
+    // 🔍 ស្វែងរកគណនីពិតប្រាកដ (Main, Sub, ឬ Joint)
+    const targetAcc = await resolveAdminUserAccount(user, linkedAccount);
+    if (!targetAcc) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីដែលចង់ភ្ជាប់នោះទេ!",
+      });
+    }
 
     const oldAcc = card.linkedAccount;
-    card.linkedAccount = linkedAccount;
-    user.markModified("virtualCards");
-    await user.save();
+    card.linkedAccount = targetAcc.accountNumber;
+    card.currency = targetAcc.currency; // 🌟 អាប់ដេតរូបិយប័ណ្ណកាតតាមគណនីថ្មីអូតូ (USD ឬ KHR)
+    await card.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
         req.admin.username,
         "Change Card Account",
         username,
-        `ប្តូរគណនីភ្ជាប់កាត ${card.number.slice(-4)} ពី ${oldAcc} ទៅជា ${linkedAccount}`,
+        `ប្តូរគណនីភ្ជាប់កាត ${card.number.slice(-4)} ពី ${oldAcc} ទៅជា ${targetAcc.accountNumber} (${targetAcc.currency})`,
       );
     }
     res.json({ success: true, message: "បានប្តូរគណនីភ្ជាប់ជោគជ័យ!" });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
+    console.error("Change Card Account Error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + err.message });
   }
 };
 
@@ -3061,8 +3634,12 @@ const adminChangeCardLinkedAccount = async (req, res) => {
 const adminBindNfcCard = async (req, res) => {
   try {
     const { username, cardId, pin, uid } = req.body;
+    const cleanUid = String(uid || "")
+      .replaceAll(":", "")
+      .trim()
+      .toUpperCase();
 
-    const existingUid = await User.findOne({ "virtualCards.uid": uid });
+    const existingUid = await Card.findOne({ uid: cleanUid });
     if (existingUid) {
       return res.json({
         success: false,
@@ -3071,10 +3648,7 @@ const adminBindNfcCard = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ username });
-    if (!user) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញ!" });
-
-    const targetCard = user.virtualCards.find((c) => c.id === cardId);
+    const targetCard = await Card.findOne({ id: cardId, username });
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
@@ -3086,19 +3660,17 @@ const adminBindNfcCard = async (req, res) => {
       });
     }
 
-    targetCard.uid = uid;
-    targetCard.pin = pin || "0000";
+    targetCard.uid = cleanUid;
+    targetCard.pin = pin || targetCard.pin || "0000";
     targetCard.isPhysical = true;
-
-    user.markModified("virtualCards");
-    await user.save();
+    await targetCard.save();
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
         req.admin.username,
         "Bind NFC Card",
         username,
-        `ភ្ជាប់ NFC (${uid}) ទៅកាត ${targetCard.number.slice(-4)}`,
+        `ភ្ជាប់ NFC (${cleanUid}) ទៅកាត ${targetCard.number.slice(-4)}`,
       );
     }
 
@@ -3114,27 +3686,23 @@ const adminBindNfcCard = async (req, res) => {
 const adminUnbindNfcCard = async (req, res) => {
   try {
     const { username, cardId } = req.body;
-    const user = await User.findOne({ username });
+    const card = await Card.findOne({ id: cardId, username });
 
-    if (user) {
-      const card = user.virtualCards.find((c) => c.id === cardId);
-      if (card) {
-        const oldUid = card.uid;
-        card.uid = null;
-        card.isPhysical = false;
-        user.markModified("virtualCards");
-        await user.save();
+    if (card) {
+      const oldUid = card.uid;
+      card.uid = null;
+      card.isPhysical = false;
+      await card.save();
 
-        if (req.admin && req.admin.username) {
-          await logAdminAction(
-            req.admin.username,
-            "Unbind NFC Card",
-            username,
-            `ផ្តាច់ NFC (${oldUid}) ចេញពីកាត ${card.number.slice(-4)}`,
-          );
-        }
-        return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
+      if (req.admin && req.admin.username) {
+        await logAdminAction(
+          req.admin.username,
+          "Unbind NFC Card",
+          username,
+          `ផ្តាច់ NFC (${oldUid}) ចេញពីកាត ${card.number.slice(-4)}`,
+        );
       }
+      return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
     }
     res.json({ success: false, message: "បរាជ័យ" });
   } catch (error) {
@@ -3143,38 +3711,325 @@ const adminUnbindNfcCard = async (req, res) => {
 };
 
 // ===============================
-// Create Merchant
-//================================
+// Create & Edit Merchant (Admin Pro)
+// ===============================
 const adminCreateMerchant = async (req, res) => {
-  const { username, name, city, category, linkedAccount } = req.body;
+  const { username, name, city, category, linkedAccUSD, linkedAccKHR } =
+    req.body;
   try {
     const user = await User.findOne({ username });
     if (!user) return res.json({ success: false, message: "រកមិនឃើញអតិថិជន" });
 
-    const newMerchant = {
-      id: "m_" + Date.now(),
-      merchantId: Math.floor(100000 + Math.random() * 900000).toString(),
-      name: name,
-      city: city,
-      category: category,
-      linkedAccount: linkedAccount,
-      status: "active",
-      accountNumbers: {
-        USD: user.mainAccounts?.USD?.accountNumber || "",
-        KHR: user.mainAccounts?.KHR?.accountNumber || "",
-      },
-      balance: 0,
-      createdAt: new Date(),
-    };
+    if (!linkedAccUSD && !linkedAccKHR) {
+      return res.json({
+        success: false,
+        message: "សូមជ្រើសរើសគណនីភ្ជាប់ (Linked Account) យ៉ាងហោចណាស់មួយ!",
+      });
+    }
 
-    if (!user.merchantProfile) user.merchantProfile = { merchants: [] };
-    if (!user.merchantProfile.merchants) user.merchantProfile.merchants = [];
+    const merchantId =
+      "500" +
+      Math.floor(100000000000 + Math.random() * 900000000000).toString();
 
-    user.merchantProfile.merchants.push(newMerchant);
-    await user.save();
-    res.json({ success: true, merchant: newMerchant });
+    const apiKey =
+      "upay_live_" + require("crypto").randomBytes(16).toString("hex");
+    const apiSecret = require("crypto").randomBytes(32).toString("hex");
+
+    let linkedAccountsObj = { USD: null, KHR: null };
+    let accountNumbersObj = { USD: null, KHR: null };
+
+    if (linkedAccUSD) {
+      linkedAccountsObj.USD = linkedAccUSD;
+      accountNumbersObj.USD =
+        "888" + Math.floor(100000000 + Math.random() * 900000000).toString();
+    }
+
+    if (linkedAccKHR) {
+      linkedAccountsObj.KHR = linkedAccKHR;
+      accountNumbersObj.KHR =
+        "999" + Math.floor(100000000 + Math.random() * 900000000).toString();
+    }
+
+    const newMerchant = new Merchant({
+      ownerId: user._id,
+      userCustomId: user.userId || user.id || user._id.toString(),
+      username: user.username,
+      userId: user.username,
+      name,
+      city,
+      category,
+      merchantId,
+      apiKey,
+      apiSecret,
+      linkedAccounts: linkedAccountsObj,
+      accountNumbers: accountNumbersObj,
+      collected: { USD: 0.0, KHR: 0 },
+      status: "Active",
+    });
+
+    const savedMerchant = await newMerchant.save();
+
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
+      title: "បង្កើតហាងជោគជ័យ! 🏪",
+      message: `អបអរសាទរ! ហាង "${name}" ត្រូវបានបង្កើតដោយជោគជ័យ និងរួចរាល់សម្រាប់ទទួលប្រាក់។`,
+      type: "system_alert",
+      date:
+        typeof getFormattedDate === "function"
+          ? getFormattedDate()
+          : new Date().toLocaleString(),
+      isRead: false,
+    });
+
+    await logAdminAction(
+      req.admin.username,
+      "Create Merchant",
+      user.username,
+      `Created merchant shop: ${name} (MID: ${merchantId})`,
+    );
+
+    res.status(201).json({ success: true, merchant: savedMerchant });
+  } catch (error) {
+    console.error("ADMIN CREATE MERCHANT ERROR:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server Error: " + error.message });
+  }
+};
+
+// 🌟 ទាញយកតែហាងរបស់ User ជាក់លាក់ (រួមទាំង Auto-Migrate សុវត្ថិភាព ៣ ជាន់)
+const adminGetMerchantsByUser = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username }).select(
+      "_id id userId username",
+    );
+
+    const query = user
+      ? {
+          $or: [
+            { userId: username },
+            { username: username },
+            { ownerId: user._id },
+          ],
+        }
+      : { $or: [{ userId: username }, { username: username }] };
+
+    const merchants = await Merchant.find(query);
+
+    if (user && merchants.length > 0) {
+      for (const m of merchants) {
+        if (!m.ownerId || !m.username || !m.userCustomId) {
+          m.ownerId = user._id;
+          m.username = user.username;
+          m.userCustomId = user.userId || user.id || user._id.toString();
+          await m.save();
+        }
+      }
+    }
+
+    res.json({ success: true, merchants });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// 🌟 Admin កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់ (Fixed 100% សម្រាប់គ្រប់ប្រភេទគណនី)
+const adminEditMerchant = async (req, res) => {
+  try {
+    const {
+      id,
+      name,
+      merchantId,
+      category,
+      webhookUrl,
+      linkedAccount,
+      linkedAccUSD,
+      linkedAccKHR,
+      username,
+    } = req.body;
+
+    if (merchantId) {
+      const existing = await Merchant.findOne({
+        merchantId: merchantId,
+        _id: { $ne: id },
+      });
+      if (existing) {
+        return res.json({
+          success: false,
+          message: "Merchant ID នេះមានអ្នកប្រើហើយ!",
+        });
+      }
+    }
+
+    const merchantToUpdate = await Merchant.findById(id);
+    if (!merchantToUpdate)
+      return res.json({ success: false, message: "រកហាងមិនឃើញទេ!" });
+
+    const user = await User.findOne({
+      username:
+        username || merchantToUpdate.username || merchantToUpdate.userId,
+    });
+    if (!user)
+      return res.json({ success: false, message: "រកម្ចាស់ហាងមិនឃើញទេ!" });
+
+    let linkedAccountsObj = { USD: null, KHR: null };
+    let accountNumbersObj = {
+      USD: merchantToUpdate.accountNumbers?.USD || null,
+      KHR: merchantToUpdate.accountNumbers?.KHR || null,
+    };
+
+    // 🟢 ករណីទី ១៖ បើបញ្ជូនលេខគណនីជាក់លាក់មកតាម linkedAccUSD / linkedAccKHR (ពី Customer 360)
+    if (linkedAccUSD !== undefined || linkedAccKHR !== undefined) {
+      if (!linkedAccUSD && !linkedAccKHR) {
+        return res.json({
+          success: false,
+          message: "សូមជ្រើសរើសគណនីទទួលប្រាក់យ៉ាងហោចណាស់មួយ!",
+        });
+      }
+
+      if (linkedAccUSD) {
+        linkedAccountsObj.USD = linkedAccUSD;
+        if (!accountNumbersObj.USD) {
+          accountNumbersObj.USD =
+            "888" +
+            Math.floor(100000000 + Math.random() * 900000000).toString();
+        }
+      } else {
+        accountNumbersObj.USD = null; // បើផ្តាច់កុង USD លុបលេខកុង QR USD ចេញ
+      }
+
+      if (linkedAccKHR) {
+        linkedAccountsObj.KHR = linkedAccKHR;
+        if (!accountNumbersObj.KHR) {
+          accountNumbersObj.KHR =
+            "999" +
+            Math.floor(100000000 + Math.random() * 900000000).toString();
+        }
+      } else {
+        accountNumbersObj.KHR = null; // បើផ្តាច់កុង KHR លុបលេខកុង QR KHR ចេញ
+      }
+    }
+    // 🟢 ករណីទី ២៖ Fallback សម្រាប់កន្លែងផ្សេងដែលបោះមកត្រឹមពាក្យ "USD", "KHR", "BOTH"
+    else if (linkedAccount) {
+      if (linkedAccount === "USD" || linkedAccount === "BOTH") {
+        linkedAccountsObj.USD =
+          merchantToUpdate.linkedAccounts?.USD ||
+          user.mainAccounts?.USD?.accountNumber ||
+          null;
+        if (linkedAccountsObj.USD && !accountNumbersObj.USD) {
+          accountNumbersObj.USD =
+            "888" +
+            Math.floor(100000000 + Math.random() * 900000000).toString();
+        }
+      } else {
+        accountNumbersObj.USD = null;
+      }
+
+      if (linkedAccount === "KHR" || linkedAccount === "BOTH") {
+        linkedAccountsObj.KHR =
+          merchantToUpdate.linkedAccounts?.KHR ||
+          user.mainAccounts?.KHR?.accountNumber ||
+          null;
+        if (linkedAccountsObj.KHR && !accountNumbersObj.KHR) {
+          accountNumbersObj.KHR =
+            "999" +
+            Math.floor(100000000 + Math.random() * 900000000).toString();
+        }
+      } else {
+        accountNumbersObj.KHR = null;
+      }
+    }
+
+    if (name) merchantToUpdate.name = name.trim();
+    if (merchantId) merchantToUpdate.merchantId = merchantId;
+    if (category) merchantToUpdate.category = category;
+    if (webhookUrl !== undefined) merchantToUpdate.webhookUrl = webhookUrl;
+
+    // ធានាការភ្ជាប់សុវត្ថិភាព ៣ ជាន់
+    merchantToUpdate.ownerId = user._id;
+    merchantToUpdate.username = user.username;
+    merchantToUpdate.userCustomId =
+      user.userId || user.id || user._id.toString();
+
+    merchantToUpdate.linkedAccounts = linkedAccountsObj;
+    merchantToUpdate.accountNumbers = accountNumbersObj;
+
+    merchantToUpdate.markModified("linkedAccounts");
+    merchantToUpdate.markModified("accountNumbers");
+
+    await merchantToUpdate.save();
+
+    await logAdminAction(
+      req.admin.username,
+      "Edit Merchant",
+      user.username,
+      `Updated merchant shop: ${merchantToUpdate.name} (USD: ${linkedAccountsObj.USD || "None"}, KHR: ${linkedAccountsObj.KHR || "None"})`,
+    );
+
+    res.json({
+      success: true,
+      message: "កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់ជោគជ័យ!",
+      merchant: merchantToUpdate,
+    });
+  } catch (error) {
+    console.error("Edit Merchant Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ផ្អាក ឬបើកដំណើរការហាង (Freeze/Unfreeze)
+const adminToggleMerchantFreeze = async (req, res) => {
+  try {
+    const { id, isFrozen } = req.body;
+    const status = isFrozen ? "Suspended" : "Active";
+    const m = await Merchant.findByIdAndUpdate(id, { status: status });
+    if (m) {
+      await logAdminAction(
+        req.admin.username,
+        "Toggle Merchant Freeze",
+        m.userId,
+        `Merchant ${m.name} set to ${status}`,
+      );
+    }
+    res.json({ success: true, message: "Status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Admin លុបហាងចោលពីប្រព័ន្ធ
+const adminDeleteMerchant = async (req, res) => {
+  try {
+    const m = await Merchant.findById(req.params.id);
+    if (!m) return res.json({ success: false, message: "រកមិនឃើញហាង" });
+
+    await Merchant.findByIdAndDelete(req.params.id);
+
+    // 🌟 ផ្តល់ដំណឹងចូល App ពេលលុបហាង
+    const owner = await User.findOne({ username: m.userId });
+    if (owner) {
+      await Notification.create({
+        userId: owner._id,
+        username: owner.username,
+        title: "ហាងត្រូវបានលុប! ❌",
+        message: `ហាង "${m.name}" របស់អ្នកត្រូវបានលុបចេញពីប្រព័ន្ធ U-Pay ដោយអ្នកគ្រប់គ្រង (Admin)។`,
+        type: "system_alert",
+        date: getFormattedDate(),
+        isRead: false,
+      });
+    }
+
+    await logAdminAction(
+      req.admin.username,
+      "Delete Merchant",
+      m.userId,
+      `Deleted merchant shop: ${m.name}`,
+    );
+    res.json({ success: true, message: "Merchant deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -3608,6 +4463,7 @@ module.exports = {
   createCashierTicket,
 
   // Cards
+  adminGetAllCards,
   adminCreateCard,
   adminDeleteCard,
   toggleAdminCardLock,
@@ -3620,6 +4476,11 @@ module.exports = {
 
   // Merchants
   adminCreateMerchant,
+  adminGetMerchantsByUser,
+  adminToggleMerchantFreeze,
+  adminDeleteMerchant,
+  adminEditMerchant,
+  releaseMerchantHold,
 
   // Promo, Tickets, Broadcast
   createPromoCode,

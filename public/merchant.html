@@ -1644,30 +1644,46 @@
         switchState("state-create");
       }
 
+      // ==========================================
+      // ជម្រើសគណនីភ្ជាប់សម្រាប់ User (Merchant App)
+      // ==========================================
       function populateLinkedAccounts() {
         const usdSelect = document.getElementById("storeLinkedAccUSD");
         const khrSelect = document.getElementById("storeLinkedAccKHR");
-        usdSelect.innerHTML =
-          '<option value="">-- មិនភ្ជាប់ (None) --</option>';
-        khrSelect.innerHTML =
-          '<option value="">-- មិនភ្ជាប់ (None) --</option>';
 
-        if (
-          window.currentUser.mainAccounts &&
-          window.currentUser.mainAccounts.USD
-        ) {
-          usdSelect.innerHTML += `<option value="${window.currentUser.mainAccounts.USD.accountNumber}">Main Account ($) - ${window.currentUser.mainAccounts.USD.accountNumber}</option>`;
-        } else if (window.currentUser.accountNumber) {
-          usdSelect.innerHTML += `<option value="${window.currentUser.accountNumber}">Main Account ($) - ${window.currentUser.accountNumber}</option>`;
+        let usdOptions = '<option value="">-- មិនភ្ជាប់ (None) --</option>';
+        let khrOptions = '<option value="">-- មិនភ្ជាប់ (None) --</option>';
+
+        // គណនីចម្បង
+        if (window.currentUser.mainAccounts?.USD) {
+          usdOptions += `<option value="${window.currentUser.mainAccounts.USD.accountNumber}">Main Account ($) - ${window.currentUser.mainAccounts.USD.accountNumber}</option>`;
         }
-        if (
-          window.currentUser.mainAccounts &&
-          window.currentUser.mainAccounts.KHR
-        ) {
-          khrSelect.innerHTML += `<option value="${window.currentUser.mainAccounts.KHR.accountNumber}">Main Account (៛) - ${window.currentUser.mainAccounts.KHR.accountNumber}</option>`;
-        } else if (window.currentUser.accountNumberKHR) {
-          khrSelect.innerHTML += `<option value="${window.currentUser.accountNumberKHR}">Main Account (៛) - ${window.currentUser.accountNumberKHR}</option>`;
+        if (window.currentUser.mainAccounts?.KHR) {
+          khrOptions += `<option value="${window.currentUser.mainAccounts.KHR.accountNumber}">Main Account (៛) - ${window.currentUser.mainAccounts.KHR.accountNumber}</option>`;
         }
+
+        // គណនីរង និងរួម (ដក Junior ចេញ)
+        if (
+          window.currentUser.subAccounts &&
+          window.currentUser.subAccounts.length > 0
+        ) {
+          window.currentUser.subAccounts.forEach((sub) => {
+            if (sub.accountType !== "junior") {
+              let typeLabel =
+                sub.accountType === "joint" ||
+                sub.accountType === "joint_member"
+                  ? "[Joint]"
+                  : "[Sub]";
+              let opt = `<option value="${sub.accountNumber}">${typeLabel} ${sub.accountName} (${sub.accountNumber})</option>`;
+
+              if (sub.currency === "USD") usdOptions += opt;
+              else khrOptions += opt;
+            }
+          });
+        }
+
+        usdSelect.innerHTML = usdOptions;
+        khrSelect.innerHTML = khrOptions;
       }
 
       function showPinModal() {

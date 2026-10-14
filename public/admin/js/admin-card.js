@@ -89,20 +89,35 @@ window.quickBindNFC = async function (username, cardId) {
     targetCard.type ||
     "Standard"
   ).toUpperCase();
+  // កំណត់រូបិយប័ណ្ណ និង លេខគណនីដែលភ្ជាប់ (គាំទ្រទាំង Main, Sub, និង Joint)
+  let currency = targetCard.currency || "USD";
+  let linkedAccNum = targetCard.linkedAccount || "N/A";
 
-  // កំណត់រូបិយប័ណ្ណ និង លេខគណនីដែលភ្ជាប់
-  let currency = targetCard.linkedAccount === "KHR" ? "KHR" : "USD";
-  let linkedAccNum = "N/A";
-  if (targetCard.linkedAccount === "USD") {
-    // ចាប់យកពី mainAccounts.USD ថ្មី
-    linkedAccNum = targetUser.mainAccounts?.USD?.accountNumber || "N/A";
-  } else if (targetCard.linkedAccount === "KHR") {
-    // ចាប់យកពី mainAccounts.KHR ថ្មី
-    linkedAccNum = targetUser.mainAccounts?.KHR?.accountNumber || "N/A";
+  if (
+    linkedAccNum === "USD" ||
+    linkedAccNum === targetUser.mainAccounts?.USD?.accountNumber
+  ) {
+    currency = "USD";
+    linkedAccNum = `${targetUser.mainAccounts?.USD?.accountNumber || "N/A"} (Main)`;
+  } else if (
+    linkedAccNum === "KHR" ||
+    linkedAccNum === targetUser.mainAccounts?.KHR?.accountNumber
+  ) {
+    currency = "KHR";
+    linkedAccNum = `${targetUser.mainAccounts?.KHR?.accountNumber || "N/A"} (Main)`;
   } else {
-    currency = targetCard.linkedAccount?.split("_")[0] || "USD";
-    linkedAccNum =
-      targetCard.linkedAccount?.split("_")[1] || targetCard.linkedAccount;
+    const rawNum = linkedAccNum.includes("_")
+      ? linkedAccNum.split("_")[1]
+      : linkedAccNum;
+    const sub = (targetUser.subAccounts || []).find(
+      (s) => s.accountNumber === rawNum,
+    );
+    if (sub) {
+      currency = sub.currency || "USD";
+      linkedAccNum = `${sub.accountNumber} (${sub.accountName})`;
+    } else {
+      linkedAccNum = rawNum;
+    }
   }
 
   // 🔥 ចាប់យក PIN ចាស់របស់គាត់ផ្ទាល់ (បើគ្មាន ទើបយក 0000 ជា Default)
