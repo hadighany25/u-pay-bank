@@ -239,6 +239,13 @@ router.get(
   "/public/verify-reset-token",
   safeHandler(authController.verifyResetToken, "verifyResetToken"),
 );
+
+router.post(
+  "/ticket/create",
+  safeVerifyUser,
+  safeHandler(authController.createTicket, "createTicket"),
+);
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================

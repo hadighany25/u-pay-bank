@@ -105,7 +105,8 @@ function showSection(id, btn) {
     const el = document.getElementById("sec-" + sec);
     if (el) el.style.display = "none";
   });
-  document.getElementById("sec-" + id).style.display = "block";
+  const targetSec = document.getElementById("sec-" + id);
+  if (targetSec) targetSec.style.display = "block";
 
   // ហៅទិន្នន័យជាក់លាក់ពេលចូលដល់ទំព័រនីមួយៗ
   if (id === "broadcast-history" && typeof loadBroadcastHistory === "function")
@@ -113,6 +114,9 @@ function showSection(id, btn) {
   if (id === "fx" && typeof fetchFXRates === "function") fetchFXRates();
   if (id === "logs" && typeof loadAdminLogs === "function") loadAdminLogs();
   if (id === "promo" && typeof loadPromoCodes === "function") loadPromoCodes();
+  // 🟢 ហៅមុខងារទាញយក Support Tickets ថ្មីពេលចុចបើកផ្ទាំង Tickets
+  if (id === "tickets" && typeof fetchAllSupportTickets === "function")
+    fetchAllSupportTickets(false);
 
   // ដូរពណ៌ប៊ូតុង Menu ឱ្យសកម្ម (Active State)
   document
@@ -253,7 +257,6 @@ async function loadData() {
             (String(c.userId) === String(u._id) ||
               String(c.userId) === String(u.id))),
       );
-      // បើមានក្នុងតារាង Card.js យកអាថ្មី តែបើអត់ទាន់មានទេ រក្សាទុកអាចាស់ដែលមកជាមួយ u.virtualCards
       if (matchedCards.length > 0) {
         u.virtualCards = matchedCards;
       } else if (!Array.isArray(u.virtualCards)) {
@@ -273,7 +276,6 @@ async function loadData() {
     // --------------------------------------------------
     // ៥.២ អថេរសម្រាប់គណនាស្ថិតិ (Statistics Initialization)
     // --------------------------------------------------
-    let ticketsHtml = ""; // រក្សាទុកកូដសាងសង់តារាង Ticket
     let activeToday = 0,
       newUsers = 0,
       totalFunds = 0,
@@ -292,7 +294,6 @@ async function loadData() {
     // ៥.៣ ដំណើរការទិន្នន័យរបស់អតិថិជនម្នាក់ៗ (Data Processing Loop)
     // --------------------------------------------------
     clients.forEach((u) => {
-      // គណនាស្ថិតិមូលដ្ឋាន
       if (u.isOnline) activeToday++;
       if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
       if (u.isFrozen) frozenCount++;
@@ -339,32 +340,11 @@ async function loadData() {
           allIssuedCards.push({ user: u, card: c });
         });
       }
-
-      // ប្រមូល Support Tickets
-      if (u.tickets) {
-        u.tickets.forEach((t) => {
-          const statusColor =
-            t.status === "Open"
-              ? "color:#d97706; background:#fef3c7;"
-              : "color:#10b981; background:#dcfce7;";
-          ticketsHtml += `<tr>
-            <td style="font-family:monospace; font-weight:bold;">${t.ticketId}</td>
-            <td><div style="font-weight:600;">${u.username}</div></td>
-            <td>${t.subject}</td>
-            <td style="text-align: center;"><button class="btn-action" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;" onclick="viewUserMessage('${u.username}', '${t.ticketId}')" title="View Message"><i class="fa-solid fa-eye"></i></button></td>
-            <td><span style="color:${t.priority === "High" ? "#ef4444" : "#64748b"}; font-weight:bold;"><i class="fa-solid fa-circle-exclamation"></i> ${t.priority}</span></td>
-            <td><span style="padding:3px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold; ${statusColor}">${t.status}</span></td>
-            <td style="text-align: right;">${t.status === "Open" ? `<button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="replyTicket('${u.username}', '${t.ticketId}')">Reply</button>` : `<span style="color:var(--text-muted); font-size:0.8rem;">Answered</span>`}</td>
-          </tr>`;
-        });
-      }
     });
 
     // --------------------------------------------------
     // ៥.៤ បញ្ជូនទិន្នន័យទៅឱ្យឯកសារខាងក្រៅគ្រប់គ្រង (Delegation)
     // --------------------------------------------------
-
-    // 🟢 ការពារបន្ថែម៖ បើ allCardsList មានកាត តែ allIssuedCards ចាប់អត់បាន យើងចាប់បញ្ចូលដោយផ្ទាល់
     if (allIssuedCards.length === 0 && allCardsList.length > 0) {
       allCardsList.forEach((c) => {
         const owner = users.find((u) => u.username === c.username) || {
@@ -380,13 +360,14 @@ async function loadData() {
     if (!window.currentCardPage) window.currentCardPage = 1;
     renderCardTablePage();
 
+    // 🟢 បញ្ជូនការអាប់ដេតតារាង Support Tickets ទៅឱ្យម៉ូឌុលថ្មីក្នុង admin-tickets.js គ្រប់គ្រងវិញ
+    if (typeof fetchAllSupportTickets === "function") {
+      fetchAllSupportTickets(false);
+    }
+
     // --------------------------------------------------
     // ៥.៥ បច្ចុប្បន្នភាព UI នៅលើអេក្រង់ (DOM Updates)
     // --------------------------------------------------
-    document.getElementById("ticketTableBody").innerHTML =
-      ticketsHtml ||
-      '<tr><td colspan="7" style="text-align:center; padding: 20px;">No support tickets found.</td></tr>';
-
     document.getElementById("d-users").innerText = clients.length;
     document.getElementById("d-active").innerText = activeToday;
     document.getElementById("d-new-users").innerText = newUsers;
@@ -615,7 +596,6 @@ async function applyDynamicPermissions() {
         if (!menus.chat)
           cssRules += "#menu-chat { display: none !important; }\n";
 
-        // លាក់ម៉ឺនុយ Super Admin ជានិច្ច
         cssRules +=
           "#menu-super-only, #menu-admins, #menu-system, #menu-logs { display: none !important; }\n";
 
@@ -623,7 +603,6 @@ async function applyDynamicPermissions() {
         style.innerHTML = cssRules;
         document.head.appendChild(style);
 
-        // លាក់ក្រុមចំណងជើង (Group Labels) ប្រសិនបើកូនៗវាត្រូវបាត់អស់
         setTimeout(() => {
           const checkGroupLabel = (labelId, menuIds) => {
             const label = document.getElementById(labelId);
@@ -760,7 +739,8 @@ async function checkAdminNotifications() {
         if (u.kycStatus === "pending") currentPendingKyc++;
         if (u.tickets && Array.isArray(u.tickets)) {
           u.tickets.forEach((t) => {
-            if (t.status === "Open") currentOpenTickets++;
+            if (t.status === "Open" || t.status === "Pending")
+              currentOpenTickets++;
           });
         }
       });
@@ -861,14 +841,12 @@ window.addEventListener("DOMContentLoaded", () => {
 // 🔍 មុខងារស្វែងរកស្តង់ដារ (Universal Search Helper)
 // ========================================================================
 window.standardDataSearch = function (dataArray, keyword, searchFields) {
-  // បើគ្មានពាក្យស្វែងរកទេ បោះទិន្នន័យដើមទៅវិញទាំងមូល
   if (!keyword || keyword.trim() === "") return dataArray;
 
   const lowerKeyword = keyword.toLowerCase().trim();
 
   return dataArray.filter((item) => {
     return searchFields.some((field) => {
-      // បំបែកឈ្មោះ field (ឧ. 'user.fullName' ទៅជាចាប់យកតម្លៃខាងក្នុង)
       const value = field
         .split(".")
         .reduce((obj, key) => (obj ? obj[key] : null), item);

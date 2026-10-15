@@ -5792,7 +5792,7 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១៤ ] Support Tickets -->
+      <!-- [ ផ្ទាំង ១៤ ] Support Tickets (Enterprise Helpdesk UI) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-tickets"
@@ -5802,34 +5802,517 @@
           max-width: 1400px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 30px;
+          font-family: &quot;Inter&quot;, &quot;Kantumruy Pro&quot;, sans-serif;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .tck-hub-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 22px;
+          }
+          .tck-hub-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .tck-hub-kpi-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+          }
+          .tck-hub-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.04);
+          }
+          .tck-hub-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .tck-hub-table-wrap {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+          }
+          .tck-hub-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .tck-hub-table thead tr {
+            background: var(--bg-body, #f8fafc);
+            border-bottom: 2px solid var(--border, #e2e8f0);
+          }
+          .tck-hub-table th {
+            padding: 15px 18px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted, #64748b);
+            text-align: left;
+          }
+          .tck-hub-table td {
+            padding: 15px 18px;
+            border-bottom: 1px solid var(--border, #f1f5f9);
+            vertical-align: middle;
+            font-size: 0.9rem;
+            color: var(--text-main, #1e293b);
+          }
+          .tck-hub-table tbody tr {
+            transition: background 0.15s ease;
+          }
+          .tck-hub-table tbody tr:hover {
+            background: rgba(13, 148, 136, 0.03);
+          }
+          .tck-user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px 5px 5px;
+            border-radius: 30px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            cursor: pointer;
+            transition: 0.2s;
+          }
+          .tck-user-pill:hover {
+            border-color: #0d9488;
+            background: #f0fdfa;
+          }
+          @media (max-width: 950px) {
+            .tck-hub-kpi-grid {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+          @media (max-width: 550px) {
+            .tck-hub-kpi-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+        </style>
+
+        <!-- 🏷️ ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+          "
+        >
           <div>
-            <h2 class="dash-title" data-i18n="support-tickets">
-              Support Tickets
+            <h2
+              class="dash-title kh-text"
+              style="
+                margin: 0 0 5px 0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <i
+                class="fa-solid fa-headset"
+                style="color: #0d9488; font-size: 1.6rem"
+              ></i>
+              <span data-i18n="support-tickets"
+                >មជ្ឈមណ្ឌលគ្រប់គ្រងសំណូមពរ (Support Tickets)</span
+              >
             </h2>
-            <p class="dash-desc" data-i18n="respond-to-user-disputes">
-              Respond to user disputes and issues.
+            <p
+              class="dash-desc kh-text"
+              style="margin: 0"
+              data-i18n="respond-to-user-disputes"
+            >
+              ត្រួតពិនិត្យ
+              និងឆ្លើយតបរបាយការណ៍បញ្ហារបស់អតិថិជនទាំងអស់ក្នុងប្រព័ន្ធ។
             </p>
           </div>
+          <button
+            onclick="fetchAllSupportTickets(true)"
+            class="kh-text"
+            style="
+              padding: 10px 18px;
+              background: linear-gradient(135deg, #004d40, #0d9488);
+              color: white;
+              border: none;
+              border-radius: 12px;
+              font-weight: 700;
+              font-size: 0.9rem;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+            "
+          >
+            <i class="fa-solid fa-rotate" id="tck-hub-refresh-icon"></i>
+            ទាញទិន្នន័យថ្មី (Refresh)
+          </button>
         </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th data-i18n="ticket-id">Ticket ID</th>
-                <th data-i18n="customer">Customer</th>
-                <th data-i18n="subject">Subject</th>
-                <th style="text-align: center" data-i18n="message">Message</th>
-                <th data-i18n="priority">Priority</th>
-                <th data-i18n="status">Status</th>
-                <th style="text-align: right" data-i18n="action">Action</th>
-              </tr>
-            </thead>
-            <tbody id="ticketTableBody"></tbody>
-          </table>
+
+        <!-- 📊 ៤ ប្រអប់ស្ថិតិ (KPI Cards) -->
+        <div class="tck-hub-kpi-grid">
+          <div
+            class="tck-hub-kpi-card active-kpi"
+            id="tck-kpi-all"
+            onclick="setMainTicketQuickFilter('all')"
+          >
+            <div>
+              <div
+                class="kh-text"
+                style="
+                  font-size: 0.78rem;
+                  color: var(--text-muted);
+                  font-weight: 700;
+                  margin-bottom: 4px;
+                "
+              >
+                សំណូមពរសរុប (TOTAL)
+              </div>
+              <div
+                id="tck-count-total"
+                style="
+                  font-size: 1.75rem;
+                  font-weight: 900;
+                  color: var(--text-main);
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+                background: #eff6ff;
+                color: #2563eb;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+              "
+            >
+              <i class="fa-solid fa-folder-tree"></i>
+            </div>
+          </div>
+
+          <div
+            class="tck-hub-kpi-card"
+            id="tck-kpi-pending"
+            onclick="setMainTicketQuickFilter('Pending')"
+          >
+            <div>
+              <div
+                class="kh-text"
+                style="
+                  font-size: 0.78rem;
+                  color: var(--text-muted);
+                  font-weight: 700;
+                  margin-bottom: 4px;
+                "
+              >
+                រង់ចាំដោះស្រាយ (PENDING)
+              </div>
+              <div
+                id="tck-count-pending"
+                style="
+                  font-size: 1.75rem;
+                  font-weight: 900;
+                  color: #f59e0b;
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+                background: #fef9c3;
+                color: #d97706;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+              "
+            >
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+          </div>
+
+          <div
+            class="tck-hub-kpi-card"
+            id="tck-kpi-high"
+            onclick="setMainTicketQuickFilter('High')"
+          >
+            <div>
+              <div
+                class="kh-text"
+                style="
+                  font-size: 0.78rem;
+                  color: var(--text-muted);
+                  font-weight: 700;
+                  margin-bottom: 4px;
+                "
+              >
+                កម្រិតបន្ទាន់ (HIGH PRIORITY)
+              </div>
+              <div
+                id="tck-count-high"
+                style="
+                  font-size: 1.75rem;
+                  font-weight: 900;
+                  color: #ef4444;
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+                background: #fee2e2;
+                color: #ef4444;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+              "
+            >
+              <i class="fa-solid fa-fire-flame-curved"></i>
+            </div>
+          </div>
+
+          <div
+            class="tck-hub-kpi-card"
+            id="tck-kpi-answered"
+            onclick="setMainTicketQuickFilter('Answered')"
+          >
+            <div>
+              <div
+                class="kh-text"
+                style="
+                  font-size: 0.78rem;
+                  color: var(--text-muted);
+                  font-weight: 700;
+                  margin-bottom: 4px;
+                "
+              >
+                ដោះស្រាយរួច (ANSWERED)
+              </div>
+              <div
+                id="tck-count-answered"
+                style="
+                  font-size: 1.75rem;
+                  font-weight: 900;
+                  color: #10b981;
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                "
+              >
+                0
+              </div>
+            </div>
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+                background: #dcfce7;
+                color: #059669;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.35rem;
+              "
+            >
+              <i class="fa-solid fa-file-circle-check"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 របារស្វែងរក និងតម្រង (Search & Filter Toolbar) -->
+        <div class="tck-hub-toolbar">
+          <div style="position: relative; flex: 1; min-width: 260px">
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="
+                position: absolute;
+                left: 14px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--text-muted);
+              "
+            ></i>
+            <input
+              type="text"
+              id="tck-hub-search"
+              class="kh-text"
+              placeholder="ស្វែងរកតាមលេខកូដ TCK, ឈ្មោះអតិថិជន, ប្រធានបទ, ឬ @admin..."
+              oninput="filterMainTicketsTable(true)"
+              style="
+                width: 100%;
+                padding: 10px 14px 10px 40px;
+                border-radius: 10px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-body, #f8fafc);
+                color: var(--text-main);
+                font-size: 0.9rem;
+                outline: none;
+                box-sizing: border-box;
+              "
+            />
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <select
+              id="tck-hub-priority-filter"
+              class="kh-text"
+              onchange="filterMainTicketsTable(true)"
+              style="
+                padding: 10px 14px;
+                border-radius: 10px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-body, #f8fafc);
+                color: var(--text-main);
+                font-weight: 600;
+                font-size: 0.85rem;
+                outline: none;
+                cursor: pointer;
+              "
+            >
+              <option value="ALL">គ្រប់កម្រិតអាទិភាព (All Priorities)</option>
+              <option value="High">🔥 កម្រិតបន្ទាន់ (High)</option>
+              <option value="Normal">📋 កម្រិតធម្មតា (Normal)</option>
+            </select>
+
+            <select
+              id="tck-hub-status-filter"
+              class="kh-text"
+              onchange="filterMainTicketsTable(true)"
+              style="
+                padding: 10px 14px;
+                border-radius: 10px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-body, #f8fafc);
+                color: var(--text-main);
+                font-weight: 600;
+                font-size: 0.85rem;
+                outline: none;
+                cursor: pointer;
+              "
+            >
+              <option value="ALL">គ្រប់ស្ថានភាព (All Status)</option>
+              <option value="Pending">⏳ រង់ចាំដោះស្រាយ (Pending)</option>
+              <option value="Answered">✅ ដោះស្រាយរួច (Answered)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 📋 តារាងទិន្នន័យ (Enterprise Data Table) -->
+        <div class="tck-hub-table-wrap">
+          <div style="overflow-x: auto">
+            <table class="tck-hub-table">
+              <thead>
+                <tr>
+                  <th data-i18n="ticket-id">លេខសំបុត្រ (Ticket ID)</th>
+                  <th data-i18n="customer">អតិថិជន (Customer)</th>
+                  <th data-i18n="subject">ប្រធានបទ និងខ្លឹមសារសង្ខេប</th>
+                  <th data-i18n="priority">កម្រិត (Priority)</th>
+                  <th data-i18n="status">ស្ថានភាព & អ្នកឆ្លើយតប</th>
+                  <th style="text-align: right" data-i18n="action">
+                    សកម្មភាព (Actions)
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="ticketTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- 🔢 Pagination Footer -->
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 14px 20px;
+              background: var(--bg-body, #f8fafc);
+              border-top: 1px solid var(--border, #e2e8f0);
+            "
+          >
+            <button
+              id="tck-hub-prev-btn"
+              onclick="changeMainTicketPage(-1)"
+              class="kh-text"
+              style="
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-card, white);
+                color: var(--text-main);
+                font-weight: 700;
+                cursor: pointer;
+              "
+              disabled
+            >
+              <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+            </button>
+            <span
+              id="tck-hub-page-info"
+              class="kh-text"
+              style="
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: var(--text-main);
+              "
+              >ទំព័រ 1 នៃ 1</span
+            >
+            <button
+              id="tck-hub-next-btn"
+              onclick="changeMainTicketPage(1)"
+              class="kh-text"
+              style="
+                padding: 7px 14px;
+                border-radius: 8px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-card, white);
+                color: var(--text-main);
+                font-weight: 700;
+                cursor: pointer;
+              "
+              disabled
+            >
+              បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -190,6 +190,8 @@ function renderCustomerProfile(user) {
                 <div class="c360-v-tab" id="tab-btn-security" onclick="switchC360Tab('security', this)"><i class="fa-solid fa-shield-halved"></i> សន្តិសុខ (Security)</div>
                 <div class="c360-v-tab" id="tab-btn-merchant" onclick="switchC360Tab('merchant', this)"><i class="fa-solid fa-store"></i> ហាង (Merchant)</div>
                 <div class="c360-v-tab" id="tab-btn-logs" onclick="switchC360Tab('logs', this)"><i class="fa-solid fa-list-check"></i> កំណត់ត្រា (Audit Logs)</div>
+                <div class="c360-v-tab" id="tab-btn-physical" onclick="switchC360Tab('physical', this)"><i class="fa-solid fa-address-card"></i> កាតរូបវ័ន្ត (Physical Cards)</div>
+                <div class="c360-v-tab" id="tab-btn-tickets" onclick="switchC360Tab('tickets', this)"><i class="fa-solid fa-headset"></i> សំណូមពរ (Support Tickets)</div>
             </div>
 
             <!-- Actions Section -->
@@ -222,6 +224,8 @@ function renderCustomerProfile(user) {
                 <div id="c360-tab-security" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-merchant" class="c360-tab-content" style="display: none;"></div>
                 <div id="c360-tab-logs" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-physical" class="c360-tab-content" style="display: none;"></div>
+                <div id="c360-tab-tickets" class="c360-tab-content" style="display: none;"></div>
             </div>
         </div>
     </div>
@@ -236,7 +240,9 @@ function renderCustomerProfile(user) {
   renderSecurityTab(user);
   renderMerchantTab(user);
   renderLogsTab(user);
-  switchC360Tab(currentC360ActiveTab); // 🟢 បើក Tab ដើមមកវិញបន្ទាប់ពី Render
+  switchC360Tab(currentC360ActiveTab);
+  renderPhysicalCardsTab(user);
+  renderTicketsTab(user);
 }
 
 function switchC360Tab(tabName, element = null) {
@@ -4956,12 +4962,21 @@ async function renderMerchantTab(user) {
                     </div>
                 </div>
 
-                <!-- ផ្នែកខាងស្តាំ៖ ចំណូលសរុប -->
+               <!-- ផ្នែកខាងស្តាំ៖ ចំណូលសរុប (កែសម្រួលទំហំលេខឱ្យស្មើគ្នា និងដាក់ពណ៌ទាក់ទាញ) -->
                 <div style="flex: 1; min-width: 250px; background: linear-gradient(135deg, #004d40 0%, #059669 100%); border-radius: 16px; padding: 25px; color: white; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2);">
                     <i class="fa-solid fa-chart-line" style="position: absolute; right: -20px; bottom: -20px; font-size: 8rem; opacity: 0.1;"></i>
-                    <h4 class="kh-text" style="margin: 0 0 15px; font-size: 1rem; color: #d1fae5;"><i class="fa-solid fa-sack-dollar"></i> ចំណូលសរុប (Total Revenue)</h4>
-                    <div style="font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 10px;">$${balUSD}</div>
-                    <div style="font-size: 1.4rem; font-weight: 700; font-family: 'Inter', sans-serif; color: #a7f3d0;">៛${balKHR}</div>
+                    <h4 class="kh-text" style="margin: 0 0 15px; font-size: 0.95rem; color: #d1fae5; font-weight: 700;"><i class="fa-solid fa-sack-dollar"></i> ចំណូលសរុប (Total Revenue)</h4>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- លេខ USD -->
+                        <div style="font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #ffffff;">
+                            $${balUSD}
+                        </div>
+                        <!-- លេខ KHR (ទំហំស្មើគ្នា និងប្តូរពណ៌លឿងខ្ចីស្អាត) -->
+                        <div style="font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; color: #fef08a;">
+                            ៛${balKHR}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -5138,6 +5153,9 @@ window.c360OpenMerchantTrxSlip = function (index) {
   }
 };
 
+// =======================================================
+// 🖨️ [Pro] មុខងារបង្ហាញ និងទាញយក PDF QR Code របស់ហាង (Stand Pro)
+// =======================================================
 window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
   let accounts = {};
   try {
@@ -5157,17 +5175,52 @@ window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
     );
   }
 
-  let defaultAcc = hasUSD ? accounts.USD : accounts.KHR;
-  let qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(defaultAcc)}&dark=004d40&size=400&margin=1`;
+  let defaultCurr = hasUSD ? "USD" : "KHR";
 
-  let toggleOrBadgeHtml = "";
+  // បង្ហាញ Popup (Default Theme: #004d40)
+  Swal.fire({
+    title: `<span class="kh-text" style="color: var(--primary); font-size: 1.3rem;"><i class="fa-solid fa-qrcode"></i> កាត QR Code ហាង (POS Stand)</span>`,
+    html: getQRModalContent(mid, name, strAccountsStr, defaultCurr, "#004d40"),
+    showCancelButton: true,
+    showConfirmButton: true,
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-file-pdf"></i> ទាញយកជា PDF (Download)</span>',
+    cancelButtonText: "បិទផ្ទាំង",
+    confirmButtonColor: "#3b82f6",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+    preConfirm: () => {
+      // 📄 ពេលចុចប៊ូតុង Confirm គឺអោយវា Download PDF ភ្លាមៗតែម្តង
+      const popup = Swal.getPopup();
+      const curr = popup?.dataset?.currentCurr || defaultCurr;
+      const themeBg = popup?.dataset?.currentTheme || "#004d40";
+      c360DownloadQRPDF(mid, name, strAccountsStr, curr, themeBg);
+      return false; // កុំអោយបិទ Popup ស្វ័យប្រវត្តិ អោយ Admin អាចមើលឬប្តូរពណ៌បន្តបាន
+    },
+  });
+};
+
+// 🎨 មុខងារបង្កើត HTML Content ខាងក្នុង Modal
+function getQRModalContent(mid, name, strAccountsStr, curr, themeBg) {
+  let accounts = {};
+  try {
+    accounts = JSON.parse(decodeURIComponent(strAccountsStr));
+  } catch (e) {}
+  let hasUSD = !!accounts.USD;
+  let hasKHR = !!accounts.KHR;
+
+  let activeAcc = curr === "USD" ? accounts.USD : accounts.KHR;
+  if (!activeAcc) activeAcc = hasUSD ? accounts.USD : accounts.KHR;
+  let qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(activeAcc)}&dark=004d40&size=400&margin=1`;
+
+  let toggleBtns = "";
   if (hasUSD && hasKHR) {
-    toggleOrBadgeHtml = `
-            <div style="display: flex; background: #f1f5f9; border-radius: 14px; padding: 5px; margin-bottom: 25px; width: 100%; box-sizing: border-box;">
-                <div id="c360-qr-btn-usd" onclick="document.getElementById('c360-dynamic-qr').src='https://quickchart.io/qr?text=${encodeURIComponent(accounts.USD)}&dark=004d40&size=400&margin=1'; document.getElementById('c360-qr-mid').innerText='${accounts.USD}'; this.classList.add('active'); this.nextElementSibling.classList.remove('active'); document.getElementById('c360-qr-mid').style.color='#004d40';" style="flex: 1; text-align: center; padding: 10px 0; font-size: 0.9rem; font-weight: 700; color: #64748b; border-radius: 10px; cursor: pointer; transition: 0.3s;" class="active">
+    toggleBtns = `
+            <div style="display: flex; background: rgba(0,0,0,0.08); border-radius: 12px; padding: 4px; margin-bottom: 20px; width: 100%; box-sizing: border-box;">
+                <div onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', 'USD', '${themeBg}')" style="flex: 1; text-align: center; padding: 8px 0; font-size: 0.85rem; font-weight: 700; color: ${curr === "USD" ? "var(--primary)" : "#cbd5e1"}; background: ${curr === "USD" ? "white" : "transparent"}; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: ${curr === "USD" ? "0 2px 5px rgba(0,0,0,0.1)" : "none"};">
                     USD ($)
                 </div>
-                <div id="c360-qr-btn-khr" onclick="document.getElementById('c360-dynamic-qr').src='https://quickchart.io/qr?text=${encodeURIComponent(accounts.KHR)}&dark=047857&size=400&margin=1'; document.getElementById('c360-qr-mid').innerText='${accounts.KHR}'; this.classList.add('active'); this.previousElementSibling.classList.remove('active'); document.getElementById('c360-qr-mid').style.color='#047857';" style="flex: 1; text-align: center; padding: 10px 0; font-size: 0.9rem; font-weight: 700; color: #64748b; border-radius: 10px; cursor: pointer; transition: 0.3s;">
+                <div onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', 'KHR', '${themeBg}')" style="flex: 1; text-align: center; padding: 8px 0; font-size: 0.85rem; font-weight: 700; color: ${curr === "KHR" ? "var(--primary)" : "#cbd5e1"}; background: ${curr === "KHR" ? "white" : "transparent"}; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: ${curr === "KHR" ? "0 2px 5px rgba(0,0,0,0.1)" : "none"};">
                     KHR (៛)
                 </div>
             </div>
@@ -5175,48 +5228,215 @@ window.c360ShowMerchantQR = function (mid, name, strAccountsStr) {
   } else {
     const badgeColor = hasUSD ? "#004d40" : "#047857";
     const badgeText = hasUSD ? "USD ($)" : "KHR (៛)";
-    toggleOrBadgeHtml = `
-            <div style="margin-bottom: 25px; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 15px; border-radius: 12px; color: ${badgeColor}; font-weight: 800; font-size: 0.95rem; display: flex; justify-content: center; align-items: center;">
-                 ${badgeText}
-            </div>
-        `;
+    toggleBtns = `<div style="margin-bottom: 15px; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 10px; color: #ffffff; font-weight: 800; font-size: 0.85rem; display: inline-block;">${badgeText}</div>`;
   }
 
-  let initMidText = hasUSD ? accounts.USD : accounts.KHR;
-  let initMidColor = hasUSD ? "#004d40" : "#047857";
+  let textColor =
+    themeBg === "#ffffff" || themeBg === "#f8fafc" ? "#1e293b" : "#ffffff";
+  let subColor =
+    themeBg === "#ffffff" || themeBg === "#f8fafc" ? "#0f766e" : "#fef08a";
+  let logoFilter =
+    themeBg === "#ffffff" || themeBg === "#f8fafc"
+      ? "none"
+      : "brightness(0) invert(1)";
 
-  Swal.fire({
-    title: `<span class="kh-text" style="color: var(--primary); font-size: 1.4rem;">QR Code ហាង</span>`,
-    html: `
-            <style>
-                #c360-qr-btn-usd.active, #c360-qr-btn-khr.active {
-                    background: white !important;
-                    color: var(--primary) !important;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                }
-                .c360-qr-container {
-                    background: white; width: 100%; max-width: 350px; padding: 30px 25px 25px; border-radius: 30px; box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1); text-align: center; box-sizing: border-box; margin: auto; border: 1px solid var(--border);
-                }
-            </style>
-            
-            <div class="c360-qr-container">
-                ${toggleOrBadgeHtml}
-                <img src="../images/logo-nobg.png" style="height: 40px; margin-bottom: 15px;" alt="U-Pay" onerror="this.style.display='none'">
-                <h3 class="kh-text" style="margin: 0; font-size: 1.6rem; color: #1e293b; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">${name}</h3>
-                <p style="color: #64748b; font-size: 1rem; margin: 8px 0 25px; font-weight: 500; font-family: monospace;">MID: ${mid}</p>
-                <div style="background: #ffffff; padding: 15px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; margin-bottom: 15px; border: 1px solid #e2e8f0; box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);">
-                    <img id="c360-dynamic-qr" src="${qrUrl}" style="width: 100%; max-width: 220px; height: auto; display: block; border-radius: 12px; transition: 0.3s;">
+  return `
+        <style>
+            .c360-qr-print-card {
+                background: ${themeBg}; width: 100%; max-width: 320px; padding: 25px 20px; border-radius: 24px; box-shadow: 0 15px 30px rgba(0,0,0,0.15); text-align: center; box-sizing: border-box; margin: 0 auto 15px auto; color: ${textColor}; border: 1px solid rgba(0,0,0,0.1);
+            }
+            .c360-theme-dot { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.2s; }
+            .c360-theme-dot:hover { transform: scale(1.15); }
+        </style>
+
+        <div id="printable-qr-section">
+            <div class="c360-qr-print-card" id="qrCardBox">
+                ${toggleBtns}
+                <img src="../images/logo-nobg.png" style="height: 38px; margin-bottom: 12px; filter: ${logoFilter};" onerror="this.style.display='none'">
+                <h3 class="kh-text" style="margin: 0; font-size: 1.4rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">${name}</h3>
+                <p style="opacity: 0.85; font-size: 0.9rem; margin: 6px 0 20px; font-weight: 600; font-family: monospace;">MID: ${mid}</p>
+                
+                <div style="background: #ffffff; padding: 12px; border-radius: 16px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                    <img src="${qrUrl}" style="width: 190px; height: 190px; display: block; border-radius: 8px;">
                 </div>
-                <p id="c360-qr-mid" style="margin: 0 0 20px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${initMidColor}; font-size: 1.2rem; letter-spacing: 1.5px;">${initMidText}</p>
+                <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.15rem; letter-spacing: 1px; color: ${subColor};">${activeAcc}</p>
             </div>
-            <p class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 20px;">Admin អាចប្រើ QR នេះដើម្បីសាកល្បងស្កេនទូទាត់ប្រាក់ចូលហាងបាន។</p>
-        `,
-    showConfirmButton: true,
-    confirmButtonText: "បិទផ្ទាំង (Close)",
-    confirmButtonColor: "var(--primary)",
-    customClass: { popup: "modal-radius kh-text premium-swal" },
-  });
+        </div>
+
+        <!-- 🎨 ជម្រើសប្តូរពណ៌ Background (Theme Selector) -->
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px;" class="no-print">
+            <span style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">រចនាប័ទ្មពណ៌:</span>
+            <div class="c360-theme-dot" style="background: #004d40;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#004d40')" title="Emerald Dark"></div>
+            <div class="c360-theme-dot" style="background: #1e293b;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#1e293b')" title="Slate Black"></div>
+            <div class="c360-theme-dot" style="background: #1d4ed8;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#1d4ed8')" title="Ocean Blue"></div>
+            <div class="c360-theme-dot" style="background: #7c2d12;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#7c2d12')" title="Royal Brown"></div>
+            <div class="c360-theme-dot" style="background: #ffffff; border: 2px solid #cbd5e1;" onclick="window.c360RefreshQRContent('${mid}', '${name}', '${strAccountsStr}', '${curr}', '#ffffff')" title="Clean White"></div>
+        </div>
+    `;
+}
+
+// 🔄 មុខងារ Update UI ភ្លាមៗពេលចុចប្តូរ Theme ឬ Currency
+window.c360RefreshQRContent = function (
+  mid,
+  name,
+  strAccountsStr,
+  curr,
+  themeBg,
+) {
+  const container = Swal.getHtmlContainer();
+  const popup = Swal.getPopup();
+  if (popup) {
+    popup.dataset.currentCurr = curr;
+    popup.dataset.currentTheme = themeBg;
+  }
+  if (container) {
+    container.innerHTML = getQRModalContent(
+      mid,
+      name,
+      strAccountsStr,
+      curr,
+      themeBg,
+    );
+  }
 };
+
+// 📄 [Pro] មុខងារទាញយក PDF (Design ថ្មី ធំទូលាយ ស្អាតកម្រិត Stand Pro មិនកន្តឿរ)
+window.c360DownloadQRPDF = async function (
+  mid,
+  name,
+  strAccountsStr,
+  curr = "USD",
+  themeBg = "#004d40",
+) {
+  if (typeof window.jspdf === "undefined") {
+    await new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+  }
+
+  try {
+    Swal.fire({
+      title: "កំពុងបង្កើត PDF ប្រណិត...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal kh-text" },
+    });
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.width;
+
+    // 🎨 បំប្លែង Code ពណ៌ Hex ទៅជា RGB
+    let r = 0,
+      g = 77,
+      b = 64; // Default #004d40
+    if (themeBg === "#1e293b") {
+      r = 30;
+      g = 41;
+      b = 59;
+    } else if (themeBg === "#1d4ed8") {
+      r = 29;
+      g = 78;
+      b = 216;
+    } else if (themeBg === "#7c2d12") {
+      r = 124;
+      g = 45;
+      b = 18;
+    } else if (themeBg === "#ffffff") {
+      r = 255;
+      g = 255;
+      b = 255;
+    }
+
+    // 📏 កាត Stand កម្ពស់ធំទូលាយសមរម្យ (Width: 120mm, Height: 165mm - កាត Stand Pro ពេញទំហឹង)
+    const cardW = 120;
+    const cardH = 165;
+    const cardX = (pageWidth - cardW) / 2;
+    const cardY = 20;
+
+    // គូរស៊ុម Background កាត Stand
+    if (themeBg === "#ffffff") {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(cardX, cardY, cardW, cardH, 10, 10, "FD");
+      doc.setTextColor(30, 41, 59);
+    } else {
+      doc.setFillColor(r, g, b);
+      doc.roundedRect(cardX, cardY, cardW, cardH, 10, 10, "F");
+      doc.setTextColor(255, 255, 255);
+    }
+
+    // 🏷️ ដាក់ឈ្មោះហាង (Shop Name) ធំច្បាស់ល្អ
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text(name.toUpperCase(), pageWidth / 2, cardY + 25, {
+      align: "center",
+    });
+
+    // 🔖 លេខ MID និង Currency Badge
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`MID: ${mid}  •  ${curr}`, pageWidth / 2, cardY + 34, {
+      align: "center",
+    });
+
+    // 📥 ទាញយករូប QR Code មកដាក់បញ្ចូល
+    let accounts = JSON.parse(decodeURIComponent(strAccountsStr));
+    let activeAcc = curr === "USD" ? accounts.USD : accounts.KHR;
+    if (!activeAcc) activeAcc = accounts.USD || accounts.KHR || "";
+    let qrDataUrl = `https://quickchart.io/qr?text=${encodeURIComponent(activeAcc)}&dark=004d40&size=500&margin=1`;
+
+    const getBase64Image = async (url) => {
+      const data = await fetch(url);
+      const blob = await data.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    const qrImgBase64 = await getBase64Image(qrDataUrl);
+
+    // ⬜ ប្រអប់ពណ៌សទ្រទ្រង់ QR Code (ទំហំធំល្មមស្អាត 90x90mm)
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(pageWidth / 2 - 45, cardY + 45, 90, 90, 6, 6, "F");
+    doc.addImage(qrImgBase64, "PNG", pageWidth / 2 - 41, cardY + 49, 82, 82);
+
+    // 💳 លេខគណនីខាងក្រោម QR Code (ពណ៌លឿងខ្ចី ឬពណ៌ទឹកសមុទ្រ ធំច្បាស់ល្អ)
+    if (themeBg === "#ffffff") {
+      doc.setTextColor(15, 118, 110);
+    } else {
+      doc.setTextColor(254, 240, 138); // #fef08a
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(activeAcc, pageWidth / 2, cardY + 148, { align: "center" });
+
+    doc.save(`POS_Stand_${name.replace(/\s+/g, "_")}_${curr}.pdf`);
+    Swal.close();
+    Swal.fire({
+      icon: "success",
+      title: "ទាញយក PDF បានជោគជ័យ!",
+      text: "ឯកសារ PDF របស់អ្នកត្រូវបានទាញយករួចរាល់។",
+      timer: 2000,
+      showConfirmButton: false,
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  } catch (err) {
+    console.error("PDF Error:", err);
+    Swal.fire("Error", "មិនអាចបង្កើតឯកសារ PDF បានទេ", "error");
+  }
+};
+
+// =========================================
+// Refund
+//==========================================
 
 window.c360AdminRefundTrx = async function (refId, amount, currency) {
   const { value: reason } = await Swal.fire({
@@ -5350,6 +5570,7 @@ window.deleteMerchantByAdmin = async function (id) {
   });
 };
 
+// មុខងារ កែប្រែ ហាងដោយ Admin (UI Upgraded & Styled)
 window.editMerchantByAdmin = async function (id) {
   const mData = c360CurrentMerchantsList.find(
     (m) => m._id === id || m.id === id,
@@ -5383,6 +5604,7 @@ window.editMerchantByAdmin = async function (id) {
           sub.accountType === "joint" || sub.accountType === "joint_member"
             ? "[Joint]"
             : "[Sub]";
+
         if (sub.currency === "USD") {
           let isSelected =
             mData.linkedAccounts?.USD === sub.accountNumber ? "selected" : "";
@@ -5398,44 +5620,62 @@ window.editMerchantByAdmin = async function (id) {
 
   const { value: formValues } = await Swal.fire({
     title:
-      '<h3 style="margin:0 0 10px 0; color: #0f172a; font-size: 1.25rem; font-weight: 700;">⚙️ កែប្រែព័ត៌មានហាង</h3>',
+      '<h3 style="margin: 0 0 5px 0; color: var(--secondary); font-size: 1.4rem; font-weight: 800; font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-gear"></i> កែប្រែព័ត៌មានហាង</h3>',
     html: `
-        <div style="text-align: left; display: flex; flex-direction: column; gap: 14px; padding: 5px 10px;">
-          <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ឈ្មោះហាងថ្មី (Shop Name)</label><input id="swal-edit-mname" class="swal2-input" value="${mData.name}" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px; font-family: 'Kantumruy Pro';"></div>
-          
-          <div><label style="display: block; font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 6px;">ប្រភេទអាជីវកម្ម (Category)</label>
-             <select id="swal-edit-mcat" class="swal2-select" style="margin: 0; width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; padding: 10px 14px; font-family: 'Kantumruy Pro'; background: #fff;">
-                  <option value="Food & Beverage" ${mData.category === "Food & Beverage" ? "selected" : ""}>ម្ហូបអាហារ និងភេសជ្ជៈ</option>
-                  <option value="Health & Beauty" ${mData.category === "Health & Beauty" ? "selected" : ""}>សម្រស់ និងសុខភាព</option>
-                  <option value="Transportation" ${mData.category === "Transportation" ? "selected" : ""}>ដឹកជញ្ជូន</option>
-                  <option value="Fashion & Shopping" ${mData.category === "Fashion & Shopping" ? "selected" : ""}>សំលៀកបំពាក់ & ទំនិញ</option>
-                  <option value="Service & Cleaning" ${mData.category === "Service & Cleaning" ? "selected" : ""}>សេវាកម្ម</option>
-                  <option value="Education" ${mData.category === "Education" ? "selected" : ""}>ការអប់រំ និងបណ្ណាល័យ</option>
-                  <option value="Entertainment" ${mData.category === "Entertainment" ? "selected" : ""}>កម្សាន្ត និងទេសចរណ៍</option>
-                  <option value="Finance & Insurance" ${mData.category === "Finance & Insurance" ? "selected" : ""}>ហិរញ្ញវត្ថុ និងធានារ៉ាប់រង</option>
-                  <option value="Utilities" ${mData.category === "Utilities" ? "selected" : ""}>ទឹកភ្លើង និងសេវាសាធារណៈ</option>
-                  <option value="Others" ${mData.category === "Others" ? "selected" : ""}>ផ្សេងៗ</option>
-              </select>
-          </div>
-          
-          <div style="background: #f8fafc; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
-              <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #334155; margin-bottom: 5px; display: block;">ប្តូរគណនីទទួលប្រាក់ (USD)</label>
-              <select id="swal-edit-linked-usd" class="swal2-select kh-text" style="width:100%; margin: 0 0 10px 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; padding: 5px 10px;">
-                  ${usdOptions}
-              </select>
+            <div style="text-align: left; margin-top: 10px; display: flex; flex-direction: column; gap: 14px; font-family: 'Kantumruy Pro', sans-serif;">
+                
+                <!-- ផ្នែកព័ត៌មានហាង -->
+                <div style="background: #f8fafc; padding: 18px; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ឈ្មោះហាងថ្មី (Shop Name) <span style="color:red">*</span></label>
+                        <input id="swal-edit-mname" class="swal2-input kh-text" value="${mData.name}" style="width: 100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif;">
+                    </div>
+                    
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ប្រភេទអាជីវកម្ម (Category)</label>
+                        <select id="swal-edit-mcat" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                            <option value="Food & Beverage" ${mData.category === "Food & Beverage" ? "selected" : ""}>ម្ហូបអាហារ និងភេសជ្ជៈ</option>
+                            <option value="Health & Beauty" ${mData.category === "Health & Beauty" ? "selected" : ""}>សម្រស់ និងសុខភាព</option>
+                            <option value="Transportation" ${mData.category === "Transportation" ? "selected" : ""}>ដឹកជញ្ជូន</option>
+                            <option value="Fashion & Shopping" ${mData.category === "Fashion & Shopping" ? "selected" : ""}>សំលៀកបំពាក់ & ទំនិញ</option>
+                            <option value="Service & Cleaning" ${mData.category === "Service & Cleaning" ? "selected" : ""}>សេវាកម្ម</option>
+                            <option value="Education" ${mData.category === "Education" ? "selected" : ""}>ការអប់រំ និងបណ្ណាល័យ</option>
+                            <option value="Entertainment" ${mData.category === "Entertainment" ? "selected" : ""}>កម្សាន្ត និងទេសចរណ៍</option>
+                            <option value="Finance & Insurance" ${mData.category === "Finance & Insurance" ? "selected" : ""}>ហិរញ្ញវត្ថុ និងធានារ៉ាប់រង</option>
+                            <option value="Utilities" ${mData.category === "Utilities" ? "selected" : ""}>ទឹកភ្លើង និងសេវាសាធារណៈ</option>
+                            <option value="Others" ${mData.category === "Others" ? "selected" : ""}>ផ្សេងៗ</option>
+                        </select>
+                    </div>
+                </div>
 
-              <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #334155; margin-bottom: 5px; display: block;">ប្តូរគណនីទទួលប្រាក់ (KHR)</label>
-              <select id="swal-edit-linked-khr" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; padding: 5px 10px;">
-                  ${khrOptions}
-              </select>
-          </div>
-        </div>`,
-    width: "500px",
+                <!-- ផ្នែកជ្រើសរើសគណនីទទួលប្រាក់ -->
+                <div style="background: #f0fdfa; padding: 18px; border-radius: 14px; border: 1px dashed #5eead4; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+                    <h4 style="margin: 0 0 12px; color: #0f766e; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-link"></i> ប្តូរគណនីទទួលប្រាក់</h4>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់ដុល្លារ (USD)</label>
+                        <select id="swal-edit-linked-usd" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                            ${usdOptions}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់រៀល (KHR)</label>
+                        <select id="swal-edit-linked-khr" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                            ${khrOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>`,
+    width: "620px",
     showCancelButton: true,
-    confirmButtonText: "រក្សាទុកការផ្លាស់ប្តូរ",
-    cancelButtonText: "បោះបង់",
-    confirmButtonColor: "#004d40",
-    customClass: { popup: "kh-text premium-swal" },
+    confirmButtonText:
+      '<span class="kh-text" style="font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-check"></i> រក្សាទុកការផ្លាស់ប្តូរ</span>',
+    cancelButtonText:
+      '<span class="kh-text" style="font-family: \'Kantumruy Pro\', sans-serif;">បោះបង់</span>',
+    confirmButtonColor: "var(--secondary)",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius premium-swal kh-text" },
     preConfirm: () => {
       const newName = document.getElementById("swal-edit-mname").value.trim();
       const linkedAccUSD = document.getElementById(
@@ -5468,7 +5708,9 @@ window.editMerchantByAdmin = async function (id) {
       Swal.fire({
         title: "កំពុងរក្សាទុក...",
         didOpen: () => Swal.showLoading(),
+        customClass: { popup: "premium-swal kh-text" },
       });
+
       const res = await fetch(`/api/admin/edit-merchant`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -5489,6 +5731,7 @@ window.editMerchantByAdmin = async function (id) {
         }),
       });
       const data = await res.json();
+
       if (data.success) {
         Swal.fire({
           toast: true,
@@ -5506,6 +5749,38 @@ window.editMerchantByAdmin = async function (id) {
   }
 };
 
+// 🇰🇭 បញ្ជីរាជធានី-ខេត្តទាំង ២៥ របស់ប្រទេសកម្ពុជា
+const cambodiaProvinces = [
+  "Phnom Penh",
+  "Banteay Meanchey",
+  "Battambang",
+  "Kampong Cham",
+  "Kampong Chhnang",
+  "Kampong Speu",
+  "Kampong Thom",
+  "Kampot",
+  "Kandal",
+  "Kep",
+  "Kratie",
+  "Mondulkiri",
+  "Oddar Meanchey",
+  "Pailin",
+  "Sihanoukville",
+  "Preah Vihear",
+  "Prey Veng",
+  "Pursat",
+  "Ratanakiri",
+  "Siem Reap",
+  "Stung Treng",
+  "Svay Rieng",
+  "Takeo",
+  "Tbong Khmum",
+  "Kandal",
+];
+
+// ==========================================
+// បង្កើតហាងថ្មីដោយ Admin (មាន Dropdown ខេត្ត-ក្រុងទាំង ២៥ ស្រស់ស្អាត)
+// ==========================================
 window.c360RegisterMerchant = async function () {
   if (!currentC360User)
     return Swal.fire("Error", "សូមជ្រើសរើសអតិថិជនជាមុនសិន", "error");
@@ -5534,49 +5809,75 @@ window.c360RegisterMerchant = async function () {
     });
   }
 
+  // 🌟 បង្កើត Option សម្រាប់ខេត្ត-ក្រុងទាំង ២៥
+  let provinceOptions = cambodiaProvinces
+    .map(
+      (prov) =>
+        `<option value="${prov}" ${prov === "Phnom Penh" ? "selected" : ""}>${prov}</option>`,
+    )
+    .join("");
+
   const { value: formValues } = await Swal.fire({
     title:
-      '<h3 style="margin: 0; color: var(--secondary); font-size: 1.5rem; font-weight: 800;"><i class="fa-solid fa-store"></i> បង្កើតហាងថ្មី (Admin)</h3>',
+      '<h3 style="margin: 0 0 5px 0; color: var(--secondary); font-size: 1.4rem; font-weight: 800; font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-store"></i> បង្កើតហាងថ្មី (Admin)</h3>',
     html: `
-          <div style="text-align: left; margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
-              <div style="background: var(--bg-body); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
-                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ឈ្មោះហាង (Shop Name) <span style="color:red">*</span></label>
-                  <input id="m-name" class="swal2-input kh-text" placeholder="ឧ. Smart Shop" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px;">
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                      <div>
-                          <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ទីក្រុង / ខេត្ត</label>
-                          <input id="m-city" class="swal2-input kh-text" placeholder="ឧ. Phnom Penh" value="Phnom Penh" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px;">
-                      </div>
-                      <div>
-                          <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin-bottom: 5px; display: block;">ប្រភេទអាជីវកម្ម</label>
-                          <select id="m-category" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
-                              <option value="Food & Beverage">ម្ហូបអាហារ និងភេសជ្ជៈ</option>
-                              <option value="Health & Beauty">សម្រស់ និងសុខភាព</option>
-                              <option value="Transportation">ដឹកជញ្ជូន</option>
-                              <option value="Fashion & Shopping">សំលៀកបំពាក់ & ទំនិញ</option>
-                              <option value="Service & Cleaning">សេវាកម្ម</option>
-                              <option value="Others">ផ្សេងៗ</option>
-                          </select>
-                      </div>
-                  </div>
-              </div>
-              <div style="background: #f0fdfa; padding: 15px; border-radius: 12px; border: 1px dashed #5eead4;">
-                  <h4 class="kh-text" style="margin: 0 0 10px; color: #0f766e; font-size: 0.95rem;"><i class="fa-solid fa-link"></i> ជ្រើសរើសគណនីទទួលប្រាក់</h4>
-                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់ដុល្លារ (USD)</label>
-                  <select id="m-linked-usd" class="swal2-select kh-text" style="width:100%; margin: 0 0 10px 0; background: white; border: 1px solid #99f6e4; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
-                      ${usdOptions}
-                  </select>
-                  <label class="kh-text" style="font-size:0.85rem; font-weight:bold; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់រៀល (KHR)</label>
-                  <select id="m-linked-khr" class="swal2-select kh-text" style="width:100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 8px; font-size: 0.95rem; padding: 0 10px;">
-                      ${khrOptions}
-                  </select>
-              </div>
-          </div>`,
-    width: "550px",
+            <div style="text-align: left; margin-top: 10px; display: flex; flex-direction: column; gap: 14px; font-family: 'Kantumruy Pro', sans-serif;">
+                
+                <!-- ផ្នែកព័ត៌មានហាង -->
+                <div style="background: #f8fafc; padding: 18px; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ឈ្មោះហាង (Shop Name) <span style="color:red">*</span></label>
+                        <input id="m-name" class="swal2-input kh-text" placeholder="ឧ. Smart Shop" style="width: 100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif;">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ទីក្រុង / ខេត្ត</label>
+                            <select id="m-city" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                                ${provinceOptions}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 700; color: #475569; margin-bottom: 6px; display: block;">ប្រភេទអាជីវកម្ម</label>
+                            <select id="m-category" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                                <option value="Food & Beverage">ម្ហូបអាហារ និងភេសជ្ជៈ</option>
+                                <option value="Health & Beauty">សម្រស់ និងសុខភាព</option>
+                                <option value="Transportation">ដឹកជញ្ជូន</option>
+                                <option value="Fashion & Shopping">សំលៀកបំពាក់ & ទំនិញ</option>
+                                <option value="Service & Cleaning">សេវាកម្ម</option>
+                                <option value="Others">ផ្សេងៗ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ផ្នែកជ្រើសរើសគណនីទទួលប្រាក់ -->
+                <div style="background: #f0fdfa; padding: 18px; border-radius: 14px; border: 1px dashed #5eead4; box-shadow: 0 2px 6px rgba(0,0,0,0.01);">
+                    <h4 style="margin: 0 0 12px; color: #0f766e; font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-link"></i> ជ្រើសរើសគណនីទទួលប្រាក់</h4>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់ដុល្លារ (USD)</label>
+                        <select id="m-linked-usd" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                            ${usdOptions}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #0f766e; margin-bottom: 5px; display: block;">គណនីទទួលប្រាក់រៀល (KHR)</label>
+                        <select id="m-linked-khr" class="swal2-select kh-text" style="width: 100%; margin: 0; background: white; border: 1px solid #99f6e4; border-radius: 10px; font-size: 0.95rem; padding: 10px 14px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif; height: auto;">
+                            ${khrOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>`,
+    width: "620px",
     showCancelButton: true,
-    confirmButtonText: '<i class="fa-solid fa-plus-circle"></i> បង្កើតហាង',
-    cancelButtonText: "បោះបង់",
+    confirmButtonText:
+      '<span class="kh-text" style="font-family: \'Kantumruy Pro\', sans-serif;"><i class="fa-solid fa-plus-circle"></i> បង្កើតហាង</span>',
+    cancelButtonText:
+      '<span class="kh-text" style="font-family: \'Kantumruy Pro\', sans-serif;">បោះបង់</span>',
     confirmButtonColor: "var(--secondary)",
+    cancelButtonColor: "#64748b",
     customClass: { popup: "modal-radius premium-swal kh-text" },
     preConfirm: () => {
       const name = document.getElementById("m-name").value.trim();
@@ -5706,209 +6007,812 @@ window.c360AdminReleaseHold = async function (refId, amount, currency) {
   }
 };
 
-// ➡️ TAB 8: Admin Logs
+// =======================================================
+// ➡️ TAB 8: Admin Logs (Upgraded UI + Search + Date Range Filter + Pagination)
+// =======================================================
+let c360CachedUserLogs = [];
+let c360CurrentLogPage = 1;
+const c360LogsPerPage = 5; // កំណត់ឱ្យបង្ហាញតែ ៥ ក្នុងមួយទំព័រ
+
 async function renderLogsTab(user) {
   const container = document.getElementById("c360-tab-logs");
   if (!container) return;
-  container.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--text-muted);"></i><br><br>កំពុងទាញយកកំណត់ត្រា...</div>`;
+
+  container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+            <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800;">
+                <i class="fa-solid fa-list-check" style="color: #8b5cf6;"></i> កំណត់ត្រាការកែប្រែ (Audit Logs)
+            </h2>
+            
+            <!-- 🟢 ផ្នែកស្វែងរក និង Filter ថ្ងៃខែ -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-body); border: 1px solid var(--border); padding: 4px 10px; border-radius: 10px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">ពី៖</span>
+                    <input type="date" id="c360-log-date-start" class="kh-text" onchange="c360FilterUserLogs()" style="border: none; background: transparent; font-size: 0.8rem; outline: none; font-family: 'Kantumruy Pro'; color: var(--text-main); cursor: pointer;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">ដល់៖</span>
+                    <input type="date" id="c360-log-date-end" class="kh-text" onchange="c360FilterUserLogs()" style="border: none; background: transparent; font-size: 0.8rem; outline: none; font-family: 'Kantumruy Pro'; color: var(--text-main); cursor: pointer;">
+                </div>
+
+                <div style="position: relative; width: 220px;">
+                    <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                    <input type="text" id="c360-log-search" class="kh-text" placeholder="ស្វែងរកសកម្មភាព..." oninput="c360FilterUserLogs()" style="width: 100%; padding: 8px 12px 8px 35px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-body); font-size: 0.85rem; outline: none; box-sizing: border-box; font-family: 'Kantumruy Pro';">
+                </div>
+            </div>
+        </div>
+
+        <div id="c360-logs-list-container" style="min-height: 250px;">
+            <div style="text-align: center; padding: 40px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: var(--text-muted);"></i><br><br><span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">កំពុងទាញយកកំណត់ត្រា...</span></div>
+        </div>
+
+        <!-- 🟢 Pagination Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border);">
+            <button id="c360-btn-log-prev" class="c360-page-btn kh-text" onclick="c360ChangeLogPage(-1)" disabled><i class="fa-solid fa-chevron-left"></i> ថយក្រោយ</button>
+            <span id="c360-log-page-info" class="kh-text" style="font-weight: bold; color: var(--text-main);">ទំព័រ 1 នៃ 1</span>
+            <button id="c360-btn-log-next" class="c360-page-btn kh-text" onclick="c360ChangeLogPage(1)" disabled>បន្ទាប់ <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    `;
 
   try {
-    const res = await fetch("/api/admin/logs", { headers: getAuthHeaders() });
+    const res = await fetch(`/api/admin/logs/${user.username}`, {
+      headers: getAuthHeaders(),
+    });
     const data = await res.json();
-    if (data.success) {
-      const userLogs = data.logs.filter((l) => l.target === user.username);
-      if (userLogs.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">គ្មានកំណត់ត្រា Admin កែប្រែលើគណនីនេះទេ។</div>`;
-        return;
-      }
-      let html = `<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-        <thead><tr style="background:var(--bg-body); text-align:left;">
-            <th style="padding:12px; border-bottom: 1px solid var(--border);">កាលបរិច្ឆេទ (Date)</th>
-            <th style="padding:12px; border-bottom: 1px solid var(--border);">Admin អ្នកកែប្រែ</th>
-            <th style="padding:12px; border-bottom: 1px solid var(--border);">សកម្មភាព (Action)</th>
-            <th style="padding:12px; border-bottom: 1px solid var(--border);">ព័ត៌មានលម្អិត</th>
-        </tr></thead><tbody>`;
 
-      userLogs.forEach((l) => {
-        html += `
-          <tr style="border-bottom: 1px solid var(--border);">
-              <td style="padding:12px; color:var(--text-muted);">${l.date}</td>
-              <td style="padding:12px; font-weight:bold; color: var(--text-main);">${l.admin}</td>
-              <td style="padding:12px; color:var(--accent); font-weight: 600;">${l.action}</td>
-              <td style="padding:12px; color: var(--text-main);">${l.details}</td>
-          </tr>`;
-      });
-      container.innerHTML = html + `</tbody></table>`;
+    if (data.success && data.logs && data.logs.length > 0) {
+      c360CachedUserLogs = data.logs;
+      c360CurrentLogPage = 1;
+      c360RenderLogPage(c360CachedUserLogs);
+    } else {
+      c360CachedUserLogs = [];
+      container.querySelector("#c360-logs-list-container").innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; background: var(--bg-body); border-radius: 16px; border: 1px dashed var(--border);">
+                    <i class="fa-solid fa-shield-cat" style="font-size: 3rem; opacity: 0.3; margin-bottom: 12px; display: block;"></i>
+                    <h4 style="margin: 0 0 5px; color: var(--text-main);">គ្មានកំណត់ត្រា (No Logs Found)</h4>
+                    <p style="margin: 0; font-size: 0.85rem;">មិនមានប្រវត្តិកត់ត្រាសកម្មភាពរបស់ Admin លើគណនីនេះទេ។</p>
+                </div>`;
+      document.getElementById("c360-log-page-info").innerText = "ទំព័រ 0 នៃ 0";
+      document.getElementById("c360-btn-log-prev").disabled = true;
+      document.getElementById("c360-btn-log-next").disabled = true;
     }
   } catch (e) {
-    container.innerHTML =
-      '<div style="text-align:center; padding: 40px; color: red;">បរាជ័យក្នុងការភ្ជាប់ទៅកាន់ Server API សម្រាប់ Logs</div>';
+    container.querySelector("#c360-logs-list-container").innerHTML =
+      '<div class="kh-text" style="text-align: center; padding: 40px; color: #ef4444; font-weight: bold;">បរាជ័យក្នុងការភ្ជាប់ទៅកាន់ Server API សម្រាប់ Logs</div>';
   }
 }
 
-// =======================================================
-// 📸 មុខងារចុចប្តូររូប Profile នៅក្នុង Customer 360°
-// =======================================================
-window.c360ChangeProfileImage = async function () {
-  if (!currentC360User) return;
+// 🟢 អនុគមន៍ជំនួយបម្លែងទម្រង់កាលបរិច្ឆេទសម្រាប់ Filter
+function c360ParseLogDate(dateStr) {
+  if (!dateStr) return null;
+  let d = new Date(dateStr);
+  if (isNaN(d.getTime()) && dateStr.includes(",")) {
+    d = new Date(dateStr.split(",")[0].trim());
+  }
+  return isNaN(d.getTime()) ? null : d;
+}
 
-  // បង្កើត Input File លាក់មួយដើម្បីឱ្យ Admin ជ្រើសរើសរូបភាព
-  let fileInput = document.getElementById("c360-profile-file-input");
-  if (!fileInput) {
-    fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.id = "c360-profile-file-input";
-    fileInput.accept = "image/*";
-    fileInput.style.display = "none";
-    document.body.appendChild(fileInput);
+// 🟢 មុខងារគូរទំព័រ Logs តាម Pagination (៥ ក្នុង១ទំព័រ)
+let c360FilteredLogsForPage = [];
+
+function c360RenderLogPage(logsArray) {
+  c360FilteredLogsForPage = logsArray;
+  const listContainer = document.getElementById("c360-logs-list-container");
+  const btnPrev = document.getElementById("c360-btn-log-prev");
+  const btnNext = document.getElementById("c360-btn-log-next");
+  const pageInfo = document.getElementById("c360-log-page-info");
+
+  if (!listContainer) return;
+
+  if (c360FilteredLogsForPage.length === 0) {
+    listContainer.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: var(--text-muted);">មិនមានលទ្ធផលស្វែងរកសមស្របទេ។</div>`;
+    if (pageInfo) pageInfo.innerText = "ទំព័រ 0 នៃ 0";
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
+    return;
   }
 
-  // ពេល Admin រើសរូបភាពរួចរាល់
-  fileInput.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const totalPages = Math.ceil(
+    c360FilteredLogsForPage.length / c360LogsPerPage,
+  );
+  if (c360CurrentLogPage > totalPages) c360CurrentLogPage = totalPages;
+  if (c360CurrentLogPage < 1) c360CurrentLogPage = 1;
 
-    if (file.size > 3 * 1024 * 1024) {
-      Swal.fire("បរាជ័យ", "ទំហំរូបភាពធំពេក! សូមជ្រើសរើសរូបតូចជាង 3MB", "error");
-      e.target.value = "";
-      return;
+  const startIndex = (c360CurrentLogPage - 1) * c360LogsPerPage;
+  const endIndex = startIndex + c360LogsPerPage;
+  const pageItems = c360FilteredLogsForPage.slice(startIndex, endIndex);
+
+  let html = `
+        <style>
+            .c360-log-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+            .c360-log-card:hover { border-color: #8b5cf6; box-shadow: 0 4px 10px rgba(139, 92, 246, 0.05); }
+        </style>
+    `;
+
+  pageItems.forEach((l) => {
+    let actionColor = "#3b82f6";
+    let actionIcon = "fa-bolt";
+
+    const actLower = (l.action || "").toLowerCase();
+    if (
+      actLower.includes("freeze") ||
+      actLower.includes("delete") ||
+      actLower.includes("reject")
+    ) {
+      actionColor = "#ef4444";
+      actionIcon = "fa-ban";
+    } else if (
+      actLower.includes("approve") ||
+      actLower.includes("add") ||
+      actLower.includes("success")
+    ) {
+      actionColor = "#10b981";
+      actionIcon = "fa-check";
+    } else if (
+      actLower.includes("edit") ||
+      actLower.includes("update") ||
+      actLower.includes("rename")
+    ) {
+      actionColor = "#f59e0b";
+      actionIcon = "fa-pen";
     }
 
-    Swal.fire({
-      title: "កំពុងបញ្ជូនរូបភាព...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-      customClass: { popup: "premium-swal" },
-    });
+    html += `
+            <div class="c360-log-card">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: ${actionColor}15; color: ${actionColor}; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; border: 1px solid ${actionColor}30;">
+                        <i class="fa-solid ${actionIcon}"></i>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span class="kh-text" style="font-weight: 800; color: var(--text-main); font-size: 0.95rem;">${l.action}</span>
+                            <span style="font-size: 0.7rem; padding: 2px 8px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 6px; font-weight: bold;">Admin: ${l.admin}</span>
+                        </div>
+                        <div class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">${l.details || "គ្មានព័ត៌មានលម្អិត"}</div>
+                    </div>
+                </div>
+                <div style="text-align: right; flex-shrink: 0; font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">
+                    <i class="fa-regular fa-clock"></i> ${l.date}
+                </div>
+            </div>
+        `;
+  });
 
-    const CLOUD_NAME = "jp9yg3dj"; // Cloud Name របស់អ្នក
-    const UPLOAD_PRESET = "iaxuqmpb"; // Upload Preset របស់អ្នក
-    const cloudinaryData = new FormData();
-    cloudinaryData.append("file", file);
-    cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+  listContainer.innerHTML = html;
 
-    try {
-      // 1. បាញ់រូបទៅ Cloudinary
-      const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-        {
-          method: "POST",
-          body: cloudinaryData,
-        },
-      );
-      const cloudData = await cloudRes.json();
+  if (pageInfo)
+    pageInfo.innerText = `ទំព័រ ${c360CurrentLogPage} នៃ ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = c360CurrentLogPage === 1;
+  if (btnNext) btnNext.disabled = c360CurrentLogPage === totalPages;
+}
 
-      if (cloudData.secure_url) {
-        // 2. ផ្ញើ URL ទៅកាន់ Backend ដើម្បី Update Profile
-        const res = await fetch("/api/admin/edit-user", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            id: currentC360User._id || currentC360User.id,
-            profileImage: cloudData.secure_url, // Update តែរូបភាព
-          }),
-        });
+// 🟢 មុខងារប្តូរទំព័រ Logs
+window.c360ChangeLogPage = function (step) {
+  c360CurrentLogPage += step;
+  c360RenderLogPage(c360FilteredLogsForPage);
+};
 
-        const d = await res.json();
+// 🟢 មុខងារ Search & Date Range Filter ក្នុង Logs ព្រមគ្នា
+window.c360FilterUserLogs = function () {
+  const keyword = document
+    .getElementById("c360-log-search")
+    .value.toLowerCase()
+    .trim();
+  const startDateStr = document.getElementById("c360-log-date-start").value;
+  const endDateStr = document.getElementById("c360-log-date-end").value;
 
-        if (d.success) {
-          // Update រូបភាពនៅលើ UI ភ្លាមៗ
-          document.getElementById("c360-avatar").src = cloudData.secure_url;
-          currentC360User.profileImage = cloudData.secure_url;
+  c360CurrentLogPage = 1; // ពេល Filter ឡើងមកទំព័រទី ១ វិញ
 
-          Swal.fire({
-            icon: "success",
-            title: "ជោគជ័យ",
-            text: "ផ្លាស់ប្តូររូបភាព Profile អតិថិជនរួចរាល់!",
-            timer: 1500,
-            showConfirmButton: false,
-            customClass: { popup: "premium-swal" },
-          });
+  let filtered = c360CachedUserLogs.filter((l) => {
+    // 1. Filter by Keyword
+    const matchKeyword =
+      !keyword ||
+      (l.action && l.action.toLowerCase().includes(keyword)) ||
+      (l.admin && l.admin.toLowerCase().includes(keyword)) ||
+      (l.details && l.details.toLowerCase().includes(keyword)) ||
+      (l.date && l.date.toLowerCase().includes(keyword));
 
-          // Refresh ទិន្នន័យក្នុងតារាង User Management បើវាមាន
-          if (typeof loadData === "function") loadData();
-        } else {
-          Swal.fire("បរាជ័យ", d.message, "error");
-        }
-      } else {
-        Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
-      }
-    } catch (err) {
-      Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+    if (!matchKeyword) return false;
+
+    // 2. Filter by Date Range
+    if (startDateStr || endDateStr) {
+      const logDate = c360ParseLogDate(l.date);
+      if (!logDate) return true;
+
+      const logIsoDate = logDate.toISOString().split("T")[0];
+      if (startDateStr && logIsoDate < startDateStr) return false;
+      if (endDateStr && logIsoDate > endDateStr) return false;
     }
 
-    e.target.value = ""; // Clear input វិញ
-  };
+    return true;
+  });
 
-  fileInput.click(); // បញ្ជាឱ្យបើកផ្ទាំងរើសរូបភាព
+  c360RenderLogPage(filtered);
 };
 
 // =======================================================
-// ❄️ មុខងារបិទ/បើកគណនី (Freeze/Unfreeze) ក្នុង Customer 360°
+// ➡️ TAB 9: Physical Cards & NFC Management (Interactive Actions)
 // =======================================================
-window.c360ToggleFreeze = async function () {
-  if (!currentC360User) return;
+function renderPhysicalCardsTab(user) {
+  const container = document.getElementById("c360-tab-physical");
+  if (!container) return;
 
-  const newFreezeState = !currentC360User.isFrozen;
-  const actionText = newFreezeState ? "ផ្អាក (Freeze)" : "ដោះសោរ (Unfreeze)";
-  const actionColor = newFreezeState ? "#ef4444" : "#10b981";
+  const physicalCards = (user.virtualCards || []).filter(
+    (c) => c.isPhysical || (c.uid && c.uid !== ""),
+  );
 
-  Swal.fire({
-    title: "បញ្ជាក់ការផ្លាស់ប្តូរ",
-    text: `តើអ្នកពិតជាចង់ ${actionText} គណនីអតិថិជននេះមែនទេ?`,
+  if (physicalCards.length === 0) {
+    container.innerHTML = `
+            <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+                <i class="fa-solid fa-address-card" style="color: #3b82f6;"></i> កាតរូបវ័ន្ត និង NFC (Physical Cards)
+            </h2>
+            <div style="text-align: center; padding: 50px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; border: 2px dashed var(--border); border-radius: 16px;">
+                <i class="fa-solid fa-wifi-slash" style="font-size: 3.5rem; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
+                <h3 style="margin: 0 0 8px; color: var(--text-main);">មិនទាន់មានកាតរូបវ័ន្ត (Physical Card)</h3>
+                <p style="margin: 0 0 15px; font-size: 0.9rem;">អតិថិជននេះមិនទាន់បានភ្ជាប់កាត NFC ជាមួយប្រព័ន្ធណាមួយនៅឡើយទេ។</p>
+                <button onclick="switchC360Tab('cards')" class="kh-text" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                    <i class="fa-solid fa-credit-card"></i> ไปកាន់ផ្ទាំងគ្រប់គ្រងកាតដើម្បីភ្ជាប់ NFC
+                </button>
+            </div>
+        `;
+    return;
+  }
+
+  let cardsHtml = physicalCards
+    .map(
+      (c) => `
+        <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-family: 'Kantumruy Pro'; gap: 15px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 50px; height: 50px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                    <i class="fa-solid fa-wifi"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0 0 5px; color: var(--text-main); font-size: 1rem; font-weight: 800;">កាត NFC: ${c.name || c.type.toUpperCase()}</h4>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">UID: ${c.uid || "N/A"} | លេខកាត: **** ${c.number.slice(-4)} | ស្ថានភាព: <span style="color: #10b981; font-weight: bold;">Active</span></p>
+                </div>
+            </div>
+            <!-- 🟢 ប៊ូតុងអន្តរកម្ម៖ Admin អាចចុចផ្តាច់ NFC ភ្លាមៗបើបាត់កាត -->
+            <button onclick="c360AdminUnbindPhysicalCard('${user.username}', '${c.id}')" class="kh-text" style="padding: 8px 16px; background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 10px; font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: 0.2s;" title="ផ្តាច់ការតភ្ជាប់កាតនេះ (ករណីបាត់កាត)">
+                <i class="fa-solid fa-wifi-slash"></i> ផ្តាច់កាត NFC (Unbind)
+            </button>
+        </div>
+    `,
+    )
+    .join("");
+
+  container.innerHTML = `
+        <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
+            <i class="fa-solid fa-address-card" style="color: #3b82f6;"></i> កាតរូបវ័ន្ត និង NFC (Physical Cards)
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; font-family: 'Kantumruy Pro';">
+            បញ្ជីកាត NFC ទាំងអស់ដែលបានភ្ជាប់ជាមួយអតិថិជននេះ។ អ្នកអាចធ្វើការផ្អាក ឬផ្តាច់ការតភ្ជាប់បានភ្លាមៗក្នុងករណីមានហានិភ័យ។
+        </p>
+        ${cardsHtml}
+    `;
+}
+
+// មុខងារ Admin ចុចផ្តាច់កាត NFC ក្នុង Tab 9
+window.c360AdminUnbindPhysicalCard = async function (username, cardId) {
+  const confirm = await Swal.fire({
+    title:
+      '<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការផ្តាច់កាត NFC?</span>',
+    text: "កាត Physical នេះនឹងត្រូវលុបការភ្ជាប់ចោល ធ្វើให้อតិថិជនមិនអាចយកវាទៅស្កេនទូទាត់បានទៀតទេ។",
     icon: "warning",
     showCancelButton: true,
-    confirmButtonColor: actionColor,
+    confirmButtonColor: "#ef4444",
     cancelButtonColor: "#64748b",
-    confirmButtonText: "យល់ព្រម",
+    confirmButtonText: "បាទ/ចាស ផ្តាច់ចោល",
     cancelButtonText: "បោះបង់",
-    customClass: { popup: "premium-swal kh-text" },
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      Swal.fire({
-        title: "កំពុងដំណើរការ...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-        customClass: { popup: "premium-swal" },
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+  });
+
+  if (confirm.isConfirmed) {
+    Swal.fire({
+      title: "កំពុងផ្តាច់...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/cards/unbind-nfc", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username, cardId }),
       });
-
-      try {
-        const res = await fetch("/api/admin/toggle-freeze", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            id: currentC360User._id || currentC360User.id,
-            isFrozen: newFreezeState,
-          }),
+      const data = await res.json();
+      if (data.success) {
+        c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "បានផ្តាច់ជោគជ័យ!",
+          timer: 1500,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
         });
-
-        const data = await res.json();
-
-        if (data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "ជោគជ័យ",
-            text: `គណនីត្រូវបាន ${actionText} រួចរាល់!`,
-            timer: 1500,
-            showConfirmButton: false,
-            customClass: { popup: "premium-swal" },
-          });
-
-          // Refresh ផ្ទាំង Customer 360° ឡើងវិញ ដើម្បីអោយពណ៌ប៊ូតុង និង Status លោតត្រូវ
-          c360RefreshData();
-
-          // Update ទិន្នន័យក្នុងតារាងធំ User Management អោយត្រូវគ្នា
-          if (typeof loadData === "function") loadData();
-        } else {
-          Swal.fire(
-            "បរាជ័យ",
-            data.message || "មិនអាចប្តូរស្ថានភាពបានទេ",
-            "error",
-          );
-        }
-      } catch (e) {
-        Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+      } else {
+        Swal.fire("បរាជ័យ", data.message, "error");
       }
+    } catch (e) {
+      Swal.fire("Error", "បញ្ហា Server", "error");
+    }
+  }
+};
+
+// =======================================================
+// ➡️ TAB 10: Support Tickets & Disputes (Pro Banking Report UI - 100% Complete)
+// =======================================================
+let c360CachedTickets = [];
+let c360TicketFilter = "all"; // 'all', 'pending', 'answered'
+
+// 🟢 អនុគមន៍ជំនួយ៖ ចាប់យក @username របស់ Admin ដែលកំពុង Login ផ្ទាល់
+function c360GetCurrentAdminUsername() {
+  try {
+    const adminStr =
+      localStorage.getItem("admin") ||
+      sessionStorage.getItem("admin") ||
+      localStorage.getItem("user");
+    if (adminStr) {
+      const parsed = JSON.parse(adminStr);
+      if (parsed.username) return parsed.username;
+    }
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("adminToken");
+    if (token && token.includes(".")) {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.username) return payload.username;
+    }
+  } catch (e) {
+    console.warn("Could not parse admin username:", e);
+  }
+  return "admin";
+}
+
+async function renderTicketsTab(user) {
+  const container = document.getElementById("c360-tab-tickets");
+  if (!container) return;
+
+  container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-file-Waveform" style="color: #0d9488;"></i> របាយការណ៍សំណូមពរ និងបណ្តឹង (Support Tickets)
+            </h2>
+            <button onclick="renderTicketsTab(currentC360User)" class="kh-text" style="background: var(--bg-body); border: 1px solid var(--border); padding: 7px 14px; border-radius: 8px; color: var(--text-main); cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-rotate-right" style="color: var(--secondary);"></i> ទាញទិន្នន័យថ្មី
+            </button>
+        </div>
+        <div id="c360-tickets-main-content">
+            <div style="text-align: center; padding: 50px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: var(--text-muted);"></i><br><br><span class="kh-text" style="color: var(--text-muted); font-size: 0.9rem;">កំពុងទាញយករបាយការណ៍សំណូមពរ...</span></div>
+        </div>
+    `;
+
+  try {
+    const res = await fetch(`/api/admin/user-tickets/${user.username}`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    const mainContent = document.getElementById("c360-tickets-main-content");
+
+    if (data.success && data.tickets && data.tickets.length > 0) {
+      c360CachedTickets = data.tickets;
+      currentC360User.tickets = data.tickets;
+      c360TicketFilter = "all";
+      c360RenderTicketsUI();
+    } else {
+      c360CachedTickets = [];
+      mainContent.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; background: var(--bg-body); border: 2px dashed var(--border); border-radius: 16px;">
+                    <div style="width: 70px; height: 70px; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px;">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <h4 style="margin: 0 0 6px; color: var(--text-main); font-size: 1.05rem;">គ្មានរបាយការណ៍សំណូមពរ ឬបណ្តឹងទេ (No Support Tickets)</h4>
+                    <p style="margin: 0; font-size: 0.85rem;">អតិថិជននេះមិនទាន់បានដាក់ស្នើសំណូមពរ ឬបណ្តឹងណាមួយនៅឡើយទេ។</p>
+                </div>
+            `;
+    }
+  } catch (e) {
+    document.getElementById("c360-tickets-main-content").innerHTML =
+      `<div class="kh-text" style="text-align: center; color: #ef4444; padding: 30px; font-weight: bold;">បរាជ័យក្នុងការទាញយកទិន្នន័យ Support Tickets</div>`;
+  }
+}
+
+// 🎨 មុខងារគូរផ្ទាំង Summary, Filter និងបញ្ជីកាត Tickets បែបរបាយការណ៍
+function c360RenderTicketsUI() {
+  const mainContent = document.getElementById("c360-tickets-main-content");
+  if (!mainContent) return;
+
+  const totalCount = c360CachedTickets.length;
+  const answeredCount = c360CachedTickets.filter(
+    (t) =>
+      t.status === "Answered" ||
+      t.status === "Resolved" ||
+      t.status === "Closed",
+  ).length;
+  const pendingCount = totalCount - answeredCount;
+
+  mainContent.innerHTML = `
+        <style>
+            .c360-tck-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; font-family: 'Kantumruy Pro', sans-serif; }
+            .c360-tck-stat-box { background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+            .c360-tck-stat-box:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+            .c360-tck-stat-box.active-filter { border-width: 2px; border-color: var(--secondary); background: rgba(16, 185, 129, 0.04); }
+            
+            .c360-tck-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; transition: 0.2s; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); font-family: 'Kantumruy Pro', sans-serif; }
+            .c360-tck-card:hover { border-color: #cbd5e1; box-shadow: 0 6px 16px rgba(0,0,0,0.05); }
+            
+            .c360-msg-bubble-user { background: var(--bg-body); border: 1px solid var(--border); border-radius: 0 14px 14px 14px; padding: 14px 16px; color: var(--text-main); font-size: 0.9rem; line-height: 1.5; flex: 1; }
+            .c360-msg-bubble-admin { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 14px 0 14px 14px; padding: 14px 16px; color: #0f172a; font-size: 0.9rem; line-height: 1.5; flex: 1; }
+            
+            @media (max-width: 650px) {
+                .c360-tck-stats { grid-template-columns: 1fr; }
+            }
+        </style>
+
+        <!-- 📊 ១. របារស្ថិតិរបាយការណ៍ (Summary Pills - ចុចដើម្បី Filter បាន) -->
+        <div class="c360-tck-stats">
+            <div class="c360-tck-stat-box ${c360TicketFilter === "all" ? "active-filter" : ""}" onclick="c360SetTicketFilter('all')">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">របាយការណ៍សរុប (TOTAL)</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono', monospace;">${totalCount}</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+            </div>
+
+            <div class="c360-tck-stat-box ${c360TicketFilter === "pending" ? "active-filter" : ""}" onclick="c360SetTicketFilter('pending')">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">រង់ចាំត្រួតពិនិត្យ (PENDING)</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #f59e0b; font-family: 'JetBrains Mono', monospace;">${pendingCount}</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-file-circle-exclamation"></i>
+                </div>
+            </div>
+
+            <div class="c360-tck-stat-box ${c360TicketFilter === "answered" ? "active-filter" : ""}" onclick="c360SetTicketFilter('answered')">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">ដោះស្រាយរួច (ANSWERED)</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace;">${answeredCount}</div>
+                </div>
+                <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-file-circle-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔍 ២. ប្រអប់ស្វែងរក (Search Bar) -->
+        <div style="position: relative; margin-bottom: 18px;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem;"></i>
+            <input type="text" id="c360-tck-search-input" class="kh-text" placeholder="ស្វែងរកតាមលេខកូដ TCK, ប្រធានបទ, @username អ្នកឆ្លើយ ឬខ្លឹមសារ..." oninput="c360RenderTicketsList()" style="width: 100%; padding: 11px 15px 11px 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-body); font-size: 0.9rem; outline: none; box-sizing: border-box; font-family: 'Kantumruy Pro'; color: var(--text-main);">
+        </div>
+
+        <!-- 📋 ៣. បញ្ជីកាតសំណូមពរ -->
+        <div id="c360-tickets-cards-wrapper"></div>
+    `;
+
+  c360RenderTicketsList();
+}
+
+window.c360SetTicketFilter = function (filterType) {
+  c360TicketFilter = filterType;
+  c360RenderTicketsUI();
+};
+
+function c360RenderTicketsList() {
+  const wrapper = document.getElementById("c360-tickets-cards-wrapper");
+  if (!wrapper) return;
+
+  const keyword = (
+    document.getElementById("c360-tck-search-input")?.value || ""
+  )
+    .toLowerCase()
+    .trim();
+
+  const filtered = c360CachedTickets.filter((t) => {
+    const isAns =
+      t.status === "Answered" ||
+      t.status === "Resolved" ||
+      t.status === "Closed";
+    if (c360TicketFilter === "pending" && isAns) return false;
+    if (c360TicketFilter === "answered" && !isAns) return false;
+
+    if (keyword) {
+      const matchId = (t.ticketId || "").toLowerCase().includes(keyword);
+      const matchSub = (t.subject || "").toLowerCase().includes(keyword);
+      const matchDesc = (t.description || t.message || "")
+        .toLowerCase()
+        .includes(keyword);
+      const matchReply = (t.adminReply || "").toLowerCase().includes(keyword);
+      const matchAdmin = (t.repliedBy || "").toLowerCase().includes(keyword);
+      return matchId || matchSub || matchDesc || matchReply || matchAdmin;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    wrapper.innerHTML = `<div class="kh-text" style="text-align: center; padding: 40px; color: var(--text-muted); background: var(--bg-body); border-radius: 14px; border: 1px dashed var(--border);">មិនមានរបាយការណ៍សំណូមពរដែលត្រូវនឹងការស្វែងរកនេះទេ។</div>`;
+    return;
+  }
+
+  wrapper.innerHTML = filtered
+    .map((t) => {
+      const tId = t.ticketId || t._id || "N/A";
+      const isAnswered =
+        t.status === "Answered" ||
+        t.status === "Resolved" ||
+        t.status === "Closed";
+      const isHigh = (t.priority || "").toLowerCase() === "high";
+
+      const accentColor = isAnswered ? "#0d9488" : "#f59e0b";
+      const statusBg = isAnswered ? "#ccfbf1" : "#fef9c3";
+      const statusColor = isAnswered ? "#0f766e" : "#d97706";
+      const statusIcon = isAnswered
+        ? "fa-file-circle-check"
+        : "fa-file-circle-question";
+      const statusLabel = isAnswered
+        ? "បានឆ្លើយតប (Answered)"
+        : "រង់ចាំពិនិត្យ (Pending)";
+
+      const priorityBadge = isHigh
+        ? `<span style="background: #fee2e2; color: #ef4444; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> High Priority</span>`
+        : `<span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-file-lines"></i> Normal</span>`;
+
+      const adminUsername = (
+        t.repliedBy || c360GetCurrentAdminUsername()
+      ).replace(/^@/, "");
+
+      return `
+                <div class="c360-tck-card" style="border-left: 5px solid ${accentColor};">
+                    <!-- ផ្នែកក្បាលរបាយការណ៍ (Header: Ticket ID, Subject, Priority & Status) -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="width: 42px; height: 42px; border-radius: 10px; background: ${isAnswered ? "#f0fdfa" : "#fffbeb"}; color: ${accentColor}; border: 1px solid ${isAnswered ? "#99f6e4" : "#fde68a"}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+                                    <span onclick="navigator.clipboard.writeText('${tId}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Copied ID!', showConfirmButton:false, timer:1000});" style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 800; background: #0f172a; color: #f8fafc; padding: 3px 8px; border-radius: 6px; cursor: pointer;" title="ចុចដើម្បី Copy ID">
+                                        #${tId} <i class="fa-regular fa-copy" style="font-size: 0.65rem; opacity: 0.8;"></i>
+                                    </span>
+                                    ${priorityBadge}
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">
+                                        <i class="fa-regular fa-clock"></i> ${t.date || t.createdAt || "N/A"}
+                                    </span>
+                                </div>
+                                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">ប្រធានបទ៖ ${t.subject || "សំណូមពរទូទៅ"}</h4>
+                            </div>
+                        </div>
+
+                        <span style="font-size: 0.75rem; padding: 5px 12px; background: ${statusBg}; color: ${statusColor}; border-radius: 20px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+                            <i class="fa-solid ${statusIcon}"></i> ${statusLabel}
+                        </span>
+                    </div>
+
+                    <!-- 💬 ផ្នែកសន្ទនាបែបរបាយការណ៍ (Report Thread: User Request & Admin Official Response) -->
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
+                        <!-- សំណើរបស់អតិថិជន -->
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <div style="width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;" title="សំណើអតិថិជន">
+                                <i class="fa-solid fa-clipboard-question"></i>
+                            </div>
+                            <div class="c360-msg-bubble-user">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
+                                    <span style="font-size: 0.74rem; font-weight: 800; color: #475569;">
+                                        <i class="fa-solid fa-user-pen"></i> សំណើពីអតិថិជន (${currentC360User.fullName || currentC360User.username})
+                                    </span>
+                                    <span style="font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: bold;">
+                                        @${currentC360User.username}
+                                    </span>
+                                </div>
+                                <div style="white-space: pre-wrap; word-break: break-word; color: var(--text-main);">${t.description || t.message || "គ្មានខ្លឹមសារ"}</div>
+                            </div>
+                        </div>
+
+                        <!-- របាយការណ៍ឆ្លើយតបរបស់ Admin (បង្ហាញ @username ច្បាស់ៗ) -->
+                        ${
+                          t.adminReply
+                            ? `
+                        <div style="display: flex; align-items: flex-start; gap: 10px; flex-direction: row-reverse;">
+                            <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #004d40, #0d9488); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; box-shadow: 0 3px 8px rgba(13, 148, 136, 0.25);" title="Official Report Reply">
+                                <i class="fa-solid fa-file-signature"></i>
+                            </div>
+                            <div class="c360-msg-bubble-admin">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; border-bottom: 1px dashed #99f6e4; padding-bottom: 4px; flex-wrap: wrap;">
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: #0f766e; display: inline-flex; align-items: center; gap: 5px;">
+                                        <i class="fa-solid fa-clipboard-check"></i> ការឆ្លើយតបពីក្រុមការងារ (Official Report)
+                                    </span>
+                                    <span style="font-size: 0.72rem; font-weight: 800; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">
+                                        <i class="fa-solid fa-user-shield"></i> @${adminUsername}
+                                    </span>
+                                </div>
+                                <div style="white-space: pre-wrap; word-break: break-word; font-size: 0.9rem; color: #1e293b;">
+                                    <strong style="color: #0f766e; font-family: 'JetBrains Mono', monospace;">@${adminUsername}:</strong>${t.adminReply}
+                                </div>
+                                ${t.repliedAt ? `<div style="font-size: 0.68rem; color: #64748b; text-align: right; margin-top: 5px; font-family: monospace;"><i class="fa-regular fa-clock"></i> ឆ្លើយតបនៅ៖ ${t.repliedAt}</div>` : ""}
+                            </div>
+                        </div>`
+                            : ""
+                        }
+                    </div>
+
+                    <!-- 🛠️ ផ្នែកប៊ូតុងខាងក្រោម (Footer Actions) -->
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--border);">
+                        <button onclick="c360ViewUserMessage('${currentC360User.username}', '${tId}')" class="kh-text" style="padding: 7px 14px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-file-magnifying-glass" style="color: #0d9488;"></i> មើលរបាយការណ៍
+                        </button>
+                        <button onclick="c360AdminReplyTicket('${currentC360User.username}', '${tId}')" class="kh-text" style="padding: 7px 16px; background: ${isAnswered ? "#0f766e" : "#2563eb"}; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(15, 118, 110, 0.2);">
+                            <i class="fa-solid ${isAnswered ? "fa-pen-to-square" : "fa-file-pen"}"></i> ${isAnswered ? "កែប្រែរបាយការណ៍ឆ្លើយតប" : "សរសេររបាយការណ៍ឆ្លើយតប"}
+                        </button>
+                    </div>
+                </div>
+            `;
+    })
+    .join("");
+}
+
+// 🟢 មុខងារមើលរបាយការណ៍សំណូមពរលម្អិត (Popup View Report Modal)
+window.c360ViewUserMessage = function (username, ticketId) {
+  const ticketsList =
+    c360CachedTickets.length > 0
+      ? c360CachedTickets
+      : currentC360User?.tickets || [];
+  const ticket = ticketsList.find(
+    (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
+  );
+  if (!ticket) return;
+
+  const isAnswered =
+    ticket.status === "Answered" || ticket.status === "Resolved";
+  const adminUsername = (
+    ticket.repliedBy || c360GetCurrentAdminUsername()
+  ).replace(/^@/, "");
+
+  Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.2rem; color: #004d40;"><i class="fa-solid fa-file-contract"></i> របាយការណ៍សំបុត្រ #${ticket.ticketId || "N/A"}</span>`,
+    html: `
+            <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 10px;">
+                <div style="background: #f8fafc; padding: 16px; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 0.75rem; color: #64748b; font-weight: bold;"><i class="fa-solid fa-clipboard-list"></i> ប្រធានបទ (SUBJECT)</span>
+                        <span style="font-size: 0.75rem; font-weight: 800; color: ${isAnswered ? "#0d9488" : "#f59e0b"};">${ticket.status || "Pending"}</span>
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 800; color: #0f172a; margin-bottom: 12px;">${ticket.subject || "N/A"}</div>
+                    
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold; margin-bottom: 4px;">ខ្លឹមសារសំណើពី @${username}៖</div>
+                    <div style="font-size: 0.95rem; color: #1e293b; line-height: 1.6; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                        ${ticket.description || ticket.message || ""}
+                    </div>
+                </div>
+
+                ${
+                  ticket.adminReply
+                    ? `
+                <div style="background: #f0fdfa; padding: 14px; border-radius: 14px; border: 1px solid #99f6e4; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.78rem; color: #0f766e; font-weight: 800;"><i class="fa-solid fa-file-signature"></i> របាយការណ៍ឆ្លើយតបពីក្រុមការងារ៖</span>
+                        <span style="font-size: 0.75rem; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 6px; font-weight: bold; font-family: 'JetBrains Mono', monospace;">@${adminUsername}</span>
+                    </div>
+                    <div style="font-size: 0.92rem; color: #0f172a; line-height: 1.5;">
+                        <strong style="color: #0f766e; font-family: 'JetBrains Mono', monospace;">@${adminUsername}:</strong>${ticket.adminReply}
+                    </div>
+                </div>`
+                    : ""
+                }
+
+                <div style="font-size: 0.78rem; color: #94a3b8; display: flex; justify-content: space-between;">
+                    <span><i class="fa-solid fa-user"></i> អតិថិជន: @${username}</span>
+                    <span><i class="fa-regular fa-clock"></i> ${ticket.date || ticket.createdAt || "N/A"}</span>
+                </div>
+            </div>
+        `,
+    showCancelButton: true,
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-file-pen"></i> ឆ្លើយតប</span>',
+    cancelButtonText: '<span class="kh-text">បិទផ្ទាំង</span>',
+    confirmButtonColor: "#0f766e",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+  }).then((res) => {
+    if (res.isConfirmed) {
+      c360AdminReplyTicket(username, ticketId);
     }
   });
+};
+
+// 🟢 មុខងារឆ្លើយតបសំណូមពរ (ភ្ជាប់ជាមួយ Quick Reply Templates និងកត់ត្រា @username)
+window.c360AdminReplyTicket = async function (username, ticketId) {
+  const ticketsList =
+    c360CachedTickets.length > 0
+      ? c360CachedTickets
+      : currentC360User?.tickets || [];
+  const ticket = ticketsList.find(
+    (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
+  );
+
+  const activeAdminUsername = c360GetCurrentAdminUsername().replace(/^@/, "");
+
+  const { value: replyText } = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.25rem; color: #0f172a;"><i class="fa-solid fa-file-signature" style="color: #0d9488;"></i> របាយការណ៍ឆ្លើយតបសំណូមពរ</span>`,
+    html: `
+            <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; margin-top: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdfa; padding: 8px 12px; border-radius: 10px; border: 1px solid #99f6e4; margin-bottom: 12px; font-size: 0.8rem;">
+                    <span style="color: #0f766e; font-weight: 700;"><i class="fa-solid fa-user-shield"></i> មន្ត្រីឆ្លើយតប (Admin):</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px;">@${activeAdminUsername}</span>
+                </div>
+
+                ${
+                  ticket
+                    ? `
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 12px; border-left: 4px solid #f59e0b; margin-bottom: 14px; font-size: 0.85rem;">
+                    <div style="font-weight: 800; color: #0f172a; margin-bottom: 3px;">ប្រធានបទ៖ ${ticket.subject}</div>
+                    <div style="color: #475569;">"${ticket.description || ticket.message || ""}"</div>
+                </div>`
+                    : ""
+                }
+
+                <label style="font-size: 0.8rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 6px;">ជ្រើសរើសទម្រង់របាយការណ៍រហ័ស (Quick Templates)៖</label>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <span onclick="document.getElementById('swal-c360-reply-box').value='សួស្តីបង! ក្រុមការងារបានពិនិត្យ និងដោះស្រាយបញ្ហារបស់បងរួចរាល់ហើយ។ សូមអរគុណ!'" style="font-size: 0.75rem; background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 700;">✅ ដោះស្រាយរួចរាល់</span>
+                    <span onclick="document.getElementById('swal-c360-reply-box').value='សួស្តីបង! ក្រុមការងារកំពុងត្រួតពិនិត្យករណីនេះជូនបង សូមរង់ចាំបន្តិចណា។ សូមបងជួយផ្តល់ព័ត៌មាន ឬលេខយោងប្រតិបត្តិការ (Ref ID) បន្ថែម ដើម្បីឱ្យក្រុមការងារងាយស្រួលឆែកជូនណា។'" style="font-size: 0.75rem; background: #fef9c3; color: #d97706; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 700;">⏳ កំពុងពិនិត្យ & សុំ Ref ID</span>
+                    <span onclick="document.getElementById('swal-c360-reply-box').value='សួស្តីបង! ករណីនេះត្រូវបានបញ្ជូនទៅកាន់ផ្នែកបច្ចេកទេសជាន់ខ្ពស់ដើម្បីផ្ទៀងផ្ទាត់ជូនបងហើយ។'" style="font-size: 0.75rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-weight: 700;">📋 បញ្ជូនទៅផ្នែកបច្ចេកទេស</span>
+                </div>
+
+                <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">ខ្លឹមសាររបាយការណ៍ឆ្លើយតបទៅកាន់ @${username} <span style="color:red">*</span></label>
+                <textarea id="swal-c360-reply-box" class="swal2-textarea kh-text" placeholder="វាយបញ្ចូលរបាយការណ៍ឆ្លើយតបនៅទីនេះ..." style="width: 100%; min-height: 110px; margin: 0; font-size: 0.92rem; padding: 12px; border-radius: 12px; box-sizing: border-box; font-family: 'Kantumruy Pro', sans-serif;">${ticket?.adminReply || ""}</textarea>
+            </div>
+        `,
+    width: "550px",
+    showCancelButton: true,
+    confirmButtonText:
+      '<span class="kh-text"><i class="fa-solid fa-paper-plane"></i> បញ្ជូនរបាយការណ៍</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#0f766e",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal" },
+    preConfirm: () => {
+      const val = document.getElementById("swal-c360-reply-box").value.trim();
+      if (!val) {
+        Swal.showValidationMessage("សូមវាយបញ្ចូលខ្លឹមសារឆ្លើយតប!");
+        return false;
+      }
+      return val;
+    },
+  });
+
+  if (replyText) {
+    Swal.fire({
+      title: "កំពុងបញ្ជូនរបាយការណ៍...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal kh-text" },
+    });
+
+    try {
+      const res = await fetch("/api/admin/ticket-reply", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          username,
+          ticketId,
+          replyMessage: replyText,
+          adminUsername: activeAdminUsername,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await renderTicketsTab(currentC360User);
+        Swal.fire({
+          icon: "success",
+          title: "បានបញ្ជូនរបាយការណ៍ជោគជ័យ!",
+          text: `ឆ្លើយតបដោយ @${activeAdminUsername} ទៅកាន់ប្រអប់សារអតិថិជនរួចរាល់។`,
+          timer: 1800,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      } else {
+        Swal.fire("បរាជ័យ", data.message || "មិនអាចផ្ញើសារបានទេ", "error");
+      }
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
+    }
+  }
 };

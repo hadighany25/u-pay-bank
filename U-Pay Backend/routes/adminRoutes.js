@@ -101,6 +101,12 @@ router.get(
   safeHandler(adminController.getAdminsList, "getAdminsList"),
 );
 
+router.get(
+  "/logs/:username",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getUserLogs, "getUserLogs"),
+);
+
 router.post(
   "/save-admin",
   checkRole([ROLE_SUPER]),
@@ -445,6 +451,21 @@ router.post(
   "/send-message",
   checkRole([ROLE_SUPER, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.sendDirectMessage, "sendDirectMessage"),
+);
+
+router.get(
+  "/all-tickets",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getAllSupportTickets, "getAllSupportTickets"),
+);
+
+// ==========================================
+// 🎫 ផ្លូវ (Route) សម្រាប់ទាញយក Support Tickets របស់ User ក្នុង Customer 360°
+// ==========================================
+router.get(
+  "/user-tickets/:username",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.getUserTickets, "getUserTickets"),
 );
 
 // ==========================================

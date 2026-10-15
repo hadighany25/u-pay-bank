@@ -2073,6 +2073,59 @@ const verifyResetToken = async (req, res) => {
   }
 };
 
+/**
+ * 📌 [User] បង្កើត Support Ticket ថ្មីពីក្នុង Settings
+ */
+const createTicket = async (req, res) => {
+  const { username, subject, priority, description, message } = req.body;
+  try {
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
+
+    if (!user.tickets) user.tickets = [];
+
+    const newTicket = {
+      ticketId: "TCK-" + Math.floor(100000 + Math.random() * 900000),
+      subject: subject || "Support Request",
+      priority: priority || "Normal",
+      message: message || description || "",
+      description: description || message || "",
+      status: "Pending",
+      adminReply: "",
+      date:
+        typeof getFormattedDate === "function"
+          ? getFormattedDate()
+          : new Date().toLocaleString(),
+      createdAt: new Date(),
+    };
+
+    user.tickets.unshift(newTicket); // ដាក់ទុករשលើគេបង្អស់
+    user.markModified("tickets");
+    await user.save();
+
+    // ផ្ញើ Notification ជូនដំណឹងទៅ Admin ឬប្រព័ន្ធ
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
+      title: "New Support Ticket 🎫",
+      message: `សំណើរថ្មី: "${subject}" ត្រូវបានដាក់ស្នើដោយជោកជ័យ`,
+      date: newTicket.date,
+      type: "ticket_created",
+      isRead: false,
+    });
+
+    res.json({
+      success: true,
+      message: "សំណូមពររបស់អ្នកត្រូវបានបញ្ជូនជោគជ័យ!",
+      ticket: newTicket,
+    });
+  } catch (err) {
+    console.error("Create Ticket Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
@@ -2114,6 +2167,9 @@ module.exports = {
   checkUsername,
   checkIdNumber,
   checkReferralCode,
+
+  // Support Ticket
+  createTicket,
 
   // Telegram
   generateTelegramCode,

@@ -181,6 +181,23 @@ const getAdminsList = async (req, res) => {
   }
 };
 
+// ==========================================
+// 📋 [Admin] ទាញយក Logs សម្រាប់ User ជាក់លាក់ (User Audit Logs)
+// ==========================================
+const getUserLogs = async (req, res) => {
+  try {
+    const { username } = req.params;
+    // ទាញយក Logs ណាដែលមាន target ចំ username នោះ
+    const logs = await AdminLog.find({ target: username })
+      .sort({ _id: -1 })
+      .limit(100);
+    res.json({ success: true, logs });
+  } catch (err) {
+    console.error("Get User Logs Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 const getAdminLogs = async (req, res) => {
   try {
     if (req.admin.role !== "super_admin")
@@ -4189,41 +4206,6 @@ const deleteBroadcast = async (req, res) => {
   }
 };
 
-const ticketReply = async (req, res) => {
-  const { username, ticketId, replyMessage } = req.body;
-  try {
-    const u = await User.findOne({ username });
-    if (u && u.tickets) {
-      const t = u.tickets.find((t) => t.ticketId === ticketId);
-      if (t) {
-        t.status = "Answered";
-        t.adminReply = replyMessage;
-        await Notification.create({
-          userId: u._id,
-          username: u.username,
-          title: "Support Reply: " + t.subject,
-          message: `Admin: ${replyMessage}`,
-          date: getFormattedDate(),
-          type: "info",
-          isRead: false,
-          metadata: { sender: "system" },
-        });
-        u.markModified("tickets");
-        await u.save();
-        await logAdminAction(
-          req.admin.username,
-          "Reply Ticket",
-          u.username,
-          `Replied to ticket ID: ${ticketId}`,
-        );
-        res.json({ success: true });
-      } else res.json({ success: false });
-    } else res.json({ success: false });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
-
 const sendDirectMessage = async (req, res) => {
   try {
     const { username, message } = req.body;
@@ -4400,6 +4382,168 @@ const adminCreateUser = async (req, res) => {
   }
 };
 
+const ticketReply = async (req, res) => {
+  const { username, ticketId, replyMessage } = req.body;
+  try {
+    const u = await User.findOne({ username });
+    if (u && u.tickets) {
+      const t = u.tickets.find(
+        (item) =>
+          item.ticketId === ticketId || item._id?.toString() === ticketId,
+      );
+      if (t) {
+        const adminUsername = req.admin?.username || "admin";
+        const replyTime =
+          typeof getFormattedDate === "function"
+            ? getFormattedDate()
+            : new Date().toLocaleString();
+
+        t.status = "Answered";
+        t.adminReply = replyMessage;
+        t.repliedBy = adminUsername; // 🟢 កត់ត្រា username អ្នកឆ្លើយតប
+        t.repliedAt = replyTime;
+
+        await Notification.create({
+          userId: u._id,
+          username: u.username,
+          title: `របាយការណ៍ឆ្លើយតបសំណើ: ${t.subject}`,
+          message: `ឆ្លើយតបដោយ @${adminUsername}: ${replyMessage}`, // 🟢 បង្ហាញ @username ច្បាស់ៗក្នុងសារ
+          date: replyTime,
+          type: "support_reply", // 🟢 កំណត់ប្រភេទដាច់ដោយឡែកដើម្បីបង្ហាញ Icon របាយការណ៍ស្អាត
+          isRead: false,
+          metadata: {
+            sender: adminUsername,
+            ticketId: t.ticketId,
+            subject: t.subject,
+          },
+        });
+
+        u.markModified("tickets");
+        await u.save();
+
+        await logAdminAction(
+          adminUsername,
+          "Reply Ticket",
+          u.username,
+          `(@${adminUsername}) Replied to ticket ID: ${ticketId}`,
+        );
+
+        res.json({ success: true, repliedBy: adminUsername });
+      } else {
+        res.json({ success: false, message: "រកមិនឃើញសំណូមពរនេះទេ!" });
+      }
+    } else {
+      res.json({ success: false, message: "រកមិនឃើញអតិថិជននេះទេ!" });
+    }
+  } catch (err) {
+    console.error("Ticket Reply Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ==========================================
+// 🎫 [Admin] ទាញយក Support Tickets ទាំងអស់សម្រាប់ Menu ធំ (ផ្ទាំងទី ១៤)
+// ==========================================
+const getAllSupportTickets = async (req, res) => {
+  try {
+    const users = await User.find({ "tickets.0": { $exists: true } }).select(
+      "username fullName phone profileImage userId tickets",
+    );
+
+    let allTickets = [];
+    users.forEach((u) => {
+      if (Array.isArray(u.tickets)) {
+        u.tickets.forEach((t) => {
+          const tObj = t.toObject ? t.toObject() : t;
+          allTickets.push({
+            ...tObj,
+            username: u.username,
+            fullName: u.fullName || u.username,
+            phone: u.phone || "N/A",
+            profileImage: u.profileImage || "../images/default-avatar.png",
+            userCustomId: u.userId || "N/A",
+          });
+        });
+      }
+    });
+
+    // តម្រៀបពីសំបុត្រថ្មីបំផុតមកមុន
+    allTickets.sort(
+      (a, b) =>
+        new Date(b.createdAt || b.date || 0) -
+        new Date(a.createdAt || a.date || 0),
+    );
+
+    res.json({ success: true, tickets: allTickets });
+  } catch (err) {
+    console.error("Get All Support Tickets Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ==========================================
+// 🎫 ទាញយក Support Tickets របស់អតិថិជនម្នាក់ៗ (Fixed for User.tickets array)
+// ==========================================
+const getUserTickets = async (req, res) => {
+  try {
+    const { username } = req.params;
+    // ទាញយក Field tickets ផ្ទាល់ពី Document របស់ User នោះ
+    const user = await User.findOne({ username }).select(
+      "tickets username fullName",
+    );
+
+    if (!user) {
+      return res.json({ success: false, message: "រកមិនឃើញអតិថិជនទេ!" });
+    }
+
+    res.json({ success: true, tickets: user.tickets || [] });
+  } catch (err) {
+    console.error("Get User Tickets Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ២. Admin ตอบ ឬបិទ Ticket (Close/Reply Support Ticket)
+const adminResolveTicket = async (req, res) => {
+  try {
+    const { username, ticketId, adminReply, newStatus } = req.body;
+    const user = await User.findOne({ username });
+    if (!user)
+      return res.json({ success: false, message: "រកមិនឃើញអតិថិជនទេ!" });
+
+    if (!user.tickets) user.tickets = [];
+    const ticket = user.tickets.id
+      ? user.tickets.id(ticketId)
+      : user.tickets.find(
+          (t) => t.ticketId === ticketId || t._id?.toString() === ticketId,
+        );
+
+    if (!ticket)
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញសំណូមពរ (Ticket) នេះទេ!",
+      });
+
+    if (adminReply) ticket.adminReply = adminReply;
+    if (newStatus) ticket.status = newStatus; // 'Resolved', 'Closed', 'In Progress'
+
+    user.markModified("tickets");
+    await user.save();
+
+    await logAdminAction(
+      req.admin.username,
+      "Resolve Support Ticket",
+      username,
+      `Updated ticket ID: ${ticketId} to status: ${newStatus || ticket.status}`,
+    );
+
+    res.json({ success: true, message: "កែប្រែស្ថានភាពសំណូមពរជោគជ័យ!" });
+  } catch (err) {
+    console.error("Resolve Ticket Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
@@ -4411,6 +4555,7 @@ module.exports = {
   // Admin Manage
   getMe,
   getAdminsList,
+  getUserLogs,
   saveAdminAccount,
   deleteAdminAccount,
   adminResetPassword,
@@ -4482,13 +4627,18 @@ module.exports = {
   adminEditMerchant,
   releaseMerchantHold,
 
-  // Promo, Tickets, Broadcast
+  // Promo, Broadcast
   createPromoCode,
   getPromoCodes,
   togglePromoCode,
-  ticketReply,
   broadcast,
   getBroadcastHistory,
   deleteBroadcast,
   sendDirectMessage,
+
+  // Tickets
+  ticketReply,
+  getAllSupportTickets,
+  getUserTickets,
+  adminResolveTicket,
 };

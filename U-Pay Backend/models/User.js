@@ -114,6 +114,22 @@ const userSchema = new mongoose.Schema(
     telegramChatId: { type: String, default: null },
     linkCode: { type: String, default: null },
 
+    tickets: [
+      {
+        ticketId: { type: String, default: () => "TCK-" + Date.now() },
+        subject: { type: String, required: true },
+        priority: { type: String, default: "Normal" },
+        message: { type: String, required: true },
+        description: { type: String },
+        status: { type: String, default: "Pending" },
+        adminReply: { type: String, default: "" },
+        repliedBy: { type: String, default: "" }, // 🟢 រក្សាទុក username របស់ Admin ដែលឆ្លើយតប
+        repliedAt: { type: String, default: "" }, // 🟢 រក្សាទុកម៉ោងដែល Admin ឆ្លើយតប
+        date: { type: String, default: () => new Date().toLocaleString() },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // ==========================================
     // 💸 ៧. សេវាកម្ម និងកាត (P2P Debts, Virtual Cards, Sub-Accounts)
     // ==========================================
@@ -127,28 +143,6 @@ const userSchema = new mongoose.Schema(
         fundName: String,
         date: String,
         refId: String,
-      },
-    ],
-
-    // កាតនិម្មិត (Virtual & Physical Cards)
-    virtualCards: [
-      {
-        id: { type: String },
-        type: { type: String },
-        name: { type: String },
-        number: { type: String },
-        cvv: { type: String },
-        expiry: { type: String },
-        isLocked: { type: Boolean, default: false },
-        isOnlinePayEnabled: { type: Boolean, default: true },
-        dailyLimit: { type: Number },
-        dailyTxCountLimit: { type: Number },
-        linkedAccount: { type: String },
-        pin: { type: String },
-        lockedByAdmin: { type: Boolean, default: false },
-        uid: { type: String, default: null },
-        isPhysical: { type: Boolean, default: false },
-        customBgUrl: { type: String, default: "" },
       },
     ],
 
