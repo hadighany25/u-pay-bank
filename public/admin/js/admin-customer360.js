@@ -1292,7 +1292,7 @@ window.c360JumpToTrx = function (accountNumber) {
 };
 
 // =======================================================
-// ➡️ TAB 3: គ្រប់គ្រងកាត (Virtual Cards Management - Refactored)
+// ➡️ TAB 3: គ្រប់គ្រងកាតទាំង ៣ ប្រភេទ (Virtual, Debit & Credit Cards Management)
 // =======================================================
 let adminCardsSliderInstance = null;
 let adminCurrentCardIndex = 0;
@@ -1301,9 +1301,6 @@ function renderCardsTab(user) {
   const container = document.getElementById("c360-tab-cards");
   if (!container) return;
 
-  // ----------------------------------------------------
-  // ១. រចនាប័ទ្ម (CSS) សម្រាប់កាត និងប៊ូតុងបញ្ជា
-  // ----------------------------------------------------
   let stylesHtml = `
     <style>
       .admin-cards-slider-wrapper {
@@ -1389,6 +1386,7 @@ function renderCardsTab(user) {
       .admin-action-btn.danger { background: #fef2f2; border-color: #fca5a5; }
       .admin-action-btn.danger i, .admin-action-btn.danger span { color: #ef4444; }
       .admin-action-btn.danger:hover { border-color: #ef4444; background: #fee2e2; }
+      .admin-action-btn.disabled-btn { opacity: 0.45; cursor: not-allowed; }
 
       /* 🟢 Information Box Styles */
       .admin-card-info-box { max-width: 450px; margin: 20px auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; font-family: 'Kantumruy Pro', sans-serif; }
@@ -1405,20 +1403,17 @@ function renderCardsTab(user) {
     </style>
   `;
 
-  // ----------------------------------------------------
-  // ២. ការបង្ហាញពេលគ្មានកាត (Empty State)
-  // ----------------------------------------------------
   if (!user.virtualCards || user.virtualCards.length === 0) {
     container.innerHTML =
       stylesHtml +
       `
       <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
-        <i class="fa-regular fa-credit-card" style="color: var(--secondary);"></i> គ្រប់គ្រងកាត (Virtual Cards Management)
+        <i class="fa-regular fa-credit-card" style="color: var(--secondary);"></i> គ្រប់គ្រងកាត (Cards Management)
       </h2>
       <div style="text-align:center; padding: 50px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; border: 2px dashed #e2e8f0; border-radius: 20px;">
         <i class="fa-regular fa-credit-card" style="font-size: 4rem; opacity: 0.5; margin-bottom: 15px; display: block;"></i>
         <h3 style="margin: 0 0 10px 0; color: #0f172a;">អតិថិជនមិនទាន់មានកាតទេ</h3>
-        <p style="margin: 0 0 20px 0; font-size: 0.9rem;">ចុចប៊ូតុងខាងក្រោមដើម្បីបង្កើតកាត Virtual ថ្មីឱ្យអតិថិជន។</p>
+        <p style="margin: 0 0 20px 0; font-size: 0.9rem;">ចុចប៊ូតុងខាងក្រោមដើម្បីបង្កើតកាត Virtual, Debit ឬ Credit ថ្មីឱ្យអតិថិជន។</p>
         <button class="btn-primary kh-text" style="background: #10b981; border: none; padding: 12px 25px; border-radius: 12px; font-weight: bold; font-size: 1rem; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);" onclick="c360CreateCardModal()">
           <i class="fa-solid fa-plus"></i> បង្កើតកាតថ្មី (Create Card)
         </button>
@@ -1426,12 +1421,9 @@ function renderCardsTab(user) {
     return;
   }
 
-  // ----------------------------------------------------
-  // ៣. បង្កើតរចនាសម្ព័ន្ធកាត Slider 3D
-  // ----------------------------------------------------
   let headerHtml = `
     <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
-        <i class="fa-regular fa-credit-card" style="color: var(--secondary);"></i> គ្រប់គ្រងកាត (Virtual Cards Management)
+        <i class="fa-regular fa-credit-card" style="color: var(--secondary);"></i> គ្រប់គ្រងកាត (Cards Management)
     </h2>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; max-width: 450px; margin: 0 auto 15px auto;">
         <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a; font-family: 'Kantumruy Pro';">កាតរបស់អតិថិជន (${user.virtualCards.length})</h3>
@@ -1459,9 +1451,22 @@ function renderCardsTab(user) {
 
   let cardsHtml = `<div class="admin-cards-slider-wrapper"><div class="admin-cards-slider" id="adminCardsSlider" onscroll="c360UpdateActiveCardDot()">`;
 
-  user.virtualCards.forEach((c, index) => {
+  user.virtualCards.forEach((c) => {
+    const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
+    const catBadgeText =
+      cat === "credit"
+        ? "CREDIT CARD"
+        : cat === "debit"
+          ? "DEBIT CARD"
+          : "VIRTUAL CARD";
+
     let themeClass = getThemeClass(c.type);
-    let isRealNFC = c.isPhysical || (c.uid && c.uid !== "");
+    let isRealNFC =
+      cat !== "virtual" &&
+      (c.isPhysical ||
+        (c.uid && c.uid !== "") ||
+        cat === "debit" ||
+        cat === "credit");
     let nfcIconHtml = isRealNFC
       ? `<i class="fa-solid fa-wifi admin-u-nfc"></i>`
       : ``;
@@ -1486,9 +1491,10 @@ function renderCardsTab(user) {
             <div class="admin-locked-overlay"><div class="admin-locked-text">FROZEN</div></div>
             
             <div style="display: flex; justify-content: space-between; align-items: flex-start; z-index: 2;">
-                <div style="display: flex; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 6px;">
                     <div class="admin-u-chip"></div>
                     ${nfcIconHtml}
+                    <span style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 12px; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.5px; margin-left: 4px;">${catBadgeText}</span>
                 </div>
                 <img src="../images/logo-nobg.png" style="height: 30px; filter: brightness(0) invert(1); opacity: 0.9;" onerror="this.style.display='none'">
             </div>
@@ -1539,9 +1545,6 @@ function renderCardsTab(user) {
 
   cardsHtml += `</div><div class="admin-slider-dots" id="adminCardsDots"></div></div>`;
 
-  // ----------------------------------------------------
-  // ៤. ប៊ូតុង Actions (ទម្រង់ 3x3 Grid បង្ហាញទាំងអស់)
-  // ----------------------------------------------------
   let actionsHtml = `
     <div class="admin-card-actions-container" style="max-width: 450px; margin: 0 auto;">
         <div class="admin-card-actions">
@@ -1563,7 +1566,7 @@ function renderCardsTab(user) {
             
             <div class="admin-action-btn" onclick="c360ChangeCardLimit()">
                 <i class="fa-solid fa-sliders" style="color: #f59e0b;"></i>
-                <span>កែប្រែ Limit</span>
+                <span id="adminLimitBtnText">កែប្រែ Limit</span>
             </div>
 
             <div class="admin-action-btn" onclick="c360RenameCard()">
@@ -1571,7 +1574,7 @@ function renderCardsTab(user) {
                 <span>ប្តូរឈ្មោះកាត</span>
             </div>
             
-            <div class="admin-action-btn" onclick="c360ChangeLinkedAccount()">
+            <div class="admin-action-btn" onclick="c360ChangeLinkedAccount()" id="adminLinkedAccBtn">
                 <i class="fa-solid fa-link" style="color: #eab308;"></i>
                 <span>ប្តូរគណនីភ្ជាប់</span>
             </div>
@@ -1594,15 +1597,11 @@ function renderCardsTab(user) {
         </div>
     </div>
     
-    <!-- 🟢 ផ្នែកបង្ហាញព័ត៌មានលម្អិតរបស់កាតខាងក្រោម (Info Box) -->
-    <div class="admin-card-info-box" id="adminCardInfoBox">
-        <!-- Details នឹង Update តាមកាតដែលកំពុងមើល -->
-    </div>
+    <div class="admin-card-info-box" id="adminCardInfoBox"></div>
   `;
 
   container.innerHTML = stylesHtml + headerHtml + cardsHtml + actionsHtml;
 
-  // Render Dots
   const dotsContainer = document.getElementById("adminCardsDots");
   user.virtualCards.forEach((_, i) => {
     dotsContainer.innerHTML += `<div class="admin-dot ${i === 0 ? "active" : ""}"></div>`;
@@ -1612,9 +1611,6 @@ function renderCardsTab(user) {
   c360UpdateCardInfoBox();
 }
 
-// =======================================================
-// 🟢 អនុគមន៍ជំនួយ UI (Update UI ពេលអូសកាត)
-// =======================================================
 window.c360UpdateActiveCardDot = function () {
   const slider = document.getElementById("adminCardsSlider");
   if (!slider) return;
@@ -1635,6 +1631,8 @@ window.c360UpdateActiveCardDot = function () {
 window.c360UpdateCardInfoBox = function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
+
+  const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
 
   // 1. Update Lock Button Status
   const lockIcon = document.getElementById("adminLockIcon");
@@ -1660,64 +1658,116 @@ window.c360UpdateCardInfoBox = function () {
     onlineText.innerText = "អនឡាញ: OFF";
   }
 
-  // 3. Update NFC Button Status (ការពារមិនឱ្យភ្ជាប់ទៀត បើភ្ជាប់រួច)
+  // 3. Update NFC Button Status (បិទមិនឱ្យភ្ជាប់បើជាកាត Virtual សុទ្ធ)
   const nfcBtn = document.getElementById("adminNfcBtn");
   const nfcIcon = document.getElementById("adminNfcIcon");
   const nfcText = document.getElementById("adminNfcText");
-  if (c.uid && c.uid !== "") {
+  if (cat === "virtual" && !c.isPhysical && (!c.uid || c.uid === "")) {
+    nfcIcon.className = "fa-solid fa-ban";
+    nfcIcon.style.color = "#94a3b8";
+    nfcText.innerText = "គ្មាន NFC (Virtual)";
+    nfcBtn.classList.remove("danger");
+    nfcBtn.classList.add("disabled-btn");
+  } else if (c.uid && c.uid !== "") {
     nfcIcon.className = "fa-solid fa-wifi-slash";
     nfcIcon.style.color = "#ef4444";
     nfcText.innerText = "ផ្តាច់ NFC";
     nfcBtn.classList.add("danger");
+    nfcBtn.classList.remove("disabled-btn");
   } else {
     nfcIcon.className = "fa-solid fa-wifi";
     nfcIcon.style.color = "#6366f1";
     nfcText.innerText = "ភ្ជាប់ NFC";
     nfcBtn.classList.remove("danger");
+    nfcBtn.classList.remove("disabled-btn");
   }
 
-  // 4. Update Detailed Info Box below buttons
+  // 4. Update Info Box
   const infoBox = document.getElementById("adminCardInfoBox");
   let linkedName =
-    c.linkedAccount === "KHR"
-      ? "គណនីចម្បង KHR (៛)"
-      : c.linkedAccount === "USD"
-        ? "គណនីចម្បង USD ($)"
-        : c.linkedAccount;
+    cat === "credit"
+      ? "វង់ប្រាក់ធនាគារ (Credit Line)"
+      : c.linkedAccount === "KHR"
+        ? "គណនីចម្បង KHR (៛)"
+        : c.linkedAccount === "USD"
+          ? "គណនីចម្បង USD ($)"
+          : c.linkedAccount;
 
-  let limitCurrencySymbol = c.linkedAccount === "KHR" ? "៛" : "$";
+  let limitCurrencySymbol =
+    c.linkedAccount === "KHR" && cat !== "credit" ? "៛" : "$";
   let limitDisplay =
-    c.linkedAccount === "KHR"
+    c.linkedAccount === "KHR" && cat !== "credit"
       ? (c.dailyLimit || 4000000).toLocaleString()
       : c.dailyLimit || 500;
 
-  infoBox.innerHTML = `
-        <div class="admin-info-row">
-            <span class="admin-info-label">ប្រភេទកាត (Card Type)</span>
-            <span class="admin-info-value" style="color: #3b82f6;">${c.type.toUpperCase()}</span>
-        </div>
-        <div class="admin-info-row">
-            <span class="admin-info-label">គណនីភ្ជាប់ (Linked Account)</span>
-            <span class="admin-info-value" style="color: #10b981;">${linkedName}</span>
-        </div>
-        <div class="admin-info-row">
-            <span class="admin-info-label">ដែនកំណត់ចំណាយ (Daily Limit)</span>
-            <span class="admin-info-value"><span style="font-family: 'Inter', sans-serif;">${limitCurrencySymbol}${limitDisplay}</span> / ថ្ងៃ</span>
-        </div>
-        <div class="admin-info-row">
-            <span class="admin-info-label">ចំនួនប្រតិបត្តិការ (Tx Count Limit)</span>
-            <span class="admin-info-value"><span style="font-family: 'Inter', sans-serif;">${c.dailyTxCountLimit || 10}</span> ដង / ថ្ងៃ</span>
-        </div>
-        <div class="admin-info-row">
-            <span class="admin-info-label">ស្ថានភាពកាត (Status)</span>
-            <span class="admin-info-value" style="color: ${c.isLocked ? "#ef4444" : "#10b981"};">${c.isLocked ? '<i class="fa-solid fa-lock"></i> បានផ្អាក (Frozen)' : '<i class="fa-solid fa-circle-check"></i> ដំណើរការ (Active)'}</span>
-        </div>
-    `;
-};
+  let catDisplayBadge =
+    cat === "credit"
+      ? `<span style="background:#f3e8ff; color:#7e22ce; padding:2px 8px; border-radius:6px;">💎 CREDIT CARD</span>`
+      : cat === "debit"
+        ? `<span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:6px;">💳 DEBIT CARD (PVC)</span>`
+        : `<span style="background:#dcfce7; color:#059669; padding:2px 8px; border-radius:6px;">🌐 VIRTUAL CARD</span>`;
 
-// =======================================================
-// 🟢 មុខងារបញ្ជាកាត (Card Operations API)
-// =======================================================
+  let creditExtraRows = "";
+  if (cat === "credit") {
+    const credLim = Number(c.creditLimit || 1000);
+    const curDebt = Number(c.currentDebt || 0);
+    creditExtraRows = `
+      <div class="admin-info-row">
+          <span class="admin-info-label">ទំហំឥណទានអនុម័ត (Credit Limit)</span>
+          <span class="admin-info-value" style="color: #0d9488; font-family: monospace;">$${credLim.toFixed(2)}</span>
+      </div>
+      <div class="admin-info-row">
+          <span class="admin-info-label">បំណុលជំពាក់បច្ចុប្បន្ន (Current Debt)</span>
+          <span class="admin-info-value" style="color: ${curDebt > 0 ? "#ef4444" : "#10b981"}; font-family: monospace;">$${curDebt.toFixed(2)}</span>
+      </div>
+    `;
+  }
+
+  let deliveryExtraRow = "";
+  if (cat !== "virtual" || c.isPhysical) {
+    deliveryExtraRow = `
+      <div class="admin-info-row">
+          <span class="admin-info-label">ស្ថានភាពកាតរូបវ័ន្ត (Fulfillment)</span>
+          <span class="admin-info-value" style="color: #2563eb; cursor: pointer;" onclick="switchC360Tab('physical')">
+            ${c.deliveryStatus || "Requested"} <i class="fa-solid fa-up-right-from-square" style="font-size: 0.7rem;"></i>
+          </span>
+      </div>
+    `;
+  }
+
+  infoBox.innerHTML = `
+      <div class="admin-info-row">
+          <span class="admin-info-label">ប្រភេទកាតធំ (Category)</span>
+          <span class="admin-info-value">${catDisplayBadge}</span>
+      </div>
+      <div class="admin-info-row">
+          <span class="admin-info-label">រចនាប័ទ្មកាត (Card Design)</span>
+          <span class="admin-info-value" style="color: #3b82f6;">${c.type.toUpperCase()}</span>
+      </div>
+      <div class="admin-info-row">
+          <span class="admin-info-label">លេខ ៤ ខ្ទង់ចុងក្រោយ (សម្រាប់ភ្ញៀវ Activate)</span>
+          <span class="admin-info-value" style="font-family: monospace; font-size: 1rem; color: #0f172a; background: #e2e8f0; padding: 2px 8px; border-radius: 6px;">${c.number.slice(-4)}</span>
+      </div>
+      <div class="admin-info-row">
+          <span class="admin-info-label">គណនីភ្ជាប់ (Linked Account)</span>
+          <span class="admin-info-value" style="color: #10b981;">${linkedName}</span>
+      </div>
+      ${creditExtraRows}
+      <div class="admin-info-row">
+          <span class="admin-info-label">ដែនកំណត់ចំណាយ (Daily Limit)</span>
+          <span class="admin-info-value"><span style="font-family: 'Inter', sans-serif;">${limitCurrencySymbol}${limitDisplay}</span> / ថ្ងៃ</span>
+      </div>
+      <div class="admin-info-row">
+          <span class="admin-info-label">ចំនួនប្រតិបត្តិការ (Tx Count Limit)</span>
+          <span class="admin-info-value"><span style="font-family: 'Inter', sans-serif;">${c.dailyTxCountLimit || 10}</span> ដង / ថ្ងៃ</span>
+      </div>
+      ${deliveryExtraRow}
+      <div class="admin-info-row">
+          <span class="admin-info-label">ស្ថានភាពកាត (Status)</span>
+          <span class="admin-info-value" style="color: ${c.isLocked ? "#ef4444" : "#10b981"};">${c.isLocked ? '<i class="fa-solid fa-lock"></i> បានផ្អាក (Frozen)' : '<i class="fa-solid fa-circle-check"></i> ដំណើរការ (Active)'}</span>
+      </div>
+  `;
+};
 
 // ១. មើលលេខកាតពេញ (Reveal Card Number)
 window.c360RevealFullCardNumber = function () {
@@ -1726,7 +1776,7 @@ window.c360RevealFullCardNumber = function () {
 
   Swal.fire({
     title: '<span class="kh-text">លេខកាតពេញ (Full Card Number)</span>',
-    html: `<div style="font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; padding: 20px; background: #f8fafc; border-radius: 12px; margin-top: 15px; cursor: pointer;" onclick="navigator.clipboard.writeText('${c.number}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Copied!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">${c.number.match(/.{1,4}/g).join(" ")}</div><p class="kh-text" style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">ចុចលើលេខដើម្បីចម្លង (Copy)</p>`,
+    html: `<div style="font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; letter-spacing: 2px; padding: 20px; background: #f8fafc; border-radius: 12px; margin-top: 15px; cursor: pointer;" onclick="navigator.clipboard.writeText('${c.number}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Copied!', showConfirmButton:false, timer:1000});" title="ចុចដើម្បី Copy">${c.number.match(/.{1,4}/g).join(" ")}</div><p class="kh-text" style="font-size: 0.8rem; color: #64748b; margin-top: 10px;">ចុចលើលេខដើម្បីចម្លង (Copy) • CVV: <b>${c.cvv}</b> • ៤ ខ្ទង់ចុងក្រោយ: <b>${c.number.slice(-4)}</b></p>`,
     confirmButtonText: "បិទ",
     confirmButtonColor: "#3b82f6",
     customClass: { popup: "premium-swal" },
@@ -1822,17 +1872,27 @@ window.c360ToggleOnlinePay = async function () {
   }
 };
 
-// ៤. កំណត់ Limit កាត (Change Limits)
+// ៤. កំណត់ Limit កាត (គាំទ្រទាំង Daily Limit និង Credit Limit សម្រាប់កាតឥណទាន)
 window.c360ChangeCardLimit = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
-  const isKHR = c.linkedAccount === "KHR";
+  const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
+  const isKHR = c.linkedAccount === "KHR" && cat !== "credit";
+
+  const creditLimitInputHtml =
+    cat === "credit"
+      ? `
+        <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: #0f766e;">ទំហំឥណទានចាយមុនសរុប (Credit Limit $)</label>
+        <input id="swal-card-credit-limit" class="swal2-input" type="number" value="${c.creditLimit || 1000}" style="margin: 5px 0 15px; width: 100%; box-sizing: border-box; font-family: 'Kantumruy Pro'; border-color: #99f6e4;">
+      `
+      : "";
 
   const { value: formValues } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size: 1.2rem;">កំណត់ Limit កាត</span>',
     html: `
         <div style="text-align: left; margin-top: 10px;">
+            ${creditLimitInputHtml}
             <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">ទំហំទឹកប្រាក់ចាយប្រចាំថ្ងៃ (${isKHR ? "៛" : "$"})</label>
             <input id="swal-card-limit-amt" class="swal2-input" type="number" value="${c.dailyLimit || (isKHR ? 4000000 : 500)}" style="margin: 5px 0 15px; width: 100%; box-sizing: border-box; font-family: 'Kantumruy Pro';">
             <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">ចំនួនដងប្រតិបត្តិការប្រចាំថ្ងៃ (Trx Count)</label>
@@ -1846,7 +1906,9 @@ window.c360ChangeCardLimit = async function () {
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
     customClass: { popup: "modal-radius" },
     preConfirm: () => {
+      const creditEl = document.getElementById("swal-card-credit-limit");
       return {
+        newCreditLimit: creditEl ? parseFloat(creditEl.value) : undefined,
         newLimit: document.getElementById("swal-card-limit-amt").value,
         newCountLimit: document.getElementById("swal-card-limit-count").value,
       };
@@ -1866,6 +1928,7 @@ window.c360ChangeCardLimit = async function () {
         body: JSON.stringify({
           username: currentC360User.username,
           cardId: c.id,
+          newCreditLimit: formValues.newCreditLimit,
           newLimit: parseFloat(formValues.newLimit),
           newCountLimit: parseInt(formValues.newCountLimit),
         }),
@@ -1948,6 +2011,15 @@ window.c360ChangeLinkedAccount = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
 
+  if (c.cardCategory === "credit") {
+    return Swal.fire({
+      icon: "info",
+      title: "កាតឥណទាន (Credit Card)",
+      text: "កាតឥណទានប្រើប្រាស់វង់ប្រាក់អនុម័តរបស់ធនាគារ (Credit Line) មិនចាំបាច់ភ្ជាប់គណនីកាត់លុយផ្ទាល់ទេ។ អ្នកអាចកែប្រែ Credit Limit នៅក្នុងប៊ូតុង 'កែប្រែ Limit'។",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
+
   let accOptions = "";
   if (currentC360User.mainAccounts?.USD) {
     const accNum = currentC360User.mainAccounts.USD.accountNumber;
@@ -2015,7 +2087,7 @@ window.c360ChangeLinkedAccount = async function () {
       });
       const data = await res.json();
       if (data.success) {
-        await c360RefreshData(); // Refresh ទិន្នន័យថ្មីមកបង្ហាញភ្លាមៗ
+        await c360RefreshData();
         Swal.fire({
           icon: "success",
           title: "ជោគជ័យ!",
@@ -2137,22 +2209,22 @@ window.c360DeleteCard = async function () {
   }
 };
 
-// ៩. បង្កើតកាតថ្មី (Create New Card Modal)
+// ៩. បង្កើតកាតថ្មីដោយ Admin (គាំទ្រទាំង ៣ ប្រភេទ៖ Virtual, Debit, និង Credit)
 window.c360CreateCardModal = async function () {
-  const cardTiers = [
+  const allTiers = [
     {
       id: "standard",
       name: "Standard",
       price: 5.0,
       styleClass: "theme-standard",
     },
+    { id: "metal", name: "Metal Gold", price: 5.0, styleClass: "theme-metal" },
     {
       id: "fifa",
       name: "FIFA World Cup",
       price: 15.0,
       styleClass: "theme-fifa",
     },
-    { id: "metal", name: "Metal Gold", price: 5.0, styleClass: "theme-metal" },
     {
       id: "celebrity",
       name: "BTS Edition",
@@ -2199,59 +2271,118 @@ window.c360CreateCardModal = async function () {
     });
   }
 
-  let gridHtml = cardTiers
-    .map(
-      (t, index) => `
-    <label style="cursor:pointer;">
-      <input type="radio" name="swal-card-type" value="${t.id}" data-price="${t.price}" ${index === 0 ? "checked" : ""} style="display:none;" 
-        onchange="document.querySelectorAll('.admin-tier-option').forEach(el=>el.classList.remove('selected')); this.nextElementSibling.classList.add('selected'); document.getElementById('adminCustomBgBox').style.display = (this.value==='custom') ? 'block' : 'none'; document.getElementById('swal-price-display').innerText = '$' + this.getAttribute('data-price');">
-      <div class="admin-tier-option ${index === 0 ? "selected" : ""}" style="border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; background: var(--bg-body);">
-          <div class="${t.styleClass}" style="width: 100%; height: 40px; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-          <div style="font-size: 0.75rem; font-weight: 700; font-family: 'Inter';">${t.name}</div>
-          <div style="font-size: 0.7rem; color: #ef4444; font-weight: bold;">$${t.price.toFixed(2)}</div>
-      </div>
-    </label>
-  `,
-    )
-    .join("");
+  window.c360SwitchAdminCreateCardCat = function (cat) {
+    document.getElementById("swal-admin-card-cat").value = cat;
+    document.querySelectorAll(".adm-cat-pill").forEach((el) => {
+      el.style.background = "transparent";
+      el.style.color = "#64748b";
+    });
+    const activeBtn = document.getElementById(`adm-cat-btn-${cat}`);
+    if (activeBtn) {
+      activeBtn.style.background = "#0f766e";
+      activeBtn.style.color = "#ffffff";
+    }
+
+    document.getElementById("adm-credit-limit-box").style.display =
+      cat === "credit" ? "block" : "none";
+    document.getElementById("adm-delivery-box").style.display =
+      cat === "virtual" ? "none" : "block";
+
+    const filteredTiers =
+      cat === "virtual"
+        ? allTiers.filter((t) => t.id === "standard" || t.id === "metal")
+        : allTiers;
+
+    const gridEl = document.getElementById("adm-tiers-grid");
+    gridEl.innerHTML = filteredTiers
+      .map(
+        (t, idx) => `
+      <label style="cursor:pointer;">
+        <input type="radio" name="swal-card-type" value="${t.id}" data-price="${t.price}" ${idx === 0 ? "checked" : ""} style="display:none;"
+          onchange="document.querySelectorAll('.admin-tier-option').forEach(el=>el.classList.remove('selected')); this.nextElementSibling.classList.add('selected'); document.getElementById('adminCustomBgBox').style.display = (this.value==='custom') ? 'block' : 'none'; document.getElementById('swal-price-display').innerText = '$' + this.getAttribute('data-price');">
+        <div class="admin-tier-option ${idx === 0 ? "selected" : ""}" style="border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; background: var(--bg-body);">
+            <div class="${t.styleClass}" style="width: 100%; height: 40px; border-radius: 6px; margin-bottom: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+            <div style="font-size: 0.75rem; font-weight: 700; font-family: 'Inter';">${t.name}</div>
+            <div style="font-size: 0.7rem; color: #ef4444; font-weight: bold;">$${t.price.toFixed(2)}</div>
+        </div>
+      </label>
+    `,
+      )
+      .join("");
+    document.getElementById("swal-price-display").innerText =
+      "$" + filteredTiers[0].price.toFixed(2);
+    document.getElementById("adminCustomBgBox").style.display = "none";
+  };
 
   const { value: formResult } = await Swal.fire({
     title:
       '<span class="kh-text" style="font-size:1.3rem;">បង្កើតកាតថ្មីឱ្យអតិថិជន</span>',
     html: `
       <style>.admin-tier-option.selected { border-color: var(--secondary) !important; background: rgba(16, 185, 129, 0.05) !important; }</style>
-      <div style="text-align: left; margin-top: 15px;">
-          <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">១. ជ្រើសរើសគណនីកាត់លុយ/ភ្ជាប់ (Linked Account)</label>
-          <select id="swal-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 15px; font-size: 0.9rem;">
+      <div style="text-align: left; margin-top: 10px; font-family: 'Kantumruy Pro', sans-serif;">
+          <input type="hidden" id="swal-admin-card-cat" value="virtual">
+          <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 6px;">១. ជ្រើសរើសប្រភេទកាត (Card Category)</label>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 10px; margin-bottom: 14px;">
+            <button type="button" id="adm-cat-btn-virtual" class="adm-cat-pill" onclick="c360SwitchAdminCreateCardCat('virtual')" style="border:none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; background: #0f766e; color: white; font-family: 'Kantumruy Pro';">🌐 Virtual</button>
+            <button type="button" id="adm-cat-btn-debit" class="adm-cat-pill" onclick="c360SwitchAdminCreateCardCat('debit')" style="border:none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; font-family: 'Kantumruy Pro';">💳 Debit (PVC)</button>
+            <button type="button" id="adm-cat-btn-credit" class="adm-cat-pill" onclick="c360SwitchAdminCreateCardCat('credit')" style="border:none; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; font-family: 'Kantumruy Pro';">💎 Credit (PVC)</button>
+          </div>
+
+          <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">២. គណនីកាត់ថ្លៃសេវា / ភ្ជាប់កាត (Linked Account)</label>
+          <select id="swal-linked-acc" class="swal2-input kh-text" style="width:100%; margin: 5px 0 14px; font-size: 0.9rem;">
               ${accOptions}
           </select>
 
-          <label class="kh-text" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 8px;">២. ជ្រើសរើសប្រភេទកាត (Card Design)</label>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
-              ${gridHtml}
+          <div id="adm-credit-limit-box" style="display: none; margin-bottom: 14px;">
+            <label style="font-size: 0.8rem; font-weight: bold; color: #0f766e;">ទំហំឥណទានអនុម័ត (Credit Limit $)</label>
+            <select id="swal-admin-credit-limit" class="swal2-input kh-text" style="width:100%; margin: 5px 0 0; font-size: 0.9rem; border-color: #99f6e4;">
+              <option value="500">$500.00 (Silver Limit)</option>
+              <option value="1000" selected>$1,000.00 (Gold Limit)</option>
+              <option value="2500">$2,500.00 (Platinum Limit)</option>
+              <option value="5000">$5,000.00 (VIP Limit)</option>
+            </select>
           </div>
+
+          <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 8px;">៣. ជ្រើសរើសរចនាប័ទ្មកាត (Card Design)</label>
+          <div id="adm-tiers-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; max-height: 210px; overflow-y: auto; padding-right: 5px; margin-bottom: 14px;"></div>
           
-          <div id="adminCustomBgBox" style="display: none; margin-bottom: 15px;">
+          <div id="adminCustomBgBox" style="display: none; margin-bottom: 14px;">
               <input id="swal-custom-url" type="text" class="swal2-input kh-text" placeholder="បញ្ចូល URL រូបភាព..." style="width: 100%; margin: 0; font-size: 0.85rem;">
           </div>
 
-          <div style="background: rgba(239,68,68,0.1); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 15px;">
+          <div id="adm-delivery-box" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+            <label style="font-size: 0.78rem; font-weight: bold; color: #475569;">មធ្យោបាយទទួលកាតរូបវ័ន្ត</label>
+            <select id="swal-admin-deliv-method" class="swal2-input kh-text" style="width:100%; margin: 4px 0 10px; font-size: 0.85rem; height: 40px;">
+              <option value="Branch Pickup">Branch Pickup (មកយកនៅសាខា)</option>
+              <option value="J&T Express">J&T Express</option>
+              <option value="Virak Buntham">Virak Buntham</option>
+              <option value="GrabExpress">GrabExpress</option>
+            </select>
+            <input id="swal-admin-deliv-addr" class="swal2-input kh-text" placeholder="អាសយដ្ឋានដឹកជញ្ជូន ឬ សាខា..." style="width: 100%; margin: 0; font-size: 0.85rem; height: 40px;">
+          </div>
+
+          <div style="background: rgba(239,68,68,0.1); border-radius: 10px; padding: 10px; text-align: center; margin-bottom: 12px;">
               <span class="kh-text" style="color: #ef4444; font-size: 0.85rem; font-weight: bold;">ថ្លៃសេវាចេញកាត៖ </span>
               <span id="swal-price-display" style="color: #ef4444; font-size: 1rem; font-weight: 900;">$5.00</span>
           </div>
 
-          <input id="swal-card-remark" class="swal2-input kh-text" placeholder="ចំណាំ (ឧ. អតិថិជនស្នើសុំតាមទូរស័ព្ទ)" style="width: 100%; margin: 0; font-size: 0.85rem; font-family: 'Kantumruy Pro';">
+          <input id="swal-card-remark" class="swal2-input kh-text" placeholder="ចំណាំ (ឧ. អតិថិជនស្នើសុំនៅបញ្ជរ)" style="width: 100%; margin: 0; font-size: 0.85rem;">
       </div>`,
+    width: "540px",
     showCancelButton: true,
     confirmButtonText: '<span class="kh-text">បង្កើតកាត</span>',
     cancelButtonText: '<span class="kh-text">បោះបង់</span>',
     confirmButtonColor: "#10b981",
     customClass: { popup: "modal-radius" },
+    didOpen: () => {
+      window.c360SwitchAdminCreateCardCat("virtual");
+    },
     preConfirm: () => {
+      const cardCategory = document.getElementById("swal-admin-card-cat").value;
       const radio = document.querySelector(
         'input[name="swal-card-type"]:checked',
       );
-      const cardType = radio.value;
+      const cardType = radio ? radio.value : "standard";
       const customBgUrl = document
         .getElementById("swal-custom-url")
         .value.trim();
@@ -2260,9 +2391,19 @@ window.c360CreateCardModal = async function () {
         return false;
       }
       return {
+        cardCategory,
         linkedAccount: document.getElementById("swal-linked-acc").value,
-        cardType: cardType,
-        customBgUrl: customBgUrl,
+        cardType,
+        creditLimit: parseFloat(
+          document.getElementById("swal-admin-credit-limit")?.value || "1000",
+        ),
+        deliveryMethod:
+          document.getElementById("swal-admin-deliv-method")?.value ||
+          "Branch Pickup",
+        deliveryAddress:
+          document.getElementById("swal-admin-deliv-addr")?.value.trim() ||
+          "Branch Pickup",
+        customBgUrl,
         remark: document.getElementById("swal-card-remark").value.trim(),
       };
     },
@@ -2304,16 +2445,26 @@ window.c360CreateCardModal = async function () {
   }
 };
 
-// ១០. បិទ/បើក NFC (Bind / Unbind NFC)
+// ១០. បិទ/បើក NFC (ការពារមិនឱ្យភ្ជាប់លើកាត Virtual)
 window.c360ToggleCardNFC = async function () {
   const c = currentC360User.virtualCards[adminCurrentCardIndex];
   if (!c) return;
+
+  const cat = c.cardCategory || (c.isPhysical ? "debit" : "virtual");
+  if (cat === "virtual" && !c.isPhysical && (!c.uid || c.uid === "")) {
+    return Swal.fire({
+      icon: "warning",
+      title: "កាតនិម្មិត (Virtual Card)",
+      text: "កាតនិម្មិតមិនអាចភ្ជាប់បន្ទះឈីប NFC បានទេ! សូមបង្កើត ឬជ្រើសរើសកាតប្រភេទ Debit ឬ Credit។",
+      customClass: { popup: "premium-swal kh-text" },
+    });
+  }
 
   if (c.uid && c.uid !== "") {
     const result = await Swal.fire({
       title:
         '<span class="kh-text" style="color:#ef4444;">ផ្តាច់កាត NFC?</span>',
-      text: "កាត Physical នេះនឹងត្រូវបានផ្តាច់ចេញពីគណនី។",
+      text: "បន្ទះឈីប NFC នឹងត្រូវបានផ្តាច់ចេញពីកាតនេះ។",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: '<span class="kh-text">បាទ, ផ្តាច់ចោល</span>',
@@ -6229,108 +6380,878 @@ window.c360FilterUserLogs = function () {
 };
 
 // =======================================================
-// ➡️ TAB 9: Physical Cards & NFC Management (Interactive Actions)
+// ➡️ TAB 9: Physical Cards & NFC Command Center (100% Fixed & Pro Flow)
 // =======================================================
 function renderPhysicalCardsTab(user) {
   const container = document.getElementById("c360-tab-physical");
   if (!container) return;
 
-  const physicalCards = (user.virtualCards || []).filter(
-    (c) => c.isPhysical || (c.uid && c.uid !== ""),
+  const allCards = user.virtualCards || [];
+  const physicalCards = allCards.filter(
+    (c) =>
+      c.cardCategory === "debit" ||
+      c.cardCategory === "credit" ||
+      c.isPhysical ||
+      (c.uid && c.uid !== "") ||
+      (c.deliveryStatus && c.deliveryStatus !== "None"),
   );
 
+  const totalPhysical = physicalCards.length;
+  const activeNfcCount = physicalCards.filter(
+    (c) => c.uid && c.uid !== "" && !c.isLocked,
+  ).length;
+  const inTransitCount = physicalCards.filter((c) =>
+    ["Requested", "Printing", "Shipped", "Delivered"].includes(
+      c.deliveryStatus || "Requested",
+    ),
+  ).length;
+
+  // ៥ ដំណាក់កាលតាមលំដាប់លំដោយ (Step-by-Step)
+  const stepsOrder = [
+    {
+      key: "Requested",
+      label: "១. ស្នើសុំផលិត",
+      icon: "fa-file-signature",
+      allowAdminClick: true,
+    },
+    {
+      key: "Printing",
+      label: "២. កំពុងបោះពុម្ព",
+      icon: "fa-print",
+      allowAdminClick: true,
+    },
+    {
+      key: "Shipped",
+      label: "៣. កំពុងដឹកជញ្ជូន",
+      icon: "fa-truck-fast",
+      allowAdminClick: true,
+    },
+    {
+      key: "Delivered",
+      label: "៤. ប្រគល់ជូនរួច",
+      icon: "fa-box-open",
+      allowAdminClick: true,
+    },
+    {
+      key: "Activated",
+      label: "៥. ភ្ញៀវបើកប្រើ",
+      icon: "fa-circle-check",
+      allowAdminClick: false,
+    }, // 🛑 ហាម Admin ចុច
+  ];
+
+  const getThemeClass = (type) => {
+    const map = {
+      standard: "theme-standard",
+      fifa: "theme-fifa",
+      metal: "theme-metal",
+      celebrity: "theme-celebrity",
+      anime: "theme-anime",
+      gamer: "theme-gamer",
+      eco: "theme-eco",
+      platinum: "theme-platinum",
+      animal: "theme-animal",
+      custom: "theme-custom",
+    };
+    return map[type] || "theme-standard";
+  };
+
+  let stylesHtml = `
+    <style>
+      .c360-phy-wrapper, .c360-phy-wrapper button, .c360-phy-wrapper input, .c360-phy-wrapper select,
+      .c360-kh-swal, .c360-kh-swal button, .c360-kh-swal input, .c360-kh-swal select, .c360-kh-swal .swal2-title, .c360-kh-swal .swal2-html-container {
+        font-family: 'Kantumruy Pro', 'Inter', sans-serif !important;
+      }
+      /* រូបរាងកាតពិតប្រាកដតាមម៉ូដដែលអតិថិជនរើសទិញ */
+      .phy-card-preview {
+        width: 215px;
+        height: 130px;
+        border-radius: 16px;
+        color: #ffffff;
+        padding: 15px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1px solid rgba(255,255,255,0.2);
+        box-sizing: border-box;
+      }
+      .phy-card-preview.theme-standard { background: linear-gradient(135deg, #149a83 0%, #004d40 100%) !important; }
+      .phy-card-preview.theme-fifa { background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.75)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10") center/cover no-repeat !important; }
+      .phy-card-preview.theme-metal { background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%) !important; }
+      .phy-card-preview.theme-celebrity { background: linear-gradient(rgba(88,28,135,0.4), rgba(0,0,0,0.8)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2RxvoEe_j52IEh_8Fu_DZ0aupMrDFYak0tD3k4Ee_ug&s=10") center/cover no-repeat !important; }
+      .phy-card-preview.theme-anime { background: linear-gradient(rgba(185,28,28,0.45), rgba(0,0,0,0.85)), url("https://static0.cbrimages.com/wordpress/wp-content/uploads/2024/01/sasuke-naruto-and-sakura.jpg") center/cover no-repeat !important; }
+      .phy-card-preview.theme-gamer { background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.85)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10") center/cover no-repeat !important; }
+      .phy-card-preview.theme-eco { background: linear-gradient(rgba(21,128,61,0.4), rgba(0,0,0,0.8)), url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmfmcQbkrZqkkSWfuTzzuFZNf65-nxTieNggbtUhV_vw&s=10") center/cover no-repeat !important; }
+      .phy-card-preview.theme-platinum { background: linear-gradient(135deg, #000000 0%, #1e293b 60%, #090d16 100%) !important; }
+      .phy-card-preview.theme-animal { background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80") center/cover no-repeat !important; }
+      .phy-card-preview.theme-custom { background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.85)) center/cover no-repeat !important; }
+
+      /* Stepper UI ថ្មីស្អាត និងបង្ហាញជំហានបន្ទាប់ច្បាស់ៗ */
+      .phy-step-node {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+        user-select: none;
+        transition: 0.25s;
+      }
+      .phy-step-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-size: 0.9rem;
+        transition: all 0.25s ease;
+      }
+      .phy-step-node.done .phy-step-circle {
+        background: #0d9488;
+        color: #ffffff;
+        border: 2px solid #0d9488;
+      }
+      .phy-step-node.current .phy-step-circle {
+        background: #0f766e;
+        color: #ffffff;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.28);
+        transform: scale(1.08);
+      }
+      .phy-step-node.next-available {
+        cursor: pointer;
+      }
+      .phy-step-node.next-available .phy-step-circle {
+        background: #f0fdfa;
+        color: #0d9488;
+        border: 2px dashed #0d9488;
+        animation: pulseNextStep 1.8s infinite;
+      }
+      .phy-step-node.next-available:hover .phy-step-circle {
+        background: #0d9488;
+        color: #ffffff;
+        transform: scale(1.12);
+      }
+      .phy-step-node.locked-step {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .phy-step-node.locked-step .phy-step-circle {
+        background: #f1f5f9;
+        color: #94a3b8;
+        border: 2px solid #e2e8f0;
+      }
+      @keyframes pulseNextStep {
+        0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.35); }
+        70% { box-shadow: 0 0 0 7px rgba(13, 148, 136, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+      }
+      .phy-action-btn {
+        padding: 9px 14px;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.2s;
+        font-family: 'Kantumruy Pro', sans-serif !important;
+      }
+      .phy-action-btn:hover { transform: translateY(-1px); }
+    </style>
+  `;
+
+  let cardsListHtml = "";
+
   if (physicalCards.length === 0) {
-    container.innerHTML = `
-            <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
-                <i class="fa-solid fa-address-card" style="color: #3b82f6;"></i> កាតរូបវ័ន្ត និង NFC (Physical Cards)
-            </h2>
-            <div style="text-align: center; padding: 50px 20px; color: var(--text-muted); font-family: 'Kantumruy Pro'; border: 2px dashed var(--border); border-radius: 16px;">
-                <i class="fa-solid fa-wifi-slash" style="font-size: 3.5rem; opacity: 0.3; margin-bottom: 15px; display: block;"></i>
-                <h3 style="margin: 0 0 8px; color: var(--text-main);">មិនទាន់មានកាតរូបវ័ន្ត (Physical Card)</h3>
-                <p style="margin: 0 0 15px; font-size: 0.9rem;">អតិថិជននេះមិនទាន់បានភ្ជាប់កាត NFC ជាមួយប្រព័ន្ធណាមួយនៅឡើយទេ។</p>
-                <button onclick="switchC360Tab('cards')" class="kh-text" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                    <i class="fa-solid fa-credit-card"></i> ไปកាន់ផ្ទាំងគ្រប់គ្រងកាតដើម្បីភ្ជាប់ NFC
+    cardsListHtml = `
+      <div style="text-align: center; padding: 55px 20px; color: var(--text-muted); background: var(--bg-body); border: 2px dashed var(--border); border-radius: 18px; margin-bottom: 20px;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px;">
+          <i class="fa-solid fa-id-card-clip"></i>
+        </div>
+        <h3 style="margin: 0 0 8px; color: var(--text-main); font-size: 1.1rem; font-weight: 800;">មិនទាន់មានកាតរូបវ័ន្ត (Debit / Credit) នៅឡើយទេ</h3>
+        <p style="margin: 0 0 18px; font-size: 0.88rem; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+          កាតនិម្មិត (Virtual Card) មិនមានការដឹកជញ្ជូន ឬឈីប NFC ទេ។ សូមចុចប៊ូតុងខាងក្រោមដើម្បីបង្កើតកាតរូបវ័ន្តប្រភេទ Debit ឬ Credit ជាមុនសិន។
+        </p>
+        <button onclick="c360CreateCardModal()" class="phy-action-btn" style="padding: 12px 24px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+          <i class="fa-solid fa-plus-circle"></i> បង្កើតកាតរូបវ័ន្តថ្មី (Debit / Credit)
+        </button>
+      </div>
+    `;
+  } else {
+    cardsListHtml = physicalCards
+      .map((c) => {
+        const cat = c.cardCategory || "debit";
+        const hasUid = Boolean(c.uid && c.uid !== "");
+        const currentStepKey =
+          c.deliveryStatus && c.deliveryStatus !== "None"
+            ? c.deliveryStatus
+            : "Requested";
+
+        const currentStepIdx = Math.max(
+          0,
+          stepsOrder.findIndex((s) => s.key === currentStepKey),
+        );
+
+        // 🎨 រូបរាងកាតតាមម៉ូដដែលអតិថិជនបានជ្រើសរើសទិញ
+        const themeClass = getThemeClass(c.type);
+        let customBgStyle = "";
+        if (c.type === "custom" && c.customBgUrl) {
+          customBgStyle = `style="background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.85)), url('${c.customBgUrl}') center/cover no-repeat !important;"`;
+        }
+
+        // 🟢 គូរ Stepper ៥ ដំណាក់កាល (អនុញ្ញាតឱ្យចុចបានតែជំហានបន្ទាប់ ១ គត់)
+        const stepperHtml = stepsOrder
+          .map((step, idx) => {
+            const isDone = idx < currentStepIdx;
+            const isCurrent = idx === currentStepIdx;
+            const isNext = idx === currentStepIdx + 1;
+
+            let stateClass = "locked-step";
+            if (isDone) stateClass = "done";
+            else if (isCurrent) stateClass = "current";
+            else if (isNext) stateClass = "next-available";
+
+            const labelColor = isCurrent
+              ? "#0f766e"
+              : isDone
+                ? "var(--text-main)"
+                : isNext
+                  ? "#0d9488"
+                  : "#94a3b8";
+
+            const subHint = isCurrent
+              ? `<div style="font-size: 0.65rem; color: #0d9488; font-weight: 800; margin-top: 2px;">● បច្ចុប្បន្ន</div>`
+              : isNext
+                ? `<div style="font-size: 0.65rem; color: #2563eb; font-weight: 800; margin-top: 2px;"><i class="fa-solid fa-hand-pointer"></i> ចុចទៅបន្ទាប់</div>`
+                : isDone
+                  ? `<div style="font-size: 0.65rem; color: #10b981; font-weight: 700; margin-top: 2px;">✓ រួចរាល់</div>`
+                  : `<div style="font-size: 0.65rem; color: #cbd5e1; margin-top: 2px;">រង់ចាំ</div>`;
+
+            return `
+              <div class="phy-step-node ${stateClass}" onclick="c360QuickUpdateStep('${c.id}', '${step.key}')">
+                <div class="phy-step-circle">
+                  <i class="fa-solid ${isDone ? "fa-check" : step.icon}"></i>
+                </div>
+                <div style="font-size: 0.76rem; font-weight: ${isCurrent || isNext ? "800" : "700"}; color: ${labelColor};">${step.label}</div>
+                ${subHint}
+              </div>
+            `;
+          })
+          .join("");
+
+        const progressPercent =
+          (currentStepIdx / (stepsOrder.length - 1)) * 100;
+        const last4Code = c.number.slice(-4);
+        const cardDisplayName =
+          c.name && c.name.trim() !== "" ? c.name : c.type.toUpperCase();
+
+        // ផ្លាកបង្ហាញស្ថានភាពបច្ចុប្បន្នយ៉ាងស្រស់ស្អាត
+        const statusBadgesMap = {
+          Requested: {
+            text: "📝 ស្នើសុំផលិត",
+            bg: "#eff6ff",
+            color: "#2563eb",
+            border: "#bfdbfe",
+          },
+          Printing: {
+            text: "🖨️ កំពុងបោះពុម្ពកាត",
+            bg: "#fef9c3",
+            color: "#d97706",
+            border: "#fde68a",
+          },
+          Shipped: {
+            text: "🚚 កំពុងដឹកជញ្ជូន",
+            bg: "#f3e8ff",
+            color: "#7e22ce",
+            border: "#e9d5ff",
+          },
+          Delivered: {
+            text: "📦 ប្រគល់ជូនរួចរាល់",
+            bg: "#e0f2fe",
+            color: "#0284c7",
+            border: "#bae6fd",
+          },
+          Activated: {
+            text: "🟢 ភ្ញៀវបើកប្រើរួច",
+            bg: "#dcfce7",
+            color: "#059669",
+            border: "#86efac",
+          },
+        };
+        const stObj =
+          statusBadgesMap[currentStepKey] || statusBadgesMap.Requested;
+
+        return `
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; margin-bottom: 22px; box-shadow: 0 6px 18px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--border);">
+              
+              <!-- 💳 កាត Preview ខាងឆ្វេង (បង្ហាញរូបតាមម៉ូដដែលភ្ញៀវរើសទិញពិតៗ) -->
+              <div style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+                <div class="phy-card-preview ${themeClass}" ${customBgStyle}>
+                  <div style="display: flex; justify-content: space-between; align-items: center; z-index: 2;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <div style="width: 30px; height: 22px; background: linear-gradient(135deg, #fde047, #ca8a04); border-radius: 4px; box-shadow: inset 0 0 3px rgba(0,0,0,0.3);"></div>
+                      <i class="fa-solid fa-wifi" style="transform: rotate(90deg); font-size: 0.9rem; color: ${hasUid ? "#5eead4" : "rgba(255,255,255,0.45)"};"></i>
+                    </div>
+                    <span style="font-size: 0.58rem; font-weight: 800; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 10px; letter-spacing: 0.5px;">${cat === "credit" ? "CREDIT" : "DEBIT"}</span>
+                  </div>
+
+                  <div style="font-family: 'Courier New', monospace; font-size: 0.98rem; font-weight: 800; letter-spacing: 1.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 2;">
+                    **** **** **** ${last4Code}
+                  </div>
+
+                  <div style="display: flex; justify-content: space-between; align-items: flex-end; font-size: 0.65rem; z-index: 2; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">
+                    <span style="text-transform: uppercase; font-weight: 700; max-width: 115px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${user.fullName || user.username}</span>
+                    <span style="font-weight: 800; font-size: 0.62rem;">${cardDisplayName}</span>
+                  </div>
+                </div>
+
+                <!-- 📋 ព័ត៌មានលម្អិតរបស់កាត -->
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">
+                      ${cardDisplayName} (${cat === "credit" ? "កាតឥណទាន" : "កាតឥណពន្ធ"})
+                    </h3>
+                    <span style="background: ${stObj.bg}; color: ${stObj.color}; border: 1px solid ${stObj.border}; padding: 3px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 800;">
+                      ${stObj.text}
+                    </span>
+                    ${
+                      hasUid
+                        ? `<span style="background: #dcfce7; color: #059669; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 800;"><i class="fa-solid fa-wifi"></i> ភ្ជាប់ NFC រួច</span>`
+                        : `<span style="background: #fee2e2; color: #ef4444; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 800;"><i class="fa-solid fa-link-slash"></i> មិនទាន់ភ្ជាប់ NFC</span>`
+                    }
+                    <span onclick="navigator.clipboard.writeText('${last4Code}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'បានចម្លងលេខ ៤ ខ្ទង់!', showConfirmButton:false, timer:1000});" style="background: #0f172a; color: #fef08a; padding: 3px 10px; border-radius: 8px; font-size: 0.75rem; font-family: monospace; font-weight: 900; cursor: pointer;" title="ចុចដើម្បីចម្លងលេខកាត ៤ ខ្ទង់ចុងក្រោយ">
+                      <i class="fa-solid fa-key"></i> ៤ខ្ទង់: ${last4Code}
+                    </span>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: auto auto; gap: 6px 20px; font-size: 0.84rem; color: var(--text-muted);">
+                    <div><i class="fa-solid fa-microchip" style="width: 18px; color: #0d9488;"></i> <b>លេខឈីប NFC:</b> <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${hasUid ? "#0f766e" : "#ef4444"};">${c.uid || "មិនទាន់ស្កេនភ្ជាប់"}</span></div>
+                    <div><i class="fa-solid fa-truck" style="width: 18px; color: #f59e0b;"></i> <b>សេវាដឹកជញ្ជូន:</b> <span style="color: var(--text-main); font-weight: 700;">${c.deliveryMethod || "យកនៅសាខាផ្ទាល់"}</span></div>
+                    <div><i class="fa-solid fa-hashtag" style="width: 18px; color: #8b5cf6;"></i> <b>លេខ Tracking:</b> <span style="font-family: monospace; font-weight: 800; color: #2563eb;">${c.trackingNumber || "មិនទាន់មាន"}</span></div>
+                    <div><i class="fa-solid fa-phone" style="width: 18px; color: #10b981;"></i> <b>ទូរស័ព្ទទទួល:</b> <span style="font-weight: 700; color: var(--text-main);">${c.deliveryPhone || user.phone || "N/A"}</span></div>
+                  </div>
+                  ${
+                    c.deliveryAddress
+                      ? `<div style="margin-top: 6px; font-size: 0.82rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot" style="color: #ef4444; width: 18px;"></i> <b>ទីតាំងទទួលកាត:</b> <span style="color: var(--text-main); font-weight: 600;">${c.deliveryAddress}</span></div>`
+                      : ""
+                  }
+                </div>
+              </div>
+
+              <!-- 🔘 ប៊ូតុងបញ្ជា (Action Buttons ជាភាសាខ្មែរស្អាត) -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="c360ScanAndBindSpecificCard('${c.id}')" class="phy-action-btn" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                  <i class="fa-solid fa-wifi"></i> ${hasUid ? "ប្តូរឈីប NFC ថ្មី" : "ស្កេនភ្ជាប់ NFC"}
                 </button>
+                <button onclick="c360OpenPhysicalDeliveryModal('${c.id}')" class="phy-action-btn" style="background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;">
+                  <i class="fa-solid fa-truck-fast"></i> ព័ត៌មានដឹកជញ្ជូន
+                </button>
+                <button onclick="c360ResetPhysicalCardPin('${user.username}', '${c.id}')" class="phy-action-btn" style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1;">
+                  <i class="fa-solid fa-key"></i> កំណត់កូដ PIN
+                </button>
+                ${
+                  hasUid
+                    ? `<button onclick="c360AdminUnbindPhysicalCard('${user.username}', '${c.id}')" class="phy-action-btn" style="background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5;">
+                         <i class="fa-solid fa-link-slash"></i> ផ្តាច់ NFC
+                       </button>`
+                    : ""
+                }
+              </div>
             </div>
+
+            <!-- 🚚 5-Step Fulfillment Progress Bar (ចុចតាមលំដាប់ជំហានបន្ទាប់) -->
+            <div style="margin-top: 20px; position: relative; padding: 0 10px;">
+              <div style="position: absolute; top: 19px; left: 10%; right: 10%; height: 4px; background: #e2e8f0; z-index: 1; border-radius: 4px;">
+                <div style="height: 100%; width: ${progressPercent}%; background: linear-gradient(90deg, #0d9488, #10b981); transition: width 0.4s ease; border-radius: 4px;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; position: relative; z-index: 2;">
+                ${stepperHtml}
+              </div>
+            </div>
+          </div>
         `;
+      })
+      .join("");
+  }
+
+  container.innerHTML =
+    stylesHtml +
+    `
+    <div class="c360-phy-wrapper">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-weight: 800; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-address-card" style="color: #2563eb;"></i> កាតរូបវ័ន្ត (Debit & Credit), ការដឹកជញ្ជូន និងឈីប NFC
+        </h2>
+        <button onclick="c360CreateCardModal()" class="phy-action-btn" style="padding: 10px 18px; background: linear-gradient(135deg, #004d40, #0d9488); color: white; border: none; font-size: 0.86rem; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);">
+          <i class="fa-solid fa-plus-circle"></i> បង្កើតកាតរូបវ័ន្តថ្មី
+        </button>
+      </div>
+
+      <!-- 📊 3 KPI Summary Boxes -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px;">
+        <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">កាតរូបវ័ន្តសរុប (PVC CARDS)</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: var(--text-main); font-family: 'JetBrains Mono', monospace;">${totalPhysical}</div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fa-solid fa-credit-card"></i>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">ឈីប NFC ដំណើរការ (ACTIVE NFC)</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: #10b981; font-family: 'JetBrains Mono', monospace;">${activeNfcCount}</div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: #dcfce7; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fa-solid fa-wifi"></i>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700;">កំពុងផលិត/ដឹកជញ្ជូន (PENDING)</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: #f59e0b; font-family: 'JetBrains Mono', monospace;">${inTransitCount}</div>
+          </div>
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: #fef9c3; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+        </div>
+      </div>
+
+      ${cardsListHtml}
+    </div>
+  `;
+}
+
+// =======================================================
+// 🟢 ១. មុខងាររក្សាទុកស្ថានភាពដឹកជញ្ជូនទៅកាន់ Server API
+// =======================================================
+async function c360SavePhysicalDeliveryData(payload) {
+  Swal.fire({
+    title: "កំពុងរក្សាទុកទិន្នន័យ...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+    customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+  });
+
+  try {
+    const res = await fetch("/api/admin/cards/physical-status", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        username: currentC360User.username,
+        ...payload,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      await c360RefreshData();
+      Swal.fire({
+        icon: "success",
+        title: "ធ្វើបច្ចុប្បន្នភាពជោគជ័យ!",
+        text: data.message,
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+      });
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "បរាជ័យ",
+        text: data.message || "មិនអាចរក្សាទុកបានទេ",
+        customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+      });
+    }
+  } catch (e) {
+    Swal.fire({
+      icon: "error",
+      title: "មានបញ្ហា",
+      text: "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ",
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+  }
+}
+
+// =======================================================
+// 🟢 ២. មុខងារបង្កើតលេខ Tracking អូតូតាមក្រុមហ៊ុនដឹកជញ្ជូន
+// =======================================================
+window.c360GenerateTrackingCode = function (method) {
+  const rand8 = Math.floor(10000000 + Math.random() * 90000000);
+  if (method === "Virak Buntham") return `VET-${rand8}`;
+  if (method === "J&T Express") return `JNT-${rand8}`;
+  if (method === "GrabExpress") return `GRB-${rand8}`;
+  return "យកផ្ទាល់នៅសាខា (Branch Pickup)";
+};
+
+// =======================================================
+// 🟢 ៣. មុខងារចុចលើ Stepper Icon (ចាក់សោឱ្យចុចតាមលំដាប់ ១ ជំហានម្ដង និងឆែក NFC)
+// =======================================================
+window.c360QuickUpdateStep = async function (cardId, targetStatus) {
+  if (!currentC360User) return;
+
+  // 🛑 ហាមដាច់ខាតមិនឱ្យ Admin ចុចប្តូរទៅជា Activated ទុកអោយ User អ្នកចុចខ្លួនឯង
+  if (targetStatus === "Activated") {
+    return Swal.fire({
+      icon: "info",
+      title: "សិទ្ធិអតិថិជន (User Action)",
+      text: "ដំណាក់កាល 'ភ្ញៀវបើកប្រើ (Activated)' ត្រូវធ្វើឡើងដោយអតិថិជនផ្ទាល់នៅក្នុង App របស់គាត់ (ដោយវាយបញ្ចូលលេខកាត ៤ ខ្ទង់ចុងក្រោយដែលទទួលបានក្នុងដៃ)។ Admin មិនអាចចុចជំនួសបានទេ!",
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+  }
+
+  const c = (currentC360User.virtualCards || []).find(
+    (item) => item.id === cardId,
+  );
+  if (!c) return;
+
+  const hasUid = Boolean(c.uid && c.uid !== "");
+  const stepsIndex = {
+    Requested: 0,
+    Printing: 1,
+    Shipped: 2,
+    Delivered: 3,
+    Activated: 4,
+  };
+  const statusNames = {
+    Requested: "១. ស្នើសុំផលិត",
+    Printing: "២. កំពុងបោះពុម្ព",
+    Shipped: "៣. កំពុងដឹកជញ្ជូន",
+    Delivered: "៤. ប្រគល់ជូនរួច",
+    Activated: "៥. ភ្ញៀវបើកប្រើ",
+  };
+
+  const currentStatus =
+    c.deliveryStatus && c.deliveryStatus !== "None"
+      ? c.deliveryStatus
+      : "Requested";
+
+  const curIdx = stepsIndex[currentStatus] ?? 0;
+  const targetIdx = stepsIndex[targetStatus] ?? 0;
+
+  // ១. បើចុចលើជំហានបច្ចុប្បន្ន មិនបាច់ធ្វើអ្វីទេ
+  if (targetIdx === curIdx) return;
+
+  // ២. ហាមចុចត្រឡប់ថយក្រោយលេង
+  if (targetIdx < curIdx) {
+    return Swal.fire({
+      icon: "info",
+      title: "ដំណាក់កាលនេះបានឆ្លងកាត់រួចហើយ!",
+      text: `កាតនេះកំពុងស្ថិតនៅដំណាក់កាល [${statusNames[currentStatus]}] មិនអាចត្រឡប់ថយក្រោយបានទេ។`,
+      confirmButtonText: "យល់ព្រម",
+      confirmButtonColor: "#0d9488",
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+  }
+
+  // ៣. ហាមចុចផ្លោះរំលងដំណាក់កាល (ត្រូវចុចតាមលំដាប់ ១ ជំហានម្ដង)
+  if (targetIdx > curIdx + 1) {
+    const nextRequiredKey = Object.keys(stepsIndex).find(
+      (k) => stepsIndex[k] === curIdx + 1,
+    );
+    return Swal.fire({
+      icon: "warning",
+      title: "មិនអាចផ្លោះរំលងដំណាក់កាលបានទេ!",
+      text: `សូមចុចតាមលំដាប់លំដោយ! ជំហានបន្ទាប់ដែលអ្នកត្រូវចុចគឺ [${statusNames[nextRequiredKey]}]។`,
+      confirmButtonText: "យល់ព្រម",
+      confirmButtonColor: "#f59e0b",
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+  }
+
+  // 🛡️ ៤. លក្ខខណ្ឌតឹងរឹង៖ បើកាតមិនទាន់ស្កេនភ្ជាប់ NFC ទេ មិនឱ្យឆ្លងទៅជំហាន "កំពុងដឹកជញ្ជូន (Shipped)" ឬខ្ពស់ជាងនេះដាច់ខាត!
+  if (targetIdx >= 2 && !hasUid) {
+    return Swal.fire({
+      icon: "warning",
+      title: "មិនទាន់ភ្ជាប់ឈីប NFC!",
+      text: "អ្នកមិនអាចបញ្ជូនកាតចេញ ឬបន្តទៅជំហានបន្ទាប់បានទេ ដរាបណាកាតនេះមិនទាន់បានស្កេនភ្ជាប់បន្ទះឈីប NFC! សូមចុចប៊ូតុង 'ស្កេនភ្ជាប់ NFC' ជាមុនសិន។",
+      confirmButtonText: "យល់ព្រម",
+      confirmButtonColor: "#ef4444",
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+  }
+
+  // 🚚 ៥. បើចុចដល់ជំហាន "៣. កំពុងដឹកជញ្ជូន (Shipped)" លោតផ្ទាំងតូចឱ្យរើសក្រុមហ៊ុនដឹកជញ្ជូន និងលេខ Tracking អូតូភ្លាមៗ
+  if (targetStatus === "Shipped") {
+    const initMethod =
+      c.deliveryMethod && c.deliveryMethod !== "None"
+        ? c.deliveryMethod
+        : "Virak Buntham";
+    const initTracking =
+      c.trackingNumber || window.c360GenerateTrackingCode(initMethod);
+
+    const { value: shipData } = await Swal.fire({
+      title: `<span class="kh-text" style="font-size: 1.15rem; color: #0f766e;"><i class="fa-solid fa-truck-fast"></i> ចាប់ផ្តើមដឹកជញ្ជូនកាត</span>`,
+      html: `
+        <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">ជ្រើសរើសសេវាដឹកជញ្ជូន</label>
+            <select id="swal-quick-method" class="swal2-select kh-text" style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.9rem;"
+              onchange="document.getElementById('swal-quick-tracking').value = window.c360GenerateTrackingCode(this.value)">
+              <option value="Virak Buntham" ${initMethod === "Virak Buntham" ? "selected" : ""}>វិរៈប៊ុនថាំ (Virak Buntham - VET)</option>
+              <option value="J&T Express" ${initMethod === "J&T Express" ? "selected" : ""}>J&T Express (JNT)</option>
+              <option value="GrabExpress" ${initMethod === "GrabExpress" ? "selected" : ""}>GrabExpress (GRB)</option>
+              <option value="Branch Pickup" ${initMethod === "Branch Pickup" ? "selected" : ""}>មកយកផ្ទាល់នៅសាខា (Branch Pickup)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">លេខសម្គាល់ការដឹកជញ្ជូន (Tracking Number)</label>
+            <input id="swal-quick-tracking" class="swal2-input kh-text" value="${initTracking}" style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.9rem; font-family: monospace; font-weight: bold; box-sizing: border-box;">
+          </div>
+        </div>
+      `,
+      width: "440px",
+      showCancelButton: true,
+      confirmButtonText: "បញ្ជាក់ការដឹកជញ្ជូន",
+      cancelButtonText: "បោះបង់",
+      confirmButtonColor: "#0d9488",
+      cancelButtonColor: "#64748b",
+      customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
+      preConfirm: () => ({
+        deliveryMethod: document.getElementById("swal-quick-method").value,
+        trackingNumber: document
+          .getElementById("swal-quick-tracking")
+          .value.trim(),
+      }),
+    });
+
+    if (shipData) {
+      await c360SavePhysicalDeliveryData({
+        cardId: c.id,
+        deliveryStatus: "Shipped",
+        deliveryMethod: shipData.deliveryMethod,
+        trackingNumber: shipData.trackingNumber,
+        deliveryPhone: c.deliveryPhone || currentC360User.phone || "",
+        deliveryAddress: c.deliveryAddress || "",
+      });
+    }
     return;
   }
 
-  let cardsHtml = physicalCards
-    .map(
-      (c) => `
-        <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-family: 'Kantumruy Pro'; gap: 15px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="width: 50px; height: 50px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
-                    <i class="fa-solid fa-wifi"></i>
-                </div>
-                <div>
-                    <h4 style="margin: 0 0 5px; color: var(--text-main); font-size: 1rem; font-weight: 800;">កាត NFC: ${c.name || c.type.toUpperCase()}</h4>
-                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">UID: ${c.uid || "N/A"} | លេខកាត: **** ${c.number.slice(-4)} | ស្ថានភាព: <span style="color: #10b981; font-weight: bold;">Active</span></p>
-                </div>
-            </div>
-            <!-- 🟢 ប៊ូតុងអន្តរកម្ម៖ Admin អាចចុចផ្តាច់ NFC ភ្លាមៗបើបាត់កាត -->
-            <button onclick="c360AdminUnbindPhysicalCard('${user.username}', '${c.id}')" class="kh-text" style="padding: 8px 16px; background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 10px; font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: 0.2s;" title="ផ្តាច់ការតភ្ជាប់កាតនេះ (ករណីបាត់កាត)">
-                <i class="fa-solid fa-wifi-slash"></i> ផ្តាច់កាត NFC (Unbind)
-            </button>
+  // ៦. សម្រាប់ជំហានផ្សេងៗ (Printing, Delivered, Activated) លោតផ្ទាំងតូចសួរបញ្ជាក់
+  const confirm = await Swal.fire({
+    title: `<span class="kh-text" style="color: #0f766e; font-size: 1.15rem;">បញ្ជាក់ជំហានបន្ទាប់?</span>`,
+    html: `<div class="kh-text" style="font-size: 0.92rem; color: #475569; line-height: 1.5;">តើអ្នកពិតជាបានបញ្ចប់ដំណាក់កាលមុន ហើយចង់ប្តូរទៅជា<br><b style="color: #0d9488; font-size: 1rem;">[${statusNames[targetStatus]}]</b> មែនទេ?</div>`,
+    icon: "question",
+    width: "400px",
+    showCancelButton: true,
+    confirmButtonText: "បាទ/ចាស បញ្ជាក់",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#0d9488",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
+  });
+
+  if (confirm.isConfirmed) {
+    await c360SavePhysicalDeliveryData({
+      cardId: c.id,
+      deliveryStatus: targetStatus,
+      deliveryMethod: c.deliveryMethod || "Branch Pickup",
+      trackingNumber: c.trackingNumber || "",
+      deliveryPhone: c.deliveryPhone || currentC360User.phone || "",
+      deliveryAddress: c.deliveryAddress || "",
+    });
+  }
+};
+
+// =======================================================
+// 🟢 ៤. បើកផ្ទាំងកែប្រែព័ត៌មានដឹកជញ្ជូន (អាសយដ្ឋាន, លេខទូរស័ព្ទ និងសេវាដឹកជញ្ជូន)
+// =======================================================
+window.c360OpenPhysicalDeliveryModal = async function (cardId) {
+  if (!currentC360User) return;
+  const c = (currentC360User.virtualCards || []).find(
+    (item) => item.id === cardId,
+  );
+  if (!c) return;
+
+  const curMethod = c.deliveryMethod || "Branch Pickup";
+  const curTracking =
+    c.trackingNumber || window.c360GenerateTrackingCode(curMethod);
+
+  const { value: formValues } = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.15rem; color: #0f172a;"><i class="fa-solid fa-truck-fast" style="color: #0d9488;"></i> ព័ត៌មានដឹកជញ្ជូនកាត (៤ខ្ទង់: ${c.number.slice(-4)})</span>`,
+    html: `
+      <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif; display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">ក្រុមហ៊ុនដឹកជញ្ជូន</label>
+            <select id="swal-upd-method" class="swal2-select kh-text" style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.88rem;"
+              onchange="document.getElementById('swal-upd-tracking').value = window.c360GenerateTrackingCode(this.value)">
+              <option value="Virak Buntham" ${curMethod === "Virak Buntham" ? "selected" : ""}>វិរៈប៊ុនថាំ (VET)</option>
+              <option value="J&T Express" ${curMethod === "J&T Express" ? "selected" : ""}>J&T Express (JNT)</option>
+              <option value="GrabExpress" ${curMethod === "GrabExpress" ? "selected" : ""}>GrabExpress (GRB)</option>
+              <option value="Branch Pickup" ${curMethod === "Branch Pickup" ? "selected" : ""}>យកផ្ទាល់នៅសាខា</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">លេខ Tracking</label>
+            <input id="swal-upd-tracking" class="swal2-input kh-text" value="${curTracking}" style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;">
+          </div>
         </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">លេខទូរស័ព្ទទទួលកាត</label>
+          <input id="swal-upd-phone" class="swal2-input kh-text" value="${c.deliveryPhone || currentC360User.phone || ""}" style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;">
+        </div>
+
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">អាសយដ្ឋាន ឬ សាខាទទួលកាត</label>
+          <input id="swal-upd-address" class="swal2-input kh-text" value="${c.deliveryAddress || ""}" placeholder="បញ្ចូលទីតាំង..." style="width: 100%; margin: 0; padding: 10px; border-radius: 10px; font-size: 0.88rem; box-sizing: border-box;">
+        </div>
+      </div>
     `,
-    )
-    .join("");
+    width: "480px",
+    showCancelButton: true,
+    confirmButtonText:
+      '<i class="fa-solid fa-floppy-disk"></i> រក្សាទុកព័ត៌មាន',
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#0d9488",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
+    preConfirm: () => ({
+      cardId,
+      deliveryStatus: c.deliveryStatus || "Requested",
+      deliveryMethod: document.getElementById("swal-upd-method").value,
+      trackingNumber: document.getElementById("swal-upd-tracking").value.trim(),
+      deliveryPhone: document.getElementById("swal-upd-phone").value.trim(),
+      deliveryAddress: document.getElementById("swal-upd-address").value.trim(),
+    }),
+  });
 
-  container.innerHTML = `
-        <h2 style="margin: 0 0 20px 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
-            <i class="fa-solid fa-address-card" style="color: #3b82f6;"></i> កាតរូបវ័ន្ត និង NFC (Physical Cards)
-        </h2>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; font-family: 'Kantumruy Pro';">
-            បញ្ជីកាត NFC ទាំងអស់ដែលបានភ្ជាប់ជាមួយអតិថិជននេះ។ អ្នកអាចធ្វើការផ្អាក ឬផ្តាច់ការតភ្ជាប់បានភ្លាមៗក្នុងករណីមានហានិភ័យ។
-        </p>
-        ${cardsHtml}
-    `;
-}
+  if (formValues) {
+    await c360SavePhysicalDeliveryData(formValues);
+  }
+};
 
-// មុខងារ Admin ចុចផ្តាច់កាត NFC ក្នុង Tab 9
+// =======================================================
+// 🟢 ៥. មុខងារស្កេនភ្ជាប់ NFC, កំណត់កូដ PIN និងផ្តាច់ NFC
+// =======================================================
+window.c360ScanAndBindSpecificCard = async function (cardId) {
+  if (!currentC360User) return;
+  const idx = (currentC360User.virtualCards || []).findIndex(
+    (c) => c.id === cardId,
+  );
+  if (idx === -1) return;
+
+  const card = currentC360User.virtualCards[idx];
+  if (card.uid && card.uid !== "") {
+    const ask = await Swal.fire({
+      title:
+        '<span class="kh-text" style="color: #2563eb;">ប្តូរឈីបកាត NFC ថ្មី?</span>',
+      text: `កាតនេះកំពុងភ្ជាប់ជាមួយឈីប UID: ${card.uid}។ តើអ្នកចង់ផ្តាច់ឈីបចាស់ ហើយស្កេនភ្ជាប់ឈីបថ្មីមែនទេ?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "បាទ/ចាស ប្តូរឈីបថ្មី",
+      cancelButtonText: "បោះបង់",
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#64748b",
+      customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
+    });
+    if (!ask.isConfirmed) return;
+
+    await fetch("/api/admin/cards/unbind-nfc", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username: currentC360User.username, cardId }),
+    });
+    card.uid = null;
+  }
+
+  adminCurrentCardIndex = idx;
+  if (typeof c360ToggleCardNFC === "function") c360ToggleCardNFC();
+};
+
+window.c360ResetPhysicalCardPin = async function (username, cardId) {
+  const { value: newPin } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size: 1.2rem;">កំណត់លេខកូដ POS PIN (៤ខ្ទង់)</span>',
+    input: "password",
+    inputPlaceholder: "បញ្ចូលលេខកូដ PIN ៤ ខ្ទង់...",
+    inputAttributes: {
+      maxlength: 4,
+      inputmode: "numeric",
+      style: "text-align: center; letter-spacing: 12px; font-weight: bold;",
+    },
+    showCancelButton: true,
+    confirmButtonText: "រក្សាទុកកូដ PIN",
+    cancelButtonText: "បោះបង់",
+    confirmButtonColor: "#0d9488",
+    cancelButtonColor: "#64748b",
+    customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
+    inputValidator: (val) => {
+      if (!/^\d{4}$/.test(val)) return "សូមបញ្ចូលលេខកូដ ៤ ខ្ទង់គត់!";
+    },
+  });
+
+  if (newPin) {
+    Swal.fire({
+      title: "កំពុងរក្សាទុក...",
+      didOpen: () => Swal.showLoading(),
+      customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+    });
+    const res = await fetch("/api/admin/cards/update-pin", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username, cardId, newPin }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({
+        icon: "success",
+        title: "រក្សាទុកជោគជ័យ!",
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+      });
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "បរាជ័យ",
+        text: data.message,
+        customClass: { popup: "premium-swal kh-text c360-kh-swal" },
+      });
+    }
+  }
+};
+
 window.c360AdminUnbindPhysicalCard = async function (username, cardId) {
   const confirm = await Swal.fire({
     title:
       '<span class="kh-text" style="color: #ef4444;">បញ្ជាក់ការផ្តាច់កាត NFC?</span>',
-    text: "កាត Physical នេះនឹងត្រូវលុបការភ្ជាប់ចោល ធ្វើให้อតិថិជនមិនអាចយកវាទៅស្កេនទូទាត់បានទៀតទេ។",
+    text: "បន្ទះឈីប NFC នឹងត្រូវផ្តាច់ចេញពីកាតរូបវ័ន្តនេះ។",
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#64748b",
     confirmButtonText: "បាទ/ចាស ផ្តាច់ចោល",
     cancelButtonText: "បោះបង់",
-    customClass: { popup: "modal-radius kh-text premium-swal" },
+    customClass: { popup: "modal-radius kh-text premium-swal c360-kh-swal" },
   });
 
   if (confirm.isConfirmed) {
-    Swal.fire({
-      title: "កំពុងផ្តាច់...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
+    const res = await fetch("/api/admin/cards/unbind-nfc", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ username, cardId }),
     });
-    try {
-      const res = await fetch("/api/admin/cards/unbind-nfc", {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ username, cardId }),
+    const data = await res.json();
+    if (data.success) {
+      c360RefreshData();
+      Swal.fire({
+        icon: "success",
+        title: "បានផ្តាច់ឈីប NFC ជោគជ័យ!",
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { popup: "premium-swal kh-text c360-kh-swal" },
       });
-      const data = await res.json();
-      if (data.success) {
-        c360RefreshData();
-        Swal.fire({
-          icon: "success",
-          title: "បានផ្តាច់ជោគជ័យ!",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { popup: "premium-swal kh-text" },
-        });
-      } else {
-        Swal.fire("បរាជ័យ", data.message, "error");
-      }
-    } catch (e) {
-      Swal.fire("Error", "បញ្ហា Server", "error");
     }
   }
 };

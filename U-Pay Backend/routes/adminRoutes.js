@@ -356,6 +356,23 @@ router.post(
   safeHandler(adminController.adminUnbindNfcCard, "adminUnbindNfcCard"),
 );
 
+router.post(
+  "/cards/physical-status",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminUpdatePhysicalCardStatus,
+    "adminUpdatePhysicalCardStatus",
+  ),
+);
+router.post(
+  "/cards/update-pin",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminUpdatePhysicalCardPin,
+    "adminUpdatePhysicalCardPin",
+  ),
+);
+
 // =======================================================
 // 🏪  Merchant (Admin Pro View)
 // =======================================================

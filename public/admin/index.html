@@ -5544,51 +5544,333 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១២ ] Card Management -->
+      <!-- [ ផ្ទាំង ១២ ] Card Management (100% Pro Redesign) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-cards"
+        class="gc-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .gc-font-scope,
+          .gc-font-scope button,
+          .gc-font-scope input,
+          .gc-font-scope select,
+          .gc-font-scope th,
+          .gc-font-scope td {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .gc-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .gc-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            position: relative;
+            overflow: hidden;
+          }
+          .gc-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .gc-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.04);
+          }
+          .gc-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .gc-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .gc-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .gc-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .gc-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .gc-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .gc-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .gc-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. រូបកាត مصغر នៅក្នុងតារាង (Mini Visual Card Artwork) */
+          .gc-mini-card {
+            width: 118px;
+            height: 72px;
+            border-radius: 10px;
+            padding: 8px 10px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.2s;
+          }
+          .gc-mini-card:hover {
+            transform: scale(1.05);
+          }
+          .gc-mini-card.theme-standard {
+            background: linear-gradient(
+              135deg,
+              #149a83 0%,
+              #004d40 100%
+            ) !important;
+          }
+          .gc-mini-card.theme-fifa {
+            background:
+              linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.75)),
+              url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwH-pP-2EY5Ap18poVEhGeFe-THx0TOhEvgFqALyZhJZLzu2V67xpXNOi7&s=10")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-metal {
+            background: linear-gradient(
+              135deg,
+              #bf953f 0%,
+              #fcf6ba 25%,
+              #b38728 50%,
+              #fbf5b7 75%,
+              #aa771c 100%
+            ) !important;
+          }
+          .gc-mini-card.theme-celebrity {
+            background:
+              linear-gradient(rgba(88, 28, 135, 0.4), rgba(0, 0, 0, 0.8)),
+              url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2RxvoEe_j52IEh_8Fu_DZ0aupMrDFYak0tD3k4Ee_ug&s=10")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-anime {
+            background:
+              linear-gradient(rgba(185, 28, 28, 0.45), rgba(0, 0, 0, 0.85)),
+              url("https://static0.cbrimages.com/wordpress/wp-content/uploads/2024/01/sasuke-naruto-and-sakura.jpg")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-gamer {
+            background:
+              linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.85)),
+              url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSt6gcTeCIeiBjdYzU0kX8wOqoz4k8HLKX_yMu9GDQErQ&s=10")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-eco {
+            background:
+              linear-gradient(rgba(21, 128, 61, 0.4), rgba(0, 0, 0, 0.8)),
+              url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmfmcQbkrZqkkSWfuTzzuFZNf65-nxTieNggbtUhV_vw&s=10")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-platinum {
+            background: linear-gradient(
+              135deg,
+              #000000 0%,
+              #1e293b 60%,
+              #090d16 100%
+            ) !important;
+          }
+          .gc-mini-card.theme-animal {
+            background:
+              linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8)),
+              url("https://images.unsplash.com/photo-1474511320723-9a56873867b5?auto=format&fit=crop&w=600&q=80")
+                center/cover no-repeat !important;
+          }
+          .gc-mini-card.theme-custom {
+            background: linear-gradient(
+                rgba(0, 0, 0, 0.45),
+                rgba(0, 0, 0, 0.85)
+              )
+              center/cover no-repeat !important;
+          }
+
+          /* ៤. Mini 5-Step Fulfillment Bar ក្នុងតារាង */
+          .gc-mini-stepper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 6px;
+          }
+          .gc-step-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            transition: 0.2s;
+            position: relative;
+          }
+          .gc-step-dot.done {
+            background: #0d9488;
+            color: #ffffff;
+          }
+          .gc-step-dot.current {
+            background: #0f766e;
+            color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
+            transform: scale(1.08);
+          }
+          .gc-step-dot.next-step {
+            background: #f0fdfa;
+            color: #0d9488;
+            border: 1.5px dashed #0d9488;
+            cursor: pointer;
+          }
+          .gc-step-dot.next-step:hover {
+            background: #0d9488;
+            color: #ffffff;
+            transform: scale(1.15);
+          }
+          .gc-step-dot.locked {
+            background: #f1f5f9;
+            color: #cbd5e1;
+            cursor: not-allowed;
+          }
+
+          .gc-btn-act {
+            padding: 7px 12px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+          }
+          .gc-btn-act:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
-            <h2 class="dash-title" data-i18n="card-management">
-              Card Management
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-credit-card"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span>មជ្ឈមណ្ឌលគ្រប់គ្រងកាតទាំងអស់ (Card Command Center)</span>
             </h2>
-            <p class="dash-desc" data-i18n="manage-issued-cards">
-              Monitor and manage issued Virtual/Physical cards.
+            <p class="dash-desc" style="margin: 0">
+              គ្រប់គ្រងកាតនិម្មិត (Virtual), កាតឥណពន្ធ (Debit), កាតឥណទាន
+              (Credit), ការដឹកជញ្ជូន និងបន្ទះឈីប NFC ទូទាំងប្រព័ន្ធ។
             </p>
           </div>
+
           <div style="display: flex; align-items: center; gap: 10px">
-            <div class="search-box" style="margin: 0">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input
-                type="text"
-                id="searchCardBox"
-                placeholder="Search by Card, CVV, Phone, User..."
-                onkeyup="filterCards()"
-              />
-            </div>
             <button
-              onclick="
-                loadData();
-                Swal.fire({
-                  toast: true,
-                  position: 'top-end',
-                  icon: 'success',
-                  title: 'Refreshed!',
-                  showConfirmButton: false,
-                  timer: 1000,
-                });
+              onclick="gcOpenIssueCardForAnyUserModal()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.85rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
               "
-              title="Refresh Data"
+            >
+              <i class="fa-solid fa-plus-circle"></i> បង្កើតកាតថ្មីជូនអតិថិជន
+            </button>
+
+            <button
+              onclick="gcRefreshAllCards()"
+              title="ទាញទិន្នន័យកាតថ្មី"
               style="
                 background: rgba(16, 185, 129, 0.1);
                 border: 1px solid rgba(16, 185, 129, 0.3);
@@ -5603,28 +5885,228 @@
                 transition: 0.2s;
                 flex-shrink: 0;
               "
-              onmouseover="this.style.background = 'rgba(16, 185, 129, 0.2)'"
-              onmouseout="this.style.background = 'rgba(16, 185, 129, 0.1)'"
             >
-              <i class="fa-solid fa-rotate-right" style="font-size: 1rem"></i>
+              <i
+                class="fa-solid fa-rotate-right"
+                id="gc-refresh-spin-icon"
+                style="font-size: 1rem"
+              ></i>
             </button>
           </div>
         </div>
-        <div class="table-container">
-          <table>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="gc-kpi-grid">
+          <div
+            class="gc-kpi-card active-kpi"
+            id="gc-kpi-ALL"
+            onclick="gcSetCategoryFilter('ALL')"
+          >
+            <div>
+              <div class="gc-kpi-title">កាតសរុបទាំងអស់ (TOTAL)</div>
+              <div class="gc-kpi-val" id="gc-stat-total">0</div>
+            </div>
+            <div
+              class="gc-kpi-icon"
+              style="background: #eff6ff; color: #2563eb"
+            >
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+          </div>
+
+          <div
+            class="gc-kpi-card"
+            id="gc-kpi-VIRTUAL"
+            onclick="gcSetCategoryFilter('VIRTUAL')"
+          >
+            <div>
+              <div class="gc-kpi-title">កាតនិម្មិត (VIRTUAL)</div>
+              <div
+                class="gc-kpi-val"
+                id="gc-stat-virtual"
+                style="color: #059669"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="gc-kpi-icon"
+              style="background: #dcfce7; color: #059669"
+            >
+              <i class="fa-solid fa-globe"></i>
+            </div>
+          </div>
+
+          <div
+            class="gc-kpi-card"
+            id="gc-kpi-PHYSICAL"
+            onclick="gcSetCategoryFilter('PHYSICAL')"
+          >
+            <div>
+              <div class="gc-kpi-title">កាតរូបវ័ន្ត (DEBIT & CREDIT)</div>
+              <div
+                class="gc-kpi-val"
+                id="gc-stat-physical"
+                style="color: #7e22ce"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="gc-kpi-icon"
+              style="background: #f3e8ff; color: #7e22ce"
+            >
+              <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+          </div>
+
+          <div
+            class="gc-kpi-card"
+            id="gc-kpi-NFC"
+            onclick="gcSetCategoryFilter('NFC')"
+          >
+            <div>
+              <div class="gc-kpi-title">ភ្ជាប់ NFC រួច (ACTIVE NFC)</div>
+              <div class="gc-kpi-val" id="gc-stat-nfc" style="color: #0d9488">
+                0
+              </div>
+            </div>
+            <div
+              class="gc-kpi-icon"
+              style="background: #ccfbf1; color: #0f766e"
+            >
+              <i class="fa-solid fa-wifi"></i>
+            </div>
+          </div>
+
+          <div
+            class="gc-kpi-card"
+            id="gc-kpi-PENDING"
+            onclick="gcSetCategoryFilter('PENDING')"
+          >
+            <div>
+              <div class="gc-kpi-title">រង់ចាំផលិត/ដឹកជញ្ជូន (PENDING)</div>
+              <div
+                class="gc-kpi-val"
+                id="gc-stat-pending"
+                style="color: #d97706"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="gc-kpi-icon"
+              style="background: #fef9c3; color: #d97706"
+            >
+              <i class="fa-solid fa-truck-fast"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+        <div class="gc-toolbar">
+          <div class="gc-pill-group">
+            <button
+              type="button"
+              class="gc-filter-pill active"
+              data-filter="ALL"
+              onclick="gcSetCategoryFilter('ALL')"
+            >
+              ទាំងអស់
+            </button>
+            <button
+              type="button"
+              class="gc-filter-pill"
+              data-filter="VIRTUAL"
+              onclick="gcSetCategoryFilter('VIRTUAL')"
+            >
+              <i class="fa-solid fa-globe"></i> កាតនិម្មិត (Virtual)
+            </button>
+            <button
+              type="button"
+              class="gc-filter-pill"
+              data-filter="DEBIT"
+              onclick="gcSetCategoryFilter('DEBIT')"
+            >
+              <i class="fa-solid fa-credit-card"></i> កាតឥណពន្ធ (Debit)
+            </button>
+            <button
+              type="button"
+              class="gc-filter-pill"
+              data-filter="CREDIT"
+              onclick="gcSetCategoryFilter('CREDIT')"
+            >
+              <i class="fa-solid fa-gem"></i> កាតឥណទាន (Credit)
+            </button>
+            <button
+              type="button"
+              class="gc-filter-pill"
+              data-filter="PENDING"
+              onclick="gcSetCategoryFilter('PENDING')"
+            >
+              <i class="fa-solid fa-truck-fast"></i> កំពុងផលិត/ដឹកជញ្ជូន
+            </button>
+            <button
+              type="button"
+              class="gc-filter-pill"
+              data-filter="FROZEN"
+              onclick="gcSetCategoryFilter('FROZEN')"
+            >
+              <i class="fa-solid fa-snowflake"></i> កាតជាប់សោ (Frozen)
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              min-width: 260px;
+              max-width: 380px;
+            "
+          >
+            <div class="search-box" style="margin: 0; width: 100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchCardBox"
+                placeholder="ស្វែងរកតាម លេខកាត, ៤ខ្ទង់, ឈ្មោះ, ទូរស័ព្ទ, NFC UID..."
+                oninput="filterCards()"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងបង្ហាញកាតទូទាំងប្រព័ន្ធ -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
               <tr>
-                <th data-i18n="card-holder">Card Holder</th>
-                <th data-i18n="card-number">Card Number</th>
-                <th data-i18n="type">Type</th>
-                <th data-i18n="status">Status</th>
-                <th style="text-align: right" data-i18n="action">Action</th>
+                <th>រូបរាងកាត & ម្ចាស់កាត</th>
+                <th>ព័ត៌មានកាត & លេខ ៤ ខ្ទង់</th>
+                <th>ប្រភេទ & គណនីភ្ជាប់ / ឥណទាន</th>
+                <th>ដំណើរការកាតរូបវ័ន្ត & NFC</th>
+                <th>ស្ថានភាព</th>
+                <th style="text-align: right">សកម្មភាពគ្រប់គ្រង</th>
               </tr>
             </thead>
             <tbody id="cardTableBody">
               <tr>
-                <td colspan="5" style="text-align: center; padding: 20px">
-                  Loading cards...
+                <td colspan="6" style="text-align: center; padding: 35px">
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកទិន្នន័យកាតទាំងអស់...
                 </td>
               </tr>
             </tbody>

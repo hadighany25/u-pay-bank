@@ -1,5 +1,5 @@
 // ============================================================================
-// ឯកសារ: controllers/cardController.js
+// ឯកសារ: controllers/cardController.js (100% Full Code - 3 Card Categories Flow)
 // ============================================================================
 
 const User = require("../models/User");
@@ -7,6 +7,7 @@ const Card = require("../models/Card");
 const Transaction = require("../models/Transaction");
 const System = require("../models/System");
 const JointAccount = require("../models/JointAccount");
+const Notification = require("../models/Notification");
 
 // ========================================================
 // 🛠️ Function ជំនួយ (Helpers)
@@ -140,11 +141,16 @@ const getMyCards = async (req, res) => {
             linkAcc = linkAcc.split("_")[1];
           }
 
+          const hasNfc = Boolean(
+            oldC.isPhysical || (oldC.uid && oldC.uid !== ""),
+          );
+
           const newCardDoc = await Card.create({
             userId: rawUser._id,
             username: rawUser.username,
             userCustomId: rawUser.id || rawUser._id.toString(),
             id: oldC.id || "card_" + Date.now() + "_" + i,
+            cardCategory: oldC.cardCategory || (hasNfc ? "debit" : "virtual"),
             type: oldC.type || "standard",
             name: oldC.name || "STANDARD",
             number: oldC.number,
@@ -159,13 +165,13 @@ const getMyCards = async (req, res) => {
             dailyTxCountLimit: oldC.dailyTxCountLimit || 10,
             pin: oldC.pin || "0000",
             uid: oldC.uid || null,
-            isPhysical: oldC.isPhysical || false,
+            isPhysical: hasNfc,
+            deliveryStatus: hasNfc ? "Activated" : "None",
             customBgUrl: oldC.customBgUrl || "",
             orderIndex: i,
           });
           migrated.push(newCardDoc);
         }
-        // លុប virtualCards ចាស់ចេញពី User ក្នុង Database
         await User.collection.updateOne(
           { _id: rawUser._id },
           { $unset: { virtualCards: "" } },
@@ -182,10 +188,22 @@ const getMyCards = async (req, res) => {
 };
 
 // =======================================================
-// ១. បង្កើតកាតថ្មី (Smart Issuance Flow - កាត់លុយពីកុងដែលភ្ជាប់ផ្ទាល់)
+// ១. បង្កើតកាតថ្មី (គាំទ្រទាំង ៣ ប្រភេទ៖ Virtual, Debit, និង Credit)
 // =======================================================
 const generateCard = async (req, res) => {
-  const { username, cardType, customBgUrl, linkedAccount, pin } = req.body;
+  const {
+    username,
+    cardCategory = "virtual",
+    cardType,
+    customBgUrl,
+    linkedAccount,
+    creditLimit,
+    deliveryMethod,
+    deliveryPhone,
+    deliveryAddress,
+    pin,
+  } = req.body;
+
   if (req.user.username !== username)
     return res.status(403).json({ success: false, message: "Unauthorized!" });
 
@@ -203,16 +221,30 @@ const generateCard = async (req, res) => {
       });
     }
 
-    // 🌟 ស្វែងរកគណនីដែលអតិថិជនជ្រើសរើសភ្ជាប់ជាមួយកាត
+    const cleanCategory = ["virtual", "debit", "credit"].includes(cardCategory)
+      ? cardCategory
+      : "virtual";
+
+    // 🛡️ បើជា Virtual Card អនុញ្ញាតឱ្យតែ Standard និង Metal Gold ប៉ុណ្ណោះ
+    let finalCardType = cardType || "standard";
+    if (
+      cleanCategory === "virtual" &&
+      finalCardType !== "standard" &&
+      finalCardType !== "metal"
+    ) {
+      finalCardType = "standard";
+    }
+
+    // 🌟 ស្វែងរកគណនីដែលអតិថិជនជ្រើសរើស (សម្រាប់ភ្ជាប់ និងកាត់ថ្លៃសេវាចេញកាត)
     const targetAcc = await resolveUserAccount(user, linkedAccount);
     if (!targetAcc || !targetAcc.accObj) {
       return res.json({
         success: false,
-        message: "រកមិនឃើញគណនីដែលអ្នកចង់ភ្ជាប់នោះទេ!",
+        message: "រកមិនឃើញគណនីប្រភពសម្រាប់កាត់ថ្លៃសេវាចេញកាតទេ!",
       });
     }
 
-    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
+    const tier = cardTiersConfig[finalCardType] || cardTiersConfig["standard"];
     const issuanceFeeUSD = tier.price;
 
     let exchangeRate = 4110;
@@ -223,7 +255,7 @@ const generateCard = async (req, res) => {
       }
     } catch (e) {}
 
-    // គណនាថ្លៃសេវាតាមរូបិយប័ណ្ណរបស់គណនីដែលបានភ្ជាប់
+    // គណនាថ្លៃសេវាតាមរូបិយប័ណ្ណរបស់គណនីដែលបានជ្រើសរើស
     const feeInAccCurrency =
       targetAcc.currency === "USD"
         ? issuanceFeeUSD
@@ -241,11 +273,11 @@ const generateCard = async (req, res) => {
           : `៛${feeInAccCurrency.toLocaleString()}`;
       return res.json({
         success: false,
-        message: `សមតុល្យក្នុងគណនី (${targetAcc.accountNumber}) មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាបង្កើតកាតតម្លៃ ${feeStr} ទេ!`,
+        message: `សមតុល្យក្នុងគណនី (${targetAcc.accountNumber}) មិនគ្រប់គ្រាន់សម្រាប់បង់សេវាចេញកាតតម្លៃ ${feeStr} ទេ!`,
       });
     }
 
-    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានភ្ជាប់នោះផ្ទាល់តែម្តង
+    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានជ្រើសរើសផ្ទាល់តែម្តង
     if (targetAcc.type === "MAIN_USD") {
       user.mainAccounts.USD.balance -= feeInAccCurrency;
       user.markModified("mainAccounts");
@@ -288,32 +320,64 @@ const generateCard = async (req, res) => {
 
     const details = generateCardDetails();
     const newCardId = "card_" + Date.now();
+    const isPhysicalCard =
+      cleanCategory === "debit" || cleanCategory === "credit";
 
-    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី (ភ្ជាប់ទាំង _id, username, និង id)
+    // គណនាថ្ងៃកំណត់បង់ប្រាក់សម្រាប់ Credit Card (៣០ ថ្ងៃក្រោយ)
+    const dueD = new Date();
+    dueD.setDate(dueD.getDate() + 30);
+    const billingDueStr = dueD.toISOString().split("T")[0];
+
+    const approvedCreditLimit =
+      cleanCategory === "credit"
+        ? Math.min(10000, Math.max(100, parseFloat(creditLimit) || 1000))
+        : 0;
+
+    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី
     await Card.create({
       userId: user._id,
       username: user.username,
       userCustomId: user.id || user._id.toString(),
       id: newCardId,
-      type: cardType,
+      cardCategory: cleanCategory,
+      type: finalCardType,
       name: tier.name,
       number: details.number,
       cvv: details.cvv,
       expiry: details.expiry,
-      linkedAccount: targetAcc.accountNumber, // 🌟 រក្សាទុកលេខគណនីពិតប្រាកដ
-      currency: targetAcc.currency,
+      // Credit Card ប្រើវង់ប្រាក់ធនាគារ តែរក្សាទុកកុងបង្គោលសម្រាប់យោង
+      linkedAccount:
+        cleanCategory === "credit" ? "CREDIT_LINE" : targetAcc.accountNumber,
+      currency: cleanCategory === "credit" ? "USD" : targetAcc.currency,
+      creditLimit: approvedCreditLimit,
+      currentDebt: 0.0,
+      billingDueDate: cleanCategory === "credit" ? billingDueStr : "",
       isLocked: false,
       isOnlinePayEnabled: true,
-      dailyLimit: 500,
+      dailyLimit: cleanCategory === "credit" ? approvedCreditLimit : 500,
       dailyTxCountLimit: 10,
       pin: "0000",
       uid: null,
-      isPhysical: false,
-      customBgUrl: cardType === "custom" ? customBgUrl : "",
+      isPhysical: isPhysicalCard,
+      deliveryStatus: isPhysicalCard ? "Requested" : "None",
+      deliveryMethod: isPhysicalCard
+        ? deliveryMethod || "Branch Pickup"
+        : "None",
+      deliveryPhone: isPhysicalCard ? deliveryPhone || user.phone || "" : "",
+      deliveryAddress: isPhysicalCard ? deliveryAddress || "" : "",
+      deliveryUpdatedAt: isPhysicalCard ? dateStr : "",
+      customBgUrl: finalCardType === "custom" ? customBgUrl : "",
       orderIndex: existingCardsCount,
     });
 
-    // 🧾 វិក្កយបត្រកាត់លុយ (បង្ហាញក្នុងគណនីដែលបានភ្ជាប់ និងក្នុងប្រវត្តិកាត)
+    const catDisplayLabel =
+      cleanCategory === "credit"
+        ? "Credit Card"
+        : cleanCategory === "debit"
+          ? "Physical Debit Card"
+          : "Virtual Card";
+
+    // 🧾 វិក្កយបត្រកាត់លុយថ្លៃសេវាចេញកាត
     await Transaction.create({
       userId: user._id,
       username: user.username,
@@ -324,13 +388,13 @@ const generateCard = async (req, res) => {
       amount: -feeInAccCurrency,
       currency: targetAcc.currency,
       senderName: user.fullName || user.username,
-      senderAcc: targetAcc.accountNumber, // 🌟 ចង្អុលចំលេខកុងដែលបានកាត់លុយ
+      senderAcc: targetAcc.accountNumber,
       receiverName: "Card Issuance Service",
       receiverAcc: "888000999",
       cardId: newCardId,
       cardNumber: details.number,
       status: "Success",
-      remark: `Issued ${tier.name} Virtual Card`,
+      remark: `Issued ${tier.name} ${catDisplayLabel}`,
     });
 
     // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
@@ -348,8 +412,21 @@ const generateCard = async (req, res) => {
       senderAcc: targetAcc.accountNumber,
       receiverAcc: "888000999",
       status: "Success",
-      remark: "Card Issuance Fee",
+      remark: `${catDisplayLabel} Issuance Fee`,
     });
+
+    // 🔔 ផ្ញើសារជូនដំណឹងទៅអតិថិជន (ដោយមិនបង្ហាញលេខ ៤ ខ្ទង់ចុងក្រោយឡើយ)
+    if (isPhysicalCard) {
+      await Notification.create({
+        userId: user._id,
+        username: user.username,
+        title: `💳 សំណើផលិត ${catDisplayLabel} ជោគជ័យ`,
+        message: `សំណើផលិតកាត ${tier.name} (លេខសម្គាល់: #${refId}) ត្រូវបានទទួល។ វិធីទទួលកាត: ${deliveryMethod || "Branch Pickup"}។ ពេលទទួលបានកាតពិតក្នុងដៃ សូមវាយលេខ ៤ ខ្ទង់ចុងក្រោយដែលបោះពុម្ពលើកាតដើម្បីបើកដំណើរការ!`,
+        date: dateStr,
+        type: "info",
+        isRead: false,
+      });
+    }
 
     const allCards = await Card.find({ username }).sort({
       orderIndex: 1,
@@ -359,10 +436,230 @@ const generateCard = async (req, res) => {
     res.json({
       success: true,
       cards: allCards,
-      user: user, // បោះ User ថ្មីទៅឱ្យ Frontend អាប់ដេតសមតុល្យតាមកុងនីមួយៗ
+      user: user,
     });
   } catch (err) {
     console.error("Generate Card Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =======================================================
+// ១.១ [ថ្មី] អតិថិជនវាយលេខ ៤ ខ្ទង់ចុងក្រោយដើម្បី Activate កាតរូបវ័ន្ត
+// =======================================================
+const activatePhysicalCard = async (req, res) => {
+  const { username, cardId, last4Digits, pin } = req.body;
+  if (req.user.username !== username)
+    return res.status(403).json({ success: false, message: "Unauthorized!" });
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "User not found" });
+    if (user.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN គណនីមិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) {
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    }
+
+    const actualLast4 = String(card.number || "").slice(-4);
+    if (String(last4Digits || "").trim() !== actualLast4) {
+      return res.json({
+        success: false,
+        message: "លេខកាត ៤ ខ្ទង់ចុងក្រោយមិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const nowStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    card.deliveryStatus = "Activated";
+    card.deliveryUpdatedAt = nowStr;
+    await card.save();
+
+    await Notification.create({
+      userId: user._id,
+      username: user.username,
+      title: "🟢 កាតរូបវ័ន្តត្រូវបានបើកដំណើរការជោគជ័យ!",
+      message: `កាត ${card.name} (**** ${actualLast4}) របស់អ្នកត្រូវបានផ្ទៀងផ្ទាត់ និងបើកដំណើរការពេញលេញហើយ។`,
+      date: nowStr,
+      type: "info",
+      isRead: false,
+    });
+
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+
+    res.json({
+      success: true,
+      message: "កាតរូបវ័ន្តត្រូវបានបើកដំណើរការដោយជោគជ័យ!",
+      cards,
+    });
+  } catch (err) {
+    console.error("Activate Physical Card Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =======================================================
+// ១.២ [ថ្មី] អតិថិជនបង់ប្រាក់សងបំណុលកាតឥណទាន (Pay Credit Card Bill)
+// =======================================================
+const payCreditCardBill = async (req, res) => {
+  const { username, cardId, fromAccount, amount, pin } = req.body;
+  if (req.user.username !== username)
+    return res.status(403).json({ success: false, message: "Unauthorized!" });
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.json({ success: false, message: "User not found" });
+    if (user.pin !== pin) {
+      return res.json({
+        success: false,
+        message: "លេខសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card || card.cardCategory !== "credit") {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញកាតឥណទាន (Credit Card) នេះទេ!",
+      });
+    }
+
+    const currentDebtUSD = Number(card.currentDebt || 0);
+    if (currentDebtUSD <= 0) {
+      return res.json({
+        success: false,
+        message: "កាតនេះមិនមានទឹកប្រាក់ជំពាក់ដែលត្រូវសងទេ!",
+      });
+    }
+
+    let payAmountUSD = parseFloat(amount);
+    if (isNaN(payAmountUSD) || payAmountUSD <= 0) {
+      return res.json({
+        success: false,
+        message: "ចំនួនទឹកប្រាក់មិនត្រឹមត្រូវ!",
+      });
+    }
+    if (payAmountUSD > currentDebtUSD) {
+      payAmountUSD = currentDebtUSD; // ការពារកុំឱ្យបង់លើសចំនួនជំពាក់
+    }
+
+    const sourceAcc = await resolveUserAccount(user, fromAccount);
+    if (!sourceAcc || !sourceAcc.accObj) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញគណនីប្រភពសម្រាប់កាត់ប្រាក់ទេ!",
+      });
+    }
+
+    let exchangeRate = 4110;
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
+      }
+    } catch (e) {}
+
+    const deductInAccCurrency =
+      sourceAcc.currency === "USD" ? payAmountUSD : payAmountUSD * exchangeRate;
+
+    const currentBal =
+      sourceAcc.type === "JOINT" && sourceAcc.jointDoc
+        ? sourceAcc.jointDoc.balance
+        : sourceAcc.accObj.balance || 0;
+
+    if (currentBal < deductInAccCurrency) {
+      return res.json({
+        success: false,
+        message: `សមតុល្យក្នុងគណនី (${sourceAcc.accountNumber}) មិនគ្រប់គ្រាន់សម្រាប់សងប្រាក់កាតទេ!`,
+      });
+    }
+
+    // ១. កាត់ប្រាក់ពីគណនីរបស់អតិថិជន
+    if (sourceAcc.type === "MAIN_USD") {
+      user.mainAccounts.USD.balance -= deductInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (sourceAcc.type === "MAIN_KHR") {
+      user.mainAccounts.KHR.balance -= deductInAccCurrency;
+      user.markModified("mainAccounts");
+    } else if (sourceAcc.type === "SUB") {
+      user.subAccounts[sourceAcc.subIndex].balance -= deductInAccCurrency;
+      user.markModified("subAccounts");
+    } else if (sourceAcc.type === "JOINT" && sourceAcc.jointDoc) {
+      sourceAcc.jointDoc.balance -= deductInAccCurrency;
+      await sourceAcc.jointDoc.save();
+      user.subAccounts[sourceAcc.subIndex].balance = sourceAcc.jointDoc.balance;
+      user.markModified("subAccounts");
+    }
+    await user.save();
+
+    // ២. កាត់បន្ថយបំណុលក្នុងកាត Credit
+    card.currentDebt = Math.max(
+      0,
+      Number((currentDebtUSD - payAmountUSD).toFixed(2)),
+    );
+    await card.save();
+
+    // ៣. បូកចូលគណនី Central Bank (888888888)
+    const centralBank = await User.findOne({
+      "mainAccounts.USD.accountNumber": "888888888",
+    });
+    if (centralBank && centralBank.mainAccounts?.USD) {
+      centralBank.mainAccounts.USD.balance += payAmountUSD;
+      centralBank.markModified("mainAccounts");
+      await centralBank.save();
+    }
+
+    const refId = generateStandardRefId("BILL");
+    const trxHash = generateStandardHash();
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    await Transaction.create({
+      userId: user._id,
+      username: user.username,
+      refId,
+      hash: trxHash,
+      date: dateStr,
+      type: "Credit Card Repayment",
+      amount: -deductInAccCurrency,
+      currency: sourceAcc.currency,
+      senderName: user.fullName || user.username,
+      senderAcc: sourceAcc.accountNumber,
+      receiverName: `Credit Card (**** ${card.number.slice(-4)})`,
+      receiverAcc: "888888888",
+      cardId: card.id,
+      cardNumber: card.number,
+      status: "Success",
+      remark: `សងប្រាក់កាតឥណទានចំនួន $${payAmountUSD.toFixed(2)}`,
+    });
+
+    const cards = await Card.find({ username }).sort({
+      orderIndex: 1,
+      createdAt: 1,
+    });
+
+    res.json({
+      success: true,
+      message: `បានទូទាត់សងប្រាក់កាតឥណទានចំនួន $${payAmountUSD.toFixed(2)} ដោយជោគជ័យ!`,
+      cards,
+      user,
+    });
+  } catch (err) {
+    console.error("Pay Credit Card Bill Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -447,13 +744,25 @@ const updateLimit = async (req, res) => {
 };
 
 // =======================================================
-// ៥. លុបកាត
+// ៥. លុបកាត (ការពារមិនឱ្យលុប Credit Card ដែលនៅជំពាក់លុយ)
 // =======================================================
 const deleteCard = async (req, res) => {
   const { username, cardId } = req.body;
   if (req.user.username !== username)
     return res.status(403).json({ success: false });
   try {
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) {
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    }
+
+    if (card.cardCategory === "credit" && (card.currentDebt || 0) > 0) {
+      return res.json({
+        success: false,
+        message: `មិនអាចបិទកាតឥណទាននេះបានទេ! អ្នកនៅជំពាក់ទឹកប្រាក់ចំនួន $${Number(card.currentDebt).toFixed(2)} សូមទូទាត់សងជាមុនសិន។`,
+      });
+    }
+
     await Card.findOneAndDelete({ id: cardId, username });
     const cards = await Card.find({ username }).sort({
       orderIndex: 1,
@@ -516,7 +825,7 @@ const renameCard = async (req, res) => {
 };
 
 // =======================================================
-// ៨. ភ្ជាប់កាត NFC (Physical Card)
+// ៨. ភ្ជាប់កាត NFC (អនុញ្ញាតតែលើកាត Debit និង Credit ប៉ុណ្ណោះ)
 // =======================================================
 const bindNfcCard = async (req, res) => {
   try {
@@ -538,6 +847,14 @@ const bindNfcCard = async (req, res) => {
     const targetCard = await Card.findOne({ id: cardId, username });
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
+
+    if (targetCard.cardCategory === "virtual" && !targetCard.isPhysical) {
+      return res.json({
+        success: false,
+        message:
+          "🛑 កាតនិម្មិត (Virtual Card) មិនអាចភ្ជាប់បន្ទះឈីប NFC បានទេ! សូមប្រើប្រាស់កាត Debit ឬ Credit។",
+      });
+    }
 
     if (targetCard.uid && targetCard.uid !== "") {
       return res.json({
@@ -567,7 +884,6 @@ const unbindNfcCard = async (req, res) => {
     const card = await Card.findOne({ id: cardId, username });
     if (card) {
       card.uid = null;
-      card.isPhysical = false;
       await card.save();
       return res.json({ success: true, message: "ផ្តាច់កាតជោគជ័យ!" });
     }
@@ -609,6 +925,8 @@ const reorderCards = async (req, res) => {
 module.exports = {
   getMyCards,
   generateCard,
+  activatePhysicalCard,
+  payCreditCardBill,
   toggleLock,
   toggleOnlinePay,
   updateLimit,

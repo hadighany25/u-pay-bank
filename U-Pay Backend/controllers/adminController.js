@@ -3277,10 +3277,20 @@ const adminGetAllCards = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (រក្សាទុកក្នុង Card.js & កាត់សេវាពីកុងដែលភ្ជាប់)
+ * 📌 [Admin] បង្កើតកាតថ្មីឱ្យអតិថិជន (គាំទ្រទាំង ៣ ប្រភេទ៖ Virtual, Debit, និង Credit)
  */
 const adminCreateCard = async (req, res) => {
-  const { username, cardType, customBgUrl, linkedAccount, remark } = req.body;
+  const {
+    username,
+    cardCategory = "virtual",
+    cardType,
+    customBgUrl,
+    linkedAccount,
+    creditLimit,
+    deliveryMethod,
+    deliveryAddress,
+    remark,
+  } = req.body;
 
   try {
     const user = await User.findOne({ username });
@@ -3294,6 +3304,19 @@ const adminCreateCard = async (req, res) => {
       });
     }
 
+    const cleanCategory = ["virtual", "debit", "credit"].includes(cardCategory)
+      ? cardCategory
+      : "virtual";
+
+    let finalCardType = cardType || "standard";
+    if (
+      cleanCategory === "virtual" &&
+      finalCardType !== "standard" &&
+      finalCardType !== "metal"
+    ) {
+      finalCardType = "standard";
+    }
+
     const targetAcc = await resolveAdminUserAccount(user, linkedAccount);
     if (!targetAcc || !targetAcc.accObj) {
       return res.json({
@@ -3302,7 +3325,7 @@ const adminCreateCard = async (req, res) => {
       });
     }
 
-    const tier = cardTiersConfig[cardType] || cardTiersConfig["standard"];
+    const tier = cardTiersConfig[finalCardType] || cardTiersConfig["standard"];
     const issuanceFeeUSD = tier.price;
 
     let exchangeRate = 4110;
@@ -3334,7 +3357,7 @@ const adminCreateCard = async (req, res) => {
       });
     }
 
-    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានភ្ជាប់នោះផ្ទាល់
+    // 💸 កាត់លុយថ្លៃសេវាពីគណនីដែលបានជ្រើសរើសផ្ទាល់
     if (targetAcc.type === "MAIN_USD") {
       user.mainAccounts.USD.balance -= feeInAccCurrency;
       user.markModified("mainAccounts");
@@ -3352,7 +3375,6 @@ const adminCreateCard = async (req, res) => {
     }
     await user.save();
 
-    // 🌟 បូកលុយចូល Sub-Account Fee (888000999) របស់ Super Admin
     let superAdmin = await User.findOne({ username: "superadmin" });
     if (superAdmin) {
       let targetFeeSub = superAdmin.subAccounts?.find(
@@ -3377,32 +3399,59 @@ const adminCreateCard = async (req, res) => {
 
     const details = generateCardDetails();
     const newCardId = "card_" + Date.now();
+    const isPhysicalCard =
+      cleanCategory === "debit" || cleanCategory === "credit";
+    const approvedCreditLimit =
+      cleanCategory === "credit"
+        ? Math.min(10000, Math.max(100, parseFloat(creditLimit) || 1000))
+        : 0;
 
-    // 💳 បង្កើតកាតទុកក្នុង Model Card.js ថ្មី
+    const dueD = new Date();
+    dueD.setDate(dueD.getDate() + 30);
+    const billingDueStr = dueD.toISOString().split("T")[0];
+
     await Card.create({
       userId: user._id,
       username: user.username,
       userCustomId: user.id || user._id.toString(),
       id: newCardId,
-      type: cardType,
+      cardCategory: cleanCategory,
+      type: finalCardType,
       name: tier.name,
       number: details.number,
       cvv: details.cvv,
       expiry: details.expiry,
-      linkedAccount: targetAcc.accountNumber,
-      currency: targetAcc.currency,
+      linkedAccount:
+        cleanCategory === "credit" ? "CREDIT_LINE" : targetAcc.accountNumber,
+      currency: cleanCategory === "credit" ? "USD" : targetAcc.currency,
+      creditLimit: approvedCreditLimit,
+      currentDebt: 0.0,
+      billingDueDate: cleanCategory === "credit" ? billingDueStr : "",
       isLocked: false,
       isOnlinePayEnabled: true,
-      dailyLimit: 500,
+      dailyLimit: cleanCategory === "credit" ? approvedCreditLimit : 500,
       dailyTxCountLimit: 10,
       pin: "0000",
       uid: null,
-      isPhysical: false,
-      customBgUrl: cardType === "custom" ? customBgUrl : "",
+      isPhysical: isPhysicalCard,
+      deliveryStatus: isPhysicalCard ? "Requested" : "None",
+      deliveryMethod: isPhysicalCard
+        ? deliveryMethod || "Branch Pickup"
+        : "None",
+      deliveryPhone: isPhysicalCard ? user.phone || "" : "",
+      deliveryAddress: isPhysicalCard ? deliveryAddress || "Branch Pickup" : "",
+      deliveryUpdatedAt: isPhysicalCard ? dateStr : "",
+      customBgUrl: finalCardType === "custom" ? customBgUrl : "",
       orderIndex: existingCount,
     });
 
-    // 🧾 វិក្កយបត្រកាត់លុយ (User)
+    const catDisplayLabel =
+      cleanCategory === "credit"
+        ? "Credit Card"
+        : cleanCategory === "debit"
+          ? "Physical Debit Card"
+          : "Virtual Card";
+
     await Transaction.create({
       userId: user._id,
       username: user.username,
@@ -3419,10 +3468,9 @@ const adminCreateCard = async (req, res) => {
       cardId: newCardId,
       cardNumber: details.number,
       status: "Success",
-      remark: `Issued ${tier.name} Virtual Card (By Admin: ${req.admin ? req.admin.username : "System"})`,
+      remark: `Issued ${tier.name} ${catDisplayLabel} (By Admin: ${req.admin ? req.admin.username : "System"})`,
     });
 
-    // 🧾 វិក្កយបត្រចំណូលប្រព័ន្ធ (System Fee)
     await Transaction.create({
       userId: superAdmin?._id,
       username: superAdmin ? superAdmin.username : "superadmin",
@@ -3437,15 +3485,15 @@ const adminCreateCard = async (req, res) => {
       senderAcc: targetAcc.accountNumber,
       receiverAcc: "888000999",
       status: "Success",
-      remark: "Card Issuance Fee",
+      remark: `${catDisplayLabel} Issuance Fee`,
     });
 
     if (req.admin && req.admin.username) {
       await logAdminAction(
         req.admin.username,
-        "Create Virtual Card",
+        `Create ${catDisplayLabel}`,
         username,
-        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)}) ភ្ជាប់កុង ${targetAcc.accountNumber}។ មូលហេតុ: ${remark || "គ្មាន"}`,
+        `បង្កើតកាត ${tier.name} (${details.number.slice(-4)}) ប្រភេទ ${cleanCategory.toUpperCase()}។ មូលហេតុ: ${remark || "គ្មាន"}`,
       );
     }
 
@@ -3513,14 +3561,18 @@ const toggleAdminCardLock = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] ផ្លាស់ប្តូរដែនកំណត់កាត (Card Limit)
+ * 📌 [Admin] ផ្លាស់ប្តូរដែនកំណត់កាត (គាំទ្រទាំង Daily Limit និង Credit Limit)
  */
 const adminUpdateCardLimit = async (req, res) => {
-  const { username, cardId, newLimit, newCountLimit } = req.body;
+  const { username, cardId, newCreditLimit, newLimit, newCountLimit } =
+    req.body;
   try {
     const card = await Card.findOne({ id: cardId, username });
     if (!card) return res.json({ success: false, message: "រកកាតមិនឃើញទេ!" });
 
+    if (newCreditLimit !== undefined && !isNaN(newCreditLimit)) {
+      card.creditLimit = parseFloat(newCreditLimit);
+    }
     if (newLimit !== undefined) card.dailyLimit = parseFloat(newLimit);
     if (newCountLimit !== undefined)
       card.dailyTxCountLimit = parseInt(newCountLimit, 10);
@@ -3531,7 +3583,7 @@ const adminUpdateCardLimit = async (req, res) => {
         req.admin.username,
         "Update Card Limit",
         username,
-        `កែ Limit កាត ${card.number.slice(-4)} ទៅ $${newLimit} និង ${newCountLimit} ដង/ថ្ងៃ`,
+        `កែ Limit កាត ${card.number.slice(-4)} -> Daily: $${newLimit}, Count: ${newCountLimit}${newCreditLimit ? `, CreditLimit: $${newCreditLimit}` : ""}`,
       );
     }
     res.json({ success: true, message: "បានកំណត់ Limit កាតជោគជ័យ!" });
@@ -3646,7 +3698,7 @@ const adminChangeCardLinkedAccount = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] ភ្ជាប់កាត NFC
+ * 📌 [Admin] ភ្ជាប់កាត NFC (ហាមភ្ជាប់លើកាត Virtual សុទ្ធ)
  */
 const adminBindNfcCard = async (req, res) => {
   try {
@@ -3669,11 +3721,18 @@ const adminBindNfcCard = async (req, res) => {
     if (!targetCard)
       return res.json({ success: false, message: "រកកាតនេះមិនឃើញទេ!" });
 
+    if (targetCard.cardCategory === "virtual" && !targetCard.isPhysical) {
+      return res.json({
+        success: false,
+        message: "🛑 កាតនិម្មិត (Virtual Card) មិនអាចភ្ជាប់បន្ទះឈីប NFC បានទេ!",
+      });
+    }
+
     if (targetCard.uid && targetCard.uid !== "" && targetCard.uid !== null) {
       return res.json({
         success: false,
         message:
-          "⚠️ គណនីនេះបានភ្ជាប់កាត NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
+          "⚠️ កាតនេះបានភ្ជាប់កាត NFC រួចរាល់ហើយ! សូម 'ផ្តាច់កាត' (Unbind) ចាស់ចេញជាមុនសិន។",
       });
     }
 
@@ -3698,7 +3757,7 @@ const adminBindNfcCard = async (req, res) => {
 };
 
 /**
- * 📌 [Admin] ផ្តាច់កាត NFC
+ * 📌 [Admin] ផ្តាច់កាត NFC (រក្សាទុក isPhysical សម្រាប់កាត Debit និង Credit)
  */
 const adminUnbindNfcCard = async (req, res) => {
   try {
@@ -3708,7 +3767,9 @@ const adminUnbindNfcCard = async (req, res) => {
     if (card) {
       const oldUid = card.uid;
       card.uid = null;
-      card.isPhysical = false;
+      if (card.cardCategory === "virtual") {
+        card.isPhysical = false;
+      }
       await card.save();
 
       if (req.admin && req.admin.username) {
@@ -3723,6 +3784,127 @@ const adminUnbindNfcCard = async (req, res) => {
     }
     res.json({ success: false, message: "បរាជ័យ" });
   } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] កែប្រែស្ថានភាពផលិត និងដឹកជញ្ជូនកាតរូបវ័ន្ត (លាក់លេខ ៤ ខ្ទង់ក្នុងសារ រហូតទាល់តែ Activated)
+ */
+const adminUpdatePhysicalCardStatus = async (req, res) => {
+  try {
+    const {
+      username,
+      cardId,
+      deliveryStatus,
+      deliveryMethod,
+      trackingNumber,
+      deliveryAddress,
+      deliveryPhone,
+    } = req.body;
+
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) {
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    }
+
+    const nowStr =
+      typeof getFormattedDate === "function"
+        ? getFormattedDate()
+        : new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+
+    card.isPhysical = true;
+    if (deliveryStatus)
+      card.set("deliveryStatus", deliveryStatus, { strict: false });
+    if (deliveryMethod !== undefined)
+      card.set("deliveryMethod", deliveryMethod, { strict: false });
+    if (trackingNumber !== undefined)
+      card.set("trackingNumber", trackingNumber, { strict: false });
+    if (deliveryAddress !== undefined)
+      card.set("deliveryAddress", deliveryAddress, { strict: false });
+    if (deliveryPhone !== undefined)
+      card.set("deliveryPhone", deliveryPhone, { strict: false });
+    card.set("deliveryUpdatedAt", nowStr, { strict: false });
+
+    await card.save();
+
+    // 🔒 លាក់លេខ ៤ ខ្ទង់ចុងក្រោយក្នុងសារជូនដំណឹង រហូតទាល់តែកាតត្រូវបានបើកដំណើរការ (Activated)
+    const user = await User.findOne({ username });
+    if (user) {
+      const statusLabels = {
+        Requested: "សំណើផលិតកាតរូបវ័ន្តត្រូវបានទទួល 📝",
+        Printing: "កាតរូបវ័ន្តរបស់អ្នកកំពុងស្ថិតក្នុងដំណាក់កាលបោះពុម្ព 🖨️",
+        Shipped: `កាតរូបវ័ន្តកំពុងដឹកជញ្ជូនតាម ${deliveryMethod || "សេវាដឹកជញ្ជូន"} ${trackingNumber ? `(Tracking: #${trackingNumber})` : ""} 🚚`,
+        Delivered:
+          "កាតរូបវ័ន្តត្រូវបានប្រគល់ជូនដោយជោគជ័យ 📦 សូមពិនិត្យមើលលេខ ៤ ខ្ទង់ចុងក្រោយលើកាតពិត ដើម្បីបើកដំណើរការក្នុង App!",
+        Activated: `កាតរូបវ័ន្ត (**** ${card.number.slice(-4)}) និង NFC ត្រូវបានបើកដំណើរការពេញលេញ 🟢`,
+      };
+
+      await Notification.create({
+        userId: user._id,
+        username: user.username,
+        title: `💳 Physical Card Update (${card.name || card.type.toUpperCase()})`,
+        message: `${statusLabels[deliveryStatus] || `ស្ថានភាពកាត: ${deliveryStatus}`}`,
+        date: nowStr,
+        type: "info",
+        isRead: false,
+      });
+    }
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Update Physical Card Delivery",
+        username,
+        `Card **** ${card.number.slice(-4)} -> Status: ${deliveryStatus}, Method: ${deliveryMethod || "N/A"}, Tracking: ${trackingNumber || "N/A"}`,
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "ធ្វើបច្ចុប្បន្នភាពស្ថានភាពកាតរូបវ័ន្តជោគជ័យ!",
+    });
+  } catch (err) {
+    console.error("Update Physical Card Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 [Admin] កំណត់លេខកូដ PIN ៤ ខ្ទង់សម្រាប់កាត NFC ពេលស្កេនម៉ាស៊ីន POS
+ */
+const adminUpdatePhysicalCardPin = async (req, res) => {
+  try {
+    const { username, cardId, newPin } = req.body;
+    if (!/^\d{4}$/.test(String(newPin || ""))) {
+      return res.json({
+        success: false,
+        message: "លេខកូដ PIN កាតត្រូវតែជាលេខ ៤ ខ្ទង់គត់!",
+      });
+    }
+
+    const card = await Card.findOne({ id: cardId, username });
+    if (!card) {
+      return res.json({ success: false, message: "រកមិនឃើញកាតនេះទេ!" });
+    }
+
+    card.pin = String(newPin);
+    await card.save();
+
+    if (req.admin && req.admin.username) {
+      await logAdminAction(
+        req.admin.username,
+        "Reset Physical Card PIN",
+        username,
+        `កំណត់លេខកូដ POS PIN ថ្មីសម្រាប់កាត **** ${card.number.slice(-4)}`,
+      );
+    }
+
+    res.json({
+      success: true,
+      message: "បានកំណត់លេខកូដ POS PIN ៤ ខ្ទង់ថ្មីជោគជ័យ!",
+    });
+  } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -4618,6 +4800,8 @@ module.exports = {
   adminChangeCardLinkedAccount,
   adminBindNfcCard,
   adminUnbindNfcCard,
+  adminUpdatePhysicalCardStatus,
+  adminUpdatePhysicalCardPin,
 
   // Merchants
   adminCreateMerchant,
