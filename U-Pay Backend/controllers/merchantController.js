@@ -774,17 +774,28 @@ exports.removeCashier = async (req, res) => {
 };
 
 // =======================================================
-// 💳 ផ្នែកទី ៦៖ TAP TO PAY (NFC Card Payment - ប្រើ Model Card.js ថ្មី)
+// 💳 ផ្នែកទី ៦៖ TAP TO PAY (NFC Card Payment - Fixed & Secured)
 // =======================================================
 const activeTaps = new Set();
 
 exports.processTapToPay = async (req, res) => {
   const { uid, amount, currency, pin, merchantId, cashierAcc } = req.body;
   const payAmount = parseFloat(amount);
-  const cleanUid = String(uid || "")
-    .replaceAll(":", "")
-    .trim()
-    .toUpperCase();
+
+  // 🌟 1. Normalize UID ឱ្យត្រូវគ្រប់ទម្រង់ទាំងអស់ (Hex vs Decimal)
+  const rawInputUid = String(uid || "").trim();
+  let cleanUid = rawInputUid.replaceAll(":", "").toUpperCase();
+  if (/^\d{10}$/.test(cleanUid)) {
+    let hex = parseInt(cleanUid, 10)
+      .toString(16)
+      .toUpperCase()
+      .padStart(8, "0");
+    cleanUid =
+      hex.substring(6, 8) +
+      hex.substring(4, 6) +
+      hex.substring(2, 4) +
+      hex.substring(0, 2);
+  }
 
   const tapLockKey = `${cleanUid}_${merchantId}_${payAmount}`;
   if (activeTaps.has(tapLockKey))
@@ -799,30 +810,41 @@ exports.processTapToPay = async (req, res) => {
     const JointAccount = require("../models/JointAccount");
     const Card = require("../models/Card");
 
-    if (!cleanUid || !amount || !currency || !merchantId) {
+    if (!rawInputUid || !amount || !currency || !merchantId) {
       return res.json({
         success: false,
         message: "ទិន្នន័យផ្ញើមកមិនគ្រប់គ្រាន់ទេ!",
       });
     }
 
-    let exchangeRate = 4110;
-    try {
-      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
-        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
-      }
-    } catch (e) {}
+    // 🌟 2. ស្វែងរកកាតតាមគ្រប់លក្ខខណ្ឌទាំងអស់ (Flexible Query)
+    const card = await Card.findOne({
+      $or: [
+        { uid: cleanUid },
+        { uid: rawInputUid },
+        { uid: rawInputUid.toUpperCase() },
+        { uid: rawInputUid.toLowerCase() },
+        { uid: { $regex: new RegExp("^" + cleanUid + "$", "i") } },
+      ],
+    });
 
-    // ===============================================================
-    // 🌟 ១. ស្វែងរកកាតពីក្នុង Model Card ផ្ទាល់ និងទាញយកម្ចាស់កាត
-    // ===============================================================
-    const card = await Card.findOne({ uid: cleanUid });
     if (!card)
       return res.json({
         success: false,
-        message: "រកមិនឃើញកាតនេះក្នុងប្រព័ន្ធទេ!",
+        message: "រកមិនឃើញកាតនេះក្នុងប្រព័ន្ធទេ (Card not found)!",
       });
+
+    // 🛡️ ការពារ៖ ហាមយកកាតនិម្មិត (Virtual Card) មកស្កេន NFC
+    const cardCat =
+      card.cardCategory || (card.isPhysical ? "debit" : "virtual");
+    if (cardCat === "virtual" && !card.isPhysical) {
+      return res.json({
+        success: false,
+        message:
+          "កាតនិម្មិត (Virtual Card) មិនអាចប្រើប្រាស់សម្រាប់ស្កេនទូទាត់តាម POS ទេ។",
+      });
+    }
+
     if (card.isLocked)
       return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
 
@@ -834,32 +856,46 @@ exports.processTapToPay = async (req, res) => {
     if (customer.isFrozen)
       return res.json({ success: false, message: "គណនីអតិថិជនត្រូវបានផ្អាក!" });
 
-    // 🔍 ស្វែងរកគណនីពិតប្រាកដដែលភ្ជាប់ជាមួយកាត (Main, Sub, ឬ Joint)
-    let rawLink = String(card.linkedAccount || "USD");
-    let cardLinkedAcc = rawLink.includes("_") ? rawLink.split("_")[1] : rawLink;
+    let exchangeRate = 4110;
+    try {
+      const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      if (sys && sys.fxRates && sys.fxRates.usdToKhrBuy) {
+        exchangeRate = parseFloat(sys.fxRates.usdToKhrBuy);
+      }
+    } catch (e) {}
+
+    // 🔍 ស្វែងរកគណនីកាត់លុយពិតប្រាកដ (គាំទ្រទាំងលេខកុង Main និង Sub Accounts)
+    let cardLinkedAcc = String(card.linkedAccount || "USD").trim();
+    if (cardLinkedAcc.includes("_"))
+      cardLinkedAcc = cardLinkedAcc.split("_")[1];
 
     let customerDeductAccObj = null;
     let customerAccType = "MAIN";
     let customerSubIndex = -1;
 
     if (
-      cardLinkedAcc === customer.mainAccounts?.USD?.accountNumber ||
-      cardLinkedAcc === "USD"
+      cardLinkedAcc === "USD" ||
+      cardLinkedAcc === customer.mainAccounts?.USD?.accountNumber
     ) {
       customerDeductAccObj = customer.mainAccounts.USD;
     } else if (
-      cardLinkedAcc === customer.mainAccounts?.KHR?.accountNumber ||
-      cardLinkedAcc === "KHR"
+      cardLinkedAcc === "KHR" ||
+      cardLinkedAcc === customer.mainAccounts?.KHR?.accountNumber
     ) {
       customerDeductAccObj = customer.mainAccounts.KHR;
     } else if (customer.subAccounts && customer.subAccounts.length > 0) {
       customerSubIndex = customer.subAccounts.findIndex(
-        (s) => s.accountNumber === cardLinkedAcc,
+        (s) => String(s.accountNumber) === String(cardLinkedAcc),
       );
       if (customerSubIndex !== -1) {
         customerDeductAccObj = customer.subAccounts[customerSubIndex];
         customerAccType = "SUB";
       }
+    }
+
+    // Fallback បើរកកុងភ្ជាប់មិនឃើញ ប្រើ Main USD អូតូ
+    if (!customerDeductAccObj && customer.mainAccounts?.USD) {
+      customerDeductAccObj = customer.mainAccounts.USD;
     }
 
     if (!customerDeductAccObj) {
@@ -874,7 +910,6 @@ exports.processTapToPay = async (req, res) => {
     let deductKhr = 0;
     let effectiveCurrency = currency;
 
-    // 🔄 ការប្តូរប្រាក់ស្វ័យប្រវត្តិបើគណនីកាត និងហាងខុសរូបិយប័ណ្ណគ្នា
     if (cardCurrency === currency) {
       if (currency === "USD") deductUsd = payAmount;
       else deductKhr = payAmount;
@@ -884,35 +919,28 @@ exports.processTapToPay = async (req, res) => {
     } else if (cardCurrency === "KHR" && currency === "USD") {
       deductKhr = payAmount * exchangeRate;
       effectiveCurrency = "KHR";
-    } else {
-      return res.json({
-        success: false,
-        message: "ប្រភេទរូបិយប័ណ្ណមិនត្រូវគ្នាទេ!",
-      });
     }
 
-    let requiresPin = false;
     let limitUsd =
       cardCurrency === "USD"
         ? deductUsd > 0
           ? deductUsd
           : 0
         : deductKhr / exchangeRate;
-    if (limitUsd > 20) requiresPin = true;
-
-    if (requiresPin && !pin)
+    if (limitUsd > 20 && !pin) {
       return res.json({
         success: false,
         message:
           "ទឹកប្រាក់លើសកម្រិតកំណត់ សូមអតិថិជនវាយបញ្ជាក់លេខសម្ងាត់ (PIN)!",
       });
-    if (pin && card.pin !== pin)
+    }
+    if (pin && card.pin && card.pin !== pin) {
       return res.json({
         success: false,
         message: "លេខសម្ងាត់កាត (PIN) មិនត្រឹមត្រូវទេ!",
       });
+    }
 
-    // 💵 ឆែកសមតុល្យក្នុងគណនីកាត
     let currentCustomerBal = customerDeductAccObj.balance || 0;
     let jointDataForDeduct = null;
 
@@ -924,9 +952,8 @@ exports.processTapToPay = async (req, res) => {
       jointDataForDeduct = await JointAccount.findOne({
         accountId: customerDeductAccObj.accountId,
       });
-      if (jointDataForDeduct) {
+      if (jointDataForDeduct)
         currentCustomerBal = jointDataForDeduct.balance || 0;
-      }
     }
 
     let deductAmount = cardCurrency === "USD" ? deductUsd : deductKhr;
@@ -938,9 +965,6 @@ exports.processTapToPay = async (req, res) => {
       });
     }
 
-    // ===============================================================
-    // 🌟 ២. ស្វែងរកហាង និង កំណត់គណនីទទួលប្រាក់ (Merchant's Linked Account)
-    // ===============================================================
     let shop = null;
     if (merchantId.match(/^[0-9a-fA-F]{24}$/))
       shop = await Merchant.findById(merchantId);
@@ -954,9 +978,7 @@ exports.processTapToPay = async (req, res) => {
     const dateStr = getKhmerDate();
     let amtInUsdForLimit = deductUsd > 0 ? deductUsd : deductKhr / exchangeRate;
 
-    // ===============================================================
-    // 🌟 ៣. អនុវត្តការកាត់លុយពីអតិថិជន (តាមគណនីកាតពិតប្រាកដ)
-    // ===============================================================
+    // កាត់លុយពីអតិថិជន
     if (customerAccType === "MAIN") {
       if (cardCurrency === "USD")
         customer.mainAccounts.USD.balance -= deductUsd;
@@ -976,14 +998,11 @@ exports.processTapToPay = async (req, res) => {
     customer.markModified("subAccounts");
     await customer.save();
 
-    // អាប់ដេតចំណាយប្រចាំថ្ងៃក្នុង Model Card
     card.dailySpentToday = (card.dailySpentToday || 0) + amtInUsdForLimit;
     card.dailyTxCountToday = (card.dailyTxCountToday || 0) + 1;
     await card.save();
 
-    // ===============================================================
-    // 🌟 ៤. អនុវត្តការបញ្ចូលលុយទៅឱ្យហាង (តាមគណនី Linked Account)
-    // ===============================================================
+    // បញ្ចូលលុយទៅហាង
     let targetReceiveAccNumber = shop.linkedAccounts
       ? shop.linkedAccounts[currency]
       : null;
@@ -1005,25 +1024,9 @@ exports.processTapToPay = async (req, res) => {
           (s) => s.accountNumber === targetReceiveAccNumber,
         );
         if (subIdx !== -1) {
-          const subAcc = shopOwner.subAccounts[subIdx];
-          if (
-            subAcc.accountType === "joint" ||
-            subAcc.accountType === "joint_member"
-          ) {
-            const jointData = await JointAccount.findOne({
-              accountId: subAcc.accountId,
-            });
-            if (jointData) {
-              jointData.balance += payAmount;
-              await jointData.save();
-              shopOwner.subAccounts[subIdx].balance = jointData.balance;
-              isReceived = true;
-            }
-          } else {
-            shopOwner.subAccounts[subIdx].balance += payAmount;
-            isReceived = true;
-          }
+          shopOwner.subAccounts[subIdx].balance += payAmount;
           shopOwner.markModified("subAccounts");
+          isReceived = true;
         }
       }
       if (isReceived) {
@@ -1038,15 +1041,10 @@ exports.processTapToPay = async (req, res) => {
         : { "escrowHold.KHR": payAmount };
     await Merchant.updateOne({ _id: shop._id }, { $inc: incEscrow });
 
-    // ===============================================================
-    // 🌟 ៥. កត់ត្រាប្រតិបត្តិការ (Transactions & Notifications)
-    // ===============================================================
     const trxRef = generateStandardRefId("TAP");
     const trxHash = generateStandardHash();
-
     const cashierName = cashierAcc ? ` (Cashier: ${cashierAcc})` : "";
     const receiverDisplayName = `${shop.name}${cashierName}`;
-
     const actualCustomerAcc =
       customerDeductAccObj.accountNumber || cardLinkedAcc;
     const actualMerchantReceiveAcc =
@@ -1073,13 +1071,13 @@ exports.processTapToPay = async (req, res) => {
       amount: deductUsd > 0 ? -deductUsd : -deductKhr,
       currency: effectiveCurrency,
       senderName: customer.fullName || customer.username,
-      senderAcc: actualCustomerAcc, // 🌟 រក្សាទុកលេខកុងពិតប្រាកដដែលបានកាត់លុយ
+      senderAcc: actualCustomerAcc,
       receiverName: receiverDisplayName,
       receiverAcc: actualMerchantReceiveAcc,
       cardId: card.id,
       cardNumber: card.number,
       status: "Hold",
-      remark: `ទូទាត់កាតតាមអត្រាប្តូរប្រាក់ស្វ័យប្រវត្តិ`,
+      remark: `ទូទាត់កាត NFC ហាង ${shop.name}`,
       trxMethod: "NFC Payment",
       merchantId: shop.merchantId,
     });
@@ -1119,11 +1117,6 @@ exports.processTapToPay = async (req, res) => {
     if (global.io) {
       global.io.to(shop.userId).emit("transactionUpdated");
       global.io.to(customer.username).emit("transactionUpdated");
-      global.io.to(shop.userId).emit("paymentReceived", {
-        amount: payAmount,
-        currency: currency,
-        senderName: customer.fullName || customer.username,
-      });
     }
 
     res.json({ success: true, message: "ការទូទាត់បានជោគជ័យ!" });
@@ -1138,7 +1131,7 @@ exports.processTapToPay = async (req, res) => {
 };
 
 // =======================================================
-// 💳 CHECK CARD BEFORE PAYMENT (ប្រើ Model Card.js ថ្មី)
+// 💳 CHECK CARD BEFORE PAYMENT (Fixed & Secured with Smart UID Normalization)
 // =======================================================
 exports.checkCardBeforePayment = async (req, res) => {
   const { uid, amount, currency } = req.body;
@@ -1147,17 +1140,57 @@ exports.checkCardBeforePayment = async (req, res) => {
     const JointAccount = require("../models/JointAccount");
     const Card = require("../models/Card");
 
-    const cleanUid = String(uid || "")
-      .replaceAll(":", "")
-      .trim()
-      .toUpperCase();
+    const rawInputUid = String(uid || "").trim();
+    if (!rawInputUid) {
+      return res.json({
+        success: false,
+        message: "មិនមានទិន្នន័យ UID របស់កាតទេ!",
+      });
+    }
 
-    const card = await Card.findOne({ uid: cleanUid });
+    // 🌟 1. បង្កើតទម្រង់ UID គ្រប់បែបយ៉ាង ដើម្បីធានាថាស្គាល់គ្រប់កាតទាំងអស់
+    let cleanUid = rawInputUid.replaceAll(":", "").toUpperCase();
+
+    // បើជា Decimal 10 ខ្ទង់ បម្លែងទៅជា Hex 8 ខ្ទង់
+    if (/^\d{10}$/.test(cleanUid)) {
+      let hex = parseInt(cleanUid, 10)
+        .toString(16)
+        .toUpperCase()
+        .padStart(8, "0");
+      cleanUid =
+        hex.substring(6, 8) +
+        hex.substring(4, 6) +
+        hex.substring(2, 4) +
+        hex.substring(0, 2);
+    }
+
+    // 🌟 2. ស្វែងរកក្នុង Database តាមគ្រប់លក្ខខណ្ឌ (ទាំង Clean, Raw, Upper, Lower)
+    const card = await Card.findOne({
+      $or: [
+        { uid: cleanUid },
+        { uid: rawInputUid },
+        { uid: rawInputUid.toUpperCase() },
+        { uid: rawInputUid.toLowerCase() },
+        { uid: { $regex: new RegExp("^" + cleanUid + "$", "i") } },
+      ],
+    });
+
     if (!card)
       return res.json({
         success: false,
         message: "កាតនេះមិនមានក្នុងប្រព័ន្ធ U-Pay ទេ!",
       });
+
+    const cardCat =
+      card.cardCategory || (card.isPhysical ? "debit" : "virtual");
+    if (cardCat === "virtual" && !card.isPhysical) {
+      return res.json({
+        success: false,
+        message:
+          "កាតនិម្មិត (Virtual Card) មិនអាចប្រើប្រាស់ស្កេនទូទាត់តាម POS ទេ។",
+      });
+    }
+
     if (card.isLocked)
       return res.json({ success: false, message: "កាតនេះត្រូវបាន Block!" });
     if (card.isOnlinePayEnabled === false)
@@ -1200,12 +1233,16 @@ exports.checkCardBeforePayment = async (req, res) => {
       customerDeductAccObj = customer.mainAccounts.KHR;
     } else if (customer.subAccounts && customer.subAccounts.length > 0) {
       const subIdx = customer.subAccounts.findIndex(
-        (s) => s.accountNumber === cardLinkedAcc,
+        (s) => String(s.accountNumber) === String(cardLinkedAcc),
       );
       if (subIdx !== -1) {
         customerDeductAccObj = customer.subAccounts[subIdx];
         customerAccType = "SUB";
       }
+    }
+
+    if (!customerDeductAccObj && customer.mainAccounts?.USD) {
+      customerDeductAccObj = customer.mainAccounts.USD;
     }
 
     if (!customerDeductAccObj) {
@@ -1216,38 +1253,8 @@ exports.checkCardBeforePayment = async (req, res) => {
     }
 
     let cardCurrency = customerDeductAccObj.currency || "USD";
-    const payAmount = parseFloat(amount);
-
-    let requiredUsd = 0;
-    let requiredKhr = 0;
-
-    if (cardCurrency === currency) {
-      if (currency === "USD") requiredUsd = payAmount;
-      else requiredKhr = payAmount;
-    } else if (cardCurrency === "USD" && currency === "KHR") {
-      requiredUsd = parseFloat((payAmount / exchangeRate).toFixed(2));
-    } else if (cardCurrency === "KHR" && currency === "USD") {
-      requiredKhr = payAmount * exchangeRate;
-    } else {
-      return res.json({
-        success: false,
-        message: "ប្រភេទរូបិយប័ណ្ណមិនត្រូវគ្នាទេ!",
-      });
-    }
-
-    let payAmountUsd =
-      cardCurrency === "USD" ? requiredUsd : requiredKhr / exchangeRate;
-    const currentSpentToday = card.dailySpentToday || 0;
-    const allowedLimit = card.dailyLimit || 0;
-
-    if (allowedLimit > 0 && currentSpentToday + payAmountUsd > allowedLimit) {
-      return res.json({
-        success: false,
-        message: `លើសដែនកំណត់ចំណាយប្រចាំថ្ងៃ (Daily Limit: $${allowedLimit})!`,
-      });
-    }
-
     let availableBalance = customerDeductAccObj.balance || 0;
+
     if (
       customerAccType === "SUB" &&
       (customerDeductAccObj.accountType === "joint" ||
@@ -1259,18 +1266,12 @@ exports.checkCardBeforePayment = async (req, res) => {
       if (jointData) availableBalance = jointData.balance || 0;
     }
 
-    let requiredDeduct = cardCurrency === "USD" ? requiredUsd : requiredKhr;
-
-    if (availableBalance < requiredDeduct) {
-      return res.json({
-        success: false,
-        message: `សមតុល្យទឹកប្រាក់ ${cardCurrency} ក្នុងគណនីភ្ជាប់កាតមិនគ្រប់គ្រាន់ទេ!`,
-      });
-    }
-
     res.json({
       success: true,
-      message: "កាតត្រឹមត្រូវ និងអាចទូទាត់បានតាម Exchange Rate",
+      message: "កាតត្រឹមត្រូវ និងអាចទូទាត់បាន",
+      cardType: card.type,
+      cardCurrency: cardCurrency,
+      balance: availableBalance,
     });
   } catch (err) {
     console.error("Check Card Error:", err);

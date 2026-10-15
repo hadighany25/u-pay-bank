@@ -62,12 +62,13 @@ router.post(
   safeHandler(authController.requestRegisterOTP, "requestRegisterOTP"),
 );
 router.post(
+  "/verify-register-otp",
+  safeHandler(authController.verifyRegisterOTP, "verifyRegisterOTP"),
+);
+router.post(
   "/verify-register",
   safeHandler(authController.verifyAndRegister, "verifyAndRegister"),
 );
-
-// ៤.២ ការចុះឈ្មោះបែបចាស់ (Legacy Flow - រក្សាទុកកុំឱ្យគាំងប្រព័ន្ធចាស់)
-router.post("/register", safeHandler(authController.register, "register"));
 
 // ==========================================
 // 🔑 ផ្នែកទី ៥៖ ការសង្គ្រោះគណនី និង OTP (Forgot Password & Security OTP)

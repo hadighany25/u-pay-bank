@@ -747,6 +747,7 @@ const editUser = async (req, res) => {
     dob,
     gender,
     idNumber,
+    duplicateIdReason,
   } = req.body;
 
   try {
@@ -771,32 +772,56 @@ const editUser = async (req, res) => {
         message: "បរាជ័យ! លេខគណនី USD និង KHR មិនអាចដូចគ្នាបានទេ។",
       });
 
-    // 🟢 Update ទិន្នន័យចូល Model
     if (accountNumber) u.mainAccounts.USD.accountNumber = accountNumber;
     if (accountNumberKHR) u.mainAccounts.KHR.accountNumber = accountNumberKHR;
     if (username) u.username = username;
     if (pin) u.pin = pin;
     if (profileImage !== undefined) u.profileImage = profileImage;
     if (password && password.trim() !== "")
-      u.password = await bcrypt.hash(password, 10); // 🟢 ត្រូវ hash password ផងបើចង់ដូរ
+      u.password = await bcrypt.hash(password, 10);
 
-    // 🟢 Update Fields ថ្មី
     if (fullName !== undefined) u.fullName = fullName;
     if (phone !== undefined) {
       u.phone = phone;
-      u.phoneNumber = phone; // update ទាំងពីរក្រែងលោមានកន្លែងផ្សេងហៅប្រើ
+      u.phoneNumber = phone;
     }
     if (email !== undefined) u.email = email;
     if (dob !== undefined) u.dob = dob;
     if (gender !== undefined) u.gender = gender;
-    if (idNumber !== undefined) u.idNumber = idNumber;
+    if (idNumber !== undefined) u.idNumber = idNumber.trim();
+    if (duplicateIdReason !== undefined) {
+      u.duplicateIdReason = duplicateIdReason.trim();
+    }
 
     await u.save();
+
+    // 🔗 GLOBAL SYNC: បើមានលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និងមូលហេតុ ត្រូវអាប់ដេតមូលហេតុនេះចូលគ្រប់គណនីទាំងអស់ដែលមានលេខ ID ដូចគ្នា!
+    const targetIdNum = (
+      idNumber !== undefined ? idNumber : u.idNumber || ""
+    ).trim();
+    if (targetIdNum && targetIdNum !== "N/A") {
+      const sameIdUsers = await User.find({ idNumber: targetIdNum });
+      if (sameIdUsers.length > 1) {
+        const sharedReason =
+          (duplicateIdReason !== undefined
+            ? duplicateIdReason
+            : u.duplicateIdReason) ||
+          sameIdUsers.find((item) => item.duplicateIdReason)
+            ?.duplicateIdReason ||
+          "ប្រើប្រាស់អត្តសញ្ញាណប័ណ្ណរួមគ្នា (Multiple Accounts)";
+
+        await User.updateMany(
+          { idNumber: targetIdNum },
+          { $set: { duplicateIdReason: sharedReason } },
+        );
+      }
+    }
+
     await logAdminAction(
       req.admin.username,
       "Edit User",
       u.username,
-      `Updated user profile/credentials`,
+      `Updated user profile/credentials${duplicateIdReason ? ` (Duplicate ID Reason: ${duplicateIdReason})` : ""}`,
     );
     res.json({ success: true });
   } catch (err) {
@@ -1419,7 +1444,8 @@ const adminUploadKyc = async (req, res) => {
 // ==========================================
 
 /**
- * 📌 [Admin] អនុម័ត, បដិសេធ ឬ ដកហូតសិទ្ធិ KYC
+ * 📌 [Admin] អនុម័ត, បដិសេធ, ដកសំណើ (Withdraw) ឬ ដកហូតសិទ្ធិ (Revoke) KYC
+ * - ពេល Reject ឬ Revoke៖ លុបទាំងរូបភាព និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (idNumber) ចេញពី Database វិញ!
  */
 const kycAction = async (req, res) => {
   const { username, action, rejectReason } = req.body;
@@ -1428,17 +1454,25 @@ const kycAction = async (req, res) => {
     if (!u)
       return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជននេះទេ!" });
 
-    const currentAdmin = req.admin.username;
+    const currentAdmin = String(req.admin.username || "").trim();
+    const uploadedBy = String(u.kycUploadedBy || "")
+      .replace(/^@/, "")
+      .trim();
 
-    // 🛑 ១. គោលការណ៍ Maker-Checker: ហាម Admin អនុម័ត ឬ បដិសេធ ឯកសារដែលខ្លួនឯងជាអ្នក Upload
+    // 🛑 ១. គោលការណ៍ Maker-Checker តឹងរឹង៖
+    // បើ Admin ជាអ្នក Upload ខ្លួនឯង (Maker) ហាមដាច់ខាតមិនឱ្យចុច Approve ឬ Reject ឡើយ
     if (
-      (action === "approved" || action === "rejected") &&
-      u.kycUploadedBy === currentAdmin
+      (action === "approved" ||
+        action === "verified" ||
+        action === "rejected") &&
+      uploadedBy !== "" &&
+      uploadedBy !== "អតិថិជនផ្ទាល់" &&
+      uploadedBy.toLowerCase() === currentAdmin.toLowerCase()
     ) {
       return res.json({
         success: false,
         message:
-          "បម្រាម Maker-Checker៖ អ្នកមិនអាចអនុម័ត (Approve) ឬ បដិសេធ (Reject) សំណើដែលអ្នកបាន Upload ដោយខ្លួនឯងបានទេ! សូមរង់ចាំ Admin ផ្សេងទៀត។",
+          "បម្រាម Maker-Checker៖ អ្នកជាអ្នកបញ្ជូនឯកសារនេះ (Maker) មិនអាចអនុម័ត ឬបដិសេធដោយខ្លួនឯងបានទេ! សូមឱ្យ Admin ផ្សេងទៀតជាអ្នកពិនិត្យ។",
       });
     }
 
@@ -1447,7 +1481,25 @@ const kycAction = async (req, res) => {
       hour12: true,
     });
 
-    // 🛑 ២. ដំណើរការបដិសេធ (Reject) ឬ ដកហូតសិទ្ធិ (Revoke)
+    // 🔄 ២. ករណី Maker ចុចដកសំណើរបស់ខ្លួនឯងមកកែវិញ (Withdraw)
+    if (action === "withdraw") {
+      u.kycStatus = "unverified";
+      u.kycRejectReason = rejectReason || "ដកសំណើមកកែសម្រួលវិញដោយ Maker";
+      await u.save();
+
+      await logAdminAction(
+        currentAdmin,
+        "Withdraw KYC Request",
+        u.username,
+        `Maker withdrew KYC submission. Note: ${u.kycRejectReason}`,
+      );
+      return res.json({
+        success: true,
+        message: "បានដកសំណើ KYC មកកែសម្រួលវិញដោយជោគជ័យ!",
+      });
+    }
+
+    // 🛑 ៣. ដំណើរការបដិសេធ (Reject) ឬ ដកហូតសិទ្ធិ (Revoke) -> លុបលេខអត្តសញ្ញាណប័ណ្ណចេញពី Database វិញ!
     if (action === "rejected" || action === "revoke") {
       if (!rejectReason || rejectReason.trim() === "") {
         return res.json({
@@ -1456,25 +1508,37 @@ const kycAction = async (req, res) => {
         });
       }
 
-      u.kycStatus = "rejected";
-      u.kycRejectReason = rejectReason;
+      const oldIdNumber = String(u.idNumber || "").trim();
 
-      // 🟢 កត់ត្រាអ្នកបដិសេធ
+      u.kycStatus = "rejected";
+      u.kycRejectReason = rejectReason.trim();
       u.kycRejectedBy = currentAdmin;
       u.kycRejectedAt = dateStr;
 
-      // 🧹 លុបរូប KYC ចាស់ចោល តាមការស្នើសុំ ដើម្បីឱ្យ Admin អាច Upload ថ្មីបាន
+      // 🧹 លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (idNumber) ចេញពីគណនីនេះវិញតាមការស្នើសុំ!
       u.kycDocument = "";
       u.kycImage = "";
       u.selfieUrl = "";
-      u.kycUploadedBy = ""; // Reset អ្នក Upload វិញ
+      u.kycUploadedBy = "";
+      u.idNumber = "";
+      u.duplicateIdReason = "";
 
-      // ផ្ញើសារប្រាប់អតិថិជន
+      await u.save();
+
+      // 🔗 ប្រសិនបើលេខ ID ចាស់នោះធ្លាប់ជាប់ស្ទួន ហើយឥឡូវនៅសល់តែ ១ គណនីគត់ គឺលុប duplicateIdReason ចេញពីគណនីដែលនៅសល់នោះឱ្យស្អាតវិញដែរ
+      if (oldIdNumber && oldIdNumber !== "N/A") {
+        const remainingUsers = await User.find({ idNumber: oldIdNumber });
+        if (remainingUsers.length === 1) {
+          remainingUsers[0].duplicateIdReason = "";
+          await remainingUsers[0].save();
+        }
+      }
+
       await Notification.create({
         userId: u._id,
         username: u.username,
-        title: "KYC Verification Failed ❌",
-        message: `ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានបដិសេធ។ មូលហេតុ: ${rejectReason}។ សូមទាក់ទងមកកាន់ធនាគារ។`,
+        title: "ការផ្ទៀងផ្ទាត់អត្តសញ្ញាណបរាជ័យ (KYC Rejected) ❌",
+        message: `ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានបដិសេធ។ មូលហេតុ: "${rejectReason}"។ សូមបញ្ជូនឯកសារថ្មីម្តងទៀត ឬទាក់ទងមកកាន់ធនាគារ។`,
         date: getFormattedDate(),
         type: "info",
         isRead: false,
@@ -1483,25 +1547,32 @@ const kycAction = async (req, res) => {
 
       await logAdminAction(
         currentAdmin,
-        "Reject/Revoke KYC",
+        action === "revoke" ? "Revoke KYC & Clear ID" : "Reject KYC & Clear ID",
         u.username,
-        `Rejected KYC. Reason: ${rejectReason}`,
+        `Cleared ID (${oldIdNumber || "N/A"}). Reason: ${rejectReason}`,
       );
-    }
-    // ✅ ៣. ដំណើរការអនុម័ត (Approve)
-    else if (action === "approved" || action === "verified") {
-      u.kycStatus = "verified";
-      u.kycRejectReason = ""; // លុបមូលហេតុបដិសេធចាស់ចោល
 
-      // 🟢 កត់ត្រាអ្នកអនុម័ត
+      return res.json({
+        success: true,
+        message:
+          "បានបដិសេធសំណើ KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីប្រព័ន្ធរួចរាល់!",
+      });
+    }
+    // ✅ ៤. ដំណើរការអនុម័ត (Approve)
+    else if (action === "approved" || action === "verified") {
+      if (u.fullName) u.fullName = String(u.fullName).trim().toUpperCase();
+      u.kycStatus = "verified";
+      u.kycRejectReason = "";
       u.kycApprovedBy = currentAdmin;
       u.kycApprovedAt = dateStr;
+
+      await u.save();
 
       await Notification.create({
         userId: u._id,
         username: u.username,
-        title: "KYC Verification Success ✅",
-        message: `អបអរសាទរ! ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តដោយជោគជ័យ។`,
+        title: "គណនីត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ (KYC Verified) ✅",
+        message: `អបអរសាទរ! ឯកសារបញ្ជាក់អត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តពេញលេញដោយធនាគារ U-Pay។`,
         date: getFormattedDate(),
         type: "info",
         isRead: false,
@@ -1512,12 +1583,16 @@ const kycAction = async (req, res) => {
         currentAdmin,
         "Approve KYC",
         u.username,
-        `Approved KYC Document`,
+        `Approved KYC Document (Maker: ${uploadedBy || "Customer"})`,
       );
+
+      return res.json({
+        success: true,
+        message: "បានអនុម័តឯកសារ KYC ជោគជ័យ!",
+      });
     }
 
-    await u.save();
-    res.json({ success: true, message: "បានធ្វើបច្ចុប្បន្នភាពជោគជ័យ!" });
+    res.json({ success: true, message: "បានធ្វើបច្ចុប្បន្នភាព KYC ជោគជ័យ!" });
   } catch (err) {
     console.error("KYC Action Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1528,12 +1603,11 @@ const kycAction = async (req, res) => {
  * 📌 [Admin] Upload រូបថតអត្តសញ្ញាណប័ណ្ណ ឬ Selfie ថ្មីជំនួសអតិថិជន
  */
 const uploadSpecificKyc = async (req, res) => {
-  const { username, type, url, adminName } = req.body;
+  const { username, type, url } = req.body;
   try {
     const u = await User.findOne({ username });
     if (!u) return res.json({ success: false, message: "រកអតិថិជនមិនឃើញទេ!" });
 
-    // បញ្ចូលរូបតាមប្រភេទ (ID ឬ Selfie)
     if (type === "idCard") {
       u.kycDocument = url;
       u.kycImage = url;
@@ -1541,15 +1615,14 @@ const uploadSpecificKyc = async (req, res) => {
       u.selfieUrl = url;
     }
 
-    // 🟢 បើមានរូបទាំង ២ គ្រប់គ្រាន់ហើយ លោតទៅជា Pending ស្វ័យប្រវត្តិ
     if ((u.kycDocument || u.kycImage) && u.selfieUrl) {
       u.kycStatus = "pending";
       u.kycSubmittedAt = getFormattedDate();
     } else {
-      u.kycStatus = "unverified"; // នៅខ្វះរូបមួយទៀត
+      u.kycStatus = "unverified";
     }
 
-    // 🔒 កត់ត្រាទុកថា Admin មួយណាជាអ្នក Upload ដើម្បីបិទសិទ្ធិគាត់កុំឱ្យគាត់ Approve ខ្លួនឯង
+    // 🔒 កត់ត្រាទុកឈ្មោះ Admin ពិតប្រាកដពី Token (req.admin.username) ជា Maker
     u.kycUploadedBy = req.admin.username;
 
     await u.save();
@@ -1557,7 +1630,7 @@ const uploadSpecificKyc = async (req, res) => {
       req.admin.username,
       `Upload KYC (${type})`,
       username,
-      `Admin uploaded ${type}`,
+      `Admin (@${req.admin.username}) uploaded ${type}`,
     );
 
     res.json({ success: true, message: "Upload ជោគជ័យ!" });
@@ -4435,10 +4508,9 @@ const sendDirectMessage = async (req, res) => {
 };
 
 /**
- * 📌 បង្កើតគណនីអតិថិជនថ្មីដោយ Admin (គ្មាន OTP, លឿនរហ័ស)
+ * 📌 បង្កើតគណនីអតិថិជនថ្មីដោយ Admin (គាំទ្រការឆែកលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និង Sync មូលហេតុគ្រប់គណនី)
  */
 const adminCreateUser = async (req, res) => {
-  // ទទួលយកទិន្នន័យពី Frontend
   const {
     username,
     password,
@@ -4449,24 +4521,15 @@ const adminCreateUser = async (req, res) => {
     dob,
     gender,
     idNumber,
+    duplicateReason,
+    duplicateIdReason,
     idCardUrl,
     selfieUrl,
   } = req.body;
 
   try {
-    // ឆែកសិទ្ធិ: មានតែមេធំ (Super Admin) ឬអ្នកមានសិទ្ធិបង្កើតគណនីទើបអាចធ្វើបាន
-    // បើចង់អនុញ្ញាតឱ្យ Admin គ្រប់គ្នាបើកគណនីបាន អាចរំលងការឆែកនេះបាន
-    /* 
-    const access = await checkAdminAccess(req.admin, "createUser");
-    if (!access.allowed) return res.status(403).json({ success: false, message: access.message });
-    */
-
-    // ១. ឆែកកុំឱ្យស្ទួន Username ឬ Email
     const existingUser = await User.findOne({
-      $or: [
-        { username: username },
-        { email: email || "N/A" }, // បើគ្មាន Email គឺមិនឱ្យស្ទួនជាមួយ N/A ទេ
-      ],
+      $or: [{ username: username }, { email: email || "N/A_EMAIL_CHECK" }],
     });
 
     if (existingUser) {
@@ -4476,24 +4539,36 @@ const adminCreateUser = async (req, res) => {
       });
     }
 
-    // ២. បង្កើតលេខគណនីធនាគារ អូតូ
+    const cleanIdNumber = String(idNumber || "").trim();
+    let finalDupReason = String(
+      duplicateIdReason || duplicateReason || "",
+    ).trim();
+
+    // 🔍 ឆែកមើលថាតើលេខអត្តសញ្ញាណប័ណ្ណនេះធ្លាប់មានគណនីចាស់ប្រើរួចហើយឬនៅ
+    if (cleanIdNumber && cleanIdNumber !== "N/A") {
+      const existingIdUsers = await User.find({ idNumber: cleanIdNumber });
+      if (existingIdUsers.length > 0 && !finalDupReason) {
+        return res.json({
+          success: false,
+          requireDuplicateReason: true,
+          message: `លេខអត្តសញ្ញាណប័ណ្ណ (${cleanIdNumber}) ធ្លាប់មានគណនីប្រើប្រាស់រួចហើយ! សូមបញ្ចូលមូលហេតុនៃការបង្កើតគណនីបន្ថែម។`,
+        });
+      }
+    }
+
     const tsId = Date.now().toString();
-    const prefix = Math.floor(Math.random() * 9) + 1; // លេខពី 1 ដល់ 9
-    const suffix = Math.floor(Math.random() * 890) + 100; // លេខពី 100 ដល់ 989
+    const prefix = Math.floor(Math.random() * 9) + 1;
+    const suffix = Math.floor(Math.random() * 890) + 100;
     const baseAcc = parseInt(`${prefix}00${prefix}00${suffix}`);
 
     const newAccUSD = baseAcc.toString();
     const newAccKHR = (baseAcc + 1).toString();
-
-    // លេខសម្គាល់អតិថិជន (Referral ID ៨ខ្ទង់)
     const newUserId = Math.floor(
       10000000 + Math.random() * 90000000,
     ).toString();
 
-    // ៣. កំណត់ស្ថានភាព KYC អូតូ
     let initialKycStatus = idCardUrl && selfieUrl ? "pending" : "unverified";
 
-    // ៤. រៀបចំទិន្នន័យ User ថ្មី
     const newUser = new User({
       id: tsId,
       userId: newUserId,
@@ -4505,12 +4580,14 @@ const adminCreateUser = async (req, res) => {
       phone: phone || "",
       dob: dob || "",
       gender: gender || "",
-      idNumber: idNumber || "",
+      idNumber: cleanIdNumber,
+      duplicateIdReason: finalDupReason,
 
       kycStatus: initialKycStatus,
       kycDocument: idCardUrl || "",
+      kycImage: idCardUrl || "",
       selfieUrl: selfieUrl || "",
-      kycSubmittedAt: initialKycStatus === "verified" ? getFormattedDate() : "",
+      kycSubmittedAt: initialKycStatus === "pending" ? getFormattedDate() : "",
       kycUploadedBy: idCardUrl || selfieUrl ? req.admin.username : "",
 
       mainAccounts: {
@@ -4544,15 +4621,21 @@ const adminCreateUser = async (req, res) => {
       lastActive: new Date().toISOString(),
     });
 
-    // ៥. Save ចូល Database
     await newUser.save();
 
-    // កត់ត្រាចូល Audit Logs របស់ Admin
+    // 🔗 GLOBAL SYNC: បើមានលេខ ID ស្ទួន យកមូលហេតុទៅដាក់ចូលគ្រប់គណនីចាស់-ថ្មីទាំងអស់ដែលមានលេខ ID នោះ!
+    if (cleanIdNumber && finalDupReason) {
+      await User.updateMany(
+        { idNumber: cleanIdNumber },
+        { $set: { duplicateIdReason: finalDupReason } },
+      );
+    }
+
     await logAdminAction(
       req.admin.username,
       "Create User",
       username,
-      `Created new account for ${fullName}`,
+      `Created new account for ${fullName}${finalDupReason ? ` (Duplicate ID Reason: ${finalDupReason})` : ""}`,
     );
 
     res.json({ success: true, message: "គណនីត្រូវបានបង្កើតដោយជោគជ័យ!" });

@@ -3735,318 +3735,904 @@ window.c360ExportStatementPDF = async function () {
 };
 
 // =======================================================
-// 🪪 TAB 5: KYC & Identity (Maker-Checker Enforced + Edit Mode)
+// 🪪 TAB 5: KYC & Identity (100% Pro Maker-Checker, Dark Mode & Smart Duplicate Sync)
 // =======================================================
+
+// 🔍 ១. អនុគមន៍ចាប់យកអត្តសញ្ញាណ Admin កំពុង Login (ទាំង Username និង Full Name ដើម្បីការពារ Maker-Checker 100%)
+function c360GetActiveAdminIdentity() {
+  let username = "";
+  let fullName = "";
+
+  try {
+    // ១.១ ទាញពី JWT Token មុនគេ (ជាក់លាក់បំផុតសម្រាប់ Admin)
+    const tokenKeys = ["adminToken", "token", "upay_admin_token"];
+    for (const k of tokenKeys) {
+      const tk = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if (tk && tk.includes(".")) {
+        try {
+          const payload = JSON.parse(atob(tk.split(".")[1]));
+          if (payload && payload.username && payload.role !== "user") {
+            username = String(payload.username).trim();
+            if (payload.fullName) fullName = String(payload.fullName).trim();
+            break;
+          }
+        } catch (err) {}
+      }
+    }
+
+    // ១.២ ទាញពី Storage Objects
+    const storeKeys = ["admin", "adminUser", "currentAdmin"];
+    for (const k of storeKeys) {
+      const raw = localStorage.getItem(k) || sessionStorage.getItem(k);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.username) {
+            if (!username) username = String(parsed.username).trim();
+            if (!fullName && parsed.fullName)
+              fullName = String(parsed.fullName).trim();
+          }
+        } catch (err) {}
+      }
+    }
+
+    // ១.៣ ទាញពី Globals ឬ Sidebar DOM បើមាន
+    if (
+      !username &&
+      typeof window.currentAdmin !== "undefined" &&
+      window.currentAdmin?.username
+    ) {
+      username = String(window.currentAdmin.username).trim();
+    }
+    const domDisp = document.getElementById("adminNameDisplay")?.innerText;
+    if (domDisp && !fullName) {
+      fullName = domDisp.replace(/^@/, "").trim();
+    }
+  } catch (e) {
+    console.warn("Admin identity parse warning:", e);
+  }
+
+  return {
+    username: username,
+    usernameLower: username.toLowerCase(),
+    fullName: fullName,
+    fullNameLower: fullName.toLowerCase(),
+  };
+}
+
+// 🔍 ២. អនុគមន៍រកមើលគណនីទាំងអស់ដែលប្រើលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នា
+function c360FindAccountsWithSameIdNumber(idNumber) {
+  const cleanId = String(idNumber || "").trim();
+  if (!cleanId || cleanId === "N/A" || typeof globalUsersData === "undefined") {
+    return [];
+  }
+  return (globalUsersData || []).filter(
+    (u) => String(u.idNumber || "").trim() === cleanId,
+  );
+}
+
+// 🎨 ៣. អនុគមន៍គូរផ្ទាំង Tab 5 (KYC & Identity)
 function renderKycTab(user) {
   const container = document.getElementById("c360-tab-kyc");
   if (!container) return;
 
-  const status = user.kycStatus || "unverified";
+  const status = (user.kycStatus || "unverified").toLowerCase();
   const imgUrl = user.kycDocument || user.kycImage || user.idCardImage || "";
   const selfieUrl = user.selfieUrl || "";
-  const kycSubmittedAt = user.kycSubmittedAt
-    ? new Date(user.kycSubmittedAt).toLocaleString()
-    : "N/A";
-  const kycRejectReason = user.kycRejectReason || "N/A";
+  const kycSubmittedAt = user.kycSubmittedAt || "មិនមានកាលបរិច្ឆេទ";
+  const kycRejectReason = user.kycRejectReason || "មិនបានបញ្ជាក់មូលហេតុ";
 
-  // 🟢 ចាប់យក Username របស់ Admin ដែលកំពុង Log in
-  let currentAdminUser = "";
-  try {
-    let adminStr =
-      localStorage.getItem("admin") ||
-      sessionStorage.getItem("admin") ||
-      localStorage.getItem("user");
-    if (adminStr) {
-      currentAdminUser = JSON.parse(adminStr).username || "";
-    }
-    if (!currentAdminUser) {
-      let token =
-        localStorage.getItem("token") ||
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("adminToken");
-      if (token) {
-        currentAdminUser = JSON.parse(atob(token.split(".")[1])).username || "";
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to get Admin Username", e);
-  }
+  // 🛡️ ផ្ទៀងផ្ទាត់សិទ្ធិ Maker-Checker (ប្រៀបធៀបទាំង Username និង Full Name)
+  const adminIdent = c360GetActiveAdminIdentity();
+  const rawUploader = String(user.kycUploadedBy || "")
+    .replace(/^@/, "")
+    .trim();
+  const uploaderLower = rawUploader.toLowerCase();
+  const customerUsernameLower = String(user.username || "").toLowerCase();
 
-  // កាត់ចន្លោះទទេ និងបំប្លែងជាអក្សរតូចដើម្បីងាយស្រួលផ្ទៀងផ្ទាត់
-  currentAdminUser = (currentAdminUser || "").trim().toLowerCase();
-  const kycUploadedBy = (user.kycUploadedBy || "អតិថិជនផ្ទាល់").trim();
-  const kycUploadedByLower = kycUploadedBy.toLowerCase();
+  const isUploadedByCustomer =
+    !rawUploader ||
+    rawUploader === "អតិថិជនផ្ទាល់" ||
+    uploaderLower === customerUsernameLower;
 
-  let isMaker = false;
-  let makerDisplay = kycUploadedBy;
+  const isCurrentAdminTheMaker =
+    !isUploadedByCustomer &&
+    ((adminIdent.usernameLower !== "" &&
+      uploaderLower === adminIdent.usernameLower) ||
+      (adminIdent.fullNameLower !== "" &&
+        uploaderLower === adminIdent.fullNameLower));
 
-  if (
-    kycUploadedBy !== "អតិថិជនផ្ទាល់" &&
-    kycUploadedByLower === currentAdminUser
-  ) {
-    isMaker = true;
-    makerDisplay = `<span style="color: #3b82f6;">${kycUploadedBy} (អ្នក)</span>`;
-  }
+  const makerBadgeHtml = isUploadedByCustomer
+    ? `<span class="kyc-role-pill pill-customer"><i class="fa-solid fa-mobile-screen"></i> អតិថិជនផ្ទាល់ (@${user.username})</span>`
+    : isCurrentAdminTheMaker
+      ? `<span class="kyc-role-pill pill-maker"><i class="fa-solid fa-user-pen"></i> Admin: @${rawUploader} (អ្នកជាអ្នកបញ្ជូន - Maker)</span>`
+      : `<span class="kyc-role-pill pill-other-admin"><i class="fa-solid fa-user-shield"></i> Admin: @${rawUploader}</span>`;
 
-  // 🟢 កំណត់ស្ថានភាព និងប៊ូតុងសកម្មភាព
+  // 🔗 ឆែកមើលលេខអត្តសញ្ញាណប័ណ្ណស្ទួន (បង្ហាញតែពេលមានគណនីស្ទួនពិតប្រាកដ >= 2 គណនី)
+  const sameIdAccounts = c360FindAccountsWithSameIdNumber(user.idNumber);
+  const otherAccountsWithSameId = sameIdAccounts.filter(
+    (u) => u.username !== user.username,
+  );
+  const hasRealDuplicateId = otherAccountsWithSameId.length > 0;
+
+  // កំណត់ស្ថានភាព និងប៊ូតុងសកម្មភាពតាម Status
   let statusBadge = "";
-  let statusColor = "";
+  let statusColor = "#64748b";
   let isEditable = false;
   let canUpload = false;
-  let infoBoxHtml = "";
-  let actionsHtml = ""; // 👈 កំណត់តែម្តងគត់នៅទីនេះ កុំឱ្យ Error ទៀត!
+  let auditCardHtml = "";
+  let actionsHtml = "";
 
   if (status === "unverified") {
-    statusBadge = `<div class="kh-text" style="background: rgba(203, 213, 225, 0.3); color: #475569; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #cbd5e1;"><i class="fa-solid fa-circle-question"></i> មិនទាន់មានទិន្នន័យ</div>`;
+    statusBadge = `<div class="kyc-status-badge st-unverified"><i class="fa-solid fa-circle-question"></i> មិនទាន់ផ្ទៀងផ្ទាត់ (Unverified)</div>`;
     statusColor = "#64748b";
+    isEditable = true;
     canUpload = true;
-  } else if (status === "pending") {
-    statusBadge = `<div class="kh-text" style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fcd34d;"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត</div>`;
-    statusColor = "#f59e0b";
-    infoBoxHtml = `
-          <div style="background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px solid #e2e8f0;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span style="color: #64748b;">អ្នកបញ្ជូន (Maker):</span>
-                  <span style="font-weight: bold; color: #1e293b;">${makerDisplay}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #64748b;">កាលបរិច្ឆេទ (Date):</span>
-                  <span style="font-weight: bold; color: #1e293b;">${kycSubmittedAt}</span>
-              </div>
-          </div>
-      `;
 
-    // 🛑 Maker-Checker Logic & Custom Actions
-    if (isMaker) {
+    auditCardHtml = `
+      <div class="kyc-audit-banner banner-unverified">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="kyc-banner-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <div>
+            <div class="kyc-banner-title">គណនីនេះមិនទាន់មានឯកសារ KYC ពេញលេញទេ</div>
+            <div class="kyc-banner-sub">សូមចុចប៊ូតុង Upload លើប្រអប់រូបភាពខាងក្រោម ដើម្បីបង្ហោះអត្តសញ្ញាណប័ណ្ណ និងរូបថត Selfie ជូនអតិថិជន។</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (status === "pending") {
+    statusBadge = `<div class="kyc-status-badge st-pending"><i class="fa-solid fa-clock"></i> រង់ចាំការអនុម័ត (Pending Review)</div>`;
+    statusColor = "#f59e0b";
+
+    auditCardHtml = `
+      <div class="kyc-audit-banner banner-pending">
+        <div class="kyc-audit-grid">
+          <div>
+            <div class="kyc-audit-lbl">អ្នកបញ្ជូនឯកសារ (MAKER)</div>
+            <div>${makerBadgeHtml}</div>
+          </div>
+          <div>
+            <div class="kyc-audit-lbl">កាលបរិច្ឆេទបញ្ជូនសំណើ (SUBMITTED AT)</div>
+            <div class="kyc-audit-val"><i class="fa-regular fa-calendar-check"></i> ${kycSubmittedAt}</div>
+          </div>
+          <div>
+            <div class="kyc-audit-lbl">សិទ្ធិត្រួតពិនិត្យរបស់អ្នក (YOUR ROLE)</div>
+            <div class="kyc-audit-val" style="color: ${isCurrentAdminTheMaker ? "#ef4444" : "#10b981"};">
+              ${
+                isCurrentAdminTheMaker
+                  ? '<i class="fa-solid fa-ban"></i> មិនអាចអនុម័តការងារខ្លួនឯងបានទេ (Maker)'
+                  : '<i class="fa-solid fa-check-double"></i> មានសិទ្ធិត្រួតពិនិត្យ និងអនុម័ត (Checker)'
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 🛑 គោលការណ៍ Maker-Checker ដាច់ខាត៖
+    // បើ Admin កំពុងមើលជាអ្នកបញ្ជូន (Maker) -> ហាមបង្ហាញប៊ូតុង Approve / Reject ដាច់ខាត!
+    if (isCurrentAdminTheMaker) {
       isEditable = true;
       canUpload = true;
-
-      // បង្ហាញប៊ូតុង "កែប្រែ" (Inline Edit) និង "ដកសំណើវិញ" (Revoke)
       actionsHtml = `
-            <div style="display: flex; gap: 15px; width: 100%; align-items: center;">
-                <div class="kh-text" style="flex: 1; padding: 14px; background: #f0fdfa; color: #0d9488; border: 1px dashed #5eead4; border-radius: 12px; font-weight: bold; font-size: 1.05rem; display: flex; justify-content: center; align-items: center; gap: 8px; text-align: center;">
-                    <i class="fa-solid fa-pen-to-square"></i> របៀបកែប្រែ៖ ចុចលើរូប ឬទិន្នន័យដើម្បីកែប្រែ
-                </div>
-                <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="padding: 14px 25px; background: #fff5f5; color: #ef4444; border: 1px solid #fca5a5; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s;" title="លុបចោលសំណើដែលអ្នកបានបញ្ជូន">
-                    <i class="fa-solid fa-trash-can"></i> ដកសំណើវិញ
-                </button>
-            </div>`;
-    } else {
-      isEditable = false;
-      canUpload = false;
-
-      // បង្ហាញប៊ូតុង Approve និង Reject សម្រាប់ Checker (អ្នកផ្សេង)
-      actionsHtml = `
-            <div style="display: flex; gap: 15px; width: 100%;">
-                <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="flex: 1; padding: 14px; background: #fff5f5; color: #ef4444; border: 1px solid #fca5a5; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-xmark"></i> បដិសេធ (Reject)
-                </button>
-                <button onclick="processC360KycAction('${user.username}', 'approved')" class="kh-text" style="flex: 1; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); display: flex; justify-content: center; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-check-circle"></i> អនុម័ត (Approve)
-                </button>
-            </div>`;
-    }
-  } else if (status === "approved" || status === "verified") {
-    statusBadge = `<div class="kh-text" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #6ee7b7;"><i class="fa-solid fa-circle-check"></i> អនុម័តរួចរាល់</div>`;
-    statusColor = "#10b981";
-    isEditable = false;
-    infoBoxHtml = `
-          <div style="background: #ecfdf5; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px solid #a7f3d0;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span style="color: #065f46;">អ្នកបញ្ជូន (Maker):</span>
-                  <span style="font-weight: bold; color: #064e3b;">${makerDisplay}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #065f46;">អនុម័តដោយ (Checker):</span>
-                  <span style="font-weight: bold; color: #064e3b;">${user.kycApprovedBy || "System"}</span>
-              </div>
-               <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                  <span style="color: #065f46;">កាលបរិច្ឆេទ (Date):</span>
-                  <span style="font-weight: bold; color: #064e3b;">${user.kycApprovedAt ? new Date(user.kycApprovedAt).toLocaleString() : kycSubmittedAt}</span>
-              </div>
-          </div>
-      `;
-    actionsHtml = `
-          <button onclick="c360PromptKycReject('${user.username}')" class="kh-text" style="width: 100%; padding: 14px; background: #ef4444; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2); display: flex; justify-content: center; align-items: center; gap: 8px;">
-              <i class="fa-solid fa-ban"></i> ដកហូតសិទ្ធិ (Revoke/Reject)
-          </button>`;
-  } else if (status === "rejected") {
-    statusBadge = `<div class="kh-text" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 6px 15px; border-radius: 8px; font-weight: bold; border: 1px solid #fca5a5;"><i class="fa-solid fa-circle-xmark"></i> ត្រូវបានបដិសេធ</div>`;
-    statusColor = "#ef4444";
-    canUpload = true;
-    infoBoxHtml = `
-          <div style="background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px dashed #f87171;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span style="color: #991b1b;">អ្នកបដិសេធ (Rejected By):</span>
-                  <span style="font-weight: bold; color: #7f1d1d;">${user.kycRejectedBy || "System"}</span>
-              </div>
-               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span style="color: #991b1b;">កាលបរិច្ឆេទ (Date):</span>
-                  <span style="font-weight: bold; color: #7f1d1d;">${user.kycRejectedAt ? new Date(user.kycRejectedAt).toLocaleString() : "N/A"}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; flex-direction: column;">
-                  <span style="color: #991b1b;">មូលហេតុ (Reason):</span>
-                  <span style="font-weight: bold; color: #7f1d1d; margin-top: 2px;">${kycRejectReason}</span>
-              </div>
-          </div>
-      `;
-  }
-
-  // 🟢 មុខងារចុចលើប្រអប់រូបភាព
-  const idClickAction = canUpload
-    ? `c360UploadSpecificKyc('idCard')`
-    : `c360ViewFullImage(document.getElementById('c360-img-id').src)`;
-  const selfieClickAction = canUpload
-    ? `c360UploadSpecificKyc('selfie')`
-    : `c360ViewFullImage(document.getElementById('c360-img-selfie').src)`;
-
-  // 🟢 រៀបចំរូបភាព
-  const idView = `
-      <div style="flex: 1; border-radius: 12px; overflow: hidden; border: ${canUpload && !imgUrl ? "2px dashed var(--secondary)" : "1px solid var(--border)"}; background: ${imgUrl ? "#000" : "rgba(16, 185, 129, 0.05)"}; position: relative; cursor: pointer; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s;" 
-           onclick="${idClickAction}" 
-           onmouseover="this.style.borderColor='var(--secondary)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.1)';" 
-           onmouseout="this.style.borderColor='${canUpload && !imgUrl ? "var(--secondary)" : "var(--border)"}'; this.style.boxShadow='none';">
-          
-          <img id="c360-img-id" src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain; display: ${imgUrl ? "block" : "none"}; opacity: 0.9; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
-          
-          <div id="c360-img-id-placeholder" style="display: ${imgUrl ? "none" : "flex"}; flex-direction: column; align-items: center; color: var(--secondary); font-family: 'Kantumruy Pro'; gap: 10px;">
-              <i class="fa-solid fa-id-card-clip" style="font-size: 3rem;"></i>
-              <span style="font-weight: bold; font-size: 1.1rem;">ចុចទីនេះដើម្បី Upload ID</span>
-          </div>
-
-          <div id="c360-lbl-id" style="display: ${imgUrl ? "block" : "none"}; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: white; font-size: 0.8rem; background: rgba(0,0,0,0.6); padding: 6px; font-family: 'Kantumruy Pro'; backdrop-filter: blur(2px);">
-              ${canUpload ? '<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប ID ថ្មី' : "អត្តសញ្ញាណប័ណ្ណ (ID Card)"}
-          </div>
-      </div>`;
-
-  const selfieView = `
-      <div style="flex: 1; border-radius: 12px; overflow: hidden; border: ${canUpload && !selfieUrl ? "2px dashed #3b82f6" : "1px solid var(--border)"}; background: ${selfieUrl ? "#000" : "rgba(59, 130, 246, 0.05)"}; position: relative; cursor: pointer; height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s;" 
-           onclick="${selfieClickAction}"
-           onmouseover="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.1)';" 
-           onmouseout="this.style.borderColor='${canUpload && !selfieUrl ? "#3b82f6" : "var(--border)"}'; this.style.boxShadow='none';">
-          
-          <img id="c360-img-selfie" src="${selfieUrl}" style="width: 100%; height: 100%; object-fit: cover; display: ${selfieUrl ? "block" : "none"}; opacity: 0.9; transition: 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
-          
-          <div id="c360-img-selfie-placeholder" style="display: ${selfieUrl ? "none" : "flex"}; flex-direction: column; align-items: center; color: #3b82f6; font-family: 'Kantumruy Pro'; gap: 10px;">
-              <i class="fa-solid fa-camera-retro" style="font-size: 3rem;"></i>
-              <span style="font-weight: bold; font-size: 1.1rem;">ចុចទីនេះដើម្បី Upload Selfie</span>
-          </div>
-
-          <div id="c360-lbl-selfie" style="display: ${selfieUrl ? "block" : "none"}; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: white; font-size: 0.8rem; background: rgba(0,0,0,0.6); padding: 6px; font-family: 'Kantumruy Pro'; backdrop-filter: blur(2px);">
-              ${canUpload ? '<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប Selfie ថ្មី' : "រូបថតផ្ទាល់ (Live Selfie)"}
-          </div>
-      </div>`;
-
-  let imagesHtml = `<div style="display: flex; gap: 15px; width: 100%;">${idView}${selfieView}</div>`;
-
-  // 🟢 ប្រអប់ទិន្នន័យ (Grid Boxes - Inline Edit)
-  const renderDataBox = (label, id, value, isEditableField) => {
-    const editIcon =
-      isEditable && isEditableField
-        ? `<i class="fa-solid fa-pen edit-icon" onclick="c360ToggleKycEdit('${id}')" style="position: absolute; right: 15px; top: 15px; color: #3b82f6; cursor: pointer; opacity: 0; transition: 0.2s; padding: 5px;" title="កែប្រែ"></i>`
-        : "";
-    const hoverClass = isEditable && isEditableField ? "editable-box" : "";
-
-    return `
-        <div class="c360-data-box ${hoverClass}" id="kyc-box-${id}" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; position: relative; min-height: 70px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s;">
-            <div id="kyc-view-${id}">
-                <span style="font-size: 0.75rem; color: #64748b; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: block; margin-bottom: 4px;">${label}</span>
-                <span id="kyc-val-${id}" style="font-size: 1.05rem; color: #0f172a; font-weight: 700; font-family: 'Inter', 'Kantumruy Pro', sans-serif;">${value || "N/A"}</span>
-                ${editIcon}
+        <div class="kyc-maker-lock-box">
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            <i class="fa-solid fa-user-lock" style="font-size: 1.4rem; color: #3b82f6; flex-shrink: 0;"></i>
+            <div>
+              <div style="font-weight: 800; font-size: 0.92rem;">គោលការណ៍ Maker-Checker៖ មិនអាចអនុម័តសំណើដែលអ្នកបានបញ្ជូនខ្លួនឯងបានទេ!</div>
+              <div style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">សូមរង់ចាំ Admin ផ្សេងទៀត (Checker) ជាអ្នកត្រួតពិនិត្យ និងអនុម័ត ឬអ្នកអាចចុចដកសំណើមកកែសម្រួលវិញបាន។</div>
             </div>
-            <div id="kyc-edit-${id}" style="display: none; width: 100%;">
-                <span style="font-size: 0.75rem; color: #3b82f6; font-weight: 700; font-family: 'Kantumruy Pro', sans-serif; display: block; margin-bottom: 4px;">កែប្រែ ${label}</span>
-                <input type="${id === "dob" ? "date" : "text"}" id="kyc-input-${id}" value="${value || ""}" style="width: 100%; padding: 8px 10px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 0.95rem; font-family: 'Inter', 'Kantumruy Pro', sans-serif; outline: none; box-sizing: border-box; margin-bottom: 8px;">
-                <div id="kyc-inline-actions-${id}" style="display: flex; gap: 8px;">
-                    <button onclick="c360SaveKycField('${id}')" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-check"></i> Save</button>
-                    <button onclick="c360CancelKycEdit('${id}')" style="flex: 1; background: #e2e8f0; color: #475569; border: none; padding: 6px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">Cancel</button>
-                </div>
-            </div>
+          </div>
+          <button type="button" onclick="c360WithdrawOwnKycRequest('${user.username}')" class="kyc-btn kyc-btn-withdraw">
+            <i class="fa-solid fa-rotate-left"></i> ដកសំណើមកកែវិញ
+          </button>
         </div>
       `;
+    } else {
+      // ✅ បើជា Admin ផ្សេង (Checker) ឬអតិថិជនបញ្ជូនខ្លួនឯង -> បង្ហាញប៊ូតុង បដិសេធ (Reject) និង អនុម័ត (Approve)
+      isEditable = true;
+      canUpload = false;
+      actionsHtml = `
+        <div class="kyc-action-btn-row">
+          <button type="button" onclick="c360PromptKycReject('${user.username}', 'reject')" class="kyc-btn kyc-btn-reject">
+            <i class="fa-solid fa-circle-xmark"></i> បដិសេធសំណើ (Reject & Clear ID)
+          </button>
+          <button type="button" onclick="processC360KycAction('${user.username}', 'approved')" class="kyc-btn kyc-btn-approve">
+            <i class="fa-solid fa-circle-check"></i> អនុម័តឯកសារ (Approve KYC)
+          </button>
+        </div>
+      `;
+    }
+  } else if (status === "approved" || status === "verified") {
+    statusBadge = `<div class="kyc-status-badge st-verified"><i class="fa-solid fa-circle-check"></i> បានអនុម័តរួចរាល់ (Verified)</div>`;
+    statusColor = "#10b981";
+    isEditable = false;
+    canUpload = false;
+
+    auditCardHtml = `
+      <div class="kyc-audit-banner banner-verified">
+        <div class="kyc-audit-grid">
+          <div>
+            <div class="kyc-audit-lbl">អ្នកបញ្ជូនឯកសារ (MAKER)</div>
+            <div>${makerBadgeHtml}</div>
+          </div>
+          <div>
+            <div class="kyc-audit-lbl">អនុម័តដោយ (CHECKER)</div>
+            <div class="kyc-audit-val"><i class="fa-solid fa-user-check" style="color:#10b981;"></i> @${user.kycApprovedBy || "System"}</div>
+          </div>
+          <div>
+            <div class="kyc-audit-lbl">កាលបរិច្ឆេទអនុម័ត (APPROVED AT)</div>
+            <div class="kyc-audit-val">${user.kycApprovedAt || kycSubmittedAt}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    actionsHtml = `
+      <button type="button" onclick="c360PromptKycReject('${user.username}', 'revoke')" class="kyc-btn kyc-btn-reject" style="width: 100%;">
+        <i class="fa-solid fa-ban"></i> ដកហូតសិទ្ធិ KYC ឡើងវិញ និងលុបលេខអត្តសញ្ញាណប័ណ្ណ (Revoke Verification)
+      </button>
+    `;
+  } else if (status === "rejected") {
+    statusBadge = `<div class="kyc-status-badge st-rejected"><i class="fa-solid fa-circle-xmark"></i> ត្រូវបានបដិសេធ (Rejected)</div>`;
+    statusColor = "#ef4444";
+    isEditable = true;
+    canUpload = true;
+
+    auditCardHtml = `
+      <div class="kyc-audit-banner banner-rejected">
+        <div class="kyc-audit-grid" style="margin-bottom: 10px;">
+          <div>
+            <div class="kyc-audit-lbl">បដិសេធដោយ (REJECTED BY)</div>
+            <div class="kyc-audit-val">@${user.kycRejectedBy || "System"}</div>
+          </div>
+          <div>
+            <div class="kyc-audit-lbl">កាលបរិច្ឆេទបដិសេធ (REJECTED AT)</div>
+            <div class="kyc-audit-val">${user.kycRejectedAt || "N/A"}</div>
+          </div>
+        </div>
+        <div class="kyc-reject-reason-box">
+          <span style="font-size: 0.75rem; font-weight: 800; color: #ef4444;">មូលហេតុបដិសេធ (REJECT REASON)៖</span>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-top: 3px;">"${kycRejectReason}"</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 🚨 ៤. ប្រអប់បង្ហាញគណនីស្ទួនលេខអត្តសញ្ញាណប័ណ្ណ (លាក់ចោលទាំងស្រុង បើមិនមានគណនីស្ទួនទេ!)
+  let duplicateIdSectionHtml = "";
+  if (hasRealDuplicateId) {
+    const linkedBadges = sameIdAccounts
+      .map((acc) => {
+        const isCurrent = acc.username === user.username;
+        return `
+          <span onclick="${isCurrent ? "" : `document.getElementById('searchC360').value='${acc.username}'; searchCustomer360();`}"
+                class="kyc-dup-acc-chip ${isCurrent ? "current-acc" : ""}"
+                title="${isCurrent ? "គណនីកំពុងមើលបច្ចុប្បន្ន" : "ចុចដើម្បីលោតទៅមើលគណនីនេះ"}">
+            <i class="fa-solid fa-user"></i> ${(acc.fullName || acc.username).toUpperCase()} (@${acc.username})
+            ${isCurrent ? '<span style="opacity:0.8;">• បច្ចុប្បន្ន</span>' : '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;"></i>'}
+          </span>
+        `;
+      })
+      .join("");
+
+    duplicateIdSectionHtml = `
+      <div class="kyc-dup-alert-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 240px;">
+            <div class="kyc-dup-title">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>ប្រុងប្រយ័ត្ន៖ លេខអត្តសញ្ញាណប័ណ្ណ (${user.idNumber}) ត្រូវបានប្រើប្រាស់ស្ទួនចំនួន ${sameIdAccounts.length} គណនី!</span>
+            </div>
+            <div class="kyc-dup-reason-line">
+              <b>មូលហេតុរួមគ្នា៖</b>
+              <span id="kyc-dup-reason-display" class="kyc-dup-reason-val">
+                ${user.duplicateIdReason || "មិនទាន់បានបញ្ជាក់មូលហេតុ"}
+              </span>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+              <span style="font-size: 0.76rem; font-weight: 800; opacity: 0.85;">គណនីពាក់ព័ន្ធទាំងអស់៖</span>
+              ${linkedBadges}
+            </div>
+          </div>
+
+          <button type="button" onclick="c360EditDuplicateIdReasonModal()" class="kyc-btn kyc-btn-dup-edit">
+            <i class="fa-solid fa-pen-to-square"></i> កែប្រែមូលហេតុរួមគ្នា
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // 🖼️ ៥. ប្រអប់រូបភាព ID Card និង Live Selfie
+  const renderImageCard = (type, title, url, accentColor, iconClass) => {
+    const isId = type === "idCard";
+    const imgDomId = isId ? "c360-img-id" : "c360-img-selfie";
+    const holderDomId = isId
+      ? "c360-img-id-placeholder"
+      : "c360-img-selfie-placeholder";
+    const zoomBtnId = isId ? "c360-zoom-btn-id" : "c360-zoom-btn-selfie";
+
+    return `
+      <div class="kyc-img-card">
+        <div class="kyc-img-card-header">
+          <span class="kyc-img-card-title">
+            <i class="fa-solid ${iconClass}" style="color: ${accentColor};"></i> ${title}
+          </span>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" id="${zoomBtnId}" onclick="c360ViewFullImage(document.getElementById('${imgDomId}').src, '${title}')" class="kyc-mini-btn kyc-mini-btn-view" style="display: ${url ? "inline-flex" : "none"};">
+              <i class="fa-solid fa-magnifying-glass-plus"></i> ពង្រីកមើលរូប
+            </button>
+            ${
+              canUpload
+                ? `<button type="button" onclick="c360UploadSpecificKyc('${type}')" class="kyc-mini-btn" style="background: ${accentColor}; color: #ffffff; border: none;">
+                     <i class="fa-solid fa-cloud-arrow-up"></i> ${url ? "ប្តូររូបថ្មី" : "Upload រូប"}
+                   </button>`
+                : ""
+            }
+          </div>
+        </div>
+
+        <div class="kyc-img-viewport"
+             onclick="${url ? `c360ViewFullImage(document.getElementById('${imgDomId}').src, '${title}')` : canUpload ? `c360UploadSpecificKyc('${type}')` : ""}">
+          <img id="${imgDomId}" src="${url}" style="display: ${url ? "block" : "none"};" alt="${title}">
+          <div id="${holderDomId}" class="kyc-img-placeholder" style="display: ${url ? "none" : "flex"};">
+            <i class="fa-solid ${iconClass}" style="font-size: 2.8rem; color: ${accentColor}; opacity: 0.55;"></i>
+            <span style="font-weight: 800; font-size: 0.92rem;">មិនទាន់មានរូបភាព</span>
+            ${canUpload ? `<span style="font-size: 0.78rem; color: ${accentColor}; font-weight: 700;">ចុចទីនេះដើម្បីជ្រើសរើសរូបភាព</span>` : ""}
+          </div>
+        </div>
+      </div>
+    `;
   };
 
-  const html = `
-    <style>
-        .editable-box:hover { border-color: #cbd5e1 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .editable-box:hover .edit-icon { opacity: 1 !important; }
-        .editable-box .edit-icon:hover { color: #2563eb !important; transform: scale(1.1); }
-    </style>
-    
-    <!-- Hidden inputs ទុកផ្ទុក URL ថ្មីបណ្តោះអាសន្ន -->
-    <input type="hidden" id="c360-temp-id" value="">
-    <input type="hidden" id="c360-temp-selfie" value="">
+  // 📝 ៦. ប្រអប់ទិន្នន័យអត្តសញ្ញាណ (Full Name ជាអក្សរធំ UPPERCASE ជានិច្ច)
+  const renderDataBox = (label, id, value) => {
+    const displayVal =
+      id === "fullName" && value ? String(value).toUpperCase() : value || "N/A";
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 15px;">
-        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-family: 'Kantumruy Pro'; font-weight: 800;">
-            <i class="fa-solid fa-id-card-clip" style="color: ${statusColor};"></i> ឯកសារ (KYC & Identity)
+    const editIcon = isEditable
+      ? `<i class="fa-solid fa-pen edit-icon" onclick="c360ToggleKycEdit('${id}')" title="កែប្រែ"></i>`
+      : "";
+    const hoverClass = isEditable ? "editable-box" : "";
+
+    let inputControlHtml = `
+      <input type="${id === "dob" ? "date" : "text"}"
+             id="kyc-input-${id}"
+             class="kyc-inline-input"
+             value="${id === "fullName" && value ? String(value).toUpperCase() : value || ""}"
+             ${id === "fullName" ? `oninput="this.value = this.value.toUpperCase()"` : ""}>
+    `;
+
+    if (id === "gender") {
+      inputControlHtml = `
+        <select id="kyc-input-gender" class="kyc-inline-input">
+          <option value="" ${!value ? "selected" : ""}>-- ជ្រើសរើសភេទ --</option>
+          <option value="Male" ${value === "Male" || value === "ប្រុស" ? "selected" : ""}>ប្រុស (Male)</option>
+          <option value="Female" ${value === "Female" || value === "ស្រី" ? "selected" : ""}>ស្រី (Female)</option>
+        </select>
+      `;
+    }
+
+    return `
+      <div class="kyc-field-box ${hoverClass}" id="kyc-box-${id}">
+        <div id="kyc-view-${id}">
+          <span class="kyc-field-lbl">${label}</span>
+          <span id="kyc-val-${id}" class="kyc-field-val" style="${id === "fullName" ? "text-transform: uppercase;" : ""}">${displayVal}</span>
+          ${editIcon}
+        </div>
+        <div id="kyc-edit-${id}" style="display: none; width: 100%;">
+          <span class="kyc-field-lbl" style="color: #3b82f6;">កែប្រែ ${label}</span>
+          ${inputControlHtml}
+          <div id="kyc-inline-actions-${id}" style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="button" onclick="c360SaveKycField('${id}')" class="kyc-btn-inline-save"><i class="fa-solid fa-check"></i> រក្សាទុក</button>
+            <button type="button" onclick="c360CancelKycEdit('${id}')" class="kyc-btn-inline-cancel">បោះបង់</button>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  container.innerHTML = `
+    <style>
+      .c360-kyc-scope, .c360-kyc-scope button, .c360-kyc-scope input, .c360-kyc-scope select,
+      .c360-kyc-swal, .c360-kyc-swal button, .c360-kyc-swal input, .c360-kyc-swal select, .c360-kyc-swal .swal2-title, .c360-kyc-swal .swal2-html-container {
+        font-family: 'Kantumruy Pro', 'Inter', sans-serif !important;
+      }
+
+      /* Status Badges */
+      .kyc-status-badge {
+        padding: 7px 16px;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .kyc-status-badge.st-unverified { background: rgba(148, 163, 184, 0.15); color: var(--text-muted, #64748b); border: 1px solid rgba(148, 163, 184, 0.3); }
+      .kyc-status-badge.st-pending { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); }
+      .kyc-status-badge.st-verified { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); }
+      .kyc-status-badge.st-rejected { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); }
+
+      /* Role Pills */
+      .kyc-role-pill {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .kyc-role-pill.pill-customer { background: rgba(2, 132, 199, 0.15); color: #38bdf8; }
+      .kyc-role-pill.pill-maker { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
+      .kyc-role-pill.pill-other-admin { background: rgba(126, 34, 206, 0.16); color: #c084fc; }
+      body:not(.dark-mode) .kyc-role-pill.pill-customer { background: #e0f2fe; color: #0284c7; }
+      body:not(.dark-mode) .kyc-role-pill.pill-maker { background: #dbeafe; color: #1d4ed8; }
+      body:not(.dark-mode) .kyc-role-pill.pill-other-admin { background: #f3e8ff; color: #7e22ce; }
+
+      /* Audit Banner (Supports Light & Dark Mode) */
+      .kyc-audit-banner {
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 18px;
+        border: 1px solid var(--border, #e2e8f0);
+        background: var(--bg-body, #f8fafc);
+      }
+      .kyc-audit-banner.banner-pending { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.35); }
+      .kyc-audit-banner.banner-verified { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.35); }
+      .kyc-audit-banner.banner-rejected { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.35); }
+      .kyc-banner-icon {
+        width: 42px; height: 42px; border-radius: 10px;
+        background: rgba(148, 163, 184, 0.15); color: var(--text-main);
+        display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+      }
+      .kyc-banner-title { font-weight: 800; color: var(--text-main); font-size: 0.95rem; }
+      .kyc-banner-sub { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+      .kyc-audit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .kyc-audit-lbl { font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+      .kyc-audit-val { font-weight: 800; color: var(--text-main); font-size: 0.9rem; }
+      .kyc-reject-reason-box {
+        background: var(--bg-card, #ffffff);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 10px 14px;
+        border-radius: 10px;
+        color: var(--text-main);
+      }
+
+      /* Image Cards */
+      .kyc-images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        width: 100%;
+      }
+      .kyc-img-card {
+        background: var(--bg-card, #ffffff);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .kyc-img-card-header {
+        padding: 11px 15px;
+        background: var(--bg-body, #f8fafc);
+        border-bottom: 1px solid var(--border, #e2e8f0);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .kyc-img-card-title {
+        font-weight: 800;
+        font-size: 0.84rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .kyc-mini-btn {
+        padding: 5px 11px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+      }
+      .kyc-mini-btn-view {
+        background: var(--bg-card, #ffffff);
+        color: var(--text-main);
+        border: 1px solid var(--border, #cbd5e1);
+      }
+      .kyc-mini-btn:hover { transform: translateY(-1px); }
+      .kyc-img-viewport {
+        height: 290px;
+        background: #0f172a;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        overflow: hidden;
+      }
+      .kyc-img-viewport img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: transform 0.25s ease;
+      }
+      .kyc-img-viewport:hover img { transform: scale(1.02); }
+      .kyc-img-placeholder {
+        width: 100%;
+        height: 100%;
+        background: var(--bg-body, #f8fafc);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        gap: 10px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      /* Extracted Data Boxes */
+      .kyc-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .kyc-field-box {
+        background: var(--bg-body, #f8fafc);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 12px;
+        padding: 15px;
+        position: relative;
+        min-height: 74px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      .kyc-field-box.editable-box:hover {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+      }
+      .kyc-field-box .edit-icon {
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        color: #3b82f6;
+        cursor: pointer;
+        opacity: 0;
+        transition: 0.2s;
+        padding: 5px;
+      }
+      .kyc-field-box.editable-box:hover .edit-icon { opacity: 1; }
+      .kyc-field-lbl {
+        font-size: 0.74rem;
+        color: var(--text-muted, #64748b);
+        font-weight: 700;
+        display: block;
+        margin-bottom: 4px;
+      }
+      .kyc-field-val {
+        font-size: 1.04rem;
+        color: var(--text-main, #0f172a);
+        font-weight: 800;
+        word-break: break-word;
+      }
+      .kyc-inline-input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 2px solid #3b82f6;
+        border-radius: 8px;
+        font-size: 0.94rem;
+        background: var(--bg-card, #ffffff);
+        color: var(--text-main, #0f172a);
+        font-weight: 700;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .kyc-btn-inline-save {
+        flex: 1; background: #10b981; color: white; border: none; padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
+      }
+      .kyc-btn-inline-cancel {
+        flex: 1; background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); padding: 7px; border-radius: 7px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
+      }
+
+      /* Duplicate ID Alert Card */
+      .kyc-dup-alert-card {
+        background: rgba(249, 115, 22, 0.08);
+        border: 1px solid rgba(249, 115, 22, 0.4);
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-top: 18px;
+        color: var(--text-main);
+      }
+      .kyc-dup-title {
+        font-weight: 800;
+        font-size: 0.94rem;
+        color: #f97316;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .kyc-dup-reason-line {
+        font-size: 0.86rem;
+        color: var(--text-main);
+        margin-top: 6px;
+      }
+      .kyc-dup-reason-val {
+        font-weight: 800;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        padding: 2px 9px;
+        border-radius: 6px;
+        margin-left: 4px;
+      }
+      .kyc-dup-acc-chip {
+        background: var(--bg-card);
+        color: var(--text-main);
+        border: 1px solid var(--border);
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+      }
+      .kyc-dup-acc-chip:hover:not(.current-acc) {
+        border-color: #3b82f6;
+        color: #3b82f6;
+      }
+      .kyc-dup-acc-chip.current-acc {
+        background: #0f172a;
+        color: #fef08a;
+        border-color: #0f172a;
+        cursor: default;
+      }
+
+      /* Action Buttons */
+      .kyc-maker-lock-box {
+        background: rgba(59, 130, 246, 0.08);
+        border: 1px dashed rgba(59, 130, 246, 0.45);
+        border-radius: 14px;
+        padding: 15px 18px;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        width: 100%;
+      }
+      .kyc-action-btn-row {
+        display: flex;
+        gap: 14px;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      .kyc-btn {
+        padding: 13px 20px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.96rem;
+        cursor: pointer;
+        transition: 0.2s;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+      .kyc-btn:hover { transform: translateY(-1px); }
+      .kyc-btn-approve {
+        flex: 1.5;
+        min-width: 220px;
+        background: linear-gradient(135deg, #059669, #10b981);
+        color: #ffffff;
+        border: none;
+        box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
+      }
+      .kyc-btn-reject {
+        flex: 1;
+        min-width: 200px;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+      }
+      .kyc-btn-withdraw {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        background: rgba(225, 29, 72, 0.12);
+        color: #f43f5e;
+        border: 1px solid rgba(225, 29, 72, 0.35);
+        white-space: nowrap;
+      }
+      .kyc-btn-dup-edit {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+        background: var(--bg-card);
+        color: #f97316;
+        border: 1px solid rgba(249, 115, 22, 0.45);
+        flex-shrink: 0;
+      }
+    </style>
+
+    <div class="c360-kyc-scope">
+      <input type="hidden" id="c360-temp-id" value="">
+      <input type="hidden" id="c360-temp-selfie" value="">
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-main); font-weight: 800; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-id-card-clip" style="color: ${statusColor};"></i> ឯកសារបញ្ជាក់អត្តសញ្ញាណ (KYC & Identity)
         </h2>
         ${statusBadge}
-    </div>
+      </div>
 
-    ${infoBoxHtml}
+      ${auditCardHtml}
 
-    <!-- 🖼️ ផ្នែករូបភាព (ចុចលើប្រអប់ផ្ទាល់) -->
-    ${imagesHtml}
+      <!-- 🖼️ រូបភាពទាំង ២ (ID Card & Selfie) -->
+      <div class="kyc-images-grid">
+        ${renderImageCard("idCard", "១. អត្តសញ្ញាណប័ណ្ណ ឬលិខិតឆ្លងដែន (ID / Passport)", imgUrl, "#0d9488", "fa-id-card")}
+        ${renderImageCard("selfie", "២. រូបថតផ្ទាល់របស់អតិថិជន (Live Selfie)", selfieUrl, "#2563eb", "fa-camera-retro")}
+      </div>
 
-    <!-- 📝 ផ្នែកទិន្នន័យ OCR -->
-    <h4 class="kh-text" style="margin: 25px 0 15px 0; color: var(--text-main); border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
-        <i class="fa-solid fa-file-lines"></i> ទិន្នន័យអត្តសញ្ញាណ (Extracted Data)
-    </h4>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        ${renderDataBox("ឈ្មោះពេញ (FULL NAME)", "fullName", user.fullName, true)}
-        ${renderDataBox("លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)", "idNumber", user.idNumber, true)}
-        ${renderDataBox("ថ្ងៃខែឆ្នាំកំណើត (DOB)", "dob", user.dob, true)}
-        ${renderDataBox("ភេទ (GENDER)", "gender", user.gender, true)}
-    </div>
+      <!-- 📝 ទិន្នន័យអត្តសញ្ញាណ (OCR Extracted Data) -->
+      <h4 style="margin: 22px 0 12px 0; color: var(--text-main); font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-file-Waveform" style="color: #0d9488;"></i> ទិន្នន័យអត្តសញ្ញាណរបស់អតិថិជន (Identity Information)
+      </h4>
 
-    <!-- 🛠️ ប៊ូតុង Submit & Cancel (លេចឡើងពេលកំពុង Draft Upload រូបថ្មី) -->
-    <div id="kyc-draft-actions" style="display: none; gap: 15px; width: 100%; margin-top: 30px;">
-        <button onclick="c360CancelKycDraft()" class="kh-text" style="flex: 1; padding: 14px; background: #e2e8f0; color: #475569; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s;">
-            បោះបង់ (Cancel)
+      <div class="kyc-fields-grid">
+        ${renderDataBox("ឈ្មោះពេញលើអត្តសញ្ញាណប័ណ្ណ (FULL NAME)", "fullName", user.fullName)}
+        ${renderDataBox("លេខអត្តសញ្ញាណប័ណ្ណ (ID NUMBER)", "idNumber", user.idNumber)}
+        ${renderDataBox("ថ្ងៃខែឆ្នាំកំណើត (DATE OF BIRTH)", "dob", user.dob)}
+        ${renderDataBox("ភេទ (GENDER)", "gender", user.gender)}
+      </div>
+
+      ${duplicateIdSectionHtml}
+
+      <!-- 🛠️ ប៊ូតុងពេលកំពុង Draft Upload រូបថ្មី -->
+      <div id="kyc-draft-actions" style="display: none; gap: 14px; width: 100%; margin-top: 25px; flex-wrap: wrap;">
+        <button type="button" onclick="c360CancelKycDraft()" class="kyc-btn" style="flex: 1; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border);">
+          បោះបង់ការកែប្រែ (Cancel)
         </button>
-        <button onclick="c360SubmitKycDraft()" class="kh-text" style="flex: 2; padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);">
-            <i class="fa-solid fa-paper-plane"></i> បញ្ជូនសំណើ KYC ថ្មី
+        <button type="button" onclick="c360SubmitKycDraft()" class="kyc-btn" style="flex: 2; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+          <i class="fa-solid fa-paper-plane"></i> រក្សាទុក និងបញ្ជូនសំណើ KYC ថ្មី
         </button>
-    </div>
+      </div>
 
-    <!-- 🛠️ ផ្នែកប៊ូតុងអនុម័ត/បដិសេធដើម ឬ ប៊ូតុងរបស់ Maker -->
-    <div id="kyc-default-actions" style="display: flex; gap: 15px; width: 100%; margin-top: 30px;">
+      <!-- 🛠️ ប៊ូតុងសកម្មភាពតាមសិទ្ធិ Maker-Checker -->
+      <div id="kyc-default-actions" style="display: flex; gap: 15px; width: 100%; margin-top: 25px;">
         ${actionsHtml}
+      </div>
     </div>
   `;
-
-  container.innerHTML = html;
 }
 
 // =======================================================
-// 🟢 មុខងារកែប្រែទិន្នន័យ KYC (Inline Edit)
+// 🟢 ៤. មុខងារកែប្រែទិន្នន័យ KYC (Inline Edit + Uppercase Name + ឆែក ID ស្ទួន)
 // =======================================================
 window.c360ToggleKycEdit = function (id) {
   document.getElementById(`kyc-view-${id}`).style.display = "none";
   document.getElementById(`kyc-edit-${id}`).style.display = "block";
   document.getElementById(`kyc-box-${id}`).classList.remove("editable-box");
+  const inp = document.getElementById(`kyc-input-${id}`);
+  if (inp) inp.focus();
 };
 
 window.c360CancelKycEdit = function (id) {
   document.getElementById(`kyc-edit-${id}`).style.display = "none";
   document.getElementById(`kyc-view-${id}`).style.display = "block";
   document.getElementById(`kyc-box-${id}`).classList.add("editable-box");
-  document.getElementById(`kyc-input-${id}`).value = currentC360User[id] || "";
+  const val = currentC360User[id] || "";
+  document.getElementById(`kyc-input-${id}`).value =
+    id === "fullName" ? String(val).toUpperCase() : val;
 };
 
+// 🔍 ពិនិត្យថាតើលេខ ID ថ្មីមានជាន់ជាមួយគណនីផ្សេងឬអត់ បើជាន់តម្រូវឱ្យបញ្ចូលមូលហេតុភ្លាម
+async function c360CheckAndPromptDuplicateIdReason(newIdNumber) {
+  const cleanId = String(newIdNumber || "").trim();
+  if (!cleanId || cleanId === "N/A") return { ok: true, reason: "" };
+
+  const others = (globalUsersData || []).filter(
+    (u) =>
+      u.username !== currentC360User.username &&
+      String(u.idNumber || "").trim() === cleanId,
+  );
+
+  let existsOnServer = others.length > 0;
+  if (!existsOnServer) {
+    try {
+      const r = await fetch("/api/check-id-number", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idNumber: cleanId }),
+      });
+      const d = await r.json();
+      if (d.exists && cleanId !== currentC360User.idNumber) {
+        existsOnServer = true;
+      }
+    } catch (e) {}
+  }
+
+  if (!existsOnServer) return { ok: true, reason: "" };
+
+  const existingReason =
+    currentC360User.duplicateIdReason ||
+    others.find((u) => u.duplicateIdReason)?.duplicateIdReason ||
+    "";
+
+  const otherNames = others
+    .map((u) => `${(u.fullName || u.username).toUpperCase()} (@${u.username})`)
+    .join(", ");
+
+  const { value: dupReason, isConfirmed } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="color:#ea580c; font-size:1.2rem;"><i class="fa-solid fa-triangle-exclamation"></i> លេខអត្តសញ្ញាណប័ណ្ណស្ទួនក្នុងប្រព័ន្ធ!</span>',
+    html: `
+      <div style="text-align:left; font-family:'Kantumruy Pro',sans-serif; font-size:0.9rem; line-height:1.5;">
+        លេខអត្តសញ្ញាណប័ណ្ណ <b style="font-family:monospace;">${cleanId}</b> ត្រូវបានប្រើប្រាស់រួចហើយ${otherNames ? `ដោយគណនី៖ <b>${otherNames}</b>` : ""}។<br><br>
+        សូមបញ្ជាក់មូលហេតុនៃការបង្កើត/ប្រើប្រាស់អត្តសញ្ញាណប័ណ្ណស្ទួននេះ (ប្រព័ន្ធនឹងកត់ត្រាមូលហេតុនេះចូលគ្រប់គណនីទាំងអស់ដែលមានលេខ ID នេះដូចគ្នា)៖
+      </div>
+      <input id="swal-dup-id-reason" class="swal2-input kh-text" value="${existingReason}" placeholder="ឧ. គណនីសម្រាប់អាជីវកម្មទី២ / គណនីគ្រួសារ..." style="width:100%; margin:12px 0 0; box-sizing:border-box; font-size:0.92rem;">
+    `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText:
+      '<span class="kh-text">បញ្ជាក់ និងរក្សាទុករួមគ្នា</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ea580c",
+    customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+    preConfirm: () => {
+      const val = document.getElementById("swal-dup-id-reason").value.trim();
+      if (!val) {
+        Swal.showValidationMessage(
+          "សូមវាយបញ្ចូលមូលហេតុនៃការប្រើអត្តសញ្ញាណប័ណ្ណស្ទួន!",
+        );
+        return false;
+      }
+      return val;
+    },
+  });
+
+  if (!isConfirmed) return { ok: false };
+  return { ok: true, reason: dupReason };
+}
+
 window.c360SaveKycField = async function (id) {
-  const newVal = document.getElementById(`kyc-input-${id}`).value.trim();
-  if (!newVal && id !== "gender")
+  let newVal = document.getElementById(`kyc-input-${id}`).value.trim();
+  if (id === "fullName") newVal = newVal.toUpperCase();
+
+  if (!newVal && id !== "gender") {
     return Swal.fire({
       toast: true,
       position: "top",
       icon: "warning",
-      title: "សូមបញ្ជូលទិន្នន័យ!",
+      title: "សូមបញ្ចូលទិន្នន័យ!",
       showConfirmButton: false,
       timer: 1500,
     });
+  }
+
+  let duplicateIdReasonToSend = undefined;
+  if (id === "idNumber") {
+    const checkDup = await c360CheckAndPromptDuplicateIdReason(newVal);
+    if (!checkDup.ok) return;
+    duplicateIdReasonToSend = checkDup.reason || "";
+  }
 
   Swal.fire({
     title: "កំពុងរក្សាទុក...",
@@ -4062,6 +4648,9 @@ window.c360SaveKycField = async function (id) {
       username: currentC360User.username,
     };
     bodyData[id] = newVal;
+    if (duplicateIdReasonToSend !== undefined) {
+      bodyData.duplicateIdReason = duplicateIdReasonToSend;
+    }
 
     const res = await fetch("/api/admin/edit-user", {
       method: "POST",
@@ -4071,12 +4660,10 @@ window.c360SaveKycField = async function (id) {
     const data = await res.json();
 
     if (data.success) {
-      currentC360User[id] = newVal;
-      document.getElementById(`kyc-val-${id}`).innerText = newVal;
-      c360CancelKycEdit(id);
+      await c360RefreshData();
       Swal.fire({
         icon: "success",
-        title: "បានរក្សាទុក!",
+        title: "បានរក្សាទុកទិន្នន័យ!",
         toast: true,
         position: "top-end",
         timer: 1500,
@@ -4090,29 +4677,121 @@ window.c360SaveKycField = async function (id) {
       icon: "error",
       title: "បរាជ័យ",
       text: e.message || "បញ្ហា Server",
-      customClass: { popup: "premium-swal kh-text" },
+      customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
     });
   }
 };
 
+// កែប្រែមូលហេតុប្រើអត្តសញ្ញាណប័ណ្ណស្ទួនរួមគ្នាគ្រប់គណនី
+window.c360EditDuplicateIdReasonModal = async function () {
+  if (!currentC360User.idNumber || currentC360User.idNumber === "N/A") return;
+
+  const { value: newReason } = await Swal.fire({
+    title:
+      '<span class="kh-text" style="font-size:1.2rem; color:#ea580c;"><i class="fa-solid fa-link"></i> កែប្រែមូលហេតុប្រើអត្តសញ្ញាណប័ណ្ណរួមគ្នា</span>',
+    html: `
+      <p class="kh-text" style="font-size:0.88rem; text-align:left; line-height:1.5;">
+        មូលហេតុដែលអ្នកបញ្ចូលនៅទីនេះ នឹងត្រូវបានកត់ត្រាចូលក្នុង <b>គ្រប់គណនីទាំងអស់</b> ដែលកំពុងប្រើប្រាស់លេខអត្តសញ្ញាណប័ណ្ណ <b>${currentC360User.idNumber}</b> ដូចគ្នា៖
+      </p>
+      <input id="swal-global-dup-reason" class="swal2-input kh-text" value="${currentC360User.duplicateIdReason || ""}" placeholder="បញ្ចូលមូលហេតុ..." style="width:100%; margin:8px 0 0; box-sizing:border-box;">
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">រក្សាទុកគ្រប់គណនី</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#ea580c",
+    customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+    preConfirm: () =>
+      document.getElementById("swal-global-dup-reason").value.trim(),
+  });
+
+  if (newReason !== undefined) {
+    Swal.fire({
+      title: "កំពុងធ្វើបច្ចុប្បន្នភាពគ្រប់គណនី...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      const res = await fetch("/api/admin/edit-user", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          id: currentC360User._id || currentC360User.id,
+          username: currentC360User.username,
+          idNumber: currentC360User.idNumber,
+          duplicateIdReason: newReason,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (typeof globalUsersData !== "undefined") {
+          globalUsersData.forEach((u) => {
+            if (
+              String(u.idNumber || "").trim() ===
+              String(currentC360User.idNumber).trim()
+            ) {
+              u.duplicateIdReason = newReason;
+            }
+          });
+        }
+        await c360RefreshData();
+        Swal.fire({
+          icon: "success",
+          title: "ជោគជ័យ!",
+          text: "មូលហេតុត្រូវបានធ្វើបច្ចុប្បន្នភាពទៅគ្រប់គណនីដែលមានលេខ ID ដូចគ្នាទាំងអស់!",
+          timer: 1800,
+          showConfirmButton: false,
+          customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+        });
+      }
+    } catch (e) {
+      Swal.fire("Error", "មានបញ្ហា Server", "error");
+    }
+  }
+};
+
 // =======================================================
-// 🟢 មុខងារអនុម័ត និងបដិសេធ (Approve & Reject with Reason)
+// 🟢 ៥. មុខងារដកសំណើវិញ (សម្រាប់ Maker) និង អនុម័ត/បដិសេធ (សម្រាប់ Checker)
 // =======================================================
-window.c360PromptKycReject = async function (username) {
+window.c360WithdrawOwnKycRequest = async function (username) {
   const { value: reason } = await Swal.fire({
     title:
-      '<span class="kh-text" style="font-size: 1.3rem; color: #ef4444;">បញ្ជាក់ការបដិសេធ ឬដកសំណើ?</span>',
+      '<span class="kh-text" style="font-size: 1.2rem; color: #e11d48;">ដកសំណើ KYC មកកែប្រែវិញ?</span>',
+    input: "text",
+    inputValue: "ដកសំណើដោយអ្នកបញ្ជូន (Maker) ដើម្បីកែសម្រួលឯកសារឡើងវិញ",
+    showCancelButton: true,
+    confirmButtonText: '<span class="kh-text">យល់ព្រមដកសំណើ</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
+    confirmButtonColor: "#e11d48",
+    customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+  });
+
+  if (reason) {
+    await processC360KycAction(username, "withdraw", reason);
+  }
+};
+
+window.c360PromptKycReject = async function (username, mode = "reject") {
+  const isRevoke = mode === "revoke";
+  const { value: reason } = await Swal.fire({
+    title: `<span class="kh-text" style="font-size: 1.22rem; color: #ef4444;">${isRevoke ? "បញ្ជាក់ការដកហូតសិទ្ធិ KYC?" : "បញ្ជាក់ការបដិសេធសំណើ KYC?"}</span>`,
     html: `
-            <p class="kh-text" style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px;">សូមបញ្ជាក់មូលហេតុ (ឧទាហរណ៍៖ រូបភាពព្រិល, ឯកសារផុតកំណត់...)</p>
-            <input id="swal-reject-reason" class="swal2-input kh-text" placeholder="វាយបញ្ចូលមូលហេតុទីនេះ..." style="font-size: 1rem; padding: 10px; border-radius: 8px;">
-        `,
+      <p class="kh-text" style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px; text-align: left; line-height: 1.5;">
+        ការបដិសេធនេះនឹង <b>លុបរូបភាព KYC និងលុបលេខអត្តសញ្ញាណប័ណ្ណចេញពីគណនីនេះ</b> ដើម្បីឱ្យអតិថិជន ឬ Admin អាចបញ្ជូនឯកសារថ្មីម្ដងទៀតបាន។ សូមបញ្ជាក់មូលហេតុ៖
+      </p>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <span onclick="document.getElementById('swal-reject-reason').value='រូបថតអត្តសញ្ញាណប័ណ្ណព្រិល ឬចាំងពន្លឺមើលមិនច្បាស់'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">រូបថតព្រិល/ចាំងពន្លឺ</span>
+        <span onclick="document.getElementById('swal-reject-reason').value='រូបថត Selfie មិនត្រូវគ្នាជាមួយរូបលើអត្តសញ្ញាណប័ណ្ណ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ខុសមុខមាត់ Selfie</span>
+        <span onclick="document.getElementById('swal-reject-reason').value='ឯកសារអត្តសញ្ញាណប័ណ្ណផុតសុពលភាព ឬមិនត្រឹមត្រូវ'" style="font-size:0.75rem; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:4px 10px; border-radius:16px; cursor:pointer; font-weight:700;">ឯកសារផុតកំណត់</span>
+      </div>
+      <input id="swal-reject-reason" class="swal2-input kh-text" placeholder="វាយបញ្ចូលមូលហេតុទីនេះ..." style="width:100%; margin:0; box-sizing:border-box; font-size: 0.95rem; padding: 10px; border-radius: 10px;">
+    `,
     icon: "warning",
     showCancelButton: true,
-    confirmButtonText: "យល់ព្រម",
-    cancelButtonText: "បោះបង់",
+    confirmButtonText: '<span class="kh-text">យល់ព្រមបដិសេធ & លុប ID</span>',
+    cancelButtonText: '<span class="kh-text">បោះបង់</span>',
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#64748b",
-    customClass: { popup: "modal-radius kh-text" },
+    customClass: { popup: "modal-radius kh-text c360-kyc-swal" },
     preConfirm: () => {
       const val = document.getElementById("swal-reject-reason").value.trim();
       if (!val) Swal.showValidationMessage("អ្នកត្រូវតែបញ្ចូលមូលហេតុ!");
@@ -4121,7 +4800,7 @@ window.c360PromptKycReject = async function (username) {
   });
 
   if (reason) {
-    processC360KycAction(username, "rejected", reason);
+    processC360KycAction(username, isRevoke ? "revoke" : "rejected", reason);
   }
 };
 
@@ -4133,15 +4812,15 @@ window.processC360KycAction = async function (
   if (action === "approved") {
     const confirm = await Swal.fire({
       title:
-        '<span class="kh-text" style="font-size: 1.3rem; color: #10b981;">អនុម័ត KYC?</span>',
-      text: "តើអ្នកប្រាកដថាឯកសារនេះត្រឹមត្រូវ ១០០% ហើយមែនទេ?",
+        '<span class="kh-text" style="font-size: 1.25rem; color: #10b981;">អនុម័តឯកសារ KYC នេះ?</span>',
+      text: "តើអ្នកបានពិនិត្យផ្ទៀងផ្ទាត់រូបភាព និងទិន្នន័យអត្តសញ្ញាណប័ណ្ណត្រឹមត្រូវ ១០០% ហើយមែនទេ?",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "បាទ/ចាស អនុម័ត",
-      cancelButtonText: "ពិនិត្យម្តងទៀត",
+      confirmButtonText: '<span class="kh-text">បាទ/ចាស អនុម័តឥឡូវនេះ</span>',
+      cancelButtonText: '<span class="kh-text">ពិនិត្យម្តងទៀត</span>',
       confirmButtonColor: "#10b981",
       cancelButtonColor: "#64748b",
-      customClass: { popup: "modal-radius kh-text" },
+      customClass: { popup: "modal-radius kh-text c360-kyc-swal" },
     });
     if (!confirm.isConfirmed) return;
   }
@@ -4150,7 +4829,7 @@ window.processC360KycAction = async function (
     title: "កំពុងដំណើរការ...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
-    customClass: { popup: "premium-swal kh-text" },
+    customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
   });
 
   try {
@@ -4163,34 +4842,22 @@ window.processC360KycAction = async function (
     const data = await res.json();
 
     if (data.success) {
+      await c360RefreshData();
       Swal.fire({
         icon: "success",
         title: "ជោគជ័យ!",
-        text: `ទិន្នន័យត្រូវបានធ្វើបច្ចុប្បន្នភាព។`,
-        timer: 1500,
+        text: data.message || "ទិន្នន័យ KYC ត្រូវបានធ្វើបច្ចុប្បន្នភាព។",
+        timer: 1600,
         showConfirmButton: false,
-        customClass: { popup: "premium-swal kh-text" },
+        customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
       });
-      c360RefreshData();
-
-      if (action === "rejected") {
-        setTimeout(() => {
-          Swal.fire({
-            title: "សូមចំណាំ!",
-            text: `សូមទំនាក់ទំនងទៅកាន់អតិថិជន ដើម្បីប្រាប់ពីមូលហេតុ: "${rejectReason}"`,
-            icon: "info",
-            confirmButtonText: "យល់ព្រម",
-            confirmButtonColor: "#3b82f6",
-            customClass: { popup: "premium-swal kh-text" },
-          });
-        }, 1600);
-      }
     } else {
-      Swal.fire(
-        "បរាជ័យ",
-        data.message || "មានបញ្ហាក្នុងការធ្វើបច្ចុប្បន្នភាព",
-        "error",
-      );
+      Swal.fire({
+        icon: "error",
+        title: "បរាជ័យ",
+        text: data.message || "មានបញ្ហាក្នុងការធ្វើបច្ចុប្បន្នភាព",
+        customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+      });
     }
   } catch (e) {
     Swal.fire("Error", "បញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
@@ -4198,7 +4865,7 @@ window.processC360KycAction = async function (
 };
 
 // =======================================================
-// 🟢 មុខងារ Upload រូបថតថ្មីដោយ Admin (ប្រព័ន្ធ Draft & OCR)
+// 🟢 ៦. មុខងារ Upload រូបថតថ្មីដោយ Admin (Clear ទិន្នន័យចាស់ភ្លាមៗពេល Upload រូបថ្មី + AI OCR)
 // =======================================================
 window.c360UploadSpecificKyc = function (type) {
   const fileInput = document.createElement("input");
@@ -4208,11 +4875,25 @@ window.c360UploadSpecificKyc = function (type) {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 🧹 ប្រសិនបើ Upload រូបអត្តសញ្ញាណប័ណ្ណថ្មី ត្រូវ Clear ទិន្នន័យចាស់ទាំងអស់ចេញភ្លាម ត្រៀមចាប់ទិន្នន័យថ្មី!
+    if (type === "idCard") {
+      ["fullName", "idNumber", "dob", "gender"].forEach((f) => {
+        const valEl = document.getElementById(`kyc-val-${f}`);
+        if (valEl) valEl.innerText = "កំពុងអានទិន្នន័យថ្មី...";
+        const inpEl = document.getElementById(`kyc-input-${f}`);
+        if (inpEl) inpEl.value = "";
+        document.getElementById(`kyc-view-${f}`).style.display = "none";
+        document.getElementById(`kyc-edit-${f}`).style.display = "block";
+        const inlineAct = document.getElementById(`kyc-inline-actions-${f}`);
+        if (inlineAct) inlineAct.style.display = "none";
+      });
+    }
+
     Swal.fire({
-      title: "កំពុងដំណើរការ...",
+      title: "កំពុងបង្ហោះរូបភាព...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
-      customClass: { popup: "premium-swal kh-text" },
+      customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
     });
 
     const formData = new FormData();
@@ -4221,7 +4902,7 @@ window.c360UploadSpecificKyc = function (type) {
 
     try {
       const cloudRes = await fetch(
-        `https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload`,
+        "https://api.cloudinary.com/v1_1/jp9yg3dj/image/upload",
         { method: "POST", body: formData },
       );
       const cloudData = await cloudRes.json();
@@ -4230,11 +4911,20 @@ window.c360UploadSpecificKyc = function (type) {
         const url = cloudData.secure_url;
 
         if (type === "idCard") {
+          const idImg = document.getElementById("c360-img-id");
+          idImg.src = url;
+          idImg.style.display = "block";
+          const idHolder = document.getElementById("c360-img-id-placeholder");
+          if (idHolder) idHolder.style.display = "none";
+          const zoomBtn = document.getElementById("c360-zoom-btn-id");
+          if (zoomBtn) zoomBtn.style.display = "inline-flex";
+          document.getElementById("c360-temp-id").value = url;
+
           Swal.fire({
-            title: "កំពុងអានទិន្នន័យ AI...",
+            title: "កំពុងអានទិន្នន័យ MRZ ដោយ AI...",
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading(),
-            customClass: { popup: "premium-swal kh-text" },
+            customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
           });
 
           const ocrRes = await fetch("/api/scan-id-card", {
@@ -4245,68 +4935,48 @@ window.c360UploadSpecificKyc = function (type) {
           const ocrData = await ocrRes.json();
 
           if (ocrData.success) {
-            document.getElementById("kyc-input-fullName").value =
-              ocrData.data.fullName || "";
-            document.getElementById("kyc-input-idNumber").value =
-              ocrData.data.idNumber || "";
+            const scannedId =
+              ocrData.data.idNumber || ocrData.data.passportNumber || "";
+            const scannedName = String(
+              ocrData.data.fullName || "",
+            ).toUpperCase();
+
+            document.getElementById("kyc-input-fullName").value = scannedName;
+            document.getElementById("kyc-input-idNumber").value = scannedId;
             document.getElementById("kyc-input-dob").value =
               ocrData.data.dob || "";
             document.getElementById("kyc-input-gender").value =
-              ocrData.data.gender || "";
+              ocrData.data.gender || "Male";
 
-            ["fullName", "idNumber", "dob", "gender"].forEach((f) => {
-              document.getElementById(`kyc-view-${f}`).style.display = "none";
-              document.getElementById(`kyc-edit-${f}`).style.display = "block";
-              const inlineActions = document.getElementById(
-                `kyc-inline-actions-${f}`,
-              );
-              if (inlineActions) inlineActions.style.display = "none";
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "AI អានទិន្នន័យអត្តសញ្ញាណប័ណ្ណជោគជ័យ!",
+              showConfirmButton: false,
+              timer: 1800,
+              customClass: { popup: "kh-text" },
             });
-
-            const idImg = document.getElementById("c360-img-id");
-            idImg.src = url;
-            idImg.style.display = "block";
-            idImg.parentElement.style.background = "#000";
-            idImg.parentElement.style.border = "1px solid var(--border)";
-            idImg.parentElement.style.borderStyle = "solid";
-
-            const idHolder = document.getElementById("c360-img-id-placeholder");
-            if (idHolder) idHolder.style.display = "none";
-
-            const idLabel = document.getElementById("c360-lbl-id");
-            if (idLabel) {
-              idLabel.style.display = "block";
-              idLabel.innerHTML = `<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប ID ថ្មី`;
-            }
-
-            document.getElementById("c360-temp-id").value = url;
-            Swal.close();
           } else {
-            Swal.fire(
-              "បរាជ័យ",
-              ocrData.message || "AI មិនអាចអានអត្តសញ្ញាណប័ណ្ណបានទេ!",
-              "error",
-            );
-            return;
+            Swal.fire({
+              icon: "warning",
+              title: "AI អានមិនច្បាស់",
+              text:
+                ocrData.message ||
+                "មិនអាចអានខ្សែអក្សរ MRZ បានទេ សូមវាយបញ្ចូលទិន្នន័យថ្មីដោយដៃ ឬថតរូបថ្មីឱ្យច្បាស់។",
+              customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
+            });
           }
         } else {
           const selfieImg = document.getElementById("c360-img-selfie");
           selfieImg.src = url;
           selfieImg.style.display = "block";
-          selfieImg.parentElement.style.background = "#000";
-          selfieImg.parentElement.style.border = "1px solid var(--border)";
-          selfieImg.parentElement.style.borderStyle = "solid";
-
           const selfieHolder = document.getElementById(
             "c360-img-selfie-placeholder",
           );
           if (selfieHolder) selfieHolder.style.display = "none";
-
-          const selfieLabel = document.getElementById("c360-lbl-selfie");
-          if (selfieLabel) {
-            selfieLabel.style.display = "block";
-            selfieLabel.innerHTML = `<i class="fa-solid fa-pen"></i> ចុចដើម្បីប្តូររូប Selfie ថ្មី`;
-          }
+          const zoomBtn = document.getElementById("c360-zoom-btn-selfie");
+          if (zoomBtn) zoomBtn.style.display = "inline-flex";
 
           document.getElementById("c360-temp-selfie").value = url;
           Swal.close();
@@ -4329,7 +4999,10 @@ window.c360CancelKycDraft = function () {
 };
 
 window.c360SubmitKycDraft = async function () {
-  const fullName = document.getElementById("kyc-input-fullName").value.trim();
+  const fullName = document
+    .getElementById("kyc-input-fullName")
+    .value.trim()
+    .toUpperCase();
   const idNumber = document.getElementById("kyc-input-idNumber").value.trim();
   const dob = document.getElementById("kyc-input-dob").value;
   const gender = document.getElementById("kyc-input-gender").value;
@@ -4341,31 +5014,40 @@ window.c360SubmitKycDraft = async function () {
     return Swal.fire({
       icon: "warning",
       title: "សូមបំពេញចន្លោះ",
-      text: "ទិន្នន័យអត្តសញ្ញាណមិនទាន់គ្រប់គ្រាន់ទេ!",
-      customClass: { popup: "premium-swal kh-text" },
+      text: "ទិន្នន័យអត្តសញ្ញាណ (ឈ្មោះពេញ, លេខ ID, ថ្ងៃកំណើត, ភេទ) មិនទាន់គ្រប់គ្រាន់ទេ!",
+      customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
     });
   }
 
+  // 🔍 ពិនិត្យលេខអត្តសញ្ញាណប័ណ្ណស្ទួនមុនពេលរក្សាទុក
+  const dupCheck = await c360CheckAndPromptDuplicateIdReason(idNumber);
+  if (!dupCheck.ok) return;
+
   Swal.fire({
-    title: "កំពុងបញ្ជូនសំណើ...",
+    title: "កំពុងបញ្ជូនសំណើ KYC...",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
-    customClass: { popup: "premium-swal kh-text" },
+    customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
   });
 
   try {
-    const editRes = await fetch("/api/admin/edit-user", {
+    const editPayload = {
+      id: currentC360User._id || currentC360User.id,
+      username: currentC360User.username,
+      fullName,
+      idNumber,
+      dob,
+      gender,
+      duplicateIdReason: dupCheck.reason || "",
+    };
+
+    await fetch("/api/admin/edit-user", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({
-        id: currentC360User._id || currentC360User.id,
-        username: currentC360User.username,
-        fullName,
-        idNumber,
-        dob,
-        gender,
-      }),
+      body: JSON.stringify(editPayload),
     });
+
+    const activeAdmin = c360GetActiveAdminIdentity().username || "Admin";
 
     if (tempIdUrl) {
       await fetch("/api/admin/upload-specific-kyc", {
@@ -4375,8 +5057,7 @@ window.c360SubmitKycDraft = async function () {
           username: currentC360User.username,
           type: "idCard",
           url: tempIdUrl,
-          adminName:
-            document.getElementById("adminNameDisplay")?.innerText || "Admin",
+          adminName: activeAdmin,
         }),
       });
     }
@@ -4388,41 +5069,49 @@ window.c360SubmitKycDraft = async function () {
           username: currentC360User.username,
           type: "selfie",
           url: tempSelfieUrl,
-          adminName:
-            document.getElementById("adminNameDisplay")?.innerText || "Admin",
+          adminName: activeAdmin,
         }),
       });
     }
 
+    await c360RefreshData();
     Swal.fire({
       icon: "success",
-      title: "ជោគជ័យ!",
-      text: "សំណើ KYC ត្រូវបានបញ្ជូន។",
-      timer: 2000,
+      title: "បានបញ្ជូនសំណើ KYC!",
+      text: "ឯកសារត្រូវបានរក្សាទុកក្នុងស្ថានភាព Pending រង់ចាំ Admin ផ្សេងទៀត (Checker) ត្រួតពិនិត្យ និងអនុម័ត។",
+      timer: 2200,
       showConfirmButton: false,
-      customClass: { popup: "premium-swal kh-text" },
+      customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
     });
-    c360RefreshData();
   } catch (e) {
     Swal.fire({
       icon: "error",
       title: "បរាជ័យ",
       text: "មានបញ្ហាភ្ជាប់ទៅកាន់ Server",
-      customClass: { popup: "premium-swal kh-text" },
+      customClass: { popup: "premium-swal kh-text c360-kyc-swal" },
     });
   }
 };
 
-window.c360ViewFullImage = function (url) {
+// =======================================================
+// 🖼️ ៧. ផ្ទាំងពង្រីកមើលរូបភាពធំល្មមស្អាត (Pro HD Lightbox Viewer)
+// =======================================================
+window.c360ViewFullImage = function (url, title = "រូបភាពឯកសារ KYC") {
   if (!url || url === "" || url.includes("none")) return;
   Swal.fire({
-    imageUrl: url,
-    imageAlt: "KYC Document",
-    width: "80%",
+    title: `<span class="kh-text" style="font-size: 1.05rem; color: #f8fafc;">${title}</span>`,
+    html: `
+      <div style="display: flex; align-items: center; justify-content: center; background: #090d16; border-radius: 14px; padding: 12px; border: 1px solid rgba(255,255,255,0.12); overflow: hidden;">
+        <img src="${url}" alt="KYC Preview" style="width: 100%; max-width: 620px; min-height: 320px; max-height: 72vh; object-fit: contain; border-radius: 10px; display: block;">
+      </div>
+    `,
+    width: "680px",
+    padding: "16px",
+    background: "#1e293b",
+    backdrop: "rgba(15, 23, 42, 0.88)",
     showConfirmButton: false,
     showCloseButton: true,
-    background: "transparent",
-    backdrop: "rgba(0,0,0,0.9)",
+    customClass: { popup: "modal-radius c360-kyc-swal" },
   });
 };
 

@@ -5061,60 +5061,458 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៧ ] Merchant Management -->
+      <!-- [ ផ្ទាំង ០៧ ] Merchant Management (100% Pro Redesign) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchants"
+        class="gm-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .gm-font-scope,
+          .gm-font-scope button,
+          .gm-font-scope input,
+          .gm-font-scope select,
+          .gm-font-scope th,
+          .gm-font-scope td,
+          #sec-merchant-history,
+          #sec-merchant-history button,
+          #sec-merchant-history input,
+          #sec-merchant-history select,
+          #sec-merchant-credentials,
+          #sec-merchant-credentials button {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .gm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .gm-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .gm-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .gm-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.04);
+          }
+          .gm-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .gm-kpi-val {
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.15;
+          }
+          .gm-kpi-sub {
+            font-size: 0.78rem;
+            font-weight: 800;
+            font-family: "JetBrains Mono", monospace !important;
+            margin-top: 2px;
+          }
+          .gm-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .gm-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .gm-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .gm-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .gm-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .gm-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. ប៊ូតុងសកម្មភាពក្នុងតារាង */
+          .gm-btn-act {
+            padding: 7px 11px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+          }
+          .gm-btn-act:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
-            <h2 class="dash-title" data-i18n="merchant-title">
-              Merchant Management
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-store"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span
+                >មជ្ឈមណ្ឌលគ្រប់គ្រងអាជីវកម្ម និងហាងទំនិញ (Merchant Hub)</span
+              >
             </h2>
-            <p class="dash-desc" data-i18n="merchant-desc">
-              Manage business accounts, approve shops, and monitor activities.
+            <p class="dash-desc" style="margin: 0">
+              ត្រួតពិនិត្យហាងទំនិញ ចំណូលការលក់ ប្រតិបត្តិការជាប់ Hold, QR Stand
+              និង API Credentials ទូទាំងប្រព័ន្ធ។
             </p>
           </div>
-          <div class="search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input
-              type="text"
-              id="searchMerchantBox"
-              placeholder="Search by shop name..."
-              onkeyup="filterMerchants()"
-            />
+
+          <div style="display: flex; align-items: center; gap: 10px">
+            <button
+              onclick="gmOpenCreateShopForAnyUserModal()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.85rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+              "
+            >
+              <i class="fa-solid fa-plus-circle"></i> ចុះឈ្មោះហាងថ្មីជូនអតិថិជន
+            </button>
+
+            <button
+              onclick="gmRefreshAllMerchants()"
+              title="ទាញទិន្នន័យហាងថ្មី"
+              style="
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                color: #10b981;
+                width: 42px;
+                height: 42px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: 0.2s;
+                flex-shrink: 0;
+              "
+            >
+              <i
+                class="fa-solid fa-rotate-right"
+                id="gm-refresh-spin-icon"
+                style="font-size: 1rem"
+              ></i>
+            </button>
           </div>
         </div>
-        <div class="table-container">
-          <table id="merchantTable">
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="gm-kpi-grid">
+          <div
+            class="gm-kpi-card active-kpi"
+            id="gm-kpi-ALL"
+            onclick="gmSetFilter('ALL')"
+          >
+            <div>
+              <div class="gm-kpi-title">ហាងសរុបទាំងអស់ (TOTAL SHOPS)</div>
+              <div class="gm-kpi-val" id="gm-stat-total">0</div>
+            </div>
+            <div
+              class="gm-kpi-icon"
+              style="background: #eff6ff; color: #2563eb"
+            >
+              <i class="fa-solid fa-shop"></i>
+            </div>
+          </div>
+
+          <div
+            class="gm-kpi-card"
+            id="gm-kpi-ACTIVE"
+            onclick="gmSetFilter('ACTIVE')"
+          >
+            <div>
+              <div class="gm-kpi-title">កំពុងដំណើរការ (ACTIVE)</div>
+              <div
+                class="gm-kpi-val"
+                id="gm-stat-active"
+                style="color: #059669"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="gm-kpi-icon"
+              style="background: #dcfce7; color: #059669"
+            >
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+
+          <div
+            class="gm-kpi-card"
+            id="gm-kpi-REVENUE"
+            onclick="gmSetFilter('ALL')"
+          >
+            <div>
+              <div class="gm-kpi-title">ចំណូលហាងសរុប (COLLECTED)</div>
+              <div
+                class="gm-kpi-val"
+                id="gm-stat-rev-usd"
+                style="color: #0d9488; font-size: 1.25rem"
+              >
+                $0.00
+              </div>
+              <div
+                class="gm-kpi-sub"
+                id="gm-stat-rev-khr"
+                style="color: #047857"
+              >
+                0 ៛
+              </div>
+            </div>
+            <div
+              class="gm-kpi-icon"
+              style="background: #ccfbf1; color: #0f766e"
+            >
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+          </div>
+
+          <div
+            class="gm-kpi-card"
+            id="gm-kpi-HOLD"
+            onclick="gmSetFilter('HOLD')"
+          >
+            <div>
+              <div class="gm-kpi-title">ទឹកប្រាក់ជាប់ HOLD (ESCROW)</div>
+              <div
+                class="gm-kpi-val"
+                id="gm-stat-hold-usd"
+                style="color: #d97706; font-size: 1.25rem"
+              >
+                $0.00
+              </div>
+              <div
+                class="gm-kpi-sub"
+                id="gm-stat-hold-khr"
+                style="color: #b45309"
+              >
+                0 ៛
+              </div>
+            </div>
+            <div
+              class="gm-kpi-icon"
+              style="background: #fef9c3; color: #d97706"
+            >
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+          </div>
+
+          <div
+            class="gm-kpi-card"
+            id="gm-kpi-SUSPENDED"
+            onclick="gmSetFilter('SUSPENDED')"
+          >
+            <div>
+              <div class="gm-kpi-title">ហាងត្រូវបានផ្អាក (SUSPENDED)</div>
+              <div
+                class="gm-kpi-val"
+                id="gm-stat-suspended"
+                style="color: #ef4444"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="gm-kpi-icon"
+              style="background: #fee2e2; color: #ef4444"
+            >
+              <i class="fa-solid fa-store-slash"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+        <div class="gm-toolbar">
+          <div class="gm-pill-group">
+            <button
+              type="button"
+              class="gm-filter-pill active"
+              data-filter="ALL"
+              onclick="gmSetFilter('ALL')"
+            >
+              ទាំងអស់
+            </button>
+            <button
+              type="button"
+              class="gm-filter-pill"
+              data-filter="ACTIVE"
+              onclick="gmSetFilter('ACTIVE')"
+            >
+              <i class="fa-solid fa-circle-check"></i> កំពុងដំណើរការ
+            </button>
+            <button
+              type="button"
+              class="gm-filter-pill"
+              data-filter="HOLD"
+              onclick="gmSetFilter('HOLD')"
+            >
+              <i class="fa-solid fa-clock"></i> មានទឹកប្រាក់ជាប់ Hold
+            </button>
+            <button
+              type="button"
+              class="gm-filter-pill"
+              data-filter="SUSPENDED"
+              onclick="gmSetFilter('SUSPENDED')"
+            >
+              <i class="fa-solid fa-ban"></i> បានផ្អាក (Suspended)
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              min-width: 260px;
+              max-width: 400px;
+            "
+          >
+            <div class="search-box" style="margin: 0; width: 100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchMerchantBox"
+                placeholder="ស្វែងរកឈ្មោះហាង, MID, ម្ចាស់ហាង, លេខគណនី, ខេត្ត/ក្រុង..."
+                oninput="filterMerchants()"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងបង្ហាញហាងទំនិញទូទាំងប្រព័ន្ធ -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table
+            id="merchantTable"
+            style="width: 100%; border-collapse: collapse"
+          >
             <thead>
               <tr>
-                <th data-i18n="shop-info">Shop / Merchant Info</th>
-                <th data-i18n="owner-info">Owner / Account</th>
-                <th data-i18n="merchant-balance">Balance</th>
-                <th data-i18n="status-freeze">Status / Freeze</th>
-                <th style="text-align: right" data-i18n="actions">Actions</th>
+                <th>ព័ត៌មានហាងទំនិញ (Shop Info)</th>
+                <th>ម្ចាស់អាជីវកម្ម (Owner)</th>
+                <th>គណនីទទួលប្រាក់ & QR Account</th>
+                <th>ចំណូលសរុប & ជាប់ Hold</th>
+                <th>ស្ថានភាពហាង</th>
+                <th style="text-align: right">សកម្មភាពគ្រប់គ្រង</th>
               </tr>
             </thead>
             <tbody id="merchantTableBody">
               <tr>
                 <td
-                  colspan="5"
+                  colspan="6"
                   style="
                     text-align: center;
-                    padding: 20px;
+                    padding: 35px;
                     color: var(--text-muted);
                   "
                 >
-                  Loading merchants data...
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកទិន្នន័យហាងទំនិញ...
                 </td>
               </tr>
             </tbody>
@@ -5123,38 +5521,97 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៨ ] Merchant History -->
+      <!-- [ ផ្ទាំង ០៨ ] Merchant History (Upgraded with Approve & Refund) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchant-history"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 12px"
+        >
+          <div style="display: flex; align-items: center; gap: 12px">
+            <button
+              class="btn-cancel"
+              style="
+                padding: 10px 16px;
+                border-radius: 10px;
+                font-weight: 800;
+                cursor: pointer;
+              "
+              onclick="closeMerchantSubViews()"
+            >
+              <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅបញ្ជីហាង
+            </button>
+            <div>
+              <h2
+                class="dash-title"
+                id="gmHistoryShopTitle"
+                style="margin: 0; font-size: 1.25rem"
+              >
+                ប្រវត្តិប្រតិបត្តិការហាង
+              </h2>
+              <p
+                class="dash-desc"
+                id="gmHistoryShopSub"
+                style="margin: 2px 0 0; font-size: 0.82rem"
+              >
+                ពិនិត្យប្រតិបត្តិការទូទាត់ចូលហាង អនុម័តទម្លាក់ប្រាក់ (Approve
+                Hold) ឬបង្វិលប្រាក់សងអតិថិជន (Refund)
+              </p>
+            </div>
+          </div>
+
           <button
-            class="btn-cancel"
-            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
-            onclick="closeMerchantSubViews()"
+            onclick="
+              if (currentViewedMerchantId)
+                viewMerchantTrx(currentViewedMerchantId);
+            "
+            style="
+              background: #f0fdfa;
+              border: 1px solid #99f6e4;
+              color: #0f766e;
+              padding: 9px 16px;
+              border-radius: 10px;
+              font-weight: 800;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+            "
           >
-            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+            <i class="fa-solid fa-rotate-right"></i> ទាញប្រវត្តិថ្មី
           </button>
-          <h2 class="dash-title">ប្រវត្តិប្រតិបត្តិការហាង</h2>
         </div>
-        <div class="table-container">
-          <table id="merchantTrxTable">
+
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table
+            id="merchantTrxTable"
+            style="width: 100%; border-collapse: collapse"
+          >
             <thead>
               <tr>
                 <th>កាលបរិច្ឆេទ</th>
-                <th>Ref ID</th>
-                <th>អតិថិជន</th>
-                <th>ទឹកប្រាក់</th>
+                <th>លេខយោង (Ref ID)</th>
+                <th>អតិថិជនទូទាត់ (Customer)</th>
+                <th>ចំនួនទឹកប្រាក់</th>
                 <th>ស្ថានភាព</th>
+                <th style="text-align: right">សកម្មភាព (Approve / Refund)</th>
               </tr>
             </thead>
             <tbody id="merchantTrxBody"></tbody>
@@ -5162,16 +5619,18 @@
         </div>
       </div>
 
-      <!-- 🔥 [ ផ្ទាំង ០៨.៥ ] Merchant Credentials 🔥 -->
+      <!-- ------------------------------------------------------- -->
+      <!-- [ ផ្ទាំង ០៨.៥ ] Merchant Credentials -->
+      <!-- ------------------------------------------------------- -->
       <div
         id="sec-merchant-credentials"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
         <div
@@ -5180,19 +5639,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
           "
         >
-          <!-- 🟢 កែ onclick នៅទីនេះ -->
           <button
             class="btn-cancel"
-            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+            style="
+              padding: 10px 16px;
+              border-radius: 10px;
+              font-weight: 800;
+              cursor: pointer;
+            "
             onclick="closeMerchantSubViews()"
           >
-            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+            <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅបញ្ជីហាង
           </button>
 
           <div style="display: flex; align-items: center; gap: 15px">
-            <!-- Logo របស់ U-PAY ជំនួស Logo Excel -->
             <img
               src="../images/logo-nobg.png"
               alt="U-PAY"
@@ -5201,22 +5666,31 @@
                 border-right: 2px solid #cbd5e1;
                 padding-right: 15px;
               "
+              onerror="this.style.display = 'none'"
             />
             <h2
               class="dash-title"
               id="credShopTitle"
-              style="margin: 0; color: #004d40"
+              style="margin: 0; color: #004d40; font-size: 1.25rem"
             >
-              MERCHANT INFORMATION
+              ព័ត៌មានសម្ងាត់ហាង (MERCHANT CREDENTIALS)
             </h2>
           </div>
 
           <button
             class="btn-primary"
             onclick="downloadCredentialPDF()"
-            style="background: #004d40; border-radius: 8px"
+            style="
+              background: linear-gradient(135deg, #004d40, #0d9488);
+              border-radius: 10px;
+              padding: 10px 18px;
+              font-weight: 800;
+              border: none;
+              color: white;
+              cursor: pointer;
+            "
           >
-            <i class="fa-solid fa-file-pdf"></i> ទាញយក PDF
+            <i class="fa-solid fa-file-pdf"></i> ទាញយករបាយការណ៍ PDF
           </button>
         </div>
 
@@ -5225,7 +5699,7 @@
           style="
             background: #fff;
             padding: 0;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
             border: 1px solid #cbd5e1;
           "
@@ -5242,38 +5716,36 @@
               <tr>
                 <th
                   style="
-                    padding: 12px 15px;
+                    padding: 13px 18px;
                     border: 1px solid #004d40;
-                    font-weight: 600;
+                    font-weight: 700;
                   "
                 >
-                  Field
+                  ចំណុចព័ត៌មាន (Field)
                 </th>
                 <th
                   style="
-                    padding: 12px 15px;
+                    padding: 13px 18px;
                     border: 1px solid #004d40;
-                    font-weight: 600;
+                    font-weight: 700;
                   "
                 >
-                  Value
+                  តម្លៃទិន្នន័យ (Value)
                 </th>
                 <th
                   style="
-                    padding: 12px 15px;
+                    padding: 13px 18px;
                     border: 1px solid #004d40;
-                    font-weight: 600;
+                    font-weight: 700;
                     text-align: center;
-                    width: 120px;
+                    width: 140px;
                   "
                 >
-                  Show in PDF
+                  បង្ហាញក្នុង PDF
                 </th>
               </tr>
             </thead>
-            <tbody id="credTableBody">
-              <!-- ទិន្នន័យនឹងត្រូវ Generate ដោយ JS -->
-            </tbody>
+            <tbody id="credTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -6115,109 +6587,519 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១៣ ] KYC Approvals -->
+      <!-- [ ផ្ទាំង ១៣ ] KYC Approvals (100% Pro Redesign) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-kyc"
+        class="gkyc-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <!-- ផ្ទាំងតារាងបញ្ជី (List View) -->
+        <style>
+          .gkyc-font-scope,
+          .gkyc-font-scope button,
+          .gkyc-font-scope input,
+          .gkyc-font-scope select,
+          .gkyc-font-scope th,
+          .gkyc-font-scope td {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .gkyc-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .gkyc-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .gkyc-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .gkyc-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .gkyc-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .gkyc-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .gkyc-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .gkyc-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .gkyc-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .gkyc-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .gkyc-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .gkyc-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. Mini Thumbnails ក្នុងតារាង */
+          .gkyc-doc-thumb-pair {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .gkyc-thumb-id {
+            width: 68px;
+            height: 44px;
+            border-radius: 7px;
+            object-fit: cover;
+            border: 1px solid var(--border, #cbd5e1);
+            background: #0f172a;
+            cursor: pointer;
+            transition: transform 0.2s;
+          }
+          .gkyc-thumb-selfie {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #0d9488;
+            background: #0f172a;
+            cursor: pointer;
+            transition: transform 0.2s;
+          }
+          .gkyc-thumb-id:hover,
+          .gkyc-thumb-selfie:hover {
+            transform: scale(1.12);
+          }
+
+          .gkyc-btn-act {
+            padding: 7px 12px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+          }
+          .gkyc-btn-act:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ======================================================= -->
+        <!-- 📋 ផ្នែកទី ១៖ ផ្ទាំងតារាងបញ្ជីត្រួតពិនិត្យ (KYC List View) -->
+        <!-- ======================================================= -->
         <div id="kyc-list-view">
-          <div class="table-header-controls">
+          <!-- ក្បាលទំព័រ (Header) -->
+          <div
+            class="table-header-controls"
+            style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+          >
             <div>
-              <h2 class="dash-title" data-i18n="kyc-approvals">
-                KYC & Identity Approvals
+              <h2
+                class="dash-title"
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 4px;
+                "
+              >
+                <i
+                  class="fa-solid fa-id-card-clip"
+                  style="color: var(--secondary, #10b981)"
+                ></i>
+                <span
+                  >មជ្ឈមណ្ឌលត្រួតពិនិត្យ និងអនុម័តអត្តសញ្ញាណ (KYC Compliance
+                  Hub)</span
+                >
               </h2>
-              <p class="dash-desc" data-i18n="review-pending-documents">
-                Review pending user documents.
+              <p class="dash-desc" style="margin: 0">
+                ពិនិត្យផ្ទៀងផ្ទាត់ឯកសារអត្តសញ្ញាណប័ណ្ណ រូបថត Selfie តាមគោលការណ៍
+                Maker-Checker និងគ្រប់គ្រងអត្តសញ្ញាណប័ណ្ណស្ទួន។
               </p>
             </div>
-            <!-- ប្រអប់ Search -->
-            <div class="search-box" style="margin: 0">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input
-                type="text"
-                id="searchKycBox"
-                placeholder="ស្វែងរកតាម ឈ្មោះ, អ៊ីមែល, លេខកាត..."
-                onkeyup="filterKycTable()"
-              />
+
+            <div style="display: flex; align-items: center; gap: 10px">
+              <button
+                onclick="gkycRefreshAllData()"
+                title="ទាញទិន្នន័យ KYC ថ្មី"
+                style="
+                  background: rgba(16, 185, 129, 0.1);
+                  border: 1px solid rgba(16, 185, 129, 0.3);
+                  color: #10b981;
+                  padding: 10px 16px;
+                  border-radius: 12px;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  font-weight: 800;
+                  font-size: 0.84rem;
+                  transition: 0.2s;
+                "
+              >
+                <i
+                  class="fa-solid fa-rotate-right"
+                  id="gkyc-refresh-spin-icon"
+                ></i>
+                <span>ធ្វើបច្ចុប្បន្នភាព</span>
+              </button>
             </div>
           </div>
 
-          <div class="table-container">
-            <table>
+          <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+          <div class="gkyc-kpi-grid">
+            <div
+              class="gkyc-kpi-card active-kpi"
+              id="gkyc-kpi-PENDING"
+              onclick="gkycSetStatusFilter('PENDING')"
+            >
+              <div>
+                <div class="gkyc-kpi-title">រង់ចាំអនុម័ត (PENDING REVIEW)</div>
+                <div
+                  class="gkyc-kpi-val"
+                  id="gkyc-stat-pending"
+                  style="color: #d97706"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="gkyc-kpi-icon"
+                style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+              >
+                <i class="fa-solid fa-hourglass-half"></i>
+              </div>
+            </div>
+
+            <div
+              class="gkyc-kpi-card"
+              id="gkyc-kpi-VERIFIED"
+              onclick="gkycSetStatusFilter('VERIFIED')"
+            >
+              <div>
+                <div class="gkyc-kpi-title">បានអនុម័តរួច (VERIFIED)</div>
+                <div
+                  class="gkyc-kpi-val"
+                  id="gkyc-stat-verified"
+                  style="color: #10b981"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="gkyc-kpi-icon"
+                style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+              >
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+            </div>
+
+            <div
+              class="gkyc-kpi-card"
+              id="gkyc-kpi-REJECTED"
+              onclick="gkycSetStatusFilter('REJECTED')"
+            >
+              <div>
+                <div class="gkyc-kpi-title">ត្រូវបានបដិសេធ (REJECTED)</div>
+                <div
+                  class="gkyc-kpi-val"
+                  id="gkyc-stat-rejected"
+                  style="color: #ef4444"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="gkyc-kpi-icon"
+                style="background: rgba(239, 68, 68, 0.15); color: #ef4444"
+              >
+                <i class="fa-solid fa-circle-xmark"></i>
+              </div>
+            </div>
+
+            <div
+              class="gkyc-kpi-card"
+              id="gkyc-kpi-DUPLICATE"
+              onclick="gkycSetStatusFilter('DUPLICATE')"
+            >
+              <div>
+                <div class="gkyc-kpi-title">
+                  អត្តសញ្ញាណប័ណ្ណស្ទួន (DUPLICATE ID)
+                </div>
+                <div
+                  class="gkyc-kpi-val"
+                  id="gkyc-stat-duplicate"
+                  style="color: #ea580c"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="gkyc-kpi-icon"
+                style="background: rgba(234, 88, 12, 0.15); color: #ea580c"
+              >
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+            </div>
+
+            <div
+              class="gkyc-kpi-card"
+              id="gkyc-kpi-ALL"
+              onclick="gkycSetStatusFilter('ALL')"
+            >
+              <div>
+                <div class="gkyc-kpi-title">អតិថិជនសរុប (ALL USERS)</div>
+                <div
+                  class="gkyc-kpi-val"
+                  id="gkyc-stat-all"
+                  style="color: #3b82f6"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="gkyc-kpi-icon"
+                style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+              >
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+          <div class="gkyc-toolbar">
+            <div class="gkyc-pill-group">
+              <button
+                type="button"
+                class="gkyc-filter-pill active"
+                data-filter="PENDING"
+                onclick="gkycSetStatusFilter('PENDING')"
+              >
+                <i class="fa-solid fa-clock"></i> រង់ចាំអនុម័ត (Pending)
+              </button>
+              <button
+                type="button"
+                class="gkyc-filter-pill"
+                data-filter="VERIFIED"
+                onclick="gkycSetStatusFilter('VERIFIED')"
+              >
+                <i class="fa-solid fa-circle-check"></i> អនុម័តរួច (Verified)
+              </button>
+              <button
+                type="button"
+                class="gkyc-filter-pill"
+                data-filter="REJECTED"
+                onclick="gkycSetStatusFilter('REJECTED')"
+              >
+                <i class="fa-solid fa-circle-xmark"></i> បដិសេធ (Rejected)
+              </button>
+              <button
+                type="button"
+                class="gkyc-filter-pill"
+                data-filter="UNVERIFIED"
+                onclick="gkycSetStatusFilter('UNVERIFIED')"
+              >
+                <i class="fa-solid fa-circle-question"></i> មិនទាន់មានឯកសារ
+              </button>
+              <button
+                type="button"
+                class="gkyc-filter-pill"
+                data-filter="DUPLICATE"
+                onclick="gkycSetStatusFilter('DUPLICATE')"
+              >
+                <i class="fa-solid fa-clone"></i> អត្តសញ្ញាណប័ណ្ណស្ទួន
+              </button>
+              <button
+                type="button"
+                class="gkyc-filter-pill"
+                data-filter="ALL"
+                onclick="gkycSetStatusFilter('ALL')"
+              >
+                ទាំងអស់
+              </button>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                min-width: 260px;
+                max-width: 400px;
+              "
+            >
+              <div class="search-box" style="margin: 0; width: 100%">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input
+                  type="text"
+                  id="searchKycBox"
+                  placeholder="ស្វែងរកតាម ឈ្មោះ, @username, លេខអត្តសញ្ញាណប័ណ្ណ, ទូរស័ព្ទ..."
+                  oninput="filterKycTable()"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 📋 ៣. តារាងបញ្ជី KYC -->
+          <div
+            class="table-container"
+            style="
+              border-radius: 18px;
+              overflow: hidden;
+              border: 1px solid var(--border, #e2e8f0);
+            "
+          >
+            <table style="width: 100%; border-collapse: collapse">
               <thead>
                 <tr>
-                  <th data-i18n="user-info">User Info</th>
-                  <th data-i18n="document-type">Document Type</th>
-                  <th data-i18n="submitted-date">Submitted Date</th>
-                  <th data-i18n="status">Status</th>
-                  <th style="text-align: right" data-i18n="action">Action</th>
+                  <th>ព័ត៌មានអតិថិជន (Customer)</th>
+                  <th>លេខអត្តសញ្ញាណប័ណ្ណ & ថ្ងៃកំណើត</th>
+                  <th>រូបភាពឯកសារ (ID & Selfie)</th>
+                  <th>អ្នកបញ្ជូន (Maker) & កាលបរិច្ឆេទ</th>
+                  <th>ស្ថានភាព & សិទ្ធិ</th>
+                  <th style="text-align: right">សកម្មភាពត្រួតពិនិត្យ</th>
                 </tr>
               </thead>
               <tbody id="kycTableBody">
                 <tr>
-                  <td colspan="5" style="text-align: center; padding: 20px">
-                    Loading pending KYC...
+                  <td colspan="6" style="text-align: center; padding: 35px">
+                    <i
+                      class="fa-solid fa-circle-notch fa-spin"
+                      style="font-size: 1.5rem; color: #0d9488"
+                    ></i
+                    ><br /><br />
+                    កំពុងទាញយកទិន្នន័យ KYC...
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <!-- Pagination Footer -->
+          <!-- Pagination Footer (ថយក្រោយ ទំព័រ 1 នៃ X បន្ទាប់) -->
           <div
             id="kycPaginationFooter"
             style="
-              display: none;
+              display: flex;
               justify-content: space-between;
               align-items: center;
-              margin-top: 15px;
-              padding: 10px 0;
+              padding: 14px 20px;
+              background: var(--bg-body, #f8fafc);
+              border: 1px solid var(--border, #e2e8f0);
+              border-top: none;
+              border-radius: 0 0 18px 18px;
             "
           >
             <button
+              type="button"
               onclick="changeKycPage(-1)"
               id="kycPrevBtn"
               style="
-                height: 40px;
-                padding: 0 20px;
-                background: #f1f5f9;
-                color: #64748b;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
+                padding: 8px 16px;
+                border-radius: 9px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-card, #ffffff);
+                color: var(--text-main);
+                font-weight: 800;
                 cursor: pointer;
-                font-weight: bold;
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
               "
             >
               <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
             </button>
             <span
               id="kycPageInfo"
-              style="font-weight: bold; color: var(--text-main)"
-              >ទំព័រទី 1 / 1</span
+              style="
+                font-size: 0.86rem;
+                font-weight: 800;
+                color: var(--text-main);
+              "
             >
+              ទំព័រ 1 នៃ 1
+            </span>
             <button
+              type="button"
               onclick="changeKycPage(1)"
               id="kycNextBtn"
               style="
-                height: 40px;
-                padding: 0 20px;
-                background: #0f172a;
-                color: #fff;
-                border: none;
-                border-radius: 8px;
+                padding: 8px 16px;
+                border-radius: 9px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-card, #ffffff);
+                color: var(--text-main);
+                font-weight: 800;
                 cursor: pointer;
-                font-weight: bold;
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
               "
             >
               បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
@@ -6225,7 +7107,9 @@
           </div>
         </div>
 
-        <!-- ផ្ទាំងលម្អិត (Details View) -->
+        <!-- ======================================================= -->
+        <!-- 🖥️ ផ្នែកទី ២៖ ផ្ទាំងពិនិត្យលម្អិត (KYC Compliance Workbench) -->
+        <!-- ======================================================= -->
         <div id="kyc-details-view" style="display: none">
           <div
             class="table-header-controls"
@@ -6233,43 +7117,59 @@
               display: flex;
               justify-content: space-between;
               align-items: center;
+              flex-wrap: wrap;
+              gap: 12px;
+              margin-bottom: 18px;
             "
           >
             <button
+              type="button"
               class="btn-cancel"
               onclick="closeKycDetails()"
-              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+              style="
+                padding: 10px 18px;
+                border-radius: 10px;
+                font-weight: 800;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+              "
             >
-              <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ក្រោយ
+              <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅបញ្ជី KYC
             </button>
+
             <h2
               class="dash-title"
               style="
                 margin: 0;
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
+                font-size: 1.25rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
               "
             >
-              ព័ត៌មានលម្អិតអតិថិជន (KYC Details)
+              <i class="fa-solid fa-user-shield" style="color: #0d9488"></i>
+              <span
+                >តុការងារត្រួតពិនិត្យ និងផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC
+                Workbench)</span
+              >
             </h2>
-            <div></div>
-            <!-- Spacer -->
+
+            <div id="gkyc-detail-top-actions"></div>
           </div>
 
-          <!-- កន្លែងសម្រាប់ឱ្យ admin-kyc.js បោះទិន្នន័យចូល -->
           <div
             id="kyc-details-content"
             style="
               background: var(--bg-card);
               color: var(--text-main);
-              padding: 25px;
-              border-radius: 12px;
+              padding: 24px;
+              border-radius: 18px;
               border: 1px solid var(--border);
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-              margin-top: 15px;
+              box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
             "
-          >
-            <!-- ទិន្នន័យនឹងត្រូវ Generate ដោយ JS នៅទីនេះ -->
-          </div>
+          ></div>
         </div>
       </div>
 

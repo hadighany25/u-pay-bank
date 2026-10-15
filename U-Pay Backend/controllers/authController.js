@@ -262,9 +262,12 @@ const logout = async (req, res) => {
 // 🔐 ផ្នែកទី ៤៖ ការចុះឈ្មោះ និង OTP (Registration)
 // ==========================================
 
+// ==========================================
+// 🔐 ផ្នែកទី ៤៖ ការចុះឈ្មោះ និង OTP (Registration)
+// ==========================================
+
 /**
- * 📌 សុំលេខកូដ OTP (Request OTP) មុនពេលបង្កើតគណនី
- * - ឆែកកុំឱ្យស្ទួន Username, Phone, Email
+ * 📌 ៤.១ សុំលេខកូដ OTP (Request OTP) មុនពេលបង្កើតគណនី
  */
 const requestRegisterOTP = async (req, res) => {
   const { username, phone, email } = req.body;
@@ -282,6 +285,7 @@ const requestRegisterOTP = async (req, res) => {
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.deleteMany({ email: email }); // លុបកូដចាស់ចោលសិនបើមាន
     await Otp.create({ email: email, otp: otpCode });
     const emailSent = await sendOTP(email, otpCode, "register");
 
@@ -304,8 +308,47 @@ const requestRegisterOTP = async (req, res) => {
 };
 
 /**
- * 📌 ផ្ទៀងផ្ទាត់ OTP រួចទើបបង្កើតគណនីពិតប្រាកដ (Verify & Register - អាប់ដេតថ្មី)
- * - ទទួលយកទិន្នន័យ KYC, រូបថត, លេខអ្នកណែនាំ, ភេទ និងថ្ងៃខែឆ្នាំកំណើត
+ * 📌 ៤.២ ផ្ទៀងផ្ទាត់កូដ OTP ភ្លាមៗនៅ Step 1 (Verify OTP Only - ឱ្យភ្ញៀវបំពេញទម្រង់បន្តដោយគ្មានកំណត់ម៉ោង)
+ */
+const verifyRegisterOTP = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "សូមបញ្ចូលអ៊ីមែល និងលេខកូដ OTP ៦ខ្ទង់!",
+      });
+    }
+
+    const validOtp = await Otp.findOne({
+      email: { $regex: new RegExp("^" + email.trim() + "$", "i") },
+      otp: String(otp).trim(),
+    });
+
+    if (!validOtp) {
+      return res.status(400).json({
+        success: false,
+        message: "លេខកូដ OTP មិនត្រឹមត្រូវទេ! សូមពិនិត្យម្ដងទៀត។",
+      });
+    }
+
+    // លុបកូដ OTP ចោលក្រោយផ្ទៀងផ្ទាត់ត្រូវ ដើម្បីកុំឱ្យផុតកំណត់ពេលភ្ញៀវកំពុងបំពេញទម្រង់យូរ
+    await Otp.deleteOne({ _id: validOtp._id });
+
+    return res.json({
+      success: true,
+      message:
+        "ផ្ទៀងផ្ទាត់ OTP ជោគជ័យ! អ្នកអាចបំពេញព័ត៌មានបន្តដោយគ្មានកំណត់ម៉ោង។",
+    });
+  } catch (error) {
+    console.error("Verify Register OTP Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ៤.៣ បង្កើតគណនីពិតប្រាកដ (Verify & Register + Global Duplicate ID Sync)
+ * - មិនកំណត់ម៉ោងផុតកំណត់ OTP ពេលចុច Submit ចុងក្រោយទៀតទេ បើបាន Verify នៅ Step 1 រួច
  */
 const verifyAndRegister = async (req, res) => {
   const {
@@ -316,26 +359,27 @@ const verifyAndRegister = async (req, res) => {
     email,
     pin,
     otp,
+    otpVerified,
     dob,
     gender,
     idNumber,
     referralCode,
     duplicateReason,
+    duplicateIdReason,
     idCardUrl,
     selfieUrl,
   } = req.body;
 
   try {
-    // ៤.១ ផ្ទៀងផ្ទាត់កូដ OTP
-    const validOtp = await Otp.findOne({ email: email, otp: otp });
-    if (!validOtp) {
-      return res.status(400).json({
-        success: false,
-        message: "លេខកូដ OTP មិនត្រឹមត្រូវ ឬផុតកំណត់!",
-      });
+    // ៤.៣.១ ប្រសិនបើមិនទាន់បាន Verify នៅ Step 1 ទេ ទើបឆែកក្នុង Collection Otp
+    if (!otpVerified) {
+      const validOtp = await Otp.findOne({ email: email, otp: otp });
+      if (validOtp) {
+        await Otp.deleteOne({ _id: validOtp._id });
+      }
     }
 
-    // ៤.២ ឆែកការពារក្រែងលោមានអ្នកបង្កើតគណនីស្របគ្នាក្នុងពេលតែមួយ
+    // ៤.៣.២ ឆែកការពារក្រែងលោមានអ្នកបង្កើតគណនីស្ទួន Username, Phone, Email
     const existingUser = await User.findOne({
       $or: [{ username }, { phone }, { email }],
     });
@@ -345,37 +389,57 @@ const verifyAndRegister = async (req, res) => {
         .json({ success: false, message: "គណនីនេះត្រូវបានចុះឈ្មោះរួចហើយ!" });
     }
 
-    // ៤.៣ បង្កើតលេខគណនីធនាគារ និង លេខសម្គាល់អ្នកប្រើប្រាស់ ៨ខ្ទង់
+    // ៤.៣.៣ ឆែកលេខអត្តសញ្ញាណប័ណ្ណស្ទួន និងតម្រូវឱ្យមានមូលហេតុ (Duplicate ID Check)
+    const cleanIdNumber = String(idNumber || "").trim();
+    let finalDuplicateReason = String(
+      duplicateReason || duplicateIdReason || "",
+    ).trim();
+
+    let existingSameIdUsers = [];
+    if (cleanIdNumber && cleanIdNumber !== "N/A") {
+      existingSameIdUsers = await User.find({ idNumber: cleanIdNumber });
+      if (existingSameIdUsers.length > 0 && !finalDuplicateReason) {
+        return res.status(400).json({
+          success: false,
+          requireDuplicateReason: true,
+          message:
+            "លេខអត្តសញ្ញាណប័ណ្ណនេះធ្លាប់បានប្រើប្រាស់រួចហើយ! សូមបញ្ចូលមូលហេតុនៃការបើកគណនីបន្ថែម។",
+        });
+      }
+    }
+
+    // ៤.៣.៤ បង្កើតលេខគណនីធនាគារ និងលេខសម្គាល់អ្នកប្រើប្រាស់ ៨ខ្ទង់
     const newAccs = await generatePatternAccounts();
     const newUserId = await generateUserId();
     const tsId = Date.now().toString();
 
-    // ៤.៤ រៀបចំស្ថានភាព KYC (បើមានរូប Upload គឺដាក់ Pending)
     let initialKycStatus = "unverified";
     if (idCardUrl && selfieUrl) {
       initialKycStatus = "pending";
     }
 
-    // ៤.៥ បង្កើតគណនីថ្មី
+    // ៤.៣.៥ បង្កើតគណនីថ្មី
     const newUser = new User({
       id: tsId,
       userId: newUserId,
       username,
-      password, // 🟢 រក្សាទុកជា Plain Text តាមការស្នើសុំ
+      password,
       email,
       fullName: fullName || username,
       phone,
       dob: dob || "",
       gender: gender || "",
-      idNumber: idNumber || "",
+      idNumber: cleanIdNumber,
       referredBy: referralCode || "",
       pin,
 
-      duplicateIdReason: duplicateReason || "",
+      duplicateIdReason: finalDuplicateReason,
       kycStatus: initialKycStatus,
       kycDocument: idCardUrl || "",
+      kycImage: idCardUrl || "",
       selfieUrl: selfieUrl || "",
       kycSubmittedAt: initialKycStatus === "pending" ? getFormattedDate() : "",
+      kycUploadedBy: "អតិថិជនផ្ទាល់",
 
       mainAccounts: {
         USD: {
@@ -414,10 +478,26 @@ const verifyAndRegister = async (req, res) => {
 
     await newUser.save();
 
-    // ៤.៦ លុបកូដ OTP ចោលក្រោយប្រើប្រាស់រួច
-    await Otp.deleteOne({ _id: validOtp._id });
+    // 🔗 ៤.៣.៦ GLOBAL SYNC: កត់ត្រាមូលហេតុ (duplicateIdReason) ចូលគ្រប់គណនីទាំងអស់ដែលមានលេខអត្តសញ្ញាណប័ណ្ណដូចគ្នានេះ (ទាំងចាស់ ទាំងថ្មី)!
+    if (
+      cleanIdNumber &&
+      cleanIdNumber !== "N/A" &&
+      (existingSameIdUsers.length > 0 || finalDuplicateReason)
+    ) {
+      const reasonToSync =
+        finalDuplicateReason ||
+        existingSameIdUsers.find((u) => u.duplicateIdReason)
+          ?.duplicateIdReason ||
+        "ប្រើប្រាស់អត្តសញ្ញាណប័ណ្ណរួមគ្នា (Multiple Accounts)";
 
-    // ៤.៧ បង្កើត Token សម្រាប់ Login ដោយស្វ័យប្រវត្តិ
+      await User.updateMany(
+        { idNumber: cleanIdNumber },
+        { $set: { duplicateIdReason: reasonToSync } },
+      );
+      newUser.duplicateIdReason = reasonToSync;
+    }
+
+    // ៤.៣.៧ បង្កើត Token សម្រាប់ Login ដោយស្វ័យប្រវត្តិ
     const token = jwt.sign(
       { id: newUser.id, username: newUser.username, role: newUser.role },
       process.env.JWT_SECRET,
@@ -439,72 +519,6 @@ const verifyAndRegister = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server Error ពេលបង្កើតគណនី" });
-  }
-};
-
-/**
- * 📌 ការចុះឈ្មោះបែបចាស់ (Legacy Registration - API ចាស់អត់ត្រូវការ OTP)
- * - រក្សាទុកដដែលដើម្បីកុំឱ្យ Error ជាមួយប្រព័ន្ធចាស់ៗ
- */
-const register = async (req, res) => {
-  const { username, password, fullName, phone, pin } = req.body;
-  try {
-    const existingUser = await User.findOne({ username });
-    if (existingUser)
-      return res.json({ success: false, message: "Username already taken!" });
-
-    const newAccs = await generatePatternAccounts();
-    const newUserId = await generateUserId();
-    const tsId = Date.now().toString();
-
-    const newUser = new User({
-      id: tsId,
-      userId: newUserId,
-      username,
-      password, // 🟢 រក្សាទុកជា Plain Text
-      fullName: fullName || username,
-      phone,
-      pin,
-      mainAccounts: {
-        USD: {
-          accountId: "MAIN_USD_" + tsId,
-          accountNumber: newAccs.usd,
-          accountName: "Main Account USD",
-          accountType: "main",
-          currency: "USD",
-          balance: 0.0,
-          dailyLimit: 1000.0,
-        },
-        KHR: {
-          accountId: "MAIN_KHR_" + tsId,
-          accountNumber: newAccs.khr,
-          accountName: "Main Account KHR",
-          accountType: "main",
-          currency: "KHR",
-          balance: 0.0,
-          dailyLimit: 4000000.0,
-        },
-      },
-      role: "user",
-      joinDate: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-    });
-
-    await newUser.save();
-
-    const token = jwt.sign(
-      { id: newUser.id, username: newUser.username, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-
-    const safeUser = newUser.toObject();
-    delete safeUser.password;
-    delete safeUser.pin;
-
-    res.json({ success: true, user: safeUser, token: token });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -732,26 +746,107 @@ const uploadImage = async (req, res) => {
 };
 
 /**
- * 📌 បញ្ជូនឯកសារ KYC (ពីមុខងារ Settings)
+ * 📌 បញ្ជូនឯកសារ KYC ពេញលេញពីមុខងារ Settings របស់អតិថិជន (រូប ID + Selfie + ទិន្នន័យ OCR + Duplicate ID Sync)
  */
 const submitKyc = async (req, res) => {
-  const { username, kycUrl } = req.body;
-  if (!kycUrl)
-    return res.json({ success: false, message: "មិនមាន URL ឯកសារទេ!" });
+  const {
+    username,
+    kycUrl,
+    idCardUrl,
+    selfieUrl,
+    fullName,
+    idNumber,
+    dob,
+    gender,
+    duplicateReason,
+    duplicateIdReason,
+  } = req.body;
+
+  const finalIdUrl = idCardUrl || kycUrl || "";
+  if (!finalIdUrl || !selfieUrl) {
+    return res.json({
+      success: false,
+      message:
+        "សូមបង្ហោះទាំងរូបថតអត្តសញ្ញាណប័ណ្ណ និងរូបថតផ្ទាល់ខ្លួន (Selfie) ឱ្យបានគ្រប់គ្រាន់!",
+    });
+  }
+
   try {
     const user = await User.findOne({ username });
-    if (user) {
-      user.kycStatus = "pending";
-      user.kycDocument = kycUrl;
-      user.kycSubmittedAt = getFormattedDate();
-      await user.save();
-      res.json({
-        success: true,
-        message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណត្រូវបានបញ្ជូន!",
+    if (!user) return res.json({ success: false, message: "រកមិនឃើញគណនីទេ!" });
+
+    const cleanIdNumber = String(idNumber || user.idNumber || "").trim();
+    const cleanFullName = String(fullName || user.fullName || "")
+      .trim()
+      .toUpperCase();
+    let finalDupReason = String(
+      duplicateIdReason || duplicateReason || "",
+    ).trim();
+
+    if (!cleanFullName || !cleanIdNumber || !dob || !gender) {
+      return res.json({
+        success: false,
+        message:
+          "សូមបំពេញព័ត៌មានអត្តសញ្ញាណ (ឈ្មោះ, លេខ ID, ថ្ងៃកំណើត, ភេទ) ឱ្យបានគ្រប់គ្រាន់!",
       });
-    } else res.json({ success: false, message: "User not found" });
+    }
+
+    // 🔍 ឆែកមើលថាតើលេខអត្តសញ្ញាណប័ណ្ណនេះមានគណនីផ្សេងប្រើរួចហើយឬនៅ
+    const otherUsersWithSameId = await User.find({
+      idNumber: cleanIdNumber,
+      _id: { $ne: user._id },
+    });
+
+    if (otherUsersWithSameId.length > 0 && !finalDupReason) {
+      return res.json({
+        success: false,
+        requireDuplicateReason: true,
+        message:
+          "លេខអត្តសញ្ញាណប័ណ្ណនេះធ្លាប់ត្រូវបានប្រើប្រាស់ក្នុងប្រព័ន្ធរួចហើយ! សូមបញ្ជាក់មូលហេតុនៃការប្រើប្រាស់អត្តសញ្ញាណប័ណ្ណរួមគ្នា។",
+      });
+    }
+
+    // ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ KYC របស់អតិថិជន
+    user.fullName = cleanFullName;
+    user.idNumber = cleanIdNumber;
+    user.dob = dob;
+    user.gender = gender;
+    user.kycDocument = finalIdUrl;
+    user.kycImage = finalIdUrl;
+    user.selfieUrl = selfieUrl;
+    user.kycStatus = "pending";
+    user.kycSubmittedAt = getFormattedDate();
+    user.kycUploadedBy = "អតិថិជនផ្ទាល់";
+    user.kycRejectReason = "";
+
+    if (otherUsersWithSameId.length > 0) {
+      user.duplicateIdReason = finalDupReason;
+    } else {
+      user.duplicateIdReason = "";
+    }
+
+    await user.save();
+
+    // 🔗 GLOBAL SYNC: បើមានគណនីប្រើលេខ ID ដូចគ្នា ត្រូវកត់ត្រាមូលហេតុចូលគ្រប់គណនីទាំងអស់ (ទាំងចាស់ ទាំងថ្មី)!
+    if (otherUsersWithSameId.length > 0 && finalDupReason) {
+      await User.updateMany(
+        { idNumber: cleanIdNumber },
+        { $set: { duplicateIdReason: finalDupReason } },
+      );
+    }
+
+    const safeUser = user.toObject();
+    delete safeUser.password;
+    delete safeUser.pin;
+
+    res.json({
+      success: true,
+      message: "ឯកសារបញ្ជាក់អត្តសញ្ញាណ (KYC) ត្រូវបានបញ្ជូនដោយជោគជ័យ!",
+      user: safeUser,
+    });
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("Submit KYC Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
@@ -1690,14 +1785,37 @@ const checkUsername = async (req, res) => {
 };
 
 /**
- * 📌 ឆែកមើលថា លេខអត្តសញ្ញាណប័ណ្ណ មានក្នុងប្រព័ន្ធហើយឬនៅ
+ * 📌 ឆែកមើលថា លេខអត្តសញ្ញាណប័ណ្ណ មានគណនីផ្សេងប្រើប្រាស់ហើយឬនៅ
  */
 const checkIdNumber = async (req, res) => {
   try {
-    const { idNumber } = req.body;
-    const user = await User.findOne({ idNumber: idNumber });
-    if (user) return res.json({ exists: true });
-    return res.json({ exists: false });
+    const cleanId = String(req.body.idNumber || "").trim();
+    const excludeUsername = String(req.body.excludeUsername || "").trim();
+    if (!cleanId) return res.json({ exists: false, count: 0 });
+
+    const query = { idNumber: cleanId };
+    if (excludeUsername) {
+      query.username = { $ne: excludeUsername };
+    }
+
+    const existingUsers = await User.find(query).select(
+      "username fullName duplicateIdReason",
+    );
+
+    if (existingUsers.length > 0) {
+      const existingReason =
+        existingUsers.find((u) => u.duplicateIdReason)?.duplicateIdReason || "";
+      return res.json({
+        exists: true,
+        count: existingUsers.length,
+        existingReason,
+        accounts: existingUsers.map((u) => ({
+          username: u.username,
+          fullName: u.fullName,
+        })),
+      });
+    }
+    return res.json({ exists: false, count: 0 });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
   }
@@ -2133,8 +2251,8 @@ const createTicket = async (req, res) => {
 module.exports = {
   // Auth & Registration
   requestRegisterOTP,
+  verifyRegisterOTP,
   verifyAndRegister,
-  register,
   login,
   logout,
 

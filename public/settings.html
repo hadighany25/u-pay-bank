@@ -983,7 +983,8 @@
           </div>
           <div class="setting-wrapper">
             <!-- KYC Upload -->
-            <div class="setting-item" onclick="triggerKycUpload()">
+            <!-- KYC Verification (ចុចបើកផ្ទាំង KYC View ពេញលេញ) -->
+            <div class="setting-item" onclick="openKycView()">
               <div class="setting-left">
                 <div
                   class="setting-icon"
@@ -993,7 +994,7 @@
                 </div>
                 <div style="display: flex; flex-direction: column">
                   <span data-i18n="kyc_verify" style="margin-bottom: 3px"
-                    >Identity Verification</span
+                    >ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC)</span
                   >
                   <span
                     id="kycStatusText"
@@ -1278,6 +1279,403 @@
             onclick="unlinkTelegram()"
           >
             <i class="fa-solid fa-link-slash"></i> ផ្តាច់គណនី (Unlink)
+          </button>
+        </div>
+      </div>
+      <!-- ==============================================================
+           🪪 VIEW 4: KYC IDENTITY VERIFICATION (ផ្ទាំងផ្ទៀងផ្ទាត់អត្តសញ្ញាណ AI OCR)
+           ============================================================== -->
+      <div id="view-kyc" class="view-state">
+        <div class="header header-flat">
+          <button
+            class="back-btn"
+            onclick="closeKycView()"
+            title="ត្រឡប់ទៅ Settings"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="header-title-container">
+            <h2 class="kh-text">ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ (KYC)</h2>
+          </div>
+          <div style="width: 38px"></div>
+        </div>
+
+        <div
+          style="
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          "
+        >
+          <!-- ផ្លាកបង្ហាញស្ថានភាព KYC បច្ចុប្បន្ន -->
+          <div
+            id="ukyc-status-banner"
+            style="
+              padding: 14px 16px;
+              border-radius: 16px;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              border: 1px solid #cbd5e1;
+              background: #f8fafc;
+            "
+          ></div>
+
+          <!-- ប្រអប់ Upload រូបភាពទាំង ២ (ID Card & Live Selfie) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <!-- ១. រូបអត្តសញ្ញាណប័ណ្ណ -->
+            <div
+              style="
+                background: var(--bg-card, #fff);
+                border: 1.5px dashed #cbd5e1;
+                border-radius: 16px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+              "
+              id="ukyc-id-card-box"
+            >
+              <div
+                style="
+                  padding: 8px 10px;
+                  background: rgba(0, 77, 64, 0.06);
+                  border-bottom: 1px solid #e2e8f0;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span
+                  class="kh-text"
+                  style="font-size: 0.75rem; font-weight: 700; color: #004d40"
+                  ><i class="fa-solid fa-id-card"></i> ១. អត្តសញ្ញាណប័ណ្ណ</span
+                >
+                <button
+                  type="button"
+                  id="ukyc-btn-change-id"
+                  onclick="document.getElementById('ukycIdInput').click()"
+                  class="kh-text"
+                  style="
+                    background: #004d40;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 3px 8px;
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                  "
+                >
+                  Upload
+                </button>
+              </div>
+              <div
+                style="
+                  height: 135px;
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  background: #0f172a;
+                "
+                onclick="handleKycBoxClick('id')"
+              >
+                <img
+                  id="ukyc-preview-id"
+                  src=""
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    display: none;
+                  "
+                />
+                <div
+                  id="ukyc-placeholder-id"
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                    color: #64748b;
+                    padding: 10px;
+                    text-align: center;
+                    background: #f8fafc;
+                    width: 100%;
+                    height: 100%;
+                    justify-content: center;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-id-card-clip"
+                    style="font-size: 1.8rem; color: #004d40; opacity: 0.7"
+                  ></i>
+                  <span
+                    class="kh-text"
+                    style="font-size: 0.74rem; font-weight: 700"
+                    >ចុច Upload រូប ID<br /><small style="color: #10b981"
+                      >(AI ស្កេនអូតូ)</small
+                    ></span
+                  >
+                </div>
+              </div>
+              <input
+                type="file"
+                id="ukycIdInput"
+                accept="image/*"
+                style="display: none"
+                onchange="handleUserKycIdUpload(event)"
+              />
+            </div>
+
+            <!-- ២. រូបថតផ្ទាល់ខ្លួន (Selfie) -->
+            <div
+              style="
+                background: var(--bg-card, #fff);
+                border: 1.5px dashed #cbd5e1;
+                border-radius: 16px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+              "
+              id="ukyc-selfie-card-box"
+            >
+              <div
+                style="
+                  padding: 8px 10px;
+                  background: rgba(37, 99, 235, 0.06);
+                  border-bottom: 1px solid #e2e8f0;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span
+                  class="kh-text"
+                  style="font-size: 0.75rem; font-weight: 700; color: #2563eb"
+                  ><i class="fa-solid fa-camera-retro"></i> ២. រូបថត
+                  Selfie</span
+                >
+                <button
+                  type="button"
+                  id="ukyc-btn-change-selfie"
+                  onclick="document.getElementById('ukycSelfieInput').click()"
+                  class="kh-text"
+                  style="
+                    background: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 3px 8px;
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                  "
+                >
+                  Upload
+                </button>
+              </div>
+              <div
+                style="
+                  height: 135px;
+                  position: relative;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  background: #0f172a;
+                "
+                onclick="handleKycBoxClick('selfie')"
+              >
+                <img
+                  id="ukyc-preview-selfie"
+                  src=""
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    display: none;
+                  "
+                />
+                <div
+                  id="ukyc-placeholder-selfie"
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 6px;
+                    color: #64748b;
+                    padding: 10px;
+                    text-align: center;
+                    background: #f8fafc;
+                    width: 100%;
+                    height: 100%;
+                    justify-content: center;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-user-check"
+                    style="font-size: 1.8rem; color: #2563eb; opacity: 0.7"
+                  ></i>
+                  <span
+                    class="kh-text"
+                    style="font-size: 0.74rem; font-weight: 700"
+                    >ចុច Upload រូបថត<br />ផ្ទៃមុខផ្ទាល់</span
+                  >
+                </div>
+              </div>
+              <input
+                type="file"
+                id="ukycSelfieInput"
+                accept="image/*"
+                capture="user"
+                style="display: none"
+                onchange="handleUserKycSelfieUpload(event)"
+              />
+            </div>
+          </div>
+
+          <!-- ទម្រង់ទិន្នន័យអត្តសញ្ញាណ (AI OCR Data Form) -->
+          <div
+            style="
+              background: white;
+              border-radius: 18px;
+              padding: 18px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+              border: 1px solid #e2e8f0;
+            "
+            id="ukyc-form-card"
+          >
+            <div
+              class="kh-text"
+              style="
+                font-size: 0.88rem;
+                font-weight: 700;
+                color: #0f172a;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 1px dashed #e2e8f0;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              "
+            >
+              <i
+                class="fa-solid fa-wand-magic-sparkles"
+                style="color: #0d9488"
+              ></i>
+              <span>ទិន្នន័យអត្តសញ្ញាណ (AI OCR)</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px">
+              <label class="kh-text"
+                >ឈ្មោះពេញជាអក្សរធំ (Full Name)
+                <span style="color: red">*</span></label
+              >
+              <input
+                type="text"
+                id="ukyc-fullname"
+                class="styled-input"
+                placeholder="ឧ. SOK DARA"
+                style="padding: 12px 14px; text-transform: uppercase"
+                oninput="this.value = this.value.toUpperCase()"
+              />
+            </div>
+
+            <div class="form-group" style="margin-bottom: 12px">
+              <label class="kh-text"
+                >លេខអត្តសញ្ញាណប័ណ្ណ / Passport
+                <span style="color: red">*</span></label
+              >
+              <input
+                type="text"
+                id="ukyc-idnumber"
+                class="styled-input"
+                placeholder="ឧ. 012345678"
+                style="padding: 12px 14px; font-family: monospace"
+                onblur="checkUserKycDuplicateId(this.value)"
+              />
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px"
+            >
+              <div class="form-group" style="margin-bottom: 0">
+                <label class="kh-text"
+                  >ថ្ងៃខែឆ្នាំកំណើត <span style="color: red">*</span></label
+                >
+                <input
+                  type="date"
+                  id="ukyc-dob"
+                  class="styled-input"
+                  style="padding: 11px 10px; font-size: 0.9rem"
+                />
+              </div>
+              <div class="form-group" style="margin-bottom: 0">
+                <label class="kh-text"
+                  >ភេទ (Gender) <span style="color: red">*</span></label
+                >
+                <select
+                  id="ukyc-gender"
+                  class="styled-input kh-text"
+                  style="padding: 11px 10px; font-size: 0.9rem"
+                >
+                  <option value="">ជ្រើសរើស...</option>
+                  <option value="Male">ប្រុស (Male)</option>
+                  <option value="Female">ស្រី (Female)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- ប្រអប់បញ្ចូលមូលហេតុពេលលេខអត្តសញ្ញាណប័ណ្ណស្ទួន (លាក់ចោលបើមិនស្ទួន) -->
+            <div
+              id="ukyc-dup-reason-box"
+              style="
+                display: none;
+                margin-top: 14px;
+                padding: 12px;
+                border-radius: 12px;
+                background: #fff7ed;
+                border: 1px dashed #f97316;
+              "
+            >
+              <label
+                class="kh-text"
+                style="
+                  color: #ea580c;
+                  font-size: 0.8rem;
+                  font-weight: 700;
+                  display: block;
+                  margin-bottom: 6px;
+                  line-height: 1.4;
+                "
+              >
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                លេខអត្តសញ្ញាណប័ណ្ណនេះមានប្រើក្នុងប្រព័ន្ធរួចហើយ!
+                សូមបញ្ជាក់មូលហេតុនៃការប្រើប្រាស់រួមគ្នា៖
+                <span style="color: red">*</span>
+              </label>
+              <input
+                type="text"
+                id="ukyc-dup-reason"
+                class="styled-input kh-text"
+                placeholder="ឧ. គណនីទី២ សម្រាប់អាជីវកម្ម / គ្រួសារ..."
+                style="padding: 10px 12px; font-size: 0.9rem; background: white"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="btn-main kh-text"
+            id="ukyc-submit-btn"
+            onclick="submitUserSelfKyc()"
+          >
+            <i class="fa-solid fa-paper-plane"></i> បញ្ជូនឯកសារ KYC
+            ទៅត្រួតពិនិត្យ
           </button>
         </div>
       </div>
@@ -1739,127 +2137,491 @@
       }
 
       // ==========================================
-      // 👤 ៤. គណនី និង អត្តសញ្ញាណ (Profile Upload & KYC)
+      // 👤 ៤. ផ្ទាំងផ្ទៀងផ្ទាត់អត្តសញ្ញាណខ្លួនឯង (Self-Service KYC View + AI OCR)
       // ==========================================
+      let ukycTempIdUrl = "";
+      let ukycTempSelfieUrl = "";
+      let ukycIsDuplicateId = false;
+
       function updateKycUI() {
         const kycEl = document.getElementById("kycStatusText");
-        if (user.kycStatus === "approved" || user.kycStatus === "verified") {
-          kycEl.innerText = "Verified";
+        if (!kycEl) return;
+        const st = (user.kycStatus || "unverified").toLowerCase();
+        if (st === "approved" || st === "verified") {
+          kycEl.innerText = "បានអនុម័ត (Verified)";
           kycEl.style.color = "#10b981";
-        } else if (user.kycStatus === "pending") {
-          kycEl.innerText = "Pending";
+        } else if (st === "pending") {
+          kycEl.innerText = "រង់ចាំពិនិត្យ (Pending)";
           kycEl.style.color = "#f59e0b";
+        } else if (st === "rejected") {
+          kycEl.innerText = "ត្រូវបានបដិសេធ (Rejected)";
+          kycEl.style.color = "#ef4444";
         } else {
-          kycEl.innerText = "Unverified";
+          kycEl.innerText = "មិនទាន់ផ្ទៀងផ្ទាត់ (Unverified)";
           kycEl.style.color = "#ef4444";
         }
       }
       updateKycUI();
 
-      async function triggerKycUpload() {
-        const status = (user.kycStatus || "").toLowerCase();
-        if (
-          status === "approved" ||
-          status === "verified" ||
-          status === "pending"
-        ) {
-          let docUrl = "";
-          try {
-            Swal.fire({
-              title: "កំពុងទាញយករូបភាព...",
-              didOpen: () => Swal.showLoading(),
-              customClass: { popup: "premium-swal" },
-            });
-            const res = await fetch(`/api/users`, {
-              headers: { Authorization: "Bearer " + userToken },
-            });
-            const data = await res.json();
-            const userList = Array.isArray(data) ? data : data.users || [];
-            const freshUser = userList.find(
-              (u) =>
-                u.username &&
-                u.username.toLowerCase() === user.username.toLowerCase(),
-            );
-            Swal.close();
-            if (freshUser && freshUser.kycDocument) {
-              docUrl = freshUser.kycDocument;
-              user = freshUser;
-              sessionStorage.setItem("user", JSON.stringify(user));
-            }
-          } catch (err) {
-            Swal.close();
-          }
+      async function openKycView() {
+        document.getElementById("view-settings").classList.remove("active");
+        document.getElementById("view-kyc").classList.add("active");
 
-          if (!docUrl) docUrl = user.kycDocument || user.kycUrl || "";
-          if (!docUrl)
-            return Swal.fire(
-              "ព័ត៌មានអត្តសញ្ញាណ",
-              `ស្ថានភាព KYC៖ <b>${status.toUpperCase()}</b> ប៉ុន្តែរកមិនឃើញរូបភាពឯកសារទេ។`,
-              "info",
-            );
-
-          return Swal.fire({
-            title: "ឯកសារអត្តសញ្ញាណរបស់អ្នក (KYC)",
-            html: `
-              <div style="margin-top: 10px;">
-                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">
-                  ស្ថានភាពបច្ចុប្បន្ន៖ <strong style="color: ${status === "pending" ? "#f59e0b" : "#10b981"}; text-transform: uppercase;">${status}</strong>
-                </p>
-                <div style="border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; background: #f8fafc; max-height: 320px; display: flex; align-items: center; justify-content: center; padding: 5px;">
-                  <img src="${docUrl}" style="width: 100%; height: auto; max-height: 300px; object-fit: contain; border-radius: 8px;" onerror="this.onerror=null; this.src='images/logo.png';" />
-                </div>
-              </div>`,
-            confirmButtonText: "បិទ (Close)",
-            customClass: { popup: "premium-swal" },
+        // ទាញយកទិន្នន័យ User ថ្មីៗពី Server ដើម្បីឱ្យដឹងស្ថានភាព KYC ពិតប្រាកដ
+        try {
+          const res = await fetch(`/api/users?t=${Date.now()}`, {
+            headers: { Authorization: "Bearer " + userToken },
           });
-        }
-        document.getElementById("kycUploadInput").click();
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : data.users || [];
+          const fresh = list.find(
+            (u) =>
+              u.username &&
+              u.username.toLowerCase() === user.username.toLowerCase(),
+          );
+          if (fresh) {
+            user = fresh;
+            sessionStorage.setItem("user", JSON.stringify(user));
+            updateKycUI();
+          }
+        } catch (e) {}
+
+        renderUserKycViewState();
       }
 
-      async function uploadKyc(e) {
+      function closeKycView() {
+        document.getElementById("view-kyc").classList.remove("active");
+        document.getElementById("view-settings").classList.add("active");
+        updateKycUI();
+      }
+
+      function renderUserKycViewState() {
+        const st = (user.kycStatus || "unverified").toLowerCase();
+        const isLocked =
+          st === "pending" || st === "verified" || st === "approved";
+
+        ukycTempIdUrl =
+          user.kycDocument || user.kycImage || user.idCardImage || "";
+        ukycTempSelfieUrl = user.selfieUrl || "";
+
+        // ១. បង្ហាញ Banner ស្ថានភាព
+        const banner = document.getElementById("ukyc-status-banner");
+        if (st === "verified" || st === "approved") {
+          banner.style.background = "#ecfdf5";
+          banner.style.borderColor = "#10b981";
+          banner.innerHTML = `
+            <i class="fa-solid fa-circle-check" style="font-size: 1.8rem; color: #10b981;"></i>
+            <div class="kh-text">
+              <div style="font-weight: 800; color: #065f46; font-size: 0.95rem;">គណនីបានផ្ទៀងផ្ទាត់រួចរាល់ (Verified)</div>
+              <div style="font-size: 0.78rem; color: #047857;">ឯកសារអត្តសញ្ញាណរបស់អ្នកត្រូវបានអនុម័តដោយធនាគារ។</div>
+            </div>
+          `;
+        } else if (st === "pending") {
+          banner.style.background = "#fffbeb";
+          banner.style.borderColor = "#f59e0b";
+          banner.innerHTML = `
+            <i class="fa-solid fa-hourglass-half" style="font-size: 1.8rem; color: #f59e0b;"></i>
+            <div class="kh-text">
+              <div style="font-weight: 800; color: #92400e; font-size: 0.95rem;">កំពុងរង់ចាំការត្រួតពិនិត្យ (Pending Review)</div>
+              <div style="font-size: 0.78rem; color: #b45309;">ឯកសាររបស់អ្នកកំពុងស្ថិតក្នុងការត្រួតពិនិត្យដោយក្រុមការងារ។</div>
+            </div>
+          `;
+        } else if (st === "rejected") {
+          banner.style.background = "#fef2f2";
+          banner.style.borderColor = "#ef4444";
+          banner.innerHTML = `
+            <i class="fa-solid fa-circle-xmark" style="font-size: 1.8rem; color: #ef4444;"></i>
+            <div class="kh-text">
+              <div style="font-weight: 800; color: #991b1b; font-size: 0.95rem;">សំណើត្រូវបានបដិសេធ (Rejected)</div>
+              <div style="font-size: 0.78rem; color: #dc2626;">មូលហេតុ៖ "${user.kycRejectReason || "រូបភាពមិនច្បាស់"}"។ សូម Upload ម្ដងទៀត!</div>
+            </div>
+          `;
+        } else {
+          banner.style.background = "#eff6ff";
+          banner.style.borderColor = "#93c5fd";
+          banner.innerHTML = `
+            <i class="fa-solid fa-id-card" style="font-size: 1.8rem; color: #2563eb;"></i>
+            <div class="kh-text">
+              <div style="font-weight: 800; color: #1e40af; font-size: 0.95rem;">សូមបញ្ជូនឯកសារបញ្ជាក់អត្តសញ្ញាណ</div>
+              <div style="font-size: 0.78rem; color: #1d4ed8;">សូម Upload រូបអត្តសញ្ញាណប័ណ្ណ និងរូបថត Selfie ដើម្បីឱ្យ AI វិភាគទិន្នន័យអូតូ។</div>
+            </div>
+          `;
+        }
+
+        // ២. បង្ហាញរូបភាព Preview ទាំង ២
+        const idImg = document.getElementById("ukyc-preview-id");
+        const idHolder = document.getElementById("ukyc-placeholder-id");
+        if (ukycTempIdUrl) {
+          idImg.src = ukycTempIdUrl;
+          idImg.style.display = "block";
+          idHolder.style.display = "none";
+        } else {
+          idImg.style.display = "none";
+          idHolder.style.display = "flex";
+        }
+
+        const selfieImg = document.getElementById("ukyc-preview-selfie");
+        const selfieHolder = document.getElementById("ukyc-placeholder-selfie");
+        if (ukycTempSelfieUrl) {
+          selfieImg.src = ukycTempSelfieUrl;
+          selfieImg.style.display = "block";
+          selfieHolder.style.display = "none";
+        } else {
+          selfieImg.style.display = "none";
+          selfieHolder.style.display = "flex";
+        }
+
+        // ៣. បំពេញទិន្នន័យក្នុងប្រអប់ Input
+        const fnInput = document.getElementById("ukyc-fullname");
+        const idInput = document.getElementById("ukyc-idnumber");
+        const dobInput = document.getElementById("ukyc-dob");
+        const genInput = document.getElementById("ukyc-gender");
+        const dupInput = document.getElementById("ukyc-dup-reason");
+        const dupBox = document.getElementById("ukyc-dup-reason-box");
+
+        fnInput.value = (user.fullName || "").toUpperCase();
+        idInput.value = user.idNumber || "";
+        dobInput.value = user.dob || "";
+        genInput.value = user.gender || "";
+        dupInput.value = user.duplicateIdReason || "";
+
+        if (user.duplicateIdReason) {
+          dupBox.style.display = "block";
+          ukycIsDuplicateId = true;
+        } else {
+          dupBox.style.display = "none";
+          ukycIsDuplicateId = false;
+        }
+
+        // ៤. ចាក់សោប្រអប់បើកំពុង Pending ឬ Verified
+        [fnInput, idInput, dobInput, genInput, dupInput].forEach((el) => {
+          el.disabled = isLocked;
+        });
+        document.getElementById("ukyc-btn-change-id").style.display = isLocked
+          ? "none"
+          : "inline-block";
+        document.getElementById("ukyc-btn-change-selfie").style.display =
+          isLocked ? "none" : "inline-block";
+        document.getElementById("ukyc-submit-btn").style.display = isLocked
+          ? "none"
+          : "flex";
+      }
+
+      function handleKycBoxClick(type) {
+        const st = (user.kycStatus || "unverified").toLowerCase();
+        const isLocked =
+          st === "pending" || st === "verified" || st === "approved";
+
+        if (type === "id") {
+          if (ukycTempIdUrl && isLocked) {
+            return viewUserKycFullImage(
+              ukycTempIdUrl,
+              "អត្តសញ្ញាណប័ណ្ណ (ID Card)",
+            );
+          }
+          if (!isLocked) document.getElementById("ukycIdInput").click();
+        } else {
+          if (ukycTempSelfieUrl && isLocked) {
+            return viewUserKycFullImage(
+              ukycTempSelfieUrl,
+              "រូបថតផ្ទាល់ (Selfie)",
+            );
+          }
+          if (!isLocked) document.getElementById("ukycSelfieInput").click();
+        }
+      }
+
+      function viewUserKycFullImage(url, title) {
+        Swal.fire({
+          title: `<span class="kh-text" style="font-size:1rem;">${title}</span>`,
+          html: `<img src="${url}" style="width:100%; max-height:65vh; object-fit:contain; border-radius:12px;">`,
+          confirmButtonText: "បិទ (Close)",
+          customClass: { popup: "premium-swal kh-text" },
+        });
+      }
+
+      // 🧹 ពេលអតិថិជន Upload រូបអត្តសញ្ញាណប័ណ្ណថ្មី -> Clear ទិន្នន័យចាស់ចេញភ្លាម + ហៅ AI ស្កេន MRZ អូតូ
+      async function handleUserKycIdUpload(e) {
         const file = e.target.files[0];
         if (!file) return;
+
+        // Clear ទិន្នន័យចាស់ទាំងអស់ភ្លាមៗដើម្បីត្រៀមចាប់ទិន្នន័យថ្មីពីរូបភាពថ្មី
+        document.getElementById("ukyc-fullname").value = "";
+        document.getElementById("ukyc-idnumber").value = "";
+        document.getElementById("ukyc-dob").value = "";
+        document.getElementById("ukyc-gender").value = "";
+        document.getElementById("ukyc-dup-reason").value = "";
+        document.getElementById("ukyc-dup-reason-box").style.display = "none";
+        ukycIsDuplicateId = false;
+
         Swal.fire({
-          title: "កំពុងបញ្ជូនឯកសារ KYC...",
+          title: "កំពុងវិភាគរូបភាពដោយ AI...",
+          html: "<span class='kh-text' style='font-size:0.9rem; color:#64748b;'>ប្រព័ន្ធកំពុងអានទិន្នន័យពីអត្តសញ្ញាណប័ណ្ណរបស់អ្នក</span>",
+          allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
+          customClass: { popup: "premium-swal kh-text" },
         });
+
         const CLOUD_NAME = "jp9yg3dj";
         const UPLOAD_PRESET = "iaxuqmpb";
-        const cloudinaryData = new FormData();
-        cloudinaryData.append("file", file);
-        cloudinaryData.append("upload_preset", UPLOAD_PRESET);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+
         try {
           const cloudRes = await fetch(
             `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-            { method: "POST", body: cloudinaryData },
+            { method: "POST", body: formData },
           );
           const cloudData = await cloudRes.json();
-          if (cloudData.secure_url) {
-            const res = await fetch("/api/user/submit-kyc", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + userToken,
-              },
-              body: JSON.stringify({
-                username: user.username,
-                kycUrl: cloudData.secure_url,
-              }),
+
+          if (!cloudData.secure_url) throw new Error("Upload failed");
+          const tempUrl = cloudData.secure_url;
+
+          const ocrRes = await fetch("/api/scan-id-card", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageUrl: tempUrl }),
+          });
+          const ocrData = await ocrRes.json();
+          Swal.close();
+
+          if (!ocrData.success) {
+            e.target.value = "";
+            return Swal.fire({
+              icon: "error",
+              title: "មិនអាចអានអត្តសញ្ញាណប័ណ្ណ ❌",
+              text:
+                ocrData.message ||
+                "សូមថតរូបអត្តសញ្ញាណប័ណ្ណឱ្យច្បាស់ និងត្រង់ជ្រុងល្អ!",
+              customClass: { popup: "premium-swal kh-text" },
             });
-            const d = await res.json();
-            if (d.success) {
-              user.kycStatus = "pending";
-              sessionStorage.setItem("user", JSON.stringify(user));
-              updateKycUI();
-              Swal.fire("ជោគជ័យ", "ឯកសារ KYC ត្រូវបានបញ្ជូនរួចរាល់", "success");
-            } else Swal.fire("បរាជ័យ", d.message, "error");
-          } else
-            Swal.fire("បរាជ័យ", "មិនអាច Upload ទៅ Cloudinary បានទេ", "error");
+          }
+
+          ukycTempIdUrl = tempUrl;
+          const idImg = document.getElementById("ukyc-preview-id");
+          idImg.src = ukycTempIdUrl;
+          idImg.style.display = "block";
+          document.getElementById("ukyc-placeholder-id").style.display = "none";
+
+          const scannedId =
+            ocrData.data.idNumber || ocrData.data.passportNumber || "";
+          document.getElementById("ukyc-fullname").value = String(
+            ocrData.data.fullName || "",
+          ).toUpperCase();
+          document.getElementById("ukyc-idnumber").value = scannedId;
+          document.getElementById("ukyc-dob").value = ocrData.data.dob || "";
+          document.getElementById("ukyc-gender").value =
+            ocrData.data.gender || "";
+
+          // ឆែកមើលភ្លាមថាតើលេខអត្តសញ្ញាណប័ណ្ណនេះស្ទួនជាមួយគណនីផ្សេងឬអត់
+          if (scannedId) {
+            await checkUserKycDuplicateId(scannedId);
+          }
+
+          Toast.fire({
+            icon: "success",
+            title: "AI ទាញយកទិន្នន័យអត្តសញ្ញាណជោគជ័យ!",
+          });
         } catch (err) {
-          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+          Swal.close();
+          Swal.fire(
+            "បរាជ័យ",
+            "មិនអាចបង្ហោះរូបភាពបានទេ សូមសាកល្បងម្ដងទៀត!",
+            "error",
+          );
         }
         e.target.value = "";
+      }
+
+      async function handleUserKycSelfieUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        Swal.fire({
+          title: "កំពុងបង្ហោះរូបថត Selfie...",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+
+        const CLOUD_NAME = "jp9yg3dj";
+        const UPLOAD_PRESET = "iaxuqmpb";
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+
+        try {
+          const cloudRes = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+            { method: "POST", body: formData },
+          );
+          const cloudData = await cloudRes.json();
+          Swal.close();
+
+          if (cloudData.secure_url) {
+            ukycTempSelfieUrl = cloudData.secure_url;
+            const selfieImg = document.getElementById("ukyc-preview-selfie");
+            selfieImg.src = ukycTempSelfieUrl;
+            selfieImg.style.display = "block";
+            document.getElementById("ukyc-placeholder-selfie").style.display =
+              "none";
+            Toast.fire({
+              icon: "success",
+              title: "បង្ហោះរូបថត Selfie រួចរាល់!",
+            });
+          }
+        } catch (err) {
+          Swal.close();
+          Swal.fire("បរាជ័យ", "មិនអាចបង្ហោះរូបថត Selfie បានទេ!", "error");
+        }
+        e.target.value = "";
+      }
+
+      async function checkUserKycDuplicateId(idNumVal) {
+        const cleanId = String(idNumVal || "").trim();
+        const dupBox = document.getElementById("ukyc-dup-reason-box");
+        const dupInput = document.getElementById("ukyc-dup-reason");
+        if (!cleanId) {
+          dupBox.style.display = "none";
+          ukycIsDuplicateId = false;
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/check-id-number", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              idNumber: cleanId,
+              excludeUsername: user.username,
+            }),
+          });
+          const data = await res.json();
+          if (data.exists) {
+            ukycIsDuplicateId = true;
+            dupBox.style.display = "block";
+            if (!dupInput.value && data.existingReason) {
+              dupInput.value = data.existingReason;
+            }
+          } else {
+            ukycIsDuplicateId = false;
+            dupBox.style.display = "none";
+            dupInput.value = "";
+          }
+        } catch (e) {}
+      }
+
+      async function submitUserSelfKyc() {
+        const fullName = document
+          .getElementById("ukyc-fullname")
+          .value.trim()
+          .toUpperCase();
+        const idNumber = document.getElementById("ukyc-idnumber").value.trim();
+        const dob = document.getElementById("ukyc-dob").value;
+        const gender = document.getElementById("ukyc-gender").value;
+        const duplicateReason = document
+          .getElementById("ukyc-dup-reason")
+          .value.trim();
+
+        if (!ukycTempIdUrl || !ukycTempSelfieUrl) {
+          return Swal.fire({
+            icon: "warning",
+            title: "ខ្វះរូបភាពឯកសារ",
+            text: "សូម Upload ទាំងរូបអត្តសញ្ញាណប័ណ្ណ និងរូបថតផ្ទាល់ខ្លួន (Selfie) ឱ្យបានគ្រប់គ្រាន់!",
+            customClass: { popup: "premium-swal kh-text" },
+          });
+        }
+
+        if (!fullName || !idNumber || !dob || !gender) {
+          return Swal.fire({
+            icon: "warning",
+            title: "ខ្វះព័ត៌មានអត្តសញ្ញាណ",
+            text: "សូមបំពេញ ឈ្មោះពេញ, លេខអត្តសញ្ញាណប័ណ្ណ, ថ្ងៃកំណើត និងភេទ ឱ្យបានគ្រប់គ្រាន់!",
+            customClass: { popup: "premium-swal kh-text" },
+          });
+        }
+
+        if (ukycIsDuplicateId && !duplicateReason) {
+          return Swal.fire({
+            icon: "warning",
+            title: "អត្តសញ្ញាណប័ណ្ណស្ទួន",
+            text: "សូមវាយបញ្ជាក់មូលហេតុនៃការប្រើប្រាស់លេខអត្តសញ្ញាណប័ណ្ណនេះរួមគ្នា!",
+            customClass: { popup: "premium-swal kh-text" },
+          });
+        }
+
+        const btn = document.getElementById("ukyc-submit-btn");
+        btn.disabled = true;
+        btn.innerHTML =
+          '<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងបញ្ជូនសំណើ...';
+
+        try {
+          const res = await fetch("/api/user/submit-kyc", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + userToken,
+            },
+            body: JSON.stringify({
+              username: user.username,
+              idCardUrl: ukycTempIdUrl,
+              selfieUrl: ukycTempSelfieUrl,
+              fullName,
+              idNumber,
+              dob,
+              gender,
+              duplicateReason,
+            }),
+          });
+          const data = await res.json();
+          btn.disabled = false;
+          btn.innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> បញ្ជូនឯកសារ KYC ទៅត្រួតពិនិត្យ';
+
+          if (data.success) {
+            if (data.user) {
+              user = data.user;
+            } else {
+              user.kycStatus = "pending";
+              user.fullName = fullName;
+              user.idNumber = idNumber;
+              user.dob = dob;
+              user.gender = gender;
+              user.kycDocument = ukycTempIdUrl;
+              user.selfieUrl = ukycTempSelfieUrl;
+            }
+            sessionStorage.setItem("user", JSON.stringify(user));
+            document.getElementById("u-name").innerText =
+              user.fullName || user.username;
+            updateKycUI();
+            renderUserKycViewState();
+
+            Swal.fire({
+              icon: "success",
+              title: "បញ្ជូនជោគជ័យ! 🎉",
+              text: "ឯកសារ KYC របស់អ្នកត្រូវបានបញ្ជូនទៅកាន់ធនាគារដើម្បីត្រួតពិនិត្យ និងអនុម័ត។",
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          } else {
+            if (data.requireDuplicateReason) {
+              ukycIsDuplicateId = true;
+              document.getElementById("ukyc-dup-reason-box").style.display =
+                "block";
+            }
+            Swal.fire({
+              icon: "error",
+              title: "បរាជ័យ",
+              text: data.message,
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          }
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML =
+            '<i class="fa-solid fa-paper-plane"></i> បញ្ជូនឯកសារ KYC ទៅត្រួតពិនិត្យ';
+          Swal.fire("បរាជ័យ", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
+        }
       }
 
       async function uploadImage(e) {

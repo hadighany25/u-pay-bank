@@ -638,6 +638,7 @@
                 data-i18n="otp_sent_msg"
               >
                 លេខកូដ ៦ខ្ទង់បានផ្ញើទៅ Email របស់អ្នក
+                (គ្មានកំណត់ម៉ោងផុតកំណត់ពេលកំពុងបំពេញទម្រង់)
               </p>
               <input
                 type="text"
@@ -655,28 +656,24 @@
                 inputmode="numeric"
               />
               <div
-                style="text-align: center; margin-top: 15px; font-size: 0.85rem"
+                style="text-align: center; margin-top: 12px; font-size: 0.85rem"
               >
-                <span id="otpTimer" style="color: var(--text-sub)"
-                  >ផុតកំណត់ក្នុងរយៈពេល: <b id="countdown">300</b>វិនាទី</span
-                >
-                <br />
                 <button
                   type="button"
                   id="btnResendOtp"
+                  class="kh-text"
                   style="
                     background: none;
                     border: none;
                     color: var(--primary);
                     font-weight: bold;
                     cursor: pointer;
-                    margin-top: 8px;
-                    display: none;
+                    margin-top: 4px;
                   "
-                  onclick="handleStep1OTP()"
+                  onclick="resendOtpCode()"
                 >
-                  <i class="fa-solid fa-rotate-right"></i> ផ្ញើកូដសាថ្មី (Resend
-                  Code)
+                  <i class="fa-solid fa-rotate-right"></i> មិនទាន់ទទួលបានកូដ?
+                  ផ្ញើកូដសារជាថ្មី (Resend Code)
                 </button>
               </div>
             </div>
@@ -1572,11 +1569,16 @@
             if (data.exists) {
               document.getElementById("duplicateReasonBox").style.display =
                 "block";
+              const reasonInput = document.getElementById("duplicateReason");
+              if (!reasonInput.value && data.existingReason) {
+                reasonInput.value = data.existingReason;
+              }
             } else {
               document.getElementById("duplicateReasonBox").style.display =
                 "none";
               document.getElementById("duplicateReason").value = "";
             }
+            saveFormData();
           } catch (e) {
             console.log(e);
           }
@@ -1918,6 +1920,54 @@
         updateUI(step);
       }
 
+      async function resendOtpCode() {
+        const phone = document.getElementById("phone").value.trim();
+        const email = document.getElementById("email").value.trim();
+        if (!phone || !email) return;
+
+        Swal.fire({
+          target: ".app-container",
+          title: "កំពុងផ្ញើកូដ OTP សារជាថ្មី...",
+          didOpen: () => Swal.showLoading(),
+          customClass: { popup: "premium-swal kh-text" },
+        });
+
+        try {
+          const res = await fetch("/api/request-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              phone,
+              username: "temp_" + Date.now(),
+            }),
+          });
+          const data = await res.json();
+          Swal.close();
+          if (data.success) {
+            Swal.fire({
+              target: ".app-container",
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "បានផ្ញើកូដ OTP ថ្មីរួចរាល់!",
+              showConfirmButton: false,
+              timer: 2000,
+            });
+          } else {
+            Swal.fire({
+              target: ".app-container",
+              icon: "error",
+              title: "បរាជ័យ",
+              text: data.message,
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          }
+        } catch (e) {
+          Swal.close();
+        }
+      }
+
       async function handleStep1OTP() {
         const phone = document.getElementById("phone").value.trim();
         const email = document.getElementById("email").value.trim();
@@ -1935,7 +1985,7 @@
         const btn = document.getElementById("btnRequestOtp");
         if (btn.innerText.includes("Send") || btn.innerText.includes("ផ្ញើ")) {
           btn.innerHTML =
-            '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+            '<i class="fa-solid fa-spinner fa-spin"></i> កំពុងផ្ញើកូដ...';
           btn.disabled = true;
           try {
             const res = await fetch("/api/request-otp", {
@@ -1951,31 +2001,33 @@
             btn.disabled = false;
             if (data.success) {
               document.getElementById("otpSection").style.display = "block";
-              btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Verify';
-              startOtpCountdown(300);
+              btn.innerHTML =
+                '<i class="fa-solid fa-check-double"></i> ផ្ទៀងផ្ទាត់កូដ OTP (Verify)';
+              document.getElementById("otpCode").focus();
               Swal.fire({
                 target: ".app-container",
                 toast: true,
                 position: "top-end",
                 icon: "success",
-                title: "OTP Sent!",
+                title: "លេខកូដ OTP ត្រូវបានផ្ញើទៅ Email ហើយ!",
                 showConfirmButton: false,
                 timer: 2000,
               });
             } else {
               btn.innerHTML =
-                '<i class="fa-solid fa-paper-plane"></i> Send OTP';
+                '<i class="fa-solid fa-paper-plane"></i> ផ្ញើកូដ OTP (Send)';
               Swal.fire({
                 target: ".app-container",
                 icon: "error",
                 title: "បរាជ័យ",
                 text: data.message,
-                customClass: { popup: "premium-swal" },
+                customClass: { popup: "premium-swal kh-text" },
               });
             }
           } catch (e) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send OTP';
+            btn.innerHTML =
+              '<i class="fa-solid fa-paper-plane"></i> ផ្ញើកូដ OTP (Send)';
             Swal.fire({
               target: ".app-container",
               icon: "error",
@@ -1985,6 +2037,7 @@
             });
           }
         } else {
+          // 🟢 ផ្ទៀងផ្ទាត់កូដ OTP ជាមួយ Server ឱ្យដាច់ស្រឡះនៅ Step 1
           const code = document.getElementById("otpCode").value.trim();
           if (code.length !== 6)
             return Swal.fire({
@@ -1992,15 +2045,55 @@
               toast: true,
               position: "top-end",
               icon: "warning",
-              title: "OTP ត្រូវមាន ៦ខ្ទង់!",
+              title: "លេខកូដ OTP ត្រូវមាន ៦ខ្ទង់!",
               showConfirmButton: false,
               timer: 2000,
             });
-          otpVerified = true;
-          document.getElementById("email").disabled = true;
-          document.getElementById("phone").disabled = true;
-          saveFormData();
-          nextStep(2);
+
+          btn.innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin"></i> កំពុងផ្ទៀងផ្ទាត់...';
+          btn.disabled = true;
+
+          try {
+            const verifyRes = await fetch("/api/verify-register-otp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, otp: code }),
+            });
+            const verifyData = await verifyRes.json();
+            btn.disabled = false;
+
+            if (verifyData.success) {
+              otpVerified = true;
+              document.getElementById("email").disabled = true;
+              document.getElementById("phone").disabled = true;
+              btn.innerHTML =
+                '<i class="fa-solid fa-circle-check"></i> បានផ្ទៀងផ្ទាត់រួចរាល់';
+              saveFormData();
+              nextStep(2);
+            } else {
+              btn.innerHTML =
+                '<i class="fa-solid fa-check-double"></i> ផ្ទៀងផ្ទាត់កូដ OTP (Verify)';
+              Swal.fire({
+                target: ".app-container",
+                icon: "error",
+                title: "កូដ OTP មិនត្រឹមត្រូវ",
+                text: verifyData.message || "សូមពិនិត្យលេខកូដ OTP ម្ដងទៀត!",
+                customClass: { popup: "premium-swal kh-text" },
+              });
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML =
+              '<i class="fa-solid fa-check-double"></i> ផ្ទៀងផ្ទាត់កូដ OTP (Verify)';
+            Swal.fire({
+              target: ".app-container",
+              icon: "error",
+              title: "Error",
+              text: "មិនអាចតភ្ជាប់ទៅកាន់ Server បានទេ!",
+              customClass: { popup: "premium-swal kh-text" },
+            });
+          }
         }
       }
 
@@ -2010,9 +2103,9 @@
           return Swal.fire({
             target: ".app-container",
             icon: "warning",
-            title: "បំរាម",
+            title: "បម្រាម",
             text: "សូមយល់ព្រមលើលក្ខខណ្ឌប្រើប្រាស់សិន!",
-            customClass: { popup: "premium-swal" },
+            customClass: { popup: "premium-swal kh-text" },
           });
 
         const payload = {
@@ -2032,11 +2125,12 @@
           password: document.getElementById("password").value,
           pin: getPinValue(),
           otp: document.getElementById("otpCode").value.trim(),
+          otpVerified: otpVerified, // 🟢 ប្រាប់ Server ថាបាន Verify OTP តាំងពី Step 1 រួចហើយ
         };
 
         const btn = document.getElementById("btnCreate");
         btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+          '<i class="fa-solid fa-spinner fa-spin"></i> កំពុងបង្កើតគណនី...';
         btn.disabled = true;
 
         try {
@@ -2066,20 +2160,24 @@
               title: "អបអរសាទរ! 🎉",
               html: `<div style="font-size: 0.95rem; color: #475569; line-height: 1.6;" class="kh-text">គណនីរបស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ។<br>លេខគណនីធនាគាររបស់អ្នកគឺ៖ <b style="color:#10b981; font-size:1.1rem;">${realAccountNumber}</b><br>លេខសម្គាល់អតិថិជនរបស់អ្នកគឺ៖ <b style="color:#004d40; font-size:1.1rem; letter-spacing: 1px;">${realUserId}</b></div>`,
               confirmButtonText: "ចូលប្រើប្រាស់ឥឡូវនេះ",
-              customClass: { popup: "premium-swal" },
+              customClass: { popup: "premium-swal kh-text" },
               allowOutsideClick: false,
             }).then(() => {
               window.location.href = "dashboard.html";
             });
           } else {
+            if (data.requireDuplicateReason) {
+              document.getElementById("duplicateReasonBox").style.display =
+                "block";
+              prevStep(2);
+            }
             Swal.fire({
               target: ".app-container",
               icon: "error",
               title: "បរាជ័យ",
               text: data.message,
-              customClass: { popup: "premium-swal" },
+              customClass: { popup: "premium-swal kh-text" },
             });
-            if (data.message.toLowerCase().includes("otp")) prevStep(1);
           }
         } catch (e) {
           btn.disabled = false;
@@ -2089,7 +2187,7 @@
             icon: "error",
             title: "Error",
             text: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server!",
-            customClass: { popup: "premium-swal" },
+            customClass: { popup: "premium-swal kh-text" },
           });
         }
       }
