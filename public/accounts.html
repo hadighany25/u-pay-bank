@@ -2174,12 +2174,91 @@
           let textClass = isIncome ? "text-green" : "text-red";
           let iconClass = isIncome ? "fa-arrow-down" : "fa-arrow-up";
 
-          // 🌟 កំណត់ Icon ទៅតាមប្រភេទ Transaction នីមួយៗ (បង្រួបបង្រួមអោយដូច History)
+          // 🌟 កំណត់ Icon ទៅតាមប្រភេទ Transaction នីមួយៗតាមលំដាប់អាទិភាពត្រឹមត្រូវ ១០០%
           const tType = (t.type || "").toLowerCase();
           const tMethod = (t.trxMethod || "").toLowerCase();
           const tSender = (t.senderName || "").toLowerCase();
+          const tReceiver = (t.receiverName || "").toLowerCase();
 
           if (
+            tType.includes("fee") ||
+            tType.includes("penalty") ||
+            tMethod.includes("fee") ||
+            tReceiver.includes("fee collection") ||
+            t.receiverAcc === "888000999"
+          ) {
+            // ១. ថ្លៃសេវាផ្ទេរប្រាក់ ឬ ថ្លៃសេវាធ្វើកាត (System Fee / Card Fee)
+            iconClass = tType.includes("card")
+              ? "fa-credit-card"
+              : "fa-receipt";
+            bgClass = "bg-orange";
+            textClass = "text-orange";
+          } else if (tType.includes("refund") || tMethod.includes("refund")) {
+            // ២. ការបង្វិលប្រាក់សងវិញ (Refund)
+            iconClass = "fa-rotate-left";
+            bgClass = isIncome ? "bg-green" : "bg-orange";
+            textClass = isIncome ? "text-green" : "text-orange";
+          } else if (
+            tType.includes("bill") ||
+            tMethod.includes("bill") ||
+            tReceiver.includes("payhub") ||
+            tSender.includes("payhub") ||
+            t.receiverAcc === "777888999"
+          ) {
+            // ៣. ការបង់វិក្កយបត្រទឹកភ្លើង / PayHub (Bill Payment)
+            iconClass = "fa-file-invoice-dollar";
+          } else if (
+            t.cardNumber ||
+            tType.includes("card") ||
+            tType.includes("tap to pay") ||
+            tMethod.includes("nfc")
+          ) {
+            // ៤. ការទូទាត់តាមកាត NFC / Virtual Card
+            iconClass = "fa-credit-card";
+          } else if (tType.includes("e-gift") || tType.includes("gift")) {
+            // ៥. អាំងប៉ាវ (E-Gift)
+            iconClass = "fa-gift";
+          } else if (
+            tType.includes("promo") ||
+            tType.includes("cashback") ||
+            tType.includes("reward") ||
+            tSender.includes("promo") ||
+            tSender.includes("reward") ||
+            tMethod.includes("spin")
+          ) {
+            // ៦. រង្វាន់ប្រូម៉ូសិន / កងសំណាង (Promo & Cashback)
+            iconClass = "fa-sack-dollar";
+          } else if (
+            tType.includes("u-fund") ||
+            tType.includes("saving") ||
+            tType.includes("fund") ||
+            tType.includes("pool")
+          ) {
+            // ៧. សន្សំរួម U-Fund / គណនីសន្សំ
+            iconClass = "fa-piggy-bank";
+          } else if (tType.includes("debt") || tType.includes("bailout")) {
+            // ៨. កិច្ចសន្យាខ្ចី/សងប្រាក់ P2P
+            iconClass = "fa-handshake";
+          } else if (
+            tType.includes("deposit") ||
+            tSender.includes("cash deposit")
+          ) {
+            // ៩. ដាក់ប្រាក់สดនៅបញ្ជរ (Cash Deposit)
+            iconClass = "fa-hand-holding-dollar";
+          } else if (
+            tType.includes("withdrawal") ||
+            tReceiver.includes("cash withdrawal")
+          ) {
+            // ១០. ដកប្រាក់សុទ្ធនៅបញ្ជរ (Cash Withdrawal)
+            iconClass = "fa-money-bill-transfer";
+          } else if (
+            tType.includes("payroll") ||
+            tMethod.includes("payout") ||
+            tMethod.includes("payroll")
+          ) {
+            // ១១. បើកប្រាក់ខែបុគ្គលិក (Payroll)
+            iconClass = "fa-money-check-dollar";
+          } else if (
             t.merchantName ||
             t.merchantId ||
             tType.includes("merchant") ||
@@ -2188,62 +2267,25 @@
             tMethod.includes("merchant") ||
             tMethod.includes("b2b")
           ) {
+            // ១២. ទូទាត់ប្រាក់តាមហាងទំនិញ (Merchant / B2B)
             iconClass = "fa-store";
-          } else if (tType.includes("transfer")) {
-            iconClass = "fa-paper-plane";
           } else if (
             tType.includes("scan") ||
             tType.includes("qr") ||
-            tType.includes("pay") ||
-            tType.includes("payment")
+            tMethod.includes("qr scan")
           ) {
+            // ១៣. ស្កេន QR ទូទៅ
             iconClass = "fa-qrcode";
-          } else if (
-            tType.includes("u-fund") ||
-            tType.includes("saving") ||
-            tType.includes("fund") ||
-            tType.includes("pool")
-          ) {
-            iconClass = "fa-piggy-bank";
-          } else if (
-            tType.includes("payroll") ||
-            tMethod.includes("payout") ||
-            tMethod.includes("payroll")
-          ) {
-            iconClass = "fa-money-bill-transfer";
-          } else if (tType.includes("debt") || tType.includes("bailout")) {
-            iconClass = "fa-handshake";
-          } else if (
-            tType.includes("promo") ||
-            tType.includes("cashback") ||
-            tSender.includes("promo") ||
-            tSender.includes("reward") ||
-            tType.includes("reward")
-          ) {
-            iconClass = "fa-sack-dollar";
-          } else if (
-            tType.includes("penalty") ||
-            tType.includes("fee") ||
-            tType.includes("bill") ||
-            tMethod.includes("bill")
-          ) {
-            iconClass = "fa-file-invoice-dollar";
-            if (tType.includes("fee") || tType.includes("penalty")) {
-              bgClass = "bg-orange";
-              textClass = "text-orange";
-            }
-          } else if (tType.includes("refund") || tMethod.includes("refund")) {
-            iconClass = "fa-rotate-left";
-          } else if (
-            tType.includes("deposit") ||
-            tMethod.includes("cashier") ||
-            tSender.includes("deposit")
-          ) {
-            iconClass = "fa-vault";
-          } else if (tType.includes("e-gift") || tType.includes("gift")) {
-            iconClass = "fa-gift";
-          } else if (isIncome && user && user.role === "junior") {
-            iconClass = "fa-child-reaching";
+          } else if (tType.includes("receive") || isIncome) {
+            // ១៤. ទទួលប្រាក់ផ្ទេរចូល (Receive Money)
+            iconClass =
+              user && user.role === "junior"
+                ? "fa-child-reaching"
+                : "fa-arrow-down-Left";
+            if (iconClass === "fa-arrow-down-Left") iconClass = "fa-arrow-down";
+          } else if (tType.includes("transfer")) {
+            // ១៥. វេរប្រាក់ចេញទូទៅ (Transfer Out)
+            iconClass = "fa-paper-plane";
           }
 
           const currSym = currency === "KHR" ? "៛" : "$";

@@ -45,7 +45,7 @@ const generateStandardRefId = (prefix) => {
 };
 
 // ==========================================
-// 🔍 ៣. មុខងារឆែកឈ្មោះគណនីមុនពេលវេរលុយ (Check Account)
+// 🔍 ៣. មុខងារឆែកឈ្មោះគណនីមុនពេលវេរលុយ (Check Account - បន្ថែម profileImage & transferLimit)
 // ==========================================
 const checkAccount = async (req, res) => {
   const { accountNumber } = req.body;
@@ -64,6 +64,7 @@ const checkAccount = async (req, res) => {
     let isMerchant = false;
     let targetName = "";
     let isReceiverKHR = false;
+    let profileImage = "";
 
     // ករណីរកមិនឃើញ User ធម្មតា, ឆែកមើលក្រែងលោជាកុងហាង (Merchant)
     if (!target) {
@@ -91,11 +92,13 @@ const checkAccount = async (req, res) => {
           isReceiverKHR = cashier.virtualAccounts?.KHR === accountNumber;
         } else {
           targetName = target.name.toUpperCase();
-          isReceiverKHR = target.accountNumbers.KHR === accountNumber;
+          isReceiverKHR = target.accountNumbers?.KHR === accountNumber;
         }
       }
     } else {
-      // ករណីជាគណនី User ធម្មតា
+      // 🌟 ចាប់យករូប Profile ពិតរបស់អតិថិជន
+      profileImage = target.profileImage || "";
+
       if (target.role === "junior") {
         let childName = target.fullName || target.username;
         targetName = childName.toUpperCase() + " (JUNIOR)";
@@ -138,15 +141,21 @@ const checkAccount = async (req, res) => {
     }
 
     if (target) {
-      const currentFXRates = readFXRates();
       const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+      const currentFXRates =
+        sys && sys.fxRates && sys.fxRates.usdToKhrBuy
+          ? sys.fxRates
+          : readFXRates();
+
       res.json({
         success: true,
         username: targetName,
+        profileImage: isMerchant ? "" : profileImage,
         isReceiverKHR: isReceiverKHR,
         isMerchant: isMerchant,
         fxRates: currentFXRates,
         feeTiers: sys ? sys.feeTiers : [],
+        transferLimit: sys && sys.transferLimit ? sys.transferLimit : 5000,
       });
     } else {
       res.json({ success: false, message: "រកមិនឃើញគណនីនេះទេ!" });
@@ -158,7 +167,7 @@ const checkAccount = async (req, res) => {
 };
 
 // ==========================================
-// 💸 ៤. មុខងារវេរលុយ (Transfer)
+// 💸 ៤. មុខងារវេរលុយ (Transfer - គាំទ្រការបាញ់ឆ្លងរូបិយប័ណ្ណ, ឆែក Limit ប្រចាំថ្ងៃ, បំបែក Slip Fee & បញ្ចូល 888000999)
 // ==========================================
 const transfer = async (req, res) => {
   const {
@@ -166,10 +175,11 @@ const transfer = async (req, res) => {
     senderAccount,
     receiverAccount,
     amount,
+    inputCurrency, // 🌟 រូបិយប័ណ្ណដែលអ្នកផ្ញើបានជ្រើសរើសវាយបញ្ចូល (USD ឬ KHR)
     remark,
     pin,
     trxMethod,
-    currency,
+    currency, // រូបិយប័ណ្ណគណនីប្រភពរបស់អ្នកផ្ញើ
   } = req.body;
 
   if (req.user.username !== senderUsername) {
@@ -184,7 +194,7 @@ const transfer = async (req, res) => {
     if (sender.isFrozen)
       return res.json({ success: false, message: "Account Frozen by Admin" });
 
-    // ផ្ទៀងផ្ទាត់ PIN Code
+    // ១. ផ្ទៀងផ្ទាត់ PIN Code
     if (sender.pin !== pin) {
       sender.pinAttempts = (sender.pinAttempts || 0) + 1;
       if (sender.pinAttempts >= 3) {
@@ -192,18 +202,18 @@ const transfer = async (req, res) => {
         await sender.save();
         return res.json({
           success: false,
-          message: "Wrong PIN 3 times! Account Frozen.",
+          message: "អ្នកបានវាយខុស PIN ៣ដង! គណនីត្រូវបានផ្អាកដើម្បីសុវត្ថិភាព។",
         });
       }
       await sender.save();
       return res.json({
         success: false,
-        message: `Wrong PIN! Attempts left: ${3 - sender.pinAttempts}`,
+        message: `លេខកូដ PIN មិនត្រឹមត្រូវទេ! នៅសល់ឱកាស ${3 - sender.pinAttempts} ដងទៀត។`,
       });
     }
-    sender.pinAttempts = 0; // Reset PIN ក្រោយពេលវាយត្រូវ
+    sender.pinAttempts = 0;
 
-    // ស្វែងរកគណនីអ្នកទទួល
+    // ២. ស្វែងរកគណនីអ្នកទទួល
     let receiver = await User.findOne({
       $or: [
         { "mainAccounts.USD.accountNumber": receiverAccount },
@@ -234,13 +244,13 @@ const transfer = async (req, res) => {
     }
 
     if (!receiver && !receiverMerchant)
-      return res.json({ success: false, message: "Receiver not found" });
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអ្នកទទួលទេ!" });
 
     const isSenderKHR = currency === "KHR";
     let isSenderSubAccount = false,
       senderSubIndex = -1;
 
-    // 🌟 កំណត់គណនីប្រភពរបស់អ្នកផ្ញើ
+    // ៣. កំណត់គណនីប្រភពរបស់អ្នកផ្ញើ
     let actualSenderAccNum = senderAccount;
     if (
       senderAccount === "MAIN_USD" ||
@@ -261,7 +271,10 @@ const transfer = async (req, res) => {
       if (senderSubIndex !== -1) isSenderSubAccount = true;
     }
 
-    // ឆែកមើលបើសិនអ្នកទទួលជាហាង (Merchant)
+    // ៤. កំណត់រូបិយប័ណ្ណគណនីអ្នកទទួល
+    let isReceiverKHR = false;
+    let targetSubAccIndex = -1;
+
     if (isMerchant) {
       if (sender.username === receiverMerchant.userId) {
         return res.json({
@@ -277,57 +290,152 @@ const transfer = async (req, res) => {
           c.virtualAccount === receiverAccount,
       );
 
-      let isReceiverKHRTemp = false;
       if (cashierInfo && cashierInfo.status === "Active") {
-        isReceiverKHRTemp =
-          cashierInfo.virtualAccounts?.KHR === receiverAccount;
+        isReceiverKHR = cashierInfo.virtualAccounts?.KHR === receiverAccount;
+        finalReceiverName = `${receiverMerchant.name.toUpperCase()} BY ${cashierInfo.displayName.toUpperCase()}`;
       } else {
-        isReceiverKHRTemp =
-          receiverMerchant.accountNumbers.KHR === receiverAccount;
+        isReceiverKHR =
+          receiverMerchant.accountNumbers?.KHR === receiverAccount;
+        finalReceiverName = receiverMerchant.name.toUpperCase();
       }
 
-      let actualOwnerAccNum = isReceiverKHRTemp
-        ? receiverMerchant.linkedAccounts.KHR
-        : receiverMerchant.linkedAccounts.USD;
+      let actualOwnerAccNum = isReceiverKHR
+        ? receiverMerchant.linkedAccounts?.KHR
+        : receiverMerchant.linkedAccounts?.USD;
       if (!actualOwnerAccNum)
         actualOwnerAccNum =
-          receiverMerchant.linkedAccounts.USD ||
-          receiverMerchant.linkedAccounts.KHR;
+          receiverMerchant.linkedAccounts?.USD ||
+          receiverMerchant.linkedAccounts?.KHR;
       actualLinkedAccountForBalance = actualOwnerAccNum;
+    } else {
+      targetSubAccIndex = receiver.subAccounts.findIndex(
+        (acc) => acc.accountNumber === receiverAccount,
+      );
+      if (
+        receiver.mainAccounts?.KHR?.accountNumber === receiverAccount ||
+        receiver.accountNumberKHR === receiverAccount
+      ) {
+        isReceiverKHR = true;
+      } else if (targetSubAccIndex !== -1) {
+        isReceiverKHR =
+          receiver.subAccounts[targetSubAccIndex].currency === "KHR";
+      }
+      finalReceiverName = receiver.fullName || receiver.username;
     }
 
-    // ការគណនាថ្លៃសេវា (Fee) និងអត្រាប្តូរប្រាក់ (FX Rate)
+    // ៥. គណនាអត្រាប្តូរប្រាក់ (គាំទ្រការជ្រើសរើសរូបិយប័ណ្ណបាញ់ដោយសេរី inputCurrency)
     const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
-    const transferAmount = parseFloat(amount);
-    const currentFXRates = readFXRates();
+    const currentFXRates =
+      sys && sys.fxRates && sys.fxRates.usdToKhrBuy
+        ? sys.fxRates
+        : readFXRates();
+    const buyRate = parseFloat(currentFXRates.usdToKhrBuy) || 4050;
+    const sellRate = parseFloat(currentFXRates.usdToKhrSell) || 4100;
 
-    let transferUsdAmount = isSenderKHR
-      ? transferAmount / currentFXRates.usdToKhrSell
-      : transferAmount;
+    const rawEnteredAmount = parseFloat(amount);
+    if (!rawEnteredAmount || rawEnteredAmount <= 0) {
+      return res.json({
+        success: false,
+        message: "ចំនួនទឹកប្រាក់មិនត្រឹមត្រូវ!",
+      });
+    }
+
+    const chosenInputCur =
+      inputCurrency === "KHR" || inputCurrency === "USD"
+        ? inputCurrency
+        : isSenderKHR
+          ? "KHR"
+          : "USD";
+
+    // គណនាទឹកប្រាក់ដើមដែលត្រូវកាត់ពីគណនីអ្នកផ្ញើ (senderPrincipalDeduction) និងទឹកប្រាក់ដែលអ្នកទទួលទទួលបាន (receiverAmount)
+    let senderPrincipalDeduction = rawEnteredAmount;
+    if (isSenderKHR && chosenInputCur === "USD") {
+      // គណនីអ្នកផ្ញើជា KHR តែគាត់ជ្រើសរើសវាយបាញ់ជា USD ($)
+      senderPrincipalDeduction = Math.round(rawEnteredAmount * sellRate);
+    } else if (!isSenderKHR && chosenInputCur === "KHR") {
+      // គណនីអ្នកផ្ញើជា USD តែគាត់ជ្រើសរើសវាយបាញ់ជា KHR (៛)
+      senderPrincipalDeduction = Number(
+        (rawEnteredAmount / buyRate).toFixed(2),
+      );
+    }
+
+    let receiverAmount = rawEnteredAmount;
+    if (chosenInputCur === "USD" && isReceiverKHR) {
+      receiverAmount = Math.round(rawEnteredAmount * buyRate);
+    } else if (chosenInputCur === "KHR" && !isReceiverKHR) {
+      receiverAmount = Number((rawEnteredAmount / sellRate).toFixed(2));
+    }
+
+    // គណនាទំហំទឹកប្រាក់គិតជា USD ដើម្បីឆែក Limit ប្រចាំថ្ងៃ និងគណនាថ្លៃសេវា (Fee Tiers)
+    const transferUsdEquivalent = isSenderKHR
+      ? senderPrincipalDeduction / sellRate
+      : senderPrincipalDeduction;
+
+    // 🛡️ ៦. ឆែកដែនកំណត់ផ្ទេរប្រាក់ប្រចាំថ្ងៃរបស់ Admin (Global Daily Transfer Limit)
+    const globalDailyLimitUSD =
+      sys && sys.transferLimit ? parseFloat(sys.transferLimit) : 5000;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todaySentTrxs = await Transaction.find({
+      username: sender.username,
+      type: "Transfer",
+      amount: { $lt: 0 },
+      createdAt: { $gte: startOfToday },
+    });
+
+    let todaySpentUSD = 0;
+    todaySentTrxs.forEach((t) => {
+      const absVal = Math.abs(Number(t.amount || 0));
+      todaySpentUSD += t.currency === "KHR" ? absVal / sellRate : absVal;
+    });
+
+    if (todaySpentUSD + transferUsdEquivalent > globalDailyLimitUSD) {
+      const remainingUSD = Math.max(
+        0,
+        globalDailyLimitUSD - todaySpentUSD,
+      ).toFixed(2);
+      return res.json({
+        success: false,
+        message: `ប្រតិបត្តិការលើសដែនកំណត់ប្រចាំថ្ងៃរបស់ធនាគារ ($${globalDailyLimitUSD.toLocaleString()}/ថ្ងៃ)! ថ្ងៃនេះអ្នកនៅសល់កូតាអាចវេរបានត្រឹមតែ $${remainingUSD} ប៉ុណ្ណោះ។`,
+      });
+    }
+
+    // ៧. គណនាថ្លៃសេវា (Tiered Fee)
     let appliedFeeUsd = 0;
-    const feeTiers = sys ? sys.feeTiers : [];
+    const feeTiers = sys && Array.isArray(sys.feeTiers) ? sys.feeTiers : [];
     for (let tier of feeTiers) {
       if (
-        transferUsdAmount >= parseFloat(tier.min) &&
-        transferUsdAmount <= parseFloat(tier.max)
+        transferUsdEquivalent >= parseFloat(tier.min || 0) &&
+        transferUsdEquivalent <= parseFloat(tier.max || 0)
       ) {
-        appliedFeeUsd = parseFloat(tier.fee);
+        appliedFeeUsd = parseFloat(tier.fee || 0);
         break;
       }
     }
 
-    let appliedFee = isSenderKHR
-      ? appliedFeeUsd * currentFXRates.usdToKhrSell
-      : appliedFeeUsd;
-    const totalDeduction = parseFloat((transferAmount + appliedFee).toFixed(2));
+    const appliedFee = isSenderKHR
+      ? Math.round(appliedFeeUsd * sellRate)
+      : Number(appliedFeeUsd.toFixed(2));
+    const totalDeduction = Number(
+      (senderPrincipalDeduction + appliedFee).toFixed(2),
+    );
 
+    // ៨. ឆែកសមតុល្យ និង Limit គណនីអ្នកផ្ញើ
     let jointSenderAcc = null,
       juniorSenderAcc = null;
     let senderAvailableBal = 0;
 
-    // 🌟 ការទាញយកសមតុល្យអ្នកផ្ញើ (Sender Balance)
     if (isSenderSubAccount) {
       const sType = sender.subAccounts[senderSubIndex].accountType;
+      const subDailyLimit = sender.subAccounts[senderSubIndex].dailyLimit || 0;
+      if (subDailyLimit > 0 && senderPrincipalDeduction > subDailyLimit) {
+        return res.json({
+          success: false,
+          message: `ចំនួនទឹកប្រាក់លើសដែនកំណត់ប្រចាំថ្ងៃរបស់គណនីរងនេះ (${isSenderKHR ? subDailyLimit.toLocaleString() + " ៛" : "$" + subDailyLimit})!`,
+        });
+      }
+
       if (sType === "joint" || sType === "joint_member") {
         jointSenderAcc = await JointAccount.findOne({
           accountId: sender.subAccounts[senderSubIndex].accountId,
@@ -352,7 +460,7 @@ const transfer = async (req, res) => {
           if (dailyLimit > 0 && dailySpent + totalDeduction > dailyLimit) {
             return res.json({
               success: false,
-              message: "ប្រតិបត្តិការបរាជ័យ! ចាយលើសដែនកំណត់។",
+              message: "ប្រតិបត្តិការបរាជ័យ! ចាយលើសដែនកំណត់គណនី Junior។",
             });
           }
           senderAvailableBal = isSenderKHR
@@ -367,15 +475,31 @@ const transfer = async (req, res) => {
         senderAvailableBal = sender.subAccounts[senderSubIndex].balance;
       }
     } else {
+      const mainAccObj = isSenderKHR
+        ? sender.mainAccounts?.KHR
+        : sender.mainAccounts?.USD;
+      if (
+        mainAccObj &&
+        mainAccObj.dailyLimit > 0 &&
+        senderPrincipalDeduction > mainAccObj.dailyLimit
+      ) {
+        return res.json({
+          success: false,
+          message: `ចំនួនទឹកប្រាក់លើសដែនកំណត់ប្រចាំថ្ងៃរបស់គណនីអ្នក (${isSenderKHR ? mainAccObj.dailyLimit.toLocaleString() + " ៛" : "$" + mainAccObj.dailyLimit})!`,
+        });
+      }
       senderAvailableBal = isSenderKHR
         ? sender.mainAccounts?.KHR?.balance || sender.balanceKHR || 0
         : sender.mainAccounts?.USD?.balance || sender.balance || 0;
     }
 
     if (senderAvailableBal < totalDeduction)
-      return res.json({ success: false, message: "សមតុល្យមិនគ្រប់គ្រាន់" });
+      return res.json({
+        success: false,
+        message: "សមតុល្យក្នុងគណនីរបស់អ្នកមិនគ្រប់គ្រាន់ទេ!",
+      });
 
-    // 🌟 ការកាត់លុយពីអ្នកផ្ញើ (Deduct Funds)
+    // ៩. កាត់លុយពីអ្នកផ្ញើ (ទាំងប្រាក់ដើម + ថ្លៃសេវា)
     if (isSenderSubAccount) {
       if (jointSenderAcc) {
         jointSenderAcc.balance -= totalDeduction;
@@ -416,25 +540,9 @@ const transfer = async (req, res) => {
       sender.markModified("mainAccounts");
     }
 
-    let receiverAmount = transferAmount;
-    let isReceiverKHR = false;
+    // ១០. បញ្ចូលលុយទៅអ្នកទទួល
     let jointReceiverAcc = null;
-
-    // 🌟 ការបញ្ចូលលុយទៅអ្នកទទួល (Add Funds)
     if (isMerchant) {
-      if (cashierInfo && cashierInfo.status === "Active") {
-        isReceiverKHR = cashierInfo.virtualAccounts?.KHR === receiverAccount;
-        finalReceiverName = `${receiverMerchant.name.toUpperCase()} BY ${cashierInfo.displayName.toUpperCase()}`;
-      } else {
-        isReceiverKHR = receiverMerchant.accountNumbers.KHR === receiverAccount;
-        finalReceiverName = receiverMerchant.name.toUpperCase();
-      }
-
-      if (!isSenderKHR && isReceiverKHR)
-        receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
-      else if (isSenderKHR && !isReceiverKHR)
-        receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
-
       if (isReceiverKHR) receiverMerchant.collected.KHR += receiverAmount;
       else receiverMerchant.collected.USD += receiverAmount;
       await receiverMerchant.save();
@@ -480,26 +588,6 @@ const transfer = async (req, res) => {
         receiver = owner;
       }
     } else {
-      let targetSubAccIndex = receiver.subAccounts.findIndex(
-        (acc) => acc.accountNumber === receiverAccount,
-      );
-      if (
-        receiver.mainAccounts?.KHR?.accountNumber === receiverAccount ||
-        receiver.accountNumberKHR === receiverAccount
-      ) {
-        isReceiverKHR = true;
-      } else if (targetSubAccIndex !== -1) {
-        isReceiverKHR =
-          receiver.subAccounts[targetSubAccIndex].currency === "KHR";
-      }
-
-      if (!isSenderKHR && isReceiverKHR)
-        receiverAmount = transferAmount * currentFXRates.usdToKhrBuy;
-      else if (isSenderKHR && !isReceiverKHR)
-        receiverAmount = transferAmount / currentFXRates.usdToKhrSell;
-
-      finalReceiverName = receiver.fullName || receiver.username;
-
       if (targetSubAccIndex !== -1) {
         const targetSubAcc = receiver.subAccounts[targetSubAccIndex];
         if (
@@ -537,7 +625,7 @@ const transfer = async (req, res) => {
     await sender.save();
 
     // ------------------------------------------
-    // 📝 ង. កត់ត្រាប្រវត្តិ (Transaction Logging)
+    // 📝 ១១. កត់ត្រាវិក្កយបត្រតាមស្តង់ដារធនាគារ (បំបែក Slip វេរប្រាក់ និង Slip ថ្លៃសេវាដាច់ពីគ្នា!)
     // ------------------------------------------
     const date = new Date().toLocaleString("en-US", {
       timeZone: "Asia/Phnom_Penh",
@@ -550,13 +638,14 @@ const transfer = async (req, res) => {
       ? jointSenderAcc.accountName
       : sender.fullName || sender.username;
 
+    // 🌟 វិក្កយបត្រវេរប្រាក់គោល៖ កត់ត្រាតែចំនួនទឹកប្រាក់ដើមសុទ្ធ (-senderPrincipalDeduction) មិនបូកលាយ Fee ឡើយ!
     const senderTrx = {
       userId: sender._id,
       refId: sharedRefId,
       hash: sharedHash,
       date,
       type: "Transfer",
-      amount: -totalDeduction,
+      amount: -senderPrincipalDeduction,
       currency: isSenderKHR ? "KHR" : "USD",
       fee: appliedFee,
       senderName: finalSenderName,
@@ -611,8 +700,95 @@ const transfer = async (req, res) => {
       await Transaction.create(receiverTrx);
     }
 
+    // 🏦 ១២. ប្រសិនបើមានថ្លៃសេវា (appliedFee > 0)៖ បង្កើតវិក្កយបត្រថ្លៃសេវាដាច់ដោយឡែក និងបញ្ចូលលុយចូលគណនីរង 888000999!
+    if (appliedFee > 0 && appliedFeeUsd > 0) {
+      const feeRefId = generateStandardRefId("FEE");
+      const feeHash = generateStandardHash();
+
+      // ១២.១ បូកលុយថ្លៃសេវាចូលក្នុងគណនីរង 888000999 របស់ superadmin
+      let superAdmin = await User.findOne({
+        $or: [
+          { username: "superadmin" },
+          { "subAccounts.accountNumber": "888000999" },
+          { "mainAccounts.USD.accountNumber": "888888888" },
+        ],
+      });
+
+      if (superAdmin) {
+        let targetFeeSub = (superAdmin.subAccounts || []).find(
+          (sub) => sub.accountNumber === "888000999",
+        );
+        if (targetFeeSub) {
+          if (targetFeeSub.currency === "KHR") {
+            targetFeeSub.balance =
+              (targetFeeSub.balance || 0) +
+              Math.round(appliedFeeUsd * sellRate);
+          } else {
+            targetFeeSub.balance = (targetFeeSub.balance || 0) + appliedFeeUsd;
+          }
+          superAdmin.markModified("subAccounts");
+        } else if (superAdmin.mainAccounts?.USD) {
+          superAdmin.mainAccounts.USD.balance += appliedFeeUsd;
+          superAdmin.markModified("mainAccounts");
+        }
+        await superAdmin.save();
+      }
+
+      // ១២.២ បង្កើត Slip ថ្លៃសេវាដាច់ដោយឡែកសម្រាប់អតិថិជន (អ្នកផ្ញើ)
+      const senderFeeSlip = {
+        userId: sender._id,
+        username: sender.username,
+        refId: feeRefId,
+        hash: feeHash,
+        date,
+        type: "Transfer Fee",
+        amount: -appliedFee,
+        currency: isSenderKHR ? "KHR" : "USD",
+        fee: 0,
+        senderName: finalSenderName,
+        senderAcc: actualSenderAccNum,
+        receiverName: "U-Pay Fee Collection",
+        receiverAcc: "888000999",
+        trxMethod: "System Fee",
+        remark: `ថ្លៃសេវាផ្ទេរប្រាក់សម្រាប់ប្រតិបត្តិការ #${sharedRefId}`,
+        status: "Success",
+      };
+
+      if (jointSenderAcc) {
+        for (let m of jointSenderAcc.members) {
+          if (m.status === "active")
+            await Transaction.create({
+              ...senderFeeSlip,
+              username: m.username,
+            });
+        }
+      } else {
+        await Transaction.create(senderFeeSlip);
+      }
+
+      // ១២.៣ បង្កើត Slip ចំណូលថ្លៃសេវាសម្រាប់គណនី 888000999 (Central Bank Fee Income)
+      await Transaction.create({
+        userId: superAdmin?._id,
+        username: superAdmin ? superAdmin.username : "superadmin",
+        refId: feeRefId,
+        hash: feeHash,
+        date,
+        type: "System Income",
+        amount: appliedFeeUsd,
+        currency: "USD",
+        fee: 0,
+        senderName: finalSenderName,
+        senderAcc: actualSenderAccNum,
+        receiverName: "Central Bank Fee Income",
+        receiverAcc: "888000999",
+        trxMethod: "Transfer Fee",
+        remark: `ទទួលថ្លៃសេវាផ្ទេរប្រាក់ពី @${sender.username} (Ref: ${sharedRefId})`,
+        status: "Success",
+      });
+    }
+
     // ------------------------------------------
-    // 🔔 ច. ការផ្តល់ដំណឹង (Notifications / Socket)
+    // 🔔 ១៣. ការផ្តល់ដំណឹង (Notifications / Socket)
     // ------------------------------------------
     const currencySymbol = isReceiverKHR ? "៛" : "$";
     const senderMsgName = jointSenderAcc
@@ -671,12 +847,19 @@ const transfer = async (req, res) => {
 
     const updatedSender = await User.findOne({ username: senderUsername });
 
+    // 🌟 សម្រាប់បង្ហាញលើ Slip ភ្លាមៗ៖ បង្ហាញតែទឹកប្រាក់ដើមដែលបានវេរ និងថ្លៃសេវាដាច់ដោយឡែក
+    const slipPayload = {
+      ...senderTrx,
+      amount: -senderPrincipalDeduction,
+      fee: appliedFee,
+    };
+
     res.json({
       success: true,
       newBalance: isSenderKHR
         ? updatedSender.mainAccounts?.KHR?.balance || updatedSender.balanceKHR
         : updatedSender.mainAccounts?.USD?.balance || updatedSender.balance,
-      slipData: senderTrx,
+      slipData: slipPayload,
       user: updatedSender,
     });
   } catch (err) {

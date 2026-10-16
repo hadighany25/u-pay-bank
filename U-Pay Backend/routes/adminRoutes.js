@@ -50,6 +50,12 @@ router.post(
   safeHandler(adminController.toggleSystem, "toggleSystem"),
 );
 
+router.post(
+  "/fx/sync-nbc",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_CUSTOM]),
+  safeHandler(adminController.syncNbcFXRates, "syncNbcFXRates"),
+);
+
 // មើលស្ថានភាពប្រព័ន្ធ និងអត្រាប្តូរប្រាក់
 router.get(
   "/system-status",

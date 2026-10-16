@@ -11,20 +11,23 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/pin.js"></script>
+    <!-- 🌟 ប្រើប្រាស់ js/slip.js ដែលមានស្រាប់របស់បងធំ និង js/luckySpin.js -->
+    <script src="js/slip.js"></script>
+    <script src="js/luckySpin.js"></script>
     <link rel="stylesheet" href="style.css" />
 
     <style>
       body {
         visibility: hidden;
         opacity: 0;
-        background-color: #f2f4f6;
+        background-color: #f1f5f9;
         margin: 0;
         font-family: "Kantumruy Pro", "Inter", sans-serif !important;
         display: flex;
@@ -32,7 +35,7 @@
         min-height: 100vh;
         -webkit-font-smoothing: antialiased;
         transition:
-          opacity 0.4s ease,
+          opacity 0.35s ease,
           background-color 0.3s ease;
       }
       body.loaded {
@@ -52,50 +55,145 @@
       .app-container {
         width: 100%;
         max-width: 450px;
-        background: #fff;
+        background: #ffffff;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         position: relative;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
         transition: background-color 0.3s ease;
       }
       .nav-header {
-        padding: 20px;
-        background: #004d40;
+        padding: 18px 20px;
+        background: linear-gradient(135deg, #004d40, #00695c);
         color: #fff;
         display: flex;
         align-items: center;
-        gap: 15px;
-        font-size: 1.1rem;
-        font-weight: 600;
+        justify-content: space-between;
+        font-size: 1.08rem;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0, 77, 64, 0.2);
       }
       .nav-header a {
         color: #fff;
         text-decoration: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      .nav-header a:active {
+        transform: scale(0.92);
+      }
+      /* 💱 Mini Airport Ticker Card on Header (Slow & Smooth Wave Animation) */
+      .fx-live-pill {
+        font-size: 0.72rem;
+        background: rgba(15, 23, 42, 0.45);
+        padding: 6px 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        max-width: 240px;
+        height: 38px;
+        overflow: hidden;
+        box-sizing: border-box;
+        perspective: 1000px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      }
+      .fx-mini-card-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        white-space: nowrap;
+        /* 🌟 កែរយះពេលពី 0.38s ទៅ 0.6s ឱ្យវាយឺតស្អាត និងទន់ភ្លន់ */
+        animation: fxMiniCardFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      @keyframes fxMiniCardFadeIn {
+        0% {
+          opacity: 0;
+          transform: rotateX(60deg) translateY(8px);
+        }
+        100% {
+          opacity: 1;
+          transform: rotateX(0deg) translateY(0);
+        }
+      }
+      .afx-flag-pair {
+        position: relative;
+        width: 34px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .afx-flag-img-1 {
+        width: 21px;
+        height: 15px;
+        border-radius: 2px;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .afx-flag-img-2 {
+        width: 19px;
+        height: 13px;
+        border-radius: 2px;
+        object-fit: cover;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        border: 1px solid #0f172a;
+      }
+
+      .afx-ticker-card {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 10px 12px; /* កាត់បន្ថយ Padding បន្តិចដើម្បីឱ្យដាក់ត្រូវ ៤ កាតពេញទទឹងស្អាតរលោង */
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        backface-visibility: hidden;
+        transform-origin: center center;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        transition:
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
       }
       .transfer-form {
-        padding: 10px 20px;
+        padding: 16px 20px 30px;
         flex: 1;
       }
       .section-label {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: #64748b;
-        font-weight: 700;
+        font-weight: 800;
         text-transform: uppercase;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         letter-spacing: 0.5px;
       }
 
+      /* Recent Contacts */
       .recent-contacts-container {
-        margin-bottom: 2px;
+        margin-bottom: 10px;
         display: none;
       }
       .contacts-scroll {
         display: flex;
-        gap: 15px;
+        gap: 14px;
         overflow-x: auto;
-        padding: 10px 5px;
+        padding: 6px 4px 10px;
         scrollbar-width: none;
         -webkit-overflow-scrolling: touch;
       }
@@ -108,76 +206,70 @@
         flex-direction: column;
         align-items: center;
         cursor: pointer;
-        transition: transform 0.3s ease;
-        min-width: 65px;
+        transition: transform 0.25s ease;
+        min-width: 64px;
         flex-shrink: 0;
       }
       .contact-item:hover {
-        transform: translateY(-8px);
+        transform: translateY(-5px);
       }
       .contact-avatar {
-        width: 55px;
-        height: 55px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         color: white;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 1.2rem;
-        font-weight: 700;
+        font-size: 1.1rem;
+        font-weight: 800;
         position: relative;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
         border: 2px solid white;
       }
       .delete-btn {
         position: absolute;
         top: -2px;
         right: -2px;
-        background-color: #ff4d4f;
+        background-color: #ef4444;
         color: white;
-        width: 20px;
-        height: 20px;
+        width: 19px;
+        height: 19px;
         border-radius: 50%;
-        font-size: 11px;
+        font-size: 10px;
         display: flex;
         justify-content: center;
         align-items: center;
         opacity: 0;
-        transition:
-          opacity 0.2s ease,
-          transform 0.2s ease;
+        transition: 0.2s;
         z-index: 10;
       }
       .contact-item:hover .delete-btn {
         opacity: 1;
       }
-      .delete-btn:hover {
-        transform: scale(1.2);
-      }
       .contact-info {
-        margin-top: 8px;
+        margin-top: 6px;
         text-align: center;
-        min-height: 35px;
+        min-height: 32px;
         width: 100%;
       }
       .short-name {
-        font-size: 0.7rem;
-        font-weight: 600;
+        font-size: 0.72rem;
+        font-weight: 700;
         color: #334155;
         display: block;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        transition: opacity 0.2s ease;
       }
       .full-details {
         display: none;
         font-size: 0.65rem;
-        color: #666;
+        color: #64748b;
         white-space: nowrap;
       }
       .full-details .f-name {
-        font-weight: 700;
+        font-weight: 800;
         color: #006039;
       }
       .contact-item:hover .short-name {
@@ -185,122 +277,225 @@
       }
       .contact-item:hover .full-details {
         display: block;
-        animation: fadeIn 0.3s ease;
       }
 
+      /* Receiver Profile Card */
       .receiver-box {
         text-align: center;
-        margin-bottom: 20px;
-        padding: 20px;
-        background: #f8f9fa;
+        margin-bottom: 18px;
+        padding: 18px 16px;
+        background: #f8fafc;
         border-radius: 20px;
-        border: 1px dashed #ccc;
-        transition: 0.3s;
+        border: 1.5px dashed #cbd5e1;
+        transition: all 0.3s ease;
       }
       .receiver-icon {
-        width: 60px;
-        height: 60px;
+        width: 64px;
+        height: 64px;
         background: #e0f2f1;
         border-radius: 50%;
-        margin: 0 auto 10px;
+        margin: 0 auto 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #004d40;
-        font-size: 1.5rem;
+        font-size: 1.55rem;
         overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 77, 64, 0.12);
+        border: 2.5px solid #ffffff;
       }
+      .receiver-cur-badge {
+        display: none;
+        margin-top: 6px;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        background: rgba(16, 185, 129, 0.14);
+        color: #059669;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Form Inputs */
       .input-group {
         margin-bottom: 15px;
         position: relative;
       }
       .input-group label {
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #555;
-        margin-bottom: 8px;
-        display: block;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #475569;
+        margin-bottom: 7px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
       .main-input {
         width: 100%;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        font-size: 1rem;
+        padding: 14px 15px;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 14px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #0f172a;
         outline: none;
         background: #fff;
         box-sizing: border-box;
-        transition: 0.3s;
+        transition: 0.25s;
       }
       .main-input:focus {
         border-color: #004d40;
         box-shadow: 0 0 0 3px rgba(0, 77, 64, 0.1);
       }
       .main-input[readonly] {
-        background-color: #e9ecef;
-        color: #6c757d;
+        background-color: #f1f5f9;
+        color: #64748b;
         cursor: not-allowed;
       }
       .check-status {
         position: absolute;
         right: 15px;
-        top: 42px;
-        font-size: 0.9rem;
+        top: 41px;
+        font-size: 0.95rem;
         font-weight: bold;
       }
       .status-ok {
-        color: #00b894;
+        color: #10b981;
       }
       .status-err {
-        color: #e74c3c;
+        color: #ef4444;
       }
       .status-loading {
         color: #f59e0b;
       }
+
+      /* 💱 Currency Switcher Pills (អាចដូររូបិយប័ណ្ណបាញ់ USD ឬ KHR ដោយសេរី) */
+      .curr-toggle-group {
+        display: inline-flex;
+        background: #e2e8f0;
+        padding: 3px;
+        border-radius: 10px;
+        gap: 3px;
+      }
+      .curr-toggle-btn {
+        border: none;
+        background: transparent;
+        color: #475569;
+        font-size: 0.74rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 7px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: 0.2s;
+      }
+      .curr-toggle-btn.active {
+        background: #004d40;
+        color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 77, 64, 0.2);
+      }
+
+      /* Quick Amount Chips */
+      .quick-amt-row {
+        display: flex;
+        gap: 7px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin-top: -6px;
+        margin-bottom: 14px;
+        padding: 2px 0;
+        transition: opacity 0.2s ease;
+      }
+      .quick-amt-row::-webkit-scrollbar {
+        display: none;
+      }
+      .quick-amt-chip {
+        padding: 6px 13px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 0.78rem;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: 0.2s;
+      }
+      .quick-amt-chip:hover,
+      .quick-amt-chip:active {
+        background: #004d40;
+        color: #ffffff;
+        border-color: #004d40;
+      }
+
+      /* 💱 Smart FX & Fee Breakdown Card */
+      .fx-smart-card {
+        background: linear-gradient(
+          135deg,
+          rgba(240, 253, 244, 0.95),
+          rgba(236, 253, 245, 0.95)
+        );
+        border: 1.5px solid #86efac;
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+        display: none;
+        animation: fadeIn 0.25s ease;
+      }
+      .fx-smart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+        border-bottom: 1px dashed #bbf7d0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #065f46;
+      }
+      .fx-smart-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.84rem;
+        margin-bottom: 6px;
+        color: #166534;
+      }
+      .fx-smart-row:last-child {
+        margin-bottom: 0;
+        padding-top: 6px;
+        border-top: 1px solid rgba(22, 101, 52, 0.12);
+      }
+
       .confirm-btn {
         width: 100%;
         padding: 16px;
-        background: #004d40;
+        background: linear-gradient(135deg, #004d40, #0d9488);
         color: #fff;
         border: none;
         border-radius: 16px;
-        font-size: 1.1rem;
-        font-weight: bold;
+        font-size: 1.05rem;
+        font-weight: 800;
         cursor: pointer;
-        margin-top: 10px;
-        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.2);
-        transition: 0.3s;
+        margin-top: 8px;
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.22);
+        transition: 0.25s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
       }
       .confirm-btn:active {
         transform: scale(0.98);
       }
+      .confirm-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
-      .fx-preview-box {
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        padding: 12px 15px;
-        border-radius: 12px;
-        margin-top: -10px;
-        margin-bottom: 20px;
-        display: none;
-        animation: fadeIn 0.3s ease;
-      }
-      .fx-preview-box p {
-        margin: 0;
-        font-size: 0.85rem;
-        color: #166534;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 5px;
-      }
-      .fx-preview-box p:last-child {
-        margin-bottom: 0;
-        font-weight: bold;
-      }
-      .fx-preview-box .fx-result {
-        color: #15803d;
-        font-size: 1rem;
-      }
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -311,217 +506,6 @@
           transform: translateY(0);
         }
       }
-      .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-      }
-      .slip-container {
-        width: 340px;
-        margin: 0 auto;
-        background: #fff;
-        border-radius: 20px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-        animation: slideUp 0.4s ease-out;
-      }
-      @keyframes slideUp {
-        from {
-          transform: translateY(50px);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0);
-          opacity: 1;
-        }
-      }
-      .slip-header {
-        background: #004d40;
-        padding: 25px 20px 30px;
-        text-align: center;
-        color: #fff;
-      }
-      .slip-status-icon {
-        width: 60px;
-        height: 60px;
-        background: #fff;
-        color: #004d40;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        margin: 0 auto 10px;
-      }
-      .slip-title {
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-top: 5px;
-      }
-      .slip-amount {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin: 5px 0 0;
-        letter-spacing: -1px;
-      }
-      .slip-body {
-        padding: 20px 25px;
-        background: #fff;
-        position: relative;
-      }
-      .dashed-line {
-        margin: 15px -25px;
-        border-top: 2px dashed #ddd;
-        position: relative;
-      }
-      .dashed-line::before,
-      .dashed-line::after {
-        content: "";
-        position: absolute;
-        top: -10px;
-        width: 20px;
-        height: 20px;
-        background: rgba(0, 0, 0, 0.85);
-        border-radius: 50%;
-      }
-      .dashed-line::before {
-        left: -10px;
-      }
-      .dashed-line::after {
-        right: -10px;
-      }
-      .detail-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 12px;
-        font-size: 0.9rem;
-      }
-      .d-label {
-        color: #888;
-        font-weight: 500;
-      }
-      .d-value {
-        font-weight: 700;
-        color: #1f2937;
-        text-align: right;
-        max-width: 60%;
-        word-break: break-word;
-      }
-      .d-mono {
-        font-family: "Courier New", monospace;
-        letter-spacing: 0.5px;
-        color: #004d40;
-        font-weight: bold;
-      }
-      .slip-footer-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 10px;
-      }
-      .qr-box {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid #eee;
-        padding: 5px 10px;
-        border-radius: 10px;
-        background: #f9fafb;
-      }
-      .qr-img {
-        width: 45px;
-        height: 45px;
-      }
-      .qr-text {
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #004d40;
-        display: flex;
-        flex-direction: column;
-        line-height: 1.1;
-      }
-      .footer-logo {
-        width: 80px;
-      }
-      .slip-actions {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-        padding: 25px;
-        background: #fff;
-        border-top: 1px solid #f0f0f0;
-      }
-      .action-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        color: #004d40;
-      }
-      .action-circle {
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        border: 1px solid #eee;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.3rem;
-        background: #fff;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      }
-      .wheel-box {
-        position: relative;
-        width: 280px;
-        height: 280px;
-        margin: 20px auto 40px;
-      }
-      .wheel-pointer {
-        position: absolute;
-        top: -15px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 15px solid transparent;
-        border-right: 15px solid transparent;
-        border-top: 25px solid #fff;
-        z-index: 10;
-      }
-      .wheel-canvas {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        border: 5px solid #fff;
-        box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
-      }
-      .btn-spin-center {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        border: 4px solid #fff;
-        background: #004d40;
-        color: #fff;
-        font-weight: 800;
-        font-size: 1.1rem;
-        cursor: pointer;
-        z-index: 5;
-      }
 
       input[type="number"]::-webkit-inner-spin-button,
       input[type="number"]::-webkit-outer-spin-button {
@@ -531,128 +515,142 @@
 
       /* DARK MODE */
       body.dark-mode {
-        background-color: #121212 !important;
-        color: #fff !important;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
       }
       body.dark-mode .app-container {
-        background-color: #121212 !important;
+        background-color: #0f172a !important;
       }
       body.dark-mode .nav-header {
-        background-color: #1e1e1e !important;
-        border-bottom: 1px solid #333;
+        background: #1e293b !important;
+        border-bottom: 1px solid #334155;
       }
       body.dark-mode .receiver-box {
-        background-color: #1e1e1e !important;
-        border-color: #333;
+        background-color: #1e293b !important;
+        border-color: #334155;
       }
       body.dark-mode .main-input {
-        background: #1e1e1e !important;
-        color: #fff !important;
-        border-color: #444;
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155;
       }
-      body.dark-mode .input-group label {
-        color: #cbd5e1;
-      }
-      body.dark-mode .section-label {
-        color: #94a3b8;
-      }
+      body.dark-mode .input-group label,
+      body.dark-mode .section-label,
       body.dark-mode .short-name {
         color: #cbd5e1;
       }
-      body.dark-mode .full-details {
+      body.dark-mode .curr-toggle-group {
+        background: #1e293b;
+        border: 1px solid #334155;
+      }
+      body.dark-mode .curr-toggle-btn {
         color: #94a3b8;
       }
-      body.dark-mode .full-details .f-name {
-        color: #4ade80 !important;
+      body.dark-mode .curr-toggle-btn.active {
+        background: #10b981;
+        color: #0f172a;
       }
-      body.dark-mode .contact-avatar {
-        border-color: #121212;
+      body.dark-mode .quick-amt-chip {
+        background: #1e293b;
+        color: #e2e8f0;
+        border-color: #334155;
       }
-      body.dark-mode .fx-preview-box {
-        background: rgba(22, 101, 52, 0.2);
-        border-color: #14532d;
+      body.dark-mode .fx-smart-card {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.35);
       }
-      body.dark-mode .fx-preview-box p {
+      body.dark-mode .fx-smart-header,
+      body.dark-mode .fx-smart-row {
         color: #a7f3d0;
-      }
-      body.dark-mode .slip-container,
-      body.dark-mode .slip-body {
-        background: #fff !important;
-      }
-      body.dark-mode .d-value {
-        color: #1f2937 !important;
-      }
-      body.dark-mode .d-label {
-        color: #888 !important;
       }
     </style>
   </head>
   <body>
     <div class="app-container">
+      <!-- ក្បាលទំព័រ + ផ្លាកអត្រាប្តូរប្រាក់មានរូបទង់ជាតិច្បាស់ៗ -->
       <div class="nav-header">
-        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
-        <span data-lang="title_transfer">Transfer Money</span>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <a href="dashboard.html" id="topBackBtn"
+            ><i class="fa-solid fa-arrow-left"></i
+          ></a>
+          <span data-lang="title_transfer">ផ្ទេរប្រាក់ (Transfer)</span>
+        </div>
+        <div
+          class="fx-live-pill"
+          id="headerFxBadge"
+          onclick="window.location.href = 'exchange-rates.html'"
+          style="cursor: pointer"
+          title="ចុចដើម្បីមើលតារាងអត្រាប្តូរប្រាក់ និងគណនាលុយ"
+        ></div>
       </div>
 
       <div class="transfer-form">
         <!-- RECENT CONTACTS -->
         <div class="recent-contacts-container" id="recentContactsBlock">
           <p class="section-label" data-lang="recent_contacts">
-            Recent Contacts
+            គណនីធ្លាប់វេរថ្មីៗ (Recent Contacts)
           </p>
           <div class="contacts-scroll" id="contactsList"></div>
         </div>
 
+        <!-- ប្រអប់បង្ហាញឈ្មោះ និងរូប Profile ពិតរបស់អ្នកទទួល -->
         <div class="receiver-box" id="receiverBoxUI">
           <div class="receiver-icon" id="receiverIconUI">
             <i class="fa-solid fa-user"></i>
           </div>
           <h3
             id="displayReceiverName"
-            style="margin: 0; color: #004d40; min-height: 24px"
+            style="
+              margin: 0;
+              color: #004d40;
+              min-height: 24px;
+              font-size: 1.08rem;
+            "
           >
             ...
           </h3>
           <p
-            style="margin: 5px 0 0; color: #888; font-size: 0.9rem"
+            style="margin: 4px 0 0; color: #64748b; font-size: 0.82rem"
             data-lang="receiver_label"
           >
-            Receiver
+            អ្នកទទួលប្រាក់ (Receiver)
           </p>
+          <div id="receiverCurBadge" class="receiver-cur-badge"></div>
         </div>
 
+        <!-- ១. ជ្រើសរើសគណនីប្រភព (អាចដូរពីកុងខ្មែរទៅដុល្លារ ឬដុល្លារទៅខ្មែរបានសេរី) -->
         <div class="input-group">
-          <label data-lang="source_account">Source Account</label>
+          <label>
+            <span data-lang="source_account">គណនីប្រភព (Source Account)</span>
+            <span
+              id="availableBalance"
+              style="color: #10b981; font-size: 0.82rem; font-weight: 800"
+            ></span>
+          </label>
           <select
             id="fromAccount"
             class="main-input"
-            onchange="updateBalanceDisplay()"
+            onchange="onSourceAccountChanged()"
           ></select>
-          <p
-            id="availableBalance"
-            style="
-              font-size: 0.85rem;
-              color: #00b894;
-              margin-top: 8px;
-              font-weight: 600;
-            "
-          ></p>
         </div>
 
+        <!-- ២. លេខគណនីអ្នកទទួល -->
         <div class="input-group">
-          <label data-lang="receiver_acc">Receiver Account</label>
+          <label data-lang="receiver_acc"
+            >លេខគណនីអ្នកទទួល (Receiver Account)</label
+          >
           <input
             type="text"
             id="receiverAcc"
             class="main-input"
-            placeholder="Enter account number"
+            placeholder="បញ្ចូលលេខគណនីអ្នកទទួល..."
             style="text-transform: uppercase"
             oninput="debounceCheckName()"
           />
           <span id="nameCheck" class="check-status"></span>
         </div>
 
-        <!-- 🌟 បន្ថែមប្រអប់ Bailout ថ្មី (វាលាក់ខ្លួនសិន ចាំ Scan ប៉ះ U-Fund ទើបលោតចេញមក) -->
+        <!-- 🌟 ប្រអប់ Bailout សម្រាប់ U-Fund -->
         <div class="input-group" id="bailoutGroup" style="display: none">
           <label style="color: #0284c7">គោលបំណងបង់ប្រាក់ / ជួសអ្នកណា?</label>
           <select
@@ -669,174 +667,100 @@
           </select>
         </div>
 
+        <!-- ៣. ចំនួនទឹកប្រាក់ + ប៊ូតុងប្តូររូបិយប័ណ្ណបាញ់សេរី (USD $ ⇄ KHR ៛) -->
         <div class="input-group">
-          <label data-lang="amount_label">Amount</label>
+          <label>
+            <span data-lang="amount_label"
+              >ចំនួនទឹកប្រាក់ចង់ផ្ទេរ (Amount)</span
+            >
+            <!-- ប៊ូតុងឱ្យអតិថិជនជ្រើសរើសបាញ់ជាដុល្លារ ឬរៀលបានតាមចិត្ត ទោះកុងខ្លួនឯងជាដុល្លារ ឬរៀលក៏ដោយ -->
+            <div class="curr-toggle-group">
+              <button
+                type="button"
+                id="btnEnterUSD"
+                class="curr-toggle-btn active"
+                onclick="setTransferInputCurrency('USD')"
+              >
+                <img src="https://flagcdn.com/w20/us.png" class="flag-mini" />
+                USD ($)
+              </button>
+              <button
+                type="button"
+                id="btnEnterKHR"
+                class="curr-toggle-btn"
+                onclick="setTransferInputCurrency('KHR')"
+              >
+                <img src="https://flagcdn.com/w20/kh.png" class="flag-mini" />
+                KHR (៛)
+              </button>
+            </div>
+          </label>
           <input
             type="number"
             id="amount"
             class="main-input"
             placeholder="0.00"
-            oninput="calculateExchangePreview()"
+            step="any"
+            oninput="onAmountTyped()"
           />
         </div>
 
-        <div id="exchangePreview" class="fx-preview-box">
-          <p>
-            <span data-lang="exchange_rate">Exchange Rate:</span
-            ><span class="fx-rate" id="fxRateDisplay">...</span>
-          </p>
-          <p>
-            <span data-lang="receiver_gets">Receiver Gets:</span
-            ><span class="fx-result" id="fxResultDisplay">...</span>
-          </p>
+        <!-- ប៊ូតុងជ្រើសរើសទឹកប្រាក់រហ័ស (លាក់ខ្លួនអូតូពេលវាយលេខចូល) -->
+        <div class="quick-amt-row" id="quickAmountChips"></div>
+
+        <!-- 💱 ប្រអប់បង្ហាញអត្រាប្តូរប្រាក់ (មានទង់ជាតិច្បាស់ៗ) និងថ្លៃសេវាពណ៌ក្រហម -->
+        <div id="exchangePreview" class="fx-smart-card">
+          <div class="fx-smart-header">
+            <span
+              id="fxFlowLabel"
+              style="display: inline-flex; align-items: center; gap: 6px"
+            ></span>
+            <span id="fxRateDisplay">អត្រា៖ $1 = 4,050 ៛</span>
+          </div>
+          <div class="fx-smart-row">
+            <span>ប្រាក់ដើមត្រូវកាត់ពីគណនីរបស់អ្នក:</span>
+            <strong id="fxPrincipalDeductDisplay">$0.00</strong>
+          </div>
+          <div class="fx-smart-row">
+            <span>ថ្លៃសេវាផ្ទេរប្រាក់ (Transfer Fee):</span>
+            <!-- 🔴 ដាក់ពណ៌ក្រហមសម្រាប់ថ្លៃសេវាតាមសំណូមពរ -->
+            <strong id="fxFeeDisplay" style="color: #ef4444">$0.00</strong>
+          </div>
+          <div class="fx-smart-row">
+            <span>សរុបត្រូវកាត់ពីគណនីរបស់អ្នក:</span>
+            <strong id="fxTotalDeductDisplay">$0.00</strong>
+          </div>
+          <div class="fx-smart-row">
+            <span data-lang="receiver_gets">អ្នកទទួលនឹងទទួលបានពិតប្រាកដ:</span>
+            <strong
+              id="fxResultDisplay"
+              style="font-size: 1.05rem; color: #059669"
+              >...</strong
+            >
+          </div>
         </div>
 
+        <!-- ៤. ចំណាំ -->
         <div class="input-group">
-          <label data-lang="remark">Remark</label>
+          <label data-lang="remark">ចំណាំ (Remark)</label>
           <input
             type="text"
             id="remark"
             class="main-input"
-            placeholder="Optional"
+            placeholder="បញ្ជាក់ចំណាំ (មិនដាក់ក៏បាន)..."
           />
         </div>
 
         <button
+          type="button"
+          id="btnSubmitTransfer"
           onclick="validateAndOpenPin()"
           class="confirm-btn"
           data-lang="btn_transfer_now"
         >
-          Transfer Now
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>បញ្ជូនប្រាក់ឥឡូវនេះ (Transfer Now)</span>
         </button>
-      </div>
-    </div>
-
-    <!-- Modals -->
-    <div
-      id="spinModal"
-      class="modal-overlay"
-      style="background: rgba(15, 23, 42, 0.95)"
-    >
-      <h2 style="color: white; margin: 0 0 10px; font-size: 1.8rem">
-        🎉 <span data-lang="spin_title">Lucky Spin</span> 🎉
-      </h2>
-      <p
-        style="color: #a7f3d0; margin-bottom: 20px; font-size: 0.9rem"
-        data-lang="spin_desc"
-      >
-        You transferred over $10! Spin to win Cashback!
-      </p>
-      <div class="wheel-box">
-        <div class="wheel-pointer"></div>
-        <canvas
-          id="wheelCanvas"
-          class="wheel-canvas"
-          width="280"
-          height="280"
-        ></canvas>
-        <button id="spinBtn" class="btn-spin-center" onclick="startSpin()">
-          SPIN
-        </button>
-      </div>
-      <button
-        onclick="skipSpin()"
-        style="
-          background: transparent;
-          color: #94a3b8;
-          border: none;
-          font-size: 1rem;
-          cursor: pointer;
-          font-weight: 600;
-          padding: 10px 20px;
-        "
-        data-lang="btn_skip"
-      >
-        Skip & View Slip
-      </button>
-    </div>
-
-    <div id="slipModal" class="modal-overlay">
-      <div id="captureArea" class="slip-container">
-        <div class="slip-header">
-          <div class="slip-status-icon"><i class="fa-solid fa-check"></i></div>
-          <div class="slip-title" data-lang="transfer_success">
-            Transfer Successful
-          </div>
-          <div class="slip-amount" id="slipAmount">$0.00</div>
-        </div>
-        <div class="slip-body">
-          <div class="detail-row">
-            <span class="d-label">Trx ID</span
-            ><span class="d-value d-mono" id="slipRef">...</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">Hash</span
-            ><span
-              class="d-value d-mono"
-              id="slipHash"
-              style="font-size: 0.8rem"
-              >...</span
-            >
-          </div>
-          <div class="dashed-line"></div>
-          <div class="detail-row">
-            <span class="d-label">From</span
-            ><span class="d-value" id="slipSender">...</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">To</span
-            ><span class="d-value" id="slipReceiver">...</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">Payment Via</span
-            ><span class="d-value" id="slipMethod">Account Input</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">Date</span
-            ><span class="d-value" id="slipDate">...</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">Fee</span><span class="d-value">$0.00</span>
-          </div>
-          <div class="detail-row">
-            <span class="d-label">Remark</span
-            ><span class="d-value" id="slipRemark">...</span>
-          </div>
-          <div class="slip-footer-info">
-            <div class="qr-box">
-              <img
-                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify"
-                class="qr-img"
-              />
-              <div class="qr-text"><span>SCAN TO</span><span>CHECK</span></div>
-            </div>
-            <img
-              src="images/logo.png"
-              class="footer-logo"
-              onerror="this.style.display = 'none'"
-            />
-          </div>
-        </div>
-        <div class="slip-actions">
-          <div class="action-item" onclick="saveSlipImage()">
-            <div class="action-circle done">
-              <i class="fa-solid fa-share-nodes"></i>
-            </div>
-            <span class="action-text">Share</span>
-          </div>
-          <div class="action-item" onclick="location.reload()">
-            <div class="action-circle done">
-              <i class="fa-solid fa-rotate-right"></i>
-            </div>
-            <span class="action-text">New Trx</span>
-          </div>
-          <div class="action-item" onclick="returnToShopOrDashboard()">
-            <div class="action-circle done">
-              <i class="fa-solid fa-xmark"></i>
-            </div>
-            <span class="action-text">Done</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -859,20 +783,54 @@
       const items = urlParamsGlobal.get("items");
       const shopBuyerName = urlParamsGlobal.get("user");
 
-      let targetUserIsKHR = null,
-        currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 },
-        currentSlipData = null,
-        spinIsActive = false;
+      let targetUserIsKHR = null;
+      let currentFXRates = { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
+      let currentFeeTiers = [];
+      let systemDailyLimitUSD = 5000;
+      let selectedInputCurrency = "USD"; // អាចដូររវាង USD និង KHR ដោយសេរី
+      let isTransactionCommitted = false; // 🔒 ការពារមិនឱ្យចុច Back ក្រោយវាយ PIN ត្រូវ
+
+      // 🔒 ប្លុកប៊ូតុង Back របស់ Browser នៅពេលប្រតិបត្តិការបានវាយ PIN ត្រូវរួចហើយ
+      window.addEventListener("popstate", function () {
+        if (isTransactionCommitted) {
+          history.pushState(null, null, location.href);
+        }
+      });
+
+      function flagImgHtml(code) {
+        return `<img src="https://flagcdn.com/w20/${code.toLowerCase()}.png" class="flag-mini" alt="${code}">`;
+      }
 
       window.addEventListener("DOMContentLoaded", async () => {
         applyTheme();
         document.body.classList.add("loaded");
         populateSourceAccounts();
 
+        // 🌟 ១. បង្ហាញកាតអត្រាប្តូរប្រាក់ដូចរូបទី ២ ភ្លាមៗតាំងពីវិនាទីដំបូង!
+        updateHeaderFxBadge();
+
+        // 🌟 ២. ទាញអត្រាប្តូរប្រាក់ពិតរបស់ Admin ពី Server មកអាប់ដេតភ្លាមៗ
         try {
-          const fxRes = await fetch("/api/fx/rates", { headers: authHeaders });
+          const sampleAcc =
+            user.mainAccounts?.USD?.accountNumber ||
+            user.accountNumber ||
+            "888888888";
+          const fxRes = await fetch("/api/check-account", {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({ accountNumber: sampleAcc }),
+          });
           const fxData = await fxRes.json();
-          if (fxData.success) currentFXRates = fxData.rates;
+          if (fxData && fxData.fxRates) {
+            currentFXRates = fxData.fxRates;
+            if (Array.isArray(fxData.feeTiers)) {
+              currentFeeTiers = fxData.feeTiers;
+            }
+            if (fxData.transferLimit) {
+              systemDailyLimitUSD = parseFloat(fxData.transferLimit) || 5000;
+            }
+            updateHeaderFxBadge();
+          }
         } catch (e) {}
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -884,7 +842,6 @@
           let ai = document.getElementById("receiverAcc");
           ai.value = parts[0];
           ai.readOnly = true;
-          ai.style.backgroundColor = "#e9ecef";
 
           if (
             parts[1] &&
@@ -895,7 +852,7 @@
             document.getElementById("amount").value = parts[1];
           }
 
-          checkName();
+          await checkName();
         }
 
         let passedAmount = urlParams.get("amount") || urlParams.get("a");
@@ -904,42 +861,187 @@
           amti.value = passedAmount;
           if (urlParams.get("lockAmount") === "true" || urlParams.has("a")) {
             amti.readOnly = true;
-            amti.style.backgroundColor = "#e9ecef";
           }
+          toggleQuickChipsVisibility();
         }
 
         loadRecentContacts();
-        drawWheel();
+
+        const origCloseSlip = window.closeSlipGlobal;
+        window.closeSlipGlobal = function () {
+          if (typeof origCloseSlip === "function") origCloseSlip();
+          returnToShopOrDashboard();
+        };
       });
 
-      function applyTheme() {
-        // ប្រើប្រាស់ Key "theme_" តាមឈ្មោះ User ជាក់លាក់ និងតម្លៃ "dark"/"light"
-        const userThemeKey = "theme_" + user.username;
-        const isDark = localStorage.getItem(userThemeKey) === "dark";
+      let miniFxIndex = 0;
+      let miniFxTimer = null;
 
-        if (isDark) {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
+      function updateHeaderFxBadge() {
+        const badge = document.getElementById("headerFxBadge");
+        if (!badge) return;
+
+        let list = [
+          {
+            code: "USD/KHR",
+            c1: "us",
+            c2: "kh",
+            buy: Number(currentFXRates?.usdToKhrBuy || 4050).toLocaleString(),
+            sell: Number(currentFXRates?.usdToKhrSell || 4100).toLocaleString(),
+            quote: "៛",
+            change: "+0.10%",
+            trend: "up",
+          },
+          {
+            code: "THB/KHR",
+            c1: "th",
+            c2: "kh",
+            buy: "118.5",
+            sell: "121.0",
+            quote: "៛",
+            change: "+0.30%",
+            trend: "up",
+          },
+          {
+            code: "CNY/KHR",
+            c1: "cn",
+            c2: "kh",
+            buy: "562.0",
+            sell: "575.0",
+            quote: "៛",
+            change: "+0.20%",
+            trend: "up",
+          },
+          {
+            code: "EUR/KHR",
+            c1: "eu",
+            c2: "kh",
+            buy: "4,380",
+            sell: "4,460",
+            quote: "៛",
+            change: "+0.07%",
+            trend: "up",
+          },
+          {
+            code: "SGD/KHR",
+            c1: "sg",
+            c2: "kh",
+            buy: "3,141",
+            sell: "3,191",
+            quote: "៛",
+            change: "+0.15%",
+            trend: "up",
+          },
+          {
+            code: "VND/KHR",
+            c1: "vn",
+            c2: "kh",
+            buy: "154.67",
+            sell: "159.38",
+            quote: "៛",
+            change: "-0.05%",
+            trend: "down",
+          },
+          {
+            code: "AUD/KHR",
+            c1: "au",
+            c2: "kh",
+            buy: "2,680",
+            sell: "2,740",
+            quote: "៛",
+            change: "+0.20%",
+            trend: "up",
+          },
+          {
+            code: "JPY/KHR",
+            c1: "jp",
+            c2: "kh",
+            buy: "2,543",
+            sell: "2,594",
+            quote: "៛",
+            change: "-0.12%",
+            trend: "down",
+          },
+        ];
+
+        // ចាប់យកតារាងរូបិយប័ណ្ណទាំង ៨ ពី currentFXRates.multiCurrencies របស់ Admin បើមាន
+        if (
+          currentFXRates &&
+          Array.isArray(currentFXRates.multiCurrencies) &&
+          currentFXRates.multiCurrencies.length >= 4
+        ) {
+          list = currentFXRates.multiCurrencies.map((item, idx) => ({
+            code: item.code || "USD/KHR",
+            c1: item.c1 || "us",
+            c2: item.c2 || "kh",
+            buy: Number(
+              idx === 0 ? currentFXRates.usdToKhrBuy : item.buy,
+            ).toLocaleString(),
+            sell: Number(
+              idx === 0 ? currentFXRates.usdToKhrSell : item.sell,
+            ).toLocaleString(),
+            quote: item.quote || "៛",
+            change: item.change || "+0.10%",
+            trend: item.trend || "up",
+          }));
         }
+
+        const renderCurrentCard = () => {
+          const item = list[miniFxIndex % list.length];
+          const isUp = item.trend !== "down";
+          const trendColor = isUp ? "#34d399" : "#f87171";
+          const trendBg = isUp
+            ? "rgba(16, 185, 129, 0.2)"
+            : "rgba(239, 68, 68, 0.2)";
+          const trendIcon = isUp ? "fa-caret-up" : "fa-caret-down";
+
+          badge.innerHTML = `
+            <div class="fx-mini-card-inner">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <div class="afx-flag-pair">
+                  <img src="https://flagcdn.com/w40/${item.c1}.png" class="afx-flag-img-1" />
+                  <img src="https://flagcdn.com/w40/${item.c2}.png" class="afx-flag-img-2" />
+                </div>
+                <div>
+                  <div style="font-size: 0.76rem; font-weight: 900; color: #f8fafc; line-height: 1.1;">${item.code}</div>
+                  <div style="font-size: 0.65rem; font-weight: 700; color: #cbd5e1; margin-top: 1px;">
+                    ទិញ: <b style="color:#34d399;">${item.buy}</b> លក់: <b style="color:#60a5fa;">${item.sell}${item.quote}</b>
+                  </div>
+                </div>
+              </div>
+              <span style="font-size: 0.68rem; font-weight: 800; color: ${trendColor}; background: ${trendBg}; padding: 2px 6px; border-radius: 6px; white-space: nowrap;">
+                <i class="fa-solid ${trendIcon}"></i> ${item.change}
+              </span>
+            </div>
+          `;
+          miniFxIndex = (miniFxIndex + 1) % list.length;
+        };
+
+        renderCurrentCard();
+        if (miniFxTimer) clearInterval(miniFxTimer);
+        miniFxTimer = setInterval(renderCurrentCard, 4500);
       }
 
-      // ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
+      function applyTheme() {
+        const userThemeKey = "theme_" + user.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+        if (isDark) document.body.classList.add("dark-mode");
+        else document.body.classList.remove("dark-mode");
+      }
+
       window.addEventListener("storage", (event) => {
         if (user && user.username) {
           const userThemeKey = "theme_" + user.username;
-          if (event.key === userThemeKey) {
-            applyTheme();
-          }
+          if (event.key === userThemeKey) applyTheme();
         }
       });
 
       function populateSourceAccounts() {
         const select = document.getElementById("fromAccount");
+        const prevVal = select.value;
         select.innerHTML = "";
         let lang = localStorage.getItem("lang") || "en";
 
-        // 🌟 ១. ទាញយក Main Account USD (រចនាសម្ព័ន្ធថ្មី)
         if (
           user.mainAccounts &&
           user.mainAccounts.USD &&
@@ -949,12 +1051,12 @@
           usdOpt.value = user.mainAccounts.USD.accountNumber;
           usdOpt.dataset.currency = "USD";
           usdOpt.dataset.balance = user.mainAccounts.USD.balance || 0;
+          usdOpt.dataset.dailyLimit = user.mainAccounts.USD.dailyLimit || 0;
           usdOpt.text =
             (lang === "kh" ? "គណនីចម្បង ($) - " : "Main Account ($) - ") +
             user.mainAccounts.USD.accountNumber;
           select.appendChild(usdOpt);
         } else if (user.accountNumber) {
-          // Legacy
           const usdOpt = document.createElement("option");
           usdOpt.value = "MAIN_USD";
           usdOpt.dataset.currency = "USD";
@@ -965,7 +1067,6 @@
           select.appendChild(usdOpt);
         }
 
-        // 🌟 ២. ទាញយក Main Account KHR (រចនាសម្ព័ន្ធថ្មី)
         if (
           user.mainAccounts &&
           user.mainAccounts.KHR &&
@@ -975,12 +1076,12 @@
           khrOpt.value = user.mainAccounts.KHR.accountNumber;
           khrOpt.dataset.currency = "KHR";
           khrOpt.dataset.balance = user.mainAccounts.KHR.balance || 0;
+          khrOpt.dataset.dailyLimit = user.mainAccounts.KHR.dailyLimit || 0;
           khrOpt.text =
             (lang === "kh" ? "គណនីចម្បង (៛) - " : "Main Account (៛) - ") +
             user.mainAccounts.KHR.accountNumber;
           select.appendChild(khrOpt);
         } else if (user.accountNumberKHR) {
-          // Legacy
           const khrOpt = document.createElement("option");
           khrOpt.value = "MAIN_KHR";
           khrOpt.dataset.currency = "KHR";
@@ -991,47 +1092,179 @@
           select.appendChild(khrOpt);
         }
 
-        // 🌟 ៣. ទាញយក Sub Accounts (ដោយមិនបង្ហាញកុងដែលលាក់)
         if (user.subAccounts && user.subAccounts.length > 0) {
           user.subAccounts.forEach((sub) => {
-            if (sub.isHidden) return; // បើលាក់កុង គឺមិនឱ្យបង្ហាញសម្រាប់វេរលុយទេ
+            if (sub.isHidden) return;
             const opt = document.createElement("option");
             opt.value = sub.accountNumber;
             opt.dataset.currency = sub.currency;
             opt.dataset.balance = sub.balance || 0;
+            opt.dataset.dailyLimit = sub.dailyLimit || 0;
             opt.text = `${sub.accountName} (${sub.currency === "USD" ? "$" : "៛"}) - ${sub.accountNumber}`;
             select.appendChild(opt);
           });
         }
 
-        updateBalanceDisplay();
+        if (
+          prevVal &&
+          Array.from(select.options).some((o) => o.value === prevVal)
+        ) {
+          select.value = prevVal;
+        }
+
+        onSourceAccountChanged();
       }
 
-      function updateBalanceDisplay() {
+      // ពេលប្តូរគណនីប្រភព
+      window.onSourceAccountChanged = function () {
         const select = document.getElementById("fromAccount");
         if (select.options.length === 0) return;
         const opt = select.options[select.selectedIndex];
-        const type = opt.dataset.currency,
-          bal = parseFloat(opt.dataset.balance),
-          sign = type === "USD" ? "$" : "៛";
-        let textKey =
-          (localStorage.getItem("lang") || "en") === "kh"
-            ? "សមតុល្យអាចចាយបាន: "
-            : "Available Balance: ";
+        const accCur = opt.dataset.currency || "USD";
+        const bal = parseFloat(opt.dataset.balance || 0);
+        const sign = accCur === "USD" ? "$" : "៛";
+
         document.getElementById("availableBalance").innerText =
-          type === "USD"
-            ? `${textKey}${sign}${bal.toFixed(2)}`
-            : `${textKey}${bal.toLocaleString("en-US")} ${sign}`;
+          accCur === "USD"
+            ? `សមតុល្យ៖ ${sign}${bal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : `សមតុល្យ៖ ${bal.toLocaleString("en-US")} ${sign}`;
+
+        // បើមិនទាន់បានវាយលុយទេ ឱ្យរូបិយប័ណ្ណបាញ់រត់តាមរូបិយប័ណ្ណគណនីប្រភពសិន
+        const currentAmtVal = document.getElementById("amount").value.trim();
+        if (!currentAmtVal) {
+          setTransferInputCurrency(accCur, false);
+        } else {
+          calculateExchangePreview();
+        }
+      };
+
+      // 🔄 មុខងារប្តូររូបិយប័ណ្ណទឹកប្រាក់ដែលចង់បាញ់ (USD ⇄ KHR) ព្រមទាំងបំប្លែងលេខក្នុងប្រអប់ឱ្យអូតូ!
+      window.setTransferInputCurrency = function (
+        newCur,
+        convertExisting = true,
+      ) {
+        const prevCur = selectedInputCurrency;
+        selectedInputCurrency = newCur;
+
+        document
+          .getElementById("btnEnterUSD")
+          ?.classList.toggle("active", newCur === "USD");
+        document
+          .getElementById("btnEnterKHR")
+          ?.classList.toggle("active", newCur === "KHR");
+
+        const amtInput = document.getElementById("amount");
+        if (
+          convertExisting &&
+          prevCur !== newCur &&
+          amtInput &&
+          !amtInput.readOnly
+        ) {
+          const curVal = parseFloat(amtInput.value) || 0;
+          if (curVal > 0) {
+            const buyRate = parseFloat(currentFXRates?.usdToKhrBuy) || 4050;
+            const sellRate = parseFloat(currentFXRates?.usdToKhrSell) || 4100;
+            if (prevCur === "USD" && newCur === "KHR") {
+              amtInput.value = Math.round(curVal * buyRate);
+            } else if (prevCur === "KHR" && newCur === "USD") {
+              amtInput.value = (curVal / sellRate).toFixed(2);
+            }
+          }
+        }
+
+        if (amtInput) {
+          amtInput.placeholder = newCur === "KHR" ? "0 ៛" : "0.00 $";
+        }
+
+        renderQuickAmountChips(newCur);
+        toggleQuickChipsVisibility();
         calculateExchangePreview();
+      };
+
+      function renderQuickAmountChips(currency) {
+        const container = document.getElementById("quickAmountChips");
+        if (!container) return;
+
+        const presets =
+          currency === "KHR"
+            ? [
+                { label: "10,000 ៛", val: 10000 },
+                { label: "20,000 ៛", val: 20000 },
+                { label: "50,000 ៛", val: 50000 },
+                { label: "100,000 ៛", val: 100000 },
+                { label: "200,000 ៛", val: 200000 },
+              ]
+            : [
+                { label: "$5", val: 5 },
+                { label: "$10", val: 10 },
+                { label: "$20", val: 20 },
+                { label: "$50", val: 50 },
+                { label: "$100", val: 100 },
+              ];
+
+        container.innerHTML = presets
+          .map(
+            (p) =>
+              `<button type="button" class="quick-amt-chip" onclick="setQuickTransferAmount(${p.val})">${p.label}</button>`,
+          )
+          .join("");
+      }
+
+      // ⚡ បើគេវាយលេខចូលហើយ ឱ្យប៊ូតុងជ្រើសរើសលឿន ($5 $10 $20...) លាក់ខ្លួនបាត់អូតូ!
+      function toggleQuickChipsVisibility() {
+        const container = document.getElementById("quickAmountChips");
+        const amtInput = document.getElementById("amount");
+        if (!container || !amtInput) return;
+
+        if (amtInput.readOnly || amtInput.value.trim() !== "") {
+          container.style.display = "none";
+        } else {
+          container.style.display = "flex";
+        }
+      }
+
+      window.onAmountTyped = function () {
+        toggleQuickChipsVisibility();
+        calculateExchangePreview();
+      };
+
+      window.setQuickTransferAmount = function (val) {
+        const amtInput = document.getElementById("amount");
+        if (amtInput && !amtInput.readOnly) {
+          amtInput.value = val;
+          toggleQuickChipsVisibility();
+          calculateExchangePreview();
+        }
+      };
+
+      // 🗂️ កូនសោរក្សាទុកបញ្ជីគណនីដែល User បានចុច ✖ លុបចេញពី Recent Contacts
+      const hiddenContactsStorageKey = `hiddenRecentContacts_${user.username}`;
+
+      function getHiddenRecentContacts() {
+        try {
+          return (
+            JSON.parse(localStorage.getItem(hiddenContactsStorageKey)) || []
+          );
+        } catch (e) {
+          return [];
+        }
       }
 
       function loadRecentContacts() {
         if (!user.transactions || user.transactions.length === 0) return;
+        const hiddenAccs = new Set(getHiddenRecentContacts());
         let contacts = [];
         let seenAccounts = new Set();
 
         for (let t of user.transactions) {
-          if (t.amount < 0 && t.receiverAcc) {
+          if (
+            t.amount < 0 &&
+            t.receiverAcc &&
+            t.receiverAcc !== "888000999" &&
+            t.receiverAcc !== "777888999" &&
+            t.type !== "Transfer Fee" &&
+            !hiddenAccs.has(String(t.receiverAcc))
+          ) {
             let recName = t.receiverName || t.partner || "Unknown";
             if (
               recName.toLowerCase() !== "unknown" &&
@@ -1085,6 +1318,35 @@
         });
       }
 
+      function removeContact(event, accountNumber, element) {
+        event.stopPropagation();
+
+        // 💾 កត់ត្រាលេខគណនីដែលបានលុបចូលក្នុង localStorage ដើម្បីកុំឱ្យលោតមកវិញពេល Refresh!
+        const currentHidden = getHiddenRecentContacts();
+        const accStr = String(accountNumber);
+        if (!currentHidden.includes(accStr)) {
+          currentHidden.push(accStr);
+          localStorage.setItem(
+            hiddenContactsStorageKey,
+            JSON.stringify(currentHidden),
+          );
+        }
+
+        const contactItem = element.closest(".contact-item");
+        if (contactItem) {
+          contactItem.style.opacity = "0";
+          contactItem.style.transform = "scale(0.8)";
+          setTimeout(() => {
+            contactItem.remove();
+            const list = document.getElementById("contactsList");
+            if (list && list.children.length === 0) {
+              document.getElementById("recentContactsBlock").style.display =
+                "none";
+            }
+          }, 200);
+        }
+      }
+
       function selectContact(acc) {
         const input = document.getElementById("receiverAcc");
         if (!input.readOnly) {
@@ -1093,19 +1355,10 @@
         }
       }
 
-      function removeContact(event, accountNumber, element) {
-        event.stopPropagation();
-        const contactItem = element.closest(".contact-item");
-        contactItem.style.opacity = "0";
-        setTimeout(() => {
-          contactItem.remove();
-        }, 200);
-      }
-
       let typingTimer;
       function debounceCheckName() {
         clearTimeout(typingTimer);
-        const accInput = document.getElementById("receiverAcc").value;
+        const accInput = document.getElementById("receiverAcc").value.trim();
         const status = document.getElementById("nameCheck");
         const nameDisplay = document.getElementById("displayReceiverName");
 
@@ -1113,18 +1366,19 @@
           nameDisplay.innerText = "កំពុងស្វែងរក...";
           status.innerText = "↻";
           status.className = "check-status status-loading";
-          typingTimer = setTimeout(checkName, 500);
+          typingTimer = setTimeout(checkName, 450);
         } else {
           resetCheck();
         }
       }
 
       async function checkName() {
-        const acc = document.getElementById("receiverAcc").value;
+        const acc = document.getElementById("receiverAcc").value.trim();
         const nameDisplay = document.getElementById("displayReceiverName"),
           status = document.getElementById("nameCheck"),
           boxUI = document.getElementById("receiverBoxUI"),
-          iconUI = document.getElementById("receiverIconUI");
+          iconUI = document.getElementById("receiverIconUI"),
+          curBadge = document.getElementById("receiverCurBadge");
 
         if (acc.startsWith("UFND-")) {
           fetch("/api/ufund/get-name", {
@@ -1138,11 +1392,8 @@
                 ? `U-Fund (${d.projectName})`
                 : "U-Fund (Scan Pay)";
 
-              // 🌟 បង្ហាញប្រអប់រើសឈ្មោះ បើមានអ្នកជំពាក់
               const bGroup = document.getElementById("bailoutGroup");
               const bTarget = document.getElementById("bailoutTarget");
-
-              // 🟢 FIX: រក្សាទុកតម្លៃដែល User បានរើសសិន មុននឹង Render HTML ថ្មី (ដើម្បីកុំឱ្យវា Reset)
               const previousSelection = bTarget ? bTarget.value : "";
 
               if (
@@ -1158,11 +1409,7 @@
                   }
                 });
                 bTarget.innerHTML = opts;
-
-                // 🟢 FIX: បោះតម្លៃដែលគេរើសចូលវិញ ដើម្បីកុំឱ្យវារត់ទៅ Advance អូតូ
-                if (previousSelection) {
-                  bTarget.value = previousSelection;
-                }
+                if (previousSelection) bTarget.value = previousSelection;
               } else {
                 if (bGroup) bGroup.style.display = "none";
               }
@@ -1176,6 +1423,10 @@
           iconUI.style.background = "#10b981";
           iconUI.style.color = "white";
           iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
+          if (curBadge) {
+            curBadge.style.display = "inline-flex";
+            curBadge.innerHTML = `${flagImgHtml("us")} <span>គណនីសន្សំរួម USD ($)</span>`;
+          }
           targetUserIsKHR = false;
           calculateExchangePreview();
           return true;
@@ -1196,31 +1447,53 @@
             status.className = "check-status status-ok";
             boxUI.style.borderColor = "#10b981";
             boxUI.style.background = "#ecfdf5";
-            iconUI.style.background = "#10b981";
-            iconUI.style.color = "white";
 
-            if (data.isMerchant && data.username.includes(" BY ")) {
-              iconUI.style.background = "#0284c7";
-              boxUI.style.borderColor = "#0284c7";
-            }
-
-            if (data.isMerchant)
+            // 🌟 បង្ហាញរូប Icon ហាងទំនិញ ឬ រូប Profile ពិតរបស់អតិថិជន
+            if (data.isMerchant) {
+              iconUI.style.background = data.username.includes(" BY ")
+                ? "#0284c7"
+                : "#8b5cf6";
+              boxUI.style.borderColor = iconUI.style.background;
+              iconUI.style.color = "white";
               iconUI.innerHTML = '<i class="fa-solid fa-store"></i>';
-            else if (data.profileImage && data.profileImage !== "")
-              iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-            else if (
+            } else if (data.profileImage && data.profileImage.trim() !== "") {
+              iconUI.style.background = "#ffffff";
+              iconUI.innerHTML = `<img src="${data.profileImage}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.outerHTML='<i class=\\'fa-solid fa-user\\'></i>'">`;
+            } else if (
               acc.includes("SAV") ||
               data.username.toLowerCase().includes("saving")
-            )
+            ) {
+              iconUI.style.background = "#10b981";
+              iconUI.style.color = "white";
               iconUI.innerHTML = '<i class="fa-solid fa-piggy-bank"></i>';
-            else iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
+            } else {
+              iconUI.style.background = "#10b981";
+              iconUI.style.color = "white";
+              iconUI.innerHTML = '<i class="fa-solid fa-user"></i>';
+            }
 
-            targetUserIsKHR = data.isReceiverKHR;
-            if (data.fxRates) currentFXRates = data.fxRates;
+            targetUserIsKHR = Boolean(data.isReceiverKHR);
+            if (curBadge) {
+              curBadge.style.display = "inline-flex";
+              curBadge.innerHTML = targetUserIsKHR
+                ? `${flagImgHtml("kh")} <span>គណនីទទួលប្រាក់រៀល (KHR ៛)</span>`
+                : `${flagImgHtml("us")} <span>គណនីទទួលប្រាក់ដុល្លារ (USD $)</span>`;
+            }
+
+            if (data.fxRates) {
+              currentFXRates = data.fxRates;
+              updateHeaderFxBadge();
+            }
+            if (Array.isArray(data.feeTiers)) {
+              currentFeeTiers = data.feeTiers;
+            }
+            if (data.transferLimit) {
+              systemDailyLimitUSD = parseFloat(data.transferLimit) || 5000;
+            }
             calculateExchangePreview();
             return true;
           } else {
-            nameDisplay.innerText = "Unknown";
+            nameDisplay.innerText = "រកមិនឃើញគណនី (Unknown)";
             status.innerText = "✘";
             status.className = "check-status status-err";
             boxUI.style.borderColor = "#ef4444";
@@ -1228,6 +1501,7 @@
             iconUI.style.background = "#ef4444";
             iconUI.style.color = "white";
             iconUI.innerHTML = '<i class="fa-solid fa-user-xmark"></i>';
+            if (curBadge) curBadge.style.display = "none";
             targetUserIsKHR = null;
             calculateExchangePreview();
             return false;
@@ -1241,124 +1515,230 @@
         document.getElementById("displayReceiverName").innerText = "...";
         document.getElementById("nameCheck").innerText = "";
         const b = document.getElementById("receiverBoxUI"),
-          i = document.getElementById("receiverIconUI");
-        b.style.borderColor = "#ccc";
-        b.style.background = "#f8f9fa";
+          i = document.getElementById("receiverIconUI"),
+          curBadge = document.getElementById("receiverCurBadge");
+        b.style.borderColor = "#cbd5e1";
+        b.style.background = "#f8fafc";
         i.style.background = "#e0f2f1";
         i.style.color = "#004d40";
         i.innerHTML = '<i class="fa-solid fa-user"></i>';
+        if (curBadge) curBadge.style.display = "none";
         targetUserIsKHR = null;
         calculateExchangePreview();
         const bGroup = document.getElementById("bailoutGroup");
         if (bGroup) bGroup.style.display = "none";
       }
 
+      // 🧮 គណនាការបំប្លែងរូបិយប័ណ្ណទាំង ៣ ជ្រុង (គណនីអ្នកផ្ញើ ⇄ រូបិយប័ណ្ណវាយបញ្ចូល ⇄ គណនីអ្នកទទួល) + ថ្លៃសេវា
+      function getCalculatedTransferSummary() {
+        const enteredAmt =
+          parseFloat(document.getElementById("amount").value) || 0;
+        const sel = document.getElementById("fromAccount");
+        const senderAccCur =
+          sel.options.length > 0
+            ? sel.options[sel.selectedIndex].dataset.currency
+            : "USD";
+        const isSenderKHR = senderAccCur === "KHR";
+
+        const buyRate = parseFloat(currentFXRates?.usdToKhrBuy) || 4050;
+        const sellRate = parseFloat(currentFXRates?.usdToKhrSell) || 4100;
+
+        // ១. គណនាប្រាក់ដើមដែលត្រូវកាត់ពីគណនីអ្នកផ្ញើ (senderPrincipalDeduction)
+        let senderPrincipalDeduction = enteredAmt;
+        if (isSenderKHR && selectedInputCurrency === "USD") {
+          senderPrincipalDeduction = Math.round(enteredAmt * sellRate);
+        } else if (!isSenderKHR && selectedInputCurrency === "KHR") {
+          senderPrincipalDeduction = Number((enteredAmt / buyRate).toFixed(2));
+        }
+
+        // ២. គណនាទឹកប្រាក់ដែលអ្នកទទួលនឹងទទួលបានពិតប្រាកដ (receiverGets)
+        const receiverCur =
+          targetUserIsKHR === null
+            ? selectedInputCurrency
+            : targetUserIsKHR
+              ? "KHR"
+              : "USD";
+        let receiverGets = enteredAmt;
+
+        if (selectedInputCurrency === "USD" && receiverCur === "KHR") {
+          receiverGets = Math.round(enteredAmt * buyRate);
+        } else if (selectedInputCurrency === "KHR" && receiverCur === "USD") {
+          receiverGets = Number((enteredAmt / sellRate).toFixed(2));
+        }
+
+        // ៣. គណនាថ្លៃសេវាតាមកម្រិតទឹកប្រាក់គិតជា USD (Tiered Fee)
+        const transferUsdEquivalent = isSenderKHR
+          ? senderPrincipalDeduction / sellRate
+          : senderPrincipalDeduction;
+
+        let feeUsd = 0;
+        for (const tier of currentFeeTiers || []) {
+          if (
+            transferUsdEquivalent >= parseFloat(tier.min || 0) &&
+            transferUsdEquivalent <= parseFloat(tier.max || 0)
+          ) {
+            feeUsd = parseFloat(tier.fee || 0);
+            break;
+          }
+        }
+
+        const feeInSenderCur = isSenderKHR
+          ? Math.round(feeUsd * sellRate)
+          : Number(feeUsd.toFixed(2));
+        const totalDeduct = Number(
+          (senderPrincipalDeduction + feeInSenderCur).toFixed(2),
+        );
+
+        let appliedFxText = "រូបិយប័ណ្ណដូចគ្នា (គ្មានការប្តូរប្រាក់)";
+        if (
+          senderAccCur !== receiverCur ||
+          selectedInputCurrency !== senderAccCur
+        ) {
+          if (isSenderKHR || receiverCur === "USD") {
+            appliedFxText = `អត្រា៖ $1 = ${sellRate.toLocaleString("en-US")} ៛`;
+          }
+          if (!isSenderKHR && receiverCur === "KHR") {
+            appliedFxText = `អត្រា៖ $1 = ${buyRate.toLocaleString("en-US")} ៛`;
+          }
+        }
+
+        return {
+          enteredAmt,
+          inputCurrency: selectedInputCurrency,
+          senderAccCur,
+          receiverCur,
+          senderPrincipalDeduction,
+          feeInSenderCur,
+          totalDeduct,
+          receiverGets,
+          transferUsdEquivalent,
+          appliedFxText,
+        };
+      }
+
       function calculateExchangePreview() {
-        const amt = parseFloat(document.getElementById("amount").value),
-          sel = document.getElementById("fromAccount"),
-          type =
-            sel.options.length > 0
-              ? sel.options[sel.selectedIndex].dataset.currency
-              : "USD",
-          box = document.getElementById("exchangePreview");
-        if (!amt || amt <= 0 || targetUserIsKHR === null || !currentFXRates) {
+        const box = document.getElementById("exchangePreview");
+        const summary = getCalculatedTransferSummary();
+
+        if (
+          !summary.enteredAmt ||
+          summary.enteredAmt <= 0 ||
+          targetUserIsKHR === null
+        ) {
           box.style.display = "none";
           return;
         }
-        if (type !== "KHR" && targetUserIsKHR) {
-          document.getElementById("fxRateDisplay").innerText =
-            `$1 = ${currentFXRates.usdToKhrBuy} ៛`;
-          document.getElementById("fxResultDisplay").innerText =
-            `${(amt * currentFXRates.usdToKhrBuy).toLocaleString("en-US")} ៛`;
-          box.style.display = "block";
-        } else if (type === "KHR" && !targetUserIsKHR) {
-          document.getElementById("fxRateDisplay").innerText =
-            `$1 = ${currentFXRates.usdToKhrSell} ៛`;
-          document.getElementById("fxResultDisplay").innerText =
-            `$${(amt / currentFXRates.usdToKhrSell).toFixed(2)}`;
-          box.style.display = "block";
-        } else box.style.display = "none";
-      }
 
-      function drawWheel() {
-        const ctx = document.getElementById("wheelCanvas").getContext("2d");
-        if (!ctx) return;
-        const p = ["$0.05", "$0.50", "0.00", "$0.10", "$1.00", "$0.20"],
-          c = [
-            "#f59e0b",
-            "#10b981",
-            "#64748b",
-            "#3b82f6",
-            "#ef4444",
-            "#8b5cf6",
-          ],
-          arc = Math.PI / (p.length / 2);
-        ctx.clearRect(0, 0, 280, 280);
-        for (let i = 0; i < p.length; i++) {
-          let a = i * arc;
-          ctx.beginPath();
-          ctx.fillStyle = c[i];
-          ctx.moveTo(140, 140);
-          ctx.arc(140, 140, 140, a, a + arc, false);
-          ctx.lineTo(140, 140);
-          ctx.fill();
-          ctx.save();
-          ctx.fillStyle = "white";
-          ctx.translate(
-            140 + Math.cos(a + arc / 2) * 90,
-            140 + Math.sin(a + arc / 2) * 90,
-          );
-          ctx.rotate(a + arc / 2 + Math.PI / 2);
-          ctx.font = "bold 20px 'Inter'";
-          ctx.fillText(
-            p[i] === "0.00" ? "Oops!" : p[i],
-            -ctx.measureText(p[i] === "0.00" ? "Oops!" : p[i]).width / 2,
-            0,
-          );
-          ctx.restore();
-        }
+        const isSenderKHR = summary.senderAccCur === "KHR";
+        const isRecKHR = summary.receiverCur === "KHR";
+
+        document.getElementById("fxFlowLabel").innerHTML =
+          `${flagImgHtml(isSenderKHR ? "kh" : "us")} <span>${summary.senderAccCur}</span> <i class="fa-solid fa-arrow-right" style="font-size:0.7rem;"></i> ${flagImgHtml(isRecKHR ? "kh" : "us")} <span>${summary.receiverCur}</span>`;
+        document.getElementById("fxRateDisplay").innerText =
+          summary.appliedFxText;
+
+        document.getElementById("fxPrincipalDeductDisplay").innerText =
+          isSenderKHR
+            ? `${summary.senderPrincipalDeduction.toLocaleString("en-US")} ៛`
+            : `$${summary.senderPrincipalDeduction.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        const feeEl = document.getElementById("fxFeeDisplay");
+        feeEl.style.color = "#ef4444"; // 🔴 ពណ៌ក្រហមជានិច្ចតាមសំណូមពរ
+        feeEl.innerText =
+          summary.feeInSenderCur === 0
+            ? "$0.00 (ឥតគិតថ្លៃ)"
+            : isSenderKHR
+              ? `${summary.feeInSenderCur.toLocaleString("en-US")} ៛`
+              : `$${summary.feeInSenderCur.toFixed(2)}`;
+
+        document.getElementById("fxTotalDeductDisplay").innerText = isSenderKHR
+          ? `${summary.totalDeduct.toLocaleString("en-US")} ៛`
+          : `$${summary.totalDeduct.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        document.getElementById("fxResultDisplay").innerText = isRecKHR
+          ? `${summary.receiverGets.toLocaleString("en-US")} ៛`
+          : `$${summary.receiverGets.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        box.style.display = "block";
       }
 
       async function validateAndOpenPin() {
-        const amt = parseFloat(document.getElementById("amount").value),
-          sel = document.getElementById("fromAccount"),
-          bal = parseFloat(sel.options[sel.selectedIndex].dataset.balance),
-          l = localStorage.getItem("lang") || "en";
+        if (isTransactionCommitted) return;
 
-        if (!amt || amt <= 0)
+        const sel = document.getElementById("fromAccount");
+        const opt = sel.options[sel.selectedIndex];
+        const bal = parseFloat(opt.dataset.balance || 0);
+        const accDailyLimit = parseFloat(opt.dataset.dailyLimit || 0);
+        const summary = getCalculatedTransferSummary();
+
+        if (!summary.enteredAmt || summary.enteredAmt <= 0) {
           return Swal.fire(
-            "Warning",
-            l === "kh"
-              ? "សូមបញ្ចូលចំនួនប្រាក់ត្រឹមត្រូវ"
-              : "Please enter valid amount",
+            "បម្រាម",
+            "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
             "warning",
           );
-        if (amt > bal)
+        }
+
+        // 🛡️ ១. ឆែកដែនកំណត់ប្រចាំថ្ងៃរបស់ Admin (Global Daily Transfer Limit)
+        if (summary.transferUsdEquivalent > systemDailyLimitUSD) {
           return Swal.fire(
-            "Error",
-            l === "kh" ? "សមតុល្យមិនគ្រប់គ្រាន់" : "Insufficient Balance",
+            "លើសដែនកំណត់ប្រចាំថ្ងៃ!",
+            `ចំនួនទឹកប្រាក់លើសពិដានអតិបរមាប្រចាំថ្ងៃដែលធនាគារកំណត់ ($${systemDailyLimitUSD.toLocaleString()}/ថ្ងៃ)!`,
             "error",
           );
+        }
+
+        // 🛡️ ២. ឆែកដែនកំណត់ប្រចាំថ្ងៃរបស់គណនីផ្ទាល់ខ្លួន
+        if (
+          accDailyLimit > 0 &&
+          summary.senderPrincipalDeduction > accDailyLimit
+        ) {
+          const limStr =
+            summary.senderAccCur === "KHR"
+              ? `${accDailyLimit.toLocaleString()} ៛`
+              : `$${accDailyLimit.toLocaleString()}`;
+          return Swal.fire(
+            "លើសដែនកំណត់គណនី!",
+            `គណនីនេះអាចផ្ទេរចេញបានត្រឹមតែ ${limStr} ក្នុងមួយថ្ងៃប៉ុណ្ណោះ!`,
+            "error",
+          );
+        }
+
+        // 🛡️ ៣. ឆែកសមតុល្យគណនី (រួមបញ្ចូលថ្លៃសេវា)
+        if (summary.totalDeduct > bal) {
+          return Swal.fire(
+            "សមតុល្យមិនគ្រប់គ្រាន់",
+            "ទឹកប្រាក់ក្នុងគណនីរបស់អ្នកមិនគ្រប់គ្រាន់សម្រាប់ការផ្ទេរ និងថ្លៃសេវាទេ!",
+            "error",
+          );
+        }
+
         if (
           !(await checkName()) &&
           document.getElementById("nameCheck").innerText.includes("✘")
-        )
-          return Swal.fire("Error", "Receiver Not Found", "error");
+        ) {
+          return Swal.fire("Error", "រកមិនឃើញគណនីអ្នកទទួលទេ!", "error");
+        }
 
-        const recAcc = document.getElementById("receiverAcc").value;
-        const type = sel.options[sel.selectedIndex].dataset.currency;
-        const currSym = type === "USD" ? "$" : "៛";
+        const recAcc = document.getElementById("receiverAcc").value.trim();
+        const inSym = summary.inputCurrency === "USD" ? "$" : "៛";
         const displayAmt =
-          type === "USD" ? amt.toFixed(2) : amt.toLocaleString();
+          summary.inputCurrency === "USD"
+            ? summary.enteredAmt.toFixed(2)
+            : summary.enteredAmt.toLocaleString();
 
         requestPinVerification(
           "បញ្ជាក់ការវេរប្រាក់",
-          `វេរប្រាក់ ${currSym}${displayAmt} ទៅកាន់គណនី ${recAcc}`,
+          `វេរប្រាក់ ${inSym}${displayAmt} ទៅកាន់គណនី ${recAcc}`,
           async function (pinCode) {
             const srcAcc = sel.value;
+            const submitBtn = document.getElementById("btnSubmitTransfer");
+            if (submitBtn) submitBtn.disabled = true;
 
             Swal.fire({
-              title: "Processing...",
+              title: "កំពុងដំណើរការ...",
+              allowOutsideClick: false,
+              allowEscapeKey: false,
               didOpen: () => Swal.showLoading(),
             });
 
@@ -1369,9 +1749,8 @@
               ? {
                   username: user.username,
                   qrString: recAcc,
-                  amount: amt,
+                  amount: summary.enteredAmt,
                   pin: pinCode,
-                  // 🌟 ចាប់យកឈ្មោះអ្នកដែលយើងរើសដើម្បីចេញលុយជួស បញ្ជូនទៅ Server
                   bailoutTarget:
                     document.getElementById("bailoutGroup") &&
                     document.getElementById("bailoutGroup").style.display !==
@@ -1383,7 +1762,8 @@
                   senderUsername: user.username,
                   senderAccount: srcAcc,
                   receiverAccount: recAcc,
-                  amount: amt,
+                  amount: summary.enteredAmt,
+                  inputCurrency: summary.inputCurrency, // 🌟 បញ្ជូនរូបិយប័ណ្ណដែលគាត់បានរើសវាយ
                   remark:
                     document.getElementById("remark").value ||
                     (orderId ? `Payment for ${orderId}` : ""),
@@ -1393,7 +1773,7 @@
                     urlParamsGlobal.has("acc")
                       ? "QR Scan"
                       : "Account Input",
-                  currency: type,
+                  currency: summary.senderAccCur,
                   orderId: orderId,
                 };
 
@@ -1406,91 +1786,88 @@
               const d = await res.json();
 
               if (d.success) {
-                // ១. ប្រសិនបើជា U-Fund (រក្សាទុកធម្មតា)
+                // 🔒 វាយ PIN ត្រូវ និងជោគជ័យហើយ -> ចាក់សោមិនឱ្យចុចថយក្រោយដាច់ខាត!
+                isTransactionCommitted = true;
+                history.pushState(null, null, location.href);
+                const topBack = document.getElementById("topBackBtn");
+                if (topBack) topBack.style.pointerEvents = "none";
+
+                // ១. ប្រសិនបើជា U-Fund
                 if (recAcc.startsWith("UFND-")) {
                   Swal.close();
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  ).play();
+                  try {
+                    new Audio(
+                      "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                    ).play();
+                  } catch (e) {}
                   Swal.fire({
                     icon: "success",
                     title: "ដាក់ប្រាក់ជោគជ័យ",
                     text: d.message,
                     confirmButtonColor: "#004d40",
-                  }).then(() => (window.location.href = "ufund.html"));
+                    allowOutsideClick: false,
+                  }).then(() => window.location.replace("ufund.html"));
                   return;
                 }
 
-                // 🔥 ២. ចាប់ទាញទិន្នន័យពី Database មក Update សមតុល្យ (Balance) ថ្មី
+                // ២. អាប់ដេតទិន្នន័យសមតុល្យថ្មីក្នុង SessionStorage
+                if (d.user) {
+                  sessionStorage.setItem("user", JSON.stringify(d.user));
+                  Object.assign(user, d.user);
+                  populateSourceAccounts();
+                }
+
+                Swal.close();
+
                 try {
-                  const freshRes = await fetch("/api/users", {
-                    headers: authHeaders,
-                  });
-                  const freshUsers = await freshRes.json();
-                  const freshUser = freshUsers.find(
-                    (u) => u.username === user.username,
-                  );
+                  new Audio(
+                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+                  ).play();
+                } catch (e) {}
 
-                  if (freshUser) {
-                    // Update Session Storage ជាមួយ Data ថ្មីស្រឡាងពី Database
-                    sessionUser = freshUser; // 🌟 កែអថេរឱ្យត្រូវនឹងការហៅ
-                    sessionStorage.setItem("user", JSON.stringify(freshUser));
-                    Object.assign(user, freshUser);
-
-                    // 🌟 ធ្វើបច្ចុប្បន្នភាព Dropdown ម្តងទៀត ដើម្បីបង្ហាញលុយថ្មី
-                    populateSourceAccounts();
-                  }
-                } catch (fetchErr) {
-                  console.error(
-                    "មិនអាចទាញយកទិន្នន័យថ្មីពី Database បានទេ:",
-                    fetchErr,
-                  );
-                }
-
-                Swal.close(); // បិទ Loading ពេលទាញពី Database ចប់
-
-                // ៣. ចាក់សំឡេង និងលោត Notification
-                new Audio(
-                  "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                ).play();
-                if (typeof showAppNotification === "function") {
-                  showAppNotification(
-                    "Transfer Successful",
-                    `You transferred ${amt}`,
-                    "send",
-                  );
-                }
-
-                // ៤. ដំណើរការ Callback (បើមាន)
+                // ៣. ដំណើរការ Callback ទៅកាន់ហាងទំនិញ (បើមាន)
                 if (orderId && callbackUrl) {
                   fetch(callbackUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       orderId: orderId,
-                      amount: amt,
+                      amount: summary.enteredAmt,
                       user: shopBuyerName,
                       items: items,
                     }),
-                  }).catch((e) => {});
+                  }).catch(() => {});
                 }
 
-                // ៥. លោតកងវិល (Spin) ឬ បង្ហាញ Slip
-                if (parseFloat(amt) >= (type === "USD" ? 10 : 40000)) {
-                  currentSlipData = d.slipData;
-                  document.getElementById("spinModal").style.display = "flex";
-                  let c = document.getElementById("wheelCanvas");
-                  c.style.transition = "none";
-                  c.style.transform = "rotate(0deg)";
-                  spinIsActive = false;
+                // ៤. ហៅ openGlobalSlip ពី js/slip.js ដែលមានស្រាប់របស់បងធំ!
+                const presentFinalSlip = () => {
+                  if (typeof openGlobalSlip === "function") {
+                    openGlobalSlip(d.slipData, user.username);
+                  }
+                };
+
+                // ៥. ហៅកងបង្វិលសំណាងពី js/luckySpin.js បើវេរចាប់ពី $10 ឡើងទៅ
+                if (
+                  summary.transferUsdEquivalent >= 10 &&
+                  typeof window.openLuckySpinModal === "function"
+                ) {
+                  window.openLuckySpinModal({
+                    user,
+                    authHeaders,
+                    slipData: d.slipData,
+                    onFinish: presentFinalSlip,
+                  });
                 } else {
-                  showSlipData(d.slipData);
+                  presentFinalSlip();
                 }
               } else {
+                // ❌ បើវាយ PIN ខុស ឬសមតុល្យមិនគ្រប់ -> បើកឱ្យវាយម្ដងទៀតបានធម្មតា
+                if (submitBtn) submitBtn.disabled = false;
                 Swal.close();
-                Swal.fire("Failed", d.message, "error");
+                Swal.fire("បរាជ័យ", d.message, "error");
               }
             } catch (e) {
+              if (submitBtn) submitBtn.disabled = false;
               Swal.close();
               Swal.fire("Error", "Connection Error: " + e.message, "error");
             }
@@ -1498,105 +1875,14 @@
         );
       }
 
-      function startSpin() {
-        if (spinIsActive) return;
-        spinIsActive = true;
-        const p = [0.05, 0.5, 0, 0.1, 1.0, 0.2],
-          r = Math.random();
-        let idx = r < 0.1 ? 4 : r < 0.3 ? 1 : r < 0.6 ? 5 : r < 0.8 ? 3 : 0;
-        document.getElementById("wheelCanvas").style.transition =
-          "transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)";
-        document.getElementById("wheelCanvas").style.transform =
-          `rotate(${360 * 5 + (270 - (idx * 60 + 30))}deg)`;
-        setTimeout(() => {
-          if (p[idx] > 0) {
-            fetch("/api/reward/cashback", {
-              method: "POST",
-              headers: authHeaders,
-              body: JSON.stringify({
-                username: user.username,
-                amount: p[idx],
-                refId: currentSlipData.refId,
-              }),
-            })
-              .then((r) => r.json())
-              .then((d) => {
-                if (d.success) {
-                  // 🌟 អាប់ដេតសមតុល្យតាមទម្រង់ថ្មី
-                  if (user.mainAccounts && user.mainAccounts.USD) {
-                    user.mainAccounts.USD.balance = d.balance;
-                  } else {
-                    user.balance = d.balance; // Legacy Support
-                  }
-                  sessionStorage.setItem("user", JSON.stringify(user));
-
-                  new Audio(
-                    "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-                  ).play();
-                  Swal.fire({
-                    icon: "success",
-                    title: `You won $${p[idx].toFixed(2)}!`,
-                    text: "Cashback added.",
-                    confirmButtonColor: "#004d40",
-                  }).then(() => finishSpin());
-                }
-              });
-          } else
-            Swal.fire({
-              icon: "info",
-              title: "Oops!",
-              text: "Better luck next time.",
-              confirmButtonColor: "#004d40",
-            }).then(() => finishSpin());
-        }, 4100);
-      }
-
-      function skipSpin() {
-        finishSpin();
-      }
-      function finishSpin() {
-        document.getElementById("spinModal").style.display = "none";
-        showSlipData(currentSlipData);
-      }
-
-      function showSlipData(d) {
-        const isKHR = d.currency === "KHR",
-          sign = isKHR ? "៛" : "$";
-        document.getElementById("slipAmount").innerText = isKHR
-          ? `${Math.abs(d.amount).toLocaleString("en-US")} ${sign}`
-          : `${sign}${Math.abs(d.amount).toFixed(2)}`;
-        document.getElementById("slipRef").innerText = d.refId;
-        document.getElementById("slipHash").innerText = d.hash || "N/A";
-        document.getElementById("slipSender").innerText = user.username;
-        document.getElementById("slipReceiver").innerText =
-          d.partner || d.receiverName;
-        document.getElementById("slipMethod").innerText =
-          d.trxMethod ||
-          (urlParamsGlobal.has("acc") ? "QR Scan" : "Account Input");
-        document.getElementById("slipDate").innerText = d.date;
-        document.getElementById("slipRemark").innerText = d.remark || "-";
-        document.getElementById("slipModal").style.display = "flex";
-      }
-
-      function saveSlipImage() {
-        document.querySelector(".slip-actions").style.display = "none";
-        html2canvas(document.getElementById("captureArea")).then((c) => {
-          let l = document.createElement("a");
-          l.download = `Slip-${Date.now()}.png`;
-          l.href = c.toDataURL();
-          l.click();
-          document.querySelector(".slip-actions").style.display = "flex";
-        });
-      }
-
       function returnToShopOrDashboard() {
-        if (callbackUrl) window.location.href = new URL(callbackUrl).origin;
+        if (callbackUrl) window.location.replace(new URL(callbackUrl).origin);
         else if (orderId) {
           window.close();
           setTimeout(() => {
-            window.location.href = "dashboard.html";
+            window.location.replace("dashboard.html");
           }, 300);
-        } else window.location.href = "dashboard.html";
+        } else window.location.replace("dashboard.html");
       }
     </script>
   </body>

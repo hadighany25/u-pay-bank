@@ -6,29 +6,29 @@
 document.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("slipModal")) {
     const slipHTML = `
-      <div id="slipModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(5px); z-index: 99999; align-items: center; justify-content: center; flex-direction: column;">
-        <div id="captureArea" class="slip-container" style="width: 340px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.3);">
+      <div id="slipModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(5px); z-index: 99999; align-items: center; justify-content: center; flex-direction: column; padding: 15px; box-sizing: border-box;">
+        <div id="captureArea" class="slip-container" style="width: 100%; max-width: 340px; margin: 0 auto; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.35);">
           
-          <div class="slip-header" id="slipHeaderBg" style="padding: 30px 20px 25px; text-align: center; color: white; transition: background 0.3s;">
-            <div class="slip-status-icon" id="slipIconBox" style="width: 65px; height: 65px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+          <div class="slip-header" id="slipHeaderBg" style="padding: 28px 20px 24px; text-align: center; color: white; transition: background 0.3s;">
+            <div class="slip-status-icon" id="slipIconBox" style="width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
               <i id="slipIcon" class="fa-solid fa-check"></i>
             </div>
-            <div class="slip-title" id="slipTitle" style="font-weight: 700; font-size: 1.15rem; letter-spacing: 0.5px;">Transfer Successful</div>
-            <div class="slip-amount" id="slipAmount" style="font-size: 2.8rem; font-weight: 900; margin-top: 5px; font-family: 'Inter', sans-serif; letter-spacing: -1px;">$0.00</div>
+            <div class="slip-title" id="slipTitle" style="font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px;">Transfer Successful</div>
+            <div class="slip-amount" id="slipAmount" style="font-size: 2.5rem; font-weight: 900; margin-top: 6px; font-family: 'Inter', sans-serif; letter-spacing: -1px;">$0.00</div>
           </div>
 
-          <div class="slip-body" style="padding: 20px 25px; background: white;">
+          <div class="slip-body" style="padding: 20px 22px; background: white;">
             <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;"><span style="color:#64748b; font-weight:500;">Trx ID</span><span id="slipRef" style="font-family:monospace; font-weight:700; color:#004d40;">...</span></div>
-            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;"><span style="color:#64748b; font-weight:500;">Hash</span><span id="slipHash" style="font-family:monospace; font-weight:700; color:#3b82f6; font-size:0.8rem;">...</span></div>
+            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;"><span style="color:#64748b; font-weight:500;">Hash</span><span id="slipHash" style="font-family:monospace; font-weight:700; color:#3b82f6; font-size:0.78rem;">...</span></div>
             
-            <div style="margin: 15px -25px; border-top: 2px dashed #e2e8f0;"></div>
+            <div style="margin: 14px -22px; border-top: 2px dashed #e2e8f0;"></div>
             
             <!-- Labels អាចប្តូរបាន (Sender/Receiver) -->
-            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:0.85rem; align-items: flex-start;">
+            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:14px; font-size:0.85rem; align-items: flex-start;">
                 <span id="lblSender" style="color:#64748b; font-weight:500; white-space: nowrap;">Sender</span>
                 <span id="slipSenderName" style="font-weight:bold; text-align:right; color:#1e293b; line-height: 1.3;">...</span>
             </div>
-            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:0.85rem; align-items: flex-start;">
+            <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:14px; font-size:0.85rem; align-items: flex-start;">
                 <span id="lblReceiver" style="color:#64748b; font-weight:500; white-space: nowrap;">Receiver</span>
                 <span id="slipReceiverName" style="font-weight:bold; text-align:right; color:#1e293b; line-height: 1.3;">...</span>
             </div>
@@ -38,18 +38,18 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem;"><span style="color:#64748b; font-weight:500;">Fee</span><span id="slipFee" style="font-weight:bold; text-align:right; color:#ef4444;">$0.00</span></div>
             <div class="detail-row" style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:0.85rem; align-items: flex-start;"><span style="color:#64748b; font-weight:500;">Remark</span><span id="slipRemark" style="font-weight:bold; text-align:right; max-width:65%; color:#475569;">...</span></div>
             
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
-              <div style="display:flex; align-items:center; gap:8px; border:1px solid #e2e8f0; padding:6px 10px; border-radius:12px; background:#f8fafc;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify" style="width:35px; height:35px;"/>
-                <div style="font-size:0.65rem; font-weight:800; color:#004d40; line-height: 1.2;">SCAN TO<br/>VERIFY</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding-top:10px; border-top:1px solid #f1f5f9;">
+              <div style="display:flex; align-items:center; gap:8px; border:1px solid #e2e8f0; padding:5px 9px; border-radius:10px; background:#f8fafc;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Verify" style="width:34px; height:34px;"/>
+                <div style="font-size:0.62rem; font-weight:800; color:#004d40; line-height: 1.1;">SCAN TO<br/>VERIFY</div>
               </div>
-              <img src="images/logo.png" style="width:75px;" onerror="this.style.display='none'"/>
+              <img src="images/logo.png" style="width:75px; object-fit:contain;" onerror="this.style.display='none'"/>
             </div>
           </div>
         </div>
         
         <!-- ផ្ទាំងប៊ូតុងខាងក្រោម ៣ -->
-        <div id="slipActionButtons" style="display:flex; justify-content:center; gap:35px; margin-top: 25px;">
+        <div id="slipActionButtons" style="display:flex; justify-content:center; gap:30px; margin-top: 22px;">
           <!-- Default Buttons នឹងត្រូវ Generate ដោយ JS -->
         </div>
       </div>
@@ -80,7 +80,7 @@ window.openDebtSlip = function (
     currency: "USD",
     date: date,
     refId: refId || "N/A",
-    hash: "PENDING (Auto-Recovery)", // មិនទាន់សង
+    hash: "PENDING (Auto-Recovery)",
     senderName: isLend ? partnerName : currentUserFullName,
     receiverName: isLend ? currentUserFullName : partnerName,
     type: "P2P Debt Record",
@@ -168,7 +168,6 @@ function openGlobalSlip(t, currentUsername) {
     lblSenderText = "Paid By";
     lblReceiverText = "Paid To (Merchant)";
   } else if (tType.includes("bill")) {
-    // 🌟 លក្ខខណ្ឌសម្រាប់ Bill Payment
     bgColor = "#f97316"; // ពណ៌ទឹកក្រូច
     iconColor = "#f97316";
     iconClass = "fa-file-invoice-dollar";
@@ -247,9 +246,9 @@ function openGlobalSlip(t, currentUsername) {
   let receiverNameFull = t.receiverName || "SYSTEM";
 
   if (displaySenderAcc)
-    senderNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${displaySenderAcc}</span>`;
+    senderNameFull += `<br><span style="font-size:0.72rem; color:#64748b; font-family:monospace;">${displaySenderAcc}</span>`;
   if (displayReceiverAcc)
-    receiverNameFull += `<br><span style="font-size:0.75rem; color:#64748b; font-family:monospace;">${displayReceiverAcc}</span>`;
+    receiverNameFull += `<br><span style="font-size:0.72rem; color:#64748b; font-family:monospace;">${displayReceiverAcc}</span>`;
 
   document.getElementById("lblSender").innerText = lblSenderText;
   document.getElementById("lblReceiver").innerText = lblReceiverText;
@@ -259,22 +258,26 @@ function openGlobalSlip(t, currentUsername) {
   document.getElementById("slipMethod").innerText =
     t.trxMethod || "U-PAY System";
   document.getElementById("slipRemark").innerText = t.remark || "-";
-  document.getElementById("slipFee").innerText = currSym + formattedFee;
+
+  // 🔴 ដាក់ពណ៌ក្រហមសម្រាប់ Fee លើ Slip តាមសំណូមពរ
+  const feeEl = document.getElementById("slipFee");
+  feeEl.style.color = "#ef4444";
+  feeEl.innerText = currSym + formattedFee;
 
   const actionBtns = document.getElementById("slipActionButtons");
   if (actionBtns) {
     actionBtns.innerHTML = `
       <div onclick="shareSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-share-nodes"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">Share</span>
+        <div style="width:52px; height:52px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 6px;"><i class="fa-solid fa-share-nodes"></i></div>
+        <span style="font-size:0.8rem; font-weight:600;">Share</span>
       </div>
       <div onclick="downloadSlipPDF()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-file-pdf"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">PDF</span>
+        <div style="width:52px; height:52px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 6px;"><i class="fa-solid fa-file-pdf"></i></div>
+        <span style="font-size:0.8rem; font-weight:600;">PDF</span>
       </div>
       <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-        <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-xmark"></i></div>
-        <span style="font-size:0.85rem; font-weight:600;">Done</span>
+        <div style="width:52px; height:52px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 6px;"><i class="fa-solid fa-xmark"></i></div>
+        <span style="font-size:0.8rem; font-weight:600;">Done</span>
       </div>
     `;
   }
@@ -293,12 +296,12 @@ function openPosSlip(t, currentUsername) {
     if (actionBtns) {
       actionBtns.innerHTML = `
         <div onclick="printPosReceipt()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-          <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-print"></i></div>
-          <span style="font-size:0.85rem; font-weight:600;">Print</span>
+          <div style="width:52px; height:52px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 6px;"><i class="fa-solid fa-print"></i></div>
+          <span style="font-size:0.8rem; font-weight:600;">Print</span>
         </div>
         <div onclick="closeSlipGlobal()" style="cursor:pointer; text-align:center; color:white; transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-          <div style="width:55px; height:55px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.3rem; margin:0 auto 8px;"><i class="fa-solid fa-xmark"></i></div>
-          <span style="font-size:0.85rem; font-weight:600;">Done</span>
+          <div style="width:52px; height:52px; border-radius:50%; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin:0 auto 6px;"><i class="fa-solid fa-xmark"></i></div>
+          <span style="font-size:0.8rem; font-weight:600;">Done</span>
         </div>
       `;
     }
@@ -394,14 +397,13 @@ async function shareSlipGlobal() {
 // ៤. មុខងារបិទ Slip
 function closeSlipGlobal() {
   document.getElementById("slipModal").style.display = "none";
-  // ប្រសិនបើបិទ Slip ក្នុងផ្ទាំង Bill Payment ត្រូវ Reload ដើម្បីរៀបចំផ្ទាំងថ្មី
   if (window.location.pathname.includes("payment.html")) {
     window.location.reload();
   }
 }
 
 // ==========================================
-// ៥. មុខងារ Download PDF ទម្រង់ U-Pay Standard ថ្មី
+// ៥. មុខងារ Download PDF (រក្សាទុកទម្រង់ដើម ព្រមទាំងកែទំហំ Logo ឱ្យល្មមស្អាត)
 // ==========================================
 async function downloadSlipPDF() {
   const t = window.currentSlipData;
@@ -452,7 +454,8 @@ async function downloadSlipPDF() {
           return cleaned.length > 0 ? cleaned : "-";
         };
 
-        doc.addImage("images/logo-nobg.png", "PNG", 40, 40, 90, 24);
+        // 🌟 ធ្វើឱ្យទំហំ Logo ក្នុង PDF ធំល្មមស្អាត (width: 75, height: 20)
+        doc.addImage("images/logo-nobg.png", "PNG", 40, 38, 75, 20);
 
         doc.setFont("helvetica", "bold");
         doc.setFontSize(16);
@@ -475,7 +478,6 @@ async function downloadSlipPDF() {
         let lblSenderText = "Sender";
         let lblReceiverText = "Receiver";
 
-        // 🌟 កែសម្រួល PDF ឱ្យគាំទ្របំណុល P2P និង Bill
         if (tType.includes("deposit")) {
           lblSenderText = "Deposited By";
           lblReceiverText = "Credited To";
@@ -609,13 +611,14 @@ async function downloadSlipPDF() {
           pageHeight - 35,
         );
 
+        // 🌟 ធ្វើឱ្យ Logo ខាងក្រោមក្នុង PDF ធំល្មមស្អាត (width: 65, height: 18)
         doc.addImage(
           "images/logo-nobg.png",
           "PNG",
-          pageWidth - 80,
+          pageWidth - 75,
           pageHeight - 55,
-          40,
-          11,
+          65,
+          18,
         );
 
         doc.save(`UPay_Receipt_${t.refId || Date.now()}.pdf`);

@@ -1,0 +1,1369 @@
+<!-- exchange-rates.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>Exchange Rates - U-Pay</title>
+
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+
+    <style>
+      /* ==========================================
+         🎨 LIGHT MODE & BASE VARIABLES
+         ========================================== */
+      :root {
+        --fx-bg-page: #f1f5f9;
+        --fx-bg-app: #f8fafc;
+        --fx-bg-card: #ffffff;
+        --fx-bg-sub: #f1f5f9;
+        --fx-border: #e2e8f0;
+        --fx-text-main: #0f172a;
+        --fx-text-muted: #64748b;
+        --fx-primary: #004d40;
+        --fx-accent: #0d9488;
+      }
+
+      /* 🌙 DARK MODE VARIABLES (ចាប់តាមដូចនៅ Dashboard & Settings ១០០%) */
+      body.dark-mode {
+        --fx-bg-page: #090d16;
+        --fx-bg-app: #0f172a;
+        --fx-bg-card: #1e293b;
+        --fx-bg-sub: #0f172a;
+        --fx-border: #334155;
+        --fx-text-main: #f8fafc;
+        --fx-text-muted: #94a3b8;
+        --fx-primary: #10b981;
+        --fx-accent: #34d399;
+        background-color: var(--fx-bg-page) !important;
+        color: var(--fx-text-main) !important;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--fx-bg-page);
+        color: var(--fx-text-main);
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+      *:not(i):not([class*="fa-"]) {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: var(--fx-bg-app) !important;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+        padding-bottom: 35px;
+        overflow-x: hidden;
+        transition: background-color 0.3s ease;
+      }
+
+      /* ១. Header */
+      .fx-header {
+        background: linear-gradient(135deg, #004d40, #0d9488);
+        color: #ffffff;
+        padding: 20px 20px 24px 20px;
+        border-radius: 0 0 28px 28px;
+        box-shadow: 0 8px 20px rgba(0, 77, 64, 0.22);
+        position: relative;
+        z-index: 10;
+      }
+      body.dark-mode .fx-header {
+        background: linear-gradient(135deg, #042f2e, #0f766e);
+        border-bottom: 1px solid #1e293b;
+      }
+      body.junior-mode .fx-header {
+        background: linear-gradient(135deg, #db2777, #f472b6) !important;
+      }
+
+      .fx-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .fx-nav-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+        transition: transform 0.2s;
+      }
+      .fx-nav-btn:active {
+        transform: scale(0.9);
+      }
+      .fx-header-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #ffffff !important;
+      }
+
+      /* ២. 3D Airport Flip Spotlight (2 Cards Rotating) */
+      .fx-spotlight-bar {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 18px;
+        padding: 12px;
+        backdrop-filter: blur(8px);
+      }
+      .fx-spotlight-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.72rem;
+        color: #e2e8f0;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+      .fx-live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 8px #34d399;
+        display: inline-block;
+        margin-right: 5px;
+        animation: fxPulseDot 1.5s infinite;
+      }
+      @keyframes fxPulseDot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .fx-spotlight-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        perspective: 1000px;
+        min-height: 64px;
+      }
+      .fx-spot-card {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 12px;
+        padding: 10px;
+        cursor: pointer;
+        backface-visibility: hidden;
+        transform-origin: center center;
+      }
+      .fx-spot-card.wave-in {
+        opacity: 0;
+        animation: fxFlipWaveIn 0.46s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      .fx-spot-card.wave-out {
+        animation: fxFlipWaveOut 0.3s cubic-bezier(0.55, 0.05, 0.67, 0.19)
+          forwards;
+      }
+      @keyframes fxFlipWaveOut {
+        0% {
+          opacity: 1;
+          transform: perspective(900px) rotateX(0deg) translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: perspective(900px) rotateX(-85deg) translateY(-8px);
+        }
+      }
+      @keyframes fxFlipWaveIn {
+        0% {
+          opacity: 0;
+          transform: perspective(900px) rotateX(85deg) translateY(8px);
+        }
+        65% {
+          opacity: 1;
+          transform: perspective(900px) rotateX(-6deg) translateY(-1px);
+        }
+        100% {
+          opacity: 1;
+          transform: perspective(900px) rotateX(0deg) translateY(0);
+        }
+      }
+
+      /* រូបទង់ជាតិភ្លោះ */
+      .fx-flag-pair {
+        position: relative;
+        width: 34px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .fx-flag-1 {
+        width: 21px;
+        height: 15px;
+        border-radius: 3px;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+      .fx-flag-2 {
+        width: 19px;
+        height: 13px;
+        border-radius: 3px;
+        object-fit: cover;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        border: 1px solid #0f172a;
+      }
+
+      /* ៣. ម៉ាស៊ីនគណនាប្តូរប្រាក់ (Interactive Calculator Card) */
+      .fx-calc-card {
+        background: var(--fx-bg-card);
+        margin: 16px 18px 0 18px;
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--fx-border);
+        transition: all 0.3s ease;
+      }
+      .fx-calc-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .fx-calc-title {
+        font-weight: 800;
+        font-size: 0.9rem;
+        color: var(--fx-text-main) !important;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fx-mode-pills {
+        display: inline-flex;
+        background: var(--fx-bg-sub);
+        padding: 3px;
+        border-radius: 10px;
+        gap: 3px;
+        border: 1px solid var(--fx-border);
+      }
+      .fx-mode-pill {
+        border: none;
+        background: transparent;
+        color: var(--fx-text-muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 5px 9px;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .fx-mode-pill.active {
+        background: #0d9488;
+        color: #ffffff;
+      }
+
+      .fx-input-panel {
+        background: var(--fx-bg-sub);
+        border: 1.5px solid var(--fx-border);
+        border-radius: 16px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        transition: 0.2s;
+      }
+      .fx-input-panel:focus-within {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+      }
+      .fx-curr-select-wrap {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--fx-bg-card);
+        border: 1px solid var(--fx-border);
+        padding: 6px 10px;
+        border-radius: 12px;
+        flex-shrink: 0;
+      }
+      .fx-curr-select {
+        border: none;
+        background: var(--fx-bg-card);
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: var(--fx-text-main) !important;
+        outline: none;
+        cursor: pointer;
+      }
+      .fx-curr-select option {
+        background: var(--fx-bg-card);
+        color: var(--fx-text-main);
+      }
+      .fx-amount-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        text-align: right;
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: var(--fx-text-main) !important;
+        outline: none;
+        width: 100%;
+      }
+
+      /* ប៊ូតុងបង្វិលប្តូរទិសដៅ Swap */
+      .fx-swap-divider {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: -6px 0;
+        position: relative;
+        z-index: 2;
+        padding: 0 12px;
+      }
+      .fx-swap-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #004d40, #10b981);
+        color: #ffffff;
+        border: 3px solid var(--fx-bg-card);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .fx-swap-btn:active {
+        transform: rotate(180deg) scale(0.92);
+      }
+      .fx-rate-tag {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.14);
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+      }
+
+      /* ប៊ូតុងជ្រើសរើសទឹកប្រាក់រហ័ស */
+      .fx-quick-chips {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .fx-quick-chips::-webkit-scrollbar {
+        display: none;
+      }
+      .fx-chip {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 9px;
+        border: 1px solid var(--fx-border);
+        background: var(--fx-bg-sub);
+        color: var(--fx-text-main);
+        font-size: 0.76rem;
+        font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
+        text-align: center;
+        transition: 0.2s;
+      }
+      .fx-chip:hover,
+      .fx-chip:active {
+        background: #0d9488;
+        color: #ffffff;
+        border-color: #0d9488;
+      }
+
+      /* ៤. របារប្តូរទម្រង់មើល (View Switcher: Grid vs Table) */
+      .fx-board-header {
+        margin: 20px 18px 12px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .fx-board-title {
+        font-weight: 800;
+        font-size: 0.92rem;
+        color: var(--fx-text-main) !important;
+      }
+      .fx-view-toggle {
+        display: inline-flex;
+        background: var(--fx-bg-sub);
+        border: 1px solid var(--fx-border);
+        padding: 3px;
+        border-radius: 10px;
+        gap: 3px;
+      }
+      .fx-view-btn {
+        border: none;
+        background: transparent;
+        color: var(--fx-text-muted);
+        padding: 5px 10px;
+        border-radius: 7px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .fx-view-btn.active {
+        background: #0d9488;
+        color: #ffffff;
+      }
+
+      /* ទម្រង់ទី ១៖ 2-Column Animated Cards Grid */
+      .fx-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 0 18px;
+      }
+      .fx-item-card {
+        background: var(--fx-bg-card);
+        border: 1px solid var(--fx-border);
+        border-radius: 16px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.22s ease;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+        animation: fxCardPop 0.35s ease forwards;
+      }
+      .fx-item-card:hover {
+        transform: translateY(-2px);
+        border-color: #0d9488;
+      }
+      .fx-item-card:active {
+        transform: scale(0.97);
+      }
+      @keyframes fxCardPop {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ទម្រង់ទី ២៖ តារាងអត្រាប្តូរប្រាក់ផ្លូវការ (Classic Bank Table) */
+      .fx-table-wrap {
+        margin: 0 18px;
+        background: var(--fx-bg-card);
+        border-radius: 18px;
+        border: 1px solid var(--fx-border);
+        overflow: hidden;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      }
+      .fx-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+      .fx-table th {
+        background: var(--fx-bg-sub);
+        color: var(--fx-text-muted);
+        font-weight: 800;
+        padding: 11px 12px;
+        text-align: left;
+        font-size: 0.74rem;
+        border-bottom: 1px solid var(--fx-border);
+      }
+      .fx-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--fx-border);
+        color: var(--fx-text-main);
+        font-weight: 700;
+      }
+      .fx-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- ==========================================
+           ១. ក្បាលទំព័រ + 3D Airport Flip Spotlight
+           ========================================== -->
+      <div class="fx-header">
+        <div class="fx-header-top">
+          <a
+            href="dashboard.html"
+            class="fx-nav-btn"
+            title="ត្រឡប់ទៅ Dashboard"
+          >
+            <i class="fa-solid fa-arrow-left"></i>
+          </a>
+          <h2 class="fx-header-title" id="lblPageTitle">
+            អត្រាប្តូរប្រាក់ (Exchange Rates)
+          </h2>
+          <a
+            href="settings.html"
+            class="fx-nav-btn"
+            title="ការកំណត់ (Settings)"
+          >
+            <i class="fa-solid fa-gear"></i>
+          </a>
+        </div>
+
+        <!-- ក្តារអេឡិចត្រូនិកបង្វិលម្ដង ២ កាតដោយស្វ័យប្រវត្តិ -->
+        <div class="fx-spotlight-bar">
+          <div class="fx-spotlight-meta">
+            <span>
+              <span class="fx-live-dot"></span>
+              <span id="lblLiveBoard"
+                >តារាងចលនាអត្រាប្តូរប្រាក់ផ្ទាល់ (LIVE)</span
+              >
+            </span>
+            <span
+              onclick="rotateSpotlightPair()"
+              style="cursor: pointer; color: #34d399"
+            >
+              <i class="fa-solid fa-rotate"></i> ប្តូរក្រុម
+            </span>
+          </div>
+          <div class="fx-spotlight-grid" id="fxSpotlightGrid"></div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           ២. ម៉ាស៊ីនគិតលេខប្តូរប្រាក់ (FX Calculator)
+           ========================================== -->
+      <div class="fx-calc-card">
+        <div class="fx-calc-header">
+          <span class="fx-calc-title" id="lblCalcTitle">
+            <i class="fa-solid fa-calculator" style="color: #0d9488"></i>
+            <span>គណនាប្តូរប្រាក់រហ័ស</span>
+          </span>
+
+          <div class="fx-mode-pills">
+            <button
+              type="button"
+              class="fx-mode-pill active"
+              id="modeBtnBuy"
+              onclick="setCalcRateMode('buy')"
+            >
+              ទិញចូល (Buy)
+            </button>
+            <button
+              type="button"
+              class="fx-mode-pill"
+              id="modeBtnSell"
+              onclick="setCalcRateMode('sell')"
+            >
+              លក់ចេញ (Sell)
+            </button>
+            <button
+              type="button"
+              class="fx-mode-pill"
+              id="modeBtnMid"
+              onclick="setCalcRateMode('mid')"
+            >
+              មធ្យម (Mid)
+            </button>
+          </div>
+        </div>
+
+        <!-- ប្រអប់រូបិយប័ណ្ណទី ១ (From) -->
+        <div class="fx-input-panel">
+          <div class="fx-curr-select-wrap">
+            <img
+              id="calcFlagFrom"
+              src="https://flagcdn.com/w40/us.png"
+              style="width: 22px; height: 15px; border-radius: 3px"
+            />
+            <select
+              id="calcSelectFrom"
+              class="fx-curr-select"
+              onchange="onCalcCurrencyChange()"
+            ></select>
+          </div>
+          <input
+            type="number"
+            id="calcInputFrom"
+            class="fx-amount-input"
+            value="100"
+            step="any"
+            placeholder="0.00"
+            oninput="calculateConversion('from')"
+          />
+        </div>
+
+        <!-- ប៊ូតុងប្តូរទិសដៅ (Swap) & បង្ហាញអត្រា -->
+        <div class="fx-swap-divider">
+          <span class="fx-rate-tag" id="calcAppliedRateText"
+            >1 USD = 4,050 ៛</span
+          >
+          <button
+            type="button"
+            class="fx-swap-btn"
+            onclick="swapCalcCurrencies()"
+            title="ប្តូរទិសដៅរូបិយប័ណ្ណ"
+          >
+            <i
+              class="fa-solid fa-arrow-right-arrow-left"
+              style="transform: rotate(90deg)"
+            ></i>
+          </button>
+        </div>
+
+        <!-- ប្រអប់រូបិយប័ណ្ណទី ២ (To) -->
+        <div class="fx-input-panel">
+          <div class="fx-curr-select-wrap">
+            <img
+              id="calcFlagTo"
+              src="https://flagcdn.com/w40/kh.png"
+              style="width: 22px; height: 15px; border-radius: 3px"
+            />
+            <select
+              id="calcSelectTo"
+              class="fx-curr-select"
+              onchange="onCalcCurrencyChange()"
+            ></select>
+          </div>
+          <input
+            type="number"
+            id="calcInputTo"
+            class="fx-amount-input"
+            style="color: #10b981 !important"
+            value="405000"
+            step="any"
+            placeholder="0.00"
+            oninput="calculateConversion('to')"
+          />
+        </div>
+
+        <!-- ប៊ូតុងចំនួនទឹកប្រាក់រហ័ស -->
+        <div class="fx-quick-chips" id="fxQuickChipsRow">
+          <div class="fx-chip" onclick="setQuickCalcAmount(10)">10</div>
+          <div class="fx-chip" onclick="setQuickCalcAmount(50)">50</div>
+          <div class="fx-chip" onclick="setQuickCalcAmount(100)">100</div>
+          <div class="fx-chip" onclick="setQuickCalcAmount(500)">500</div>
+          <div class="fx-chip" onclick="setQuickCalcAmount(1000)">1,000</div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           ៣. តារាងអត្រាប្តូរប្រាក់ទាំង ៨ (Grid Cards & Table View)
+           ========================================== -->
+      <div class="fx-board-header">
+        <span class="fx-board-title" id="lblAllRatesTitle">
+          អត្រាប្តូរប្រាក់អន្តរជាតិទាំងអស់ (៨ រូបិយប័ណ្ណ)
+        </span>
+
+        <div class="fx-view-toggle">
+          <button
+            type="button"
+            class="fx-view-btn active"
+            id="btnViewGrid"
+            onclick="switchFxDisplayMode('grid')"
+          >
+            <i class="fa-solid fa-grip"></i> កាត
+          </button>
+          <button
+            type="button"
+            class="fx-view-btn"
+            id="btnViewTable"
+            onclick="switchFxDisplayMode('table')"
+          >
+            <i class="fa-solid fa-table-list"></i> តារាង
+          </button>
+        </div>
+      </div>
+
+      <!-- ទម្រង់ទី ១៖ 2-Column Cards Grid -->
+      <div class="fx-cards-grid" id="fxCardsGridContainer"></div>
+
+      <!-- ទម្រង់ទី ២៖ Classic Bank Table -->
+      <div class="fx-table-wrap" id="fxTableContainer">
+        <table class="fx-table">
+          <thead>
+            <tr>
+              <th>រូបិយប័ណ្ណ</th>
+              <th>ឯកតា</th>
+              <th style="text-align: right">ទិញចូល (Buy)</th>
+              <th style="text-align: right">លក់ចេញ (Sell)</th>
+            </tr>
+          </thead>
+          <tbody id="fxTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- ប៊ូតុងលោតទៅវេរប្រាក់ផ្ទាល់ -->
+      <div style="padding: 18px 18px 0 18px">
+        <button
+          type="button"
+          onclick="window.location.href = 'transfer.html'"
+          style="
+            width: 100%;
+            padding: 15px;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #004d40, #0d9488);
+            color: #ffffff;
+            font-size: 0.98rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 77, 64, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          "
+        >
+          <i class="fa-solid fa-paper-plane"></i>
+          <span id="lblGoTransferBtn"
+            >ផ្ទេរប្រាក់ជាមួយអត្រាប្តូរប្រាក់នេះឥឡូវនេះ</span
+          >
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // 🛡️ ប្រើឈ្មោះអថេរដាច់ដោយឡែក (fxPageUser, fxPageHeaders) កុំឱ្យជាន់គ្នាជាមួយ js/u-pay-core.js ដាច់ខាត!
+      const fxRawUserStr = sessionStorage.getItem("user");
+      const fxRawToken =
+        sessionStorage.getItem("userToken") || localStorage.getItem("token");
+
+      const fxPageUser =
+        window.currentUser || (fxRawUserStr ? JSON.parse(fxRawUserStr) : null);
+
+      if (!fxPageUser) {
+        window.location.href = "index.html";
+      }
+
+      const fxPageHeaders = window.authHeaders || {
+        "Content-Type": "application/json",
+        Authorization: fxRawToken ? `Bearer ${fxRawToken}` : "",
+      };
+
+      // តារាងរូបិយប័ណ្ណអន្តរជាតិស្តង់ដារទាំង ៨
+      const DEFAULT_FX_LIST = [
+        {
+          code: "USD/KHR",
+          curr: "USD",
+          c1: "us",
+          c2: "kh",
+          nameKh: "ដុល្លារអាមេរិក",
+          nameEn: "US Dollar",
+          unit: 1,
+          buy: 4050,
+          sell: 4100,
+          quote: "៛",
+          change: "+0.12%",
+          trend: "up",
+        },
+        {
+          code: "THB/KHR",
+          curr: "THB",
+          c1: "th",
+          c2: "kh",
+          nameKh: "បាតថៃ",
+          nameEn: "Thai Baht",
+          unit: 1,
+          buy: 118.5,
+          sell: 121.0,
+          quote: "៛",
+          change: "+0.25%",
+          trend: "up",
+        },
+        {
+          code: "CNY/KHR",
+          curr: "CNY",
+          c1: "cn",
+          c2: "kh",
+          nameKh: "យន់ចិន",
+          nameEn: "Chinese Yuan",
+          unit: 1,
+          buy: 562.0,
+          sell: 575.0,
+          quote: "៛",
+          change: "-0.08%",
+          trend: "down",
+        },
+        {
+          code: "EUR/KHR",
+          curr: "EUR",
+          c1: "eu",
+          c2: "kh",
+          nameKh: "អឺរ៉ូ",
+          nameEn: "Euro",
+          unit: 1,
+          buy: 4380,
+          sell: 4460,
+          quote: "៛",
+          change: "+0.31%",
+          trend: "up",
+        },
+        {
+          code: "SGD/KHR",
+          curr: "SGD",
+          c1: "sg",
+          c2: "kh",
+          nameKh: "ដុល្លារសិង្ហបុរី",
+          nameEn: "Singapore Dollar",
+          unit: 1,
+          buy: 3015,
+          sell: 3075,
+          quote: "៛",
+          change: "+0.15%",
+          trend: "up",
+        },
+        {
+          code: "VND/KHR",
+          curr: "VND",
+          c1: "vn",
+          c2: "kh",
+          nameKh: "ដុងវៀតណាម",
+          nameEn: "Vietnamese Dong",
+          unit: 1000,
+          buy: 161.0,
+          sell: 166.5,
+          quote: "៛",
+          change: "-0.05%",
+          trend: "down",
+        },
+        {
+          code: "AUD/KHR",
+          curr: "AUD",
+          c1: "au",
+          c2: "kh",
+          nameKh: "ដុល្លារអូស្ត្រាលី",
+          nameEn: "Australian Dollar",
+          unit: 1,
+          buy: 2680,
+          sell: 2740,
+          quote: "៛",
+          change: "+0.19%",
+          trend: "up",
+        },
+        {
+          code: "JPY/KHR",
+          curr: "JPY",
+          c1: "jp",
+          c2: "kh",
+          nameKh: "យ៉េនជប៉ុន",
+          nameEn: "Japanese Yen",
+          unit: 100,
+          buy: 2690,
+          sell: 2755,
+          quote: "៛",
+          change: "-0.14%",
+          trend: "down",
+        },
+      ];
+
+      let liveFxList = JSON.parse(JSON.stringify(DEFAULT_FX_LIST));
+      let calcRateMode = "buy"; // 'buy' | 'sell' | 'mid'
+      let spotlightPage = 0;
+
+      // ១. ផ្ទៀងផ្ទាត់ Dark Mode, Light Mode និងភាសា (ដូចគ្នាបេះបិទនឹង Dashboard & Settings)
+      function applyThemeLocally() {
+        if (!fxPageUser || !fxPageUser.username) return;
+        const userThemeKey = "theme_" + fxPageUser.username;
+        const isDark = localStorage.getItem(userThemeKey) === "dark";
+
+        if (isDark) {
+          document.body.classList.add("dark-mode");
+        } else {
+          document.body.classList.remove("dark-mode");
+        }
+
+        if (fxPageUser.role === "junior") {
+          document.body.classList.add("junior-mode");
+        }
+
+        const lang = localStorage.getItem("lang") || "en";
+        if (lang === "en") {
+          document.getElementById("lblPageTitle").innerText =
+            "Exchange Rates & Calculator";
+          document.getElementById("lblLiveBoard").innerText =
+            "LIVE MARKET BOARD";
+          document.getElementById("lblCalcTitle").innerHTML =
+            '<i class="fa-solid fa-calculator" style="color:#0d9488;"></i> <span>Quick FX Calculator</span>';
+          document.getElementById("lblAllRatesTitle").innerText =
+            "All Global Currencies (8 Pairs)";
+          document.getElementById("lblGoTransferBtn").innerText =
+            "Transfer Money with Live Rates Now";
+        } else {
+          document.getElementById("lblPageTitle").innerText =
+            "អត្រាប្តូរប្រាក់ (Exchange Rates)";
+          document.getElementById("lblLiveBoard").innerText =
+            "តារាងចលនាអត្រាប្តូរប្រាក់ផ្ទាល់ (LIVE)";
+          document.getElementById("lblCalcTitle").innerHTML =
+            '<i class="fa-solid fa-calculator" style="color:#0d9488;"></i> <span>គណនាប្តូរប្រាក់រហ័ស</span>';
+          document.getElementById("lblAllRatesTitle").innerText =
+            "អត្រាប្តូរប្រាក់អន្តរជាតិទាំងអស់ (៨ រូបិយប័ណ្ណ)";
+          document.getElementById("lblGoTransferBtn").innerText =
+            "ផ្ទេរប្រាក់ជាមួយអត្រាប្តូរប្រាក់នេះឥឡូវនេះ";
+        }
+
+        if (typeof applyLanguage === "function") applyLanguage();
+      }
+
+      window.addEventListener("storage", (event) => {
+        if (!fxPageUser) return;
+        const userThemeKey = "theme_" + fxPageUser.username;
+        if (event.key === userThemeKey || event.key === "lang") {
+          applyThemeLocally();
+          renderFxBoards();
+        }
+      });
+
+      // ២. អនុវត្តទិន្នន័យអត្រាប្តូរប្រាក់ដែលទទួលបានពី Server (Admin FX Settings)
+      function applyServerRatesObject(r) {
+        if (!r) return;
+        const coreBuy = parseFloat(r.usdToKhrBuy) || 4050;
+        const coreSell = parseFloat(r.usdToKhrSell) || 4100;
+
+        if (Array.isArray(r.multiCurrencies) && r.multiCurrencies.length >= 4) {
+          liveFxList = r.multiCurrencies.map((item, idx) => {
+            const fallback = DEFAULT_FX_LIST[idx] || DEFAULT_FX_LIST[0];
+            const currCode = (item.code || fallback.code).split("/")[0];
+            const unitNum = String(item.unit || "").includes("1,000")
+              ? 1000
+              : String(item.unit || "").includes("100")
+                ? 100
+                : 1;
+            return {
+              code: item.code || fallback.code,
+              curr: currCode,
+              c1: item.c1 || fallback.c1,
+              c2: item.c2 || "kh",
+              nameKh: fallback.nameKh,
+              nameEn: fallback.nameEn,
+              unit: unitNum,
+              buy: idx === 0 ? coreBuy : parseFloat(item.buy) || fallback.buy,
+              sell:
+                idx === 0 ? coreSell : parseFloat(item.sell) || fallback.sell,
+              quote: item.quote || "៛",
+              change: item.change || fallback.change,
+              trend: item.trend || fallback.trend,
+            };
+          });
+        } else {
+          liveFxList[0].buy = coreBuy;
+          liveFxList[0].sell = coreSell;
+        }
+      }
+
+      async function loadRealFxRatesFromServer() {
+        let loaded = false;
+
+        // ២.១ សាកល្បងទាញពី /api/fx/rates
+        try {
+          const res = await fetch("/api/fx/rates", { headers: fxPageHeaders });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.rates) {
+              applyServerRatesObject(data.rates);
+              loaded = true;
+            }
+          }
+        } catch (e) {}
+
+        // ២.២ បើមិនទាន់មាន /api/fx/rates ទាញតាមរយៈ /api/check-account (ដែលមាន fxRates របស់ Admin ស្រាប់ ១០០%)
+        if (!loaded) {
+          try {
+            const accToCheck =
+              fxPageUser?.mainAccounts?.USD?.accountNumber ||
+              fxPageUser?.accountNumber ||
+              "888888888";
+            const res2 = await fetch("/api/check-account", {
+              method: "POST",
+              headers: fxPageHeaders,
+              body: JSON.stringify({ accountNumber: accToCheck }),
+            });
+            if (res2.ok) {
+              const d2 = await res2.json();
+              if (d2 && d2.fxRates) {
+                applyServerRatesObject(d2.fxRates);
+              }
+            }
+          } catch (e2) {}
+        }
+
+        renderSpotlightPair();
+        renderFxBoards();
+        calculateConversion("from");
+      }
+
+      // 🌊 ៣. បង្ហាញក្តារបង្វិល 3D ខាងលើជាទឹករលក (Wave Flip Out ➔ Wave Flip In)
+      let isRotatingSpot = false;
+
+      function renderSpotlightPair(animateIn = true) {
+        const grid = document.getElementById("fxSpotlightGrid");
+        if (!grid) return;
+
+        const totalGroups = Math.ceil(liveFxList.length / 2);
+        const start = (spotlightPage % totalGroups) * 2;
+        const pair = liveFxList.slice(start, start + 2);
+
+        grid.innerHTML = pair
+          .map((item, idx) => {
+            const isUp = item.trend !== "down";
+            const tColor = isUp ? "#34d399" : "#f87171";
+            const tBg = isUp ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)";
+            const tIcon = isUp ? "fa-caret-up" : "fa-caret-down";
+            const animClass = animateIn ? "wave-in" : "";
+            const delayStyle = animateIn
+              ? `animation-delay: ${idx * 110}ms;`
+              : "";
+
+            return `
+              <div class="fx-spot-card ${animClass}" style="${delayStyle}" onclick="selectCurrencyIntoCalculator('${item.curr}')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <div style="display:flex; align-items:center; gap:7px;">
+                    <div class="fx-flag-pair">
+                      <img src="https://flagcdn.com/w40/${item.c1}.png" class="fx-flag-1" />
+                      <img src="https://flagcdn.com/w40/${item.c2}.png" class="fx-flag-2" />
+                    </div>
+                    <span style="font-weight:900; font-size:0.82rem; color:#ffffff;">${item.code}</span>
+                  </div>
+                  <span style="font-size:0.65rem; font-weight:800; color:${tColor}; background:${tBg}; padding:2px 6px; border-radius:6px;">
+                    <i class="fa-solid ${tIcon}"></i> ${item.change}
+                  </span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:#cbd5e1; border-top:1px dashed rgba(255,255,255,0.14); padding-top:5px;">
+                  <span>ទិញ: <b style="color:#34d399;">${Number(item.buy).toLocaleString()}</b></span>
+                  <span>លក់: <b style="color:#60a5fa;">${Number(item.sell).toLocaleString()}៛</b></span>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      window.rotateSpotlightPair = function () {
+        const grid = document.getElementById("fxSpotlightGrid");
+        if (!grid || isRotatingSpot) return;
+        isRotatingSpot = true;
+
+        // ១. បង្វិលកាតចាស់ទាំង ២ ចេញជាទឹករលក (ឆ្វេងមុន រួចស្តាំតាមក្រោយ)
+        const cards = grid.querySelectorAll(".fx-spot-card");
+        cards.forEach((card, idx) => {
+          card.classList.remove("wave-in");
+          card.style.animationDelay = `${idx * 90}ms`;
+          card.classList.add("wave-out");
+        });
+
+        // ២. គ្រាន់តែកាតចាស់បង្វិលផុតភ្លាម លោតកាតថ្មីទាំង ២ ចូលមកជាទឹករលក!
+        setTimeout(() => {
+          spotlightPage =
+            (spotlightPage + 1) % Math.ceil(liveFxList.length / 2);
+          renderSpotlightPair(true);
+          setTimeout(() => {
+            isRotatingSpot = false;
+          }, 550);
+        }, 360);
+      };
+
+      // ៤. រៀបចំប្រអប់ជ្រើសរើសរូបិយប័ណ្ណក្នុងម៉ាស៊ីនគិតលេខ
+      function populateCalculatorSelects() {
+        const selFrom = document.getElementById("calcSelectFrom");
+        const selTo = document.getElementById("calcSelectTo");
+        const prevFrom = selFrom.value || "USD";
+        const prevTo = selTo.value || "KHR";
+
+        const allCurrencies = [
+          { curr: "USD", c1: "us", label: "USD ($)" },
+          { curr: "KHR", c1: "kh", label: "KHR (៛)" },
+          ...liveFxList
+            .filter((x) => x.curr !== "USD")
+            .map((x) => ({
+              curr: x.curr,
+              c1: x.c1,
+              label: `${x.curr}`,
+            })),
+        ];
+
+        const optionsHtml = allCurrencies
+          .map(
+            (c) =>
+              `<option value="${c.curr}" data-flag="${c.c1}">${c.label}</option>`,
+          )
+          .join("");
+
+        selFrom.innerHTML = optionsHtml;
+        selTo.innerHTML = optionsHtml;
+        selFrom.value = prevFrom;
+        selTo.value = prevTo;
+        updateCalcFlags();
+      }
+
+      function updateCalcFlags() {
+        const selFrom = document.getElementById("calcSelectFrom");
+        const selTo = document.getElementById("calcSelectTo");
+        const f1 =
+          selFrom.options[selFrom.selectedIndex]?.getAttribute("data-flag") ||
+          "us";
+        const f2 =
+          selTo.options[selTo.selectedIndex]?.getAttribute("data-flag") || "kh";
+        document.getElementById("calcFlagFrom").src =
+          `https://flagcdn.com/w40/${f1}.png`;
+        document.getElementById("calcFlagTo").src =
+          `https://flagcdn.com/w40/${f2}.png`;
+      }
+
+      function getKhrRatePerSingleUnit(currCode) {
+        if (currCode === "KHR") return { buy: 1, sell: 1, mid: 1 };
+        const found = liveFxList.find((x) => x.curr === currCode);
+        if (!found) return { buy: 4050, sell: 4100, mid: 4075 };
+        const unit = found.unit || 1;
+        const b = Number(found.buy) / unit;
+        const s = Number(found.sell) / unit;
+        return { buy: b, sell: s, mid: (b + s) / 2 };
+      }
+
+      window.setCalcRateMode = function (mode) {
+        calcRateMode = mode;
+        document
+          .getElementById("modeBtnBuy")
+          .classList.toggle("active", mode === "buy");
+        document
+          .getElementById("modeBtnSell")
+          .classList.toggle("active", mode === "sell");
+        document
+          .getElementById("modeBtnMid")
+          .classList.toggle("active", mode === "mid");
+        calculateConversion("from");
+      };
+
+      window.onCalcCurrencyChange = function () {
+        updateCalcFlags();
+        calculateConversion("from");
+      };
+
+      window.swapCalcCurrencies = function () {
+        const selFrom = document.getElementById("calcSelectFrom");
+        const selTo = document.getElementById("calcSelectTo");
+        const temp = selFrom.value;
+        selFrom.value = selTo.value;
+        selTo.value = temp;
+        onCalcCurrencyChange();
+      };
+
+      window.setQuickCalcAmount = function (val) {
+        document.getElementById("calcInputFrom").value = val;
+        calculateConversion("from");
+      };
+
+      window.selectCurrencyIntoCalculator = function (currCode) {
+        const selFrom = document.getElementById("calcSelectFrom");
+        const selTo = document.getElementById("calcSelectTo");
+        selFrom.value = currCode;
+        selTo.value = "KHR";
+        const found = liveFxList.find((x) => x.curr === currCode);
+        if (found && found.unit > 1) {
+          document.getElementById("calcInputFrom").value = found.unit;
+        }
+        onCalcCurrencyChange();
+      };
+
+      window.calculateConversion = function (direction = "from") {
+        const fromCurr =
+          document.getElementById("calcSelectFrom").value || "USD";
+        const toCurr = document.getElementById("calcSelectTo").value || "KHR";
+        const inpFrom = document.getElementById("calcInputFrom");
+        const inpTo = document.getElementById("calcInputTo");
+
+        const rFrom = getKhrRatePerSingleUnit(fromCurr);
+        const rTo = getKhrRatePerSingleUnit(toCurr);
+
+        const rateFromKhr =
+          calcRateMode === "buy"
+            ? rFrom.buy
+            : calcRateMode === "sell"
+              ? rFrom.sell
+              : rFrom.mid;
+        const rateToKhr =
+          calcRateMode === "buy"
+            ? rTo.buy
+            : calcRateMode === "sell"
+              ? rTo.sell
+              : rTo.mid;
+
+        const effectiveRate = rateFromKhr / rateToKhr;
+
+        if (direction === "from") {
+          const valFrom = parseFloat(inpFrom.value) || 0;
+          const outVal = valFrom * effectiveRate;
+          inpTo.value =
+            toCurr === "KHR" || toCurr === "VND"
+              ? Math.round(outVal)
+              : Number(outVal.toFixed(2));
+        } else {
+          const valTo = parseFloat(inpTo.value) || 0;
+          const outVal = effectiveRate > 0 ? valTo / effectiveRate : 0;
+          inpFrom.value =
+            fromCurr === "KHR" || fromCurr === "VND"
+              ? Math.round(outVal)
+              : Number(outVal.toFixed(2));
+        }
+
+        const displayUnit =
+          fromCurr === "VND" ? 1000 : fromCurr === "JPY" ? 100 : 1;
+        const displayRate = effectiveRate * displayUnit;
+        document.getElementById("calcAppliedRateText").innerText =
+          `${displayUnit.toLocaleString()} ${fromCurr} = ${displayRate > 10 ? Number(displayRate.toFixed(2)).toLocaleString() : displayRate.toFixed(4)} ${toCurr === "KHR" ? "៛" : toCurr}`;
+      };
+
+      // ៥. គូរតារាងអត្រាប្តូរប្រាក់ទាំង ២ ទម្រង់ (Cards Grid & Classic Table)
+      function renderFxBoards() {
+        const lang = localStorage.getItem("lang") || "en";
+        const gridContainer = document.getElementById("fxCardsGridContainer");
+        const tableBody = document.getElementById("fxTableBody");
+        if (!gridContainer || !tableBody) return;
+
+        gridContainer.innerHTML = liveFxList
+          .map((item, idx) => {
+            const isUp = item.trend !== "down";
+            const tColor = isUp ? "#10b981" : "#ef4444";
+            const tBg = isUp ? "rgba(16,185,129,0.14)" : "rgba(239,68,68,0.14)";
+            const tIcon = isUp ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
+            const displayName = lang === "kh" ? item.nameKh : item.nameEn;
+
+            return `
+              <div class="fx-item-card" style="animation-delay: ${idx * 45}ms" onclick="selectCurrencyIntoCalculator('${item.curr}')">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="fx-flag-pair">
+                      <img src="https://flagcdn.com/w40/${item.c1}.png" class="fx-flag-1" />
+                      <img src="https://flagcdn.com/w40/${item.c2}.png" class="fx-flag-2" />
+                    </div>
+                    <div>
+                      <div style="font-weight:900; font-size:0.86rem; color:var(--fx-text-main);">${item.code}</div>
+                      <div style="font-size:0.68rem; color:var(--fx-text-muted); font-weight:700;">${displayName} (${item.unit})</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--fx-border); padding-top:8px; font-size:0.76rem;">
+                  <div>
+                    <span style="color:var(--fx-text-muted); font-size:0.68rem; display:block;">ទិញចូល (Buy)</span>
+                    <b style="color:#10b981; font-size:0.88rem;">${Number(item.buy).toLocaleString()} ៛</b>
+                  </div>
+                  <div style="text-align:right;">
+                    <span style="color:var(--fx-text-muted); font-size:0.68rem; display:block;">លក់ចេញ (Sell)</span>
+                    <b style="color:#3b82f6; font-size:0.88rem;">${Number(item.sell).toLocaleString()} ៛</b>
+                  </div>
+                </div>
+                <div style="margin-top:7px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:0.65rem; color:var(--fx-text-muted); font-weight:700;">ចុចដើម្បីគណនា</span>
+                  <span style="font-size:0.66rem; font-weight:800; color:${tColor}; background:${tBg}; padding:2px 6px; border-radius:6px;">
+                    <i class="fa-solid ${tIcon}"></i> ${item.change}
+                  </span>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        tableBody.innerHTML = liveFxList
+          .map((item) => {
+            const displayName = lang === "kh" ? item.nameKh : item.nameEn;
+            return `
+              <tr onclick="selectCurrencyIntoCalculator('${item.curr}')" style="cursor:pointer;">
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="fx-flag-pair">
+                      <img src="https://flagcdn.com/w40/${item.c1}.png" class="fx-flag-1" />
+                      <img src="https://flagcdn.com/w40/${item.c2}.png" class="fx-flag-2" />
+                    </div>
+                    <div>
+                      <div style="font-weight:900; color:var(--fx-text-main);">${item.code}</div>
+                      <div style="font-size:0.7rem; color:var(--fx-text-muted);">${displayName}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="color:var(--fx-text-muted); font-family:monospace;">${item.unit} ${item.curr}</td>
+                <td style="text-align:right; color:#10b981; font-weight:900;">${Number(item.buy).toLocaleString()} ៛</td>
+                <td style="text-align:right; color:#3b82f6; font-weight:900;">${Number(item.sell).toLocaleString()} ៛</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      window.switchFxDisplayMode = function (mode) {
+        const isGrid = mode === "grid";
+        document
+          .getElementById("btnViewGrid")
+          .classList.toggle("active", isGrid);
+        document
+          .getElementById("btnViewTable")
+          .classList.toggle("active", !isGrid);
+        document.getElementById("fxCardsGridContainer").style.display = isGrid
+          ? "grid"
+          : "none";
+        document.getElementById("fxTableContainer").style.display = isGrid
+          ? "none"
+          : "block";
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        applyThemeLocally();
+        // គូរទិន្នន័យលើអេក្រង់ភ្លាមៗនៅវិនាទីទី ១ ដោយមិនរង់ចាំ
+        populateCalculatorSelects();
+        renderSpotlightPair();
+        renderFxBoards();
+        calculateConversion("from");
+
+        // រួចទាញយកទិន្នន័យអត្រាពិតពី Database មកអាប់ដេតពីលើ
+        loadRealFxRatesFromServer();
+
+        // បង្វិលក្តារ Spotlight ខាងលើរៀងរាល់ ៤ វិនាទីម្ដង
+        setInterval(rotateSpotlightPair, 4000);
+      });
+    </script>
+  </body>
+</html>

@@ -1654,36 +1654,683 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៣ ] Transaction Verification (Trx Check) -->
+      <!-- [ ផ្ទាំង ០៣ ] Transaction Verification (100% Pro Forensics Hub) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-check-trx"
+        class="atrx-font-scope"
         style="
           display: none;
           width: 100%;
+          max-width: 1440px;
+          margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
-        class="trx-check-wrapper"
       >
-        <h2
-          class="dash-title"
-          style="text-align: center; margin-bottom: 20px"
-          data-i18n="trx-verification"
+        <style>
+          .atrx-font-scope,
+          .atrx-font-scope button,
+          .atrx-font-scope input,
+          .atrx-font-scope select,
+          .atrx-font-scope th,
+          .atrx-font-scope td,
+          .atrx-swal-scope,
+          .atrx-swal-scope button,
+          .atrx-swal-scope input,
+          .atrx-swal-scope textarea {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ */
+          .atrx-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .atrx-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .atrx-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .atrx-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .atrx-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .atrx-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .atrx-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារស្វែងរក និងបែងចែកប្រភេទ (Search & Filter Bar) */
+          .atrx-search-hero {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          }
+          .atrx-search-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+          }
+          .atrx-search-input-wrap {
+            flex: 1;
+            min-width: 260px;
+            position: relative;
+          }
+          .atrx-search-input-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #0d9488;
+            font-size: 1rem;
+          }
+          .atrx-search-input {
+            width: 100%;
+            height: 46px;
+            padding: 0 16px 0 44px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border, #cbd5e1);
+            background: var(--bg-body, #f8fafc);
+            color: var(--text-main, #0f172a);
+            font-size: 0.92rem;
+            font-weight: 700;
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.2s;
+          }
+          .atrx-search-input:focus {
+            border-color: #0d9488;
+            background: var(--bg-card, #ffffff);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+          }
+          .atrx-trace-btn {
+            height: 46px;
+            padding: 0 24px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #004d40, #0d9488);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+            transition: 0.2s;
+          }
+          .atrx-trace-btn:hover {
+            transform: translateY(-1px);
+          }
+
+          .atrx-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .atrx-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 13px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .atrx-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .atrx-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. ផ្ទាំង Forensics លម្អិត (Inspector Panel) */
+          .atrx-inspector-card {
+            background: var(--bg-card, #ffffff);
+            border: 2px solid #0d9488;
+            border-radius: 20px;
+            padding: 22px;
+            margin-bottom: 22px;
+            box-shadow: 0 12px 30px rgba(13, 148, 136, 0.08);
+            display: none;
+            animation: atrxFadeIn 0.25s ease;
+          }
+          @keyframes atrxFadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .atrx-flow-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: stretch;
+            margin-bottom: 18px;
+          }
+          @media (max-width: 900px) {
+            .atrx-flow-grid {
+              grid-template-columns: 1fr;
+            }
+            .atrx-flow-arrow {
+              transform: rotate(90deg);
+              margin: 4px auto;
+            }
+          }
+          .atrx-party-box {
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+          }
+          .atrx-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border, #e2e8f0);
+            font-size: 0.84rem;
+            gap: 10px;
+          }
+          .atrx-row:last-child {
+            border-bottom: none;
+          }
+          .atrx-lbl {
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+          }
+          .atrx-val {
+            color: var(--text-main, #0f172a);
+            font-weight: 800;
+            text-align: right;
+            word-break: break-all;
+          }
+
+          /* ៤. ផ្លាកប្រភេទប្រតិបត្តិការ (Category Badges) */
+          .atrx-cat-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+          }
+          .atrx-btn-sm {
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid transparent;
+            transition: 0.2s;
+          }
+          .atrx-btn-sm:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
         >
-          Transaction Verification
-        </h2>
-        <div class="trx-search-lg">
-          <input
-            type="text"
-            id="searchTrxId"
-            placeholder="Enter Reference ID or Hash Code to trace..."
-          /><button onclick="searchTrx()">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span data-i18n="trace">Trace</span>
+          <div>
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-magnifying-glass-dollar"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="trx-verification"
+                >មជ្ឈមណ្ឌលត្រួតពិនិត្យ និងផ្ទៀងផ្ទាត់ប្រតិបត្តិការ (Transaction
+                Forensics Hub)</span
+              >
+            </h2>
+            <p class="dash-desc" style="margin: 0">
+              ឆែកតាមដានប្រភពប្រតិបត្តិការពិតប្រាកដ (Real-Time Ledger)
+              អនុម័តប្រតិបត្តិការ Pending ដោះ Hold ហាង និងបង្វិលប្រាក់សងអតិថិជន។
+            </p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px">
+            <button
+              type="button"
+              onclick="atrxRefreshLedger()"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 16px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="atrx-refresh-icon"></i>
+              <span>ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="atrx-kpi-grid">
+          <div
+            class="atrx-kpi-card active-kpi"
+            id="atrx-kpi-ALL"
+            onclick="atrxSetFilter('ALL')"
+          >
+            <div>
+              <div class="atrx-kpi-title">ប្រតិបត្តិការសរុប (TOTAL LEDGER)</div>
+              <div
+                class="atrx-kpi-val"
+                id="atrx-stat-total"
+                style="color: #3b82f6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="atrx-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+          </div>
+
+          <div
+            class="atrx-kpi-card"
+            id="atrx-kpi-PENDING"
+            onclick="atrxSetFilter('PENDING')"
+          >
+            <div>
+              <div class="atrx-kpi-title">រង់ចាំអនុម័ត (PENDING APPROVAL)</div>
+              <div
+                class="atrx-kpi-val"
+                id="atrx-stat-pending"
+                style="color: #d97706"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="atrx-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+          </div>
+
+          <div
+            class="atrx-kpi-card"
+            id="atrx-kpi-HOLD"
+            onclick="atrxSetFilter('HOLD')"
+          >
+            <div>
+              <div class="atrx-kpi-title">ជាប់ HOLD ហាង (MERCHANT HOLD)</div>
+              <div
+                class="atrx-kpi-val"
+                id="atrx-stat-hold"
+                style="color: #8b5cf6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="atrx-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+          </div>
+
+          <div
+            class="atrx-kpi-card"
+            id="atrx-kpi-POS_CARD"
+            onclick="atrxSetFilter('POS_CARD')"
+          >
+            <div>
+              <div class="atrx-kpi-title">ទូទាត់កាត & QR ហាង (CARD & POS)</div>
+              <div
+                class="atrx-kpi-val"
+                id="atrx-stat-pos"
+                style="color: #0d9488"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="atrx-kpi-icon"
+              style="background: rgba(13, 148, 136, 0.15); color: #0d9488"
+            >
+              <i class="fa-solid fa-credit-card"></i>
+            </div>
+          </div>
+
+          <div
+            class="atrx-kpi-card"
+            id="atrx-kpi-REFUNDED"
+            onclick="atrxSetFilter('REFUNDED')"
+          >
+            <div>
+              <div class="atrx-kpi-title">បានបង្វិលសង (REFUNDED / VOID)</div>
+              <div
+                class="atrx-kpi-val"
+                id="atrx-stat-refunded"
+                style="color: #ef4444"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="atrx-kpi-icon"
+              style="background: rgba(239, 68, 68, 0.15); color: #ef4444"
+            >
+              <i class="fa-solid fa-rotate-left"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔎 ២. ប្រអប់ស្វែងរកឆ្លាតវៃ និងរបារបែងចែកប្រភេទប្រតិបត្តិការ -->
+        <div class="atrx-search-hero">
+          <div class="atrx-search-row">
+            <div class="atrx-search-input-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchTrxId"
+                class="atrx-search-input"
+                placeholder="វាយលេខ Ref ID (ឧ. TAP-..., DEP-...), លេខ Hash..."
+                oninput="atrxFilterTableOnly()"
+                onkeydown="if (event.key === 'Enter') searchTrx();"
+              />
+            </div>
+
+            <select
+              id="atrxCurrencyFilter"
+              onchange="atrxFilterTableOnly()"
+              style="
+                height: 46px;
+                padding: 0 14px;
+                border-radius: 12px;
+                border: 1.5px solid var(--border, #cbd5e1);
+                background: var(--bg-body, #f8fafc);
+                color: var(--text-main, #0f172a);
+                font-weight: 800;
+                font-size: 0.85rem;
+                outline: none;
+                cursor: pointer;
+              "
+            >
+              <option value="ALL">គ្រប់រូបិយប័ណ្ណ (USD & KHR)</option>
+              <option value="USD">ដុល្លារ (USD $)</option>
+              <option value="KHR">រៀល (KHR ៛)</option>
+            </select>
+
+            <button type="button" class="atrx-trace-btn" onclick="searchTrx()">
+              <i class="fa-solid fa-radar"></i>
+              <span data-i18n="trace"
+                >ឆែកវិក្កយបត្រស៊ីជម្រៅ (Trace Server)</span
+              >
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 10px;
+            "
+          >
+            <div class="atrx-pill-group">
+              <button
+                type="button"
+                class="atrx-filter-pill active"
+                data-filter="ALL"
+                onclick="atrxSetFilter('ALL')"
+              >
+                ទាំងអស់
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="PENDING"
+                onclick="atrxSetFilter('PENDING')"
+              >
+                <i class="fa-solid fa-clock"></i> រង់ចាំអនុម័ត (Pending)
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="HOLD"
+                onclick="atrxSetFilter('HOLD')"
+              >
+                <i class="fa-solid fa-lock"></i> ជាប់ Hold ហាង
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="TRANSFER"
+                onclick="atrxSetFilter('TRANSFER')"
+              >
+                <i class="fa-solid fa-right-left"></i> ផ្ទេរប្រាក់ (P2P)
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="POS_CARD"
+                onclick="atrxSetFilter('POS_CARD')"
+              >
+                <i class="fa-solid fa-store"></i> កាត NFC & ហាង
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="CASHIER"
+                onclick="atrxSetFilter('CASHIER')"
+              >
+                <i class="fa-solid fa-vault"></i> ដាក់/ដកប្រាក់ (Cash)
+              </button>
+              <button
+                type="button"
+                class="atrx-filter-pill"
+                data-filter="REFUNDED"
+                onclick="atrxSetFilter('REFUNDED')"
+              >
+                <i class="fa-solid fa-rotate-left"></i> បានបង្វិលសង (Refund)
+              </button>
+            </div>
+
+            <span
+              id="atrx-showing-count"
+              style="
+                font-size: 0.8rem;
+                font-weight: 800;
+                color: var(--text-muted);
+              "
+              >បង្ហាញ 0 ប្រតិបត្តិការ</span
+            >
+          </div>
+        </div>
+
+        <!-- 🕵️‍♂️ ៣. ផ្ទាំងលទ្ធផលត្រួតពិនិត្យស៊ីជម្រៅ (Deep Forensics Inspector Card) -->
+        <div id="trxResult" class="atrx-inspector-card"></div>
+
+        <!-- 📋 ៤. តារាងប្រតិបត្តិការពិតទាំងអស់ក្នុងប្រព័ន្ធ (Live System Ledger Table) -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr>
+                <th>កាលបរិច្ឆេទ & លេខយោង (Ref / Hash)</th>
+                <th>ប្រភេទប្រតិបត្តិការ</th>
+                <th>អ្នកផ្ញើ / ប្រភពប្រាក់ (Sender)</th>
+                <th>អ្នកទទួល / គោលដៅ (Receiver)</th>
+                <th>ចំនួនទឹកប្រាក់ & ស្ថានភាព</th>
+                <th style="text-align: right">សកម្មភាពត្រួតពិនិត្យ</th>
+              </tr>
+            </thead>
+            <tbody id="atrxLedgerTableBody">
+              <tr>
+                <td
+                  colspan="6"
+                  style="
+                    text-align: center;
+                    padding: 40px;
+                    color: var(--text-muted);
+                  "
+                >
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកទិន្នន័យប្រតិបត្តិការពិតពីប្រព័ន្ធ...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination Footer: ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់) -->
+        <div
+          id="atrxPaginationFooter"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
+          "
+        >
+          <button
+            type="button"
+            id="btnPrevAtrx"
+            onclick="changeAtrxPage(-1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+          </button>
+
+          <span
+            id="atrxPageInfo"
+            style="
+              font-size: 0.86rem;
+              font-weight: 800;
+              color: var(--text-main);
+            "
+          >
+            ទំព័រ 1 នៃ 1
+          </span>
+
+          <button
+            type="button"
+            id="btnNextAtrx"
+            onclick="changeAtrxPage(1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
           </button>
         </div>
-        <div id="trxResult" class="trx-result-card"></div>
       </div>
 
       <!-- ------------------------------------------------------- -->
@@ -5002,42 +5649,513 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៦ ] Broadcast History -->
+      <!-- [ ផ្ទាំង ០៦ ] Broadcast History (100% Pro Push Command Center) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-broadcast-history"
+        class="abroad-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .abroad-font-scope,
+          .abroad-font-scope button,
+          .abroad-font-scope input,
+          .abroad-font-scope select,
+          .abroad-font-scope textarea,
+          .abroad-font-scope th,
+          .abroad-font-scope td,
+          .abroad-swal-scope,
+          .abroad-swal-scope button,
+          .abroad-swal-scope input,
+          .abroad-swal-scope textarea,
+          .abroad-swal-scope .swal2-title,
+          .abroad-swal-scope .swal2-html-container {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .abroad-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .abroad-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .abroad-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .abroad-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .abroad-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .abroad-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .abroad-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .abroad-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .abroad-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .abroad-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .abroad-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .abroad-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. ផ្លាកប្រភេទសារ (Category Badges) */
+          .abroad-cat-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+          }
+          .abroad-cat-promo {
+            background: rgba(139, 92, 246, 0.14);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+          }
+          .abroad-cat-system {
+            background: rgba(245, 158, 11, 0.14);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+          }
+          .abroad-cat-security {
+            background: rgba(239, 68, 68, 0.14);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          }
+          .abroad-cat-general {
+            background: rgba(59, 130, 246, 0.14);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+          }
+
+          /* ៤. ប៊ូតុងសកម្មភាពក្នុងតារាង */
+          .abroad-act-btn {
+            padding: 6px 11px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+            border: 1px solid transparent;
+          }
+          .abroad-act-btn:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
-            <h2 class="dash-title" data-i18n="broadcast-history">
-              Broadcast History
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-bullhorn"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="broadcast-history"
+                >មជ្ឈមណ្ឌលបញ្ជូនសារជូនដំណឹងទូទាំងប្រព័ន្ធ (Broadcast Command
+                Center)</span
+              >
             </h2>
-            <p class="dash-desc" data-i18n="manage-broadcasts">
-              Manage system-wide notifications.
+            <p
+              class="dash-desc"
+              data-i18n="manage-broadcasts"
+              style="margin: 0"
+            >
+              ផ្ញើសារជូនដំណឹង សារប្រូម៉ូសិន
+              ឬដំណឹងថែទាំប្រព័ន្ធទៅកាន់គ្រប់គណនីអតិថិជនទាំងអស់ក្នុងពេលតែមួយ
+              និងគ្រប់គ្រងប្រវត្តិសារ។
             </p>
           </div>
-          <button class="btn-primary" onclick="sendBroadcast()">
-            <i class="fa-solid fa-paper-plane"></i>
-            <span data-i18n="send-broadcast">Send New Broadcast</span>
-          </button>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              type="button"
+              onclick="exportBroadcastHistoryCSV()"
+              title="ទាញយកប្រវត្តិសារជា CSV/Excel"
+              style="
+                background: var(--bg-card, #ffffff);
+                border: 1px solid var(--border, #cbd5e1);
+                color: var(--text-main, #0f172a);
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-file-csv" style="color: #0d9488"></i>
+              <span>ទាញយក CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loadBroadcastHistory(true)"
+              title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="abroad-refresh-icon"></i>
+              <span>ធ្វើបច្ចុប្បន្នភាព</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="sendBroadcast()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.86rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-paper-plane"></i>
+              <span data-i18n="send-broadcast">ផ្ញើសារ Broadcast ថ្មី</span>
+            </button>
+          </div>
         </div>
-        <div class="table-container">
-          <table>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="abroad-kpi-grid">
+          <div
+            class="abroad-kpi-card active-kpi"
+            id="abroad-kpi-ALL"
+            onclick="abroadSetCategoryFilter('ALL')"
+          >
+            <div>
+              <div class="abroad-kpi-title">សារបានផ្ញើសរុប (TOTAL SENT)</div>
+              <div
+                class="abroad-kpi-val"
+                id="abroad-stat-total"
+                style="color: #3b82f6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="abroad-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-tower-broadcast"></i>
+            </div>
+          </div>
+
+          <div
+            class="abroad-kpi-card"
+            id="abroad-kpi-TODAY"
+            onclick="abroadSetCategoryFilter('TODAY')"
+          >
+            <div>
+              <div class="abroad-kpi-title">ផ្ញើក្នុងថ្ងៃនេះ (SENT TODAY)</div>
+              <div
+                class="abroad-kpi-val"
+                id="abroad-stat-today"
+                style="color: #10b981"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="abroad-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+          </div>
+
+          <div
+            class="abroad-kpi-card"
+            id="abroad-kpi-PROMO"
+            onclick="abroadSetCategoryFilter('PROMO')"
+          >
+            <div>
+              <div class="abroad-kpi-title">
+                សារប្រូម៉ូសិន & រង្វាន់ (PROMO)
+              </div>
+              <div
+                class="abroad-kpi-val"
+                id="abroad-stat-promo"
+                style="color: #8b5cf6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="abroad-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-gift"></i>
+            </div>
+          </div>
+
+          <div
+            class="abroad-kpi-card"
+            id="abroad-kpi-SYSTEM"
+            onclick="abroadSetCategoryFilter('SYSTEM')"
+          >
+            <div>
+              <div class="abroad-kpi-title">ថែទាំ & ប្រព័ន្ធ (MAINTENANCE)</div>
+              <div
+                class="abroad-kpi-val"
+                id="abroad-stat-system"
+                style="color: #f59e0b"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="abroad-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-screwdriver-wrench"></i>
+            </div>
+          </div>
+
+          <div
+            class="abroad-kpi-card"
+            id="abroad-kpi-SECURITY"
+            onclick="abroadSetCategoryFilter('SECURITY')"
+          >
+            <div>
+              <div class="abroad-kpi-title">
+                សុវត្ថិភាព & បន្ទាន់ (SECURITY)
+              </div>
+              <div
+                class="abroad-kpi-val"
+                id="abroad-stat-security"
+                style="color: #ef4444"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="abroad-kpi-icon"
+              style="background: rgba(239, 68, 68, 0.15); color: #ef4444"
+            >
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+        <div class="abroad-toolbar">
+          <div class="abroad-pill-group">
+            <button
+              type="button"
+              class="abroad-filter-pill active"
+              data-cat="ALL"
+              onclick="abroadSetCategoryFilter('ALL')"
+            >
+              ទាំងអស់ (All)
+            </button>
+            <button
+              type="button"
+              class="abroad-filter-pill"
+              data-cat="TODAY"
+              onclick="abroadSetCategoryFilter('TODAY')"
+            >
+              <i class="fa-regular fa-clock"></i> ថ្ងៃនេះ
+            </button>
+            <button
+              type="button"
+              class="abroad-filter-pill"
+              data-cat="PROMO"
+              onclick="abroadSetCategoryFilter('PROMO')"
+            >
+              <i class="fa-solid fa-gift"></i> ប្រូម៉ូសិន & រង្វាន់
+            </button>
+            <button
+              type="button"
+              class="abroad-filter-pill"
+              data-cat="SYSTEM"
+              onclick="abroadSetCategoryFilter('SYSTEM')"
+            >
+              <i class="fa-solid fa-gears"></i> ថែទាំប្រព័ន្ធ
+            </button>
+            <button
+              type="button"
+              class="abroad-filter-pill"
+              data-cat="SECURITY"
+              onclick="abroadSetCategoryFilter('SECURITY')"
+            >
+              <i class="fa-solid fa-triangle-exclamation"></i> សុវត្ថិភាព
+            </button>
+            <button
+              type="button"
+              class="abroad-filter-pill"
+              data-cat="GENERAL"
+              onclick="abroadSetCategoryFilter('GENERAL')"
+            >
+              <i class="fa-solid fa-circle-info"></i> ដំណឹងទូទៅ
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              min-width: 260px;
+              max-width: 400px;
+            "
+          >
+            <div class="search-box" style="margin: 0; width: 100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchBroadcastBox"
+                placeholder="ស្វែងរកតាមចំណងជើង, ខ្លឹមសារសារ ឬអ្នកផ្ញើ..."
+                oninput="filterBroadcastHistory()"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងប្រវត្តិសារ Broadcast -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
               <tr>
-                <th style="width: 15%">Date & Time</th>
-                <th style="width: 20%">Title</th>
-                <th style="width: 50%">Message Content</th>
-                <th style="width: 15%; text-align: right" data-i18n="action">
-                  Action
+                <th style="width: 185px">កាលបរិច្ឆេទ & ម៉ោងផ្ញើ</th>
+                <th style="width: 155px">ប្រភេទ & អ្នកផ្ញើ</th>
+                <th style="width: 230px">ចំណងជើងសារ (Title)</th>
+                <th>ខ្លឹមសារសារជូនដំណឹង (Message Content)</th>
+                <th style="width: 210px; text-align: right" data-i18n="action">
+                  សកម្មភាពគ្រប់គ្រង
                 </th>
               </tr>
             </thead>
@@ -5045,18 +6163,87 @@
               <tr>
                 <td
                   data-i18n="loading-history"
-                  colspan="4"
+                  colspan="5"
                   style="
                     text-align: center;
                     padding: 40px;
                     color: var(--text-muted);
                   "
                 >
-                  Loading history...
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកប្រវត្តិសារ Broadcast...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination Footer: ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់) -->
+        <div
+          id="abroadPaginationFooter"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
+          "
+        >
+          <button
+            type="button"
+            id="btnPrevBroadcast"
+            onclick="changeBroadcastPage(-1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+          </button>
+
+          <span
+            id="broadcastPageInfo"
+            style="
+              font-size: 0.86rem;
+              font-weight: 800;
+              color: var(--text-main);
+            "
+          >
+            ទំព័រ 1 នៃ 1
+          </span>
+
+          <button
+            type="button"
+            id="btnNextBroadcast"
+            onclick="changeBroadcastPage(1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
 
@@ -5751,267 +6938,2330 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០៩ ] FX Settings (អត្រាប្តូរប្រាក់) -->
+      <!-- [ ផ្ទាំង ០៩ ] FX Settings (100% Pro Multi-Currency Treasury Desk) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-fx"
+        class="afx-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <h2
-          class="dash-title"
-          style="text-align: center; margin-bottom: 30px"
-          data-i18n="fx-settings"
+        <style>
+          .afx-font-scope,
+          .afx-font-scope button,
+          .afx-font-scope input,
+          .afx-font-scope select,
+          .afx-font-scope th,
+          .afx-font-scope td {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+          /* ១. ប្រអប់ក្តារអេឡិចត្រូនិកបែបព្រលានយន្តហោះ (4-Card Full-Width Airport Flip Board) */
+          .afx-ticker-wrap {
+            background: linear-gradient(135deg, #0b1120, #1e293b);
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+          }
+          .afx-ticker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          /* 🟢 បង្ខំឱ្យពេញទទឹង 100% និងបែងចែកជា ៤ កាតស្មើៗគ្នាដាច់ខាត */
+          #afx-live-ticker-track {
+            display: grid !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            gap: 16px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            perspective: 1200px;
+          }
+          @media (max-width: 1100px) {
+            #afx-live-ticker-track {
+              grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+          }
+          @media (max-width: 580px) {
+            #afx-live-ticker-track {
+              grid-template-columns: 1fr !important;
+            }
+          }
+
+          .afx-ticker-card {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            backface-visibility: hidden;
+            transform-origin: center center;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition:
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+          }
+
+          /* ✈️ ចលនាទឹករលកបង្វិលកាតដូចក្តារព្រលានយន្តហោះ (Airport Split-Flap Wave Animation) */
+          @keyframes airportFlipOut {
+            0% {
+              opacity: 1;
+              transform: perspective(1000px) rotateX(0deg) translateY(0);
+            }
+            100% {
+              opacity: 0;
+              transform: perspective(1000px) rotateX(-85deg) translateY(-10px);
+            }
+          }
+          @keyframes airportFlipIn {
+            0% {
+              opacity: 0;
+              transform: perspective(1000px) rotateX(85deg) translateY(10px);
+            }
+            65% {
+              opacity: 1;
+              transform: perspective(1000px) rotateX(-8deg) translateY(-2px);
+            }
+            100% {
+              opacity: 1;
+              transform: perspective(1000px) rotateX(0deg) translateY(0);
+            }
+          }
+
+          .afx-ticker-card.wave-flip-out {
+            animation: airportFlipOut 0.32s cubic-bezier(0.55, 0.05, 0.67, 0.19)
+              forwards;
+          }
+          .afx-ticker-card.wave-flip-in {
+            opacity: 0;
+            animation: airportFlipIn 0.48s cubic-bezier(0.22, 1, 0.36, 1)
+              forwards;
+          }
+
+          .afx-ticker-card.pulse-up {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.4) !important;
+          }
+          .afx-ticker-card.pulse-down {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.4) !important;
+          }
+
+          /* រូបទង់ជាតិភ្លោះច្បាស់ៗ */
+          .afx-flag-pair {
+            position: relative;
+            width: 48px;
+            height: 34px;
+            flex-shrink: 0;
+          }
+          .afx-flag-img-1 {
+            width: 30px;
+            height: 21px;
+            border-radius: 4px;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+          }
+          .afx-flag-img-2 {
+            width: 28px;
+            height: 19px;
+            border-radius: 4px;
+            object-fit: cover;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            border: 1.5px solid #0f172a;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+          }
+
+          .afx-live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            display: inline-block;
+            animation: afxBlink 1.5s infinite;
+          }
+          @keyframes afxBlink {
+            0%,
+            100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.35;
+            }
+          }
+
+          .afx-page-dot {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: 0.2s;
+          }
+          .afx-page-dot.active {
+            background: #10b981;
+            color: #0f172a;
+            border-color: #10b981;
+          }
+
+          /* ២. KPI Grid */
+          .afx-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .afx-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .afx-kpi-lbl {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .afx-kpi-val {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+          }
+          .afx-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ៣. 2-Column Main Layout */
+          .afx-main-grid {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 20px;
+            margin-bottom: 22px;
+          }
+          @media (max-width: 980px) {
+            .afx-main-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+          .afx-panel {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          }
+          .afx-rate-box {
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+          }
+          .afx-step-btn {
+            width: 36px;
+            height: 42px;
+            border-radius: 10px;
+            border: 1px solid var(--border, #cbd5e1);
+            background: var(--bg-card, #ffffff);
+            color: var(--text-main);
+            font-weight: 900;
+            cursor: pointer;
+            transition: 0.2s;
+          }
+          .afx-step-btn:hover {
+            border-color: #0d9488;
+            color: #0d9488;
+          }
+          .afx-big-input {
+            width: 125px;
+            height: 42px;
+            border-radius: 10px;
+            border: 2px solid #0d9488;
+            background: var(--bg-card, #ffffff);
+            color: var(--text-main);
+            font-family: "JetBrains Mono", monospace !important;
+            font-size: 1.15rem;
+            font-weight: 900;
+            text-align: center;
+            outline: none;
+          }
+          .afx-table-input {
+            width: 105px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border, #cbd5e1);
+            background: var(--bg-body, #f8fafc);
+            color: var(--text-main);
+            font-family: "JetBrains Mono", monospace !important;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-align: center;
+            outline: none;
+          }
+          .afx-table-input:focus {
+            border-color: #0d9488;
+            background: var(--bg-card);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 16px; flex-wrap: wrap; gap: 15px"
         >
-          Exchange Rate Settings
-        </h2>
-        <div class="fx-card">
-          <div class="fx-row">
-            <div>
-              <h4 style="margin: 0 0 5px 0" data-i18n="usd-to-khr-buy">
-                USD to KHR (Buy)
-              </h4>
-              <p
-                style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
-                data-i18n="bank-buys-usd"
+          <div>
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-money-bill-trend-up"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="fx-settings"
+                >មជ្ឈមណ្ឌលគ្រប់គ្រងអត្រាប្តូរប្រាក់អន្តរជាតិ (FX Treasury &
+                Market Desk)</span
               >
-                Bank buys USD from customer
-              </p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px">
-              <input type="number" id="fxBuy" class="fx-input" value="4050" /><b
-                >៛</b
-              >
-            </div>
+            </h2>
+            <p class="dash-desc" style="margin: 0">
+              កំណត់អត្រាប្តូរប្រាក់ផ្លូវការរបស់ធនាគារ (USD ⇄ KHR)
+              និងតារាងអត្រាប្តូរប្រាក់អន្តរជាតិផ្ទាល់ (Live Market Board)។
+            </p>
           </div>
-          <div class="fx-row">
-            <div>
-              <h4 style="margin: 0 0 5px 0" data-i18n="usd-to-khr-sell">
-                USD to KHR (Sell)
-              </h4>
-              <p
-                style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
-                data-i18n="bank-sells-usd"
-              >
-                Bank sells USD to customer
-              </p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px">
-              <input
-                type="number"
-                id="fxSell"
-                class="fx-input"
-                value="4100"
-              /><b>៛</b>
-            </div>
-          </div>
-          <div style="text-align: center; margin-top: 25px">
-            <button class="btn-primary" onclick="updateFX()">
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              type="button"
+              onclick="simulateLiveMarketPulse()"
+              style="
+                background: var(--bg-card, #ffffff);
+                border: 1px solid var(--border, #cbd5e1);
+                color: var(--text-main);
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+              "
+            >
+              <span class="afx-live-dot"></span>
+              <span>ធ្វើចលនាទីផ្សារ (Live Pulse)</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="fetchFXRates(true)"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 16px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="afx-refresh-icon"></i>
+              <span>ទាញអត្រាបច្ចុប្បន្ន</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="updateFX()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.86rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+              "
+            >
               <i class="fa-solid fa-floppy-disk"></i>
-              <span data-i18n="save-rates">Save Rates</span>
+              <span data-i18n="save-rates"
+                >រក្សាទុកអត្រាប្តូរប្រាក់ទាំងអស់</span
+              >
             </button>
           </div>
+        </div>
+
+        <!-- 📈 ១. របាររត់បង្ហាញចលនាទីផ្សាររូបិយប័ណ្ណផ្ទាល់ (Live Market Ticker Bar) -->
+        <div class="afx-ticker-wrap">
+          <div class="afx-ticker-track" id="afx-live-ticker-track"></div>
+        </div>
+
+        <!-- 📊 ២. ប្រអប់ស្ថិតិ KPI ទាំង ៤ -->
+        <div class="afx-kpi-grid">
+          <div class="afx-kpi-card">
+            <div>
+              <div class="afx-kpi-lbl">ធនាគារទិញដុល្លារចូល (BANK BUY USD)</div>
+              <div class="afx-kpi-val" id="afx-kpi-buy" style="color: #10b981">
+                4,050 ៛
+              </div>
+            </div>
+            <div
+              class="afx-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-arrow-down-long"></i>
+            </div>
+          </div>
+
+          <div class="afx-kpi-card">
+            <div>
+              <div class="afx-kpi-lbl">ធនាគារលក់ដុល្លារចេញ (BANK SELL USD)</div>
+              <div class="afx-kpi-val" id="afx-kpi-sell" style="color: #3b82f6">
+                4,100 ៛
+              </div>
+            </div>
+            <div
+              class="afx-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-arrow-up-long"></i>
+            </div>
+          </div>
+
+          <div class="afx-kpi-card">
+            <div>
+              <div class="afx-kpi-lbl">គម្លាតចំណេញ (FX SPREAD / $1)</div>
+              <div
+                class="afx-kpi-val"
+                id="afx-kpi-spread"
+                style="color: #f59e0b"
+              >
+                50 ៛ (1.22%)
+              </div>
+            </div>
+            <div
+              class="afx-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+          </div>
+
+          <div class="afx-kpi-card">
+            <div>
+              <div class="afx-kpi-lbl">
+                អត្រាមធ្យមផ្លូវការ (MID-MARKET RATE)
+              </div>
+              <div class="afx-kpi-val" id="afx-kpi-mid" style="color: #8b5cf6">
+                4,075 ៛
+              </div>
+            </div>
+            <div
+              class="afx-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-landmark"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🏦 ៣. ផ្ទាំងបញ្ជាអត្រាគោល USD ⇄ KHR និងម៉ាស៊ីនគិតលេខប្តូរប្រាក់ផ្ទាល់ -->
+        <div class="afx-main-grid">
+          <!-- ឆ្វេង៖ ការកំណត់អត្រាប្តូរប្រាក់គោល USD ⇄ KHR -->
+          <div class="afx-panel">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border);
+              "
+            >
+              <h3
+                style="
+                  margin: 0;
+                  font-size: 1.05rem;
+                  font-weight: 800;
+                  color: var(--text-main);
+                "
+              >
+                <i class="fa-solid fa-sliders" style="color: #0d9488"></i>
+                ការកំណត់អត្រាប្តូរប្រាក់គោលក្នុងប្រព័ន្ធ (Core USD ⇄ KHR)
+              </h3>
+              <span
+                style="
+                  font-size: 0.74rem;
+                  background: rgba(16, 185, 129, 0.12);
+                  color: #10b981;
+                  padding: 3px 9px;
+                  border-radius: 20px;
+                  font-weight: 800;
+                "
+                >អនុវត្តទូទាំងប្រព័ន្ធ</span
+              >
+            </div>
+
+            <!-- USD to KHR (Buy) -->
+            <div class="afx-rate-box">
+              <div>
+                <div
+                  style="
+                    font-weight: 800;
+                    font-size: 0.96rem;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <span style="font-size: 1.2rem">🇺🇸 ➔ 🇰🇭</span>
+                  <span data-i18n="usd-to-khr-buy"
+                    >អត្រាទិញប្រាក់ដុល្លារចូល (USD to KHR - Buy)</span
+                  >
+                </div>
+                <p
+                  style="
+                    margin: 4px 0 0 0;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                  "
+                  data-i18n="bank-buys-usd"
+                >
+                  ប្រើពេលអតិថិជនប្តូរ ឬផ្ទេរពីគណនីដុល្លារ ($1) ទៅជាប្រាក់រៀល (៛)
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px">
+                <button
+                  type="button"
+                  class="afx-step-btn"
+                  onclick="stepCoreFxRate('fxBuy', -5)"
+                  title="បន្ថយ 5៛"
+                >
+                  -5
+                </button>
+                <input
+                  type="number"
+                  id="fxBuy"
+                  class="afx-big-input"
+                  value="4050"
+                  oninput="onCoreFxInputChange()"
+                />
+                <button
+                  type="button"
+                  class="afx-step-btn"
+                  onclick="stepCoreFxRate('fxBuy', 5)"
+                  title="បន្ថែម 5៛"
+                >
+                  +5
+                </button>
+                <b style="font-size: 1.1rem; color: var(--text-main)">៛</b>
+              </div>
+            </div>
+
+            <!-- USD to KHR (Sell) -->
+            <div class="afx-rate-box" style="margin-bottom: 18px">
+              <div>
+                <div
+                  style="
+                    font-weight: 800;
+                    font-size: 0.96rem;
+                    color: var(--text-main);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <span style="font-size: 1.2rem">🇰🇭 ➔ 🇺🇸</span>
+                  <span data-i18n="usd-to-khr-sell"
+                    >អត្រាលក់ប្រាក់ដុល្លារចេញ (USD to KHR - Sell)</span
+                  >
+                </div>
+                <p
+                  style="
+                    margin: 4px 0 0 0;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                  "
+                  data-i18n="bank-sells-usd"
+                >
+                  ប្រើពេលអតិថិជនយកប្រាក់រៀល (៛) មកទិញ ឬផ្ទេរចូលគណនីដុល្លារ ($1)
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px">
+                <button
+                  type="button"
+                  class="afx-step-btn"
+                  onclick="stepCoreFxRate('fxSell', -5)"
+                  title="បន្ថយ 5៛"
+                >
+                  -5
+                </button>
+                <input
+                  type="number"
+                  id="fxSell"
+                  class="afx-big-input"
+                  style="border-color: #3b82f6"
+                  value="4100"
+                  oninput="onCoreFxInputChange()"
+                />
+                <button
+                  type="button"
+                  class="afx-step-btn"
+                  onclick="stepCoreFxRate('fxSell', 5)"
+                  title="បន្ថែម 5៛"
+                >
+                  +5
+                </button>
+                <b style="font-size: 1.1rem; color: var(--text-main)">៛</b>
+              </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  gap: 6px;
+                  flex-wrap: wrap;
+                  align-items: center;
+                "
+              >
+                <span
+                  style="
+                    font-size: 0.76rem;
+                    font-weight: 800;
+                    color: var(--text-muted);
+                  "
+                  >កំណត់រហ័ស៖</span
+                >
+                <button
+                  type="button"
+                  onclick="applyQuickFxPreset(4000, 4050)"
+                  style="
+                    padding: 5px 10px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                  "
+                >
+                  4000 / 4050
+                </button>
+                <button
+                  type="button"
+                  onclick="applyQuickFxPreset(4050, 4100)"
+                  style="
+                    padding: 5px 10px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                  "
+                >
+                  4050 / 4100
+                </button>
+                <button
+                  type="button"
+                  onclick="applyQuickFxPreset(4080, 4120)"
+                  style="
+                    padding: 5px 10px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                  "
+                >
+                  4080 / 4120
+                </button>
+              </div>
+
+              <button
+                type="button"
+                class="btn-primary"
+                onclick="updateFX()"
+                style="
+                  padding: 10px 22px;
+                  border-radius: 10px;
+                  font-weight: 800;
+                "
+              >
+                <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកអត្រាប្តូរប្រាក់
+              </button>
+            </div>
+          </div>
+
+          <!-- ស្តាំ៖ ម៉ាស៊ីនគិតលេខប្តូរប្រាក់សាកល្បងផ្ទាល់ (Live FX Simulator) -->
+          <div
+            class="afx-panel"
+            style="
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+            "
+          >
+            <div>
+              <h3
+                style="
+                  margin: 0 0 14px 0;
+                  padding-bottom: 10px;
+                  border-bottom: 1px solid var(--border);
+                  font-size: 1.05rem;
+                  font-weight: 800;
+                  color: var(--text-main);
+                "
+              >
+                <i class="fa-solid fa-calculator" style="color: #3b82f6"></i>
+                ម៉ាស៊ីនគិតលេខសាកល្បងប្តូរប្រាក់ (Live FX Simulator)
+              </h3>
+
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 10px;
+                  margin-bottom: 12px;
+                "
+              >
+                <div>
+                  <label
+                    style="
+                      font-size: 0.76rem;
+                      font-weight: 800;
+                      color: var(--text-muted);
+                      display: block;
+                      margin-bottom: 4px;
+                    "
+                    >ប្តូរពីរូបិយប័ណ្ណ (From)</label
+                  >
+                  <select
+                    id="afxSimFrom"
+                    onchange="runFxSimulator()"
+                    style="
+                      width: 100%;
+                      height: 42px;
+                      padding: 0 10px;
+                      border-radius: 10px;
+                      border: 1px solid var(--border);
+                      background: var(--bg-body);
+                      color: var(--text-main);
+                      font-weight: 800;
+                      outline: none;
+                    "
+                  >
+                    <option value="USD">🇺🇸 USD - ដុល្លារអាមេរិក</option>
+                    <option value="KHR">🇰🇭 KHR - រៀលខ្មែរ</option>
+                    <option value="THB">🇹🇭 THB - បាតថៃ</option>
+                    <option value="CNY">🇨🇳 CNY - យន់ចិន</option>
+                    <option value="EUR">🇪🇺 EUR - អឺរ៉ូ</option>
+                    <option value="SGD">🇸🇬 SGD - ដុល្លារសិង្ហបុរី</option>
+                    <option value="VND">🇻🇳 VND - ដុងវៀតណាម</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style="
+                      font-size: 0.76rem;
+                      font-weight: 800;
+                      color: var(--text-muted);
+                      display: block;
+                      margin-bottom: 4px;
+                    "
+                    >ទៅជារូបិយប័ណ្ណ (To)</label
+                  >
+                  <select
+                    id="afxSimTo"
+                    onchange="runFxSimulator()"
+                    style="
+                      width: 100%;
+                      height: 42px;
+                      padding: 0 10px;
+                      border-radius: 10px;
+                      border: 1px solid var(--border);
+                      background: var(--bg-body);
+                      color: var(--text-main);
+                      font-weight: 800;
+                      outline: none;
+                    "
+                  >
+                    <option value="KHR" selected>🇰🇭 KHR - រៀលខ្មែរ</option>
+                    <option value="USD">🇺🇸 USD - ដុល្លារអាមេរិក</option>
+                    <option value="THB">🇹🇭 THB - បាតថៃ</option>
+                    <option value="CNY">🇨🇳 CNY - យន់ចិន</option>
+                    <option value="EUR">🇪🇺 EUR - អឺរ៉ូ</option>
+                    <option value="SGD">🇸🇬 SGD - ដុល្លារសិង្ហបុរី</option>
+                    <option value="VND">🇻🇳 VND - ដុងវៀតណាម</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 14px">
+                <label
+                  style="
+                    font-size: 0.76rem;
+                    font-weight: 800;
+                    color: var(--text-muted);
+                    display: block;
+                    margin-bottom: 4px;
+                  "
+                  >ចំនួនទឹកប្រាក់ចង់ប្តូរ (Amount)</label
+                >
+                <input
+                  type="number"
+                  id="afxSimAmount"
+                  value="100"
+                  oninput="runFxSimulator()"
+                  style="
+                    width: 100%;
+                    height: 44px;
+                    padding: 0 14px;
+                    border-radius: 10px;
+                    border: 1.5px solid var(--border);
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    font-family:
+                      &quot;JetBrains Mono&quot;, monospace !important;
+                    font-size: 1.05rem;
+                    font-weight: 900;
+                    box-sizing: border-box;
+                    outline: none;
+                  "
+                />
+              </div>
+            </div>
+
+            <div
+              style="
+                background: linear-gradient(
+                  135deg,
+                  rgba(0, 77, 64, 0.08),
+                  rgba(13, 148, 136, 0.12)
+                );
+                border: 1px dashed #0d9488;
+                border-radius: 14px;
+                padding: 14px 16px;
+                text-align: center;
+              "
+            >
+              <div
+                style="
+                  font-size: 0.76rem;
+                  font-weight: 800;
+                  color: var(--text-muted);
+                "
+              >
+                ទឹកប្រាក់ទទួលបានប៉ាន់ស្មាន (ESTIMATED OUTPUT)
+              </div>
+              <div
+                id="afxSimResultText"
+                style="
+                  font-family: &quot;JetBrains Mono&quot;, monospace !important;
+                  font-size: 1.55rem;
+                  font-weight: 900;
+                  color: #0d9488;
+                  margin-top: 4px;
+                "
+              >
+                405,000 ៛
+              </div>
+              <div
+                id="afxSimRateSub"
+                style="
+                  font-size: 0.74rem;
+                  color: var(--text-muted);
+                  margin-top: 3px;
+                  font-weight: 700;
+                "
+              >
+                គណនាតាមអត្រាទិញចូល៖ $1 = 4,050 ៛
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🌍 ៤. តារាងអត្រាប្តូរប្រាក់អន្តរជាតិទាំង ៨ ប្រភេទ (Global Multi-Currency Board) -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <div
+            style="
+              padding: 15px 20px;
+              background: var(--bg-body, #f8fafc);
+              border-bottom: 1px solid var(--border, #e2e8f0);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 10px;
+            "
+          >
+            <div
+              style="
+                font-weight: 800;
+                font-size: 0.98rem;
+                color: var(--text-main);
+              "
+            >
+              <i
+                class="fa-solid fa-earth-asia"
+                style="color: #0d9488; margin-right: 6px"
+              ></i>
+              តារាងអត្រាប្តូរប្រាក់អន្តរជាតិប្រចាំថ្ងៃរបស់ធនាគារ (Multi-Currency
+              Exchange Board)
+            </div>
+            <span
+              style="
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                font-weight: 700;
+              "
+            >
+              អ្នកអាចកែប្រែតម្លៃទិញ/លក់ខាងក្រោម រួចចុច
+              "រក្សាទុកអត្រាប្តូរប្រាក់ទាំងអស់"
+            </span>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse">
+            <thead>
+              <tr>
+                <th>រូបិយប័ណ្ណអន្តរជាតិ (Currency Pair)</th>
+                <th>ឯកតា (Unit)</th>
+                <th>អត្រាទិញចូល (Bank Buy)</th>
+                <th>អត្រាលក់ចេញ (Bank Sell)</th>
+                <th>គម្លាត (Spread)</th>
+                <th style="text-align: right">ចលនាទីផ្សារ (24h Trend)</th>
+              </tr>
+            </thead>
+            <tbody id="afxMultiCurrencyBody"></tbody>
+          </table>
         </div>
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១០ ] Fees & Limits -->
+      <!-- [ ផ្ទាំង ១០ ] Fees & Limits (100% Pro Tiered Fee & Limit Engine) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-fees"
+        class="afees-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1000px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <h2
-          class="dash-title"
-          style="text-align: center; margin-bottom: 10px"
-          data-i18n="fee-transfer-limits"
-        >
-          Fee & Transfer Limits
-        </h2>
-        <p
-          class="dash-desc"
-          style="text-align: center; margin-bottom: 30px"
-          data-i18n="manage-fee-limits"
-        >
-          កំណត់តម្លៃសេវាវេរប្រាក់ និងកម្រិតទឹកប្រាក់អតិបរមាក្នុងមួយថ្ងៃ។
-        </p>
+        <style>
+          .afees-font-scope,
+          .afees-font-scope button,
+          .afees-font-scope input,
+          .afees-font-scope select,
+          .afees-font-scope th,
+          .afees-font-scope td {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
 
-        <div class="fx-card" style="margin-bottom: 20px">
-          <h3 style="margin-top: 0">
-            <i class="fa-solid fa-chart-line" style="color: var(--accent)"></i>
-            Daily Transfer Limit
-          </h3>
-          <div class="fx-row">
-            <div>
-              <h4 style="margin: 0 0 5px 0" data-i18n="daily-transfer-limit">
-                កម្រិតលុយវេរចេញ (មួយថ្ងៃ)
-              </h4>
-              <p
-                style="margin: 0; font-size: 0.85rem; color: var(--text-muted)"
-                data-i18n="max-daily-transfer"
+          .afees-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .afees-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .afees-kpi-lbl {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .afees-kpi-val {
+            font-size: 1.48rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+          }
+          .afees-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          .afees-top-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+          }
+          @media (max-width: 980px) {
+            .afees-top-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+          .afees-panel {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          }
+          .afees-dual-input-pair {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .afees-curr-box {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-body, #f8fafc);
+            border: 1.5px solid var(--border, #cbd5e1);
+            border-radius: 10px;
+            padding: 4px 10px;
+            gap: 6px;
+            transition: 0.2s;
+          }
+          .afees-curr-box:focus-within {
+            border-color: #0d9488;
+            background: var(--bg-card, #ffffff);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+          }
+          .afees-curr-tag {
+            font-size: 0.74rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 5px;
+          }
+          .afees-tier-input {
+            width: 95px;
+            border: none;
+            background: transparent;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            font-size: 0.92rem;
+            font-weight: 800;
+            outline: none;
+            text-align: right;
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
+          <div>
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-sliders"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="fee-transfer-limits"
+                >មជ្ឈមណ្ឌលកំណត់កម្រៃសេវា និងដែនកំណត់ផ្ទេរប្រាក់ (Fee & Limit
+                Policy Engine)</span
               >
-                លុយច្រើនបំផុតដែលអតិថិជនអាចវេរបាន
-              </p>
+            </h2>
+            <p
+              class="dash-desc"
+              data-i18n="manage-fee-limits"
+              style="margin: 0"
+            >
+              គ្រប់គ្រងពិដានទឹកប្រាក់អតិបរមាប្រចាំថ្ងៃ
+              និងតារាងកម្រៃសេវាផ្ទេរប្រាក់តាមកម្រិតទឹកប្រាក់ (Tiered Pricing)
+              ដោយគណនា USD ⇄ KHR ស្វ័យប្រវត្តិ។
+            </p>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              type="button"
+              onclick="loadFeeSettings(true)"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 16px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="afees-refresh-icon"></i>
+              <span>ធ្វើបច្ចុប្បន្នភាព</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="saveFeeSettings()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.86rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+              "
+            >
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span data-i18n="save-settings">រក្សាទុកការកំណត់ទាំងអស់</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៤ -->
+        <div class="afees-kpi-grid">
+          <div class="afees-kpi-card">
+            <div>
+              <div class="afees-kpi-lbl">
+                ដែនកំណត់ប្រចាំថ្ងៃ (MAX DAILY USD)
+              </div>
+              <div
+                class="afees-kpi-val"
+                id="afees-kpi-limit-usd"
+                style="color: #3b82f6"
+              >
+                $5,000
+              </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px">
-              <input
-                type="number"
-                id="dailyTrxLimit"
-                class="fx-input"
-                value="5000"
-              /><b>$</b>
+            <div
+              class="afees-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+          </div>
+
+          <div class="afees-kpi-card">
+            <div>
+              <div class="afees-kpi-lbl">សមមូលប្រាក់រៀល (EQUIVALENT KHR)</div>
+              <div
+                class="afees-kpi-val"
+                id="afees-kpi-limit-khr"
+                style="color: #10b981"
+              >
+                20,500,000 ៛
+              </div>
+            </div>
+            <div
+              class="afees-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-coins"></i>
+            </div>
+          </div>
+
+          <div class="afees-kpi-card">
+            <div>
+              <div class="afees-kpi-lbl">
+                ចំនួនកម្រិតថ្លៃសេវា (ACTIVE TIERS)
+              </div>
+              <div
+                class="afees-kpi-val"
+                id="afees-kpi-tiers-count"
+                style="color: #8b5cf6"
+              >
+                0 កម្រិត
+              </div>
+            </div>
+            <div
+              class="afees-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+          </div>
+
+          <div class="afees-kpi-card">
+            <div>
+              <div class="afees-kpi-lbl">ចន្លោះកម្រៃសេវា (FEE RANGE)</div>
+              <div
+                class="afees-kpi-val"
+                id="afees-kpi-fee-range"
+                style="color: #f59e0b"
+              >
+                $0.00 - $0.00
+              </div>
+            </div>
+            <div
+              class="afees-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-hand-holding-dollar"></i>
             </div>
           </div>
         </div>
 
-        <div class="fx-card" style="max-width: 100%">
+        <!-- ⚙️ ២. ផ្ទាំងកំណត់ពិដានផ្ទេរប្រាក់ប្រចាំថ្ងៃ & ឧបករណ៍សាកល្បងគណនាថ្លៃសេវា -->
+        <div class="afees-top-grid">
+          <!-- ឆ្វេង៖ ដែនកំណត់ផ្ទេរប្រាក់ប្រចាំថ្ងៃ -->
+          <div class="afees-panel">
+            <h3
+              style="
+                margin: 0 0 14px 0;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border);
+                font-size: 1.05rem;
+                font-weight: 800;
+                color: var(--text-main);
+              "
+            >
+              <i class="fa-solid fa-gauge-high" style="color: #3b82f6"></i>
+              ១. ដែនកំណត់ទឹកប្រាក់ផ្ទេរចេញអតិបរមាក្នុង ១ ថ្ងៃ (Global Daily
+              Transfer Limit)
+            </h3>
+
+            <div
+              style="
+                background: var(--bg-body, #f8fafc);
+                border: 1px solid var(--border, #e2e8f0);
+                border-radius: 14px;
+                padding: 16px 18px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-bottom: 14px;
+              "
+            >
+              <div>
+                <div
+                  style="
+                    font-weight: 800;
+                    font-size: 0.95rem;
+                    color: var(--text-main);
+                  "
+                  data-i18n="daily-transfer-limit"
+                >
+                  ពិដានទឹកប្រាក់វេរចេញសរុប (ក្នុង ១ ថ្ងៃ)
+                </div>
+                <div
+                  style="
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                    margin-top: 3px;
+                  "
+                  id="afees-limit-khr-sub"
+                >
+                  សមមូលប្រាក់រៀល៖ 20,500,000 ៛ / ថ្ងៃ
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span
+                  style="font-size: 1.2rem; font-weight: 900; color: #3b82f6"
+                  >$</span
+                >
+                <input
+                  type="number"
+                  id="dailyTrxLimit"
+                  value="5000"
+                  oninput="onDailyLimitInputChange()"
+                  style="
+                    width: 140px;
+                    height: 44px;
+                    border-radius: 10px;
+                    border: 2px solid #3b82f6;
+                    background: var(--bg-card, #ffffff);
+                    color: var(--text-main);
+                    font-family:
+                      &quot;JetBrains Mono&quot;, monospace !important;
+                    font-size: 1.15rem;
+                    font-weight: 900;
+                    text-align: center;
+                    outline: none;
+                  "
+                />
+                <span
+                  style="
+                    font-size: 0.85rem;
+                    font-weight: 800;
+                    color: var(--text-muted);
+                  "
+                  >USD</span
+                >
+              </div>
+            </div>
+
+            <!-- ប៊ូតុងកំណត់រហ័ស -->
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                align-items: center;
+              "
+            >
+              <span
+                style="
+                  font-size: 0.76rem;
+                  font-weight: 800;
+                  color: var(--text-muted);
+                "
+                >ជ្រើសរើសរហ័ស៖</span
+              >
+              <button
+                type="button"
+                onclick="setQuickDailyLimit(1000)"
+                style="
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-body);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                $1,000
+              </button>
+              <button
+                type="button"
+                onclick="setQuickDailyLimit(5000)"
+                style="
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-body);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                $5,000
+              </button>
+              <button
+                type="button"
+                onclick="setQuickDailyLimit(10000)"
+                style="
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-body);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                $10,000
+              </button>
+              <button
+                type="button"
+                onclick="setQuickDailyLimit(25000)"
+                style="
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-body);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                $25,000
+              </button>
+              <button
+                type="button"
+                onclick="setQuickDailyLimit(50000)"
+                style="
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-body);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                $50,000
+              </button>
+            </div>
+          </div>
+
+          <!-- ស្តាំ៖ ឧបករណ៍សាកល្បងគណនាថ្លៃសេវាផ្ទាល់ (Live Fee Simulator) -->
+          <div
+            class="afees-panel"
+            style="
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+            "
+          >
+            <div>
+              <h3
+                style="
+                  margin: 0 0 12px 0;
+                  padding-bottom: 10px;
+                  border-bottom: 1px solid var(--border);
+                  font-size: 1.05rem;
+                  font-weight: 800;
+                  color: var(--text-main);
+                "
+              >
+                <i
+                  class="fa-solid fa-vial-circle-check"
+                  style="color: #10b981"
+                ></i>
+                ២. ឧបករណ៍សាកល្បងគណនាថ្លៃសេវាផ្ទេរប្រាក់ (Fee Simulator)
+              </h3>
+
+              <div style="margin-bottom: 12px">
+                <label
+                  style="
+                    font-size: 0.76rem;
+                    font-weight: 800;
+                    color: var(--text-muted);
+                    display: block;
+                    margin-bottom: 5px;
+                  "
+                  >វាយចំនួនទឹកប្រាក់ផ្ទេរសាកល្បងគិតជាដុល្លារ ($ USD)៖</label
+                >
+                <input
+                  type="number"
+                  id="afeesSimAmount"
+                  value="250"
+                  min="0"
+                  step="10"
+                  oninput="runLiveFeeSimulator()"
+                  style="
+                    width: 100%;
+                    height: 42px;
+                    padding: 0 14px;
+                    border-radius: 10px;
+                    border: 1.5px solid var(--border);
+                    background: var(--bg-body);
+                    color: var(--text-main);
+                    font-family:
+                      &quot;JetBrains Mono&quot;, monospace !important;
+                    font-size: 1rem;
+                    font-weight: 900;
+                    box-sizing: border-box;
+                    outline: none;
+                  "
+                />
+              </div>
+            </div>
+
+            <div
+              id="afeesSimResultBox"
+              style="
+                background: rgba(16, 185, 129, 0.08);
+                border: 1px dashed #10b981;
+                border-radius: 14px;
+                padding: 12px 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+              "
+            >
+              <div>
+                <div
+                  style="
+                    font-size: 0.74rem;
+                    color: var(--text-muted);
+                    font-weight: 800;
+                  "
+                  id="afeesSimTierMatched"
+                >
+                  ត្រូវនឹងកម្រិត៖ --
+                </div>
+                <div
+                  style="
+                    font-size: 0.85rem;
+                    color: var(--text-main);
+                    font-weight: 800;
+                    margin-top: 2px;
+                  "
+                  id="afeesSimTotalDeduct"
+                >
+                  សរុបត្រូវកាត់៖ $250.00
+                </div>
+              </div>
+              <div style="text-align: right">
+                <div
+                  style="
+                    font-size: 0.72rem;
+                    color: var(--text-muted);
+                    font-weight: 800;
+                  "
+                >
+                  ថ្លៃសេវាត្រូវកាត់ (FEE)
+                </div>
+                <div
+                  style="
+                    font-family:
+                      &quot;JetBrains Mono&quot;, monospace !important;
+                    font-size: 1.35rem;
+                    font-weight: 900;
+                    color: #10b981;
+                  "
+                  id="afeesSimFeeVal"
+                >
+                  $0.00
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងកំណត់កម្រិតថ្លៃសេវាផ្ទេរប្រាក់ (Tiered Fee Matrix) -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
           <div
             style="
+              padding: 15px 20px;
+              background: var(--bg-body, #f8fafc);
+              border-bottom: 1px solid var(--border, #e2e8f0);
               display: flex;
               justify-content: space-between;
               align-items: center;
-              margin-bottom: 15px;
+              flex-wrap: wrap;
+              gap: 12px;
             "
           >
-            <h3 style="margin: 0">
-              <i
-                class="fa-solid fa-hand-holding-dollar"
-                style="color: var(--secondary)"
-              ></i>
-              <span data-i18n="transaction-fees">Transaction Fees</span>
-              (កម្រៃសេវា)
-            </h3>
-            <button
-              class="btn-action"
-              style="background: var(--secondary)"
-              onclick="addFeeTier()"
-              title="ថែមជួរ"
-            >
-              <i class="fa-solid fa-plus"></i>
-            </button>
+            <div>
+              <span
+                style="
+                  font-weight: 800;
+                  font-size: 0.98rem;
+                  color: var(--text-main);
+                "
+              >
+                <i
+                  class="fa-solid fa-table-list"
+                  style="color: #0d9488; margin-right: 6px"
+                ></i>
+                តារាងកម្រិតថ្លៃសេវាផ្ទេរប្រាក់តាមទំហំទឹកប្រាក់ (Tiered Fee
+                Schedule)
+              </span>
+              <span
+                style="
+                  font-size: 0.76rem;
+                  color: var(--text-muted);
+                  margin-left: 8px;
+                  font-weight: 700;
+                "
+              >
+                (វាយបញ្ចូល USD ឬ KHR វានឹងគណនាប្តូរទៅវិញទៅមកដោយស្វ័យប្រវត្តិ)
+              </span>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button
+                type="button"
+                onclick="sortAndCleanFeeTiers()"
+                style="
+                  padding: 8px 14px;
+                  border-radius: 9px;
+                  border: 1px solid var(--border);
+                  background: var(--bg-card);
+                  color: var(--text-main);
+                  font-weight: 800;
+                  font-size: 0.78rem;
+                  cursor: pointer;
+                "
+              >
+                <i
+                  class="fa-solid fa-arrow-down-short-wide"
+                  style="color: #3b82f6"
+                ></i>
+                តម្រៀបតាមលំដាប់
+              </button>
+
+              <button
+                type="button"
+                onclick="addFeeTier()"
+                style="
+                  padding: 8px 15px;
+                  border-radius: 9px;
+                  border: none;
+                  background: #0d9488;
+                  color: #ffffff;
+                  font-weight: 800;
+                  font-size: 0.8rem;
+                  cursor: pointer;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                <i class="fa-solid fa-plus"></i> បន្ថែមកម្រិតថ្មី (Add Tier)
+              </button>
+            </div>
           </div>
-          <table
-            style="width: 100%; border-collapse: collapse; margin-bottom: 20px"
-          >
+
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
-              <tr style="background: #f1f5f9; text-align: left">
-                <th
-                  style="padding: 10px; border-radius: 10px 0 0 10px"
-                  data-i18n="from-amount"
-                >
-                  ចាប់ពីចំនួន ($)
+              <tr>
+                <th style="width: 90px">កម្រិត (Tier)</th>
+                <th data-i18n="from-amount">
+                  ចាប់ពីចំនួនទឹកប្រាក់ (Min Amount)
                 </th>
-                <th style="padding: 10px" data-i18n="to-amount">
-                  ដល់ចំនួន ($)
+                <th data-i18n="to-amount">
+                  រហូតដល់ចំនួនទឹកប្រាក់ (Max Amount)
                 </th>
-                <th style="padding: 10px" data-i18n="fee">កាត់សេវា ($)</th>
-                <th
-                  style="
-                    padding: 10px;
-                    border-radius: 0 10px 10px 0;
-                    text-align: right;
-                  "
-                >
-                  លុប
-                </th>
+                <th data-i18n="fee">កាត់ថ្លៃសេវា (Transfer Fee)</th>
+                <th style="text-align: right; width: 90px">លុបចោល</th>
               </tr>
             </thead>
             <tbody id="feeTiersBody"></tbody>
           </table>
-          <div
-            style="text-align: center; margin-top: 25px; margin-bottom: 20px"
-          >
-            <button
-              onclick="saveFeeSettings()"
-              style="
-                background: #10b981;
-                color: white;
-                border: none;
-                padding: 12px 28px;
-                border-radius: 10px;
-                font-size: 1rem;
-                font-weight: 600;
-                cursor: pointer;
-                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-              "
-            >
-              <i class="fa-solid fa-floppy-disk" style="margin-right: 8px"></i>
-              <span data-i18n="save-settings">រក្សាទុកការកំណត់</span>
-            </button>
-          </div>
         </div>
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១១ ] Promo Codes -->
+      <!-- [ ផ្ទាំង ១១ ] Promo Codes (100% Pro Marketing & Voucher Hub) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-promo"
+        class="apromo-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .apromo-font-scope,
+          .apromo-font-scope button,
+          .apromo-font-scope input,
+          .apromo-font-scope select,
+          .apromo-font-scope th,
+          .apromo-font-scope td,
+          .apromo-swal-scope,
+          .apromo-swal-scope button,
+          .apromo-swal-scope input,
+          .apromo-swal-scope .swal2-title,
+          .apromo-swal-scope .swal2-html-container {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .apromo-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .apromo-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .apromo-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .apromo-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .apromo-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .apromo-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .apromo-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .apromo-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .apromo-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .apromo-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .apromo-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .apromo-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. សន្លឹកកូដប្រូម៉ូសិន (Digital Voucher Ticket Chip) */
+          .apromo-voucher-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(13, 148, 136, 0.1);
+            border: 1.5px dashed #0d9488;
+            color: #0d9488;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-family: "JetBrains Mono", monospace !important;
+            font-size: 0.98rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: 0.2s;
+          }
+          .apromo-voucher-chip:hover {
+            background: #0d9488;
+            color: #ffffff;
+            transform: translateY(-1px);
+          }
+
+          /* ៤. របារភាគរយអ្នកប្រើប្រាស់ (Usage Progress Bar) */
+          .apromo-progress-track {
+            width: 100%;
+            max-width: 190px;
+            height: 7px;
+            background: var(--bg-body, #e2e8f0);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 6px;
+            border: 1px solid var(--border, #cbd5e1);
+          }
+          .apromo-progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.35s ease;
+          }
+
+          /* ៥. ផ្លាកស្ថានភាពកូដ (Status Badges) */
+          .apromo-status-badge {
+            padding: 5px 11px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+          }
+          .apromo-st-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+          }
+          .apromo-st-disabled {
+            background: rgba(239, 68, 68, 0.14);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+          }
+          .apromo-st-expired {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+          }
+          .apromo-st-depleted {
+            background: rgba(148, 163, 184, 0.18);
+            color: var(--text-muted, #64748b);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
-            <h2 class="dash-title" data-i18n="promo-codes">
-              Promo Codes Management
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-ticket"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="promo-codes"
+                >មជ្ឈមណ្ឌលគ្រប់គ្រងកូដប្រូម៉ូសិន និងរង្វាន់ (Promo & Voucher
+                Hub)</span
+              >
             </h2>
-            <p class="dash-desc" data-i18n="manage-promo-codes">
-              បង្កើតកូដប្រូម៉ូសិន (Voucher) ដើម្បីទាក់ទាញអតិថិជនថ្មី
-              ឬចែករង្វាន់។
+            <p
+              class="dash-desc"
+              data-i18n="manage-promo-codes"
+              style="margin: 0"
+            >
+              បង្កើត និងគ្រប់គ្រងកូដប្រូម៉ូសិន (Vouchers)
+              ដើម្បីទាក់ទាញអតិថិជនថ្មី ឬចែករង្វាន់ពិសេសក្នុងប្រព័ន្ធ U-Pay។
             </p>
           </div>
-          <button
-            class="btn-primary"
-            onclick="openPromoModal()"
-            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
           >
-            <i class="fa-solid fa-plus"></i>
-            <span data-i18n="create-new-code">បង្កើតកូដថ្មី</span>
-          </button>
+            <button
+              type="button"
+              onclick="exportPromoCodesCSV()"
+              title="ទាញយកបញ្ជីកូដជា CSV/Excel"
+              style="
+                background: var(--bg-card, #ffffff);
+                border: 1px solid var(--border, #cbd5e1);
+                color: var(--text-main, #0f172a);
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-file-csv" style="color: #0d9488"></i>
+              <span>ទាញយក CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loadPromoCodes(true)"
+              title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="apromo-refresh-icon"></i>
+              <span>ធ្វើបច្ចុប្បន្នភាព</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="openPromoModal()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.86rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-plus-circle"></i>
+              <span data-i18n="create-new-code">បង្កើតកូដប្រូម៉ូសិនថ្មី</span>
+            </button>
+          </div>
         </div>
-        <div class="table-container">
-          <table>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="apromo-kpi-grid">
+          <div
+            class="apromo-kpi-card active-kpi"
+            id="apromo-kpi-ALL"
+            onclick="apromoSetStatusFilter('ALL')"
+          >
+            <div>
+              <div class="apromo-kpi-title">
+                កូដប្រូម៉ូសិនសរុប (TOTAL CODES)
+              </div>
+              <div
+                class="apromo-kpi-val"
+                id="apromo-stat-total"
+                style="color: #3b82f6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="apromo-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-tags"></i>
+            </div>
+          </div>
+
+          <div
+            class="apromo-kpi-card"
+            id="apromo-kpi-ACTIVE"
+            onclick="apromoSetStatusFilter('ACTIVE')"
+          >
+            <div>
+              <div class="apromo-kpi-title">
+                កំពុងដំណើរការ (ACTIVE VOUCHERS)
+              </div>
+              <div
+                class="apromo-kpi-val"
+                id="apromo-stat-active"
+                style="color: #10b981"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="apromo-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-ticket-simple"></i>
+            </div>
+          </div>
+
+          <div
+            class="apromo-kpi-card"
+            id="apromo-kpi-CLAIMS"
+            onclick="apromoSetStatusFilter('ALL')"
+          >
+            <div>
+              <div class="apromo-kpi-title">
+                ចំនួនដងប្រើប្រាស់សរុប (TOTAL CLAIMS)
+              </div>
+              <div
+                class="apromo-kpi-val"
+                id="apromo-stat-claims"
+                style="color: #8b5cf6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="apromo-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-users-viewfinder"></i>
+            </div>
+          </div>
+
+          <div
+            class="apromo-kpi-card"
+            id="apromo-kpi-SPENT"
+            onclick="apromoSetStatusFilter('ALL')"
+          >
+            <div>
+              <div class="apromo-kpi-title">
+                ទឹកប្រាក់រង្វាន់បានចែក (DISTRIBUTED)
+              </div>
+              <div
+                class="apromo-kpi-val"
+                id="apromo-stat-spent"
+                style="color: #0d9488"
+              >
+                $0.00
+              </div>
+            </div>
+            <div
+              class="apromo-kpi-icon"
+              style="background: rgba(13, 148, 136, 0.15); color: #0d9488"
+            >
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+          </div>
+
+          <div
+            class="apromo-kpi-card"
+            id="apromo-kpi-INACTIVE"
+            onclick="apromoSetStatusFilter('INACTIVE')"
+          >
+            <div>
+              <div class="apromo-kpi-title">
+                បិទ / ផុតកំណត់ (INACTIVE / EXPIRED)
+              </div>
+              <div
+                class="apromo-kpi-val"
+                id="apromo-stat-inactive"
+                style="color: #ef4444"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="apromo-kpi-icon"
+              style="background: rgba(239, 68, 68, 0.15); color: #ef4444"
+            >
+              <i class="fa-solid fa-ban"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+        <div class="apromo-toolbar">
+          <div class="apromo-pill-group">
+            <button
+              type="button"
+              class="apromo-filter-pill active"
+              data-filter="ALL"
+              onclick="apromoSetStatusFilter('ALL')"
+            >
+              ទាំងអស់ (All)
+            </button>
+            <button
+              type="button"
+              class="apromo-filter-pill"
+              data-filter="ACTIVE"
+              onclick="apromoSetStatusFilter('ACTIVE')"
+            >
+              <i class="fa-solid fa-circle-check"></i> កំពុងដំណើរការ (Active)
+            </button>
+            <button
+              type="button"
+              class="apromo-filter-pill"
+              data-filter="DEPLETED"
+              onclick="apromoSetStatusFilter('DEPLETED')"
+            >
+              <i class="fa-solid fa-Battery-empty"></i> ប្រើអស់ចំនួនកំណត់ (Full)
+            </button>
+            <button
+              type="button"
+              class="apromo-filter-pill"
+              data-filter="EXPIRED"
+              onclick="apromoSetStatusFilter('EXPIRED')"
+            >
+              <i class="fa-solid fa-calendar-xmark"></i> ផុតកំណត់ថ្ងៃខែ
+            </button>
+            <button
+              type="button"
+              class="apromo-filter-pill"
+              data-filter="INACTIVE"
+              onclick="apromoSetStatusFilter('INACTIVE')"
+            >
+              <i class="fa-solid fa-power-off"></i> ត្រូវបានបិទ (Disabled)
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              min-width: 250px;
+              max-width: 380px;
+            "
+          >
+            <div class="search-box" style="margin: 0; width: 100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchPromoBox"
+                placeholder="ស្វែងរកតាមឈ្មោះកូដ ឬទឹកប្រាក់រង្វាន់..."
+                oninput="filterPromoCodes()"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងបង្ហាញកូដប្រូម៉ូសិន -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
               <tr>
-                <th data-i18n="promo-code">ឈ្មោះកូដ (Code)</th>
-                <th data-i18n="reward">រង្វាន់ (Reward)</th>
-                <th data-i18n="usage">អ្នកប្រើប្រាស់ (Usage)</th>
-                <th data-i18n="status">ស្ថានភាព (Status)</th>
+                <th data-i18n="promo-code">លេខកូដប្រូម៉ូសិន (Voucher Code)</th>
+                <th data-i18n="reward">ទឹកប្រាក់រង្វាន់ & ចំណាយសរុប</th>
+                <th data-i18n="usage">
+                  ចំនួនអ្នកប្រើប្រាស់ (Redemption Progress)
+                </th>
+                <th>ថ្ងៃផុតកំណត់ (Expiration)</th>
+                <th data-i18n="status">ស្ថានភាពកូដ</th>
                 <th style="text-align: right" data-i18n="action">
-                  បិទ / បើកកូដ
+                  បិទ / បើកដំណើរការ
                 </th>
               </tr>
             </thead>
             <tbody id="promoTableBody">
               <tr>
                 <td
-                  colspan="5"
-                  style="text-align: center; padding: 20px; color: #94a3b8"
+                  colspan="6"
+                  style="text-align: center; padding: 35px; color: #94a3b8"
                 >
-                  Loading...
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកទិន្នន័យកូដប្រូម៉ូសិន...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination Footer: ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់) -->
+        <div
+          id="apromoPaginationFooter"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
+          "
+        >
+          <button
+            type="button"
+            id="btnPrevPromo"
+            onclick="changePromoPage(-1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+          </button>
+
+          <span
+            id="promoPageInfo"
+            style="
+              font-size: 0.86rem;
+              font-weight: 800;
+              color: var(--text-main);
+            "
+          >
+            ទំព័រ 1 នៃ 1
+          </span>
+
+          <button
+            type="button"
+            id="btnNextPromo"
+            onclick="changePromoPage(1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
 
@@ -7871,187 +11121,673 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១៧ ] Audit Logs -->
+      <!-- [ ផ្ទាំង ១៧ ] Audit Logs (100% Pro Security Command Center) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-logs"
+        class="alogs-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
-          font-family:
-            &quot;Kantumruy Pro&quot;, sans-serif; /* កំណត់ Font ឱ្យ Parent Element */
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .alogs-font-scope,
+          .alogs-font-scope button,
+          .alogs-font-scope input,
+          .alogs-font-scope select,
+          .alogs-font-scope th,
+          .alogs-font-scope td {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .alogs-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .alogs-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .alogs-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .alogs-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .alogs-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .alogs-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .alogs-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .alogs-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .alogs-toolbar-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+          }
+          .alogs-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .alogs-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .alogs-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .alogs-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          .alogs-inputs-row {
+            display: grid;
+            grid-template-columns: 180px 200px 1fr auto;
+            gap: 10px;
+            align-items: center;
+          }
+          @media (max-width: 920px) {
+            .alogs-inputs-row {
+              grid-template-columns: 1fr 1fr;
+            }
+          }
+          @media (max-width: 560px) {
+            .alogs-inputs-row {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          .alogs-input-control {
+            height: 42px;
+            padding: 0 14px;
+            border: 1px solid var(--border, #cbd5e1);
+            border-radius: 10px;
+            background: var(--bg-body, #f8fafc);
+            color: var(--text-main, #0f172a);
+            font-size: 0.86rem;
+            font-weight: 600;
+            outline: none;
+            box-sizing: border-box;
+            width: 100%;
+            transition: 0.2s;
+          }
+          .alogs-input-control:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+          }
+
+          /* ៣. ផ្លាកសកម្មភាព (Action Badges) */
+          .alogs-action-badge {
+            padding: 5px 11px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+          }
+          .alogs-badge-create {
+            background: rgba(16, 185, 129, 0.14);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+          }
+          .alogs-badge-update {
+            background: rgba(245, 158, 11, 0.14);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+          }
+          .alogs-badge-danger {
+            background: rgba(239, 68, 68, 0.14);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          }
+          .alogs-badge-finance {
+            background: rgba(59, 130, 246, 0.14);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+          }
+          .alogs-badge-system {
+            background: rgba(139, 92, 246, 0.14);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+          }
+
+          /* ៤. ប៊ូតុងតូចៗក្នុងតារាង */
+          .alogs-btn-view {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            background: var(--bg-body, #f1f5f9);
+            color: var(--text-main, #0f172a);
+            border: 1px solid var(--border, #cbd5e1);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+          }
+          .alogs-btn-view:hover {
+            border-color: #0d9488;
+            color: #0d9488;
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
             <h2
               class="dash-title"
-              data-i18n="admin-audit-logs"
-              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
             >
-              Admin Audit Logs
+              <i
+                class="fa-solid fa-shield-halved"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="admin-audit-logs"
+                >មជ្ឈមណ្ឌលតាមដានសកម្មភាពបុគ្គលិក (Admin Audit Logs)</span
+              >
             </h2>
             <p
               class="dash-desc"
               data-i18n="track-admin-activities"
-              style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
+              style="margin: 0"
             >
-              តាមដានរាល់សកម្មភាពរបស់បុគ្គលិកទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
+              កត់ត្រា និងត្រួតពិនិត្យរាល់ប្រតិបត្តិការកែប្រែរបស់បុគ្គលិក Admin
+              ទាំងអស់ក្នុងប្រព័ន្ធដោយស្វ័យប្រវត្តិ។
             </p>
           </div>
-          <button
-            class="btn-cancel"
-            style="font-family: &quot;Kantumruy Pro&quot;, sans-serif"
-            onclick="loadAdminLogs()"
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
           >
-            <i class="fa-solid fa-rotate-right"></i>
-            <span data-i18n="reload-data">ទាញយកទិន្នន័យថ្មី</span>
-          </button>
+            <button
+              type="button"
+              onclick="exportAuditLogsCSV()"
+              title="ទាញយកជាឯកសារ CSV/Excel"
+              style="
+                background: var(--bg-card, #ffffff);
+                border: 1px solid var(--border, #cbd5e1);
+                color: var(--text-main, #0f172a);
+                padding: 10px 16px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-file-csv" style="color: #0d9488"></i>
+              <span>ទាញយក CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loadAdminLogs(true)"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 16px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="alogs-refresh-icon"></i>
+              <span data-i18n="reload-data">ទាញយកទិន្នន័យថ្មី</span>
+            </button>
+          </div>
         </div>
 
-        <!-- ប្រអប់ស្វែងរក (Filters) -->
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="alogs-kpi-grid">
+          <div
+            class="alogs-kpi-card active-kpi"
+            id="alogs-kpi-ALL"
+            onclick="alogsSetCategoryFilter('ALL')"
+          >
+            <div>
+              <div class="alogs-kpi-title">កំណត់ត្រាសរុប (TOTAL LOGS)</div>
+              <div
+                class="alogs-kpi-val"
+                id="alogs-stat-total"
+                style="color: #3b82f6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="alogs-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-list-check"></i>
+            </div>
+          </div>
+
+          <div
+            class="alogs-kpi-card"
+            id="alogs-kpi-TODAY"
+            onclick="alogsSetCategoryFilter('TODAY')"
+          >
+            <div>
+              <div class="alogs-kpi-title">សកម្មភាពថ្ងៃនេះ (TODAY'S LOGS)</div>
+              <div
+                class="alogs-kpi-val"
+                id="alogs-stat-today"
+                style="color: #10b981"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="alogs-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-calendar-day"></i>
+            </div>
+          </div>
+
+          <div
+            class="alogs-kpi-card"
+            id="alogs-kpi-FINANCE"
+            onclick="alogsSetCategoryFilter('FINANCE')"
+          >
+            <div>
+              <div class="alogs-kpi-title">
+                ហិរញ្ញវត្ថុ & កាត (FINANCE & CARDS)
+              </div>
+              <div
+                class="alogs-kpi-val"
+                id="alogs-stat-finance"
+                style="color: #0284c7"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="alogs-kpi-icon"
+              style="background: rgba(2, 132, 199, 0.15); color: #0284c7"
+            >
+              <i class="fa-solid fa-money-bill-transfer"></i>
+            </div>
+          </div>
+
+          <div
+            class="alogs-kpi-card"
+            id="alogs-kpi-USER_KYC"
+            onclick="alogsSetCategoryFilter('USER_KYC')"
+          >
+            <div>
+              <div class="alogs-kpi-title">អតិថិជន & KYC (USERS & KYC)</div>
+              <div
+                class="alogs-kpi-val"
+                id="alogs-stat-userkyc"
+                style="color: #d97706"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="alogs-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+          </div>
+
+          <div
+            class="alogs-kpi-card"
+            id="alogs-kpi-CRITICAL"
+            onclick="alogsSetCategoryFilter('CRITICAL')"
+          >
+            <div>
+              <div class="alogs-kpi-title">
+                ហានិភ័យខ្ពស់ (CRITICAL / DELETE)
+              </div>
+              <div
+                class="alogs-kpi-val"
+                id="alogs-stat-critical"
+                style="color: #ef4444"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="alogs-kpi-icon"
+              style="background: rgba(239, 68, 68, 0.15); color: #ef4444"
+            >
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ស្វែងរក -->
+        <div class="alogs-toolbar">
+          <div class="alogs-toolbar-top">
+            <div class="alogs-pill-group">
+              <button
+                type="button"
+                class="alogs-filter-pill active"
+                data-cat="ALL"
+                onclick="alogsSetCategoryFilter('ALL')"
+              >
+                ទាំងអស់ (All)
+              </button>
+              <button
+                type="button"
+                class="alogs-filter-pill"
+                data-cat="TODAY"
+                onclick="alogsSetCategoryFilter('TODAY')"
+              >
+                <i class="fa-regular fa-clock"></i> ថ្ងៃនេះ
+              </button>
+              <button
+                type="button"
+                class="alogs-filter-pill"
+                data-cat="FINANCE"
+                onclick="alogsSetCategoryFilter('FINANCE')"
+              >
+                <i class="fa-solid fa-coins"></i> ហិរញ្ញវត្ថុ & កាត
+              </button>
+              <button
+                type="button"
+                class="alogs-filter-pill"
+                data-cat="USER_KYC"
+                onclick="alogsSetCategoryFilter('USER_KYC')"
+              >
+                <i class="fa-solid fa-user-check"></i> អតិថិជន & KYC
+              </button>
+              <button
+                type="button"
+                class="alogs-filter-pill"
+                data-cat="CRITICAL"
+                onclick="alogsSetCategoryFilter('CRITICAL')"
+              >
+                <i class="fa-solid fa-shield-virus"></i> លុប / ផ្អាក / បដិសេធ
+              </button>
+              <button
+                type="button"
+                class="alogs-filter-pill"
+                data-cat="SYSTEM"
+                onclick="alogsSetCategoryFilter('SYSTEM')"
+              >
+                <i class="fa-solid fa-gears"></i> ប្រព័ន្ធ & Admin
+              </button>
+            </div>
+
+            <div
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                font-weight: 700;
+              "
+              id="alogs-showing-counter"
+            >
+              បង្ហាញ 0 កំណត់ត្រា
+            </div>
+          </div>
+
+          <div class="alogs-inputs-row">
+            <!-- កាលបរិច្ឆេទ -->
+            <input
+              type="date"
+              id="filterLogDate"
+              class="alogs-input-control"
+              onchange="applyLogFilters()"
+              title="ជ្រើសរើសកាលបរិច្ឆេទ"
+            />
+
+            <!-- ជ្រើសរើស ឬវាយឈ្មោះ Admin -->
+            <input
+              type="text"
+              id="filterLogAdmin"
+              class="alogs-input-control"
+              placeholder="ឈ្មោះ Admin (ឧ. @admin)..."
+              oninput="applyLogFilters()"
+            />
+
+            <!-- ស្វែងរកសកម្មភាព គោលដៅ ឬព័ត៌មានលម្អិត -->
+            <div style="position: relative; width: 100%">
+              <i
+                class="fa-solid fa-magnifying-glass"
+                style="
+                  position: absolute;
+                  left: 14px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  color: var(--text-muted);
+                  font-size: 0.85rem;
+                "
+              ></i>
+              <input
+                type="text"
+                id="filterLogAction"
+                class="alogs-input-control"
+                style="padding-left: 38px"
+                placeholder="ស្វែងរកតាមសកម្មភាព, គោលដៅ (@target), លេខកុង ឬព័ត៌មានលម្អិត..."
+                oninput="applyLogFilters()"
+              />
+            </div>
+
+            <!-- ប៊ូតុងសម្អាត Filter -->
+            <button
+              type="button"
+              onclick="resetAuditLogFilters()"
+              style="
+                height: 42px;
+                padding: 0 18px;
+                background: var(--bg-body, #f1f5f9);
+                color: var(--text-muted, #64748b);
+                border: 1px solid var(--border, #cbd5e1);
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: 800;
+                font-size: 0.84rem;
+                white-space: nowrap;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-filter-circle-xmark"></i> សម្អាត
+            </button>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងបញ្ជី Audit Logs -->
         <div
+          class="table-container"
           style="
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            align-items: center;
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
           "
         >
-          <input
-            type="date"
-            id="filterLogDate"
-            style="
-              height: 40px;
-              padding: 0 15px;
-              border: 1px solid #cbd5e1;
-              border-radius: 8px;
-              outline: none;
-              color: #475569;
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-            "
-          />
-          <input
-            type="text"
-            id="filterLogAdmin"
-            placeholder="ស្វែងរកឈ្មោះ Admin..."
-            style="
-              height: 40px;
-              padding: 0 15px;
-              border: 1px solid #cbd5e1;
-              border-radius: 8px;
-              outline: none;
-              flex: 1;
-              min-width: 200px;
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-            "
-          />
-          <input
-            type="text"
-            id="filterLogAction"
-            placeholder="ប្រភេទសកម្មភាព (ឧ. Delete, Update)..."
-            style="
-              height: 40px;
-              padding: 0 15px;
-              border: 1px solid #cbd5e1;
-              border-radius: 8px;
-              outline: none;
-              flex: 1;
-              min-width: 200px;
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-            "
-          />
-          <button
-            onclick="applyLogFilters()"
-            style="
-              height: 40px;
-              padding: 0 20px;
-              background: #0f172a;
-              color: #fff;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-              font-weight: bold;
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-            "
-          >
-            <i class="fa-solid fa-filter"></i> ស្វែងរក
-          </button>
-        </div>
-        <div class="table-container">
-          <table>
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
               <tr>
-                <th data-i18n="date">កាលបរិច្ឆេទ (Date)</th>
-                <th data-i18n="admin-account">គណនី Admin</th>
-                <th data-i18n="action">សកម្មភាព (Action)</th>
-                <th data-i18n="target">គោលដៅ (Target)</th>
-                <th data-i18n="details">ព័ត៌មានលម្អិត (Details)</th>
+                <th data-i18n="date" style="width: 190px">
+                  កាលបរិច្ឆេទ & ម៉ោង
+                </th>
+                <th data-i18n="admin-account" style="width: 170px">
+                  ប្រតិបត្តិករ (Admin)
+                </th>
+                <th data-i18n="action" style="width: 220px">
+                  ប្រភេទសកម្មភាព (Action)
+                </th>
+                <th data-i18n="target" style="width: 190px">គោលដៅ (Target)</th>
+                <th data-i18n="details">ព័ត៌មានលម្អិត (Audit Details)</th>
+                <th style="text-align: right; width: 110px">ពិនិត្យ</th>
               </tr>
             </thead>
             <tbody id="logsTableBody">
               <tr>
                 <td
-                  colspan="5"
-                  style="text-align: center; padding: 20px"
+                  colspan="6"
+                  style="text-align: center; padding: 35px"
                   data-i18n="loading-logs"
                 >
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
                   កំពុងទាញយកទិន្នន័យ...
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination) -->
+
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination Footer: ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់) -->
         <div
+          id="alogsPaginationFooter"
           style="
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 15px;
-            padding: 10px 0;
+            padding: 14px 20px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
           "
         >
           <button
+            type="button"
             id="btnPrevLogs"
             onclick="changeLogPage(-1)"
             style="
-              height: 40px;
-              padding: 0 20px;
-              background: #f1f5f9;
-              color: #64748b;
-              border: 1px solid #cbd5e1;
-              border-radius: 8px;
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
               cursor: pointer;
-              font-weight: bold;
-              font-family:
-                &quot;Kantumruy Pro&quot;, sans-serif; /* បន្ថែម font នៅទីនេះ */
+              transition: 0.2s;
             "
             disabled
           >
             <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
           </button>
-          <span id="logPageInfo" style="font-weight: bold; color: #1e293b"
-            >ទំព័រទី 1</span
+
+          <span
+            id="logPageInfo"
+            style="
+              font-size: 0.86rem;
+              font-weight: 800;
+              color: var(--text-main);
+            "
           >
+            ទំព័រ 1 នៃ 1
+          </span>
+
           <button
-            class="btn-primary"
+            type="button"
             id="btnNextLogs"
             onclick="changeLogPage(1)"
             style="
-              background: var(--accent);
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-              font-size: 0.95rem;
-              font-weight: 600;
-              border-radius: 10px;
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
             "
           >
-            បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
           </button>
         </div>
       </div>

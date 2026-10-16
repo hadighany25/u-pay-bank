@@ -419,6 +419,137 @@ const toggleAdminStatus = async (req, res) => {
 // ⚙️ ផ្នែកទី ៤៖ ការកំណត់ប្រព័ន្ធ (System Config & Fees)
 // ==========================================
 
+// 🌐 អនុគមន៍ជំនួយ៖ ទាញយកអត្រាប្តូរប្រាក់ផ្លូវការ (NBC / Global Reference API) រួមជាមួយ Spread ធនាគារ
+async function fetchOfficialNbcRatesHelper() {
+  const res = await fetch("https://open.er-api.com/v6/latest/USD");
+  const data = await res.json();
+  if (!data || !data.rates || !data.rates.KHR) {
+    throw new Error("មិនអាចទាញទិន្នន័យអត្រាប្តូរប្រាក់ពីប្រភពផ្លូវការបានទេ");
+  }
+
+  const r = data.rates;
+  // អត្រាផ្លូវការធនាគារជាតិ (បង្គត់ទៅខ្ទង់ ៥ រៀលជិតបំផុត)
+  const officialMidKhr = Math.round(Number(r.KHR || 4065) / 5) * 5;
+  const usdBuy = officialMidKhr - 15; // ធនាគារទិញចូល
+  const usdSell = officialMidKhr + 25; // ធនាគារលក់ចេញ
+
+  const thbMid = officialMidKhr / Number(r.THB || 34.2);
+  const cnyMid = officialMidKhr / Number(r.CNY || 7.18);
+  const eurMid = officialMidKhr / Number(r.EUR || 0.92);
+  const sgdMid = officialMidKhr / Number(r.SGD || 1.34);
+  const vndMid = (officialMidKhr / Number(r.VND || 25200)) * 1000;
+  const audMid = officialMidKhr / Number(r.AUD || 1.51);
+  const jpyMid = (officialMidKhr / Number(r.JPY || 152)) * 100;
+
+  const multiCurrencies = [
+    {
+      code: "USD/KHR",
+      c1: "us",
+      c2: "kh",
+      name: "ដុល្លារអាមេរិក ⇄ រៀលខ្មែរ",
+      unit: "1 USD",
+      buy: usdBuy,
+      sell: usdSell,
+      quote: "៛",
+      change: "+0.10%",
+      trend: "up",
+      isCore: true,
+    },
+    {
+      code: "THB/KHR",
+      c1: "th",
+      c2: "kh",
+      name: "បាតថៃ ⇄ រៀលខ្មែរ",
+      unit: "1 THB",
+      buy: Number((thbMid * 0.99).toFixed(2)),
+      sell: Number((thbMid * 1.01).toFixed(2)),
+      quote: "៛",
+      change: "+0.22%",
+      trend: "up",
+    },
+    {
+      code: "CNY/KHR",
+      c1: "cn",
+      c2: "kh",
+      name: "យន់ចិន ⇄ រៀលខ្មែរ",
+      unit: "1 CNY",
+      buy: Number((cnyMid * 0.99).toFixed(2)),
+      sell: Number((cnyMid * 1.01).toFixed(2)),
+      quote: "៛",
+      change: "+0.14%",
+      trend: "up",
+    },
+    {
+      code: "EUR/KHR",
+      c1: "eu",
+      c2: "kh",
+      name: "អឺរ៉ូ ⇄ រៀលខ្មែរ",
+      unit: "1 EUR",
+      buy: Math.round(eurMid * 0.992),
+      sell: Math.round(eurMid * 1.008),
+      quote: "៛",
+      change: "+0.18%",
+      trend: "up",
+    },
+    {
+      code: "SGD/KHR",
+      c1: "sg",
+      c2: "kh",
+      name: "ដុល្លារសិង្ហបុរី ⇄ រៀលខ្មែរ",
+      unit: "1 SGD",
+      buy: Math.round(sgdMid * 0.992),
+      sell: Math.round(sgdMid * 1.008),
+      quote: "៛",
+      change: "+0.15%",
+      trend: "up",
+    },
+    {
+      code: "VND/KHR",
+      c1: "vn",
+      c2: "kh",
+      name: "ដុងវៀតណាម ⇄ រៀលខ្មែរ",
+      unit: "1,000 VND",
+      buy: Number((vndMid * 0.985).toFixed(2)),
+      sell: Number((vndMid * 1.015).toFixed(2)),
+      quote: "៛",
+      change: "-0.05%",
+      trend: "down",
+    },
+    {
+      code: "AUD/KHR",
+      c1: "au",
+      c2: "kh",
+      name: "ដុល្លារអូស្ត្រាលី ⇄ រៀលខ្មែរ",
+      unit: "1 AUD",
+      buy: Math.round(audMid * 0.99),
+      sell: Math.round(audMid * 1.01),
+      quote: "៛",
+      change: "+0.20%",
+      trend: "up",
+    },
+    {
+      code: "JPY/KHR",
+      c1: "jp",
+      c2: "kh",
+      name: "យ៉េនជប៉ុន ⇄ រៀលខ្មែរ",
+      unit: "100 JPY",
+      buy: Math.round(jpyMid * 0.99),
+      sell: Math.round(jpyMid * 1.01),
+      quote: "៛",
+      change: "-0.12%",
+      trend: "down",
+    },
+  ];
+
+  return {
+    usdToKhrBuy: usdBuy,
+    usdToKhrSell: usdSell,
+    officialNbcMidRate: officialMidKhr,
+    multiCurrencies,
+    lastNbcSyncAt: new Date().toISOString(),
+  };
+}
+
 const toggleSystem = async (req, res) => {
   try {
     const currentStatus = readSystemStatus();
@@ -441,26 +572,143 @@ const getSystemStatus = (req, res) => {
   res.json(readSystemStatus());
 };
 
-const getFXRates = (req, res) => {
-  res.json({ success: true, rates: readFXRates() });
+/**
+ * 📌 ទាញយកអត្រាប្តូរប្រាក់ (ឆែកមើលបើផុត ៧ ថ្ងៃ នឹង Auto-Sync ពីធនាគារជាតិដោយស្វ័យប្រវត្តិ)
+ */
+const getFXRates = async (req, res) => {
+  try {
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) {
+      sys = new System({ settingId: "GLOBAL_SETTINGS" });
+    }
+
+    let currentRates = sys.fxRates ||
+      readFXRates() || {
+        usdToKhrBuy: 4050,
+        usdToKhrSell: 4100,
+      };
+
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const lastSyncTime = currentRates.lastNbcSyncAt
+      ? new Date(currentRates.lastNbcSyncAt).getTime()
+      : 0;
+    const isDueForWeeklySync =
+      currentRates.autoWeeklySync !== false &&
+      Date.now() - lastSyncTime >= SEVEN_DAYS_MS;
+
+    if (isDueForWeeklySync) {
+      try {
+        const freshNbc = await fetchOfficialNbcRatesHelper();
+        currentRates = {
+          ...currentRates,
+          ...freshNbc,
+          autoWeeklySync: currentRates.autoWeeklySync !== false,
+          lastModifiedBy: "NBC Auto-Sync (7-Day Schedule)",
+        };
+        sys.fxRates = currentRates;
+        sys.markModified("fxRates");
+        await sys.save();
+        await writeFXRates(currentRates);
+      } catch (syncErr) {
+        console.warn(
+          "Weekly NBC Auto-Sync skipped (offline):",
+          syncErr.message,
+        );
+      }
+    }
+
+    res.json({ success: true, rates: currentRates });
+  } catch (err) {
+    res.json({ success: true, rates: readFXRates() });
+  }
 };
 
+/**
+ * 📌 Admin កែប្រែ និងរក្សាទុកអត្រាប្តូរប្រាក់ដោយដៃ (Manual Override)
+ */
 const updateFX = async (req, res) => {
-  const { buy, sell } = req.body;
+  const { buy, sell, multiCurrencies, autoWeeklySync } = req.body;
   try {
-    await writeFXRates({
-      usdToKhrBuy: parseFloat(buy),
-      usdToKhrSell: parseFloat(sell),
-    });
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
+
+    const currentRates = sys.fxRates || readFXRates() || {};
+    const updatedPayload = {
+      ...currentRates,
+      usdToKhrBuy: parseFloat(buy) || 4050,
+      usdToKhrSell: parseFloat(sell) || 4100,
+      autoWeeklySync:
+        autoWeeklySync !== undefined
+          ? Boolean(autoWeeklySync)
+          : currentRates.autoWeeklySync !== false,
+      lastModifiedBy: `@${req.admin.username} (Manual)`,
+      lastManualUpdateAt: new Date().toISOString(),
+    };
+
+    if (Array.isArray(multiCurrencies)) {
+      updatedPayload.multiCurrencies = multiCurrencies;
+    }
+
+    sys.fxRates = updatedPayload;
+    sys.markModified("fxRates");
+    await sys.save();
+    await writeFXRates(updatedPayload);
+
     await logAdminAction(
       req.admin.username,
       "Update FX Rates",
       "Exchange System",
-      `Buy: ${buy}៛, Sell: ${sell}៛`,
+      `USD/KHR Buy: ${buy}៛, Sell: ${sell}៛ (Manual Override)`,
     );
-    res.json({ success: true, message: "Exchange Rates Updated" });
+
+    res.json({
+      success: true,
+      message: "អត្រាប្តូរប្រាក់ត្រូវបានរក្សាទុកដោយជោគជ័យ!",
+      rates: updatedPayload,
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ប៊ូតុងទាញយកអត្រាប្តូរប្រាក់ពីធនាគារជាតិភ្លាមៗ (Manual Trigger NBC Sync)
+ */
+const syncNbcFXRates = async (req, res) => {
+  try {
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
+
+    const freshNbc = await fetchOfficialNbcRatesHelper();
+    const updatedPayload = {
+      ...(sys.fxRates || {}),
+      ...freshNbc,
+      autoWeeklySync: true,
+      lastModifiedBy: `@${req.admin.username} (NBC Live Sync)`,
+    };
+
+    sys.fxRates = updatedPayload;
+    sys.markModified("fxRates");
+    await sys.save();
+    await writeFXRates(updatedPayload);
+
+    await logAdminAction(
+      req.admin.username,
+      "Sync NBC FX Rates",
+      "Exchange System",
+      `Synced NBC Mid Rate: ${freshNbc.officialNbcMidRate}៛ (Buy: ${freshNbc.usdToKhrBuy}៛, Sell: ${freshNbc.usdToKhrSell}៛)`,
+    );
+
+    res.json({
+      success: true,
+      message: `បានទាញយកអត្រាប្តូរប្រាក់យោងផ្លូវការជោគជ័យ! (អត្រាទិញ: ${freshNbc.usdToKhrBuy}៛ / លក់: ${freshNbc.usdToKhrSell}៛)`,
+      rates: updatedPayload,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "មិនអាចតភ្ជាប់ទៅប្រភពអត្រាប្តូរប្រាក់អន្តរជាតិបានទេ!",
+    });
   }
 };
 
@@ -1643,75 +1891,228 @@ const uploadSpecificKyc = async (req, res) => {
 // ==========================================
 // 💰 ផ្នែកទី ៧៖ ប្រតិបត្តិការហិរញ្ញវត្ថុ (Finance & Transactions)
 // ==========================================
-
 const getTransaction = async (req, res) => {
-  const searchTerm = req.params.id.trim();
+  const searchTerm = String(req.params.id || "").trim();
   try {
-    const foundTrx = await Transaction.findOne({
+    // ១. ទាញយកគ្រប់វិក្កយបត្រទាំងអស់ដែលពាក់ព័ន្ធនឹង Ref ID ឬ Hash នេះ (ដើម្បីចាប់បានទាំងផ្នែកអ្នកផ្ញើ និងអ្នកទទួល)
+    const matchedTrxs = await Transaction.find({
       $or: [{ refId: searchTerm }, { hash: searchTerm }],
     });
-    if (foundTrx) {
-      const senderObj = await User.findOne({
-        $or: [
-          { username: foundTrx.senderName },
-          { "mainAccounts.USD.accountNumber": foundTrx.senderAcc },
-          { fullName: foundTrx.senderName },
-        ],
-      });
-      const receiverObj = await User.findOne({
-        $or: [
-          { "mainAccounts.USD.accountNumber": foundTrx.receiverAcc },
-          { "mainAccounts.KHR.accountNumber": foundTrx.receiverAcc },
-          { username: foundTrx.receiverName },
-          { fullName: foundTrx.receiverName },
-          { username: foundTrx.username },
-        ],
-      });
 
-      let trxDetails = {
-        ...(foundTrx.toObject ? foundTrx.toObject() : foundTrx),
-      };
-      trxDetails.senderKyc = senderObj
-        ? senderObj.kycStatus || "Unverified"
-        : "Unverified";
-      trxDetails.receiverKyc = receiverObj
-        ? receiverObj.kycStatus || "Unverified"
-        : "Unverified";
-
-      if (
-        (!trxDetails.senderAcc || trxDetails.senderAcc === "N/A") &&
-        senderObj
-      )
-        trxDetails.senderAcc = senderObj.mainAccounts.USD.accountNumber;
-      if (
-        (!trxDetails.receiverAcc || trxDetails.receiverAcc === "N/A") &&
-        receiverObj
-      ) {
-        trxDetails.receiverAcc =
-          trxDetails.currency === "KHR" &&
-          receiverObj.mainAccounts?.KHR?.accountNumber
-            ? receiverObj.mainAccounts.KHR.accountNumber
-            : receiverObj.mainAccounts.USD.accountNumber;
-      }
-
-      const merchantData = await Merchant.findOne({
-        $or: [
-          { name: foundTrx.receiverName },
-          { "accountNumbers.USD": foundTrx.receiverAcc },
-          { "accountNumbers.KHR": foundTrx.receiverAcc },
-        ],
-      });
-      if (merchantData && merchantData.merchantId)
-        trxDetails.merchantId = merchantData.merchantId;
-
-      res.json({ success: true, transaction: trxDetails });
-    } else {
-      res.json({
+    if (!matchedTrxs || matchedTrxs.length === 0) {
+      return res.json({
         success: false,
         message: "រកមិនឃើញប្រតិបត្តិការនេះទេ! លេខ Ref ID ឬ Hash មិនត្រឹមត្រូវ។",
       });
     }
+
+    const senderLeg = matchedTrxs.find((t) => t.amount < 0) || matchedTrxs[0];
+    const receiverLeg = matchedTrxs.find((t) => t.amount > 0) || matchedTrxs[0];
+    const primaryTrx = matchedTrxs[0];
+
+    const sAccNum = senderLeg.senderAcc || primaryTrx.senderAcc || "";
+    const rAccNum = receiverLeg.receiverAcc || primaryTrx.receiverAcc || "";
+
+    // ២. ស្វែងរកគណនីពិតរបស់អ្នកផ្ញើ (Sender User)
+    let senderObj = null;
+    if (
+      senderLeg.amount < 0 &&
+      senderLeg.username &&
+      senderLeg.username !== "superadmin"
+    ) {
+      senderObj = await User.findOne({ username: senderLeg.username }).select(
+        "-password -pin",
+      );
+    }
+    if (!senderObj && sAccNum && sAccNum !== "N/A" && sAccNum !== "888888888") {
+      senderObj = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": sAccNum },
+          { "mainAccounts.KHR.accountNumber": sAccNum },
+          { "subAccounts.accountNumber": sAccNum },
+        ],
+      }).select("-password -pin");
+    }
+    if (!senderObj && primaryTrx.senderName) {
+      senderObj = await User.findOne({
+        $or: [
+          { username: primaryTrx.senderName },
+          { fullName: primaryTrx.senderName },
+        ],
+      }).select("-password -pin");
+    }
+
+    // ៣. ស្វែងរកហាងទំនិញ (បើជាប្រតិបត្តិការហាង) និងគណនីពិតរបស់អ្នកទទួល (Receiver User)
+    const merchIdVal = receiverLeg.merchantId || primaryTrx.merchantId;
+    let merchantData = null;
+    if (merchIdVal) {
+      merchantData = await Merchant.findOne({
+        $or: [
+          { merchantId: merchIdVal },
+          ...(mongoose.isValidObjectId(merchIdVal)
+            ? [{ _id: merchIdVal }]
+            : []),
+        ],
+      });
+    }
+    if (!merchantData && rAccNum) {
+      merchantData = await Merchant.findOne({
+        $or: [
+          { name: primaryTrx.receiverName },
+          { "accountNumbers.USD": rAccNum },
+          { "accountNumbers.KHR": rAccNum },
+          { "linkedAccounts.USD": rAccNum },
+          { "linkedAccounts.KHR": rAccNum },
+          { "cashiers.virtualAccounts.USD": rAccNum },
+          { "cashiers.virtualAccounts.KHR": rAccNum },
+        ],
+      });
+    }
+
+    let receiverObj = null;
+    if (merchantData) {
+      receiverObj = await User.findOne({
+        $or: [
+          { username: merchantData.username || merchantData.userId },
+          { _id: merchantData.ownerId },
+        ],
+      }).select("-password -pin");
+    }
+    if (
+      !receiverObj &&
+      receiverLeg.amount > 0 &&
+      receiverLeg.username &&
+      receiverLeg.username !== "superadmin"
+    ) {
+      receiverObj = await User.findOne({
+        username: receiverLeg.username,
+      }).select("-password -pin");
+    }
+    if (
+      !receiverObj &&
+      rAccNum &&
+      rAccNum !== "N/A" &&
+      rAccNum !== "888888888"
+    ) {
+      receiverObj = await User.findOne({
+        $or: [
+          { "mainAccounts.USD.accountNumber": rAccNum },
+          { "mainAccounts.KHR.accountNumber": rAccNum },
+          { "subAccounts.accountNumber": rAccNum },
+        ],
+      }).select("-password -pin");
+    }
+    if (!receiverObj && primaryTrx.receiverName) {
+      receiverObj = await User.findOne({
+        $or: [
+          { username: primaryTrx.receiverName },
+          { fullName: primaryTrx.receiverName },
+        ],
+      }).select("-password -pin");
+    }
+
+    // ៤. ឆែកមើលសំបុត្របញ្ជរគិតប្រាក់ (CashierTicket) បើជាប្រតិបត្តិការដាក់/ដកប្រាក់នៅសាខា
+    const cashierTicket = await CashierTicket.findOne({
+      $or: [{ transactionId: primaryTrx.refId }, { ticketId: searchTerm }],
+    });
+
+    // ៥. រៀបចំកញ្ចប់ទិន្នន័យពិត ១០០% បញ្ជូនទៅ Frontend
+    let trxDetails = {
+      ...(primaryTrx.toObject ? primaryTrx.toObject() : primaryTrx),
+    };
+
+    trxDetails.amount = Math.abs(Number(primaryTrx.amount || 0));
+    trxDetails.senderAmount = senderLeg ? senderLeg.amount : primaryTrx.amount;
+    trxDetails.senderCurrency = senderLeg
+      ? senderLeg.currency
+      : primaryTrx.currency;
+    trxDetails.receiverAmount = receiverLeg
+      ? Math.abs(receiverLeg.amount)
+      : Math.abs(primaryTrx.amount);
+    trxDetails.receiverCurrency = receiverLeg
+      ? receiverLeg.currency
+      : primaryTrx.currency;
+
+    // ព័ត៌មានពិតរបស់អ្នកផ្ញើ
+    trxDetails.senderRealUsername = senderObj ? senderObj.username : null;
+    trxDetails.senderRealFullName = senderObj ? senderObj.fullName : null;
+    trxDetails.senderPhone = senderObj
+      ? senderObj.phone || senderObj.phoneNumber || ""
+      : "";
+    trxDetails.senderKyc = senderObj
+      ? senderObj.kycStatus || "unverified"
+      : "System";
+    trxDetails.senderDevice = senderObj
+      ? senderObj.lastDevice ||
+        senderObj.connectedDevices?.[0]?.device ||
+        "គ្មានកំណត់ត្រាឧបករណ៍"
+      : "ប្រព័ន្ធធនាគារ (System)";
+    trxDetails.senderIp = senderObj
+      ? senderObj.lastIp ||
+        senderObj.connectedDevices?.[0]?.ip ||
+        "គ្មានកំណត់ត្រា IP"
+      : "Internal Core Network";
+
+    // ព័ត៌មានពិតរបស់អ្នកទទួល
+    trxDetails.receiverRealUsername = receiverObj ? receiverObj.username : null;
+    trxDetails.receiverRealFullName = receiverObj ? receiverObj.fullName : null;
+    trxDetails.receiverPhone = receiverObj
+      ? receiverObj.phone || receiverObj.phoneNumber || ""
+      : "";
+    trxDetails.receiverKyc = receiverObj
+      ? receiverObj.kycStatus || "unverified"
+      : "System";
+    trxDetails.receiverDevice = receiverObj
+      ? receiverObj.lastDevice ||
+        receiverObj.connectedDevices?.[0]?.device ||
+        "គ្មានកំណត់ត្រាឧបករណ៍"
+      : "ប្រព័ន្ធធនាគារ (System)";
+    trxDetails.receiverIp = receiverObj
+      ? receiverObj.lastIp ||
+        receiverObj.connectedDevices?.[0]?.ip ||
+        "គ្មានកំណត់ត្រា IP"
+      : "Internal Core Network";
+
+    if (
+      (!trxDetails.senderAcc || trxDetails.senderAcc === "N/A") &&
+      senderObj
+    ) {
+      trxDetails.senderAcc =
+        trxDetails.currency === "KHR" &&
+        senderObj.mainAccounts?.KHR?.accountNumber
+          ? senderObj.mainAccounts.KHR.accountNumber
+          : senderObj.mainAccounts?.USD?.accountNumber || "N/A";
+    }
+    if (
+      (!trxDetails.receiverAcc || trxDetails.receiverAcc === "N/A") &&
+      receiverObj
+    ) {
+      trxDetails.receiverAcc =
+        trxDetails.currency === "KHR" &&
+        receiverObj.mainAccounts?.KHR?.accountNumber
+          ? receiverObj.mainAccounts.KHR.accountNumber
+          : receiverObj.mainAccounts?.USD?.accountNumber || "N/A";
+    }
+
+    if (merchantData) {
+      trxDetails.merchantId = merchantData.merchantId;
+      trxDetails.merchantName = merchantData.name;
+      trxDetails.merchantCategory = merchantData.category;
+      trxDetails.merchantLinkedAcc =
+        merchantData.linkedAccounts?.[trxDetails.receiverCurrency] || null;
+    }
+
+    if (cashierTicket) {
+      trxDetails.cashierMaker = cashierTicket.maker;
+      trxDetails.cashierChecker = cashierTicket.checker;
+      trxDetails.cashierTicketId = cashierTicket.ticketId;
+      trxDetails.depositorName = cashierTicket.depositorName;
+      trxDetails.depositorAcc = cashierTicket.slipData?.depositorAccount || "";
+    }
+
+    res.json({ success: true, transaction: trxDetails });
   } catch (err) {
+    console.error("Get Transaction Forensics Error:", err);
     res.status(500).json({
       success: false,
       message: "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server (Database Error)!",
@@ -4835,6 +5236,7 @@ module.exports = {
   updateFX,
   getFeeSettings,
   updateFeeSettings,
+  syncNbcFXRates,
 
   // Dashboard
   getStats,
