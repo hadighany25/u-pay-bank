@@ -30,349 +30,87 @@
 
   <body>
     <!-- ស្រមោលពណ៌ខ្មៅ សម្រាប់បិទ Sidebar លើទូរស័ព្ទដៃ -->
-    <div class="overlay" onclick="toggleSidebar()"></div>
+    <div class="overlay" onclick="toggleSidebar(false)"></div>
 
     <!-- ======================================================= -->
-    <!-- 🗄️ ផ្នែកទី២៖ របារចំហៀងខាងឆ្វេង (SIDEBAR MENU) -->
+    <!-- 🗄️ ផ្នែកទី២៖ របារចំហៀងខាងឆ្វេងឆ្លាតវៃ (SMART RESIZABLE SIDEBAR) -->
+    <!-- (ម៉ឺនុយទាំងអស់នឹងត្រូវបង្កើតដោយស្វ័យប្រវត្តិពី js/admin-core.js) -->
     <!-- ======================================================= -->
-    <div class="sidebar" id="sidebar">
-      <div
-        style="
-          padding: 0 20px 20px;
-          text-align: center;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          margin-bottom: 20px;
-        "
-      >
-        <div
-          style="
-            background: var(--secondary);
-            color: white;
-            border-radius: 50%;
-            width: 55px;
-            height: 55px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 10px;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-          "
-        >
-          <i class="fa-solid fa-user-shield"></i>
-        </div>
-        <div
-          id="adminNameDisplay"
-          style="font-weight: 700; font-size: 1.1rem; color: white"
-        >
-          Loading...
-        </div>
-        <div
-          id="adminRoleDisplay"
-          style="
-            font-size: 0.75rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
-          "
-        ></div>
-      </div>
-      <!-- ============================== -->
-      <!--Operations -->
-      <!-- ============================== -->
-      <div class="menu-label" id="label-main" data-i18n="menu-main">
-        Main Menu
-      </div>
-
-      <!-- Menu Dashboard -->
-      <div
-        class="menu-item active"
-        id="menu-dashboard"
-        onclick="
-          showSection('dashboard', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-dash"
-      >
-        <i class="fa-solid fa-chart-pie"></i> Dashboard
-      </div>
-      <!-- Menu User Management -->
-      <div
-        class="menu-item"
-        id="menu-users"
-        onclick="
-          showSection('users', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-users"
-      >
-        <i class="fa-solid fa-users"></i> User Management
-      </div>
-      <!-- Menu Merchant Management -->
-      <div
-        class="menu-item"
-        id="menu-merchants"
-        onclick="
-          showSection('merchants', this);
-          toggleSidebar(false);
-          loadMerchantsData();
-        "
-        data-i18n="menu-merchants"
-      >
-        <i class="fa-solid fa-store"></i> Merchant Management
-      </div>
-
-      <!-- ============================== -->
-      <!--Operations -->
-      <!-- ============================== -->
-      <div class="menu-label" id="label-ops" data-i18n="menu-ops">
-        Operations
-      </div>
-
-      <!-- Menu Customer 360 -->
-      <div
-        class="menu-item"
-        id="menu-customer-360"
-        onclick="
-          showSection('customer-360', this);
-          toggleSidebar(false);
-        "
-      >
-        <i class="fa-solid fa-users-viewfinder"></i>
-        <span data-i18n="menu-customer-360">Customer 360°</span>
-      </div>
-      <!-- Menu Cashier -->
-      <div
-        class="menu-item"
-        id="menu-cashier"
-        onclick="
-          showSection('cashier', this);
-          toggleSidebar(false);
-        "
-      >
-        <i class="fa-solid fa-cash-register"></i>
-        <span data-i18n="menu-cashier">Cashier (Deposit/Withdraw)</span>
-      </div>
-      <!-- Menu Transaction Check -->
-      <div
-        class="menu-item"
-        id="menu-checktrx"
-        onclick="
-          showSection('check-trx', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-checktrx"
-      >
-        <i class="fa-solid fa-shield-halved"></i> Transaction Check
-      </div>
-      <!-- Menu Broadcast History -->
-      <div
-        class="menu-item"
-        id="menu-broadcast"
-        onclick="
-          showSection('broadcast-history', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-broadcast"
-      >
-        <i class="fa-solid fa-tower-broadcast"></i> Broadcast History
-      </div>
-
-      <!-- ============================== -->
-      <!-- Finance & Cards -->
-      <!-- ============================== -->
-      <div class="menu-label" id="label-finance" data-i18n="menu-finance">
-        Finance & Cards
-      </div>
-
-      <!-- Menu Exchange Rates -->
-      <div
-        class="menu-item"
-        id="menu-fx"
-        onclick="
-          showSection('fx', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-fx"
-      >
-        <i class="fa-solid fa-money-bill-transfer"></i> Exchange Rates
-      </div>
-      <!-- Menu Fee & Limits -->
-      <div
-        class="menu-item"
-        id="menu-fees"
-        onclick="
-          showSection('fees', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-fees"
-      >
-        <i class="fa-solid fa-percent"></i> Fee & Limits
-      </div>
-      <!-- Menu Promo Codes -->
-      <div
-        class="menu-item"
-        id="menu-promo"
-        onclick="
-          showSection('promo', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-promo"
-      >
-        <i class="fa-solid fa-ticket"></i> Promo Codes
-      </div>
-      <!-- Menu Card Management -->
-      <div
-        class="menu-item"
-        id="menu-cards"
-        onclick="
-          showSection('cards', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-cards"
-      >
-        <i class="fa-solid fa-credit-card"></i> Card Management
-      </div>
-      <!-- ============================== -->
-      <!-- Security & Support -->
-      <!-- ============================== -->
-      <div class="menu-label" id="label-security" data-i18n="menu-security">
-        Security & Support
-      </div>
-      <!-- Menu KYC Approvals -->
-      <div
-        class="menu-item"
-        id="menu-kyc"
-        onclick="
-          showSection('kyc', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-kyc"
-      >
-        <i class="fa-solid fa-id-card"></i> KYC Approvals
-      </div>
-      <!-- Menu Support Tickets -->
-      <div
-        class="menu-item"
-        id="menu-tickets"
-        onclick="
-          showSection('tickets', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-tickets"
-      >
-        <i class="fa-solid fa-headset"></i> Support Tickets
-      </div>
-      <!-- Menu Live Support Chat -->
-      <div
-        class="menu-item"
-        id="menu-chat"
-        onclick="
-          showSection('live-chat', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-chat"
-      >
-        <i class="fa-solid fa-comments"></i> Live Support Chat
-      </div>
-
-      <!-- ============================== -->
-      <!-- Super Admin Only -->
-      <!-- ============================== -->
-      <div class="menu-label" id="menu-super-only" data-i18n="menu-super">
-        Super Admin Only
-      </div>
-
-      <!-- Menu Admin Management -->
-      <div
-        class="menu-item"
-        id="menu-admins"
-        onclick="
-          showSection('admins', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-admins"
-      >
-        <i class="fa-solid fa-user-tie"></i> Admin Management
-      </div>
-      <!-- Menu Audit Logs -->
-      <div
-        class="menu-item"
-        id="menu-logs"
-        onclick="
-          showSection('logs', this);
-          toggleSidebar(false);
-        "
-        data-i18n="menu-logs"
-      >
-        <i class="fa-solid fa-list-check"></i> Audit Logs
-      </div>
-      <!-- Menu System Control -->
-      <div
-        class="menu-item"
-        id="menu-system"
-        onclick="toggleSystemFreeze()"
-        data-i18n="menu-system"
-      >
-        <i class="fa-solid fa-power-off" style="color: #ef4444"></i> System
-        Control
-      </div>
-      <!-- Menu Secure Logout -->
-      <div
-        class="menu-item logout-btn"
-        onclick="logout()"
-        style="margin-top: 30px"
-        data-i18n="menu-logout"
-      >
-        <i class="fa-solid fa-right-from-bracket"></i> Secure Logout
-      </div>
-    </div>
+    <aside class="sidebar" id="sidebar"></aside>
 
     <!-- ======================================================= -->
     <!-- 💻 ផ្នែកទី៣៖ ផ្ទៃបង្ហាញគោលខាងស្តាំ (MAIN CONTENT) -->
     <!-- ======================================================= -->
-    <div class="main-content">
-      <div class="top-nav-actions">
-        <button
-          class="icon-btn"
-          onclick="toggleTheme()"
-          title="Dark/Light Mode"
-        >
-          <i class="fa-solid fa-moon theme-icon"></i>
-        </button>
-        <button
-          class="icon-btn"
-          onclick="toggleLanguage()"
-          title="Change Language"
-        >
-          <span
-            class="lang-text"
-            style="font-weight: 800; font-family: &quot;JetBrains Mono&quot;"
-            >KH</span
+    <div class="main-content" id="adminMainContent">
+      <!-- របារបញ្ជាខាងលើសម្រាប់ កុំព្យូទ័រ និង ទូរស័ព្ទ (Unified Responsive Topbar) -->
+      <div class="top-nav-actions" style="justify-content: space-between">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <button
+            type="button"
+            class="icon-btn"
+            onclick="toggleDesktopSidebarCollapse()"
+            title="បង្រួម ឬ លាតម៉ឺនុយ (Shortcut: Ctrl + B)"
+            style="
+              border-radius: 12px;
+              width: auto;
+              padding: 0 14px;
+              gap: 8px;
+              font-size: 0.84rem;
+              font-weight: 800;
+            "
           >
-        </button>
+            <i
+              class="fa-solid fa-bars-staggered"
+              id="sbCollapseIcon"
+              style="color: #10b981"
+            ></i>
+            <span class="kh-text" id="sbCollapseText">បង្រួមម៉ឺនុយ</span>
+          </button>
+
+          <button
+            type="button"
+            class="icon-btn"
+            onclick="toggleFullHideSidebar()"
+            title="លាក់ម៉ឺនុយទាំងស្រុងដើម្បីមើលទិន្នន័យពេញអេក្រង់ ១០០%"
+            style="border-radius: 12px; width: 40px"
+          >
+            <i class="fa-solid fa-expand" id="sbFullScreenIcon"></i>
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px">
+          <button
+            class="icon-btn"
+            onclick="toggleTheme()"
+            title="Dark/Light Mode"
+          >
+            <i class="fa-solid fa-moon theme-icon"></i>
+          </button>
+          <button
+            class="icon-btn"
+            onclick="toggleLanguage()"
+            title="Change Language"
+          >
+            <span
+              class="lang-text"
+              style="font-weight: 800; font-family: &quot;JetBrains Mono&quot;"
+              >KH</span
+            >
+          </button>
+        </div>
       </div>
 
+      <!-- របារក្បាលទំព័រសម្រាប់អេក្រង់ទូរស័ព្ទ (Mobile Header) -->
       <div class="mobile-header">
-        <div
-          class="brand"
-          style="
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            height: auto;
-            box-shadow: none;
-          "
-        >
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div class="menu-toggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </div>
           <img
             src="../images/logo-nobg.png"
             alt="U-PAY"
-            style="height: 35px; display: block"
-            onerror="
-              this.src =
-                'https://cdn-icons-png.flaticon.com/512/2830/2830284.png'
-            "
+            style="height: 30px; display: block"
+            onerror="this.style.display = 'none'"
           />
         </div>
         <div class="mobile-actions">
@@ -386,194 +124,1132 @@
               >KH</span
             >
           </button>
-          <div class="menu-toggle" onclick="toggleSidebar()">
-            <i class="fa-solid fa-bars-staggered"></i>
-          </div>
         </div>
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ០១ ] Dashboard Content -->
+      <!-- [ ផ្ទាំង ០១ ] Dashboard Content (100% Pro Executive Command Center) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-dashboard"
-        class="dash-wrapper"
-        style="width: 100%; box-sizing: border-box; padding: 0 15px"
+        class="dash-wrapper adash-scope"
+        style="
+          width: 100%;
+          max-width: 1460px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          padding: 0 15px 45px;
+        "
       >
-        <div class="dash-header">
+        <style>
+          .adash-scope,
+          .adash-scope button,
+          .adash-scope input,
+          .adash-scope select {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. កំពូលរបារបញ្ជា និង Filter កាលបរិច្ឆេទ (Executive Control Bar) */
+          .adash-topbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 20px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+          }
+          .adash-preset-group {
+            display: inline-flex;
+            background: var(--bg-body, #f1f5f9);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+            flex-wrap: wrap;
+            border: 1px solid var(--border, #e2e8f0);
+          }
+          .adash-preset-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 13px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .adash-preset-btn:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .adash-preset-btn.active {
+            background: linear-gradient(135deg, #004d40, #0d9488);
+            color: #ffffff;
+            box-shadow: 0 3px 10px rgba(13, 148, 136, 0.25);
+          }
+          .adash-date-input {
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 9px;
+            border: 1px solid var(--border, #cbd5e1);
+            background: var(--bg-card, #ffffff);
+            color: var(--text-main, #0f172a);
+            font-size: 0.78rem;
+            font-weight: 700;
+            outline: none;
+          }
+
+          /* ២. ផ្ទាំងឃ្លាំងមូលនិធិកណ្តាល និងប្រាក់ចំណូលធនាគារ (Hero Treasury Banners) */
+          .adash-hero-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+          }
+          .adash-hero-card {
+            border-radius: 22px;
+            padding: 22px 24px;
+            color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 155px;
+          }
+          .adash-hero-card::after {
+            content: "";
+            position: absolute;
+            right: -30px;
+            bottom: -40px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+          }
+          .adash-hero-val {
+            font-size: 2rem;
+            font-weight: 900;
+            font-family: "JetBrains Mono", "Inter", monospace !important;
+            letter-spacing: -0.5px;
+            margin: 6px 0;
+          }
+
+          /* ៣. បណ្តុំកាតស្ថិតិទាំង ១២ (12 Interactive KPI Cards) */
+          .adash-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .adash-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 18px;
+            padding: 16px 18px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.02);
+          }
+          .adash-kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+            border-color: #0d9488;
+          }
+          .adash-kpi-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .adash-kpi-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--text-muted, #64748b);
+          }
+          .adash-kpi-num {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", "Inter", monospace !important;
+            margin-top: 4px;
+            line-height: 1.15;
+          }
+          .adash-kpi-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+          }
+          .adash-kpi-sub {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted, #64748b);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed var(--border, #e2e8f0);
+            padding-top: 8px;
+          }
+
+          /* ៤. ក្រាហ្វវិភាគទិន្នន័យ (Charts Layout) */
+          .adash-charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+          }
+          @media (max-width: 1024px) {
+            .adash-charts-row {
+              grid-template-columns: 1fr;
+            }
+          }
+          .adash-panel {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+          }
+          .adash-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .adash-panel-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: var(--text-main, #0f172a);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+
+          /* ៥. ផ្ទាំង Live Stream & Top Leaderboards */
+          .adash-bottom-row {
+            display: grid;
+            grid-template-columns: 1.35fr 1fr;
+            gap: 16px;
+          }
+          @media (max-width: 1024px) {
+            .adash-bottom-row {
+              grid-template-columns: 1fr;
+            }
+          }
+          .adash-stream-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 410px;
+            overflow-y: auto;
+            padding-right: 4px;
+          }
+          .adash-stream-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 14px;
+            border-radius: 14px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 10px;
+          }
+          .adash-stream-item:hover {
+            border-color: #0d9488;
+            transform: translateX(3px);
+          }
+          .adash-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            display: inline-block;
+            animation: adashPulse 1.5s infinite;
+          }
+          @keyframes adashPulse {
+            0%,
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.35;
+              transform: scale(1.25);
+            }
+          }
+        </style>
+
+        <!-- =========================================================
+             ១. ក្បាលទំព័រ និងរបារជ្រើសរើសថ្ងៃខែឆ្នាំ (Date Filter & Controls)
+             ========================================================= -->
+        <div class="adash-topbar">
           <div>
-            <h2 class="dash-title" data-i18n="dash-title">Platform Overview</h2>
-            <p class="dash-desc" data-i18n="Real-time">
-              Real-time statistics and insights for U-Pay.
+            <div style="display: flex; align-items: center; gap: 10px">
+              <h2
+                class="dash-title"
+                style="margin: 0; font-size: 1.35rem; font-weight: 900"
+                data-i18n="dash-title"
+              >
+                មជ្ឈមណ្ឌលបញ្ជាការ និងវិភាគទិន្នន័យធនាគារ (Executive Overview)
+              </h2>
+              <span
+                id="adash-sys-status-badge"
+                style="
+                  background: rgba(16, 185, 129, 0.14);
+                  color: #10b981;
+                  border: 1px solid rgba(16, 185, 129, 0.3);
+                  padding: 4px 11px;
+                  border-radius: 20px;
+                  font-size: 0.72rem;
+                  font-weight: 800;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                <span class="adash-pulse-dot"></span> ប្រព័ន្ធដំណើរការធម្មតា
+                (LIVE)
+              </span>
+            </div>
+            <p
+              class="dash-desc"
+              style="margin: 4px 0 0 0; font-size: 0.82rem"
+              id="adash-period-subtitle"
+            >
+              ទិន្នន័យពិតប្រាកដ ១០០% ពីប្រព័ន្ធធនាគារស្នូល • កំពុងបង្ហាញ៖ ៧
+              ថ្ងៃចុងក្រោយ
             </p>
           </div>
+
+          <!-- ប្រអប់ជ្រើសរើសកាលបរិច្ឆេទ (Presets + Custom From/To Date) -->
           <div
             style="
-              font-size: 0.85rem;
-              color: var(--text-muted);
-              background: white;
-              padding: 8px 15px;
-              border-radius: 20px;
-              border: 1px solid var(--border);
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
             "
           >
-            <i
-              class="fa-solid fa-circle-dot"
-              style="color: var(--secondary); animation: pulse 2s infinite"
-            ></i>
-            Live Sync Active
+            <div class="adash-preset-group">
+              <button
+                type="button"
+                class="adash-preset-btn"
+                data-range="TODAY"
+                onclick="setDashboardDatePreset('TODAY')"
+              >
+                ថ្ងៃនេះ
+              </button>
+              <button
+                type="button"
+                class="adash-preset-btn active"
+                data-range="7D"
+                onclick="setDashboardDatePreset('7D')"
+              >
+                ៧ ថ្ងៃ
+              </button>
+              <button
+                type="button"
+                class="adash-preset-btn"
+                data-range="30D"
+                onclick="setDashboardDatePreset('30D')"
+              >
+                ៣០ ថ្ងៃ
+              </button>
+              <button
+                type="button"
+                class="adash-preset-btn"
+                data-range="YEAR"
+                onclick="setDashboardDatePreset('YEAR')"
+              >
+                ឆ្នាំនេះ
+              </button>
+              <button
+                type="button"
+                class="adash-preset-btn"
+                data-range="ALL"
+                onclick="setDashboardDatePreset('ALL')"
+              >
+                សរុបទាំងអស់
+              </button>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: var(--bg-body, #f1f5f9);
+                padding: 4px 8px;
+                border-radius: 12px;
+                border: 1px solid var(--border, #e2e8f0);
+              "
+            >
+              <input
+                type="date"
+                id="adash-date-start"
+                class="adash-date-input"
+                onchange="applyCustomDashboardDates()"
+              />
+              <span
+                style="
+                  color: var(--text-muted);
+                  font-weight: 800;
+                  font-size: 0.76rem;
+                "
+                >ដល់</span
+              >
+              <input
+                type="date"
+                id="adash-date-end"
+                class="adash-date-input"
+                onchange="applyCustomDashboardDates()"
+              />
+            </div>
+
+            <button
+              type="button"
+              onclick="refreshAdminDashboard(true)"
+              title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យភ្លាមៗ"
+              style="
+                height: 40px;
+                padding: 0 14px;
+                border-radius: 12px;
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                background: rgba(16, 185, 129, 0.12);
+                color: #10b981;
+                font-weight: 800;
+                font-size: 0.82rem;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="adash-refresh-spin"></i>
+              <span>Sync</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="exportDashboardExecutiveCSV()"
+              title="ទាញយករបាយការណ៍សង្ខេបជា CSV"
+              style="
+                height: 40px;
+                padding: 0 14px;
+                border-radius: 12px;
+                border: 1px solid var(--border, #cbd5e1);
+                background: var(--bg-card, #ffffff);
+                color: var(--text-main, #0f172a);
+                font-weight: 800;
+                font-size: 0.82rem;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+              "
+            >
+              <i class="fa-solid fa-file-csv" style="color: #0d9488"></i>
+              <span>របាយការណ៍ CSV</span>
+            </button>
           </div>
         </div>
-        <div class="dash-stats">
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #3b82f6"></div>
-            <div class="stat-icon" style="background: #eff6ff; color: #3b82f6">
-              <i class="fa-solid fa-users"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="total-users">Total Users</p>
-              <h3 id="d-users">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #0ea5e9"></div>
-            <div class="stat-icon" style="background: #f0f9ff; color: #0ea5e9">
-              <i class="fa-solid fa-user-check"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="active-today">Active Today</p>
-              <h3 id="d-active">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #f43f5e"></div>
-            <div class="stat-icon" style="background: #fff1f2; color: #f43f5e">
-              <i class="fa-solid fa-user-plus"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="new-registrations">New Registrations</p>
-              <h3 id="d-new-users">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #10b981"></div>
-            <div class="stat-icon" style="background: #ecfdf5; color: #10b981">
-              <i class="fa-solid fa-vault"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="system-funds">System Funds</p>
-              <h3 id="d-balance">$0.00</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #14b8a6"></div>
-            <div class="stat-icon" style="background: #f0fdfa; color: #14b8a6">
-              <i class="fa-solid fa-piggy-bank"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="fixed-deposits">Fixed Deposits</p>
-              <h3 id="d-fixed-dep">$0.00</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #8b5cf6"></div>
-            <div class="stat-icon" style="background: #f5f3ff; color: #8b5cf6">
-              <i class="fa-solid fa-hand-holding-dollar"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="system-revenue">System Revenue</p>
-              <h3 id="d-revenue">$0.00</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #f59e0b"></div>
-            <div class="stat-icon" style="background: #fffbeb; color: #f59e0b">
-              <i class="fa-solid fa-money-bill-transfer"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="total-transactions">Total Transactions</p>
-              <h3 id="d-trx">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #f97316"></div>
-            <div class="stat-icon" style="background: #fff7ed; color: #f97316">
-              <i class="fa-solid fa-clock-rotate-left"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="pending-approvals">Pending Approvals</p>
-              <h3 id="d-pending">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #ef4444"></div>
-            <div class="stat-icon" style="background: #fef2f2; color: #ef4444">
-              <i class="fa-solid fa-arrow-up-right-dots"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="total-withdrawals">Total Withdrawals</p>
-              <h3 id="d-withdrawals">$0.00</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #6366f1"></div>
-            <div class="stat-icon" style="background: #eef2ff; color: #6366f1">
-              <i class="fa-solid fa-tower-broadcast"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="broadcasts-sent">Broadcasts Sent</p>
-              <h3 id="d-broadcasts">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #06b6d4"></div>
-            <div class="stat-icon" style="background: #f0fdfa; color: #06b6d4">
-              <i class="fa-solid fa-money-bill-trend-up"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="total-transfers">Total Transfers</p>
-              <h3 id="d-transfers">0</h3>
-            </div>
-          </div>
-          <div class="dash-card stat-item">
-            <div class="bg-shape" style="background: #64748b"></div>
-            <div class="stat-icon" style="background: #f1f5f9; color: #64748b">
-              <i class="fa-solid fa-user-lock"></i>
-            </div>
-            <div class="stat-text">
-              <p data-i18n="frozen-accounts">Frozen Accounts</p>
-              <h3 id="d-frozen">0</h3>
-            </div>
-          </div>
-        </div>
-        <div class="dash-grid">
-          <div class="dash-card">
-            <div class="card-header">
-              <h3 class="card-title" data-i18n="trx-volume">
-                Transaction Volume (Last 7 Days)
-              </h3>
-            </div>
-            <div class="chart-container"><canvas id="trxChart"></canvas></div>
-          </div>
-          <div class="dash-card">
-            <div class="card-header">
-              <h3 class="card-title" data-i18n="recent-activity">
-                Recent Activity
-              </h3>
-            </div>
-            <div id="activity-feed" class="activity-feed">
+
+        <!-- =========================================================
+             ២. ផ្ទាំងឃ្លាំងមូលនិធិកណ្តាល, សាច់ប្រាក់អតិថិជន & ប្រាក់ចំណូលធនាគារ (3 Hero Cards)
+             ========================================================= -->
+        <div class="adash-hero-grid">
+          <!-- Hero 1: សាច់ប្រាក់អតិថិជនសរុបក្នុងប្រព័ន្ធ -->
+          <div
+            class="adash-hero-card"
+            style="
+              background: linear-gradient(135deg, #004d40 0%, #0d9488 100%);
+            "
+          >
+            <div>
               <div
-                data-i18n="loading-activities"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span
+                  style="
+                    font-size: 0.78rem;
+                    font-weight: 800;
+                    opacity: 0.9;
+                    letter-spacing: 0.4px;
+                  "
+                  >មូលនិធិអតិថិជនសរុបក្នុងប្រព័ន្ធ (TOTAL LIQUIDITY)</span
+                >
+                <i
+                  class="fa-solid fa-vault"
+                  style="font-size: 1.35rem; opacity: 0.85"
+                ></i>
+              </div>
+              <div class="adash-hero-val" id="d-balance">$0.00</div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.76rem;
+                background: rgba(0, 0, 0, 0.18);
+                padding: 8px 12px;
+                border-radius: 12px;
+                font-weight: 700;
+              "
+            >
+              <span>គណនី USD: <b id="adash-hero-usd">$0.00</b></span>
+              <span>គណនី KHR: <b id="adash-hero-khr">0 ៛</b></span>
+            </div>
+          </div>
+
+          <!-- Hero 2: ទំហំទឹកប្រាក់ប្រតិបត្តិការក្នុងចន្លោះថ្ងៃដែលជ្រើសរើស -->
+          <div
+            class="adash-hero-card"
+            style="
+              background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            "
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span
+                  style="
+                    font-size: 0.78rem;
+                    font-weight: 800;
+                    opacity: 0.9;
+                    letter-spacing: 0.4px;
+                  "
+                  >ទំហំចរាចរណ៍សាច់ប្រាក់ (PERIOD TRX VOLUME)</span
+                >
+                <i
+                  class="fa-solid fa-chart-line"
+                  style="font-size: 1.35rem; opacity: 0.85"
+                ></i>
+              </div>
+              <div class="adash-hero-val" id="adash-hero-volume">$0.00</div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.76rem;
+                background: rgba(0, 0, 0, 0.18);
+                padding: 8px 12px;
+                border-radius: 12px;
+                font-weight: 700;
+              "
+            >
+              <span>ដាក់ប្រាក់ចូល: <b id="adash-hero-inflow">$0.00</b></span>
+              <span>ដក/ផ្ទេរចេញ: <b id="adash-hero-outflow">$0.00</b></span>
+            </div>
+          </div>
+
+          <!-- Hero 3: ប្រាក់ចំណូលធនាគារសុទ្ធ & ឃ្លាំងមូលនិធិកណ្តាល -->
+          <div
+            class="adash-hero-card"
+            style="
+              background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+            "
+          >
+            <div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <span
+                  style="
+                    font-size: 0.78rem;
+                    font-weight: 800;
+                    opacity: 0.9;
+                    letter-spacing: 0.4px;
+                  "
+                  >ប្រាក់ចំណូលធនាគារពីថ្លៃសេវា (BANK REVENUE)</span
+                >
+                <i
+                  class="fa-solid fa-sack-dollar"
+                  style="font-size: 1.35rem; opacity: 0.85"
+                ></i>
+              </div>
+              <div class="adash-hero-val" id="d-revenue">$0.00</div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.76rem;
+                background: rgba(0, 0, 0, 0.18);
+                padding: 8px 12px;
+                border-radius: 12px;
+                font-weight: 700;
+              "
+            >
+              <span
+                >អត្រាប្តូរប្រាក់:
+                <b id="adash-hero-fx">4,050៛ / 4,100៛</b></span
+              >
+              <span>Escrow ហាង: <b id="adash-hero-escrow">$0.00</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========================================================
+             ៣. បណ្តុំកាតស្ថិតិទាំង ១២ (ចុចលើកាតណាមួយ លោតទៅកាន់ Menu នោះភ្លាមៗ!)
+             ========================================================= -->
+        <div class="adash-kpi-grid">
+          <!-- 1. Total Users -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('users')"
+            title="ចុចដើម្បីទៅកាន់ផ្ទាំងគ្រប់គ្រងអតិថិជន"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="total-users">
+                  អតិថិជនសរុប (Total Users)
+                </div>
+                <div class="adash-kpi-num" id="d-users">0</div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(59, 130, 246, 0.14); color: #3b82f6"
+              >
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>ផ្ទៀងផ្ទាត់ KYC រួច៖</span>
+              <b style="color: #10b981" id="adash-sub-kyc-ok">0 នាក់</b>
+            </div>
+          </div>
+
+          <!-- 2. Active Online Today -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('users')"
+            title="ចុចដើម្បីមើលអតិថិជនកំពុង Online"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="active-today">
+                  កំពុងសកម្ម (Online Now)
+                </div>
+                <div class="adash-kpi-num" id="d-active" style="color: #0ea5e9">
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(14, 165, 233, 0.14); color: #0ea5e9"
+              >
+                <i class="fa-solid fa-signal"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>បុគ្គលិក Admin សរុប៖</span>
+              <b style="color: #0ea5e9" id="adash-sub-admins">0 នាក់</b>
+            </div>
+          </div>
+
+          <!-- 3. New Registrations (Filtered by Date) -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('users')"
+            title="អតិថិជនចុះឈ្មោះថ្មីក្នុងកាលបរិច្ឆេទជ្រើសរើស"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="new-registrations">
+                  ចុះឈ្មោះថ្មី (New Users)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-new-users"
+                  style="color: #f43f5e"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(244, 63, 94, 0.14); color: #f43f5e"
+              >
+                <i class="fa-solid fa-user-plus"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>គិតតាមថ្ងៃដែលបានជ្រើសរើស</span>
+              <i class="fa-solid fa-arrow-right" style="color: #94a3b8"></i>
+            </div>
+          </div>
+
+          <!-- 4. Pending Approvals (KYC + Cashier + Hold Trx) -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('kyc')"
+            title="ចុចដើម្បីពិនិត្យសំណើរង់ចាំការអនុម័ត"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="pending-approvals">
+                  រង់ចាំអនុម័ត (Pending Action)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-pending"
+                  style="color: #f97316"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(249, 115, 22, 0.14); color: #f97316"
+              >
+                <i class="fa-solid fa-bell-concierge"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span id="adash-sub-pending-detail"
+                >KYC: 0 • បេឡា: 0 • សំបុត្រ: 0</span
+              >
+            </div>
+          </div>
+
+          <!-- 5. Total Transactions in Period -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('check-trx')"
+            title="ចុចដើម្បីទៅកាន់ផ្ទាំងឆែកប្រតិបត្តិការ"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="total-transactions">
+                  ប្រតិបត្តិការសរុប (Transactions)
+                </div>
+                <div class="adash-kpi-num" id="d-trx" style="color: #f59e0b">
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(245, 158, 11, 0.14); color: #f59e0b"
+              >
+                <i class="fa-solid fa-money-bill-transfer"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>ប្រតិបត្តិការជាប់ Hold៖</span>
+              <b style="color: #f59e0b" id="adash-sub-hold-trx">0</b>
+            </div>
+          </div>
+
+          <!-- 6. Total Transfers -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('check-trx')"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="total-transfers">
+                  វេរប្រាក់ P2P (Transfers)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-transfers"
+                  style="color: #06b6d4"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(6, 182, 212, 0.14); color: #06b6d4"
+              >
+                <i class="fa-solid fa-paper-plane"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>ទូទាត់តាមហាង QR៖</span>
+              <b style="color: #06b6d4" id="adash-sub-merch-trx">0 ដង</b>
+            </div>
+          </div>
+
+          <!-- 7. Total Withdrawals & Outflow -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('cashier')"
+            title="ចុចដើម្បីទៅកាន់បញ្ជរគិតប្រាក់ Cashier"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="total-withdrawals">
+                  ទឹកប្រាក់ដកចេញ (Withdrawals)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-withdrawals"
+                  style="color: #ef4444"
+                >
+                  $0.00
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(239, 68, 68, 0.14); color: #ef4444"
+              >
+                <i class="fa-solid fa-arrow-up-right-dots"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>ដាក់ប្រាក់ចូល (Deposits)៖</span>
+              <b style="color: #10b981" id="adash-sub-deposits">$0.00</b>
+            </div>
+          </div>
+
+          <!-- 8. Fixed Deposits & Savings -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('customer-360')"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="fixed-deposits">
+                  បញ្ញើមានកាលកំណត់ (Fixed Dep)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-fixed-dep"
+                  style="color: #14b8a6"
+                >
+                  $0.00
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(20, 184, 166, 0.14); color: #14b8a6"
+              >
+                <i class="fa-solid fa-piggy-bank"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>សន្សំមានការប្រាក់ខ្ពស់</span>
+              <i class="fa-solid fa-shield-heart" style="color: #14b8a6"></i>
+            </div>
+          </div>
+
+          <!-- 9. Issued Bank Cards -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('cards')"
+            title="ចុចដើម្បីគ្រប់គ្រងកាតធនាគារទាំងអស់"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label">កាតធនាគារសរុប (Issued Cards)</div>
+                <div
+                  class="adash-kpi-num"
+                  id="adash-kpi-cards"
+                  style="color: #8b5cf6"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(139, 92, 246, 0.14); color: #8b5cf6"
+              >
+                <i class="fa-solid fa-credit-card"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>កាតរូបវ័ន្ត NFC៖</span>
+              <b style="color: #8b5cf6" id="adash-sub-phy-cards">0 សន្លឹក</b>
+            </div>
+          </div>
+
+          <!-- 10. Registered Merchants -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('merchants')"
+            title="ចុចដើម្បីគ្រប់គ្រងហាងទំនិញទាំងអស់"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label">ដៃគូហាងទំនិញ (Merchants)</div>
+                <div
+                  class="adash-kpi-num"
+                  id="adash-kpi-merchants"
+                  style="color: #0d9488"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(13, 148, 136, 0.14); color: #0d9488"
+              >
+                <i class="fa-solid fa-store"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>ចំណូលលក់សរុប៖</span>
+              <b style="color: #0d9488" id="adash-sub-merch-col">$0.00</b>
+            </div>
+          </div>
+
+          <!-- 11. Broadcasts & Promo Codes -->
+          <div
+            class="adash-kpi-card"
+            onclick="navigateFromDashboard('broadcast-history')"
+          >
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="broadcasts-sent">
+                  សារជូនដំណឹង (Broadcasts)
+                </div>
+                <div
+                  class="adash-kpi-num"
+                  id="d-broadcasts"
+                  style="color: #6366f1"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(99, 102, 241, 0.14); color: #6366f1"
+              >
+                <i class="fa-solid fa-tower-broadcast"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>កូដប្រូម៉ូសិនសកម្ម៖</span>
+              <b style="color: #6366f1" id="adash-sub-promos">0 កូដ</b>
+            </div>
+          </div>
+
+          <!-- 12. Frozen Accounts -->
+          <div class="adash-kpi-card" onclick="navigateFromDashboard('users')">
+            <div class="adash-kpi-top">
+              <div>
+                <div class="adash-kpi-label" data-i18n="frozen-accounts">
+                  គណនីជាប់បង្កក (Frozen)
+                </div>
+                <div class="adash-kpi-num" id="d-frozen" style="color: #64748b">
+                  0
+                </div>
+              </div>
+              <div
+                class="adash-kpi-icon"
+                style="background: rgba(100, 116, 139, 0.14); color: #64748b"
+              >
+                <i class="fa-solid fa-user-lock"></i>
+              </div>
+            </div>
+            <div class="adash-kpi-sub">
+              <span>សំបុត្រជំនួយរង់ចាំឆ្លើយ៖</span>
+              <b style="color: #ef4444" id="adash-sub-tickets">0</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- =========================================================
+             ៤. ផ្ទាំងក្រាហ្វវិភាគទិន្នន័យទាំង ២ (Cashflow Trend & Channel Doughnut)
+             ========================================================= -->
+        <div class="adash-charts-row">
+          <!-- ក្រាហ្វទី ១៖ លំហូរសាច់ប្រាក់ចូល/ចេញ និងចំនួនប្រតិបត្តិការ -->
+          <div class="adash-panel">
+            <div class="adash-panel-header">
+              <div>
+                <h3 class="adash-panel-title">
+                  <i class="fa-solid fa-chart-area" style="color: #10b981"></i>
+                  <span data-i18n="trx-volume"
+                    >ក្រាហ្វវិភាគលំហូរសាច់ប្រាក់ និងប្រតិបត្តិការ (Cashflow &
+                    Volume Analytics)</span
+                  >
+                </h3>
+              </div>
+              <div class="adash-preset-group" style="padding: 3px">
+                <button
+                  type="button"
+                  class="adash-preset-btn active"
+                  id="adash-chart-mode-vol"
+                  onclick="switchMainChartMode('volume')"
+                  style="padding: 4px 10px; font-size: 0.73rem"
+                >
+                  ទំហំទឹកប្រាក់ ($)
+                </button>
+                <button
+                  type="button"
+                  class="adash-preset-btn"
+                  id="adash-chart-mode-cnt"
+                  onclick="switchMainChartMode('count')"
+                  style="padding: 4px 10px; font-size: 0.73rem"
+                >
+                  ចំនួនប្រតិបត្តិការ
+                </button>
+              </div>
+            </div>
+            <div style="height: 295px; position: relative; width: 100%">
+              <canvas id="trxChart"></canvas>
+            </div>
+          </div>
+
+          <!-- ក្រាហ្វទី ២៖ សមាមាត្រតាមប្រភេទសេវាកម្ម (Transaction Channels) -->
+          <div class="adash-panel">
+            <div class="adash-panel-header">
+              <h3 class="adash-panel-title">
+                <i class="fa-solid fa-chart-pie" style="color: #3b82f6"></i>
+                <span>សមាមាត្រប្រតិបត្តិការតាមសេវាកម្ម</span>
+              </h3>
+            </div>
+            <div
+              style="
+                height: 215px;
+                position: relative;
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <canvas id="adashChannelChart"></canvas>
+            </div>
+            <div
+              id="adash-channel-legend"
+              style="
+                margin-top: 12px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+                font-size: 0.75rem;
+              "
+            ></div>
+          </div>
+        </div>
+
+        <!-- =========================================================
+             ៥. ផ្ទាំង Live Transaction Stream & Top Customers / Merchants
+             ========================================================= -->
+        <div class="adash-bottom-row">
+          <!-- ឆ្វេង៖ ផ្ទាំងតាមដានប្រតិបត្តិការផ្ទាល់ (Live Activity Stream) -->
+          <div class="adash-panel">
+            <div class="adash-panel-header">
+              <h3 class="adash-panel-title">
+                <span class="adash-pulse-dot"></span>
+                <span data-i18n="recent-activity"
+                  >ផ្ទាំងតាមដានប្រតិបត្តិការផ្ទាល់ (Live Transaction
+                  Stream)</span
+                >
+              </h3>
+              <div style="display: flex; gap: 6px">
+                <select
+                  id="adash-stream-filter"
+                  onchange="renderDashboardLiveStream()"
+                  style="
+                    height: 32px;
+                    padding: 0 10px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border, #cbd5e1);
+                    background: var(--bg-body, #f8fafc);
+                    color: var(--text-main);
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    outline: none;
+                  "
+                >
+                  <option value="ALL">ទាំងអស់ (All Stream)</option>
+                  <option value="TRANSFER">វេរប្រាក់ (Transfers)</option>
+                  <option value="CASHIER">ដាក់/ដកប្រាក់ (Cashier)</option>
+                  <option value="MERCHANT">ហាងទំនិញ (Merchants)</option>
+                  <option value="CARD">កាតធនាគារ (Cards)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="activity-feed" class="adash-stream-list">
+              <div
                 style="
                   text-align: center;
-                  padding: 20px 0;
+                  padding: 40px 0;
                   color: var(--text-muted);
                 "
               >
-                Loading activities...
+                <i
+                  class="fa-solid fa-circle-notch fa-spin"
+                  style="font-size: 1.4rem; color: #0d9488"
+                ></i
+                ><br /><br />
+                កំពុងទាញយកចរន្តប្រតិបត្តិការផ្ទាល់...
               </div>
             </div>
+          </div>
+
+          <!-- ស្តាំ៖ តារាងកំពូលអតិថិជន និងកំពូលហាងទំនិញ (Top Leaderboards) -->
+          <div class="adash-panel">
+            <div class="adash-panel-header">
+              <h3 class="adash-panel-title">
+                <i class="fa-solid fa-trophy" style="color: #f59e0b"></i>
+                <span>ចំណាត់ថ្នាក់កំពូល (Top Leaderboards)</span>
+              </h3>
+              <div class="adash-preset-group" style="padding: 3px">
+                <button
+                  type="button"
+                  class="adash-preset-btn active"
+                  id="adash-lb-btn-users"
+                  onclick="switchLeaderboardTab('users')"
+                  style="padding: 4px 10px; font-size: 0.73rem"
+                >
+                  កំពូលអតិថិជន
+                </button>
+                <button
+                  type="button"
+                  class="adash-preset-btn"
+                  id="adash-lb-btn-merchants"
+                  onclick="switchLeaderboardTab('merchants')"
+                  style="padding: 4px 10px; font-size: 0.73rem"
+                >
+                  កំពូលហាងទំនិញ
+                </button>
+              </div>
+            </div>
+
+            <div id="adash-leaderboard-box" class="adash-stream-list"></div>
           </div>
         </div>
       </div>
@@ -12326,642 +13002,15 @@
     <!-- បញ្ចប់ Main Content -->
 
     <!-- ======================================================= -->
-    <!-- [ ផ្នែកទី៣ ] ផ្ទាំងផុសឡើង (MODALS / POPUPS) -->
-    <!-- ======================================================= -->
-    <!-- 3.2 Modal គ្រប់គ្រងគណនីបុគ្គលិក (Admin Account WIZARD) -->
-    <div id="adminAccModal" class="modal-overlay">
-      <div class="modal-card" style="max-width: 650px">
-        <div class="modal-header">
-          <i class="fa-solid fa-user-tie" style="font-size: 1.2rem"></i>
-          <h3 id="adminModalTitle" data-i18n="admin-profile-setup">
-            គ្រប់គ្រងគណនីបុគ្គលិក
-          </h3>
-        </div>
-
-        <div class="modal-body" style="padding-top: 15px">
-          <!-- 🟢 Progress Indicator -->
-          <div class="wizard-header">
-            <div class="wizard-step-indicator active" id="ind-step-1">
-              <div class="step-circle">1</div>
-              <span class="step-label" data-i18n="info">ព័ត៌មាន</span>
-            </div>
-            <div class="wizard-step-indicator" id="ind-step-2">
-              <div class="step-circle">2</div>
-              <span class="step-label" data-i18n="roles">សិទ្ធិ</span>
-            </div>
-            <div class="wizard-step-indicator" id="ind-step-3">
-              <div class="step-circle">3</div>
-              <span class="step-label" data-i18n="nfc-card">កាត NFC</span>
-            </div>
-            <div class="wizard-step-indicator" id="ind-step-4">
-              <div class="step-circle">4</div>
-              <span class="step-label" data-i18n="verify">បញ្ជាក់</span>
-            </div>
-          </div>
-
-          <input type="hidden" id="manageAdminId" />
-
-          <!-- 🟢 STEP 1: ព័ត៌មានផ្ទាល់ខ្លួន -->
-          <div id="wizard-step-1" class="wizard-content active">
-            <div
-              class="perm-grid"
-              style="
-                grid-template-columns: 1fr 1fr;
-                padding: 0;
-                border: none;
-                gap: 15px;
-              "
-            >
-              <div class="form-group">
-                <label data-i18n="staff-id">Staff ID (កូដសម្គាល់)</label>
-                <input
-                  id="staffId"
-                  class="form-input wizard-input"
-                  readonly
-                  style="background: #e2e8f0; font-weight: bold; color: #475569"
-                />
-              </div>
-              <div class="form-group">
-                <label data-i18n="username"
-                  >Username (ឈ្មោះចូលប្រព័ន្ធ)
-                  <span style="color: red">*</span></label
-                >
-                <input
-                  id="manageAdminUser"
-                  class="form-input wizard-input"
-                  placeholder="ឧ. admin_dara"
-                />
-              </div>
-              <div class="form-group" style="grid-column: 1 / -1">
-                <label data-i18n="full-name"
-                  >Full Name (ឈ្មោះពេញ) <span style="color: red">*</span></label
-                >
-                <input
-                  id="adminFullName"
-                  class="form-input uppercase-input wizard-input"
-                  placeholder="ឧ. SOK DARA"
-                />
-              </div>
-              <div class="form-group">
-                <label data-i18n="nickname">Nickname (ឈ្មោះហៅក្រៅ)</label>
-                <input
-                  id="adminNickname"
-                  class="form-input wizard-input"
-                  placeholder="ឧ. Dara"
-                />
-              </div>
-              <div class="form-group">
-                <label data-i18n="password">Password (លាក់ពេលកែប្រែ)</label>
-                <input
-                  id="manageAdminPass"
-                  type="password"
-                  class="form-input wizard-input"
-                  placeholder="********"
-                />
-              </div>
-              <div class="form-group">
-                <label data-i18n="phone">Phone (លេខទូរស័ព្ទ)</label>
-                <input
-                  id="adminPhone"
-                  class="form-input wizard-input"
-                  placeholder="ឧ. 012345678"
-                />
-              </div>
-              <div class="form-group">
-                <label data-i18n="email">Email (អ៊ីមែល)</label>
-                <input
-                  id="adminEmail"
-                  type="email"
-                  class="form-input wizard-input"
-                  placeholder="dara@u-pay.com"
-                />
-              </div>
-              <div class="form-group" style="grid-column: 1 / -1">
-                <label data-i18n="department"
-                  >Department / Branch (នាយកដ្ឋាន / សាខា)</label
-                >
-                <select id="adminDept" class="form-input wizard-input">
-                  <option value="Customer Support (CS)">
-                    Customer Support (CS)
-                  </option>
-                  <option value="Finance & Accounting">
-                    Finance & Accounting
-                  </option>
-                  <option value="IT & Tech Support">IT & Tech Support</option>
-                  <option value="Branch Manager">Branch Manager</option>
-                  <option value="Head Office">Head Office (HQ)</option>
-                </select>
-              </div>
-              <div class="form-group" style="grid-column: 1 / -1">
-                <label data-i18n="remarks"
-                  >Admin Notes (ចំណាំផ្ទាល់ខ្លួន)</label
-                >
-                <input
-                  id="adminRemarks"
-                  class="form-input wizard-input"
-                  placeholder="ឧ. បុគ្គលិកជាប់កិច្ចសន្យា ៦ខែ..."
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- 🟢 STEP 2: តួនាទី និងសិទ្ធិ (Role & Permissions) -->
-          <div id="wizard-step-2" class="wizard-content">
-            <div class="form-group">
-              <label data-i18n="role">Role (តួនាទី និងសិទ្ធិគោល)</label>
-              <select
-                id="manageAdminRole"
-                class="form-input wizard-input"
-                onchange="toggleCustomPermissions(this.value)"
-              >
-                <option value="super_admin">
-                  Super Admin (មេធំ គ្រប់គ្រងទាំងអស់)
-                </option>
-                <option value="finance_admin">
-                  Finance Admin (ផ្នែកហិរញ្ញវត្ថុ វេរលុយ)
-                </option>
-                <option value="support_agent">
-                  Support Agent (ផ្នែកបម្រើអតិថិជន ឆាត)
-                </option>
-                <option value="custom" data-i18n="custom-role">
-                  Custom (កំណត់សិទ្ធិដោយខ្លួនឯង)
-                </option>
-              </select>
-            </div>
-
-            <div
-              class="form-group"
-              id="customRoleInputGroup"
-              style="
-                display: none;
-                background: #f0fdfa;
-                padding: 15px;
-                border-radius: 10px;
-                border: 1px dashed #10b981;
-              "
-            >
-              <label style="color: #047857" data-i18n="custom-role-title"
-                >ឈ្មោះតួនាទីនេះ (Custom Role Title)</label
-              >
-              <input
-                id="customRoleName"
-                class="form-input wizard-input"
-                placeholder="ឧទាហរណ៍: អ្នកគ្រប់គ្រងកាត"
-                style="border-color: #34d399"
-              />
-            </div>
-
-            <div
-              id="customPermissionBox"
-              style="display: none; margin-top: 15px"
-            >
-              <label
-                style="
-                  font-size: 0.9rem;
-                  font-weight: 700;
-                  color: var(--text-main);
-                  margin-bottom: 10px;
-                  display: block;
-                "
-                data-i18n="working-hours"
-                >ម៉ោងធ្វើការ (Working Hours)</label
-              >
-              <div style="display: flex; gap: 10px; margin-bottom: 20px">
-                <input
-                  type="time"
-                  id="permWorkStart"
-                  class="form-input wizard-input"
-                  value="08:00"
-                />
-                <span
-                  style="
-                    display: flex;
-                    align-items: center;
-                    color: var(--text-muted);
-                    font-weight: bold;
-                  "
-                  >ដល់</span
-                >
-                <input
-                  type="time"
-                  id="permWorkEnd"
-                  class="form-input wizard-input"
-                  value="17:00"
-                />
-              </div>
-
-              <label
-                style="
-                  font-size: 0.9rem;
-                  font-weight: 700;
-                  color: var(--text-main);
-                  margin-bottom: 10px;
-                  display: block;
-                "
-                data-i18n="menu-access"
-                >សិទ្ធិចូលមើល (Menu Access)</label
-              >
-              <div class="perm-grid" style="margin-bottom: 20px">
-                <div class="perm-item">
-                  <span>User Mgmt</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_users" checked /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Merchant Mgmt</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_merchant" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Cashier</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_cashier" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Trx Check</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_checktrx" checked /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Exchange Rates</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_fx" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Cards Mgmt</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_cards" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Promos/Fees</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_promos" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Broadcast</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_broadcast" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>KYC</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_kyc" checked /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Tickets</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_tickets" checked /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Live Chat</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_chat" checked /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span>Audit Logs</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_logs" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-              </div>
-
-              <label
-                style="
-                  font-size: 0.9rem;
-                  font-weight: 700;
-                  color: var(--text-main);
-                  margin-bottom: 10px;
-                  display: block;
-                "
-                data-i18n="action-permissions"
-                >សិទ្ធិអនុវត្ត (Action Permissions)</label
-              >
-              <div class="perm-grid">
-                <div class="perm-item">
-                  <span data-i18n="edit-profile">កែប្រែ Profile</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_edit_user" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span data-i18n="delete-account">លុបគណនី</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_delete_user" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span data-i18n="freeze-account">ផ្អាកគណនី</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_freeze_user" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span data-i18n="adjust-balance">បន្ថែម/ដកលុយ</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_adjust_bal" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-                <div class="perm-item">
-                  <span data-i18n="refund">Refund លុយ</span
-                  ><label class="switch"
-                    ><input type="checkbox" id="p_refund" /><span
-                      class="slider"
-                    ></span
-                  ></label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 🟢 STEP 3: ការភ្ជាប់ NFC (សុវត្ថិភាព) -->
-          <div id="wizard-step-3" class="wizard-content">
-            <div style="text-align: center; padding: 20px 0">
-              <i
-                class="fa-solid fa-id-badge"
-                style="
-                  font-size: 5rem;
-                  color: var(--accent);
-                  margin-bottom: 20px;
-                "
-              ></i>
-              <h3 data-i18n="bind-staff-card">
-                ភ្ជាប់កាតសន្តិសុខ (Staff NFC Card)
-              </h3>
-              <p
-                style="color: var(--text-muted); font-size: 0.9rem"
-                data-i18n="nfc-desc"
-              >
-                បុគ្គលិកអាចប្រើកាត NFC នេះដើម្បីវាយកាតចូលធ្វើការ ឬ Log in
-                ចូលប្រព័ន្ធ។<br />អ្នកអាចចុច "រំលង (Skip)"
-                ប្រសិនបើមិនទាន់មានកាតឥឡូវនេះ។
-              </p>
-
-              <div
-                id="nfcStatusBox"
-                style="
-                  background: #f1f5f9;
-                  border: 1px dashed var(--border);
-                  padding: 15px;
-                  border-radius: 12px;
-                  margin: 20px 0;
-                  font-family: monospace;
-                  font-size: 1.1rem;
-                  color: var(--text-main);
-                  font-weight: bold;
-                "
-              >
-                <span style="color: #94a3b8">NO CARD LINKED</span>
-              </div>
-              <input type="hidden" id="adminNfcUid" value="" />
-
-              <!-- កន្លែងសម្រាប់ប្តូរប៊ូតុង ភ្ជាប់ / ផ្តាច់ ស្វ័យប្រវត្តិ -->
-              <div id="nfcActionBtnContainer"></div>
-            </div>
-          </div>
-
-          <!-- 🟢 STEP 4: ការបញ្ជាក់ (Summary) -->
-          <div id="wizard-step-4" class="wizard-content">
-            <h4
-              style="
-                margin-top: 0;
-                color: var(--text-main);
-                border-bottom: 2px solid var(--border);
-                padding-bottom: 10px;
-              "
-            >
-              សូមពិនិត្យមើលទិន្នន័យឡើងវិញ
-            </h4>
-            <div class="summary-box">
-              <div class="summary-row">
-                <span class="summary-label">Staff ID:</span>
-                <span class="summary-value" id="sum-id">...</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Full Name:</span>
-                <span class="summary-value" id="sum-name">...</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Username:</span>
-                <span class="summary-value" id="sum-user">...</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">Department:</span>
-                <span class="summary-value" id="sum-dept">...</span>
-              </div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-row">
-                <span class="summary-label">Role:</span>
-                <span
-                  class="summary-value"
-                  id="sum-role"
-                  style="color: var(--accent)"
-                  >...</span
-                >
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">NFC Status:</span>
-                <span class="summary-value" id="sum-nfc">...</span>
-              </div>
-            </div>
-            <p
-              style="
-                text-align: center;
-                color: #ef4444;
-                font-size: 0.85rem;
-                font-weight: 600;
-              "
-            >
-              <i class="fa-solid fa-circle-info"></i> សូមចុច "Confirm & Save"
-              ដើម្បីបញ្ជាក់!
-            </p>
-          </div>
-        </div>
-
-        <div class="modal-footer" style="justify-content: space-between">
-          <button
-            class="btn-cancel"
-            id="btnWizBack"
-            onclick="changeAdminStep(-1)"
-            style="
-              display: none;
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-              font-size: 0.95rem;
-              font-weight: 600;
-            "
-          >
-            <i class="fa-solid fa-arrow-left"></i> ថយក្រោយ
-          </button>
-          <button
-            class="btn-cancel"
-            id="btnWizCancel"
-            onclick="closeModal('adminAccModal')"
-            style="
-              font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-              font-size: 0.95rem;
-              font-weight: 600;
-            "
-          >
-            បោះបង់
-          </button>
-
-          <div style="display: flex; gap: 10px">
-            <button
-              class="btn-primary"
-              id="btnWizNext"
-              onclick="changeAdminStep(1)"
-              style="
-                background: var(--accent);
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-                font-size: 0.95rem;
-                font-weight: 600;
-                border-radius: 10px;
-              "
-            >
-              បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
-            </button>
-            <button
-              class="btn-save btn-primary"
-              id="btnWizSave"
-              onclick="saveAdminAccount()"
-              style="
-                display: none;
-                background: var(--secondary);
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-                font-size: 0.95rem;
-                font-weight: 600;
-                border-radius: 10px;
-              "
-            >
-              <i class="fa-solid fa-check-circle"></i> Confirm & Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3.3 Modal សម្រាប់បង្កើតកូដប្រូម៉ូសិន (Promo Modal) -->
-    <div id="promoModal" class="modal-overlay">
-      <div class="modal-card">
-        <div class="modal-header">
-          <i class="fa-solid fa-ticket" style="font-size: 1.2rem"></i>
-          <h3 data-i18n="create-new-promo">បង្កើតកូដប្រូម៉ូសិនថ្មី</h3>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label data-i18n="promo-code">ឈ្មោះកូដ (Promo Code)</label
-            ><input
-              id="prmCode"
-              class="form-input"
-              placeholder="ឧទាហរណ៍: UPAY2026"
-              style="
-                text-transform: uppercase;
-                font-weight: bold;
-                letter-spacing: 2px;
-              "
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="promo-reward"
-              >ទឹកប្រាក់រង្វាន់ (Reward Value in $)</label
-            ><input
-              id="prmReward"
-              type="number"
-              class="form-input"
-              placeholder="ឧទាហរណ៍: 2.00"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="promo-max-usage"
-              >ចំនួនអ្នកអាចប្រើបានអតិបរមា (Max Usage)</label
-            ><input
-              id="prmMax"
-              type="number"
-              class="form-input"
-              placeholder="ឧទាហរណ៍: 100 នាក់"
-              value="100"
-            />
-          </div>
-          <div class="form-group">
-            <label data-i18n="promo-expiry"
-              >ថ្ងៃផុតកំណត់ (Expiry Date) - មិនដាក់ក៏បាន</label
-            ><input id="prmExpiry" type="date" class="form-input" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button
-            class="btn-cancel"
-            onclick="closeModal('promoModal')"
-            data-i18n="cancel"
-          >
-            បោះបង់
-          </button>
-          <button
-            class="btn-save btn-primary"
-            onclick="savePromoCode()"
-            data-i18n="create-promo-code"
-          >
-            បង្កើតកូដ
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======================================================= -->
     <!-- [ ផ្នែកទី៤ ] តំណភ្ជាប់ File JavaScript (SCRIPTS) -->
     <!-- ======================================================= -->
     <script src="js/admin-lang.js"></script>
     <script src="js/admin-core.js?v=1"></script>
     <script src="js/admin-users.js?v=1"></script>
-    <!-- <script src="js/admin-finance.js?v=99"></script> -->
     <script src="js/admin-fx.js?v=1"></script>
     <script src="js/admin-fees.js?v=1"></script>
     <script src="js/admin-promo.js?v=1"></script>
     <script src="js/admin-cashier.js?v=1"></script>
-    <!-- <script src="js/admin-ops.js?v=99"></script> -->
     <script src="js/admin-card.js?v=1"></script>
     <script src="js/admin-trx.js?v=1"></script>
     <script src="js/admin-tickets.js?v=1"></script>
@@ -12972,5 +13021,6 @@
     <script src="js/admin-chat.js"></script>
     <script src="js/admin-management.js"></script>
     <script src="js/admin-kyc.js?v=1"></script>
+    <script src="js/admin-dashboard.js"></script>
   </body>
 </html>

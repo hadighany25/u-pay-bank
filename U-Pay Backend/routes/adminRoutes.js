@@ -147,10 +147,20 @@ router.get(
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getStats, "getStats"),
 );
+
 router.get(
   "/dashboard-extra",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getDashboardExtra, "getDashboardExtra"),
+);
+
+router.get(
+  "/dashboard-analytics",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.getDashboardAnalyticsPro,
+    "getDashboardAnalyticsPro",
+  ),
 );
 
 // ==========================================

@@ -1643,3 +1643,205 @@ body.dark-mode .step-circle {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   SECTION 16. SMART RESIZABLE & COLLAPSIBLE SIDEBAR PRO
+========================================================= */
+:root {
+  --sb-width: 275px;
+}
+
+.sidebar {
+  width: var(--sb-width);
+  min-width: 78px;
+  max-width: 440px;
+  position: relative;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 18px 14px;
+  transition:
+    width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    min-width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    padding 0.25s ease,
+    transform 0.35s ease;
+}
+
+/* ពេលកំពុងអូសទទឹងដោយ Mouse ត្រូវបិទ transition ដើម្បីឱ្យអូសរលូនតាមដៃ ១០០% */
+body.sb-resizing .sidebar {
+  transition: none !important;
+}
+body.sb-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* របារចាប់ទាញពង្រីក/បង្រួមទទឹងនៅគែមខាងស្តាំនៃ Sidebar */
+.sb-resizer-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 9px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1050;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+.sb-resizer-handle:hover,
+body.sb-resizing .sb-resizer-handle {
+  background: linear-gradient(180deg, transparent, #10b981, transparent);
+}
+
+/* កាតបង្ហាញរូបថត និងឈ្មោះ Admin នៅក្បាល Sidebar */
+.sb-profile-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+.sb-avatar-circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #004d40, #10b981);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+.sb-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sb-profile-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+/* ប្រអប់ស្វែងរកម៉ឺនុយរហ័សលើ Sidebar */
+.sb-quick-filter-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+.sb-quick-filter-wrap i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 0.8rem;
+}
+.sb-quick-filter-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+  font-size: 0.8rem;
+  font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+  outline: none;
+  transition: 0.2s;
+}
+.sb-quick-filter-input:focus {
+  border-color: #10b981;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+/* ចំណងជើងក្រុមម៉ឺនុយ (អាចចុចបត់/លាតបាន) */
+.menu-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 6px 10px;
+  margin: 10px 0 4px 0;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  transition: 0.2s;
+}
+.menu-label:hover {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.03);
+}
+.menu-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.menu-group-items.group-collapsed {
+  display: none;
+}
+
+.menu-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 11px 14px;
+  margin-bottom: 2px;
+  border-radius: 11px;
+  font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+  position: relative;
+}
+.menu-item .sb-menu-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 🟢 ទម្រង់ទី ១៖ បង្រួមមកសល់តែរូប Icon (Mini Collapsed Mode - 78px) */
+@media (min-width: 769px) {
+  body.sb-collapsed .sidebar {
+    width: 78px !important;
+    min-width: 78px !important;
+    padding: 18px 10px;
+  }
+  body.sb-collapsed .sb-profile-meta,
+  body.sb-collapsed .sb-quick-filter-wrap,
+  body.sb-collapsed .menu-label,
+  body.sb-collapsed .menu-item .sb-menu-text {
+    display: none !important;
+  }
+  body.sb-collapsed .sb-profile-box {
+    justify-content: center;
+    padding: 10px 6px;
+  }
+  body.sb-collapsed .menu-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  body.sb-collapsed .menu-item i {
+    margin: 0;
+    font-size: 1.22rem;
+  }
+  body.sb-collapsed .menu-item:hover {
+    transform: scale(1.06);
+  }
+
+  /* 🟢 ទម្រង់ទី ២៖ លាក់ Sidebar ទាំងស្រុង (Full-Screen Canvas Mode) */
+  body.sb-hidden .sidebar {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+  }
+}

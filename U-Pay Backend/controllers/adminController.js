@@ -855,6 +855,360 @@ const getDashboardExtra = async (req, res) => {
   }
 };
 
+/**
+ * 📌 [Admin Pro Dashboard] ទាញយកទិន្នន័យវិភាគគ្រប់ជ្រុងជ្រោយ ១០០% តាមកាលបរិច្ឆេទ (Date Range Filter)
+ */
+const getDashboardAnalyticsPro = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const sysFx = readFXRates() || { usdToKhrBuy: 4050, usdToKhrSell: 4100 };
+    const khrRate = parseFloat(sysFx.usdToKhrSell) || 4100;
+    const sysStatus = readSystemStatus() || { isSystemFrozen: false };
+
+    // ១. កំណត់ចន្លោះកាលបរិច្ឆេទ (Start Date -> End Date)
+    let startMs = 0;
+    let endMs = Date.now() + 86400000;
+    if (startDate) {
+      const s = new Date(startDate + "T00:00:00");
+      if (!isNaN(s.getTime())) startMs = s.getTime();
+    }
+    if (endDate) {
+      const e = new Date(endDate + "T23:59:59.999");
+      if (!isNaN(e.getTime())) endMs = e.getTime();
+    }
+
+    const parseItemTime = (item) => {
+      if (item.createdAt) {
+        const t = new Date(item.createdAt).getTime();
+        if (!isNaN(t)) return t;
+      }
+      if (item.date || item.joinDate) {
+        const t = new Date(item.date || item.joinDate).getTime();
+        if (!isNaN(t)) return t;
+      }
+      if (item._id && typeof item._id.getTimestamp === "function") {
+        return item._id.getTimestamp().getTime();
+      }
+      return Date.now();
+    };
+
+    // ២. ទាញទិន្នន័យពិតពីគ្រប់ Collections ក្នុងពេលតែមួយ (Parallel Queries)
+    const [
+      allUsers,
+      allCards,
+      allMerchants,
+      allCashierTickets,
+      allPromos,
+      allAdmins,
+      recentTrxsRaw,
+      broadcastAgg,
+    ] = await Promise.all([
+      User.find().select("-password -pin").lean(),
+      Card.find().lean(),
+      Merchant.find().lean(),
+      CashierTicket.find().sort({ createdAt: -1 }).limit(300).lean(),
+      PromoCode.find().lean(),
+      Admin.find({}, "-password").lean(),
+      Transaction.find().sort({ _id: -1 }).limit(2500).lean(),
+      Notification.distinct("metadata.broadcastId", {
+        "metadata.broadcastId": { $exists: true },
+      }),
+    ]);
+
+    const clients = allUsers.filter(
+      (u) => u.role !== "admin" && u.username !== "superadmin",
+    );
+    const centralBankUser = allUsers.find(
+      (u) =>
+        u.mainAccounts?.USD?.accountNumber === "888888888" ||
+        u.username === "superadmin",
+    );
+
+    // ៣. គណនាស្ថិតិអតិថិជន និងមូលនិធិក្នុងប្រព័ន្ធ
+    let activeOnlineUsers = 0;
+    let newUsersInPeriod = 0;
+    let frozenUsersCount = 0;
+    let verifiedKycCount = 0;
+    let pendingKycCount = 0;
+    let openSupportTickets = 0;
+
+    let totalClientUSD = 0;
+    let totalClientKHR = 0;
+    let totalFixedDepositUSD = 0;
+
+    const topUsersList = [];
+
+    clients.forEach((u) => {
+      if (u.isOnline) activeOnlineUsers++;
+      if (u.isFrozen) frozenUsersCount++;
+
+      const kycSt = String(u.kycStatus || "").toLowerCase();
+      if (kycSt === "verified" || kycSt === "approved") verifiedKycCount++;
+      else if (kycSt === "pending") pendingKycCount++;
+
+      const joinT = parseItemTime(u);
+      if (joinT >= startMs && joinT <= endMs) newUsersInPeriod++;
+
+      let uUsd = Number(u.mainAccounts?.USD?.balance || 0);
+      let uKhr = Number(u.mainAccounts?.KHR?.balance || 0);
+
+      if (Array.isArray(u.subAccounts)) {
+        u.subAccounts.forEach((sub) => {
+          if (sub.currency === "KHR") uKhr += Number(sub.balance || 0);
+          else uUsd += Number(sub.balance || 0);
+        });
+      }
+
+      if (Array.isArray(u.deposits)) {
+        u.deposits.forEach((dep) => {
+          totalFixedDepositUSD += Number(dep.amount || 0);
+        });
+      }
+
+      if (Array.isArray(u.tickets)) {
+        u.tickets.forEach((tk) => {
+          if (tk.status === "Open" || tk.status === "Pending")
+            openSupportTickets++;
+        });
+      }
+
+      totalClientUSD += uUsd;
+      totalClientKHR += uKhr;
+
+      const combinedUsdEq = uUsd + uKhr / khrRate;
+      topUsersList.push({
+        username: u.username,
+        fullName: u.fullName || u.username,
+        profileImage: u.profileImage || "",
+        usdBalance: uUsd,
+        khrBalance: uKhr,
+        totalUsdEq: combinedUsdEq,
+        kycStatus: u.kycStatus || "unverified",
+      });
+    });
+
+    topUsersList.sort((a, b) => b.totalUsdEq - a.totalUsdEq);
+
+    // ៤. គណនាស្ថិតិហាងទំនិញ (Merchants) និងបញ្ជរគិតប្រាក់ (Cashier)
+    let totalMerchantEscrowUSD = 0;
+    let totalMerchantCollectedUSD = 0;
+    const topMerchantsList = [];
+
+    allMerchants.forEach((m) => {
+      const holdUsd =
+        Number(m.escrowHold?.USD || 0) +
+        Number(m.escrowHold?.KHR || 0) / khrRate;
+      const colUsd =
+        Number(m.collected?.USD || 0) + Number(m.collected?.KHR || 0) / khrRate;
+      totalMerchantEscrowUSD += holdUsd;
+      totalMerchantCollectedUSD += colUsd;
+
+      topMerchantsList.push({
+        name: m.name,
+        merchantId: m.merchantId,
+        owner: m.username || m.userId,
+        category: m.category || "General",
+        collectedUSD: colUsd,
+        escrowUSD: holdUsd,
+        status: m.status || "Active",
+      });
+    });
+    topMerchantsList.sort((a, b) => b.collectedUSD - a.collectedUSD);
+
+    const pendingCashierTickets = allCashierTickets.filter(
+      (t) => t.status === "pending_approve" || t.status === "pending_verify",
+    ).length;
+
+    // ៥. គណនាប្រតិបត្តិការ និងលំហូរសាច់ប្រាក់ក្នុងចន្លោះកាលបរិច្ឆេទ (Filtered Transactions)
+    const toUsd = (amt, cur) =>
+      cur === "KHR"
+        ? Math.abs(Number(amt || 0)) / khrRate
+        : Math.abs(Number(amt || 0));
+
+    let periodTrxCount = 0;
+    let periodVolumeUSD = 0;
+    let periodRevenueUSD = 0;
+    let periodDepositsUSD = 0;
+    let periodWithdrawalsUSD = 0;
+    let periodTransfersCount = 0;
+    let periodMerchantPayCount = 0;
+    let periodCardPayCount = 0;
+    let periodBillPayCount = 0;
+    let periodCashierCount = 0;
+    let pendingTrxCount = 0;
+
+    const dailyMap = {};
+    const seenRefForVolume = new Set();
+
+    recentTrxsRaw.forEach((t) => {
+      if (t.status === "Pending" || t.status === "Hold") pendingTrxCount++;
+
+      const tTime = parseItemTime(t);
+      if (tTime < startMs || tTime > endMs) return;
+
+      // មិនរាប់ប្រតិបត្តិការកត់ត្រាផ្ទៃក្នុងរបស់ Central Bank ជាន់គ្នា
+      if (t.username === "superadmin" && t.type !== "System Income") return;
+
+      const dObj = new Date(tTime);
+      const dayKey = dObj.toISOString().split("T")[0];
+      if (!dailyMap[dayKey]) {
+        dailyMap[dayKey] = {
+          date: dayKey,
+          inflowUSD: 0,
+          outflowUSD: 0,
+          revenueUSD: 0,
+          count: 0,
+        };
+      }
+
+      const amtUsd = toUsd(t.amount, t.currency);
+      const feeUsd = toUsd(t.fee || 0, t.currency);
+      const tType = String(t.type || "").toLowerCase();
+      const tMethod = String(t.trxMethod || "").toLowerCase();
+
+      // គណនាចំណូលធនាគារ (Fee + Card Issuance + System Income)
+      if (feeUsd > 0) {
+        periodRevenueUSD += feeUsd;
+        dailyMap[dayKey].revenueUSD += feeUsd;
+      }
+      if (
+        t.receiverAcc === "888000999" ||
+        tType.includes("issuance fee") ||
+        tType.includes("transfer fee")
+      ) {
+        periodRevenueUSD += amtUsd;
+        dailyMap[dayKey].revenueUSD += amtUsd;
+      }
+
+      // ការពារកុំឱ្យរាប់ Volume ជាន់គ្នា២ដង (Sender Leg & Receiver Leg នៃប្រតិបត្តិការតែមួយ)
+      const refKey = t.refId || String(t._id);
+      if (!seenRefForVolume.has(refKey)) {
+        seenRefForVolume.add(refKey);
+        periodTrxCount++;
+        periodVolumeUSD += amtUsd;
+        dailyMap[dayKey].count++;
+
+        if (tType.includes("deposit")) {
+          periodDepositsUSD += amtUsd;
+          periodCashierCount++;
+          dailyMap[dayKey].inflowUSD += amtUsd;
+        } else if (tType.includes("withdrawal")) {
+          periodWithdrawalsUSD += amtUsd;
+          periodCashierCount++;
+          dailyMap[dayKey].outflowUSD += amtUsd;
+        } else if (
+          t.cardNumber ||
+          tType.includes("card") ||
+          tMethod.includes("nfc")
+        ) {
+          periodCardPayCount++;
+          dailyMap[dayKey].outflowUSD += amtUsd;
+        } else if (
+          t.merchantId ||
+          tType.includes("merchant") ||
+          tMethod.includes("qr")
+        ) {
+          periodMerchantPayCount++;
+          dailyMap[dayKey].outflowUSD += amtUsd;
+        } else if (tType.includes("bill") || t.receiverAcc === "777888999") {
+          periodBillPayCount++;
+          dailyMap[dayKey].outflowUSD += amtUsd;
+        } else {
+          periodTransfersCount++;
+          if (Number(t.amount) > 0) dailyMap[dayKey].inflowUSD += amtUsd;
+          else dailyMap[dayKey].outflowUSD += amtUsd;
+        }
+      }
+    });
+
+    const sortedTimeline = Object.values(dailyMap).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
+
+    const liveStream = recentTrxsRaw
+      .filter((t) => t.username !== "superadmin")
+      .slice(0, 25)
+      .map((t) => ({
+        _id: t._id,
+        refId: t.refId || "N/A",
+        hash: t.hash || "",
+        username: t.username || "System",
+        senderName: t.senderName || t.username || "System",
+        receiverName: t.receiverName || "System",
+        senderAcc: t.senderAcc || "",
+        receiverAcc: t.receiverAcc || "",
+        amount: Number(t.amount || 0),
+        currency: t.currency || "USD",
+        type: t.type || "Transaction",
+        trxMethod: t.trxMethod || "U-Pay",
+        status: t.status || "Success",
+        date: t.date || new Date(t.createdAt || Date.now()).toLocaleString(),
+      }));
+
+    res.json({
+      success: true,
+      system: {
+        isFrozen: Boolean(sysStatus.isSystemFrozen),
+        fxBuy: sysFx.usdToKhrBuy || 4050,
+        fxSell: sysFx.usdToKhrSell || 4100,
+        centralBankUSD: Number(
+          centralBankUser?.mainAccounts?.USD?.balance || 0,
+        ),
+        centralBankKHR: Number(
+          centralBankUser?.mainAccounts?.KHR?.balance || 0,
+        ),
+      },
+      kpis: {
+        totalUsers: clients.length,
+        activeOnlineUsers,
+        newUsersInPeriod,
+        frozenUsersCount,
+        verifiedKycCount,
+        pendingKycCount,
+        openSupportTickets,
+        pendingCashierTickets,
+        pendingTrxCount,
+        totalPendingApprovals:
+          pendingKycCount + pendingCashierTickets + pendingTrxCount,
+        totalClientUSD,
+        totalClientKHR,
+        totalSystemLiquidityUSD: totalClientUSD + totalClientKHR / khrRate,
+        totalFixedDepositUSD,
+        totalMerchantEscrowUSD,
+        totalMerchantCollectedUSD,
+        periodRevenueUSD,
+        periodVolumeUSD,
+        periodTrxCount,
+        periodDepositsUSD,
+        periodWithdrawalsUSD,
+        periodTransfersCount,
+        totalCards: allCards.length,
+        physicalCards: allCards.filter((c) => c.isPhysical).length,
+        lockedCards: allCards.filter((c) => c.isLocked).length,
+        totalMerchants: allMerchants.length,
+        activePromos: allPromos.filter((p) => p.isActive).length,
+        totalAdmins: allAdmins.length,
+        broadcastsCount: broadcastAgg ? broadcastAgg.length : 0,
+      },
+      breakdown: {
+        transfers: periodTransfersCount,
+        merchantPay: periodMerchantPayCount,
+        cashier: periodCashierCount,
+        cardPay: periodCardPayCount,
+        billPay: periodBillPayCount,
+      },
+      timeline: sortedTimeline,
+      liveStream,
+      topUsers: topUsersList.slice(0, 6),
+      topMerchants: topMerchantsList.slice(0, 6),
+    });
+  } catch (err) {
+    console.error("Dashboard Analytics Pro Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // ==========================================
 // 👥 ផ្នែកទី ៦៖ ការគ្រប់គ្រងអតិថិជន (Customer 360 & Management - Updated with Card.js)
 // ==========================================
@@ -5254,6 +5608,7 @@ module.exports = {
   // Dashboard
   getStats,
   getDashboardExtra,
+  getDashboardAnalyticsPro,
 
   // User Manage
   adminCreateUser,

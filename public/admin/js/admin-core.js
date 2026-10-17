@@ -1,21 +1,17 @@
-// js/admin-core.js
+// ========================================================================
+// ឯកសារ: js/admin-core.js (Pro Modular Core + Smart Resizable Sidebar Engine)
+// អត្ថន័យ: បង្កើត Sidebar ស្វ័យប្រវត្តិ, អូសពង្រីក/បង្រួមទទឹង, បិទ/បើកម៉ឺនុយ & គ្រប់គ្រងសិទ្ធិ
+// ========================================================================
 
-// ========================================================================
-// ⚙️ SECTION 1: GLOBAL VARIABLES & AUTHENTICATION
-// គ្រប់គ្រងអថេរសកល និងការផ្ទៀងផ្ទាត់សិទ្ធិចូលប្រព័ន្ធ
-// ========================================================================
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
 let myAdminPermissions = null;
-let myChart = null;
 let globalUsersData = [];
 
-// ទាត់អ្នកប្រើប្រាស់ចេញ បើគ្មាន Token ត្រឹមត្រូវ
 if (!adminToken || !adminRole) {
   window.location.href = "admin-login.html";
 }
 
-// មុខងារសម្រាប់ភ្ជាប់ Token ទៅរាល់ API Requests
 const getAuthHeaders = () => {
   return {
     "Content-Type": "application/json",
@@ -23,18 +19,383 @@ const getAuthHeaders = () => {
   };
 };
 
-// 🟢 បង្ហាញឈ្មោះ Admin និង Staff ID នៅលើ Sidebar Menu
-const adminFullName =
-  sessionStorage.getItem("adminFullName") ||
-  "U-PAY " + (adminRole ? adminRole.split("_")[0].toUpperCase() : "ADMIN");
-const adminStaffId = sessionStorage.getItem("adminStaffId") || "UPAY-SYSTEM";
+// ========================================================================
+// 🗂️ SECTION 1: SMART SIDEBAR GENERATOR & DRAG-TO-RESIZE ENGINE
+// រៀបចំលំដាប់ក្រុមម៉ឺនុយស្តង់ដារធនាគារ និងកាត់បន្ថយកូដក្នុង index.html
+// ========================================================================
+const ADMIN_SIDEBAR_SCHEMA = [
+  {
+    groupId: "label-main",
+    groupTitle: "ម៉ឺនុយគោល (MAIN MENU)",
+    i18nKey: "menu-main",
+    items: [
+      {
+        id: "menu-dashboard",
+        sec: "dashboard",
+        icon: "fa-chart-pie",
+        label: "ផ្ទាំងគ្រប់គ្រង (Dashboard)",
+        i18n: "menu-dash",
+      },
+      {
+        id: "menu-users",
+        sec: "users",
+        icon: "fa-users",
+        label: "គ្រប់គ្រងអតិថិជន (Users)",
+        i18n: "menu-users",
+      },
+      {
+        id: "menu-customer-360",
+        sec: "customer-360",
+        icon: "fa-users-viewfinder",
+        label: "អតិថិជន 360° (Customer 360°)",
+        i18n: "menu-customer-360",
+      },
+      {
+        id: "menu-merchants",
+        sec: "merchants",
+        icon: "fa-store",
+        label: "ដៃគូហាងទំនិញ (Merchants)",
+        i18n: "menu-merchants",
+      },
+    ],
+  },
+  {
+    groupId: "label-ops",
+    groupTitle: "ប្រតិបត្តិការធនាគារ (OPERATIONS)",
+    i18nKey: "menu-ops",
+    items: [
+      {
+        id: "menu-cashier",
+        sec: "cashier",
+        icon: "fa-cash-register",
+        label: "បេឡាករ (Cashier Desk)",
+        i18n: "menu-cashier",
+      },
+      {
+        id: "menu-checktrx",
+        sec: "check-trx",
+        icon: "fa-magnifying-glass-dollar",
+        label: "ឆែកប្រតិបត្តិការ (Trx Check)",
+        i18n: "menu-checktrx",
+      },
+      {
+        id: "menu-cards",
+        sec: "cards",
+        icon: "fa-credit-card",
+        label: "គ្រប់គ្រងកាត (Cards Hub)",
+        i18n: "menu-cards",
+      },
+    ],
+  },
+  {
+    groupId: "label-finance",
+    groupTitle: "ហិរញ្ញវត្ថុ & ទីផ្សារ (TREASURY & PROMO)",
+    i18nKey: "menu-finance",
+    items: [
+      {
+        id: "menu-fx",
+        sec: "fx",
+        icon: "fa-money-bill-trend-up",
+        label: "អត្រាប្តូរប្រាក់ (FX Rates)",
+        i18n: "menu-fx",
+      },
+      {
+        id: "menu-fees",
+        sec: "fees",
+        icon: "fa-percent",
+        label: "កម្រៃសេវា & Limit (Fees)",
+        i18n: "menu-fees",
+      },
+      {
+        id: "menu-promo",
+        sec: "promo",
+        icon: "fa-ticket",
+        label: "កូដប្រូម៉ូសិន (Promo Codes)",
+        i18n: "menu-promo",
+      },
+      {
+        id: "menu-broadcast",
+        sec: "broadcast-history",
+        icon: "fa-tower-broadcast",
+        label: "សារជូនដំណឹង (Broadcast)",
+        i18n: "menu-broadcast",
+      },
+    ],
+  },
+  {
+    groupId: "label-security",
+    groupTitle: "អត្តសញ្ញាណ & ជំនួយ (KYC & SUPPORT)",
+    i18nKey: "menu-security",
+    items: [
+      {
+        id: "menu-kyc",
+        sec: "kyc",
+        icon: "fa-id-card-clip",
+        label: "អនុម័ត KYC (KYC Approvals)",
+        i18n: "menu-kyc",
+      },
+      {
+        id: "menu-tickets",
+        sec: "tickets",
+        icon: "fa-headset",
+        label: "សំណូមពរអតិថិជន (Tickets)",
+        i18n: "menu-tickets",
+      },
+      {
+        id: "menu-chat",
+        sec: "live-chat",
+        icon: "fa-comments",
+        label: "ជជែកផ្ទាល់ (Live Chat)",
+        i18n: "menu-chat",
+      },
+    ],
+  },
+  {
+    groupId: "menu-super-only",
+    groupTitle: "រដ្ឋបាលជាន់ខ្ពស់ (SUPER ADMIN)",
+    i18nKey: "menu-super",
+    items: [
+      {
+        id: "menu-admins",
+        sec: "admins",
+        icon: "fa-user-shield",
+        label: "គ្រប់គ្រងបុគ្គលិក (Staff IAM)",
+        i18n: "menu-admins",
+      },
+      {
+        id: "menu-logs",
+        sec: "logs",
+        icon: "fa-list-check",
+        label: "កំណត់ហេតុប្រព័ន្ធ (Audit Logs)",
+        i18n: "menu-logs",
+      },
+      {
+        id: "menu-system",
+        sec: "__SYSTEM_FREEZE__",
+        icon: "fa-power-off",
+        iconColor: "#ef4444",
+        label: "បិទ/បើកប្រព័ន្ធ (System)",
+        i18n: "menu-system",
+      },
+    ],
+  },
+];
 
-document.getElementById("adminNameDisplay").innerText = adminFullName;
-document.getElementById("adminRoleDisplay").innerText = "ID : " + adminStaffId;
+function buildSmartSidebar() {
+  const sb = document.getElementById("sidebar");
+  if (!sb) return;
+
+  const adminFullName =
+    sessionStorage.getItem("adminFullName") ||
+    "U-PAY " + (adminRole ? adminRole.split("_")[0].toUpperCase() : "ADMIN");
+  const adminStaffId = sessionStorage.getItem("adminStaffId") || "UPAY-SYSTEM";
+
+  const groupsHtml = ADMIN_SIDEBAR_SCHEMA.map((grp) => {
+    const itemsHtml = grp.items
+      .map((item) => {
+        const clickHandler =
+          item.sec === "__SYSTEM_FREEZE__"
+            ? "toggleSystemFreeze()"
+            : `showSection('${item.sec}', this); toggleSidebar(false);`;
+        const iconStyle = item.iconColor
+          ? `style="color:${item.iconColor}"`
+          : "";
+
+        return `
+          <div class="menu-item" id="${item.id}" onclick="${clickHandler}" title="${item.label}">
+            <i class="fa-solid ${item.icon}" ${iconStyle}></i>
+            <span class="sb-menu-text" data-i18n="${item.i18n}">${item.label}</span>
+          </div>
+        `;
+      })
+      .join("");
+
+    return `
+      <div class="sb-group-block" id="block-${grp.groupId}">
+        <div class="menu-label" id="${grp.groupId}" onclick="toggleSidebarGroup('${grp.groupId}')">
+          <span data-i18n="${grp.i18nKey}">${grp.groupTitle}</span>
+          <i class="fa-solid fa-chevron-down" id="chev-${grp.groupId}" style="font-size:0.65rem; transition:transform 0.2s;"></i>
+        </div>
+        <div class="menu-group-items" id="items-${grp.groupId}">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  sb.innerHTML = `
+    <!-- របារចាប់ទាញពង្រីក/បង្រួមទទឹង Sidebar -->
+    <div class="sb-resizer-handle" id="sbResizerHandle" title="ចុចឱ្យជាប់រួចអូសឆ្វេង/ស្តាំដើម្បីសេរ៉េទទឹងម៉ឺនុយ (Double-click ដើម្បីកំណត់ទំហំដើម)"></div>
+
+    <!-- ប្រអប់ព័ត៌មាន និងរូបថត Profile បុគ្គលិក Admin -->
+    <div class="sb-profile-box">
+      <div class="sb-avatar-circle" id="sbAdminAvatarBox">
+        <i class="fa-solid fa-user-shield"></i>
+      </div>
+      <div class="sb-profile-meta">
+        <div id="adminNameDisplay" style="font-weight: 800; font-size: 0.96rem; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          ${adminFullName}
+        </div>
+        <div id="adminRoleDisplay" style="font-size: 0.72rem; color: #34d399; font-family: 'JetBrains Mono', monospace; font-weight: 700; margin-top: 3px;">
+          ID : ${adminStaffId}
+        </div>
+      </div>
+    </div>
+
+    <!-- ប្រអប់ស្វែងរកម៉ឺនុយរហ័ស -->
+    <div class="sb-quick-filter-wrap">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="sbMenuQuickSearch" class="sb-quick-filter-input" placeholder="ស្វែងរកម៉ឺនុយរហ័ស..." oninput="filterSidebarMenuItems(this.value)" />
+    </div>
+
+    <!-- បញ្ជីម៉ឺនុយតាមក្រុម -->
+    <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 2px;">
+      ${groupsHtml}
+    </div>
+
+    <!-- ប៊ូតុងចាកចេញពីប្រព័ន្ធ -->
+    <div class="menu-item logout-btn" onclick="logout()" style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px;" title="ចាកចេញពីប្រព័ន្ធ (Secure Logout)">
+      <i class="fa-solid fa-right-from-bracket"></i>
+      <span class="sb-menu-text" data-i18n="menu-logout">ចាកចេញពីប្រព័ន្ធ (Logout)</span>
+    </div>
+  `;
+
+  initSidebarResizeAndCollapseState();
+}
+
+window.toggleSidebarGroup = function (groupId) {
+  const itemsBox = document.getElementById(`items-${groupId}`);
+  const chev = document.getElementById(`chev-${groupId}`);
+  if (!itemsBox) return;
+  const isCollapsed = itemsBox.classList.toggle("group-collapsed");
+  if (chev) {
+    chev.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+  }
+};
+
+window.filterSidebarMenuItems = function (keyword) {
+  const kw = String(keyword || "")
+    .toLowerCase()
+    .trim();
+  document
+    .querySelectorAll("#sidebar .menu-item:not(.logout-btn)")
+    .forEach((el) => {
+      const text = el.innerText.toLowerCase();
+      el.style.display = !kw || text.includes(kw) ? "" : "none";
+    });
+};
+
+// 🖱️ មុខងារចាប់ទាញពង្រីក/បង្រួមទទឹង Sidebar និងប៊ូតុងបង្រួម/លាក់ម៉ឺនុយ
+function initSidebarResizeAndCollapseState() {
+  const savedWidth = parseInt(localStorage.getItem("adminSidebarWidth"), 10);
+  if (savedWidth && savedWidth >= 190 && savedWidth <= 440) {
+    document.documentElement.style.setProperty("--sb-width", savedWidth + "px");
+  }
+
+  const savedCollapsed =
+    localStorage.getItem("adminSidebarCollapsed") === "true";
+  if (savedCollapsed && window.innerWidth > 768) {
+    document.body.classList.add("sb-collapsed");
+    updateCollapseButtonUI();
+  }
+
+  const handle = document.getElementById("sbResizerHandle");
+  if (!handle) return;
+
+  let isDragging = false;
+
+  handle.addEventListener("mousedown", (e) => {
+    if (window.innerWidth <= 768) return;
+    isDragging = true;
+    document.body.classList.add("sb-resizing");
+    e.preventDefault();
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    const newWidth = e.clientX;
+
+    if (newWidth < 130) {
+      document.body.classList.add("sb-collapsed");
+      localStorage.setItem("adminSidebarCollapsed", "true");
+      updateCollapseButtonUI();
+    } else if (newWidth >= 190 && newWidth <= 440) {
+      document.body.classList.remove("sb-collapsed", "sb-hidden");
+      localStorage.setItem("adminSidebarCollapsed", "false");
+      document.documentElement.style.setProperty("--sb-width", newWidth + "px");
+      localStorage.setItem("adminSidebarWidth", String(newWidth));
+      updateCollapseButtonUI();
+    }
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (isDragging) {
+      isDragging = false;
+      document.body.classList.remove("sb-resizing");
+    }
+  });
+
+  // Double-click លើខ្សែបន្ទាត់ដើម្បីត្រឡប់ទៅទទឹងស្តង់ដារ 275px វិញភ្លាមៗ
+  handle.addEventListener("dblclick", () => {
+    document.body.classList.remove("sb-collapsed", "sb-hidden");
+    document.documentElement.style.setProperty("--sb-width", "275px");
+    localStorage.setItem("adminSidebarWidth", "275");
+    localStorage.setItem("adminSidebarCollapsed", "false");
+    updateCollapseButtonUI();
+  });
+}
+
+window.toggleDesktopSidebarCollapse = function () {
+  if (window.innerWidth <= 768) {
+    toggleSidebar();
+    return;
+  }
+  document.body.classList.remove("sb-hidden");
+  const isNowCollapsed = document.body.classList.toggle("sb-collapsed");
+  localStorage.setItem("adminSidebarCollapsed", String(isNowCollapsed));
+  updateCollapseButtonUI();
+};
+
+window.toggleFullHideSidebar = function () {
+  if (window.innerWidth <= 768) {
+    toggleSidebar();
+    return;
+  }
+  const isHidden = document.body.classList.toggle("sb-hidden");
+  const icon = document.getElementById("sbFullScreenIcon");
+  if (icon) {
+    icon.className = isHidden ? "fa-solid fa-compress" : "fa-solid fa-expand";
+  }
+  updateCollapseButtonUI();
+};
+
+function updateCollapseButtonUI() {
+  const txt = document.getElementById("sbCollapseText");
+  const icon = document.getElementById("sbCollapseIcon");
+  const isCollapsed = document.body.classList.contains("sb-collapsed");
+  const isHidden = document.body.classList.contains("sb-hidden");
+
+  if (txt) {
+    txt.innerText = isHidden || isCollapsed ? "លាតម៉ឺនុយ" : "បង្រួមម៉ឺនុយ";
+  }
+  if (icon) {
+    icon.className =
+      isHidden || isCollapsed
+        ? "fa-solid fa-indent"
+        : "fa-solid fa-bars-staggered";
+  }
+}
+
+// Shortcut ក្តារចុច៖ ចុច Ctrl + B ដើម្បីបង្រួម ឬ លាត Sidebar ភ្លាមៗ!
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+    e.preventDefault();
+    toggleDesktopSidebarCollapse();
+  }
+});
 
 // ========================================================================
 // 🌙 SECTION 2: UI & THEME MANAGEMENT
-// គ្រប់គ្រង Dark Mode / Light Mode និងការបិទបើក Sidebar
 // ========================================================================
 let isDarkMode = localStorage.getItem("adminDarkMode") === "true";
 
@@ -64,6 +425,7 @@ function applyTheme() {
 function toggleSidebar(force) {
   const sb = document.getElementById("sidebar");
   const ov = document.querySelector(".overlay");
+  if (!sb || !ov) return;
   if (force !== undefined) {
     force ? sb.classList.add("active") : sb.classList.remove("active");
     force ? ov.classList.add("active") : ov.classList.remove("active");
@@ -74,8 +436,7 @@ function toggleSidebar(force) {
 }
 
 // ========================================================================
-// 🧭 SECTION 3: MENU NAVIGATION & LOGOUT
-// គ្រប់គ្រងការផ្លាស់ប្តូរទំព័រ (Tabs) និងការចាកចេញពីប្រព័ន្ធ
+// 🧭 SECTION 3: MODULAR MENU NAVIGATION
 // ========================================================================
 function showSection(id, btn) {
   sessionStorage.setItem("activeSection", id);
@@ -96,11 +457,11 @@ function showSection(id, btn) {
     "fees",
     "promo",
     "merchant-history",
+    "merchant-credentials",
     "cashier",
     "system",
   ];
 
-  // លាក់ទំព័រទាំងអស់ រួចបង្ហាញតែទំព័រដែលបានជ្រើសរើស
   sections.forEach((sec) => {
     const el = document.getElementById("sec-" + sec);
     if (el) el.style.display = "none";
@@ -108,21 +469,43 @@ function showSection(id, btn) {
   const targetSec = document.getElementById("sec-" + id);
   if (targetSec) targetSec.style.display = "block";
 
-  // ហៅទិន្នន័យជាក់លាក់ពេលចូលដល់ទំព័រនីមួយៗ
-  if (id === "broadcast-history" && typeof loadBroadcastHistory === "function")
+  if (id === "dashboard" && typeof refreshAdminDashboard === "function") {
+    refreshAdminDashboard(false);
+  } else if (
+    (id === "users" || id === "kyc") &&
+    typeof loadUsersModuleData === "function"
+  ) {
+    loadUsersModuleData();
+  } else if (id === "merchants" && typeof loadMerchantsData === "function") {
+    loadMerchantsData();
+  } else if (id === "cards" && typeof loadCardsModuleData === "function") {
+    loadCardsModuleData();
+  } else if (
+    id === "broadcast-history" &&
+    typeof loadBroadcastHistory === "function"
+  ) {
     loadBroadcastHistory();
-  if (id === "fx" && typeof fetchFXRates === "function") fetchFXRates();
-  if (id === "logs" && typeof loadAdminLogs === "function") loadAdminLogs();
-  if (id === "promo" && typeof loadPromoCodes === "function") loadPromoCodes();
-  // 🟢 ហៅមុខងារទាញយក Support Tickets ថ្មីពេលចុចបើកផ្ទាំង Tickets
-  if (id === "tickets" && typeof fetchAllSupportTickets === "function")
+  } else if (id === "fx" && typeof fetchFXRates === "function") {
+    fetchFXRates();
+  } else if (id === "logs" && typeof loadAdminLogs === "function") {
+    loadAdminLogs();
+  } else if (id === "promo" && typeof loadPromoCodes === "function") {
+    loadPromoCodes();
+  } else if (id === "tickets" && typeof fetchAllSupportTickets === "function") {
     fetchAllSupportTickets(false);
+  } else if (id === "admins" && typeof loadAdminList === "function") {
+    loadAdminList(false);
+  }
 
-  // ដូរពណ៌ប៊ូតុង Menu ឱ្យសកម្ម (Active State)
   document
     .querySelectorAll(".menu-item")
     .forEach((m) => m.classList.remove("active"));
-  if (btn) btn.classList.add("active");
+  if (btn) {
+    btn.classList.add("active");
+  } else {
+    const matchedBtn = document.querySelector(`.menu-item[onclick*="'${id}'"]`);
+    if (matchedBtn) matchedBtn.classList.add("active");
+  }
 }
 
 function logout() {
@@ -147,205 +530,37 @@ function logout() {
 }
 
 // ========================================================================
-// 📊 SECTION 4: DASHBOARD CHART RENDERER
-// គូរតារាងក្រាហ្វិក (Chart.js) សម្រាប់ប្រតិបត្តិការ ៧ ថ្ងៃចុងក្រោយ
+// 🔄 SECTION 4: LIGHTWEIGHT SHARED LOADERS
 // ========================================================================
-let trxChartInstance = null;
-
-function renderDashboardChart(usersData) {
-  const canvas = document.getElementById("trxChart");
-  if (!canvas) return;
-
-  const last7DaysLabels = [];
-  const dailyDataCounts = [0, 0, 0, 0, 0, 0, 0];
-
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    last7DaysLabels.push(d.toLocaleDateString());
-  }
-
-  let allTransactions = [];
-  usersData.forEach((user) => {
-    if (user.transactions && Array.isArray(user.transactions)) {
-      allTransactions = allTransactions.concat(user.transactions);
+async function loadUsersModuleData() {
+  try {
+    const res = await fetch("/api/users", { headers: getAuthHeaders() });
+    const users = await res.json();
+    if (Array.isArray(users)) {
+      globalUsersData = users;
+      if (typeof filterUsers === "function") filterUsers();
     }
-  });
-
-  allTransactions.forEach((trx) => {
-    const trxDateStr = trx.date || trx.createdAt;
-    if (trxDateStr) {
-      const justDate = new Date(trxDateStr).toLocaleDateString();
-      const index = last7DaysLabels.indexOf(justDate);
-      if (index !== -1) dailyDataCounts[index] += 1;
-    }
-  });
-
-  if (trxChartInstance) {
-    trxChartInstance.data.labels = last7DaysLabels;
-    trxChartInstance.data.datasets[0].data = dailyDataCounts;
-    trxChartInstance.update();
-  } else {
-    const ctx = canvas.getContext("2d");
-    trxChartInstance = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: last7DaysLabels,
-        datasets: [
-          {
-            label: "Transaction Volume",
-            data: dailyDataCounts,
-            borderColor: "#10b981",
-            backgroundColor: "rgba(16, 185, 129, 0.1)",
-            borderWidth: 2,
-            pointBackgroundColor: "#10b981",
-            pointBorderColor: "#fff",
-            pointRadius: 4,
-            tension: 0.3,
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-      },
-    });
-  }
+  } catch (e) {}
 }
 
-// ========================================================================
-// 🔄 SECTION 5: CORE DATA FETCHING (MASTER LOADER)
-// ទាញយកទិន្នន័យសំខាន់ៗទាំងអស់ពី Server ម្តងរួមគ្នា (Users, Stats, Activities)
-// ========================================================================
-async function loadData() {
+async function loadCardsModuleData() {
   try {
-    // --------------------------------------------------
-    // ៥.១ ទាញយកទិន្នន័យពី APIs (ប្រើ .catch ការពារកុំឱ្យគាំង Promise.all)
-    // --------------------------------------------------
-    const [userRes, chartRes, extraRes, cardsRes] = await Promise.all([
+    const [userRes, cardsRes] = await Promise.all([
       fetch("/api/users", { headers: getAuthHeaders() }),
-      fetch("/api/admin/stats", { headers: getAuthHeaders() }),
-      fetch("/api/admin/dashboard-extra", { headers: getAuthHeaders() }),
       fetch("/api/admin/all-cards", { headers: getAuthHeaders() }).catch(
         () => null,
       ),
     ]);
-
     const users = await userRes.json();
-    const chartData = await chartRes.json();
-    const extraData = await extraRes.json();
-
     let allCardsList = [];
     if (cardsRes && cardsRes.ok) {
-      const cardsData = await cardsRes.json();
-      if (cardsData && Array.isArray(cardsData.cards)) {
-        allCardsList = cardsData.cards;
-      }
+      const cData = await cardsRes.json();
+      if (cData && Array.isArray(cData.cards)) allCardsList = cData.cards;
     }
 
-    // 🟢 ភ្ជាប់កាតពីតារាង Card.js ចូលទៅក្នុង User ម្នាក់ៗវិញ (គាំទ្រទាំង username និង userId)
-    users.forEach((u) => {
-      const matchedCards = allCardsList.filter(
-        (c) =>
-          (c.username &&
-            u.username &&
-            c.username.toLowerCase() === u.username.toLowerCase()) ||
-          (c.userId &&
-            (String(c.userId) === String(u._id) ||
-              String(c.userId) === String(u.id))),
-      );
-      if (matchedCards.length > 0) {
-        u.virtualCards = matchedCards;
-      } else if (!Array.isArray(u.virtualCards)) {
-        u.virtualCards = [];
-      }
-    });
-
-    globalUsersData = users;
-    const clients = users.filter((u) => u.role !== "admin");
-
-    if (typeof filterUsers === "function") {
-      filterUsers();
-    }
-
-    renderDashboardChart(globalUsersData);
-
-    // --------------------------------------------------
-    // ៥.២ អថេរសម្រាប់គណនាស្ថិតិ (Statistics Initialization)
-    // --------------------------------------------------
-    let activeToday = 0,
-      newUsers = 0,
-      totalFunds = 0,
-      totalFixedDeposits = 0;
-    let totalTrxCount = 0,
-      pendingCount = 0,
-      totalWithdrawals = 0,
-      totalTransfers = 0,
-      frozenCount = 0;
-
-    let allAdminNotifs = new Set();
-    const todayStr = new Date().toISOString().split("T")[0];
-    let allIssuedCards = [];
-
-    // --------------------------------------------------
-    // ៥.៣ ដំណើរការទិន្នន័យរបស់អតិថិជនម្នាក់ៗ (Data Processing Loop)
-    // --------------------------------------------------
-    clients.forEach((u) => {
-      if (u.isOnline) activeToday++;
-      if (u.joinDate && u.joinDate.split("T")[0] === todayStr) newUsers++;
-      if (u.isFrozen) frozenCount++;
-
-      const balUSD = u.mainAccounts?.USD?.balance || 0;
-      const balKHRinUSD = (u.mainAccounts?.KHR?.balance || 0) / 4100;
-      totalFunds += balUSD + balKHRinUSD;
-
-      if (u.deposits && Array.isArray(u.deposits)) {
-        u.deposits.forEach(
-          (dep) => (totalFixedDeposits += Number(dep.amount || 0)),
-        );
-      }
-
-      // គណនាស្ថិតិប្រតិបត្តិការ
-      if (u.transactions && Array.isArray(u.transactions)) {
-        totalTrxCount += u.transactions.length;
-        u.transactions.forEach((trx) => {
-          if (trx.status === "Pending") pendingCount++;
-          if (
-            trx.amount < 0 &&
-            (trx.type === "Withdrawal" ||
-              trx.type === "Transfer" ||
-              trx.trxMethod === "U-PAY Transfer")
-          ) {
-            totalWithdrawals += Math.abs(Number(trx.amount || 0));
-          }
-          if (trx.type === "Transfer" || trx.trxMethod === "U-PAY Transfer")
-            totalTransfers++;
-        });
-      }
-
-      // ប្រមូលសារ Broadcast
-      if (u.notifications && Array.isArray(u.notifications)) {
-        u.notifications.forEach((n) => {
-          if (n.sender === "admin")
-            allAdminNotifs.add(n.id || n.title + n.date);
-        });
-      }
-
-      // ប្រមូលកាតនិម្មិតទាំងអស់
-      if (u.virtualCards && u.virtualCards.length > 0) {
-        u.virtualCards.forEach((c) => {
-          allIssuedCards.push({ user: u, card: c });
-        });
-      }
-    });
-
-    // --------------------------------------------------
-    // ៥.៤ បញ្ជូនទិន្នន័យទៅឱ្យឯកសារខាងក្រៅគ្រប់គ្រង (Delegation)
-    // --------------------------------------------------
-    if (allIssuedCards.length === 0 && allCardsList.length > 0) {
+    if (Array.isArray(users)) {
+      globalUsersData = users;
+      const allIssuedCards = [];
       allCardsList.forEach((c) => {
         const owner = users.find((u) => u.username === c.username) || {
           username: c.username || "Unknown",
@@ -353,181 +568,105 @@ async function loadData() {
         };
         allIssuedCards.push({ user: owner, card: c });
       });
+      window.globalCardsData = allIssuedCards;
+      if (typeof renderCardTablePage === "function") renderCardTablePage();
     }
-
-    // បញ្ជូនទិន្នន័យកាតទៅឱ្យម៉ូឌុល Card Render
-    window.globalCardsData = allIssuedCards;
-    if (!window.currentCardPage) window.currentCardPage = 1;
-    renderCardTablePage();
-
-    // 🟢 បញ្ជូនការអាប់ដេតតារាង Support Tickets ទៅឱ្យម៉ូឌុលថ្មីក្នុង admin-tickets.js គ្រប់គ្រងវិញ
-    if (typeof fetchAllSupportTickets === "function") {
-      fetchAllSupportTickets(false);
-    }
-
-    // --------------------------------------------------
-    // ៥.៥ បច្ចុប្បន្នភាព UI នៅលើអេក្រង់ (DOM Updates)
-    // --------------------------------------------------
-    document.getElementById("d-users").innerText = clients.length;
-    document.getElementById("d-active").innerText = activeToday;
-    document.getElementById("d-new-users").innerText = newUsers;
-    document.getElementById("d-balance").innerText =
-      "$" + totalFunds.toLocaleString("en-US", { minimumFractionDigits: 2 });
-    document.getElementById("d-fixed-dep").innerText =
-      "$" +
-      totalFixedDeposits.toLocaleString("en-US", { minimumFractionDigits: 2 });
-    document.getElementById("d-trx").innerText = totalTrxCount;
-    document.getElementById("d-pending").innerText = pendingCount;
-    document.getElementById("d-withdrawals").innerText =
-      "$" +
-      totalWithdrawals.toLocaleString("en-US", { minimumFractionDigits: 2 });
-    document.getElementById("d-broadcasts").innerText = allAdminNotifs.size;
-    document.getElementById("d-transfers").innerText = totalTransfers;
-    document.getElementById("d-frozen").innerText = frozenCount;
-
-    // Activity Feed (ចំណូលប្រព័ន្ធ និងសកម្មភាពថ្មីៗ)
-    try {
-      if (extraData.success || extraData.revenue !== undefined) {
-        document.getElementById("d-revenue").innerText =
-          "$" +
-          (extraData.revenue || 0).toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-          });
-        const activityBox = document.getElementById("activity-feed");
-        const currentDataStr = JSON.stringify(extraData.activities);
-
-        if (activityBox.dataset.lastData !== currentDataStr) {
-          activityBox.dataset.lastData = currentDataStr;
-          if (!extraData.activities || extraData.activities.length === 0) {
-            activityBox.innerHTML = `<div style="text-align:center; padding:20px 0; color:var(--text-muted);">No new activity yet.</div>`;
-          } else {
-            activityBox.innerHTML = extraData.activities
-              .map((act) => {
-                let icon = `<i class="fa-solid fa-bell"></i>`,
-                  bg = "#f1f5f9",
-                  col = "#64748b";
-                if (
-                  act.type.includes("Payment") ||
-                  act.type.includes("Income")
-                ) {
-                  icon =
-                    act.amount < 0
-                      ? `<i class="fa-solid fa-arrow-up"></i>`
-                      : `<i class="fa-solid fa-arrow-down"></i>`;
-                  bg = act.amount < 0 ? "#fee2e2" : "#d1fae5";
-                  col = act.amount < 0 ? "#dc2626" : "#059669";
-                } else if (act.type === "Card Created") {
-                  icon = `<i class="fa-regular fa-credit-card"></i>`;
-                  bg = "#fef3c7";
-                  col = "#d97706";
-                }
-                return `<div class="activity-item"><div class="act-icon" style="background:${bg}; color:${col};">${icon}</div><div class="act-text"><h5>${act.user} <span style="font-weight:400; color:#64748b;">- ${act.type}</span></h5><p>${act.date}</p></div></div>`;
-              })
-              .join("");
-          }
-        }
-      }
-    } catch (err) {}
-  } catch (e) {
-    console.error("Dashboard Load Data Error:", e);
-  }
+  } catch (e) {}
 }
+
+async function loadData() {
+  const activeSec = sessionStorage.getItem("activeSection") || "dashboard";
+  if (
+    activeSec === "dashboard" &&
+    typeof refreshAdminDashboard === "function"
+  ) {
+    refreshAdminDashboard(false);
+  }
+  await loadUsersModuleData();
+}
+
 // ========================================================================
-// 🔐 SECTION 7: DYNAMIC MENU PERMISSION ENFORCER
-// ចាក់សោរ និងលាក់ម៉ឺនុយទៅតាមតួនាទី (Roles & Permissions) របស់បុគ្គលិក
+// 🔐 SECTION 5: DYNAMIC MENU PERMISSION ENFORCER & PROFILE PHOTO LOADER
 // ========================================================================
 async function applyDynamicPermissions() {
   try {
     const res = await fetch("/api/admin/me", { headers: getAuthHeaders() });
     const data = await res.json();
 
-    if (data.success && data.admin && data.admin.permissions) {
-      window.myAdminPermissions = data.admin.permissions;
+    if (data.success && data.admin) {
+      // 🌟 បង្ហាញឈ្មោះ និងរូបថត Profile ពិតរបស់បុគ្គលិក Admin លើក្បាល Sidebar
+      const nameDisp = document.getElementById("adminNameDisplay");
+      const roleDisp = document.getElementById("adminRoleDisplay");
+      const avatarBox = document.getElementById("sbAdminAvatarBox");
 
+      if (nameDisp && data.admin.fullName) {
+        nameDisp.innerText = data.admin.fullName;
+      }
+      if (roleDisp && data.admin.staffId) {
+        roleDisp.innerText = "ID : " + data.admin.staffId;
+      }
       if (
-        data.admin.role === "custom" &&
-        data.admin.permissions.customRoleName
+        avatarBox &&
+        data.admin.profileImage &&
+        String(data.admin.profileImage).trim() !== ""
       ) {
-        document.getElementById("adminRoleDisplay").innerText =
-          data.admin.permissions.customRoleName.toUpperCase();
+        avatarBox.innerHTML = `<img src="${data.admin.profileImage}" onerror="this.outerHTML='<i class=\\'fa-solid fa-user-shield\\'></i>'">`;
       }
 
-      // 🔴 លាក់ម៉ឺនុយដោយប្រើប្រព័ន្ធ CSS (Injection)
-      if (adminRole !== "super_admin") {
-        const menus = data.admin.permissions.menus || {};
-        let cssRules = "";
+      if (data.admin.permissions) {
+        window.myAdminPermissions = data.admin.permissions;
 
-        if (!menus.users)
+        if (
+          data.admin.role === "custom" &&
+          data.admin.permissions.customRoleName &&
+          roleDisp
+        ) {
+          roleDisp.innerText =
+            data.admin.permissions.customRoleName.toUpperCase();
+        }
+
+        if (adminRole !== "super_admin") {
+          const menus = data.admin.permissions.menus || {};
+          let cssRules = "";
+
+          if (!menus.users)
+            cssRules +=
+              "#menu-users, #menu-customer-360 { display: none !important; }\n";
+          if (!menus.merchant)
+            cssRules += "#menu-merchants { display: none !important; }\n";
+          if (!menus.cashier)
+            cssRules += "#menu-cashier { display: none !important; }\n";
+          if (!menus.checktrx)
+            cssRules += "#menu-checktrx { display: none !important; }\n";
+          if (!menus.fx) cssRules += "#menu-fx { display: none !important; }\n";
+          if (!menus.promos)
+            cssRules +=
+              "#menu-promo, #menu-fees { display: none !important; }\n";
+          if (!menus.cards)
+            cssRules += "#menu-cards { display: none !important; }\n";
+          if (!menus.broadcast)
+            cssRules += "#menu-broadcast { display: none !important; }\n";
+          if (!menus.kyc)
+            cssRules += "#menu-kyc { display: none !important; }\n";
+          if (!menus.tickets)
+            cssRules += "#menu-tickets { display: none !important; }\n";
+          if (!menus.chat)
+            cssRules += "#menu-chat { display: none !important; }\n";
+
           cssRules +=
-            "#menu-users, #menu-customer-360 { display: none !important; }\n";
-        if (!menus.merchant)
-          cssRules += "#menu-merchants { display: none !important; }\n";
-        if (!menus.cashier)
-          cssRules += "#menu-cashier { display: none !important; }\n";
-        if (!menus.checktrx)
-          cssRules += "#menu-checktrx { display: none !important; }\n";
-        if (!menus.fx) cssRules += "#menu-fx { display: none !important; }\n";
-        if (!menus.promos)
-          cssRules += "#menu-promo, #menu-fees { display: none !important; }\n";
-        if (!menus.cards)
-          cssRules += "#menu-cards { display: none !important; }\n";
-        if (!menus.broadcast)
-          cssRules += "#menu-broadcast { display: none !important; }\n";
-        if (!menus.kyc) cssRules += "#menu-kyc { display: none !important; }\n";
-        if (!menus.tickets)
-          cssRules += "#menu-tickets { display: none !important; }\n";
-        if (!menus.chat)
-          cssRules += "#menu-chat { display: none !important; }\n";
+            "#block-menu-super-only, #menu-super-only, #menu-admins, #menu-system, #menu-logs { display: none !important; }\n";
 
-        cssRules +=
-          "#menu-super-only, #menu-admins, #menu-system, #menu-logs { display: none !important; }\n";
-
-        let style = document.createElement("style");
-        style.innerHTML = cssRules;
-        document.head.appendChild(style);
-
-        setTimeout(() => {
-          const checkGroupLabel = (labelId, menuIds) => {
-            const label = document.getElementById(labelId);
-            if (!label) return;
-            const hasVisibleChild = menuIds.some((id) => {
-              const el = document.getElementById(id);
-              return el && window.getComputedStyle(el).display !== "none";
-            });
-            label.style.display = hasVisibleChild ? "" : "none";
-          };
-          checkGroupLabel("label-main", [
-            "menu-dashboard",
-            "menu-users",
-            "menu-merchants",
-          ]);
-          checkGroupLabel("label-ops", [
-            "menu-customer-360",
-            "menu-cashier",
-            "menu-checktrx",
-            "menu-broadcast",
-          ]);
-          checkGroupLabel("label-finance", [
-            "menu-fx",
-            "menu-fees",
-            "menu-promo",
-            "menu-cards",
-          ]);
-          checkGroupLabel("label-security", [
-            "menu-kyc",
-            "menu-tickets",
-            "menu-chat",
-          ]);
-        }, 100);
+          let style = document.createElement("style");
+          style.innerHTML = cssRules;
+          document.head.appendChild(style);
+        }
       }
     }
   } catch (err) {
     console.error("Error fetching permissions:", err);
   }
 
-  // ចាប់ផ្តើមទាញយកទិន្នន័យរៀងរាល់ ១៥វិនាទី
-  setInterval(loadData, 15000);
-  loadData();
+  loadUsersModuleData();
 }
 
 async function toggleSystemFreeze() {
@@ -558,6 +697,9 @@ async function toggleSystemFreeze() {
         });
         const toggleData = await toggleRes.json();
         if (toggleData.success) {
+          if (typeof refreshAdminDashboard === "function") {
+            refreshAdminDashboard(false);
+          }
           Swal.fire({
             title: toggleData.isSystemFrozen
               ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
@@ -576,8 +718,7 @@ async function toggleSystemFreeze() {
 }
 
 // ========================================================================
-// 🔔 SECTION 8: NOTIFICATIONS & SOUND ALERTS POLLING
-// ប្រព័ន្ធផ្តល់សញ្ញាដំណឹង និងសំឡេងរោទ៍ពេលមាន Ticket, Chat, ឬ KYC ថ្មីៗ
+// 🔔 SECTION 6: NOTIFICATIONS & SOUND ALERTS POLLING
 // ========================================================================
 let previousTotalUnread = 0,
   previousQueueLength = 0;
@@ -629,7 +770,7 @@ async function checkAdminNotifications() {
       });
 
       if (!isFirstLoadNotif) {
-        let shouldRefreshTable = false;
+        let shouldRefresh = false;
         if (currentQueueLength > previousQueueLength)
           playCustomNotif(
             "អតិថិជនថ្មី សុំជួបភ្នាក់ងារ! 👨‍💻",
@@ -645,7 +786,7 @@ async function checkAdminNotifications() {
             kycSound,
             "#8b5cf6",
           );
-          shouldRefreshTable = true;
+          shouldRefresh = true;
         }
         if (currentOpenTickets > previousOpenTickets) {
           playCustomNotif(
@@ -653,9 +794,9 @@ async function checkAdminNotifications() {
             ticketSound,
             "#f59e0b",
           );
-          shouldRefreshTable = true;
+          shouldRefresh = true;
         }
-        if (shouldRefreshTable && typeof loadData === "function") loadData();
+        if (shouldRefresh) loadData();
       }
 
       previousQueueLength = currentQueueLength;
@@ -683,28 +824,17 @@ function playCustomNotif(message, soundObj, iconColorHex) {
   });
 }
 
-// ឆែកមើលសារថ្មីៗរៀងរាល់ ៣ វិនាទី
-setInterval(checkAdminNotifications, 3000);
+setInterval(checkAdminNotifications, 6000);
 
 // ========================================================================
-// 🎬 SECTION 9: SYSTEM INITIALIZATION & EVENT LISTENERS
-// ដំណើរការកូដជាមូលដ្ឋាននៅពេលវេបសាយដើរចប់ (On Load)
+// 🎬 SECTION 7: SYSTEM INITIALIZATION & UNIVERSAL SEARCH
 // ========================================================================
 window.addEventListener("DOMContentLoaded", () => {
-  const savedSection = sessionStorage.getItem("activeSection");
-  if (savedSection) {
-    const menuItems = document.querySelectorAll(".menu-item");
-    let targetBtn = null;
-    menuItems.forEach((item) => {
-      if (
-        item.getAttribute("onclick") &&
-        item.getAttribute("onclick").includes(`'${savedSection}'`)
-      ) {
-        targetBtn = item;
-      }
-    });
-    showSection(savedSection, targetBtn);
-  }
+  buildSmartSidebar();
+  applyTheme();
+
+  const savedSection = sessionStorage.getItem("activeSection") || "dashboard";
+  showSection(savedSection);
 
   const searchInput = document.getElementById("searchTrxId");
   if (searchInput) {
@@ -716,18 +846,12 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ហៅមុខងារអានសិទ្ធិពេល Load ទំព័រ
   applyDynamicPermissions();
 });
 
-// ========================================================================
-// 🔍 មុខងារស្វែងរកស្តង់ដារ (Universal Search Helper)
-// ========================================================================
 window.standardDataSearch = function (dataArray, keyword, searchFields) {
   if (!keyword || keyword.trim() === "") return dataArray;
-
   const lowerKeyword = keyword.toLowerCase().trim();
-
   return dataArray.filter((item) => {
     return searchFields.some((field) => {
       const value = field
