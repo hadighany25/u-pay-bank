@@ -1,14 +1,16 @@
+// models/Admin.js
 const mongoose = require("mongoose");
 
 const adminSchema = new mongoose.Schema({
-  staffId: { type: String, unique: true }, // 🟢 ថ្មី: លេខកូដបុគ្គលិក (ឧ. UPAY-123456)
-  fullName: { type: String, uppercase: true }, // 🟢 ថ្មី: ឈ្មោះពេញ (អក្សរធំអូតូ)
-  nickname: { type: String }, // 🟢 ថ្មី: ឈ្មោះហៅក្រៅ
-  phone: { type: String }, // 🟢 ថ្មី: លេខទូរស័ព្ទ
-  email: { type: String }, // 🟢 ថ្មី: អ៊ីមែល
-  department: { type: String }, // 🟢 ថ្មី: នាយកដ្ឋាន ឬសាខា
-  remarks: { type: String }, // 🟢 ថ្មី: កំណត់ចំណាំរបស់ Admin
-  nfcUid: { type: String, default: null }, // 🟢 ថ្មី: លេខកាត NFC សម្រាប់ Log in ឬសន្តិសុខ
+  staffId: { type: String, unique: true },
+  fullName: { type: String, uppercase: true },
+  nickname: { type: String },
+  profileImage: { type: String, default: "" }, // 🌟 ថ្មី៖ រូបថត Profile បុគ្គលិក (Cloudinary URL)
+  phone: { type: String },
+  email: { type: String },
+  department: { type: String },
+  remarks: { type: String },
+  nfcUid: { type: String, default: null },
   isActive: { type: Boolean, default: true },
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },

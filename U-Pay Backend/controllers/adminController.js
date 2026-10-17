@@ -202,7 +202,7 @@ const getAdminLogs = async (req, res) => {
   try {
     if (req.admin.role !== "super_admin")
       return res.status(403).json({ success: false, message: "Forbidden" });
-    const logs = await AdminLog.find().sort({ _id: -1 }).limit(100);
+    const logs = await AdminLog.find().sort({ _id: -1 }).limit(500);
     res.json({ success: true, logs });
   } catch (err) {
     res.status(500).json({ success: false });
@@ -215,6 +215,7 @@ const saveAdminAccount = async (req, res) => {
     staffId,
     fullName,
     nickname,
+    profileImage,
     phone,
     email,
     department,
@@ -226,12 +227,15 @@ const saveAdminAccount = async (req, res) => {
     permissions,
   } = req.body;
   try {
-    if (nfcUid && nfcUid.trim() !== "") {
-      const existingNfcUser = await Admin.findOne({ nfcUid: nfcUid });
+    const cleanNfc =
+      nfcUid && String(nfcUid).trim() !== "" ? String(nfcUid).trim() : null;
+
+    if (cleanNfc) {
+      const existingNfcUser = await Admin.findOne({ nfcUid: cleanNfc });
       if (existingNfcUser && existingNfcUser._id.toString() !== id) {
         return res.json({
           success: false,
-          message: `កាត NFC នេះត្រូវបានភ្ជាប់ជាមួយបុគ្គលិកឈ្មោះ ${existingNfcUser.username} រួចហើយ! សូមផ្តាច់ពីគណនីនោះសិន ឬប្រើកាតថ្មី។`,
+          message: `កាត NFC នេះត្រូវបានភ្ជាប់ជាមួយបុគ្គលិកឈ្មោះ @${existingNfcUser.username} រួចហើយ! សូមផ្តាច់ពីគណនីនោះសិន ឬប្រើកាតថ្មី។`,
         });
       }
     }
@@ -239,17 +243,18 @@ const saveAdminAccount = async (req, res) => {
     if (id) {
       const adminToUpdate = await Admin.findById(id);
       if (!adminToUpdate)
-        return res.json({ success: false, message: "រកមិនឃើញគណនី" });
+        return res.json({ success: false, message: "រកមិនឃើញគណនីបុគ្គលិកទេ!" });
 
-      adminToUpdate.username = username;
-      adminToUpdate.role = role;
-      adminToUpdate.fullName = fullName;
-      adminToUpdate.nickname = nickname;
-      adminToUpdate.phone = phone;
-      adminToUpdate.email = email;
-      adminToUpdate.department = department;
-      adminToUpdate.remarks = remarks;
-      adminToUpdate.nfcUid = nfcUid;
+      if (username) adminToUpdate.username = username;
+      if (role) adminToUpdate.role = role;
+      if (fullName !== undefined) adminToUpdate.fullName = fullName;
+      if (nickname !== undefined) adminToUpdate.nickname = nickname;
+      if (profileImage !== undefined) adminToUpdate.profileImage = profileImage;
+      if (phone !== undefined) adminToUpdate.phone = phone;
+      if (email !== undefined) adminToUpdate.email = email;
+      if (department !== undefined) adminToUpdate.department = department;
+      if (remarks !== undefined) adminToUpdate.remarks = remarks;
+      if (nfcUid !== undefined) adminToUpdate.nfcUid = cleanNfc;
 
       if (permissions) adminToUpdate.permissions = permissions;
       if (password && password.trim() !== "")
@@ -259,30 +264,36 @@ const saveAdminAccount = async (req, res) => {
       await logAdminAction(
         req.admin.username,
         "Update Admin",
-        username,
-        `Role updated to ${role}`,
+        adminToUpdate.username,
+        `Updated staff profile/permissions (Role: ${adminToUpdate.role}, NFC: ${cleanNfc || "Unlinked"})`,
       );
-      return res.json({ success: true, message: "កែប្រែបានជោគជ័យ!" });
+      return res.json({
+        success: true,
+        message: "កែប្រែព័ត៌មានបុគ្គលិកបានជោគជ័យ!",
+        admin: adminToUpdate,
+      });
     } else {
       const exists = await Admin.findOne({ username });
       if (exists)
         return res.json({
           success: false,
-          message: "ឈ្មោះនេះមានអ្នកប្រើប្រាស់ហើយ!",
+          message: "ឈ្មោះគណនី (Username) នេះមានអ្នកប្រើប្រាស់ហើយ!",
         });
       if (!password)
-        return res.json({ success: false, message: "សូមបញ្ចូលលេខសម្ងាត់!" });
+        return res.json({ success: false, message: "សូមបញ្ចូលពាក្យសម្ងាត់!" });
 
       const hashedPassword = await bcrypt.hash(password, 10);
       const newAdmin = new Admin({
-        staffId,
+        staffId:
+          staffId || "UPAY-" + Math.floor(100000 + Math.random() * 900000),
         fullName,
         nickname,
+        profileImage: profileImage || "",
         phone,
         email,
         department,
         remarks,
-        nfcUid,
+        nfcUid: cleanNfc,
         username,
         password: hashedPassword,
         role,
@@ -294,14 +305,16 @@ const saveAdminAccount = async (req, res) => {
         req.admin.username,
         "Create Admin",
         username,
-        `Role created as ${role}`,
+        `Created new staff account as ${role}`,
       );
       return res.json({
         success: true,
         message: "បង្កើតគណនីបុគ្គលិកថ្មីជោគជ័យ!",
+        admin: newAdmin,
       });
     }
   } catch (err) {
+    console.error("Save Admin Error:", err);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };

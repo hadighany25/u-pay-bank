@@ -11038,66 +11038,528 @@
       </div>
 
       <!-- ------------------------------------------------------- -->
-      <!-- [ ផ្ទាំង ១៦ ] Admin Management -->
+      <!-- [ ផ្ទាំង ១៦ ] Admin Management (100% Pro IAM, Staff & Audit Hub) -->
       <!-- ------------------------------------------------------- -->
       <div
         id="sec-admins"
+        class="aadm-font-scope"
         style="
           display: none;
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
           box-sizing: border-box;
-          padding: 0 15px;
+          padding: 0 15px 40px;
         "
       >
-        <div class="table-header-controls">
+        <style>
+          .aadm-font-scope,
+          .aadm-font-scope button,
+          .aadm-font-scope input,
+          .aadm-font-scope select,
+          .aadm-font-scope th,
+          .aadm-font-scope td,
+          .aadm-swal-scope,
+          .aadm-swal-scope button,
+          .aadm-swal-scope input,
+          .aadm-swal-scope .swal2-title,
+          .aadm-swal-scope .swal2-html-container {
+            font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+          }
+
+          /* ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ ខាងលើ */
+          .aadm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+          }
+          .aadm-kpi-card {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+          }
+          .aadm-kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+          }
+          .aadm-kpi-card.active-kpi {
+            border: 2px solid #0d9488;
+            background: rgba(13, 148, 136, 0.05);
+          }
+          .aadm-kpi-title {
+            font-size: 0.76rem;
+            color: var(--text-muted, #64748b);
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .aadm-kpi-val {
+            font-size: 1.55rem;
+            font-weight: 900;
+            color: var(--text-main, #0f172a);
+            font-family: "JetBrains Mono", monospace !important;
+            line-height: 1.1;
+          }
+          .aadm-kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.22rem;
+            flex-shrink: 0;
+          }
+
+          /* ២. របារ Filter Pills & Search Toolbar */
+          .aadm-toolbar {
+            background: var(--bg-card, #ffffff);
+            border: 1px solid var(--border, #e2e8f0);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+          }
+          .aadm-pill-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            background: var(--bg-body, #f1f5f9);
+            padding: 5px;
+            border-radius: 12px;
+          }
+          .aadm-filter-pill {
+            border: none;
+            background: transparent;
+            color: var(--text-muted, #64748b);
+            padding: 7px 13px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .aadm-filter-pill:hover {
+            color: var(--text-main, #0f172a);
+          }
+          .aadm-filter-pill.active {
+            background: #004d40;
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(0, 77, 64, 0.2);
+          }
+
+          /* ៣. ផ្លាកតួនាទី និងម៉ោងធ្វើការ (Role & Shift Badges) */
+          .aadm-role-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.74rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+          }
+          .aadm-shift-badge {
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 0.71rem;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+          }
+          .aadm-act-btn {
+            height: 34px;
+            padding: 0 11px;
+            border-radius: 9px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border: 1px solid transparent;
+            transition: 0.2s;
+          }
+          .aadm-act-btn:hover {
+            transform: translateY(-1px);
+          }
+        </style>
+
+        <!-- ក្បាលទំព័រ (Header) -->
+        <div
+          class="table-header-controls"
+          style="margin-bottom: 18px; flex-wrap: wrap; gap: 15px"
+        >
           <div>
-            <h2 class="dash-title" data-i18n="admin-management">
-              Admin Management
+            <h2
+              class="dash-title"
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 4px;
+              "
+            >
+              <i
+                class="fa-solid fa-user-shield"
+                style="color: var(--secondary, #10b981)"
+              ></i>
+              <span data-i18n="admin-management"
+                >មជ្ឈមណ្ឌលគ្រប់គ្រងបុគ្គលិក សិទ្ធិប្រើប្រាស់ និងរបាយការណ៍ (Admin
+                IAM & Audit Hub)</span
+              >
             </h2>
-            <p class="dash-desc" data-i18n="manage-admin-accounts">
-              គ្រប់គ្រងគណនីបុគ្គលិក និងសិទ្ធិប្រើប្រាស់ក្នុងប្រព័ន្ធ។
+            <p
+              class="dash-desc"
+              data-i18n="manage-admin-accounts"
+              style="margin: 0"
+            >
+              គ្រប់គ្រងគណនីបុគ្គលិក កំណត់ម៉ោងធ្វើការ កាតសម្គាល់ខ្លួន NFC
+              តាមដានប្រវត្តិសកម្មភាព (Logs) និងរបាយការណ៍ការងារបុគ្គលិក។
             </p>
           </div>
 
-          <!-- 🟢 ដាក់បន្ថែមប្រអប់ Search កន្លែងនេះ -->
-          <div style="display: flex; align-items: center; gap: 10px">
-            <div class="search-box" style="margin: 0">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input
-                type="text"
-                id="searchAdminBox"
-                placeholder="ស្វែងរកឈ្មោះ, Staff ID, នាយកដ្ឋាន..."
-                onkeyup="filterAdminList()"
-              />
-            </div>
-
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex-wrap: wrap;
+            "
+          >
             <button
-              class="btn-primary"
-              onclick="openAdminModal()"
+              type="button"
+              onclick="openStaffPerformanceReportModal()"
+              title="មើលរបាយការណ៍សកម្មភាព និងលទ្ធផលការងារបុគ្គលិក"
               style="
-                font-family: &quot;Kantumruy Pro&quot;, sans-serif;
-                font-size: 0.95rem;
-                font-weight: 600;
-                border-radius: 10px;
+                background: rgba(139, 92, 246, 0.12);
+                border: 1px solid rgba(139, 92, 246, 0.35);
+                color: #8b5cf6;
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
               "
             >
-              <i class="fa-solid fa-plus"></i>
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>របាយការណ៍សកម្មភាពបុគ្គលិក</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="exportAdminStaffCSV()"
+              title="ទាញយកបញ្ជីបុគ្គលិក និងស្ថិតិសកម្មភាពជា CSV/Excel"
+              style="
+                background: var(--bg-card, #ffffff);
+                border: 1px solid var(--border, #cbd5e1);
+                color: var(--text-main, #0f172a);
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-file-csv" style="color: #0d9488"></i>
+              <span>ទាញយក CSV</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="loadAdminList(true)"
+              title="ធ្វើបច្ចុប្បន្នភាពទិន្នន័យ"
+              style="
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.35);
+                color: #10b981;
+                padding: 10px 15px;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-weight: 800;
+                font-size: 0.84rem;
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-rotate-right" id="aadm-refresh-icon"></i>
+              <span>ធ្វើបច្ចុប្បន្នភាព</span>
+            </button>
+
+            <button
+              type="button"
+              onclick="openAdminModal()"
+              style="
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: #ffffff;
+                border: none;
+                padding: 10px 18px;
+                border-radius: 12px;
+                font-weight: 800;
+                font-size: 0.86rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+                transition: 0.2s;
+              "
+            >
+              <i class="fa-solid fa-user-plus"></i>
               <span data-i18n="create-new-admin">បង្កើតគណនីបុគ្គលិកថ្មី</span>
             </button>
           </div>
         </div>
-        <div class="table-container">
-          <table>
+
+        <!-- 📊 ១. ប្រអប់ស្ថិតិ KPI ទាំង ៥ -->
+        <div class="aadm-kpi-grid">
+          <div
+            class="aadm-kpi-card active-kpi"
+            id="aadm-kpi-ALL"
+            onclick="aadmSetRoleFilter('ALL')"
+          >
+            <div>
+              <div class="aadm-kpi-title">បុគ្គលិកសរុប (TOTAL STAFF)</div>
+              <div
+                class="aadm-kpi-val"
+                id="aadm-stat-total"
+                style="color: #3b82f6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="aadm-kpi-icon"
+              style="background: rgba(59, 130, 246, 0.15); color: #3b82f6"
+            >
+              <i class="fa-solid fa-users-gear"></i>
+            </div>
+          </div>
+
+          <div
+            class="aadm-kpi-card"
+            id="aadm-kpi-ACTIVE"
+            onclick="aadmSetRoleFilter('ACTIVE')"
+          >
+            <div>
+              <div class="aadm-kpi-title">គណនីសកម្ម (ACTIVE ACCOUNTS)</div>
+              <div
+                class="aadm-kpi-val"
+                id="aadm-stat-active"
+                style="color: #10b981"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="aadm-kpi-icon"
+              style="background: rgba(16, 185, 129, 0.15); color: #10b981"
+            >
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+          </div>
+
+          <div
+            class="aadm-kpi-card"
+            id="aadm-kpi-ON_SHIFT"
+            onclick="aadmSetRoleFilter('ON_SHIFT')"
+          >
+            <div>
+              <div class="aadm-kpi-title">ក្នុងម៉ោងការងារ (ON-SHIFT NOW)</div>
+              <div
+                class="aadm-kpi-val"
+                id="aadm-stat-onshift"
+                style="color: #0d9488"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="aadm-kpi-icon"
+              style="background: rgba(13, 148, 136, 0.15); color: #0d9488"
+            >
+              <i class="fa-solid fa-business-time"></i>
+            </div>
+          </div>
+
+          <div
+            class="aadm-kpi-card"
+            id="aadm-kpi-NFC_LINKED"
+            onclick="aadmSetRoleFilter('NFC_LINKED')"
+          >
+            <div>
+              <div class="aadm-kpi-title">បានភ្ជាប់កាត NFC (NFC LINKED)</div>
+              <div
+                class="aadm-kpi-val"
+                id="aadm-stat-nfc"
+                style="color: #f59e0b"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="aadm-kpi-icon"
+              style="background: rgba(245, 158, 11, 0.15); color: #f59e0b"
+            >
+              <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+          </div>
+
+          <div
+            class="aadm-kpi-card"
+            id="aadm-kpi-LOGS"
+            onclick="openStaffPerformanceReportModal()"
+          >
+            <div>
+              <div class="aadm-kpi-title">សកម្មភាពបានកត់ត្រា (AUDIT LOGS)</div>
+              <div
+                class="aadm-kpi-val"
+                id="aadm-stat-logs"
+                style="color: #8b5cf6"
+              >
+                0
+              </div>
+            </div>
+            <div
+              class="aadm-kpi-icon"
+              style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6"
+            >
+              <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🔍 ២. របារ Filter Pills និងប្រអប់ Search -->
+        <div class="aadm-toolbar">
+          <div class="aadm-pill-group">
+            <button
+              type="button"
+              class="aadm-filter-pill active"
+              data-filter="ALL"
+              onclick="aadmSetRoleFilter('ALL')"
+            >
+              ទាំងអស់ (All)
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="super_admin"
+              onclick="aadmSetRoleFilter('super_admin')"
+            >
+              <i class="fa-solid fa-crown"></i> Super Admin
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="finance_admin"
+              onclick="aadmSetRoleFilter('finance_admin')"
+            >
+              <i class="fa-solid fa-coins"></i> Finance Admin
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="support_agent"
+              onclick="aadmSetRoleFilter('support_agent')"
+            >
+              <i class="fa-solid fa-headset"></i> Support Agent
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="custom"
+              onclick="aadmSetRoleFilter('custom')"
+            >
+              <i class="fa-solid fa-sliders"></i> Custom Role
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="ON_SHIFT"
+              onclick="aadmSetRoleFilter('ON_SHIFT')"
+            >
+              <i class="fa-solid fa-clock"></i> កំពុងក្នុងម៉ោងធ្វើការ
+            </button>
+            <button
+              type="button"
+              class="aadm-filter-pill"
+              data-filter="NFC_LINKED"
+              onclick="aadmSetRoleFilter('NFC_LINKED')"
+            >
+              <i class="fa-solid fa-wifi"></i> មានកាត NFC
+            </button>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              flex: 1;
+              min-width: 260px;
+              max-width: 400px;
+            "
+          >
+            <div class="search-box" style="margin: 0; width: 100%">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                id="searchAdminBox"
+                placeholder="ស្វែងរកតាមឈ្មោះ, @username, Staff ID, នាយកដ្ឋាន..."
+                oninput="filterAdminList()"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 📋 ៣. តារាងបញ្ជីបុគ្គលិក និងប៊ូតុងឆែក Logs -->
+        <div
+          class="table-container"
+          style="
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            border: 1px solid var(--border, #e2e8f0);
+          "
+        >
+          <table style="width: 100%; border-collapse: collapse">
             <thead>
               <tr>
-                <th data-i18n="name">NAME</th>
-                <th data-i18n="role">តួនាទី (Role)</th>
-                <th data-i18n="working-hours">ម៉ោងធ្វើការ</th>
-                <th data-i18n="status">STATUS</th>
+                <th data-i18n="name">ព័ត៌មានបុគ្គលិក (Staff Profile)</th>
+                <th data-i18n="role">តួនាទី & នាយកដ្ឋាន (Role & Dept)</th>
+                <th data-i18n="working-hours">ម៉ោងធ្វើការ & វេនបច្ចុប្បន្ន</th>
+                <th>សិទ្ធិប្រើប្រាស់ & ប្រវត្តិសកម្មភាព (Logs)</th>
+                <th data-i18n="status">ស្ថានភាពគណនី</th>
                 <th style="text-align: right" data-i18n="action">
-                  សកម្មភាព (Action)
+                  សកម្មភាពគ្រប់គ្រង
                 </th>
               </tr>
             </thead>
@@ -11105,18 +11567,87 @@
               <tr>
                 <td
                   data-i18n="loading-admins"
-                  colspan="5"
+                  colspan="6"
                   style="
                     text-align: center;
-                    padding: 20px;
+                    padding: 40px;
                     color: var(--text-muted);
                   "
                 >
-                  កំពុងទាញយកទិន្នន័យ...
+                  <i
+                    class="fa-solid fa-circle-notch fa-spin"
+                    style="font-size: 1.5rem; color: #0d9488"
+                  ></i
+                  ><br /><br />
+                  កំពុងទាញយកទិន្នន័យបុគ្គលិក និងប្រវត្តិសកម្មភាព...
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- ប៊ូតុងបញ្ជាទំព័រ (Pagination Footer: ថយក្រោយ | ទំព័រ 1 នៃ X | បន្ទាប់) -->
+        <div
+          id="aadmPaginationFooter"
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-body, #f8fafc);
+            border: 1px solid var(--border, #e2e8f0);
+            border-top: none;
+            border-radius: 0 0 18px 18px;
+          "
+        >
+          <button
+            type="button"
+            id="btnPrevAdminPage"
+            onclick="changeAdminTablePage(-1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            <i class="fa-solid fa-chevron-left"></i> ថយក្រោយ
+          </button>
+
+          <span
+            id="adminTablePageInfo"
+            style="
+              font-size: 0.86rem;
+              font-weight: 800;
+              color: var(--text-main);
+            "
+          >
+            ទំព័រ 1 នៃ 1
+          </span>
+
+          <button
+            type="button"
+            id="btnNextAdminPage"
+            onclick="changeAdminTablePage(1)"
+            style="
+              padding: 8px 16px;
+              border-radius: 9px;
+              border: 1px solid var(--border, #cbd5e1);
+              background: var(--bg-card, #ffffff);
+              color: var(--text-main);
+              font-weight: 800;
+              cursor: pointer;
+              transition: 0.2s;
+            "
+            disabled
+          >
+            បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
 
