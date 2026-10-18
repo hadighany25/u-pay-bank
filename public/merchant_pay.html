@@ -92,6 +92,8 @@
         padding: 16px 18px;
         background: linear-gradient(135deg, #00382e, #004d40);
         color: white;
+        position: relative;
+        z-index: 10;
       }
       .icon-circle-btn {
         width: 38px;
@@ -105,6 +107,33 @@
         justify-content: center;
         font-size: 1rem;
         cursor: pointer;
+      }
+
+      /* 🌟 របាររលកសញ្ញាស្កេន NFC នៅផ្នែកខាងលើ (Top Slide-Down Status Bar) */
+      .nfc-listening-banner {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #065f46, #047857);
+        color: white;
+        padding: 16px 18px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        align-items: center;
+        justify-content: space-between;
+        z-index: 2100;
+        animation: slideDownTopBar 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      @keyframes slideDownTopBar {
+        from {
+          transform: translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
       }
 
       /* ផ្ទៃបង្ហាញតួលេខគិតលុយ (Calculator Display) */
@@ -200,8 +229,23 @@
         gap: 8px;
         box-shadow: 0 6px 18px rgba(13, 148, 136, 0.3);
       }
+      .btn-pos-nfc {
+        background: linear-gradient(135deg, #059669, #10b981);
+        color: white;
+        border: none;
+        padding: 15px 20px;
+        border-radius: 16px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
+      }
 
-      /* 📱 ផ្ទាំងបង្ហាញ QR Code & Tap to Pay */
+      /* 📱 ផ្ទាំងបង្ហាញ QR Code */
       .qr-modal {
         display: none;
         position: fixed;
@@ -327,7 +371,6 @@
         border-color: rgba(16, 185, 129, 0.35);
       }
 
-      /* 🌟 ធានាថា SweetAlert / Slip อยู่ชั้นบนสุด (Z-Index 99999) */
       .swal2-container {
         z-index: 99999 !important;
       }
@@ -370,6 +413,44 @@
           title="បិទ/បើកសំឡេងហៅលុយចូលសម្រាប់ហាងនេះ"
         >
           <i class="fa-solid fa-volume-high" id="topVoiceQuickIcon"></i>
+        </button>
+      </div>
+
+      <!-- 🌟 របាររលកសញ្ញាស្កេន NFC នៅផ្នែកខាងលើ (Top Slide-Down Status Bar) -->
+      <div id="nfcListeningBanner" class="nfc-listening-banner">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <i
+            class="fa-solid fa-wifi fa-beat"
+            style="font-size: 1.5rem; color: #6ee7b7; transform: rotate(90deg)"
+          ></i>
+          <div>
+            <div style="font-size: 0.84rem; font-weight: 900">
+              កំពុងរង់ចាំស្កេនកាត NFC...
+            </div>
+            <div
+              id="nfcListeningAmount"
+              class="mono-num"
+              style="font-size: 0.74rem; color: #6ee7b7; font-weight: 700"
+            >
+              $0.00
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onclick="cancelNfcListening()"
+          style="
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            cursor: pointer;
+          "
+        >
+          បោះបង់
         </button>
       </div>
 
@@ -482,11 +563,16 @@
       <div class="calc-footer">
         <button type="button" class="btn-pos-qr" onclick="generateQRFromCalc()">
           <i class="fa-solid fa-qrcode"></i>
-          <span>បង្ហាញ KHQR & ស្កេនកាត NFC</span>
+          <span>បង្ហាញ KHQR</span>
+        </button>
+        <!-- 🌟 ប៊ូតុងស្កេន NFC នៅលើអេក្រង់ POS ផ្ទាល់តែម្ដង -->
+        <button type="button" class="btn-pos-nfc" onclick="startTapToPay()">
+          <i class="fa-solid fa-wifi" style="transform: rotate(90deg)"></i>
+          <span>NFC</span>
         </button>
       </div>
 
-      <!-- 📱 ផ្ទាំងបង្ហាញ QR Code & Tap to Pay -->
+      <!-- 📱 ផ្ទាំងបង្ហាញ QR Code Standee -->
       <div id="qrModal" class="qr-modal">
         <div class="qr-modal-header">
           <button type="button" class="round-tool-btn" onclick="closeQRModal()">
@@ -494,7 +580,6 @@
           </button>
 
           <div style="display: flex; gap: 8px; align-items: center">
-            <!-- ប្តូរភាសាសំឡេងនិយាយផ្ទាល់លើអេក្រង់ QR -->
             <button
               type="button"
               id="btnVoiceLangSwitch"
@@ -572,7 +657,6 @@
               USD ($)
             </div>
 
-            <!-- រូបឡូហ្គោហាង និងឈ្មោះហាង -->
             <div
               id="qrShopLogoWrap"
               style="
@@ -681,8 +765,10 @@
         >
           <button
             type="button"
-            onclick="startTapToPay()"
-            id="btnTapToPay"
+            onclick="
+              closeQRModal();
+              startTapToPayFromQR();
+            "
             style="
               width: 100%;
               max-width: 350px;
@@ -706,6 +792,13 @@
           </button>
         </div>
       </div>
+
+      <input
+        type="text"
+        id="hiddenUsbScannerInput"
+        style="opacity: 0; position: absolute; z-index: -1"
+        autocomplete="off"
+      />
     </div>
 
     <script>
@@ -723,6 +816,8 @@
       let shopVoiceOn = true;
       let shopVoiceProfile = "km_female_1";
       let posAudioCtx = null;
+      let nfcAbortController = null;
+      let isNfcListeningActive = false;
 
       document.addEventListener("DOMContentLoaded", () => {
         if (window.currentUser) {
@@ -731,6 +826,7 @@
             document.body.classList.add("dark-mode");
           }
           initPOS();
+          initGlobalUsbScanner();
         }
       });
 
@@ -1013,11 +1109,10 @@
               .catch(() => {});
             playVoiceAlert(data.amount, data.currency);
 
-            // 🌟 ១. បិទផ្ទាំង QR Modal ទាំងស្រុងមុនគេបង្អស់
             closeQRModal();
+            cancelNfcListening();
             if (Swal.isVisible()) Swal.close();
 
-            // 🌟 ២. បើកបង្ហាញវិក្កយបត្រ (Transaction Slip) ឱ្យលោតឡើងមកពីក្រោមយ៉ាងរលូន (Z-Index 99999)
             if (typeof openGlobalSlip === "function") {
               openGlobalSlip({
                 refId: data.refId || "POS-" + Date.now(),
@@ -1135,6 +1230,30 @@
         document.getElementById("qrModal").style.display = "none";
       }
 
+      function startTapToPayFromQR() {
+        const amount = parseFloat(document.getElementById("qrSetAmount").value);
+        if (!amount || amount <= 0) {
+          return Swal.fire(
+            "បញ្ជាក់",
+            "សូមបញ្ចូលចំនួនទឹកប្រាក់ជាមុនសិន!",
+            "warning",
+          );
+        }
+        startNfcListeningWithAmount(amount);
+      }
+
+      function startTapToPay() {
+        const amount = parseFloat(calcValue || "0");
+        if (amount <= 0) {
+          return Swal.fire(
+            "បញ្ជាក់",
+            "សូមចុចបញ្ចូលទឹកប្រាក់នៅលើម៉ាស៊ីន POS ជាមុនសិន!",
+            "warning",
+          );
+        }
+        startNfcListeningWithAmount(amount);
+      }
+
       function switchQRCurrency(currency) {
         if (currency === "USD" && !merchHasUSD) return;
         if (currency === "KHR" && !merchHasKHR) return;
@@ -1235,6 +1354,8 @@
       async function processNFCScan(serialNumber, amount, qrCurrency) {
         if (isProcessingNFC) return;
         isProcessingNFC = true;
+        cancelNfcListening();
+
         if (serialNumber)
           serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
 
@@ -1314,11 +1435,10 @@
               .catch(() => {});
             playVoiceAlert(amount, currency);
 
-            // 🌟 ១. បិទផ្ទាំង QR Modal ទាំងស្រុងមុនគេបង្អស់
             closeQRModal();
+            cancelNfcListening();
             if (Swal.isVisible()) Swal.close();
 
-            // 🌟 ២. បើកបង្ហាញវិក្កយបត្រ (Transaction Slip) ឱ្យលោតឡើងមកពីក្រោមយ៉ាងរលូន (Z-Index 99999)
             if (typeof openGlobalSlip === "function") {
               openGlobalSlip({
                 refId: "POS-" + Date.now(),
@@ -1347,88 +1467,94 @@
         }
       }
 
-      async function startTapToPay() {
-        if (isProcessingNFC) return;
-        const amount = parseFloat(document.getElementById("qrSetAmount").value);
-        if (!amount || amount <= 0) {
-          return Swal.fire(
-            "បញ្ជាក់",
-            "សូមបញ្ចូលចំនួនទឹកប្រាក់ជាមុនសិន!",
-            "warning",
-          );
-        }
+      function startNfcListeningWithAmount(amount) {
+        isNfcListeningActive = true;
+        const banner = document.getElementById("nfcListeningBanner");
+        const amtLbl = document.getElementById("nfcListeningAmount");
+        if (amtLbl)
+          amtLbl.innerText = `${calcCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()}`;
+        if (banner) banner.style.display = "flex";
 
-        // 🌟 ៣. បិទ QR Modal ជាមុនសិន ពេលកំពុងរង់ចាំស្កេន NFC ដើម្បីកុំឱ្យបាំងអេក្រង់
-        closeQRModal();
-
-        let isScanning = true;
+        const hiddenInput = document.getElementById("hiddenUsbScannerInput");
         let scanBuffer = "";
 
-        Swal.fire({
-          title: "សូមដាក់កាត NFC ជិតម៉ាស៊ីនស្កេន...",
-          html: `
-            <div style="margin:20px 0"><i class="fa-solid fa-wifi fa-beat" style="font-size:4rem; color:#10b981; transform:rotate(90deg)"></i></div>
-            <h2 class="mono-num" style="color:#10b981; margin:0">${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()}</h2>
-            <input type="text" id="hiddenUsbScannerInput" style="opacity:0; position:absolute; z-index:-1" autocomplete="off">
-          `,
-          showCancelButton: true,
-          showConfirmButton: false,
-          cancelButtonText: "បោះបង់",
-          allowOutsideClick: false,
-          customClass: { popup: "premium-swal" },
-          didOpen: () => {
-            const hiddenInput = document.getElementById(
-              "hiddenUsbScannerInput",
-            );
-            if (hiddenInput) {
-              hiddenInput.focus();
-              hiddenInput.addEventListener("blur", () => {
-                if (isScanning) setTimeout(() => hiddenInput.focus(), 10);
-              });
-              hiddenInput.addEventListener("keydown", function (e) {
-                if (e.code === "Enter" || e.code === "NumpadEnter") {
-                  if (scanBuffer.length >= 4) {
-                    isScanning = false;
-                    Swal.close();
-                    processNFCScan(
-                      normalizeUID(scanBuffer),
-                      amount,
-                      qrCurrency,
-                    );
-                  }
-                  scanBuffer = "";
-                } else {
-                  scanBuffer += e.key;
-                }
-              });
+        if (hiddenInput) {
+          hiddenInput.focus();
+          hiddenInput.onblur = () => {
+            if (isNfcListeningActive) setTimeout(() => hiddenInput.focus(), 10);
+          };
+          hiddenInput.onkeydown = function (e) {
+            if (e.code === "Enter" || e.code === "NumpadEnter") {
+              if (scanBuffer.length >= 4) {
+                isNfcListeningActive = false;
+                if (banner) banner.style.display = "none";
+                processNFCScan(normalizeUID(scanBuffer), amount, calcCurrency);
+              }
+              scanBuffer = "";
+            } else {
+              scanBuffer += e.key;
             }
-          },
-          didClose: () => {
-            isScanning = false;
-          },
-        });
+          };
+        }
 
         if ("NDEFReader" in window) {
-          const abortController = new AbortController();
-          Swal.getPopup().addEventListener("cancel", () =>
-            abortController.abort(),
-          );
+          nfcAbortController = new AbortController();
           try {
             const ndef = new NDEFReader();
-            await ndef.scan({ signal: abortController.signal });
-            ndef.onreading = async (event) => {
-              if (!isScanning) return;
-              isScanning = false;
-              abortController.abort();
-              Swal.close();
+            ndef.scan({ signal: nfcAbortController.signal });
+            ndef.onreading = (event) => {
+              if (!isNfcListeningActive) return;
+              isNfcListeningActive = false;
+              if (banner) banner.style.display = "none";
+              if (nfcAbortController) nfcAbortController.abort();
               processNFCScan(
                 normalizeUID(event.serialNumber),
                 amount,
-                qrCurrency,
+                calcCurrency,
               );
             };
           } catch (error) {}
         }
+      }
+
+      function cancelNfcListening() {
+        isNfcListeningActive = false;
+        const banner = document.getElementById("nfcListeningBanner");
+        if (banner) banner.style.display = "none";
+        if (nfcAbortController) {
+          nfcAbortController.abort();
+          nfcAbortController = null;
+        }
+      }
+
+      function initGlobalUsbScanner() {
+        let globalBuffer = "";
+        window.addEventListener("keydown", function (e) {
+          if (
+            isNfcListeningActive &&
+            document.activeElement?.id !== "hiddenUsbScannerInput"
+          ) {
+            if (e.code === "Enter" || e.code === "NumpadEnter") {
+              if (globalBuffer.length >= 4) {
+                const amount = parseFloat(calcValue || "0");
+                if (amount > 0) {
+                  isNfcListeningActive = false;
+                  const banner = document.getElementById("nfcListeningBanner");
+                  if (banner) banner.style.display = "none";
+                  if (nfcAbortController) nfcAbortController.abort();
+                  processNFCScan(
+                    normalizeUID(globalBuffer),
+                    amount,
+                    calcCurrency,
+                  );
+                }
+              }
+              globalBuffer = "";
+            } else {
+              globalBuffer += e.key;
+            }
+          }
+        });
       }
     </script>
   </body>

@@ -79,6 +79,27 @@ router.post(
   accountController.updateDailyLimit,
 );
 
+// ៣.៤ ទាញយកទិន្នន័យគណនីកូនៗទាំងអស់ និងប្រវត្តិចំណាយសម្រាប់ប៉ាម៉ាក់
+router.get(
+  "/junior/list",
+  verifyUser,
+  accountController.getJuniorAccountsDashboard,
+);
+
+// ៣.៥ ដាក់ប្រាក់ឱ្យកូន (Top-Up) ឬ ដកប្រាក់ពីកូនមកវិញ (Recall)
+router.post(
+  "/junior/transfer",
+  verifyUser,
+  accountController.transferJuniorFunds,
+);
+
+// ៣.៦ ប្តូរលេខសម្ងាត់ (Password) ឬ លេខកូដ PIN ឱ្យកូនដោយប៉ាម៉ាក់
+router.post(
+  "/junior/reset-credentials",
+  verifyUser,
+  accountController.resetJuniorCredentials,
+);
+
 // ============================================================================
 // បញ្ជូន Router ចេញទៅប្រើប្រាស់ (Export)
 // ============================================================================

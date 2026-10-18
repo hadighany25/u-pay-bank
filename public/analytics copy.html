@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <title>Analytics - U-Pay</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/lang.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="js/toast.js"></script>
+
+    <style>
+      :root {
+        --primary: #004d40;
+        --secondary: #10b981;
+        --bg-color: #f2f4f6;
+        --card-bg: #ffffff;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border-color: #f1f5f9;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        margin: 0;
+        font-family: "Inter", "Kantumruy Pro", sans-serif;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 450px;
+        background: var(--bg-color);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        padding-bottom: 90px;
+        transition: background-color 0.3s ease;
+      }
+
+      .nav-header {
+        padding: 20px;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.15rem;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0, 77, 64, 0.1);
+        z-index: 10;
+      }
+      .nav-header a {
+        color: white;
+        text-decoration: none;
+        transition: 0.2s;
+      }
+      .nav-header a:active {
+        transform: scale(0.9);
+      }
+
+      .content-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chart-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
+        margin-bottom: 25px;
+        border: 1px solid var(--border-color);
+        animation: fadeInUp 0.4s ease-out;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .chart-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin: 0;
+      }
+
+      .filter-select {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary);
+        outline: none;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 200px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #noDataMsg {
+        text-align: center;
+        color: var(--text-light);
+        font-size: 0.95rem;
+        font-weight: 500;
+      }
+
+      .total-expense-display {
+        text-align: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px dashed var(--border-color);
+      }
+      .total-expense-display p {
+        margin: 0 0 5px;
+        font-size: 0.85rem;
+        color: var(--text-light);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .total-expense-display h2 {
+        margin: 0;
+        color: var(--danger);
+        font-size: 2rem;
+        font-weight: 800;
+      }
+
+      .list-header {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin: 10px 0 15px;
+      }
+
+      /* Dynamic List Styles */
+      .expense-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .expense-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--card-bg);
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        animation: fadeInUp 0.5s ease-out;
+      }
+      .expense-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .expense-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+      }
+      .expense-info h4 {
+        margin: 0 0 4px;
+        font-size: 0.95rem;
+        color: var(--text-dark);
+        font-weight: 700;
+        text-transform: capitalize;
+      }
+      .expense-info p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: var(--text-light);
+        font-weight: 500;
+      }
+      .expense-amount {
+        font-weight: 800;
+        color: var(--text-dark);
+        font-size: 1.05rem;
+      }
+
+      /* BOTTOM NAV */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        max-width: 450px;
+        display: flex;
+        background: var(--card-bg);
+        padding: 12px 0 15px 0;
+        justify-content: space-around;
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.05);
+        z-index: 9999;
+        border-radius: 20px 20px 0 0;
+        border-top: 1px solid var(--border-color);
+      }
+      .nav-item {
+        text-align: center;
+        color: var(--text-light);
+        font-size: 0.75rem;
+        text-decoration: none;
+        flex: 1;
+        font-weight: 600;
+      }
+      .nav-item i {
+        font-size: 1.4rem;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .nav-item.active {
+        color: var(--primary);
+        transform: translateY(-3px);
+      }
+      /* បង្កើត Loading Spinner */
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* បង្ហាញអក្សរពេលកំពុងផ្ទុក */
+      .loading-text {
+        text-align: center;
+        color: var(--text-light);
+        font-size: 0.9rem;
+        margin-top: 10px;
+      }
+
+      /* DARK MODE */
+      body.dark-mode {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+      }
+      body.dark-mode .app-container {
+        background-color: #0f172a !important;
+      }
+      body.dark-mode .nav-header {
+        background-color: #1e293b !important;
+      }
+      body.dark-mode .chart-card,
+      body.dark-mode .expense-item,
+      body.dark-mode .bottom-nav {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      body.dark-mode .chart-title,
+      body.dark-mode .expense-info h4,
+      body.dark-mode .expense-amount,
+      body.dark-mode .list-header {
+        color: #f8fafc !important;
+      }
+      body.dark-mode .total-expense-display,
+      body.dark-mode .bottom-nav {
+        border-color: #334155 !important;
+      }
+      body.dark-mode .expense-info p,
+      body.dark-mode #noDataMsg,
+      body.dark-mode .total-expense-display p,
+      body.dark-mode .nav-item {
+        color: #94a3b8 !important;
+      }
+      body.dark-mode .filter-select {
+        background: #0f172a;
+        color: white;
+        border-color: #334155;
+      }
+      body.dark-mode .nav-item.active {
+        color: var(--secondary) !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="nav-header">
+        <a href="dashboard.html"><i class="fa-solid fa-arrow-left"></i></a>
+        <span data-lang="title_analytics">Analytics</span>
+      </div>
+
+      <div class="content-body">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title" data-lang="expenses">Expenses</h3>
+            <select
+              class="filter-select"
+              id="timeFilter"
+              onchange="loadAnalyticsData()"
+            >
+              <option value="today" data-lang="filter_today">Today</option>
+              <option value="month" selected data-lang="filter_month">
+                This Month
+              </option>
+              <option value="year" data-lang="filter_year">This Year</option>
+            </select>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+            <div id="noDataMsg" style="display: none" data-lang="no_expenses">
+              No expenses recorded.
+            </div>
+          </div>
+
+          <div class="total-expense-display">
+            <p data-lang="total_spent">Total Spent</p>
+            <h2>$<span id="totalSpent">0.00</span></h2>
+          </div>
+        </div>
+
+        <h3 class="list-header" data-lang="expense_breakdown">
+          Expense Breakdown
+        </h3>
+
+        <!-- 🔥 កន្លែងនេះនឹងត្រូវបង្កើតដោយស្វ័យប្រវត្តិអាស្រ័យលើទិន្នន័យ (Dynamic Rendering) -->
+        <div class="expense-list" id="dynamicExpenseList">
+          <!-- Items will be injected here via JS -->
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"
+          ><i class="fa-solid fa-house"></i
+          ><span data-lang="nav_home">Home</span></a
+        >
+        <a href="scan.html" class="nav-item"
+          ><i class="fa-solid fa-qrcode"></i
+          ><span data-lang="nav_scan">Scan</span></a
+        >
+        <a href="history.html" class="nav-item"
+          ><i class="fa-solid fa-clock-rotate-left"></i
+          ><span data-lang="nav_history">History</span></a
+        >
+        <a href="settings.html" class="nav-item"
+          ><i class="fa-solid fa-gear"></i
+          ><span data-lang="nav_settings">Settings</span></a
+        >
+      </div>
+    </div>
+
+    <script>
+      const activeUser = JSON.parse(sessionStorage.getItem("user"));
+      const apiToken = sessionStorage.getItem("userToken");
+      if (!activeUser || !apiToken) window.location.href = "index.html";
+
+      let expenseChart = null;
+
+      function applyTheme() {
+        const userThemeKey = "darkMode_" + activeUser.username;
+        const isDark =
+          localStorage.getItem("theme") === "dark" ||
+          localStorage.getItem(userThemeKey) === "true";
+        if (isDark) document.body.classList.add("dark-mode");
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        applyTheme();
+        if (typeof applyLanguage === "function") {
+          applyLanguage();
+        }
+        fetchAnalyticsData();
+      });
+
+      async function fetchAnalyticsData() {
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiToken}`,
+        };
+        try {
+          const res = await fetch("/api/users", { headers });
+          if (res.ok) {
+            const users = await res.json();
+            const serverUser = users.find(
+              (u) => u.username === activeUser.username,
+            );
+            if (serverUser) {
+              activeUser.transactions = serverUser.transactions || [];
+              sessionStorage.setItem("user", JSON.stringify(activeUser));
+            }
+          }
+        } catch (err) {
+          console.error("Fetch error:", err);
+        }
+        loadAnalyticsData();
+      }
+
+      function parseDateStrict(dateStr) {
+        if (!dateStr) return null;
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime()) && dateStr.includes(","))
+          d = new Date(dateStr.split(",")[0].trim());
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function getCategoryStyle(catName) {
+        const nameLower = catName.toLowerCase();
+
+        // មុខងារនេះជួយបង្កើតពណ៌ដោយស្វ័យប្រវត្តិ បើមិនជួបក្នុងបញ្ជី
+        const vibrantColors = [
+          { color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" }, // ស្វាយ
+          { color: "#06b6d4", bg: "rgba(6, 182, 212, 0.1)" }, // ខៀវស្រាល
+          { color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" }, // លឿងទុំ
+          { color: "#d946ef", bg: "rgba(217, 70, 239, 0.1)" }, // ផ្កាឈូកក្រម៉ៅ
+          { color: "#0ea5e9", bg: "rgba(14, 165, 233, 0.1)" }, // មេឃ
+        ];
+
+        // ជ្រើសរើសពណ៌តាមលេខសម្គាល់នៃឈ្មោះ (ដើម្បីឱ្យឈ្មោះដដែល ជាប់ពណ៌ដដែល)
+        const hash = nameLower
+          .split("")
+          .reduce((a, b) => a + b.charCodeAt(0), 0);
+        const dynamicColor = vibrantColors[hash % vibrantColors.length];
+
+        // កំណត់កូដពណ៌សម្រាប់ប្រភេទនីមួយៗ
+        const map = {
+          food: {
+            icon: "fa-utensils",
+            color: "#FF1F22",
+            bg: "rgba(249, 115, 22, 0.1)",
+          },
+          ម្ហូប: {
+            icon: "fa-utensils",
+            color: "#1FFF71",
+            bg: "rgba(249, 115, 22, 0.1)",
+          },
+          fashion: {
+            icon: "fa-shirt",
+            color: "#FF1FF4",
+            bg: "rgba(236, 72, 153, 0.1)",
+          },
+          សំលៀកបំពាក់: {
+            icon: "fa-shirt",
+            color: "#FF1FF4",
+            bg: "rgba(236, 72, 153, 0.1)",
+          },
+          transportation: {
+            icon: "fa-car",
+            color: "#FEA520",
+            bg: "rgba(20, 184, 166, 0.1)",
+          },
+          ដឹកជញ្ជូន: {
+            icon: "fa-car",
+            color: "#1FDAFF",
+            bg: "rgba(20, 184, 166, 0.1)",
+          },
+          health: {
+            icon: "fa-heart-pulse",
+            color: "#C144DA",
+            bg: "rgba(244, 63, 94, 0.1)",
+          },
+          សុខភាព: {
+            icon: "fa-heart-pulse",
+            color: "#C144DA",
+            bg: "rgba(244, 63, 94, 0.1)",
+          },
+          education: {
+            icon: "fa-book-open",
+            color: "#5A1FFF",
+            bg: "rgba(99, 102, 241, 0.1)",
+          },
+          អប់រំ: {
+            icon: "fa-book-open",
+            color: "#5A1FFF",
+            bg: "rgba(99, 102, 241, 0.1)",
+          },
+          bill: {
+            icon: "fa-file-invoice-dollar",
+            color: "#A068CA",
+            bg: "rgba(239, 68, 68, 0.1)",
+          },
+          merchant: {
+            icon: "fa-store",
+            color: "#B47E83",
+            bg: "rgba(59, 130, 246, 0.1)",
+          },
+          scan: {
+            icon: "fa-qrcode",
+            color: "#EEFF33",
+            bg: "rgba(59, 130, 246, 0.1)",
+          },
+          transfer: {
+            icon: "fa-paper-plane",
+            color: "#FBFB23",
+            bg: "rgba(245, 158, 11, 0.1)",
+          },
+        };
+
+        for (let key in map) {
+          if (nameLower.includes(key)) return map[key];
+        }
+
+        // បើមិនជួបក្នុង map ខាងលើ វានឹងប្រើពណ៌ស្រស់ស្អាត (Dynamic Color) ជំនួសឱ្យពណ៌ប្រផេះ
+        return {
+          icon: "fa-layer-group",
+          color: dynamicColor.color,
+          bg: dynamicColor.bg,
+        };
+      }
+
+      async function loadAnalyticsData() {
+        const listContainer = document.getElementById("dynamicExpenseList");
+        const chartCtx = document.getElementById("expenseChart");
+        const noDataMsg = document.getElementById("noDataMsg");
+
+        // 🔥 ១. បង្ហាញ Loading State
+        listContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-light);"><i class="fa-solid fa-spinner fa-spin"></i> បងកំពុងផ្ទុកទិន្នន័យ...</div>`;
+
+        // ប្រើ setTimeout ដើម្បីឱ្យ Browser មានពេល Render អក្សរ Loading
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const filter = document.getElementById("timeFilter").value;
+        const now = new Date();
+        const txns = activeUser.transactions || [];
+
+        let aggregatedData = {};
+        let totalExpense = 0;
+
+        txns.forEach((t) => {
+          let amt = parseFloat(t.amount) || 0;
+          if (amt < 0) {
+            const tDate = parseDateStrict(t.date || t.createdAt);
+            if (!tDate) return;
+
+            let match = false;
+            if (filter === "today")
+              match = tDate.toDateString() === now.toDateString();
+            else if (filter === "month")
+              match =
+                tDate.getMonth() === now.getMonth() &&
+                tDate.getFullYear() === now.getFullYear();
+            else if (filter === "year")
+              match = tDate.getFullYear() === now.getFullYear();
+
+            if (match) {
+              let typeStr = (t.type || "").toLowerCase();
+              let finalCategory = "Other";
+
+              if (
+                typeStr.includes("merchant") ||
+                typeStr.includes("scan") ||
+                typeStr.includes("qr")
+              ) {
+                finalCategory = t.category || "Merchant Payment";
+              } else if (
+                typeStr.includes("bill") ||
+                typeStr.includes("utility")
+              ) {
+                finalCategory = "Bills & Utilities";
+              } else {
+                finalCategory = t.trxMethod || t.type || "Transfer";
+              }
+
+              if (!aggregatedData[finalCategory]) {
+                aggregatedData[finalCategory] = { total: 0, count: 0 };
+              }
+              aggregatedData[finalCategory].total += Math.abs(amt);
+              aggregatedData[finalCategory].count += 1;
+              totalExpense += Math.abs(amt);
+            }
+          }
+        });
+
+        document.getElementById("totalSpent").innerText =
+          totalExpense.toFixed(2);
+        listContainer.innerHTML = ""; // លាង Loading ចេញ
+
+        let categoriesArray = Object.keys(aggregatedData)
+          .map((key) => ({
+            name: key,
+            total: aggregatedData[key].total,
+            count: aggregatedData[key].count,
+          }))
+          .sort((a, b) => b.total - a.total);
+
+        let chartLabels = [];
+        let chartData = [];
+        let chartColors = [];
+
+        const currentLang = localStorage.getItem("lang") || "en";
+        let trxWord = currentLang === "kh" ? "ប្រតិបត្តិការ" : "transactions";
+
+        if (categoriesArray.length === 0) {
+          listContainer.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-light);">${currentLang === "kh" ? "មិនមានប្រតិបត្តិការទេ" : "No transactions found"}</div>`;
+        }
+
+        categoriesArray.forEach((cat) => {
+          let style = getCategoryStyle(cat.name);
+          chartLabels.push(cat.name);
+          chartData.push(cat.total);
+          chartColors.push(style.color);
+
+          listContainer.innerHTML += `
+              <div class="expense-item">
+                <div class="expense-left">
+                  <div class="expense-icon" style="background: ${style.bg}; color: ${style.color};">
+                    <i class="fa-solid ${style.icon}"></i>
+                  </div>
+                  <div class="expense-info">
+                    <h4>${cat.name}</h4>
+                    <p>${cat.count} ${trxWord}</p>
+                  </div>
+                </div>
+                <div class="expense-amount">$${cat.total.toFixed(2)}</div>
+              </div>
+            `;
+        });
+
+        // គូរ Chart
+        const ctx = chartCtx.getContext("2d");
+        const isDark = document.body.classList.contains("dark-mode");
+
+        if (expenseChart) expenseChart.destroy();
+
+        // 🔥 បង្ហាញ Gray Placeholder ពេលគ្មានទិន្នន័យជំនួសឱ្យការលាក់ Chart
+        const chartConfig = {
+          type: "doughnut",
+          data: {
+            labels: totalExpense === 0 ? ["No Data"] : chartLabels,
+            datasets: [
+              {
+                data: totalExpense === 0 ? [1] : chartData,
+                backgroundColor: totalExpense === 0 ? ["#e2e8f0"] : chartColors,
+                borderWidth: totalExpense === 0 ? 0 : isDark ? 3 : 2,
+                borderColor: isDark ? "#1e293b" : "#ffffff",
+                hoverOffset: 8,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "75%",
+            plugins: {
+              legend: {
+                position: "right",
+                labels: { usePointStyle: true, boxWidth: 8 },
+              },
+              tooltip: {
+                enabled: totalExpense > 0,
+                callbacks: { label: (ctx) => ` $${ctx.parsed.toFixed(2)}` },
+              },
+            },
+          },
+        };
+
+        chartCtx.style.display = "block";
+        noDataMsg.style.display = totalExpense === 0 ? "block" : "none";
+        expenseChart = new Chart(ctx, chartConfig);
+      }
+    </script>
+  </body>
+</html>

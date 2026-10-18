@@ -422,6 +422,413 @@ exports.updateDailyLimit = async (req, res) => {
   }
 };
 
+/**
+ * 🔹 មុខងារទាញយកទិន្នន័យគណនីកូនៗទាំងអស់ និងប្រវត្តិប្រតិបត្តិការលម្អិតសម្រាប់ប៉ាម៉ាក់ (Parent Dashboard)
+ */
+exports.getJuniorAccountsDashboard = async (req, res) => {
+  try {
+    const parentUsername = req.user?.username || req.query?.parentUsername;
+    const parent = await User.findOne({ username: parentUsername }).lean();
+    if (!parent) {
+      return res
+        .status(404)
+        .json({ success: false, message: "រកមិនឃើញគណនីអាណាព្យាបាលទេ!" });
+    }
+
+    // ១. ស្វែងរកគណនីកូនៗទាំងអស់ដែលមាន parentUsername ជាប៉ាម៉ាក់រូបនេះ ឬមានក្នុង subAccounts ប្រភេទ junior
+    const juniorSubUsernames = (parent.subAccounts || [])
+      .filter((s) => s.accountType === "junior" && s.accountId)
+      .map((s) => String(s.accountId).replace(/_khr$/i, ""));
+
+    const childrenDocs = await User.find({
+      $or: [
+        { parentUsername: parent.username, role: "junior" },
+        { username: { $in: juniorSubUsernames }, role: "junior" },
+      ],
+    })
+      .select("-password")
+      .lean();
+
+    const childrenWithDetails = await Promise.all(
+      childrenDocs.map(async (child) => {
+        const usdAccObj = child.mainAccounts?.USD || null;
+        const khrAccObj = child.mainAccounts?.KHR || null;
+
+        const childAccNums = [];
+        if (usdAccObj?.accountNumber)
+          childAccNums.push(usdAccObj.accountNumber);
+        if (khrAccObj?.accountNumber)
+          childAccNums.push(khrAccObj.accountNumber);
+        if (child.accountNumber) childAccNums.push(child.accountNumber);
+
+        // ទាញយកប្រតិបត្តិការទាំងអស់របស់កូនម្នាក់នេះ
+        const trxs = await Transaction.find({
+          $or: [
+            { userId: child._id },
+            { username: child.username },
+            { senderAcc: { $in: childAccNums } },
+            { receiverAcc: { $in: childAccNums } },
+          ],
+        })
+          .sort({ _id: -1 })
+          .limit(200)
+          .lean();
+
+        // គណនាចំណាយថ្ងៃនេះ (Today's Spent in USD Eq)
+        const todayStr = new Date().toDateString();
+        let spentTodayUSD = 0;
+        let spentMonthUSD = 0;
+        let receivedFromParentUSD = 0;
+        const now = new Date();
+
+        const formattedTrxs = trxs.map((t) => {
+          const isInc =
+            t.username === child.username
+              ? Number(t.amount) > 0
+              : childAccNums.includes(t.receiverAcc) &&
+                !childAccNums.includes(t.senderAcc);
+
+          const rawAmt = Math.abs(Number(t.amount || 0));
+          const cur = t.currency === "KHR" ? "KHR" : "USD";
+          const amtUSD = cur === "KHR" ? rawAmt / 4100 : rawAmt;
+          const tDate = new Date(t.createdAt || t.date || Date.now());
+
+          if (!isInc && t.status !== "Refunded") {
+            if (tDate.toDateString() === todayStr) {
+              spentTodayUSD += amtUSD;
+            }
+            if (
+              tDate.getMonth() === now.getMonth() &&
+              tDate.getFullYear() === now.getFullYear()
+            ) {
+              spentMonthUSD += amtUSD;
+            }
+          } else if (isInc) {
+            receivedFromParentUSD += amtUSD;
+          }
+
+          return {
+            _id: t._id,
+            refId: t.refId || "N/A",
+            hash: t.hash || "",
+            date:
+              t.date || new Date(t.createdAt || Date.now()).toLocaleString(),
+            timestamp: tDate.getTime(),
+            type: t.type || "Transaction",
+            trxMethod: t.trxMethod || "U-PAY",
+            isIncome: isInc,
+            amount: rawAmt,
+            currency: cur,
+            amountUSD: Number(amtUSD.toFixed(2)),
+            senderName: t.senderName || child.fullName,
+            receiverName: t.receiverName || "Merchant/User",
+            senderAcc: t.senderAcc || "",
+            receiverAcc: t.receiverAcc || "",
+            counterparty: isInc
+              ? t.senderName || "ប៉ាម៉ាក់ (Parent)"
+              : t.receiverName || "ហាងទំនិញ / មិត្តភក្តិ",
+            remark: t.remark || "",
+            status: t.status || "Success",
+          };
+        });
+
+        const isOnlineNow = child.lastActive
+          ? Date.now() - new Date(child.lastActive).getTime() < 120000
+          : Boolean(child.isOnline);
+
+        return {
+          _id: child._id,
+          username: child.username,
+          fullName: child.fullName || child.username,
+          profileImage: child.profileImage || "",
+          isFrozen: Boolean(
+            child.isFrozen ||
+            usdAccObj?.isSystemLocked ||
+            khrAccObj?.isSystemLocked,
+          ),
+          isOnline: isOnlineNow,
+          lastActive: child.lastActive || child.joinDate || "",
+          dailyLimit: Number(usdAccObj?.dailyLimit ?? child.dailyLimit ?? 20),
+          spentTodayUSD: Number(spentTodayUSD.toFixed(2)),
+          spentMonthUSD: Number(spentMonthUSD.toFixed(2)),
+          receivedFromParentUSD: Number(receivedFromParentUSD.toFixed(2)),
+          accounts: {
+            USD: usdAccObj
+              ? {
+                  accountNumber: usdAccObj.accountNumber,
+                  balance: Number(usdAccObj.balance || 0),
+                }
+              : null,
+            KHR: khrAccObj
+              ? {
+                  accountNumber: khrAccObj.accountNumber,
+                  balance: Number(khrAccObj.balance || 0),
+                }
+              : null,
+          },
+          primaryAccountNumber:
+            usdAccObj?.accountNumber ||
+            khrAccObj?.accountNumber ||
+            child.accountNumber ||
+            "",
+          transactions: formattedTrxs,
+        };
+      }),
+    );
+
+    res.json({
+      success: true,
+      parentAccounts: {
+        USD: {
+          accountNumber: parent.mainAccounts?.USD?.accountNumber || "",
+          balance: Number(parent.mainAccounts?.USD?.balance || 0),
+        },
+        KHR: {
+          accountNumber: parent.mainAccounts?.KHR?.accountNumber || "",
+          balance: Number(parent.mainAccounts?.KHR?.balance || 0),
+        },
+      },
+      children: childrenWithDetails,
+    });
+  } catch (error) {
+    console.error("Get Junior Dashboard Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+/**
+ * 🔹 មុខងារ ដាក់ប្រាក់ឱ្យកូន (Top-Up) ឬ ដកប្រាក់ពីកូនមកវិញ (Recall) ដោយប៉ាម៉ាក់
+ */
+exports.transferJuniorFunds = async (req, res) => {
+  try {
+    const {
+      parentUsername,
+      childUsername,
+      direction, // "TOPUP" (ប៉ាម៉ាក់ -> កូន) | "RECALL" (កូន -> ប៉ាម៉ាក់)
+      currency, // "USD" | "KHR"
+      amount,
+      remark,
+      pin,
+    } = req.body;
+
+    const cleanAmt = parseFloat(amount);
+    if (!cleanAmt || cleanAmt <= 0) {
+      return res.json({
+        success: false,
+        message: "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
+      });
+    }
+
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីប៉ាម៉ាក់ទេ!" });
+    }
+    if (parent.pin !== String(pin).trim()) {
+      return res.json({
+        success: false,
+        message: "លេខកូដសម្ងាត់ PIN មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const child = await User.findOne({
+      username: childUsername,
+      role: "junior",
+    });
+    if (!child) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+    }
+
+    const cur = currency === "KHR" ? "KHR" : "USD";
+    const parentAcc = parent.mainAccounts?.[cur];
+    const childAcc = child.mainAccounts?.[cur];
+
+    if (!parentAcc || !parentAcc.accountNumber) {
+      return res.json({
+        success: false,
+        message: `ប៉ាម៉ាក់មិនមានគណនីគោល (${cur}) ទេ!`,
+      });
+    }
+    if (!childAcc || !childAcc.accountNumber) {
+      return res.json({
+        success: false,
+        message: `គណនីកូនមិនទាន់មានគណនី (${cur}) ទេ!`,
+      });
+    }
+
+    const isTopUp = direction !== "RECALL";
+
+    if (isTopUp) {
+      if ((parentAcc.balance || 0) < cleanAmt) {
+        return res.json({
+          success: false,
+          message: `សមតុល្យក្នុងគណនី (${cur}) របស់ប៉ាម៉ាក់មិនគ្រប់គ្រាន់ទេ!`,
+        });
+      }
+      parent.mainAccounts[cur].balance -= cleanAmt;
+      child.mainAccounts[cur].balance =
+        (child.mainAccounts[cur].balance || 0) + cleanAmt;
+    } else {
+      if ((childAcc.balance || 0) < cleanAmt) {
+        return res.json({
+          success: false,
+          message: `សមតុល្យក្នុងគណនី (${cur}) របស់កូនមិនគ្រប់គ្រាន់សម្រាប់ដកមកវិញទេ!`,
+        });
+      }
+      child.mainAccounts[cur].balance -= cleanAmt;
+      parent.mainAccounts[cur].balance =
+        (parent.mainAccounts[cur].balance || 0) + cleanAmt;
+    }
+
+    // អាប់ដេតសមតុល្យក្នុង subAccounts របស់ប៉ាម៉ាក់ឱ្យត្រូវគ្នាផងដែរ
+    if (Array.isArray(parent.subAccounts)) {
+      const sIdx = parent.subAccounts.findIndex(
+        (s) => s.accountNumber === childAcc.accountNumber,
+      );
+      if (sIdx !== -1) {
+        parent.subAccounts[sIdx].balance = child.mainAccounts[cur].balance;
+        parent.markModified("subAccounts");
+      }
+    }
+
+    parent.markModified("mainAccounts");
+    child.markModified("mainAccounts");
+    await parent.save();
+    await child.save();
+
+    const refId = generateStandardRefId(isTopUp ? "JTP" : "JRC");
+    const hash = generateStandardHash();
+    const dateStr = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour12: true,
+    });
+
+    const parentName = parent.fullName || parent.username;
+    const childName = child.fullName || child.username;
+    const sym = cur === "KHR" ? "៛" : "$";
+    const fmtAmt =
+      cur === "KHR" ? cleanAmt.toLocaleString() : cleanAmt.toFixed(2);
+
+    const parentTrxDoc = {
+      userId: parent._id,
+      username: parent.username,
+      refId,
+      hash,
+      date: dateStr,
+      type: isTopUp ? "Junior Allowance Top-Up" : "Junior Fund Recall",
+      amount: isTopUp ? -cleanAmt : cleanAmt,
+      currency: cur,
+      senderName: isTopUp ? parentName : childName,
+      senderAcc: isTopUp ? parentAcc.accountNumber : childAcc.accountNumber,
+      receiverName: isTopUp ? childName : parentName,
+      receiverAcc: isTopUp ? childAcc.accountNumber : parentAcc.accountNumber,
+      remark:
+        remark ||
+        (isTopUp
+          ? `ដាក់ប្រាក់ឱ្យកូន (${childName})`
+          : `ដកប្រាក់ពីគណនីកូន (${childName})`),
+      status: "Success",
+      trxMethod: "Junior Parental Control",
+    };
+
+    const childTrxDoc = {
+      ...parentTrxDoc,
+      userId: child._id,
+      username: child.username,
+      type: isTopUp ? "Received from Parent" : "Recalled by Parent",
+      amount: isTopUp ? cleanAmt : -cleanAmt,
+    };
+
+    await Transaction.create([parentTrxDoc, childTrxDoc]);
+
+    await Notification.create({
+      userId: child._id,
+      username: child.username,
+      title: isTopUp
+        ? "ទទួលបានប្រាក់ឧបត្ថម្ភពីប៉ាម៉ាក់! 🎉"
+        : "ប៉ាម៉ាក់បានដកប្រាក់ពីគណនី 🔄",
+      message: isTopUp
+        ? `ប៉ាម៉ាក់ (${parentName}) បានដាក់ប្រាក់ចំនួន +${sym}${fmtAmt} ចូលក្នុងគណនីរបស់កូន។ ${remark ? `ចំណាំ៖ "${remark}"` : ""}`
+        : `ប៉ាម៉ាក់ (${parentName}) បានដកប្រាក់ចំនួន -${sym}${fmtAmt} ពីគណនីរបស់កូនត្រឡប់ទៅវិញ។`,
+      date: dateStr,
+      type: isTopUp ? "deposit" : "deduction",
+      isRead: false,
+    });
+
+    res.json({
+      success: true,
+      message: isTopUp
+        ? `បានដាក់ប្រាក់ ${sym}${fmtAmt} ចូលគណនីកូនដោយជោគជ័យ!`
+        : `បានដកប្រាក់ ${sym}${fmtAmt} ពីគណនីកូនមកវិញដោយជោគជ័យ!`,
+      transaction: parentTrxDoc,
+      user: parent,
+    });
+  } catch (error) {
+    console.error("Transfer Junior Funds Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
+/**
+ * 🔹 មុខងារ កំណត់លេខសម្ងាត់ (Password) ឬ លេខកូដ PIN ៤ ខ្ទង់ថ្មីឱ្យកូនដោយប៉ាម៉ាក់
+ */
+exports.resetJuniorCredentials = async (req, res) => {
+  try {
+    const {
+      parentUsername,
+      childUsername,
+      newPassword,
+      newChildPin,
+      newChildName,
+      pin,
+    } = req.body;
+
+    const parent = await User.findOne({ username: parentUsername });
+    if (!parent) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីប៉ាម៉ាក់ទេ!" });
+    }
+    if (parent.pin !== String(pin).trim()) {
+      return res.json({
+        success: false,
+        message: "លេខកូដសម្ងាត់ PIN របស់ប៉ាម៉ាក់មិនត្រឹមត្រូវទេ!",
+      });
+    }
+
+    const child = await User.findOne({
+      username: childUsername,
+      role: "junior",
+    });
+    if (!child) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីកូននេះទេ!" });
+    }
+
+    if (newChildName && String(newChildName).trim() !== "") {
+      child.fullName = String(newChildName).trim();
+    }
+    if (newPassword && String(newPassword).trim().length >= 4) {
+      child.password = String(newPassword).trim();
+    }
+    if (newChildPin && /^\d{4}$/.test(String(newChildPin).trim())) {
+      child.pin = String(newChildPin).trim();
+    }
+
+    await child.save();
+
+    res.json({
+      success: true,
+      message: "ព័ត៌មានសុវត្ថិភាពរបស់គណនីកូនត្រូវបានកែប្រែដោយជោគជ័យ!",
+    });
+  } catch (error) {
+    console.error("Reset Junior Credentials Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "មានបញ្ហាបច្ចេកទេសលើ Server!" });
+  }
+};
+
 // ============================================================================
 // ផ្នែកទី ៣៖ 🌟 គ្រប់គ្រងគណនីលំដាប់ខ្ពស់ (Premium Accounts Management)
 // ============================================================================

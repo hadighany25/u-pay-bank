@@ -7,1382 +7,1633 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <link rel="icon" type="image/png" href="images/favicon.png" />
-    <title>Manage Kids - U-Pay</title>
+    <title>Manage Kids - U-Pay Junior</title>
 
+    <!-- Fonts & Icons -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
 
+    <!-- Core Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
+    <script src="js/u-pay-core.js"></script>
+    <script src="js/pin.js"></script>
+    <script src="js/slip.js"></script>
 
     <style>
-      /* ==========================================
-         🚀 CORE STYLES & LAYOUT (មិនប៉ះពាល់ UI របស់បងទេ)
-         ========================================== */
-      body,
-      input,
-      button,
-      select,
-      textarea {
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
+      /* =========================================================
+         🎨 U-PAY JUNIOR PARENTAL CONTROL DESIGN SYSTEM
+         (ភ្ជាប់ Dark Mode & ភាសាជាមួយ Setting ដោយស្វ័យប្រវត្តិ ១០០%)
+         ========================================================= */
+      :root {
+        --jr-primary: #be185d;
+        --jr-pink: #db2777;
+        --jr-rose: #f43f5e;
+        --jr-purple: #7c3aed;
+        --emerald: #10b981;
+        --blue: #0ea5e9;
+        --amber: #f59e0b;
+        --danger: #ef4444;
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --bg-subtle: #f8fafc;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+      }
+
+      body.dark-mode {
+        --bg-main: #020617;
+        --bg-card: #0f172a;
+        --bg-subtle: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #1e293b;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+      .fa-solid,
+      .fa-regular,
+      .fa-brands,
+      .fa,
+      .fas {
+        font-family: "Font Awesome 6 Free" !important;
+      }
+      .mono-num {
+        font-family: "JetBrains Mono", "Inter", monospace !important;
       }
 
       body {
-        background-color: #f2f4f6;
         margin: 0;
-        visibility: hidden;
-        opacity: 0;
+        background-color: #0b1120;
         display: flex;
         justify-content: center;
-        min-height: 100vh;
-        transition:
-          opacity 0.4s ease,
-          background-color 0.3s ease;
-        -webkit-font-smoothing: antialiased;
+        min-height: 100dvh;
+        color: var(--text-main);
+        opacity: 0;
+        transition: opacity 0.25s ease;
       }
       body.loaded {
-        visibility: visible;
         opacity: 1;
       }
 
       .app-container {
         width: 100%;
-        max-width: 450px;
-        background: #f8fafc;
-        min-height: 100vh;
+        max-width: 480px;
+        min-height: 100dvh;
+        background: var(--bg-main);
+        position: relative;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-        position: relative;
-        padding-bottom: 90px;
+        overflow-x: hidden;
+        padding-bottom: 40px;
+        box-shadow: 0 0 35px rgba(0, 0, 0, 0.25);
       }
-      .nav-header {
-        padding: 20px;
-        background: #004d40;
-        color: white;
+
+      /* ក្បាលទំព័រ (Topbar - ស្អាត គ្មានប៊ូតុងដូរ Mode រញ៉េរញ៉ៃ) */
+      .jr-topbar {
+        background: linear-gradient(
+          135deg,
+          #831843 0%,
+          #be185d 55%,
+          #db2777 100%
+        );
+        color: #ffffff;
+        padding: 16px 18px;
         display: flex;
         align-items: center;
-        gap: 15px;
-        font-size: 1.1rem;
+        justify-content: space-between;
         position: sticky;
         top: 0;
-        z-index: 50;
+        z-index: 30;
       }
-      .content-body {
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* ==========================================
-         👶 JUNIOR CARDS 
-         ========================================== */
-      .add-btn {
-        display: flex;
+      .jr-back-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.16);
+        color: #ffffff;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        width: 100%;
-        background: #e0f2f1;
-        color: #004d40;
-        border: 2px dashed #004d40;
-        padding: 15px;
-        border-radius: 12px;
         font-size: 1rem;
-        font-weight: 600;
         cursor: pointer;
-        margin-bottom: 25px;
-        transition: 0.3s;
+        transition: transform 0.18s;
       }
-      .add-btn:active {
-        transform: scale(0.96);
-      }
-
-      .junior-card {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-        margin-bottom: 20px;
-        transition:
-          transform 0.3s ease,
-          box-shadow 0.3s ease;
-      }
-      .junior-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      .jr-back-btn:active {
+        transform: scale(0.9);
       }
 
-      .card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 25px;
-      }
-      .kid-profile {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      .kid-icon {
-        width: 55px;
-        height: 55px;
-        background: #fdf2f8;
-        color: #ec4899;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-      }
-      .kid-name h3 {
-        font-size: 1.15rem;
-        color: #1e293b;
-        margin: 0 0 4px 0;
-        font-weight: 700;
-      }
-      .kid-name p {
-        font-size: 0.8rem;
-        color: #64748b;
-        margin: 0;
+      /* ផ្ទាំង Hero គ្រួសារ និងរទេះជ្រើសរើសកូនៗ */
+      .jr-hero {
+        background: linear-gradient(
+          135deg,
+          #831843 0%,
+          #be185d 55%,
+          #e11d48 100%
+        );
+        padding: 4px 16px 24px;
+        color: #ffffff;
+        border-radius: 0 0 28px 28px;
+        box-shadow: 0 10px 25px rgba(190, 24, 93, 0.22);
       }
 
-      .status-badge {
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-      }
-      .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-      }
-      .status-active {
-        background: #ecfdf5;
-        color: #10b981;
-      }
-      .status-active .status-dot {
-        background: #10b981;
-        animation: pulse 1.5s infinite;
-      }
-      .status-frozen {
-        background: #fef2f2;
-        color: #ef4444;
-      }
-      .status-frozen .status-dot {
-        background: #ef4444;
-      }
-      @keyframes pulse {
-        0% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-        }
-        70% {
-          transform: scale(1);
-          box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-        }
-        100% {
-          transform: scale(0.95);
-          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-        }
+      .jr-summary-strip {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.13);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        backdrop-filter: blur(8px);
+        border-radius: 18px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
       }
 
-      .account-list {
-        margin-bottom: 25px;
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 15px;
-        border: 1px solid #f1f5f9;
-      }
-      .acc-item {
+      /* បញ្ជីអូសជ្រើសរើសកូនៗ (Kids Avatar Carousel) */
+      .jr-kids-carousel {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5px 0;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 4px;
       }
-      .acc-currency {
+      .jr-kids-carousel::-webkit-scrollbar {
+        display: none;
+      }
+      .jr-kid-pill {
+        background: rgba(255, 255, 255, 0.14);
+        border: 1.5px solid rgba(255, 255, 255, 0.24);
+        border-radius: 18px;
+        padding: 8px 13px;
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #475569;
+        cursor: pointer;
+        flex-shrink: 0;
+        color: #ffffff;
+        transition: all 0.2s ease;
       }
-      .acc-currency img {
-        width: 22px;
+      .jr-kid-pill.active {
+        background: #ffffff;
+        color: #be185d;
+        border-color: #ffffff;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+        transform: translateY(-1px);
+      }
+      .jr-kid-avatar {
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(135deg, #f43f5e, #fb7185);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 0.95rem;
+        position: relative;
+        flex-shrink: 0;
       }
-      .acc-balance {
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: #004d40;
-      }
-      .acc-number-sub {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        margin-top: 2px;
-        margin-left: 32px;
-        font-weight: 500;
-      }
-      .acc-divider {
-        height: 1px;
-        background: #e2e8f0;
-        margin: 12px 0;
-        width: 100%;
+      .jr-online-dot {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        border: 2px solid #ffffff;
       }
 
-      .action-grid {
+      /* កាតទូទៅ (Cards) */
+      .jr-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 22px;
+        padding: 18px;
+        margin: 14px 16px 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      }
+
+      /* កាតបង្ហាញគណនីរបស់កូនដែលកំពុងជ្រើសរើស (Active Child Wallet Card) */
+      .jr-wallet-banner {
+        background: linear-gradient(
+          135deg,
+          #1e1b4b 0%,
+          #4c1d95 55%,
+          #be185d 100%
+        );
+        color: #ffffff;
+        border-radius: 22px;
+        padding: 20px;
+        margin: 14px 16px 0;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(124, 58, 237, 0.22);
+      }
+      .jr-wallet-banner.frozen-wallet {
+        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      }
+
+      /* ប៊ូតុងបញ្ជារបស់ប៉ាម៉ាក់ទាំង ៤ (Parental Quick Actions) */
+      .jr-actions-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
+        gap: 8px;
+        margin: 12px 16px 0;
       }
-      .act-btn {
-        background: none;
-        border: none;
+      .jr-action-btn {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 12px 6px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         cursor: pointer;
-        padding: 0;
-        outline: none;
+        color: var(--text-main);
+        transition: transform 0.16s ease;
       }
-      .act-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+      .jr-action-btn:active {
+        transform: scale(0.94);
+      }
+      .jr-action-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .act-btn:active .act-icon {
-        transform: scale(0.85);
-      }
-      .act-text {
-        font-size: 0.75rem;
-        color: #64748b;
-        font-weight: 600;
+        font-size: 1.15rem;
       }
 
-      .bg-green {
-        background: #ecfdf5;
-        color: #10b981;
-      }
-      .bg-blue {
-        background: #eff6ff;
-        color: #3b82f6;
-      }
-      .bg-yellow {
-        background: #fffbeb;
-        color: #f59e0b;
-      }
-      .bg-red {
-        background: #fef2f2;
-        color: #ef4444;
-      }
-
-      /* ==========================================
-         🎨 PREMIUM SWEET ALERT
-         ========================================== */
-      .premium-swal {
-        border-radius: 20px !important;
-        padding: 30px 20px !important;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
-      }
-      .premium-swal .swal2-title {
-        font-size: 1.3rem !important;
-        color: #1e293b !important;
-        font-weight: 700 !important;
-        margin-bottom: 5px !important;
-      }
-      .premium-swal .swal2-html-container {
-        font-size: 0.95rem !important;
-        color: #64748b !important;
-        margin: 0 0 20px 0 !important;
-      }
-      .premium-swal .swal2-input {
-        height: 55px !important;
-        border-radius: 12px !important;
-        border: 2px solid #e2e8f0 !important;
-        text-align: center !important;
-        font-size: 1.1rem !important;
-        color: #1e293b !important;
-        box-shadow: none !important;
-        margin: 0 auto 15px auto !important;
-        width: 100% !important;
-        transition: 0.3s ease;
-        box-sizing: border-box !important;
-        font-family: "Kantumruy Pro", sans-serif !important;
-      }
-      .premium-swal .swal2-input:focus {
-        border-color: #004d40 !important;
-        box-shadow: 0 0 0 4px rgba(0, 77, 64, 0.1) !important;
-        outline: none !important;
-      }
-      .premium-swal .pin-input {
-        letter-spacing: 12px !important;
-        font-weight: 800 !important;
-        font-size: 1.5rem !important;
-      }
-
-      .premium-swal .swal2-actions {
-        gap: 15px !important;
-        margin-top: 10px !important;
+      /* របារកំណត់ការចាយប្រចាំថ្ងៃ (Daily Limit Progress Bar) */
+      .jr-limit-bar-bg {
         width: 100%;
-        padding: 0 10px;
-        box-sizing: border-box;
-      }
-      .premium-swal .swal2-confirm {
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 14px 0 !important;
-        flex: 1;
-        font-size: 1.05rem !important;
-        border: none !important;
-      }
-      .premium-swal .swal2-cancel {
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 14px 0 !important;
-        flex: 1;
-        background-color: #64748b !important;
-        color: white !important;
-        font-size: 1.05rem !important;
-      }
-
-      /* ==========================================
-         📱 BOTTOM SHEETS
-         ========================================== */
-      .sheet-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1000;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s;
-      }
-      .sheet-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-      .bottom-sheet {
-        position: fixed;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%) translateY(100%);
-        width: 100%;
-        max-width: 450px;
-        height: 75vh;
-        background: white;
-        border-radius: 24px 24px 0 0;
-        z-index: 1001;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
+        height: 12px;
+        background: var(--bg-subtle);
+        border-radius: 20px;
         overflow: hidden;
+        margin: 10px 0 8px;
+        border: 1px solid var(--border-color);
       }
-      .bottom-sheet.active {
-        transform: translateX(-50%) translateY(0);
-      }
-      .sheet-header {
-        padding: 20px;
-        text-align: center;
-        font-weight: 700;
-        font-size: 1.2rem;
-        border-bottom: 1px solid #f1f5f9;
-        position: relative;
-        color: #1e293b;
-      }
-      .sheet-close {
-        position: absolute;
-        right: 20px;
-        top: 20px;
-        color: #94a3b8;
-        font-size: 1.2rem;
-        cursor: pointer;
-      }
-      .sheet-body {
-        padding: 20px;
-        overflow-y: auto;
-        flex: 1;
-      }
-      .step-section {
-        display: none;
-        animation: fadeIn 0.3s ease;
-      }
-      .step-section.active {
-        display: block;
+      .jr-limit-bar-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 20px;
+        transition: width 0.45s ease;
       }
 
-      .input-group {
-        margin-bottom: 20px;
-      }
-      .big-input {
-        width: 100%;
-        padding: 15px;
-        font-size: 1.5rem;
-        text-align: center;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        outline: none;
-        font-weight: 700;
-        transition: border-color 0.3s;
-        box-sizing: border-box;
-      }
-      .big-input:focus {
-        border-color: #004d40;
-      }
-      .currency-toggle {
+      /* របារជ្រើសរើសប្រភេទប្រតិបត្តិការរបស់កូន */
+      .jr-filter-chips {
         display: flex;
-        background: #f1f5f9;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        padding: 4px;
+        gap: 6px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        margin-bottom: 10px;
       }
-      .cur-btn {
-        flex: 1;
-        padding: 10px;
-        text-align: center;
-        border-radius: 8px;
+      .jr-filter-chips::-webkit-scrollbar {
+        display: none;
+      }
+      .jr-chip {
+        border: 1px solid var(--border-color);
+        background: var(--bg-subtle);
+        color: var(--text-muted);
+        padding: 6px 12px;
+        border-radius: 18px;
+        font-size: 0.75rem;
+        font-weight: 800;
         cursor: pointer;
-        font-weight: 600;
-        color: #64748b;
-        transition: 0.2s;
+        white-space: nowrap;
       }
-      .cur-btn.active {
-        background: white;
-        color: #004d40;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      .jr-chip.active {
+        background: var(--jr-pink);
+        color: #ffffff;
+        border-color: var(--jr-pink);
       }
 
-      .trx-item {
+      .jr-trx-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 15px 0;
-        border-bottom: 1px solid #f1f5f9;
+        padding: 12px 4px;
+        border-bottom: 1px solid var(--border-color);
         cursor: pointer;
       }
-      .trx-left {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      .trx-icon {
-        width: 40px;
-        height: 40px;
-        background: #e0f2f1;
-        color: #004d40;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .trx-title {
-        font-weight: 600;
-        color: #1e293b;
-        font-size: 0.95rem;
-      }
-      .trx-date {
-        font-size: 0.75rem;
-        color: #94a3b8;
-      }
-      .trx-amt {
-        font-weight: 700;
-        font-size: 1rem;
-      }
-      .amt-in {
-        color: #10b981;
-      }
-      .amt-out {
-        color: #ef4444;
+      .jr-trx-row:last-child {
+        border-bottom: none;
       }
 
-      .btn-primary {
-        width: 100%;
-        padding: 15px;
-        background: #004d40;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        cursor: pointer;
+      .premium-swal {
+        border-radius: 22px !important;
       }
-      /* ==========================================
-         🌙 DARK MODE OVERRIDES (សម្រាប់ Manage Kids)
-         ========================================== */
-      body.dark-mode {
-        background-color: #000000 !important;
-      }
-      body.dark-mode .app-container {
-        background-color: #121212 !important;
-        box-shadow: none !important;
-      }
-      body.dark-mode .nav-header {
-        background-color: #00251f !important;
-      }
-      body.dark-mode .junior-card {
-        background: #1e1e1e !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid #2d2d2d;
-      }
-      body.dark-mode .kid-name h3 {
-        color: #ffffff !important;
-      }
-      body.dark-mode .kid-name p,
-      body.dark-mode .acc-number-sub,
-      body.dark-mode .act-text {
-        color: #94a3b8 !important;
-      }
-      body.dark-mode .account-list {
-        background: #121212 !important;
-        border-color: #2d2d2d !important;
-      }
-      body.dark-mode .acc-currency {
-        color: #e2e8f0 !important;
-      }
-      body.dark-mode .acc-balance {
-        color: #10b981 !important;
-      }
-      body.dark-mode .acc-divider {
-        background: #2d2d2d !important;
-      }
-      body.dark-mode .add-btn {
-        background: #064e3b !important;
-        border-color: #059669 !important;
-        color: #34d399 !important;
-      }
-      body.dark-mode .bottom-sheet {
-        background: #1e1e1e !important;
-        color: #fff !important;
-      }
-      body.dark-mode .sheet-header {
-        border-bottom-color: #2d2d2d !important;
-        color: #fff !important;
-      }
-      body.dark-mode .big-input {
-        background: #121212 !important;
-        border-color: #2d2d2d !important;
-        color: #fff !important;
-      }
-      body.dark-mode .currency-toggle {
-        background: #121212 !important;
-      }
-      body.dark-mode .cur-btn.active {
-        background: #2d2d2d !important;
-        color: #10b981 !important;
-      }
-      body.dark-mode .trx-item {
-        border-bottom-color: #2d2d2d !important;
-      }
-      body.dark-mode .trx-title {
-        color: #fff !important;
+      .swal2-popup,
+      .swal2-title,
+      .swal2-html-container,
+      .swal2-input,
+      .swal2-select {
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
     </style>
   </head>
+
   <body>
     <div class="app-container">
-      <div class="nav-header">
-        <a href="dashboard.html" style="color: white"
-          ><i class="fa-solid fa-arrow-left"></i
-        ></a>
-        <span>គ្រប់គ្រងគណនីកូន</span>
-      </div>
-
-      <div class="content-body">
+      <!-- =========================================================
+           ១. ក្បាលទំព័រ (HEADER BAR)
+           ========================================================= -->
+      <div class="jr-topbar">
         <button
-          class="add-btn"
-          onclick="window.location.href = 'new-account.html'"
+          type="button"
+          class="jr-back-btn"
+          onclick="window.location.href = 'dashboard.html'"
         >
-          <i class="fa-solid fa-plus"></i> បង្កើតគណនីកូនថ្មី
+          <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <div id="juniorCardsContainer"></div>
-      </div>
-    </div>
 
-    <!-- ⬛ OVERLAY សម្រាប់ Background -->
-    <div
-      class="sheet-overlay"
-      id="sheetOverlay"
-      onclick="closeAllSheets()"
-    ></div>
-
-    <!-- 📱 TOP UP SHEET -->
-    <div class="bottom-sheet" id="topupSheet">
-      <div class="sheet-header">
-        បញ្ចូលប្រាក់ឱ្យកូន
-        <i class="fa-solid fa-xmark sheet-close" onclick="closeAllSheets()"></i>
-      </div>
-      <div class="sheet-body">
-        <div class="step-section active" id="topupStep1">
-          <p
-            style="
-              text-align: center;
-              color: #64748b;
-              margin-bottom: 15px;
-              font-weight: 600;
-            "
-            id="topupToName"
+        <div style="text-align: center">
+          <h2
+            style="margin: 0; font-size: 1.05rem; font-weight: 800"
+            data-i18n="manage_kids_title"
           >
-            ផ្ទេរទៅកាន់: ...
-          </p>
-          <div class="currency-toggle" id="dynamicCurrencyToggle"></div>
-          <div class="input-group">
-            <input
-              type="number"
-              id="inputAmount"
-              class="big-input"
-              placeholder="0.00"
-            />
-          </div>
-          <button class="btn-primary" onclick="goToTopupStep2()">
-            បន្ទាប់ <i class="fa-solid fa-arrow-right"></i>
-          </button>
+            គ្រប់គ្រងគណនីកូនៗ (Manage Kids)
+          </h2>
+          <span
+            style="font-size: 0.68rem; opacity: 0.88"
+            data-i18n="manage_kids_sub"
+          >
+            U-PAY Junior & Parental Control
+          </span>
         </div>
 
-        <div class="step-section" id="topupStep2">
-          <p
+        <button
+          type="button"
+          class="jr-back-btn"
+          onclick="window.location.href = 'new-account.html?flow=junior'"
+          title="បង្កើតគណនីកូនថ្មី"
+        >
+          <i class="fa-solid fa-user-plus"></i>
+        </button>
+      </div>
+
+      <!-- =========================================================
+           ២. ផ្ទាំងសង្ខេបគ្រួសារ & បញ្ជីជ្រើសរើសកូនៗ (KIDS SELECTOR)
+           ========================================================= -->
+      <div class="jr-hero">
+        <div class="jr-summary-strip">
+          <div>
+            <div
+              style="font-size: 0.72rem; opacity: 0.85"
+              data-i18n="kids_total_count"
+            >
+              គណនីកូនៗសរុប
+            </div>
+            <div
+              id="totalKidsCount"
+              class="mono-num"
+              style="font-size: 1.25rem; font-weight: 900; margin-top: 2px"
+            >
+              0 នាក់
+            </div>
+          </div>
+          <div
             style="
-              text-align: center;
-              color: #64748b;
-              margin-bottom: 15px;
-              font-weight: 600;
+              border-left: 1px solid rgba(255, 255, 255, 0.22);
+              padding-left: 12px;
             "
           >
-            សូមបញ្ចូលលេខសម្ងាត់ (PIN) ៤ខ្ទង់
-          </p>
-          <div class="input-group">
-            <input
-              type="password"
-              id="inputPin"
-              class="big-input"
-              style="letter-spacing: 12px"
-              maxlength="4"
-              placeholder="••••"
-            />
+            <div
+              style="font-size: 0.72rem; opacity: 0.85"
+              data-i18n="kids_total_balance"
+            >
+              សមតុល្យកូនៗសរុប
+            </div>
+            <div
+              id="totalKidsBalanceText"
+              class="mono-num"
+              style="font-size: 1.05rem; font-weight: 900; margin-top: 3px"
+            >
+              $0.00 / ៛0
+            </div>
           </div>
-          <button class="btn-primary" onclick="submitTopup()">
-            បញ្ជាក់ការផ្ទេរ
-          </button>
         </div>
-      </div>
-    </div>
 
-    <!-- 📱 HISTORY SHEET -->
-    <div class="bottom-sheet" id="historySheet">
-      <div class="sheet-header">
-        ប្រវត្តិប្រតិបត្តិការ
-        <i class="fa-solid fa-xmark sheet-close" onclick="closeAllSheets()"></i>
-      </div>
-      <div
-        class="sheet-body"
-        id="historyListContainer"
-        style="padding: 0 20px"
-      ></div>
-    </div>
+        <div
+          style="
+            font-size: 0.76rem;
+            font-weight: 700;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <span data-i18n="select_child_label"
+            >ជ្រើសរើសកូនដើម្បីគ្រប់គ្រង៖</span
+          >
+          <span
+            onclick="window.location.href = 'new-account.html?flow=junior'"
+            style="
+              cursor: pointer;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 3px 10px;
+              border-radius: 12px;
+              font-size: 0.72rem;
+            "
+          >
+            + បន្ថែមកូនថ្មី
+          </span>
+        </div>
 
-    <!-- 📱 SLIP MODAL -->
-    <div class="bottom-sheet" id="slipSheet" style="min-height: 70vh">
-      <div class="sheet-header">
-        វិក្កយបត្រ (Slip)
-        <i class="fa-solid fa-xmark sheet-close" onclick="closeSlipSheet()"></i>
+        <!-- រទេះជ្រើសរើសកូនម្នាក់ៗ -->
+        <div class="jr-kids-carousel" id="kidsCarouselContainer"></div>
       </div>
+
+      <!-- =========================================================
+           ៣. ផ្ទាំងទទេពេលមិនទាន់មានគណនីកូន (EMPTY STATE)
+           ========================================================= -->
       <div
-        class="sheet-body"
-        style="background: #f8fafc; padding: 20px; text-align: center"
+        id="emptyKidsState"
+        class="jr-card"
+        style="display: none; text-align: center; padding: 38px 20px"
       >
         <div
           style="
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            background: rgba(219, 39, 119, 0.12);
+            color: #db2777;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            margin: 0 auto 14px;
           "
         >
-          <i
-            class="fa-solid fa-circle-check"
-            style="font-size: 3rem; color: #10b981; margin-bottom: 10px"
-          ></i>
-          <h2 id="slipStatus" style="margin: 0; color: #10b981">ជោគជ័យ</h2>
-          <h1
-            id="slipAmount"
-            style="margin: 15px 0; font-size: 2rem; color: #1e293b"
-          >
-            $0.00
-          </h1>
+          <i class="fa-solid fa-child-reaching"></i>
+        </div>
+        <h3 style="margin: 0 0 6px; font-size: 1.05rem; font-weight: 900">
+          មិនទាន់មានគណនីកុមារនៅឡើយទេ
+        </h3>
+        <p
+          style="
+            margin: 0 0 18px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+          "
+        >
+          បង្កើតគណនី U-PAY Junior ឱ្យកូនៗរបស់អ្នក ដើម្បីបង្រៀនពួកគេពីការសន្សំ
+          ដាក់កម្រិតការចាយវាយប្រចាំថ្ងៃ
+          និងតាមដានរាល់ការទិញទំនិញពីចម្ងាយដោយសុវត្ថិភាព!
+        </p>
+        <button
+          type="button"
+          onclick="window.location.href = 'new-account.html?flow=junior'"
+          style="
+            border: none;
+            background: linear-gradient(135deg, #be185d, #db2777);
+            color: white;
+            padding: 13px 22px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(219, 39, 119, 0.3);
+          "
+        >
+          <i class="fa-solid fa-plus"></i> បង្កើតគណនីឱ្យកូនឥឡូវនេះ
+        </button>
+      </div>
+
+      <!-- =========================================================
+           ៤. ផ្ទាំងគ្រប់គ្រងលម្អិតសម្រាប់កូនដែលបានជ្រើសរើស (ACTIVE CHILD WORKSPACE)
+           ========================================================= -->
+      <div id="activeChildWorkspace" style="display: none">
+        <!-- កាតកាបូបលុយរបស់កូន -->
+        <div class="jr-wallet-banner" id="childWalletBanner">
           <div
             style="
-              text-align: left;
-              margin-top: 20px;
-              font-size: 0.95rem;
-              color: #64748b;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
             "
+          >
+            <div style="display: flex; align-items: center; gap: 12px">
+              <div
+                id="activeChildAvatar"
+                style="
+                  width: 48px;
+                  height: 48px;
+                  border-radius: 15px;
+                  background: rgba(255, 255, 255, 0.2);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 1.3rem;
+                  font-weight: 900;
+                "
+              >
+                K
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <h3
+                    id="activeChildName"
+                    style="margin: 0; font-size: 1.1rem; font-weight: 900"
+                  >
+                    ...
+                  </h3>
+                  <span
+                    id="activeChildStatusBadge"
+                    style="
+                      font-size: 0.65rem;
+                      padding: 2px 8px;
+                      border-radius: 10px;
+                      font-weight: 800;
+                      background: rgba(16, 185, 129, 0.25);
+                      color: #6ee7b7;
+                    "
+                  >
+                    🟢 ACTIVE
+                  </span>
+                </div>
+                <div
+                  id="activeChildHandle"
+                  class="mono-num"
+                  style="font-size: 0.75rem; opacity: 0.85; margin-top: 3px"
+                >
+                  @username
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onclick="openChildSecurityModal()"
+              style="
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                background: rgba(255, 255, 255, 0.14);
+                color: white;
+                padding: 6px 11px;
+                border-radius: 10px;
+                font-size: 0.72rem;
+                font-weight: 700;
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-key"></i> ប្តូរលេខសម្ងាត់កូន
+            </button>
+          </div>
+
+          <!-- សមតុល្យ USD និង KHR របស់កូន -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              margin-top: 18px;
+              background: rgba(0, 0, 0, 0.22);
+              padding: 13px;
+              border-radius: 16px;
+            "
+          >
+            <div>
+              <div style="font-size: 0.7rem; opacity: 0.8">
+                គណនីដុល្លារ (USD)
+              </div>
+              <div
+                id="activeChildUsdBal"
+                class="mono-num"
+                style="font-size: 1.35rem; font-weight: 900; margin-top: 2px"
+              >
+                $0.00
+              </div>
+              <div
+                id="activeChildUsdAcc"
+                class="mono-num"
+                style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
+              >
+                #...
+              </div>
+            </div>
+
+            <div
+              style="
+                border-left: 1px solid rgba(255, 255, 255, 0.15);
+                padding-left: 12px;
+              "
+            >
+              <div style="font-size: 0.7rem; opacity: 0.8">គណនីរៀល (KHR)</div>
+              <div
+                id="activeChildKhrBal"
+                class="mono-num"
+                style="
+                  font-size: 1.35rem;
+                  font-weight: 900;
+                  color: #fbcfe8;
+                  margin-top: 2px;
+                "
+              >
+                ៛0
+              </div>
+              <div
+                id="activeChildKhrAcc"
+                class="mono-num"
+                style="font-size: 0.68rem; opacity: 0.75; margin-top: 2px"
+              >
+                មិនទាន់បើក
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ⚡ ប៊ូតុងបញ្ជារបស់ប៉ាម៉ាក់ទាំង ៤ (ដាក់លុយ, ដកលុយមកវិញ, កំណត់ Limit, បិទ/ផ្អាកគណនី) -->
+        <div class="jr-actions-grid">
+          <button
+            type="button"
+            class="jr-action-btn"
+            onclick="openParentTransferModal('TOPUP')"
+          >
+            <div
+              class="jr-action-icon"
+              style="background: rgba(16, 185, 129, 0.14); color: #10b981"
+            >
+              <i class="fa-solid fa-circle-plus"></i>
+            </div>
+            <span style="font-size: 0.73rem; font-weight: 800"
+              >ដាក់លុយឱ្យកូន</span
+            >
+          </button>
+
+          <button
+            type="button"
+            class="jr-action-btn"
+            onclick="openParentTransferModal('RECALL')"
+          >
+            <div
+              class="jr-action-icon"
+              style="background: rgba(14, 165, 233, 0.14); color: #0ea5e9"
+            >
+              <i class="fa-solid fa-rotate-left"></i>
+            </div>
+            <span style="font-size: 0.73rem; font-weight: 800">ដកលុយមកវិញ</span>
+          </button>
+
+          <button
+            type="button"
+            class="jr-action-btn"
+            onclick="openUpdateLimitModal()"
+          >
+            <div
+              class="jr-action-icon"
+              style="background: rgba(245, 158, 11, 0.14); color: #f59e0b"
+            >
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <span style="font-size: 0.73rem; font-weight: 800"
+              >កំណត់ Limit</span
+            >
+          </button>
+
+          <button
+            type="button"
+            class="jr-action-btn"
+            onclick="promptToggleChildFreeze()"
+          >
+            <div
+              class="jr-action-icon"
+              id="btnFreezeActionIcon"
+              style="background: rgba(239, 68, 68, 0.14); color: #ef4444"
+            >
+              <i class="fa-solid fa-snowflake"></i>
+            </div>
+            <span
+              id="btnFreezeActionText"
+              style="font-size: 0.73rem; font-weight: 800"
+              >ផ្អាកគណនី</span
+            >
+          </button>
+        </div>
+
+        <!-- 🛡️ កាតតាមដានរនាំងចំណាយប្រចាំថ្ងៃរបស់កូន (DAILY SPENDING LIMIT TRACKER) -->
+        <div class="jr-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <div>
+              <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
+                <i class="fa-solid fa-shield-halved" style="color: #db2777"></i>
+                រនាំងចំណាយប្រចាំថ្ងៃ (Daily Spending Limit)
+              </h4>
+              <p
+                style="
+                  margin: 2px 0 0;
+                  font-size: 0.73rem;
+                  color: var(--text-muted);
+                "
+              >
+                កូនមិនអាចចាយលើសចំនួនកំណត់នេះក្នុង ១ ថ្ងៃបានឡើយ
+              </p>
+            </div>
+            <span
+              id="dailyLimitPctBadge"
+              class="mono-num"
+              style="
+                font-size: 0.76rem;
+                font-weight: 900;
+                padding: 3px 9px;
+                border-radius: 10px;
+                background: rgba(16, 185, 129, 0.12);
+                color: #10b981;
+              "
+            >
+              0%
+            </span>
+          </div>
+
+          <div class="jr-limit-bar-bg">
+            <div id="dailyLimitBarFill" class="jr-limit-bar-fill"></div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 0.76rem;
+              font-weight: 700;
+            "
+          >
+            <span>
+              ចាយថ្ងៃនេះ៖
+              <b
+                id="childSpentTodayText"
+                class="mono-num"
+                style="color: #ef4444"
+                >$0.00</b
+              >
+            </span>
+            <span>
+              កម្រិតកំណត់៖
+              <b
+                id="childDailyLimitText"
+                class="mono-num"
+                style="color: var(--text-main)"
+                >$20.00 / ថ្ងៃ</b
+              >
+            </span>
+          </div>
+        </div>
+
+        <!-- 📊 សង្ខេបថាកូនចាយលើអ្វីខ្លះ (WHERE YOUR CHILD SPENDS) -->
+        <div class="jr-card">
+          <h4 style="margin: 0 0 12px; font-size: 0.9rem; font-weight: 900">
+            <i class="fa-solid fa-chart-pie" style="color: #8b5cf6"></i>
+            សង្ខេបសកម្មភាពចំណាយរបស់កូន (Spending Insights)
+          </h4>
+
+          <div
+            style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px"
           >
             <div
               style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
+                background: var(--bg-subtle);
+                padding: 10px;
+                border-radius: 14px;
+                text-align: center;
               "
             >
-              <span>កាលបរិច្ឆេទ:</span
-              ><strong id="slipDate" style="color: #1e293b">...</strong>
+              <div style="font-size: 0.68rem; color: var(--text-muted)">
+                ទិញទំនិញ & QR
+              </div>
+              <div
+                id="insightShopSpent"
+                class="mono-num"
+                style="
+                  font-size: 0.95rem;
+                  font-weight: 900;
+                  color: #f59e0b;
+                  margin-top: 3px;
+                "
+              >
+                $0.00
+              </div>
             </div>
+
             <div
               style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
+                background: var(--bg-subtle);
+                padding: 10px;
+                border-radius: 14px;
+                text-align: center;
               "
             >
-              <span>ប្រតិបត្តិការ:</span
-              ><strong id="slipType" style="color: #1e293b">...</strong>
+              <div style="font-size: 0.68rem; color: var(--text-muted)">
+                ផ្ទេរឱ្យមិត្តភក្តិ
+              </div>
+              <div
+                id="insightTransferSpent"
+                class="mono-num"
+                style="
+                  font-size: 0.95rem;
+                  font-weight: 900;
+                  color: #0ea5e9;
+                  margin-top: 3px;
+                "
+              >
+                $0.00
+              </div>
             </div>
+
             <div
               style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
+                background: var(--bg-subtle);
+                padding: 10px;
+                border-radius: 14px;
+                text-align: center;
               "
             >
-              <span>លេខកូដ (Ref):</span
-              ><strong id="slipRef" style="color: #1e293b">...</strong>
+              <div style="font-size: 0.68rem; color: var(--text-muted)">
+                លុយប៉ាម៉ាក់ឱ្យ
+              </div>
+              <div
+                id="insightParentGiven"
+                class="mono-num"
+                style="
+                  font-size: 0.95rem;
+                  font-weight: 900;
+                  color: #10b981;
+                  margin-top: 3px;
+                "
+              >
+                +$0.00
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- 🧾 ប្រវត្តិប្រតិបត្តិការលម្អិតរបស់កូន (CHILD ACTIVITY LOG) -->
+        <div class="jr-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 10px;
+            "
+          >
+            <h4 style="margin: 0; font-size: 0.9rem; font-weight: 900">
+              <i
+                class="fa-solid fa-clock-rotate-left"
+                style="color: #0d9488"
+              ></i>
+              សកម្មភាពប្រើប្រាស់លុយរបស់កូន
+            </h4>
+            <span
+              id="childTrxCountBadge"
+              class="mono-num"
+              style="
+                font-size: 0.72rem;
+                color: var(--text-muted);
+                font-weight: 800;
+              "
+            >
+              0 ប្រតិបត្តិការ
+            </span>
+          </div>
+
+          <div class="jr-filter-chips">
+            <button
+              type="button"
+              class="jr-chip active"
+              onclick="setChildTrxFilter('ALL', this)"
+            >
+              ទាំងអស់
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setChildTrxFilter('SPENT', this)"
+            >
+              🔻 កូនចាយចេញ
+            </button>
+            <button
+              type="button"
+              class="jr-chip"
+              onclick="setChildTrxFilter('RECEIVED', this)"
+            >
+              🔺 លុយចូលគណនីកូន
+            </button>
+          </div>
+
+          <div id="childTransactionsContainer"></div>
         </div>
       </div>
     </div>
 
     <script>
-      let currentUser = JSON.parse(
-        sessionStorage.getItem("user") || localStorage.getItem("user"),
-      );
-      let token =
-        sessionStorage.getItem("userToken") || localStorage.getItem("token");
+      // =========================================================
+      // 🧠 U-PAY JUNIOR PARENTAL CONTROL ENGINE
+      // =========================================================
+      let childrenList = [];
+      let activeChild = null;
+      let parentMainAccounts = { USD: {}, KHR: {} };
+      let childTrxFilterMode = "ALL";
 
-      let globalKidsData = {};
-      let activeChildAccountUSD = null;
-      let activeChildAccountKHR = null;
-      let activeCurrency = "USD";
+      document.addEventListener("DOMContentLoaded", async () => {
+        if (!window.currentUser) {
+          const saved = JSON.parse(sessionStorage.getItem("user") || "null");
+          if (!saved) {
+            window.location.href = "index.html";
+            return;
+          }
+          window.currentUser = saved;
+        }
 
-      document.addEventListener("DOMContentLoaded", () => {
-        if (!currentUser) window.location.href = "index.html";
+        applyThemeFromSetting();
+        if (typeof applyLanguage === "function") applyLanguage();
 
-        // 🌟 ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
-        applyThemeLocally();
-
-        renderJuniorCards();
+        await loadJuniorDashboardData();
         document.body.classList.add("loaded");
-        setupEnterKeyListeners();
       });
 
-      // 🌟 បន្ថែមមុខងារ applyThemeLocally នេះនៅខាងក្រៅ
-      function applyThemeLocally() {
-        if (currentUser && currentUser.username) {
-          const userThemeKey = "theme_" + currentUser.username;
-          const isDark = localStorage.getItem(userThemeKey) === "dark";
-
-          if (isDark) {
-            document.body.classList.add("dark-mode");
-          } else {
-            document.body.classList.remove("dark-mode");
-          }
+      // 🌙 ចាប់យក Dark Mode ដោយស្វ័យប្រវត្តិពី Setting ("theme_" + username)
+      function applyThemeFromSetting() {
+        const u = window.currentUser;
+        if (u && u.username) {
+          const isDark = localStorage.getItem("theme_" + u.username) === "dark";
+          document.body.classList.toggle("dark-mode", isDark);
         }
       }
 
-      // 🌟 ស្ដាប់ការផ្លាស់ប្តូរ LocalStorage ពី Tab ផ្សេង (ការពារករណីបើកច្រើន Tab)
-      window.addEventListener("storage", (event) => {
-        if (currentUser && currentUser.username) {
-          const userThemeKey = "theme_" + currentUser.username;
-          if (event.key === userThemeKey) {
-            applyThemeLocally();
-          }
+      window.addEventListener("storage", (e) => {
+        if (
+          window.currentUser &&
+          e.key === "theme_" + window.currentUser.username
+        ) {
+          applyThemeFromSetting();
         }
       });
 
-      // ==========================================
-      // ១. គូរ UI កាតកូន (SMART PARSER: អាប់ដេតថ្មីបំផុត!)
-      // ==========================================
-      function renderJuniorCards() {
-        const container = document.getElementById("juniorCardsContainer");
+      function formatAccNum(num) {
+        return String(num || "").replace(/(\d{3})(?=\d)/g, "$1 ");
+      }
 
-        const juniorAccounts = (currentUser.subAccounts || []).filter((acc) => {
-          const typeStr = String(
-            acc.accountType || acc.type || acc.role || "",
-          ).toLowerCase();
-          const nameStr = String(
-            acc.accountName || acc.fullName || acc.username || "",
-          ).toUpperCase();
-          return typeStr === "junior" || nameStr.includes("JUNIOR");
+      // 🔄 ទាញយកទិន្នន័យគណនីកូនៗទាំងអស់ពី Backend
+      async function loadJuniorDashboardData(preserveChildUsername = null) {
+        try {
+          const res = await fetch("/api/account/junior/list", {
+            headers: window.authHeaders,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              parentMainAccounts = data.parentAccounts || {};
+              childrenList = data.children || [];
+              renderKidsOverviewAndSelect(preserveChildUsername);
+              return;
+            }
+          }
+        } catch (e) {}
+
+        // 🛡️ Fallback បើ Server មិនទាន់ Restart ទាញចេញពី subAccounts ប្រភេទ junior របស់ប៉ាម៉ាក់
+        const u = window.currentUser || {};
+        parentMainAccounts = {
+          USD: u.mainAccounts?.USD || {},
+          KHR: u.mainAccounts?.KHR || {},
+        };
+        const jrSubs = (u.subAccounts || []).filter(
+          (s) => s.accountType === "junior",
+        );
+
+        const grouped = {};
+        jrSubs.forEach((s) => {
+          const baseUser = String(s.accountId || s.accountNumber).replace(
+            /_khr$/i,
+            "",
+          );
+          if (!grouped[baseUser]) {
+            grouped[baseUser] = {
+              username: baseUser,
+              fullName: String(s.accountName || "").replace(
+                /\s*\(Junior.*\)/i,
+                "",
+              ),
+              isFrozen: Boolean(s.isLocked || s.isFrozen),
+              dailyLimit: Number(s.dailyLimit || 20),
+              spentTodayUSD: 0,
+              accounts: { USD: null, KHR: null },
+              primaryAccountNumber: s.accountNumber,
+              transactions: [],
+            };
+          }
+          if (s.currency === "KHR") {
+            grouped[baseUser].accounts.KHR = {
+              accountNumber: s.accountNumber,
+              balance: Number(s.balance || 0),
+            };
+          } else {
+            grouped[baseUser].accounts.USD = {
+              accountNumber: s.accountNumber,
+              balance: Number(s.balance || 0),
+            };
+          }
         });
 
-        if (juniorAccounts.length === 0) {
-          container.innerHTML = `<div style="text-align:center; padding:40px 20px; color:#94a3b8;"><p>មិនទាន់មានគណនីកូនទេ!</p></div>`;
+        childrenList = Object.values(grouped);
+        renderKidsOverviewAndSelect(preserveChildUsername);
+      }
+
+      function renderKidsOverviewAndSelect(preserveChildUsername = null) {
+        let totalUSD = 0;
+        let totalKHR = 0;
+        childrenList.forEach((c) => {
+          totalUSD += Number(c.accounts?.USD?.balance || 0);
+          totalKHR += Number(c.accounts?.KHR?.balance || 0);
+        });
+
+        document.getElementById("totalKidsCount").innerText =
+          `${childrenList.length} នាក់`;
+        document.getElementById("totalKidsBalanceText").innerText =
+          `$${totalUSD.toFixed(2)} / ៛${totalKHR.toLocaleString("en-US")}`;
+
+        const carousel = document.getElementById("kidsCarouselContainer");
+        const emptyBox = document.getElementById("emptyKidsState");
+        const workspace = document.getElementById("activeChildWorkspace");
+
+        if (childrenList.length === 0) {
+          carousel.innerHTML = "";
+          emptyBox.style.display = "block";
+          workspace.style.display = "none";
           return;
         }
 
-        const groupedKids = {};
+        emptyBox.style.display = "none";
+        workspace.style.display = "block";
 
-        // តម្រៀបទិន្នន័យកូនដោយផ្អែកលើ Schema ពេញលេញ (SU JINDA)
-        juniorAccounts.forEach((acc) => {
-          let rawName = String(
-            acc.accountName ||
-              acc.fullName ||
-              acc.name ||
-              acc.username ||
-              "JUNIOR",
-          );
-          rawName = rawName
-            .replace(/\s*\((JUNIOR|KHR|USD|\$|៛)\)\s*/gi, "")
-            .replace(/\b(KHR|USD)\b/gi, "")
-            .trim()
-            .toUpperCase();
-          if (!rawName) rawName = "JUNIOR";
+        const targetChild =
+          childrenList.find((c) => c.username === preserveChildUsername) ||
+          childrenList[0];
 
-          if (!groupedKids[rawName]) {
-            groupedKids[rawName] = {
-              name: rawName,
-              isFrozen: acc.isLocked || acc.isFrozen || false,
-              usd: null,
-              khr: null,
-            };
-          }
+        selectActiveChild(targetChild.username);
+      }
 
-          // ឆែកមើលលុយដុល្លារ (USD)
-          if (acc.accountNumber) {
-            // បើកុងមានតែលុយខ្មែរ ហើយគ្មានលេខកុង KHR ថ្មី (Support កុងចាស់ៗ)
-            if (acc.currency === "KHR" && !acc.accountNumberKHR) {
-              groupedKids[rawName].khr = {
-                accountNumber: acc.accountNumber,
-                balance: acc.balance || 0,
-              };
-            } else {
-              // ជាធម្មតា accountNumber តំណាងឱ្យ USD
-              groupedKids[rawName].usd = {
-                accountNumber: acc.accountNumber,
-                balance: acc.balance || 0,
-              };
-            }
-          }
+      window.selectActiveChild = function (username) {
+        activeChild = childrenList.find((c) => c.username === username);
+        if (!activeChild) return;
 
-          // ឆែកមើលលុយខ្មែរ (KHR) ផ្អែកលើ Schema ថ្មីរបស់កូន "su_jinda" ដែលមាន accountNumberKHR
-          if (acc.accountNumberKHR && acc.accountNumberKHR.trim() !== "") {
-            groupedKids[rawName].khr = {
-              accountNumber: acc.accountNumberKHR,
-              balance: acc.balanceKHR !== undefined ? acc.balanceKHR : 0,
-            };
-          }
-
-          // ករណី Data មកជាទម្រង់ subAccounts ចាស់ខ្លាំង (ប្រើ accountId)
-          if (!acc.accountNumber && acc.accountId) {
-            if (acc.currency === "KHR") {
-              groupedKids[rawName].khr = {
-                accountNumber: acc.accountId,
-                balance: acc.balance || 0,
-              };
-            } else {
-              groupedKids[rawName].usd = {
-                accountNumber: acc.accountId,
-                balance: acc.balance || 0,
-              };
-            }
-          }
-        });
-
-        globalKidsData = groupedKids;
-        let html = "";
-
-        Object.values(groupedKids).forEach((kid) => {
-          let accountsHtml = "";
-
-          if (kid.usd) {
-            accountsHtml += `
-              <div class="acc-item">
-                <div class="acc-currency"><img src="https://flagcdn.com/w40/us.png" alt="USD"> <span>USD</span></div>
-                <div class="acc-balance">$${Number(kid.usd.balance || 0).toFixed(2)}</div>
-              </div>
-              <div class="acc-number-sub">Acc: ${kid.usd.accountNumber}</div>
-            `;
-          }
-          if (kid.usd && kid.khr) {
-            accountsHtml += `<div class="acc-divider"></div>`;
-          }
-          if (kid.khr) {
-            accountsHtml += `
-              <div class="acc-item">
-                <div class="acc-currency"><img src="https://flagcdn.com/w40/kh.png" alt="KHR"> <span>KHR</span></div>
-                <div class="acc-balance">${Number(kid.khr.balance || 0).toLocaleString("en-US")} ៛</div>
-              </div>
-              <div class="acc-number-sub">Acc: ${kid.khr.accountNumber}</div>
-            `;
-          }
-
-          const kidNameEncoded = encodeURIComponent(kid.name);
-
-          html += `
-            <div class="junior-card">
-              <div class="card-top">
-                <div class="kid-profile">
-                  <div class="kid-icon"><i class="fa-solid fa-child-reaching"></i></div>
-                  <div class="kid-name">
-                    <h3>${kid.name} (JUNIOR)</h3>
-                    <p>គណនីកូន</p>
+        // ១. គូររទេះជ្រើសរើសកូនៗខាងលើ
+        const carousel = document.getElementById("kidsCarouselContainer");
+        carousel.innerHTML = childrenList
+          .map((c) => {
+            const isSel = c.username === activeChild.username;
+            const initial = (c.fullName || c.username).charAt(0).toUpperCase();
+            return `
+              <div
+                class="jr-kid-pill ${isSel ? "active" : ""}"
+                onclick="selectActiveChild('${c.username}')"
+              >
+                <div class="jr-kid-avatar">
+                  ${initial}
+                  ${c.isOnline ? '<span class="jr-online-dot"></span>' : ""}
+                </div>
+                <div>
+                  <div style="font-size:0.84rem; font-weight:900">${c.fullName}</div>
+                  <div class="mono-num" style="font-size:0.68rem; opacity:0.8">
+                    $${Number(c.accounts?.USD?.balance || 0).toFixed(2)}
                   </div>
                 </div>
-                <div class="status-badge ${kid.isFrozen ? "status-frozen" : "status-active"}">
-                  <span class="status-dot"></span>${kid.isFrozen ? "បានផ្អាក" : "សកម្ម"}
-                </div>
               </div>
+            `;
+          })
+          .join("");
 
-              <div class="account-list">
-                ${accountsHtml}
-              </div>
+        // ២. អាប់ដេតកាតកាបូបលុយរបស់កូន
+        const banner = document.getElementById("childWalletBanner");
+        banner.classList.toggle("frozen-wallet", activeChild.isFrozen);
 
-              <div class="action-grid">
-                <button class="act-btn" onclick="openTopupSheet('${kidNameEncoded}')">
-                  <div class="act-icon bg-green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-                  <span class="act-text">បញ្ចូលប្រាក់</span>
-                </button>
-                <button class="act-btn" onclick="openHistorySheet('${kidNameEncoded}')">
-                  <div class="act-icon bg-blue"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                  <span class="act-text">ប្រវត្តិ</span>
-                </button>
-                <button class="act-btn" onclick="setDailyLimit('${kidNameEncoded}')">
-                  <div class="act-icon bg-yellow"><i class="fa-solid fa-sliders"></i></div>
-                  <span class="act-text">កំណត់លុយ</span>
-                </button>
-                <button class="act-btn" onclick="toggleFreeze('${kidNameEncoded}', ${kid.isFrozen})">
-                  <div class="act-icon bg-red"><i class="fa-solid ${kid.isFrozen ? "fa-unlock" : "fa-lock"}"></i></div>
-                  <span class="act-text">${kid.isFrozen ? "បើកសោរ" : "ផ្អាក"}</span>
-                </button>
-              </div>
+        document.getElementById("activeChildAvatar").innerText = (
+          activeChild.fullName || activeChild.username
+        )
+          .charAt(0)
+          .toUpperCase();
+        document.getElementById("activeChildName").innerText =
+          activeChild.fullName;
+        document.getElementById("activeChildHandle").innerText =
+          `@${activeChild.username}`;
+
+        const stBadge = document.getElementById("activeChildStatusBadge");
+        const frzIcon = document.getElementById("btnFreezeActionIcon");
+        const frzTxt = document.getElementById("btnFreezeActionText");
+
+        if (activeChild.isFrozen) {
+          stBadge.innerText = "❄️ FROZEN (ផ្អាក)";
+          stBadge.style.background = "rgba(239,68,68,0.28)";
+          stBadge.style.color = "#fca5a5";
+          frzIcon.innerHTML = '<i class="fa-solid fa-unlock"></i>';
+          frzIcon.style.background = "rgba(16,185,129,0.14)";
+          frzIcon.style.color = "#10b981";
+          frzTxt.innerText = "ដោះសោគណនី";
+        } else {
+          stBadge.innerText = "🟢 ACTIVE (ដំណើរការ)";
+          stBadge.style.background = "rgba(16,185,129,0.25)";
+          stBadge.style.color = "#6ee7b7";
+          frzIcon.innerHTML = '<i class="fa-solid fa-snowflake"></i>';
+          frzIcon.style.background = "rgba(239,68,68,0.14)";
+          frzIcon.style.color = "#ef4444";
+          frzTxt.innerText = "ផ្អាកគណនី";
+        }
+
+        // សមតុល្យ USD & KHR
+        const usdObj = activeChild.accounts?.USD;
+        const khrObj = activeChild.accounts?.KHR;
+
+        document.getElementById("activeChildUsdBal").innerText = usdObj
+          ? `$${Number(usdObj.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+          : "$0.00";
+        document.getElementById("activeChildUsdAcc").innerText = usdObj
+          ? `#${formatAccNum(usdObj.accountNumber)}`
+          : "មិនមានគណនី USD";
+
+        document.getElementById("activeChildKhrBal").innerText = khrObj
+          ? `៛${Number(khrObj.balance).toLocaleString("en-US")}`
+          : "៛0";
+        document.getElementById("activeChildKhrAcc").innerText = khrObj
+          ? `#${formatAccNum(khrObj.accountNumber)}`
+          : "មិនមានគណនី KHR";
+
+        // ៣. អាប់ដេតរបាររនាំងចំណាយប្រចាំថ្ងៃ (Daily Spending Limit)
+        const limitVal = Number(activeChild.dailyLimit || 20);
+        const spentToday = Number(activeChild.spentTodayUSD || 0);
+        const pct =
+          limitVal > 0
+            ? Math.min(100, Math.round((spentToday / limitVal) * 100))
+            : 0;
+
+        document.getElementById("childSpentTodayText").innerText =
+          `$${spentToday.toFixed(2)}`;
+        document.getElementById("childDailyLimitText").innerText =
+          `$${limitVal.toFixed(2)} / ថ្ងៃ`;
+        document.getElementById("dailyLimitPctBadge").innerText = `${pct}%`;
+
+        const fillEl = document.getElementById("dailyLimitBarFill");
+        fillEl.style.width = `${pct}%`;
+        fillEl.style.background =
+          pct >= 90
+            ? "#ef4444"
+            : pct >= 70
+              ? "#f59e0b"
+              : "linear-gradient(90deg, #10b981, #0d9488)";
+
+        // ៤. គណនាសង្ខេបថាកូនចាយលើអ្វីខ្លះ
+        let shopUSD = 0,
+          transferUSD = 0,
+          parentGivenUSD = 0;
+
+        (activeChild.transactions || []).forEach((t) => {
+          if (t.status === "Refunded") return;
+          if (t.isIncome) {
+            parentGivenUSD += Number(t.amountUSD || 0);
+          } else {
+            const tp = String(t.type || "").toLowerCase();
+            const mt = String(t.trxMethod || "").toLowerCase();
+            if (
+              tp.includes("merchant") ||
+              mt.includes("qr") ||
+              mt.includes("nfc")
+            ) {
+              shopUSD += Number(t.amountUSD || 0);
+            } else {
+              transferUSD += Number(t.amountUSD || 0);
+            }
+          }
+        });
+
+        document.getElementById("insightShopSpent").innerText =
+          `$${shopUSD.toFixed(2)}`;
+        document.getElementById("insightTransferSpent").innerText =
+          `$${transferUSD.toFixed(2)}`;
+        document.getElementById("insightParentGiven").innerText =
+          `+$${parentGivenUSD.toFixed(2)}`;
+
+        renderChildTransactions();
+      };
+
+      window.setChildTrxFilter = function (mode, btnEl) {
+        childTrxFilterMode = mode;
+        document
+          .querySelectorAll(".jr-chip")
+          .forEach((b) => b.classList.remove("active"));
+        if (btnEl) btnEl.classList.add("active");
+        renderChildTransactions();
+      };
+
+      function renderChildTransactions() {
+        const box = document.getElementById("childTransactionsContainer");
+        if (!activeChild || !box) return;
+
+        let list = activeChild.transactions || [];
+        if (childTrxFilterMode === "SPENT") {
+          list = list.filter((t) => !t.isIncome);
+        } else if (childTrxFilterMode === "RECEIVED") {
+          list = list.filter((t) => t.isIncome);
+        }
+
+        document.getElementById("childTrxCountBadge").innerText =
+          `${list.length} ប្រតិបត្តិការ`;
+
+        if (list.length === 0) {
+          box.innerHTML = `
+            <div style="text-align:center; padding:26px 10px; color:var(--text-muted); font-size:0.82rem">
+              មិនទាន់មានប្រតិបត្តិការសម្រាប់ជម្រើសនេះទេ
             </div>
           `;
-        });
-        container.innerHTML = html;
+          return;
+        }
+
+        box.innerHTML = list
+          .map((t, idx) => {
+            const sym = t.currency === "KHR" ? "៛" : "$";
+            const amtStr =
+              t.currency === "KHR"
+                ? Number(t.amount).toLocaleString()
+                : Number(t.amount).toFixed(2);
+
+            return `
+              <div
+                class="jr-trx-row"
+                onclick="if(typeof openGlobalSlip === 'function') openGlobalSlip(activeChild.transactions[${idx}])"
+              >
+                <div style="display:flex; align-items:center; gap:11px; min-width:0; flex:1">
+                  <div
+                    style="
+                      width:38px;
+                      height:38px;
+                      border-radius:12px;
+                      background:${t.isIncome ? "rgba(16,185,129,0.14)" : "rgba(244,63,94,0.14)"};
+                      color:${t.isIncome ? "#10b981" : "#f43f5e"};
+                      display:flex;
+                      align-items:center;
+                      justify-content:center;
+                      flex-shrink:0;
+                    "
+                  >
+                    <i class="fa-solid ${t.isIncome ? "fa-arrow-down-long" : "fa-bag-shopping"}"></i>
+                  </div>
+                  <div style="min-width:0; flex:1">
+                    <div style="font-size:0.86rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                      ${t.counterparty}
+                    </div>
+                    <div class="mono-num" style="font-size:0.7rem; color:var(--text-muted); margin-top:2px">
+                      ${t.type} • #${t.refId}
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0">
+                  <div class="mono-num" style="font-size:0.9rem; font-weight:900; color:${t.isIncome ? "#10b981" : "#ef4444"}">
+                    ${t.isIncome ? "+" : "-"}${sym}${amtStr}
+                  </div>
+                  <div style="font-size:0.66rem; color:var(--text-muted); margin-top:2px">
+                    ${String(t.date || "").split(",")[0]}
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
       }
 
-      // ==========================================
-      // ២. BOTTOM SHEETS & ការវេរលុយពិតប្រាកដ
-      // ==========================================
-      function closeAllSheets() {
-        document
-          .querySelectorAll(".bottom-sheet")
-          .forEach((el) => el.classList.remove("active"));
-        document.getElementById("sheetOverlay").classList.remove("active");
-        document.getElementById("inputAmount").value = "";
-        document.getElementById("inputPin").value = "";
-        document.getElementById("topupStep1").classList.add("active");
-        document.getElementById("topupStep2").classList.remove("active");
-      }
+      // =========================================================
+      // 💸 ១. ដាក់ប្រាក់ឱ្យកូន (TOP-UP) ឬ ដកប្រាក់ពីកូនមកវិញ (RECALL)
+      // =========================================================
+      window.openParentTransferModal = async function (direction = "TOPUP") {
+        if (!activeChild) return;
+        const isTopUp = direction === "TOPUP";
 
-      function openTopupSheet(encodedName) {
-        const kid = globalKidsData[decodeURIComponent(encodedName)];
-        const hasUSD = kid.usd !== null;
-        const hasKHR = kid.khr !== null;
+        const hasUSD = Boolean(activeChild.accounts?.USD?.accountNumber);
+        const hasKHR = Boolean(activeChild.accounts?.KHR?.accountNumber);
 
-        activeChildAccountUSD = hasUSD ? kid.usd.accountNumber : null;
-        activeChildAccountKHR = hasKHR ? kid.khr.accountNumber : null;
-
-        document.getElementById("topupToName").innerText =
-          `ផ្ទេរទៅកាន់: ${kid.name} (JUNIOR)`;
-
-        const toggleContainer = document.getElementById(
-          "dynamicCurrencyToggle",
-        );
-        toggleContainer.innerHTML = "";
-
+        let curOptions = "";
         if (hasUSD) {
-          toggleContainer.innerHTML += `<div class="cur-btn active" id="btnCurUSD" onclick="setCurrency('USD')">USD ($)</div>`;
-          activeCurrency = "USD";
+          curOptions += `<option value="USD">ប្រាក់ដុល្លារ (USD $) - សមតុល្យកូន: $${Number(activeChild.accounts.USD.balance).toFixed(2)}</option>`;
         }
         if (hasKHR) {
-          const isActive = !hasUSD ? "active" : "";
-          toggleContainer.innerHTML += `<div class="cur-btn ${isActive}" id="btnCurKHR" onclick="setCurrency('KHR')">KHR (៛)</div>`;
-          if (!hasUSD) activeCurrency = "KHR";
+          curOptions += `<option value="KHR">ប្រាក់រៀល (KHR ៛) - សមតុល្យកូន: ៛${Number(activeChild.accounts.KHR.balance).toLocaleString()}</option>`;
         }
 
-        document.getElementById("sheetOverlay").classList.add("active");
-        document.getElementById("topupSheet").classList.add("active");
-        setTimeout(() => document.getElementById("inputAmount").focus(), 350);
-      }
-
-      function setCurrency(cur) {
-        activeCurrency = cur;
-        const btnUSD = document.getElementById("btnCurUSD");
-        const btnKHR = document.getElementById("btnCurKHR");
-        if (btnUSD) btnUSD.classList.toggle("active", cur === "USD");
-        if (btnKHR) btnKHR.classList.toggle("active", cur === "KHR");
-        document.getElementById("inputAmount").focus();
-      }
-
-      function goToTopupStep2() {
-        const amt = document.getElementById("inputAmount").value;
-        if (!amt || amt <= 0) {
-          Swal.fire({
-            toast: true,
-            position: "top",
-            icon: "error",
-            title: "សូមបញ្ចូលចំនួនប្រាក់!",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-          return;
-        }
-        document.getElementById("topupStep1").classList.remove("active");
-        document.getElementById("topupStep2").classList.add("active");
-        setTimeout(() => document.getElementById("inputPin").focus(), 350);
-      }
-
-      function submitTopup() {
-        const amt = parseFloat(document.getElementById("inputAmount").value);
-        const pin = document.getElementById("inputPin").value;
-
-        if (pin.length < 4) return;
-        Swal.fire({
-          title: "កំពុងដំណើរការ...",
-          didOpen: () => Swal.showLoading(),
+        const { value: formVals } = await Swal.fire({
+          title: isTopUp
+            ? `💸 ដាក់ប្រាក់ឱ្យ ${activeChild.fullName}`
+            : `🔄 ដកប្រាក់ពី ${activeChild.fullName} មកវិញ`,
+          html: `
+            <div style="text-align:left; font-size:0.84rem">
+              <div style="margin-bottom:12px">
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:5px">ជ្រើសរើសរូបិយប័ណ្ណគណនីកូន</label>
+                <select id="swJrCurrency" class="swal2-input" style="margin:0; width:100%; height:42px; font-size:0.84rem">
+                  ${curOptions}
+                </select>
+              </div>
+              <div style="margin-bottom:12px">
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:5px">ចំនួនទឹកប្រាក់ (${isTopUp ? "កាត់ពីគណនីប៉ាម៉ាក់" : "ផ្ទេរចូលគណនីប៉ាម៉ាក់វិញ"})</label>
+                <input id="swJrAmount" type="number" class="swal2-input mono-num" placeholder="ឧ. 10.00 ឬ 40000" style="margin:0; width:100%; height:44px">
+              </div>
+              <div>
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:5px">ចំណាំទៅកាន់កូន (Remark)</label>
+                <input id="swJrRemark" type="text" class="swal2-input" placeholder="${isTopUp ? "ឧ. លុយញ៉ាំអាហារថ្ងៃត្រង់នៅសាលា..." : "ឧ. ប៉ាម៉ាក់ដកទុកសន្សំឱ្យ..."}" style="margin:0; width:100%; height:42px; font-size:0.85rem">
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: isTopUp ? "#10b981" : "#0ea5e9",
+          confirmButtonText: isTopUp ? "បន្តដាក់ប្រាក់" : "បន្តដកប្រាក់",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const cur = document.getElementById("swJrCurrency").value;
+            const amt = parseFloat(document.getElementById("swJrAmount").value);
+            const rem = document.getElementById("swJrRemark").value.trim();
+            if (!amt || amt <= 0) {
+              Swal.showValidationMessage(
+                "សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!",
+              );
+              return false;
+            }
+            return { currency: cur, amount: amt, remark: rem };
+          },
         });
 
-        const senderAcc = activeCurrency === "KHR" ? "MAIN_KHR" : "MAIN_USD";
-        const receiverAccTarget =
-          activeCurrency === "KHR"
-            ? activeChildAccountKHR
-            : activeChildAccountUSD;
+        if (!formVals) return;
 
-        fetch("/api/transfer", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        requestPinVerification(
+          "បញ្ជាក់លេខកូដសម្ងាត់ PIN ប៉ាម៉ាក់",
+          `ដើម្បី${isTopUp ? "ដាក់ប្រាក់" : "ដកប្រាក់"} ${formVals.currency === "KHR" ? "៛" : "$"}${formVals.amount.toLocaleString()}`,
+          async function (pinCode) {
+            const finalPin =
+              pinCode || document.getElementById("hiddenGlobalPin")?.value;
+
+            Swal.fire({
+              title: "កំពុងដំណើរការ...",
+              didOpen: () => Swal.showLoading(),
+            });
+
+            try {
+              const res = await fetch("/api/account/junior/transfer", {
+                method: "POST",
+                headers: window.authHeaders,
+                body: JSON.stringify({
+                  parentUsername: window.currentUser.username,
+                  childUsername: activeChild.username,
+                  direction,
+                  currency: formVals.currency,
+                  amount: formVals.amount,
+                  remark: formVals.remark,
+                  pin: finalPin,
+                }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                Swal.close();
+                if (data.user) {
+                  sessionStorage.setItem("user", JSON.stringify(data.user));
+                }
+                await loadJuniorDashboardData(activeChild.username);
+                if (data.transaction && typeof openGlobalSlip === "function") {
+                  openGlobalSlip(data.transaction);
+                } else {
+                  Swal.fire("ជោគជ័យ!", data.message, "success");
+                }
+              } else {
+                Swal.fire("បរាជ័យ", data.message, "error");
+              }
+            } catch (e) {
+              Swal.fire("Error", "មានបញ្ហាតភ្ជាប់ទៅកាន់ Server", "error");
+            }
           },
-          body: JSON.stringify({
-            senderUsername: currentUser.username,
-            senderAccount: senderAcc,
-            receiverAccount: receiverAccTarget,
-            amount: amt,
-            currency: activeCurrency,
-            remark: "បញ្ចូលប្រាក់ឱ្យកូន",
-            pin: pin,
-            trxMethod: "Top-Up Junior",
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
+        );
+      };
+
+      // =========================================================
+      // 🛡️ ២. កំណត់រនាំងចំណាយប្រចាំថ្ងៃ (UPDATE DAILY LIMIT)
+      // =========================================================
+      window.openUpdateLimitModal = async function () {
+        if (!activeChild) return;
+
+        const { value: newLim } = await Swal.fire({
+          title: `កំណត់រនាំងចំណាយប្រចាំថ្ងៃឱ្យ ${activeChild.fullName}`,
+          html: `
+            <p style="font-size:0.82rem; color:#64748b; margin:0 0 10px">កំណត់ចំនួនទឹកប្រាក់អតិបរមាគិតជាដុល្លារ ($) ដែលកូនអាចចាយបានក្នុង ១ ថ្ងៃ៖</p>
+            <input id="swNewDailyLimit" type="number" class="swal2-input mono-num" value="${activeChild.dailyLimit || 20}" style="margin:0; width:100%">
+          `,
+          showCancelButton: true,
+          confirmButtonColor: "#db2777",
+          confirmButtonText: "រក្សាទុក Limit",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            const v = parseFloat(
+              document.getElementById("swNewDailyLimit").value,
+            );
+            if (isNaN(v) || v < 0) {
+              Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ត្រឹមត្រូវ!");
+              return false;
+            }
+            return v;
+          },
+        });
+
+        if (newLim === undefined) return;
+
+        requestPinVerification(
+          "បញ្ជាក់លេខកូដ PIN ប៉ាម៉ាក់",
+          `កំណត់ Limit ប្រចាំថ្ងៃរបស់កូនទៅជា $${newLim}/ថ្ងៃ`,
+          async function (pinCode) {
+            const finalPin =
+              pinCode || document.getElementById("hiddenGlobalPin")?.value;
+            const res = await fetch("/api/account/junior/update-limit", {
+              method: "POST",
+              headers: window.authHeaders,
+              body: JSON.stringify({
+                parentUsername: window.currentUser.username,
+                childAccountNumber: activeChild.primaryAccountNumber,
+                dailyLimit: newLim,
+                pin: finalPin,
+              }),
+            });
+            const data = await res.json();
             if (data.success) {
               if (data.user) {
-                currentUser = data.user;
-                if (data.slipData) {
-                  if (!currentUser.transactions) currentUser.transactions = [];
-                  currentUser.transactions.unshift(data.slipData);
-                }
-                sessionStorage.setItem("user", JSON.stringify(currentUser));
+                sessionStorage.setItem("user", JSON.stringify(data.user));
               }
+              await loadJuniorDashboardData(activeChild.username);
               Swal.fire({
+                toast: true,
+                position: "top-end",
                 icon: "success",
-                title: "ជោគជ័យ!",
-                text: "លុយបានផ្ទេរចូលគណនីកូនរួចរាល់",
-                timer: 1500,
+                title: "បានកែប្រែរនាំងចំណាយប្រចាំថ្ងៃជោគជ័យ!",
                 showConfirmButton: false,
-                customClass: { popup: "premium-swal" },
-              }).then(() => {
-                closeAllSheets();
-                renderJuniorCards();
+                timer: 1500,
               });
             } else {
-              Swal.fire({
-                icon: "error",
-                title: "បរាជ័យ",
-                text: data.message,
-                customClass: { popup: "premium-swal" },
-              });
-              document.getElementById("inputPin").value = "";
-              setTimeout(
-                () => document.getElementById("inputPin").focus(),
-                350,
-              );
+              Swal.fire("បរាជ័យ", data.message, "error");
             }
-          })
-          .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
-      }
-
-      function setupEnterKeyListeners() {
-        document
-          .getElementById("inputAmount")
-          .addEventListener("keyup", (e) => {
-            if (e.key === "Enter") goToTopupStep2();
-          });
-        document.getElementById("inputPin").addEventListener("keyup", (e) => {
-          if (e.key === "Enter") submitTopup();
-          if (e.target.value.length === 4) setTimeout(submitTopup, 200);
-        });
-      }
-
-      // ==========================================
-      // ៣. ប្រវត្តិប្រតិបត្តិការ & Slip
-      // ==========================================
-      function openHistorySheet(encodedName) {
-        const kid = globalKidsData[decodeURIComponent(encodedName)];
-        const accNumUSD = kid.usd ? kid.usd.accountNumber : null;
-        const accNumKHR = kid.khr ? kid.khr.accountNumber : null;
-
-        document.getElementById("sheetOverlay").classList.add("active");
-        document.getElementById("historySheet").classList.add("active");
-        const container = document.getElementById("historyListContainer");
-
-        const trxs = (currentUser.transactions || []).filter(
-          (t) =>
-            (accNumUSD &&
-              (String(t.receiverAcc) === String(accNumUSD) ||
-                String(t.senderAcc) === String(accNumUSD))) ||
-            (accNumKHR &&
-              (String(t.receiverAcc) === String(accNumKHR) ||
-                String(t.senderAcc) === String(accNumKHR))),
+          },
         );
+      };
 
-        if (trxs.length === 0) {
-          container.innerHTML = `<p style="text-align:center; padding:40px 20px; color:#94a3b8;">មិនទាន់មានប្រវត្តិប្រតិបត្តិការទេ</p>`;
-          return;
-        }
-
-        let html = "";
-        trxs.forEach((t) => {
-          const isIncome =
-            String(t.receiverAcc) === String(accNumUSD) ||
-            String(t.receiverAcc) === String(accNumKHR);
-          const amtColor = isIncome ? "amt-in" : "amt-out";
-          const symbol = isIncome ? "+" : "-";
-          const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
-
-          html += `
-            <div class="trx-item" onclick="openSlip('${t.refId || ""}', '${t.amount}', '${t.currency}', '${t.date}', '${t.remark}')">
-              <div class="trx-left">
-                <div class="trx-icon"><i class="fa-solid ${icon}"></i></div>
-                <div>
-                  <div class="trx-title">${t.remark || (isIncome ? "ទទួលប្រាក់" : "ចាយប្រាក់")}</div>
-                  <div class="trx-date">${t.date || "Today"}</div>
-                </div>
-              </div>
-              <div class="trx-amt ${amtColor}">${symbol}${t.currency === "USD" ? "$" : ""}${Math.abs(t.amount)}${t.currency === "KHR" ? " ៛" : ""}</div>
-            </div>
-          `;
-        });
-        container.innerHTML = html;
-      }
-
-      function openSlip(id, amount, cur, date, remark) {
-        document.getElementById("historySheet").classList.remove("active");
-        document.getElementById("slipSheet").classList.add("active");
-        document.getElementById("slipAmount").innerText =
-          `${cur === "USD" ? "$" : ""}${Math.abs(amount)}${cur === "KHR" ? " ៛" : ""}`;
-        document.getElementById("slipDate").innerText =
-          date || new Date().toLocaleString();
-        document.getElementById("slipType").innerText =
-          remark || "ប្រតិបត្តិការ";
-        document.getElementById("slipRef").innerText = id || "N/A";
-      }
-
-      function closeSlipSheet() {
-        document.getElementById("slipSheet").classList.remove("active");
-        document.getElementById("sheetOverlay").classList.remove("active");
-      }
-
-      // ==========================================
-      // 📊 កំណត់រនាំងចំណាយ (Daily Limit)
-      // ==========================================
-      function setDailyLimit(encodedName) {
-        const kid = globalKidsData[decodeURIComponent(encodedName)];
-        const primaryAcc = kid.usd
-          ? kid.usd.accountNumber
-          : kid.khr.accountNumber;
+      // =========================================================
+      // ❄️ ៣. ផ្អាក ឬ បើកសោគណនីកូនពីចម្ងាយ (REMOTE FREEZE / UNFREEZE)
+      // =========================================================
+      window.promptToggleChildFreeze = function () {
+        if (!activeChild) return;
+        const willFreeze = !activeChild.isFrozen;
 
         Swal.fire({
-          title: "កំណត់រនាំងចំណាយប្រចាំថ្ងៃ",
-          html: `
-            <div style="margin-bottom: 25px;">កំណត់ថាកូនអាចចាយបានប៉ុន្មានដុល្លាក្នុង ១ថ្ងៃ</div>
-            <input type="number" id="limit" class="swal2-input" placeholder="ឧទាហរណ៍: 5">
-            <input type="password" id="limitPin" class="swal2-input pin-input" placeholder="លេខសម្ងាត់ PIN របស់អ្នក" maxlength="4">
-          `,
-          confirmButtonText: "រក្សាទុក",
-          confirmButtonColor: "#f59e0b",
-          showCancelButton: true,
-          cancelButtonText: "បោះបង់",
-          customClass: { popup: "premium-swal" },
-          didOpen: () => {
-            const limitInput = document.getElementById("limit");
-            const pinInput = document.getElementById("limitPin");
-            if (limitInput) {
-              limitInput.focus();
-              limitInput.addEventListener("keyup", (e) => {
-                if (e.key === "Enter") pinInput.focus();
-              });
-            }
-            if (pinInput) {
-              pinInput.addEventListener("keyup", (e) => {
-                if (e.key === "Enter") Swal.clickConfirm();
-              });
-            }
-          },
-          preConfirm: () => {
-            const limit = document.getElementById("limit").value;
-            const pin = document.getElementById("limitPin").value;
-            if (!limit || !pin)
-              Swal.showValidationMessage("សូមបំពេញចំនួនលុយ និង PIN!");
-            return { limit, pin };
-          },
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.fire({
-              title: "កំពុងដំណើរការ...",
-              didOpen: () => Swal.showLoading(),
-            });
-            fetch("/api/account/junior/update-limit", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                parentUsername: currentUser.username,
-                childAccountNumber: primaryAcc,
-                pin: result.value.pin,
-                dailyLimit: result.value.limit,
-              }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.success) {
-                  if (data.user) {
-                    sessionStorage.setItem("user", JSON.stringify(data.user));
-                    currentUser = data.user;
-                  }
-                  Swal.fire({
-                    icon: "success",
-                    title: "ជោគជ័យ!",
-                    text: data.message,
-                    timer: 2000,
-                    showConfirmButton: false,
-                    customClass: { popup: "premium-swal" },
-                  });
-                } else
-                  Swal.fire({
-                    icon: "error",
-                    title: "បរាជ័យ",
-                    text: data.message,
-                    customClass: { popup: "premium-swal" },
-                  });
-              })
-              .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
-          }
-        });
-      }
-
-      // ==========================================
-      // 🔒 ផ្អាកគណនី (Freeze/Unfreeze)
-      // ==========================================
-      function toggleFreeze(encodedName, isCurrentlyFrozen) {
-        const kid = globalKidsData[decodeURIComponent(encodedName)];
-        const primaryAcc = kid.usd
-          ? kid.usd.accountNumber
-          : kid.khr.accountNumber;
-        const isFrozen = !isCurrentlyFrozen;
-        const actionText = isFrozen ? "ផ្អាក" : "បើកសោរ";
-        const confirmColor = isFrozen ? "#ef4444" : "#10b981";
-
-        Swal.fire({
-          title: `តើអ្នកពិតជាចង់ <b>${actionText}</b> គណនីនេះមែនទេ?`,
-          html: `
-            <div style="margin-bottom: 25px;">សូមវាយលេខ PIN ដើម្បីបញ្ជាក់សិទ្ធិ</div>
-            <input type="password" id="freezePin" class="swal2-input pin-input" placeholder="បញ្ជាក់ PIN របស់អ្នក" maxlength="4">
-          `,
+          title: willFreeze
+            ? `ផ្អាកគណនីរបស់ ${activeChild.fullName}?`
+            : `ដោះសោគណនីរបស់ ${activeChild.fullName} វិញ?`,
+          text: willFreeze
+            ? "ពេលផ្អាក កូនរបស់អ្នកនឹងមិនអាចផ្ទេរប្រាក់ ឬស្កេនទូទាត់ QR បានទេ រហូតដល់ប៉ាម៉ាក់បើកឱ្យវិញ។"
+            : "គណនីកូននឹងអាចចាយវាយបានធម្មតាវិញតាមរនាំង Daily Limit។",
           icon: "warning",
           showCancelButton: true,
-          confirmButtonText: `យល់ព្រម ${actionText}`,
-          confirmButtonColor: confirmColor,
+          confirmButtonColor: willFreeze ? "#ef4444" : "#10b981",
+          confirmButtonText: willFreeze
+            ? "បាទ/ចាស ផ្អាកគណនី"
+            : "បាទ/ចាស បើកដំណើរការវិញ",
           cancelButtonText: "បោះបង់",
           customClass: { popup: "premium-swal" },
-          didOpen: () => {
-            const pinInput = document.getElementById("freezePin");
-            if (pinInput) {
-              pinInput.focus();
-              pinInput.addEventListener("keyup", (e) => {
-                if (e.key === "Enter") Swal.clickConfirm();
-              });
-            }
-          },
-          preConfirm: () => {
-            const pin = document.getElementById("freezePin").value;
-            if (!pin) Swal.showValidationMessage("សូមបញ្ចូល PIN!");
-            return pin;
-          },
         }).then((result) => {
           if (result.isConfirmed) {
-            Swal.fire({
-              title: "កំពុងដំណើរការ...",
-              didOpen: () => Swal.showLoading(),
-            });
-            fetch("/api/account/junior/toggle-freeze", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                parentUsername: currentUser.username,
-                childAccountNumber: primaryAcc,
-                pin: result.value,
-                isFrozen: isFrozen,
-              }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
+            requestPinVerification(
+              "បញ្ជាក់លេខកូដ PIN ប៉ាម៉ាក់",
+              willFreeze ? "ដើម្បីផ្អាកគណនីកូន" : "ដើម្បីដោះសោគណនីកូន",
+              async function (pinCode) {
+                const finalPin =
+                  pinCode || document.getElementById("hiddenGlobalPin")?.value;
+                const res = await fetch("/api/account/junior/toggle-freeze", {
+                  method: "POST",
+                  headers: window.authHeaders,
+                  body: JSON.stringify({
+                    parentUsername: window.currentUser.username,
+                    childAccountNumber: activeChild.primaryAccountNumber,
+                    isFrozen: willFreeze,
+                    pin: finalPin,
+                  }),
+                });
+                const data = await res.json();
                 if (data.success) {
                   if (data.user) {
                     sessionStorage.setItem("user", JSON.stringify(data.user));
-                    currentUser = data.user;
                   }
+                  await loadJuniorDashboardData(activeChild.username);
                   Swal.fire({
+                    toast: true,
+                    position: "top-end",
                     icon: "success",
-                    title: "ជោគជ័យ!",
-                    text: data.message,
-                    timer: 1500,
+                    title: data.message,
                     showConfirmButton: false,
-                    customClass: { popup: "premium-swal" },
-                  }).then(() => renderJuniorCards());
-                } else
-                  Swal.fire({
-                    icon: "error",
-                    title: "បរាជ័យ",
-                    text: data.message,
-                    customClass: { popup: "premium-swal" },
+                    timer: 1500,
                   });
-              })
-              .catch(() => Swal.fire("Error", "បញ្ហាភ្ជាប់ទៅ Server", "error"));
+                } else {
+                  Swal.fire("បរាជ័យ", data.message, "error");
+                }
+              },
+            );
           }
         });
-      }
+      };
+
+      // =========================================================
+      // 🔑 ៤. ប្តូរលេខសម្ងាត់ Login ឬ PIN ឱ្យកូនដោយប៉ាម៉ាក់
+      // =========================================================
+      window.openChildSecurityModal = async function () {
+        if (!activeChild) return;
+
+        const { value: secVals } = await Swal.fire({
+          title: `🔑 សុវត្ថិភាពគណនីកូន (@${activeChild.username})`,
+          html: `
+            <div style="text-align:left; font-size:0.83rem">
+              <div style="margin-bottom:12px">
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:4px">ឈ្មោះពេញរបស់កូន</label>
+                <input id="swChildFullName" type="text" class="swal2-input" value="${activeChild.fullName}" style="margin:0; width:100%; height:40px">
+              </div>
+              <div style="margin-bottom:12px">
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:4px">កំណត់ Password ថ្មីសម្រាប់កូន Login (ទុកទទេបើមិនប្តូរ)</label>
+                <input id="swChildNewPass" type="text" class="swal2-input mono-num" placeholder="យ៉ាងតិច ៤ ខ្ទង់..." style="margin:0; width:100%; height:40px">
+              </div>
+              <div>
+                <label style="font-weight:800; color:#64748b; display:block; margin-bottom:4px">កំណត់លេខកូដ PIN ៤ ខ្ទង់ថ្មីឱ្យកូន (ទុកទទេបើមិនប្តូរ)</label>
+                <input id="swChildNewPin" type="text" maxlength="4" class="swal2-input mono-num" placeholder="ឧ. 1234" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="margin:0; width:100%; height:40px">
+              </div>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonColor: "#db2777",
+          confirmButtonText: "រក្សាទុកការកែប្រែ",
+          cancelButtonText: "បោះបង់",
+          customClass: { popup: "premium-swal" },
+          preConfirm: () => {
+            return {
+              newChildName: document
+                .getElementById("swChildFullName")
+                .value.trim(),
+              newPassword: document
+                .getElementById("swChildNewPass")
+                .value.trim(),
+              newChildPin: document
+                .getElementById("swChildNewPin")
+                .value.trim(),
+            };
+          },
+        });
+
+        if (!secVals) return;
+
+        requestPinVerification(
+          "បញ្ជាក់លេខកូដ PIN ប៉ាម៉ាក់",
+          "ដើម្បីធ្វើបច្ចុប្បន្នភាពសុវត្ថិភាពគណនីកូន",
+          async function (pinCode) {
+            const finalPin =
+              pinCode || document.getElementById("hiddenGlobalPin")?.value;
+            const res = await fetch("/api/account/junior/reset-credentials", {
+              method: "POST",
+              headers: window.authHeaders,
+              body: JSON.stringify({
+                parentUsername: window.currentUser.username,
+                childUsername: activeChild.username,
+                ...secVals,
+                pin: finalPin,
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              await loadJuniorDashboardData(activeChild.username);
+              Swal.fire("ជោគជ័យ!", data.message, "success");
+            } else {
+              Swal.fire("បរាជ័យ", data.message, "error");
+            }
+          },
+        );
+      };
     </script>
   </body>
 </html>

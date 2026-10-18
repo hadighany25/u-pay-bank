@@ -1602,6 +1602,8 @@
       let selectedAccountCurrency = "USD";
 
       document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("flow") === "junior") startFlow("junior");
         // 🌟 ១. ហៅមុខងារទាញយក Dark Mode មកផ្ទៀងផ្ទាត់តាម User នីមួយៗភ្លាមៗពេល Load
         applyThemeLocally();
 

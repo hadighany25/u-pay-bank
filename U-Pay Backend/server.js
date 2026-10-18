@@ -84,6 +84,7 @@ app.use("/api/account", accountRoutes);
 app.use("/api/v1/b2b/escrow", b2bEscrowRoutes);
 app.use("/api/payroll", payrollRouter); // 👈 ដាក់វានៅទីនេះ
 app.use("/api/gateway", gatewayRoutes);
+app.use("/api/analytics", require("./routes/analyticsRoutes"));
 
 // 🌟 Route សម្រាប់ទាញយក PDF
 const { streamOfficialReceiptPDF } = require("./services/pdfService");
