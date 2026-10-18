@@ -1,6 +1,6 @@
 // ============================================================================
 // ឯកសារ: models/Merchant.js
-// អត្ថន័យ: Schema ស្តង់ដារសម្រាប់គ្រប់គ្រងហាងទំនិញ និងប្រព័ន្ធទូទាត់អាជីវករ
+// អត្ថន័យ: Schema ស្តង់ដារសម្រាប់គ្រប់គ្រងហាងទំនិញ និងការកំណត់ដាច់ដោយឡែកតាមសាខា (Per-Shop Settings)
 // ============================================================================
 
 const mongoose = require("mongoose");
@@ -8,14 +8,15 @@ const mongoose = require("mongoose");
 const merchantSchema = new mongoose.Schema(
   {
     // 🛡️ សុវត្ថិភាព ៣ ជាន់ ភ្ជាប់ទៅកាន់ម្ចាស់ហាង (User)
-    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true }, // ភ្ជាប់ជាមួយ user._id
-    userCustomId: { type: String, index: true }, // ភ្ជាប់ជាមួយ user.id ឬ user.userId
-    username: { type: String, index: true }, // ភ្ជាប់ជាមួយ user.username
-    userId: { type: String, required: true, index: true }, // រក្សាទុកសម្រាប់ទិន្នន័យចាស់ (Backward Compatibility)
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
+    userCustomId: { type: String, index: true },
+    username: { type: String, index: true },
+    userId: { type: String, required: true, index: true },
 
     name: { type: String, required: true, trim: true },
+    logo: { type: String, default: "" }, // 🖼️ រូបឡូហ្គោហាងដាច់ដោយឡែកតាមសាខា
     city: { type: String, required: true },
-    category: { type: String, required: true, default: "Other" },
+    category: { type: String, required: true, default: "Food & Beverage" },
 
     // 🔗 គណនីដែលភ្ជាប់សម្រាប់ទទួលប្រាក់ (អាចជា Main, Sub, ឬ Joint Account)
     linkedAccounts: {
@@ -31,7 +32,7 @@ const merchantSchema = new mongoose.Schema(
       KHR: { type: String, default: null },
     },
 
-    // 👨‍💼 ប្រព័ន្ធគ្រប់គ្រងអ្នកគិតលុយ (Cashiers)
+    // 👨‍💼 ប្រព័ន្ធគ្រប់គ្រងអ្នកគិតលុយ (Cashiers) ប្រចាំហាងនីមួយៗ
     cashiers: [
       {
         accountNumber: { type: String, required: true },
@@ -57,7 +58,7 @@ const merchantSchema = new mongoose.Schema(
       KHR: { type: Number, default: 0 },
     },
 
-    // 🔥 សម្រាប់ B2B API: លុយដែលកំពុងបង្កក (រង់ចាំទូទាត់ឱ្យ Seller)
+    // 🔥 សម្រាប់ B2B API & POS: លុយដែលកំពុងបង្កក (Escrow Hold)
     escrowHold: {
       USD: { type: Number, default: 0.0 },
       KHR: { type: Number, default: 0.0 },
@@ -67,9 +68,24 @@ const merchantSchema = new mongoose.Schema(
     apiKey: { type: String, required: true, unique: true },
     apiSecret: { type: String, required: true },
 
-    // 📡 សម្រាប់ការផ្តល់ដំណឹងស្វ័យប្រវត្តិ
+    // 📡 សម្រាប់ការផ្តល់ដំណឹងស្វ័យប្រវត្តិ (ដាច់ដោយឡែកតាមហាងនីមួយៗ)
     webhookUrl: { type: String, default: "" },
     telegramChatId: { type: String, default: null },
+    telegramGroupName: { type: String, default: "" },
+
+    // ⚙️ ការកំណត់ដាច់ដោយឡែកសម្រាប់តែហាងនេះមួយគត់ (Per-Shop Isolated Settings)
+    settings: {
+      voiceEnabled: { type: Boolean, default: true },
+      voiceProfile: { type: String, default: "km_female_1" },
+      voiceLang: { type: String, default: "km" },
+      soundChime: { type: Boolean, default: true },
+      telegramAlertEnabled: { type: Boolean, default: true },
+      defaultCurrency: { type: String, enum: ["USD", "KHR"], default: "USD" },
+      receiptFooter: {
+        type: String,
+        default: "សូមអរគុណដែលបានគាំទ្រហាងយើងខ្ញុំ!",
+      },
+    },
 
     status: {
       type: String,

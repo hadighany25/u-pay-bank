@@ -1,27 +1,37 @@
-// ========================================================================
-// ឯកសារ: admin-users.js (Admin User Management)
-// អត្ថន័យ: គ្រប់គ្រងការបង្ហាញ ស្វែងរក កែប្រែ និងប្រតិបត្តិការលើគណនីអតិថិជន
-// ========================================================================
+// ============================================================================
+// ឯកសារ: js/admin-users.js (100% Clean & Modular Admin User Directory)
+// អត្ថន័យ: គ្រប់គ្រងបញ្ជីគណនីអតិថិជន, ស្ថិតិ KPI, ផ្ទាំង Drawer, ការបង្កើតគណនីថ្មី (AI OCR)
+// - រាល់ប្រតិបត្តិការសាច់ប្រាក់ត្រូវបញ្ជូនទៅកាន់ម៉ឺនុយ Cashier Desk ទាំងអស់!
+// ============================================================================
 
-// ========================================================================
-// 🧩 SECTION 1: UNIVERSAL HELPERS (មុខងារជំនួយទូទៅ)
-// ========================================================================
+function getMasterUsersArray() {
+  if (
+    typeof globalUsersData !== "undefined" &&
+    Array.isArray(globalUsersData) &&
+    globalUsersData.length > 0
+  ) {
+    return globalUsersData;
+  }
+  if (
+    Array.isArray(window.globalUsersData) &&
+    window.globalUsersData.length > 0
+  ) {
+    return window.globalUsersData;
+  }
+  return [];
+}
 
-/**
- * 📌 ១.១ មុខងារស្វែងរកទិន្នន័យស្តង់ដារ (Universal Deep Search)
- * អាចរាវរកទិន្នន័យជ្រៅៗ (ឧ. mainAccounts.USD.accountNumber ឬ subAccounts.accountNumber)
- */
+// ============================================================================
+// 🧩 SECTION 1: UNIVERSAL HELPERS (មុខងារជំនួយទូទៅ និងការចម្លងអត្ថបទ)
+// ============================================================================
+
 window.standardDataSearch = function (dataArray, keyword, searchFields) {
-  // បើគ្មានពាក្យស្វែងរកទេ បោះទិន្នន័យដើមទៅវិញ
   if (!keyword || keyword.trim() === "") return dataArray;
-
   const lowerKeyword = keyword.toLowerCase().trim();
 
-  // Helper សម្រាប់ចាប់យកតម្លៃទិន្នន័យដែលនៅជ្រៅ (Deep Nested Value)
   const getNestedValue = (obj, path) => {
     return path.split(".").reduce((acc, part) => {
       if (acc === null || acc === undefined) return null;
-      // ប្រសិនបើវាជា Array (ឧ. subAccounts) វាត្រូវ Loop ចូលទៅចាប់តម្លៃខាងក្នុង
       if (Array.isArray(acc)) {
         return acc.map((item) => (item ? item[part] : null)).flat();
       }
@@ -29,12 +39,10 @@ window.standardDataSearch = function (dataArray, keyword, searchFields) {
     }, obj);
   };
 
-  // ធ្វើការ Filter ស្វែងរក
-  return dataArray.filter((item) => {
+  return (dataArray || []).filter((item) => {
     return searchFields.some((field) => {
       const value = getNestedValue(item, field);
       if (Array.isArray(value)) {
-        // បើលទ្ធផលជា Array (ឧទាហរណ៍មានគណនីរងច្រើន) ឆែកគ្រប់គណនីរង
         return value.some(
           (v) =>
             v !== null &&
@@ -42,7 +50,6 @@ window.standardDataSearch = function (dataArray, keyword, searchFields) {
             String(v).toLowerCase().includes(lowerKeyword),
         );
       }
-      // បើជាតម្លៃធម្មតា
       return (
         value !== null &&
         value !== undefined &&
@@ -52,64 +59,121 @@ window.standardDataSearch = function (dataArray, keyword, searchFields) {
   });
 };
 
-/**
- * 📌 ១.២ មុខងារបង្រួមទំហំរូបភាព (Image Compression)
- */
-function compressImageAndPreview(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = function (event) {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = function () {
-        const MAX_WIDTH = 300;
-        const MAX_HEIGHT = 300;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
-      };
-    };
+window.copyToClipboard = function (text, label = "ទិន្នន័យ") {
+  if (!text || text === "N/A" || text === "...") return;
+  navigator.clipboard.writeText(text).then(() => {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `បានចម្លង ${label}: ${text}`,
+      showConfirmButton: false,
+      timer: 1400,
+      customClass: { popup: "premium-swal" },
+    });
   });
+};
+
+function isUserCurrentlyOnline(u) {
+  if (!u) return false;
+  if (u.lastActive) {
+    const diffMs = Date.now() - new Date(u.lastActive).getTime();
+    if (!isNaN(diffMs) && diffMs < 120000) return true;
+  }
+  return Boolean(u.isOnline);
 }
 
-// ========================================================================
-// 👥 SECTION 2: USER DIRECTORY (បញ្ជីអ្នកប្រើប្រាស់ ការបែងចែកទំព័រ និង Drawer)
-// ========================================================================
+function getCombinedUsdBalance(u) {
+  if (!u) return 0;
+  const usd = Number(u.mainAccounts?.USD?.balance || 0);
+  const khr = Number(u.mainAccounts?.KHR?.balance || 0);
+  const rate =
+    window.currentFXRates && window.currentFXRates.usdToKhrSell
+      ? Number(window.currentFXRates.usdToKhrSell)
+      : 4100;
+  return usd + khr / rate;
+}
 
-let currentUsersList = []; // ផ្ទុកទិន្នន័យដែលបាន Filter រួច
+// ============================================================================
+// 👥 SECTION 2: USER DIRECTORY, KPI STATS, FILTERING & PAGINATION
+// ============================================================================
+
+let currentUsersList = [];
 let userCurrentPage = 1;
-const USERS_PER_PAGE = 7; // បង្ហាញត្រឹម ៧ នាក់
+const USERS_PER_PAGE = 8;
+let isAutoFetchingUsers = false;
 
-/**
- * 📌 ២.១ មុខងារស្វែងរក និងចម្រាញ់ទិន្នន័យ (Search & Filter Status)
- */
-function filterUsers() {
-  const term = document.getElementById("searchBox").value;
-  const status = document.getElementById("statusFilter")
-    ? document.getElementById("statusFilter").value
-    : "ALL";
+function updateUserDirectoryKPIs() {
+  const all = getMasterUsersArray().filter(
+    (u) => u.role !== "admin" && u.username !== "superadmin",
+  );
 
-  // ១. រាវរកតាមពាក្យគន្លឹះ
-  let filtered = window.standardDataSearch(globalUsersData, term, [
+  let onlineCnt = 0;
+  let verifiedCnt = 0;
+  let pendingKycCnt = 0;
+  let frozenCnt = 0;
+
+  all.forEach((u) => {
+    if (isUserCurrentlyOnline(u)) onlineCnt++;
+    if (u.isFrozen) frozenCnt++;
+    const kyc = String(u.kycStatus || "unverified").toLowerCase();
+    if (kyc === "verified" || kyc === "approved") verifiedCnt++;
+    else if (kyc === "pending") pendingKycCnt++;
+  });
+
+  const setEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = val.toLocaleString("en-US");
+  };
+  setEl("ausrStatTotal", all.length);
+  setEl("ausrStatOnline", onlineCnt);
+  setEl("ausrStatVerified", verifiedCnt);
+  setEl("ausrStatPendingKyc", pendingKycCnt);
+  setEl("ausrStatFrozen", frozenCnt);
+}
+
+window.setQuickUserStatusFilter = function (statusVal) {
+  const sel = document.getElementById("statusFilter");
+  if (sel) sel.value = statusVal;
+
+  document.querySelectorAll(".ausr-kpi-card").forEach((card) => {
+    card.classList.toggle("active-kpi", card.id === `ausr-kpi-${statusVal}`);
+  });
+
+  filterUsers();
+};
+
+window.filterUsers = async function () {
+  let masterList = getMasterUsersArray();
+
+  if (masterList.length === 0 && !isAutoFetchingUsers) {
+    isAutoFetchingUsers = true;
+    try {
+      const res = await fetch("/api/users", { headers: getAuthHeaders() });
+      const raw = await res.json();
+      const fetched = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.users)
+          ? raw.users
+          : [];
+      if (fetched.length > 0) {
+        globalUsersData = fetched;
+        window.globalUsersData = fetched;
+        masterList = fetched;
+      }
+    } catch (e) {
+    } finally {
+      isAutoFetchingUsers = false;
+    }
+  }
+
+  updateUserDirectoryKPIs();
+
+  const term = document.getElementById("searchBox")?.value || "";
+  const status = document.getElementById("statusFilter")?.value || "ALL";
+  const sortMode = document.getElementById("userSortSelect")?.value || "NEWEST";
+
+  let filtered = window.standardDataSearch(masterList, term, [
     "username",
     "fullName",
     "phone",
@@ -118,39 +182,57 @@ function filterUsers() {
     "userId",
     "mainAccounts.USD.accountNumber",
     "mainAccounts.KHR.accountNumber",
+    "subAccounts.accountNumber",
   ]);
 
-  // ២. ចម្រាញ់តាមស្ថានភាព (Status)
   if (status !== "ALL") {
     filtered = filtered.filter((u) => {
+      const kyc = String(u.kycStatus || "unverified").toLowerCase();
       if (status === "FROZEN") return u.isFrozen === true;
-      if (status === "ACTIVE") return u.isFrozen === false;
-      if (status === "PENDING_KYC") return u.kycStatus === "pending";
-      // 🟢 បន្ថែមលក្ខខណ្ឌសម្រាប់អ្នកមិនទាន់ KYC ឬទិន្នន័យទទេ
+      if (status === "ACTIVE") return !u.isFrozen;
+      if (status === "ONLINE") return isUserCurrentlyOnline(u);
+      if (status === "VERIFIED_KYC")
+        return kyc === "verified" || kyc === "approved";
+      if (status === "PENDING_KYC") return kyc === "pending";
       if (status === "UNVERIFIED_KYC")
-        return u.kycStatus === "unverified" || !u.kycStatus;
+        return kyc === "unverified" || kyc === "rejected" || !u.kycStatus;
       return true;
     });
   }
 
+  filtered = [...filtered].sort((a, b) => {
+    const aSys = a.mainAccounts?.USD?.accountNumber === "888888888";
+    const bSys = b.mainAccounts?.USD?.accountNumber === "888888888";
+    if (aSys && !bSys) return -1;
+    if (!aSys && bSys) return 1;
+
+    if (sortMode === "BAL_HIGH") {
+      return getCombinedUsdBalance(b) - getCombinedUsdBalance(a);
+    }
+    if (sortMode === "NAME_AZ") {
+      return String(a.fullName || a.username).localeCompare(
+        String(b.fullName || b.username),
+      );
+    }
+    const tA = new Date(a.joinDate || a.createdAt || 0).getTime();
+    const tB = new Date(b.joinDate || b.createdAt || 0).getTime();
+    return tB - tA;
+  });
+
   currentUsersList = filtered;
   userCurrentPage = 1;
   renderUsersTable();
-}
+};
 
-/**
- * 📌 ២.២ មុខងារគូរកាតអ្នកប្រើប្រាស់ (មាន Pagination)
- */
-function renderUsersTable() {
+window.renderUsersTable = function () {
   const listContainer = document.getElementById("userDirectoryList");
   if (!listContainer) return;
 
-  // ករណីគ្មានទិន្នន័យ
   if (!currentUsersList || currentUsersList.length === 0) {
     listContainer.innerHTML = `
-      <div style="text-align:center; padding: 50px 20px; color: var(--text-muted);">
-        <i class="fa-solid fa-users-slash" style="font-size: 3.5rem; margin-bottom: 15px; opacity: 0.3;"></i>
-        <h3 style="margin:0; font-family: 'Kantumruy Pro';">មិនមានទិន្នន័យអតិថិជនទេ</h3>
+      <div style="text-align:center; padding: 55px 20px; color: var(--text-muted)">
+        <i class="fa-solid fa-users-slash" style="font-size: 3rem; margin-bottom: 12px; opacity: 0.35"></i>
+        <h3 style="margin:0; font-size:1rem">មិនមានទិន្នន័យអតិថិជនត្រូវនឹងការស្វែងរកទេ</h3>
       </div>`;
     updateUserPaginationUI(0);
     return;
@@ -160,146 +242,233 @@ function renderUsersTable() {
   if (userCurrentPage > totalPages) userCurrentPage = totalPages;
   if (userCurrentPage < 1) userCurrentPage = 1;
 
-  // កាត់យកតែ ៥ នាក់ តាមទំព័រ
   const startIndex = (userCurrentPage - 1) * USERS_PER_PAGE;
-  const endIndex = startIndex + USERS_PER_PAGE;
-  const usersToShow = currentUsersList.slice(startIndex, endIndex);
+  const usersToShow = currentUsersList.slice(
+    startIndex,
+    startIndex + USERS_PER_PAGE,
+  );
 
-  const cardsHtml = usersToShow
+  listContainer.innerHTML = usersToShow
     .map((u) => {
       const imgSrc = u.profileImage || "../images/default-avatar.png";
       const name = u.fullName || u.username;
-      const statusHtml = u.isFrozen
-        ? `<span style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">FROZEN</span>`
-        : `<span style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">ACTIVE</span>`;
       const isSystem = u.mainAccounts?.USD?.accountNumber === "888888888";
-      const roleBadge = isSystem
-        ? `<i class="fa-solid fa-building-columns" style="color:#3b82f6; margin-left:5px;" title="System Bank"></i>`
-        : "";
+      const isOnline = isUserCurrentlyOnline(u);
+
+      const usdAcc = u.mainAccounts?.USD?.accountNumber || "N/A";
+      const usdBal = Number(u.mainAccounts?.USD?.balance || 0);
+      const khrBal = Number(u.mainAccounts?.KHR?.balance || 0);
+
+      const kyc = String(u.kycStatus || "unverified").toLowerCase();
+      let kycBadge = `<span style="background:rgba(148,163,184,0.14); color:#64748b; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:800">⚪ Unverified</span>`;
+      if (kyc === "verified" || kyc === "approved") {
+        kycBadge = `<span style="background:rgba(13,148,136,0.14); color:#0d9488; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:800"><i class="fa-solid fa-circle-check"></i> KYC Verified</span>`;
+      } else if (kyc === "pending") {
+        kycBadge = `<span style="background:rgba(245,158,11,0.16); color:#d97706; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:800"><i class="fa-solid fa-clock"></i> Pending KYC</span>`;
+      }
+
+      const statusHtml = isSystem
+        ? `<span style="background:#e0f2fe; color:#0284c7; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:900">🏛️ CENTRAL BANK</span>`
+        : u.isFrozen
+          ? `<span style="background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.28); padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:900">🛑 FROZEN</span>`
+          : `<span style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.28); padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:900">🟢 ACTIVE</span>`;
 
       return `
-      <div class="modern-user-card" onclick="openUserDrawer('${u.username}', this)">
-        <div style="display: flex; align-items: center; gap: 15px;">
-          <img loading="lazy" src="${imgSrc}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);" onerror="this.src='../images/default-avatar.png'">
-          <div>
-            <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">${name} ${roleBadge}</h4>
-            <p style="margin: 3px 0 0; color: var(--text-muted); font-size: 0.85rem; font-family: 'Inter', sans-serif;">@${u.username} • ${u.phone || "N/A"}</p>
+        <div class="ausr-row-card" onclick="openUserDrawer('${u.username}', this)">
+          <div style="display:flex; align-items:center; gap:14px; min-width:0; flex:1">
+            <div class="ausr-avatar-wrap">
+              <img loading="lazy" src="${imgSrc}" onerror="this.src='../images/default-avatar.png'" />
+              ${isOnline ? '<span class="ausr-online-dot" title="កំពុង Online"></span>' : ""}
+            </div>
+
+            <div style="min-width:0; flex:1">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                <h4 style="margin:0; color:var(--text-main); font-size:0.98rem; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                  ${name}
+                </h4>
+                ${kycBadge}
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px; margin-top:4px; font-size:0.8rem; color:var(--text-muted); flex-wrap:wrap">
+                <span class="ausr-mono" style="color:#0d9488; font-weight:800">@${u.username}</span>
+                <span>•</span>
+                <span class="ausr-mono" onclick="event.stopPropagation(); copyToClipboard('${usdAcc}', 'លេខគណនី USD')" title="ចុចចម្លងលេខកុង">#${usdAcc}</span>
+                <span>•</span>
+                <span><i class="fa-solid fa-phone" style="font-size:0.7rem"></i> ${u.phone || "N/A"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ausr-row-right" style="display:flex; align-items:center; gap:16px">
+            <div style="text-align:right">
+              <div class="ausr-mono" style="font-size:0.92rem; font-weight:900; color:#0ea5e9">
+                $${usdBal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div class="ausr-mono" style="font-size:0.76rem; font-weight:700; color:#10b981">
+                ${khrBal.toLocaleString("en-US")} ៛
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px" onclick="event.stopPropagation()">
+              <button
+                type="button"
+                class="ausr-mini-btn"
+                onclick="goToCashierDesk('${usdAcc !== "N/A" ? usdAcc : u.username}', 'Deposit')"
+                title="ទៅកាន់បញ្ជរគិតប្រាក់ (Cashier Desk)"
+              >
+                <i class="fa-solid fa-cash-register" style="color:#10b981"></i>
+              </button>
+              <button
+                type="button"
+                class="ausr-mini-btn"
+                onclick="goToCustomer360('${u.username}')"
+                title="មើលក្នុង Customer 360°"
+              >
+                <i class="fa-solid fa-users-viewfinder" style="color:#3b82f6"></i>
+              </button>
+            </div>
+
+            <div>${statusHtml}</div>
           </div>
         </div>
-        <div style="text-align: right;">
-          ${isSystem ? `<span style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">SYSTEM</span>` : statusHtml}
-        </div>
-      </div>
-    `;
+      `;
     })
     .join("");
 
-  listContainer.innerHTML = cardsHtml;
   updateUserPaginationUI(totalPages);
-}
+};
 
-/**
- * 📌 ២.៣ គ្រប់គ្រងប៊ូតុង Pagination
- */
-function changeUserPage(step) {
+window.changeUserPage = function (step) {
   userCurrentPage += step;
   renderUsersTable();
-}
+};
 
 function updateUserPaginationUI(totalPages) {
   const btnPrev = document.getElementById("btnPrevUserPage");
   const btnNext = document.getElementById("btnNextUserPage");
   const pageInfo = document.getElementById("userPageInfo");
+  if (!pageInfo) return;
 
   if (totalPages === 0) {
-    pageInfo.innerText = `ទំព័រទី 1 / 0`;
-    btnPrev.disabled = true;
-    btnNext.disabled = true;
+    pageInfo.innerText = `ទំព័រទី 0 / 0 (សរុប 0 នាក់)`;
+    if (btnPrev) btnPrev.disabled = true;
+    if (btnNext) btnNext.disabled = true;
     return;
   }
 
-  pageInfo.innerText = `ទំព័រទី ${userCurrentPage} / ${totalPages}`;
-  btnPrev.disabled = userCurrentPage === 1;
-  btnNext.disabled = userCurrentPage >= totalPages;
+  pageInfo.innerText = `ទំព័រទី ${userCurrentPage} / ${totalPages} (សរុប ${currentUsersList.length} នាក់)`;
+  if (btnPrev) btnPrev.disabled = userCurrentPage === 1;
+  if (btnNext) btnNext.disabled = userCurrentPage >= totalPages;
 }
 
-/**
- * 📌 ២.១ មុខងារស្វែងរក និងចម្រាញ់ទិន្នន័យ (Search & Filter Status)
- */
-function filterUsers() {
-  const term = document.getElementById("searchBox").value;
-  const status = document.getElementById("statusFilter")
-    ? document.getElementById("statusFilter").value
-    : "ALL";
-
-  // ១. រាវរកតាមពាក្យគន្លឹះ
-  let filtered = window.standardDataSearch(globalUsersData, term, [
-    "username",
-    "fullName",
-    "phone",
-    "email",
-    "idNumber",
-    "userId",
-    "mainAccounts.USD.accountNumber",
-    "mainAccounts.KHR.accountNumber",
-  ]);
-
-  // ២. ចម្រាញ់តាមស្ថានភាព (Status)
-  if (status !== "ALL") {
-    filtered = filtered.filter((u) => {
-      if (status === "FROZEN") return u.isFrozen === true;
-      if (status === "ACTIVE") return u.isFrozen === false;
-      if (status === "PENDING_KYC") return u.kycStatus === "pending";
-      return true;
-    });
+window.exportUserDirectoryCSV = function () {
+  if (!currentUsersList || currentUsersList.length === 0) {
+    Swal.fire("គ្មានទិន្នន័យ", "មិនមានបញ្ជីអតិថិជនសម្រាប់ទាញយកទេ!", "info");
+    return;
   }
-
-  currentUsersList = filtered;
-  userCurrentPage = 1;
-  renderUsersTable();
-}
-
-/**
- * 📌 ២.៥ មុខងារចម្លងអត្ថបទ (Click-to-Copy)
- */
-window.copyToClipboard = function (text, label) {
-  if (!text || text === "N/A" || text === "...") return;
-  navigator.clipboard.writeText(text).then(() => {
-    Swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: `បានចម្លង ${label} ចូល Clipboard!`,
-      showConfirmButton: false,
-      timer: 1500,
-      customClass: { popup: "premium-swal" },
-    });
-  });
+  const headers = [
+    "User ID",
+    "Username",
+    "Full Name",
+    "Phone",
+    "Email",
+    "USD Account",
+    "USD Balance",
+    "KHR Account",
+    "KHR Balance",
+    "KYC Status",
+    "Status",
+  ];
+  const rows = currentUsersList.map((u) => [
+    u.userId || "",
+    u.username || "",
+    `"${String(u.fullName || "").replace(/"/g, '""')}"`,
+    u.phone || "",
+    u.email || "",
+    u.mainAccounts?.USD?.accountNumber || "",
+    Number(u.mainAccounts?.USD?.balance || 0).toFixed(2),
+    u.mainAccounts?.KHR?.accountNumber || "",
+    Number(u.mainAccounts?.KHR?.balance || 0),
+    u.kycStatus || "unverified",
+    u.isFrozen ? "FROZEN" : "ACTIVE",
+  ]);
+  const csv =
+    "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `UPAY_Users_Directory_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
 };
 
+// ============================================================================
+// 💎 SECTION 3: SLIDE-OVER INSPECTOR DRAWER & NAVIGATION TO CASHIER / C360
+// ============================================================================
+
 /**
- * 📌 ២.៣ មុខងារបើក Drawer និងភ្ជាប់មុខងារ Click-to-Copy
+ * 🏦 មុខងារបញ្ជូនអតិថិជនទៅកាន់ម៉ឺនុយ បេឡាករ (Cashier Desk) ដោយស្វ័យប្រវត្តិ
  */
+window.goToCashierDesk = function (identifier, requestType = "Deposit") {
+  closeUserDrawer();
+  showSection("cashier");
+
+  setTimeout(() => {
+    // ១. បំពេញលេខគណនី ឬ @username ចូលប្រអប់ស្វែងរកក្នុង Cashier Desk
+    const searchInput =
+      document.getElementById("cashierSearchAcc") ||
+      document.getElementById("cashierSearchInput") ||
+      document.querySelector("#sec-cashier input[type='text']");
+
+    if (searchInput) {
+      searchInput.value = identifier;
+    }
+
+    // ២. ហៅអនុគមន៍ស្វែងរកអតិថិជនក្នុង Cashier Desk ដោយស្វ័យប្រវត្តិ
+    if (typeof searchCashierCustomer === "function") {
+      searchCashierCustomer();
+    } else if (typeof searchUserForCashier === "function") {
+      searchUserForCashier();
+    }
+
+    // ៣. ជ្រើសរើសប្រភេទប្រតិបត្តិការ (Deposit ឬ Withdrawal) ឱ្យស្រេច
+    setTimeout(() => {
+      if (typeof selectCashierType === "function") {
+        selectCashierType(requestType);
+      } else if (typeof setCashierMode === "function") {
+        setCashierMode(requestType);
+      } else {
+        const typeSelect = document.getElementById("cashierRequestType");
+        if (typeSelect) {
+          typeSelect.value = requestType;
+          typeSelect.dispatchEvent(new Event("change"));
+        }
+      }
+    }, 300);
+  }, 120);
+};
+
 window.openUserDrawer = function (username, cardElement) {
-  const user = globalUsersData.find((u) => u.username === username);
+  const user = getMasterUsersArray().find((u) => u.username === username);
   if (!user) return;
 
   document.getElementById("drawerName").innerText =
     user.fullName || user.username;
 
-  // 🟢 បន្ថែមមុខងារ Copy ឱ្យ ID និង Username
   const displayId = user.userId || "N/A";
-  document.getElementById("drawerUsername").innerHTML =
-    `<span style="color: var(--text-muted); font-size: 0.95rem;">ID : <span onclick="copyToClipboard('${displayId}', 'ID')" style="cursor:pointer; text-decoration:underline;" title="ចុចដើម្បីចម្លង">${displayId}</span></span> 
-     <span style="color: #cbd5e1; margin: 0 10px;">|</span> 
-     <span onclick="copyToClipboard('${user.username}', 'Username')" style="cursor:pointer; text-decoration:underline; color: var(--accent);" title="ចុចដើម្បីចម្លង">@${user.username}</span>`;
+  document.getElementById("drawerUsername").innerHTML = `
+    <span style="color:var(--text-muted); font-size:0.84rem">
+      ID: <span class="ausr-mono" onclick="copyToClipboard('${displayId}', 'User ID')" style="cursor:pointer; text-decoration:underline" title="ចុចចម្លង">${displayId}</span>
+    </span>
+    <span style="color:#cbd5e1; margin:0 8px">|</span>
+    <span class="ausr-mono" onclick="copyToClipboard('${user.username}', 'Username')" style="cursor:pointer; text-decoration:underline; color:#0d9488" title="ចុចចម្លង">@${user.username}</span>
+  `;
 
   document.getElementById("drawerAvatar").src =
     user.profileImage || "../images/default-avatar.png";
 
-  // 🟢 មុខងារជំនួយសម្រាប់ភ្ជាប់ Click-to-copy ទៅអក្សរធម្មតា
   const setCopyable = (elementId, value, label) => {
     const el = document.getElementById(elementId);
+    if (!el) return;
     el.innerText = value || "N/A";
     if (value && value !== "N/A") {
       el.style.cursor = "pointer";
@@ -309,17 +478,13 @@ window.openUserDrawer = function (username, cardElement) {
       el.onclick = () => copyToClipboard(value, label);
     } else {
       el.style.cursor = "default";
-      el.title = "";
       el.style.textDecoration = "none";
       el.onclick = null;
     }
   };
 
-  setCopyable(
-    "drawerUsdAcc",
-    user.mainAccounts?.USD?.accountNumber,
-    "លេខគណនី USD",
-  );
+  const primaryUsdAcc = user.mainAccounts?.USD?.accountNumber;
+  setCopyable("drawerUsdAcc", primaryUsdAcc, "លេខគណនី USD");
   setCopyable(
     "drawerKhrAcc",
     user.mainAccounts?.KHR?.accountNumber,
@@ -328,56 +493,88 @@ window.openUserDrawer = function (username, cardElement) {
   setCopyable("drawerPhone", user.phone, "លេខទូរស័ព្ទ");
   setCopyable("drawerEmail", user.email, "អ៊ីមែល");
 
-  // 🟢 គូរ Sub-Accounts និងបន្ថែមមុខងារ Copy
-  const subAccContainer = document.getElementById("drawerSubAccountsContainer");
-  if (user.subAccounts && user.subAccounts.length > 0) {
-    let subHtml = `<h4 style="margin: 5px 0 10px; color: var(--text-muted);"><i class="fa-solid fa-layer-group"></i> គណនីរង (Sub-Accounts)</h4>
-                   <div class="info-block" style="display: flex; flex-direction: column; gap: 10px;">`;
-
-    user.subAccounts.forEach((sub, index) => {
-      const currColor = sub.currency === "USD" ? "#0ea5e9" : "#10b981";
-      const borderTop =
-        index > 0
-          ? "border-top: 1px dashed var(--border); padding-top: 10px;"
-          : "";
-
-      subHtml += `
-        <div style="display: flex; justify-content: space-between; align-items: center; ${borderTop}">
-          <div style="display: flex; flex-direction: column;">
-            <span style="color: ${currColor}; font-weight: bold; font-size: 0.95rem;">${sub.currency}</span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">${sub.accountName}</span>
-          </div>
-          <span onclick="copyToClipboard('${sub.accountNumber}', 'លេខគណនីរង')" style="font-family: 'Inter', monospace; font-weight: bold; color: var(--text-main); cursor: pointer; text-decoration: underline; text-decoration-style: dashed;" title="ចុចដើម្បីចម្លង">${sub.accountNumber}</span>
-        </div>
-      `;
-    });
-    subHtml += `</div>`;
-    subAccContainer.innerHTML = subHtml;
-  } else {
-    subAccContainer.innerHTML = "";
+  const usdBalEl = document.getElementById("drawerUsdBal");
+  const khrBalEl = document.getElementById("drawerKhrBal");
+  if (usdBalEl) {
+    usdBalEl.innerText = `សមតុល្យ: $${Number(user.mainAccounts?.USD?.balance || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  }
+  if (khrBalEl) {
+    khrBalEl.innerText = `សមតុល្យ: ${Number(user.mainAccounts?.KHR?.balance || 0).toLocaleString("en-US")} ៛`;
   }
 
-  // KYC Status
-  let kycStatus = user.kycStatus || "Unverified";
-  let kycColor =
+  const subAccContainer = document.getElementById("drawerSubAccountsContainer");
+  if (subAccContainer) {
+    if (Array.isArray(user.subAccounts) && user.subAccounts.length > 0) {
+      subAccContainer.innerHTML = `
+        <h4 style="margin: 12px 0 8px; color: var(--text-muted); font-size:0.82rem; font-weight:800">
+          <i class="fa-solid fa-layer-group" style="color:#8b5cf6"></i> គណនីរង (Sub-Accounts: ${user.subAccounts.length})
+        </h4>
+        <div class="info-block" style="display:flex; flex-direction:column; gap:8px; padding:12px">
+          ${user.subAccounts
+            .map((sub, idx) => {
+              const currColor = sub.currency === "USD" ? "#0ea5e9" : "#10b981";
+              const sym = sub.currency === "USD" ? "$" : "៛";
+              const borderTop =
+                idx > 0
+                  ? "border-top: 1px dashed var(--border); padding-top: 8px;"
+                  : "";
+              return `
+                <div style="display:flex; justify-content:space-between; align-items:center; ${borderTop}">
+                  <div>
+                    <span style="color:${currColor}; font-weight:800; font-size:0.84rem">${sub.accountName || sub.currency}</span>
+                    <div class="ausr-mono" style="font-size:0.74rem; color:var(--text-muted)">${sym}${Number(sub.balance || 0).toLocaleString("en-US")}</div>
+                  </div>
+                  <span class="ausr-mono" onclick="copyToClipboard('${sub.accountNumber}', 'លេខគណនីរង')" style="font-weight:800; font-size:0.86rem; cursor:pointer; text-decoration:underline; text-decoration-style:dashed" title="ចុចចម្លង">${sub.accountNumber}</span>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      `;
+    } else {
+      subAccContainer.innerHTML = "";
+    }
+  }
+
+  const kycStatus = String(user.kycStatus || "unverified").toLowerCase();
+  const kycColor =
     kycStatus === "verified" || kycStatus === "approved"
       ? "#10b981"
-      : "#f59e0b";
-  if (kycStatus === "rejected") kycColor = "#ef4444";
+      : kycStatus === "rejected"
+        ? "#ef4444"
+        : "#f59e0b";
   document.getElementById("drawerKyc").innerHTML =
-    `<span style="color: ${kycColor}; font-weight: bold; text-transform: capitalize;">${kycStatus}</span>`;
+    `<span style="color:${kycColor}; font-weight:800; text-transform:uppercase; font-size:0.8rem">${kycStatus}</span>`;
 
-  // Toggle Switch ផ្អាកគណនី
   const toggleBtn = document.getElementById("drawerFreezeToggle");
+  const stLabel = document.getElementById("drawerStatusLabel");
   if (toggleBtn) {
     toggleBtn.checked = !user.isFrozen;
+    if (stLabel) {
+      stLabel.innerText = user.isFrozen ? "FROZEN 🛑" : "ACTIVE 🟢";
+      stLabel.style.color = user.isFrozen ? "#ef4444" : "#10b981";
+    }
     toggleBtn.onchange = function () {
-      if (typeof toggleFreeze === "function")
-        toggleFreeze(user._id || user.id, !this.checked);
+      const willFreeze = !this.checked;
+      if (stLabel) {
+        stLabel.innerText = willFreeze ? "FROZEN 🛑" : "ACTIVE 🟢";
+        stLabel.style.color = willFreeze ? "#ef4444" : "#10b981";
+      }
+      toggleFreeze(user._id || user.id, willFreeze);
     };
   }
 
-  // ភ្ជាប់ប៊ូតុង Actions ទៅកាន់មុខងារថ្មី
+  // 🏦 ភ្ជាប់ប៊ូតុងដាក់ប្រាក់/ដកប្រាក់ ឱ្យលោតទៅម៉ឺនុយ Cashier Desk ផ្ទាល់តែម្ដង!
+  const targetCashierKey = primaryUsdAcc || user.username;
+  const btnAdd = document.getElementById("btnDrawerQuickAdd");
+  const btnDed = document.getElementById("btnDrawerQuickDeduct");
+  if (btnAdd) {
+    btnAdd.onclick = () => goToCashierDesk(targetCashierKey, "Deposit");
+  }
+  if (btnDed) {
+    btnDed.onclick = () => goToCashierDesk(targetCashierKey, "Withdrawal");
+  }
+
   document.getElementById("btnMessageDrawer").onclick = () =>
     sendDirectMessage(user.username);
   document.getElementById("btnForceLogoutDrawer").onclick = () =>
@@ -385,53 +582,60 @@ window.openUserDrawer = function (username, cardElement) {
   document.getElementById("btnC360Drawer").onclick = () =>
     goToCustomer360(user.username);
 
-  const isSystem = user.mainAccounts?.USD?.accountNumber === "888888888";
+  const isSystem = primaryUsdAcc === "888888888";
   const delBtn = document.getElementById("btnDeleteDrawer");
-  if (isSystem) {
-    delBtn.style.display = "none";
-  } else {
-    delBtn.style.display = "block";
+  if (delBtn) {
+    delBtn.style.display = isSystem ? "none" : "block";
     delBtn.onclick = () => deleteUser(user._id || user.id);
   }
 
   document.getElementById("userDetailDrawer").classList.add("open");
-
   document
-    .querySelectorAll(".modern-user-card")
+    .querySelectorAll(".ausr-row-card")
     .forEach((c) => c.classList.remove("selected"));
   if (cardElement) cardElement.classList.add("selected");
 };
 
-// ========================================================================
-// 🧑‍💻 SECTION 3: INLINE CREATE FORM (ទម្រង់បង្កើតគណនីថ្មី & OCR)
-// ========================================================================
+window.closeUserDrawer = function () {
+  document.getElementById("userDetailDrawer")?.classList.remove("open");
+  document
+    .querySelectorAll(".ausr-row-card")
+    .forEach((c) => c.classList.remove("selected"));
+};
+
+window.goToCustomer360 = function (username) {
+  closeUserDrawer();
+  showSection("customer-360");
+  const inp = document.getElementById("searchC360");
+  if (inp) inp.value = username;
+  if (typeof searchCustomer360 === "function") searchCustomer360();
+};
+
+// ============================================================================
+// 🧑‍💻 SECTION 4: INLINE CREATE FORM & AI OCR ONBOARDING
+// ============================================================================
 
 let isCreateFormOpen = false;
 
 window.toggleUserCreateForm = function () {
   const form = document.getElementById("inlineCreateUserForm");
   const btn = document.getElementById("btnToggleCreateForm");
-  const searchBox = document.querySelector(".user-list-header .search-box");
+  const controls = document.getElementById("ausrSearchAndSortControls");
 
   if (!isCreateFormOpen) {
-    // បើក Form
     isCreateFormOpen = true;
     form.style.display = "flex";
-    searchBox.style.visibility = "hidden";
-    btn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> លាក់ទម្រង់បង្កើតគណនី`;
+    if (controls) controls.style.visibility = "hidden";
+    btn.innerHTML = `<i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅបញ្ជីអតិថិជនវិញ`;
     btn.style.background = "var(--bg-body)";
     btn.style.color = "var(--text-main)";
     btn.style.border = "1px solid var(--border)";
     closeUserDrawer();
   } else {
-    // បិទ Form (ត្រូវសួរបញ្ជាក់មុនបិទ)
     confirmCloseCreateForm();
   }
 };
 
-/**
- * 📌 ៣.១ សួរបញ្ជាក់មុនបិទ និងសម្អាត Form
- */
 window.confirmCloseCreateForm = function () {
   const fName = document.getElementById("newFullName").value.trim();
   const uName = document.getElementById("newUsername").value.trim();
@@ -446,6 +650,7 @@ window.confirmCloseCreateForm = function () {
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
       confirmButtonText: "បាទ/ចាស បោះបង់",
+      cancelButtonText: "បន្តបំពេញ",
       customClass: { popup: "premium-swal" },
     }).then((result) => {
       if (result.isConfirmed) {
@@ -461,13 +666,13 @@ window.confirmCloseCreateForm = function () {
 function forceCloseFormUI() {
   isCreateFormOpen = false;
   document.getElementById("inlineCreateUserForm").style.display = "none";
-  document.querySelector(".user-list-header .search-box").style.visibility =
-    "visible";
+  const controls = document.getElementById("ausrSearchAndSortControls");
+  if (controls) controls.style.visibility = "visible";
   const btn = document.getElementById("btnToggleCreateForm");
   btn.innerHTML = `<i class="fa-solid fa-user-plus"></i> បង្កើតគណនីថ្មី`;
-  btn.style.background = "var(--secondary)";
-  btn.style.color = "white";
-  btn.style.border = "none";
+  btn.style.background = "";
+  btn.style.color = "";
+  btn.style.border = "";
 }
 
 function clearAdminCreateForm() {
@@ -475,25 +680,17 @@ function clearAdminCreateForm() {
     .querySelectorAll(".inline-create-form input:not([type='hidden'])")
     .forEach((el) => (el.value = ""));
   document.getElementById("newGender").value = "";
-
-  // លាក់ប្រអប់ស្ទួនលេខ និងលុបរូប
   document.getElementById("adminDuplicateReasonBox").style.display = "none";
   document.getElementById("adminDuplicateReason").value = "";
   document.getElementById("newUsernameFeedback").innerHTML = "";
-
   document.getElementById("adminIdPreview").style.display = "none";
   document.getElementById("adminSelfiePreview").style.display = "none";
   document.getElementById("hiddenIdUrl").value = "";
   document.getElementById("hiddenSelfieUrl").value = "";
-
-  // Set default លេខសម្ងាត់ និង PIN មក 1234 វិញ
   document.getElementById("newPassword").value = "1234";
   document.getElementById("newPin").value = "1234";
 }
 
-/**
- * 📌 ៣.២ ឆែក Username និង លេខ ID (Real-time)
- */
 window.adminCheckUsername = async function () {
   const val = document.getElementById("newUsername").value.trim();
   const feedback = document.getElementById("newUsernameFeedback");
@@ -507,14 +704,12 @@ window.adminCheckUsername = async function () {
     const data = await res.json();
     if (data.available) {
       feedback.innerHTML =
-        '<span style="color:#10b981;"><i class="fa-solid fa-circle-check"></i> ឈ្មោះនេះអាចប្រើប្រាស់បាន</span>';
+        '<span style="color:#10b981"><i class="fa-solid fa-circle-check"></i> ឈ្មោះនេះអាចប្រើប្រាស់បាន</span>';
     } else {
       feedback.innerHTML =
-        '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> ឈ្មោះនេះមានគេប្រើរួចហើយ!</span>';
+        '<span style="color:#ef4444"><i class="fa-solid fa-circle-xmark"></i> ឈ្មោះនេះមានគេប្រើរួចហើយ!</span>';
     }
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 };
 
 window.adminCheckIdNumber = async function () {
@@ -534,14 +729,9 @@ window.adminCheckIdNumber = async function () {
       document.getElementById("adminDuplicateReasonBox").style.display = "none";
       document.getElementById("adminDuplicateReason").value = "";
     }
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 };
 
-/**
- * 📌 ៣.៣ ការ Upload Selfie ធម្មតា
- */
 window.handleAdminFormUpload = async function (
   event,
   previewId,
@@ -566,7 +756,7 @@ window.handleAdminFormUpload = async function (
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "iaxuqmpb"); // CLOUD_PRESET
+  formData.append("upload_preset", "iaxuqmpb");
 
   try {
     const res = await fetch(
@@ -585,21 +775,17 @@ window.handleAdminFormUpload = async function (
   }
 };
 
-/**
- * 📌 ៣.៤ មុខងារ Upload អត្តសញ្ញាណប័ណ្ណ និងបាញ់ AI (OCR)
- */
 window.handleAdminIdOcrUpload = async function (event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // លុបទិន្នន័យចាស់ចេញសិន
   document.getElementById("newFullName").value = "";
   document.getElementById("newDob").value = "";
   document.getElementById("newIdNumber").value = "";
   document.getElementById("adminDuplicateReasonBox").style.display = "none";
 
   Swal.fire({
-    title: "កំពុងស្កេនដោយ AI...",
+    title: "កំពុងស្កេនដោយ AI OCR...",
     html: "ប្រព័ន្ធកំពុងអានទិន្នន័យពីអត្តសញ្ញាណប័ណ្ណ",
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
@@ -618,8 +804,6 @@ window.handleAdminIdOcrUpload = async function (event) {
     const data = await res.json();
     if (data.secure_url) {
       const tempUrl = data.secure_url;
-
-      // បាញ់ទៅ API OCR របស់ Backend
       const ocrRes = await fetch("/api/scan-id-card", {
         method: "POST",
         headers: getAuthHeaders(),
@@ -638,7 +822,6 @@ window.handleAdminIdOcrUpload = async function (event) {
         });
       }
 
-      // បង្ហាញរូប និង បំពេញទិន្នន័យអូតូ
       document.getElementById("hiddenIdUrl").value = tempUrl;
       document.getElementById("adminIdPreview").src = tempUrl;
       document.getElementById("adminIdPreview").style.display = "block";
@@ -650,14 +833,13 @@ window.handleAdminIdOcrUpload = async function (event) {
       document.getElementById("newIdNumber").value =
         ocrData.data.idNumber || "";
 
-      // ឆែកលេខ ID ស្ទួនអូតូ បន្ទាប់ពី AI អានរួច
       if (ocrData.data.idNumber) adminCheckIdNumber();
 
       Swal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "ស្កេន AI ជោគជ័យ!",
+        title: "ស្កេន AI OCR ជោគជ័យ!",
         showConfirmButton: false,
         timer: 2000,
         customClass: { popup: "premium-swal" },
@@ -674,9 +856,6 @@ window.handleAdminIdOcrUpload = async function (event) {
   }
 };
 
-/**
- * 📌 ៣.៥ បញ្ជូនទិន្នន័យទៅ Backend (API បង្កើតគណនី)
- */
 window.submitNewUserByAdmin = async function () {
   const payload = {
     fullName: document.getElementById("newFullName").value.trim(),
@@ -695,7 +874,6 @@ window.submitNewUserByAdmin = async function () {
       .value.trim(),
   };
 
-  // ឆែក Required ទាំងអស់
   if (
     !payload.fullName ||
     !payload.username ||
@@ -712,21 +890,20 @@ window.submitNewUserByAdmin = async function () {
     return Swal.fire({
       icon: "warning",
       title: "សូមបំពេញចន្លោះប្រហោង",
-      text: "រាល់ព័ត៌មានដែលមានសញ្ញាផ្កាយ (*) និងរូបភាពទាំង២ ត្រូវតែបំពេញ!",
+      text: "រាល់ព័ត៌មានដែលមានសញ្ញាផ្កាយ (*) និងរូបភាពទាំង ២ ត្រូវតែបំពេញ!",
       customClass: { popup: "premium-swal" },
     });
   }
 
-  // ឆែកលេខ PIN
-  if (payload.pin.length !== 4)
+  if (payload.pin.length !== 4) {
     return Swal.fire({
       icon: "warning",
       title: "កំហុស",
       text: "លេខកូដ PIN ត្រូវមាន ៤ ខ្ទង់!",
       customClass: { popup: "premium-swal" },
     });
+  }
 
-  // ឆែកប្រអប់ Reason បើវាលោតចេញមក តែអត់បំពេញ
   if (
     document.getElementById("adminDuplicateReasonBox").style.display ===
       "block" &&
@@ -784,366 +961,35 @@ window.submitNewUserByAdmin = async function () {
   }
 };
 
-/**
- * 📌 ២.៣ មុខងារបើក Drawer និងចាក់ទិន្នន័យចូល (រួមទាំង Sub-Accounts)
- */
-window.openUserDrawer = function (username, cardElement) {
-  const user = globalUsersData.find((u) => u.username === username);
-  if (!user) return;
+// ============================================================================
+// 🛑 SECTION 5: ACCOUNT SECURITY & STATUS OPERATIONS (ផ្អាកគណនី, ផ្ញើសារ, ផ្តាច់គណនី & លុប)
+// ============================================================================
 
-  // ចាក់ទិន្នន័យចូល HTML Drawer (ព័ត៌មានទូទៅ)
-  document.getElementById("drawerName").innerText =
-    user.fullName || user.username;
-  // 🟢 បន្ថែម ID : នៅពីមុខ Username ជាមួយបន្ទាត់បញ្ឈរ |
-  const displayId = user.userId || "N/A";
-  document.getElementById("drawerUsername").innerHTML =
-    `<span style="color: var(--text-muted); font-size: 0.95rem;">ID : ${displayId}</span> <span style="color: #cbd5e1; margin: 0 10px;">|</span> @${user.username}`;
-
-  document.getElementById("drawerAvatar").src =
-    user.profileImage || "../images/default-avatar.png";
-  document.getElementById("drawerUsdAcc").innerText =
-    user.mainAccounts?.USD?.accountNumber || "N/A";
-  document.getElementById("drawerKhrAcc").innerText =
-    user.mainAccounts?.KHR?.accountNumber || "N/A";
-  document.getElementById("drawerPhone").innerText = user.phone || "N/A";
-  document.getElementById("drawerEmail").innerText = user.email || "N/A";
-
-  // 🟢 គូរ Sub-Accounts (បើមាន) បញ្ចូលទៅក្នុង Drawer
-  const subAccContainer = document.getElementById("drawerSubAccountsContainer");
-  if (user.subAccounts && user.subAccounts.length > 0) {
-    let subHtml = `<h4 style="margin: 5px 0 10px; color: var(--text-muted);"><i class="fa-solid fa-layer-group"></i> គណនីរង (Sub-Accounts)</h4>
-                   <div class="info-block" style="display: flex; flex-direction: column; gap: 10px;">`;
-
-    user.subAccounts.forEach((sub, index) => {
-      const currColor = sub.currency === "USD" ? "#0ea5e9" : "#10b981";
-      const borderTop =
-        index > 0
-          ? "border-top: 1px dashed var(--border); padding-top: 10px;"
-          : "";
-
-      subHtml += `
-        <div style="display: flex; justify-content: space-between; align-items: center; ${borderTop}">
-          <div style="display: flex; flex-direction: column;">
-            <span style="color: ${currColor}; font-weight: bold; font-size: 0.95rem;">${sub.currency}</span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">${sub.accountName}</span>
-          </div>
-          <span style="font-family: 'Inter', monospace; font-weight: bold; color: var(--text-main);">${sub.accountNumber}</span>
-        </div>
-      `;
-    });
-
-    subHtml += `</div>`;
-    subAccContainer.innerHTML = subHtml;
-  } else {
-    // លុបចោលវិញបើអតិថិជននេះគ្មាន Sub-Account ការពារការជាប់ទិន្នន័យពីអតិថិជនមុន
-    subAccContainer.innerHTML = "";
-  }
-
-  // KYC Status
-  let kycStatus = user.kycStatus || "Unverified";
-  let kycColor =
-    kycStatus === "verified" || kycStatus === "approved"
-      ? "#10b981"
-      : "#f59e0b";
-  if (kycStatus === "rejected") kycColor = "#ef4444";
-  document.getElementById("drawerKyc").innerHTML =
-    `<span style="color: ${kycColor}; font-weight: bold; text-transform: capitalize;">${kycStatus}</span>`;
-
-  // Toggle Switch ផ្អាកគណនី
-  const toggleBtn = document.getElementById("drawerFreezeToggle");
-  if (toggleBtn) {
-    toggleBtn.checked = !user.isFrozen;
-    toggleBtn.onchange = function () {
-      if (typeof toggleFreeze === "function")
-        toggleFreeze(user._id || user.id, !this.checked);
-    };
-  }
-
-  // ភ្ជាប់ប៊ូតុង Actions ទៅកាន់មុខងារថ្មី
-  document.getElementById("btnMessageDrawer").onclick = () =>
-    sendDirectMessage(user.username);
-  document.getElementById("btnForceLogoutDrawer").onclick = () =>
-    forceLogoutUser(user.username);
-  document.getElementById("btnC360Drawer").onclick = () =>
-    goToCustomer360(user.username);
-
-  const isSystem = user.mainAccounts?.USD?.accountNumber === "888888888";
-  const delBtn = document.getElementById("btnDeleteDrawer");
-  if (isSystem) {
-    delBtn.style.display = "none";
-  } else {
-    delBtn.style.display = "block";
-    delBtn.onclick = () => deleteUser(user._id || user.id);
-  }
-
-  // បើកផ្ទាំង Drawer
-  document.getElementById("userDetailDrawer").classList.add("open");
-
-  // លាបពណ៌កាតដែលកំពុង Select
-  document
-    .querySelectorAll(".modern-user-card")
-    .forEach((c) => c.classList.remove("selected"));
-  if (cardElement) cardElement.classList.add("selected");
-};
-
-/**
- * 📌 ២.៤ មុខងារបិទ Drawer និងលោតទៅ Customer 360
- */
-window.closeUserDrawer = function () {
-  document.getElementById("userDetailDrawer").classList.remove("open");
-  document
-    .querySelectorAll(".modern-user-card")
-    .forEach((c) => c.classList.remove("selected"));
-};
-
-window.goToCustomer360 = function (username) {
-  closeUserDrawer();
-  showSection("customer-360");
-  document.getElementById("searchC360").value = username;
-  if (typeof searchCustomer360 === "function") searchCustomer360();
-};
-
-// ========================================================================
-// ✏️ SECTION 3: PROFILE EDITING & CLOUDINARY UPLOAD (កែប្រែប្រវត្តិរូប)
-// ========================================================================
-// ឈប់ប្រើបកូដនៅទីនេះ
-
-// ========================================================================
-// 💰 SECTION 4: BALANCE ADJUSTMENT (បន្ថែម ឬ ដកប្រាក់)
-// ========================================================================
-
-/**
- * 📌 ៤.១ បើកផ្ទាំងបន្ថែម/ដកប្រាក់
- */
-window.openAdjustBalance = function (username, type) {
-  const isAdd = type === "add";
-  const title = isAdd
-    ? "ដាក់ប្រាក់ (Cash Deposit)"
-    : "ដកប្រាក់ (Cash Withdrawal)";
-  const confirmBtnColor = isAdd ? "#10b981" : "#ef4444";
-  const icon = isAdd ? "circle-down" : "circle-up";
-
-  const user = globalUsersData.find((u) => u.username === username);
-  if (!user) return;
-
-  let optionsHtml = `<option value="MAIN_USD" data-curr="USD">គណនី Main USD ($) - ${user.mainAccounts?.USD?.accountNumber || "N/A"}</option>`;
-
-  if (user.mainAccounts?.KHR?.accountNumber) {
-    optionsHtml += `<option value="MAIN_KHR" data-curr="KHR">គណនី Main KHR (៛) - ${user.mainAccounts.KHR.accountNumber}</option>`;
-  }
-
-  if (user.subAccounts && user.subAccounts.length > 0) {
-    user.subAccounts.forEach((sub) => {
-      const sym = sub.currency === "USD" ? "$" : "៛";
-      optionsHtml += `<option value="${sub.accountNumber}" data-curr="${sub.currency}">${sub.accountName} (${sym}) - ${sub.accountNumber}</option>`;
-    });
-  }
-
-  const formHtml = `
-    <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
-        <div style="background: var(--bg-body); padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-user-circle" style="color: var(--text-muted); font-size: 1.5rem;"></i>
-            <div>
-                <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">សម្រាប់អតិថិជន</div>
-                <div style="color: var(--text-main); font-size: 1.05rem; font-weight: bold;">@${username}</div>
-            </div>
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ប្រភេទគណនី (Target Account)</label>
-            <select id="adjTargetAccount" class="custom-swal-input" onchange="previewUserTableExchange()">
-                ${optionsHtml}
-            </select>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ប្រភេទប្រាក់ដែល Admin កាន់ (Input Currency)</label>
-            <select id="adjCurrency" class="custom-swal-input" onchange="previewUserTableExchange()">
-                <option value="USD">ប្រាក់ដុល្លារ (USD)</option>
-                <option value="KHR">ប្រាក់រៀល (KHR)</option>
-            </select>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ចំនួនទឹកប្រាក់ (Amount)</label>
-            <input id="adjAmount" type="number" class="custom-swal-input" placeholder="ឧ. 50.00 ឬ 40000" oninput="previewUserTableExchange()">
-        </div>
-
-        <!-- ប្រអប់បង្ហាញការដូរលុយអូតូ (Preview) -->
-        <div id="userTableExchangePreviewBox" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; animation: fadeIn 0.3s ease;">
-            <p style="margin: 0 0 5px 0; font-size: 0.85rem; color: #10b981; display: flex; justify-content: space-between;">
-                <span>Exchange Rate:</span>
-                <span id="userTableFxRateDisplay" style="font-weight: 600;">...</span>
-            </p>
-            <p style="margin: 0; font-size: 0.85rem; color: #10b981; display: flex; justify-content: space-between; font-weight: bold; align-items: center;">
-                <span>Receiver Gets:</span>
-                <span id="userTableExchangeResult" style="font-size: 1.15rem; font-weight: 800;">...</span>
-            </p>
-        </div>
-
-        <div style="margin-bottom: 5px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ចំណាំ (Remark)</label>
-            <input id="adjRemark" type="text" class="custom-swal-input" placeholder="បញ្ជាក់មូលហេតុ... (ជម្រើស)">
-        </div>
-        <style>
-            .custom-swal-input {
-                width: 100%; box-sizing: border-box; height: 45px; padding: 0 15px;
-                font-size: 0.95rem; border: 1px solid var(--border); border-radius: 8px;
-                color: var(--text-main); background: var(--bg-body); transition: all 0.2s ease-in-out; font-family: inherit;
-            }
-            .custom-swal-input:focus { border-color: ${confirmBtnColor}; box-shadow: 0 0 0 3px ${confirmBtnColor}20; outline: none; }
-        </style>
-    </div>
-  `;
-
-  Swal.fire({
-    title: `<div style="color: var(--text-main); font-size: 1.4rem;"><i class="fa-solid fa-${icon}" style="color: ${confirmBtnColor}; margin-right: 8px;"></i> ${title}</div>`,
-    html: formHtml,
-    showCancelButton: true,
-    confirmButtonColor: confirmBtnColor,
-    cancelButtonColor: "#64748b",
-    confirmButtonText: "បញ្ជាក់ (Confirm)",
-    cancelButtonText: "បោះបង់",
-    customClass: { popup: "premium-swal" },
-    preConfirm: () => {
-      const selectAcc = document.getElementById("adjTargetAccount");
-      const targetAccount = selectAcc.value;
-      const selectCur = document.getElementById("adjCurrency");
-      const currency = selectCur.value;
-      const amount = document.getElementById("adjAmount").value;
-      const remark = document.getElementById("adjRemark").value.trim();
-
-      if (!amount || amount <= 0) {
-        Swal.showValidationMessage("សូមបញ្ចូលចំនួនទឹកប្រាក់ឱ្យបានត្រឹមត្រូវ!");
-      }
-      return { targetAccount, currency, amount, remark };
-    },
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      Swal.fire({
-        title: "កំពុងដំណើរការ...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-        customClass: { popup: "premium-swal" },
-      });
-      try {
-        const res = await fetch("/api/admin/adjust-balance", {
-          method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            username,
-            targetAccount: result.value.targetAccount,
-            amount: result.value.amount,
-            currency: result.value.currency,
-            type,
-            remark: result.value.remark,
-          }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "ជោគជ័យ!",
-            text: data.message || "ប្រតិបត្តិការជោគជ័យ",
-            customClass: { popup: "premium-swal" },
-          });
-          if (typeof loadData === "function") loadData();
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "បរាជ័យ",
-            text: data.message,
-            customClass: { popup: "premium-swal" },
-          });
-        }
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "មានបញ្ហាភ្ជាប់ទៅកាន់ Server",
-          customClass: { popup: "premium-swal" },
-        });
-      }
-    }
-  });
-};
-
-/**
- * 📌 ៤.២ គណនាបង្ហាញលុយមុន សម្រាប់ផ្ទាំង Modal (Exchange Auto-Calculate)
- */
-window.previewUserTableExchange = function () {
-  const targetSelect = document.getElementById("adjTargetAccount");
-  if (!targetSelect) return;
-
-  const targetCurrency =
-    targetSelect.options[targetSelect.selectedIndex].getAttribute("data-curr");
-  const inputCurrency = document.getElementById("adjCurrency").value;
-  const amountInput = document.getElementById("adjAmount");
-  const amount = parseFloat(amountInput.value) || 0;
-
-  const previewBox = document.getElementById("userTableExchangePreviewBox");
-  const rateDisplay = document.getElementById("userTableFxRateDisplay");
-  const resultText = document.getElementById("userTableExchangeResult");
-
-  const rateBuy = window.currentFXRates
-    ? window.currentFXRates.usdToKhrBuy || 4050
-    : 4050;
-  const rateSell = window.currentFXRates
-    ? window.currentFXRates.usdToKhrSell || 4100
-    : 4100;
-
-  if (amount > 0 && targetCurrency !== inputCurrency) {
-    previewBox.style.display = "block";
-    if (inputCurrency === "USD" && targetCurrency === "KHR") {
-      const khrAmt = Math.round(amount * rateBuy);
-      rateDisplay.innerText = `$1 = ${rateBuy.toLocaleString("en-US")} ៛`;
-      resultText.innerText = `${khrAmt.toLocaleString("en-US")} ៛`;
-    } else if (inputCurrency === "KHR" && targetCurrency === "USD") {
-      const usdAmt = (amount / rateSell).toFixed(2);
-      rateDisplay.innerText = `$1 = ${rateSell.toLocaleString("en-US")} ៛`;
-      resultText.innerText = `$${usdAmt}`;
-    }
-  } else {
-    previewBox.style.display = "none";
-  }
-};
-
-// ========================================================================
-// 🛑 SECTION 5: ACCOUNT STATUS MANAGEMENT (ផ្អាក និងលុបគណនី)
-// ========================================================================
-
-/**
- * 📌 ៥.១ លុបអ្នកប្រើប្រាស់ ឬ គណនីរង (Delete User/Sub-account)
- */
 window.deleteUser = function (id) {
-  const user = globalUsersData.find((u) => (u._id || u.id) === id);
+  const user = getMasterUsersArray().find((u) => (u._id || u.id) === id);
   if (!user) return;
 
   let optionsHtml = `<option value="ALL">លុបគណនីអ្នកប្រើប្រាស់ទាំងមូល (Delete Entire User)</option>`;
-  if (user.subAccounts && user.subAccounts.length > 0) {
+  if (Array.isArray(user.subAccounts)) {
     user.subAccounts.forEach((sub) => {
       optionsHtml += `<option value="${sub.accountNumber}">លុបតែគណនីរង: ${sub.accountNumber} (${sub.accountName})</option>`;
     });
   }
 
-  const formHtml = `
-    <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">ជ្រើសរើសទិន្នន័យដែលត្រូវលុប</label>
-            <select id="delTarget" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 8px; font-family: inherit;">
-                ${optionsHtml}
-            </select>
-        </div>
-        <div style="margin-bottom: 5px;">
-            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">មូលហេតុ (Reason - ចាំបាច់)</label>
-            <input id="delReason" type="text" class="custom-swal-input" style="width: 100%; height: 45px; padding: 0 15px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 8px; font-family: inherit;" placeholder="បញ្ជាក់មូលហេតុនៃការលុប...">
-        </div>
-    </div>
-  `;
-
   Swal.fire({
-    title: `<div style="color: #ef4444; font-size: 1.4rem;"><i class="fa-solid fa-triangle-exclamation"></i> បញ្ជាក់ការលុបទិន្នន័យ</div>`,
-    html: formHtml,
+    title: `<div style="color: #ef4444; font-size: 1.3rem; font-weight:900"><i class="fa-solid fa-triangle-exclamation"></i> បញ្ជាក់ការលុបគណនី</div>`,
+    html: `
+      <div style="text-align: left; font-family: 'Kantumruy Pro', sans-serif;">
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.84rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">ជ្រើសរើសទិន្នន័យដែលត្រូវលុប</label>
+          <select id="delTarget" style="width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 10px;">${optionsHtml}</select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.84rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">មូលហេតុនៃការលុប (ចាំបាច់)</label>
+          <input id="delReason" type="text" style="width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); border-radius: 10px; box-sizing:border-box" placeholder="បញ្ជាក់មូលហេតុ...">
+        </div>
+      </div>
+    `,
     showCancelButton: true,
     confirmButtonColor: "#ef4444",
     cancelButtonColor: "#64748b",
@@ -1161,34 +1007,29 @@ window.deleteUser = function (id) {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
-        Swal.fire({
-          title: "កំពុងដំណើរការ...",
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
-        });
         const res = await fetch("/api/admin/delete-user", {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify({
-            id: id,
+            id,
             targetAccount: result.value.targetAccount,
             reason: result.value.reason,
           }),
         });
         const data = await res.json();
         if (data.success) {
+          closeUserDrawer();
           Swal.fire({
             toast: true,
             position: "top-end",
             icon: "success",
-            title: "បានលុបជោគជ័យ",
+            title: "បានលុបជោគជ័យ!",
             showConfirmButton: false,
             timer: 1500,
-            customClass: { popup: "premium-swal" },
           });
           if (typeof loadData === "function") loadData();
         } else {
-          Swal.fire("Error", data.message || "មិនអាចលុបទិន្នន័យបានទេ", "error");
+          Swal.fire("Error", data.message || "មិនអាចលុបបានទេ", "error");
         }
       } catch (e) {
         Swal.fire("Error", "បញ្ហាការតភ្ជាប់", "error");
@@ -1197,9 +1038,6 @@ window.deleteUser = function (id) {
   });
 };
 
-/**
- * 📌 ៥.២ ផ្អាក / បើកដំណើរការគណនី (Freeze / Unfreeze)
- */
 window.toggleFreeze = async function (id, isFrozen) {
   try {
     const res = await fetch("/api/admin/toggle-freeze", {
@@ -1207,121 +1045,73 @@ window.toggleFreeze = async function (id, isFrozen) {
       headers: getAuthHeaders(),
       body: JSON.stringify({ id, isFrozen }),
     });
-
-    if (!res.ok)
-      throw new Error(`Serverឆ្លើយតបខុសប្រក្រតី (Status: ${res.status})`);
-
     const data = await res.json();
     if (data.success) {
       Swal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: isFrozen ? "គណនីត្រូវបានផ្អាក" : "គណនីបានដោះសោរ",
+        title: isFrozen ? "គណនីត្រូវបានផ្អាក 🛑" : "គណនីបានបើកដំណើរការវិញ 🟢",
         showConfirmButton: false,
         timer: 1500,
-        customClass: { popup: "premium-swal" },
       });
-      const user = globalUsersData.find((u) => (u._id || u.id) === id);
+      const user = getMasterUsersArray().find((u) => (u._id || u.id) === id);
       if (user) user.isFrozen = isFrozen;
+      filterUsers();
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "បរាជ័យ",
-        text: data.message || "មិនអាចប្តូរស្ថានភាពបានទេ",
-        customClass: { popup: "premium-swal" },
-      });
+      Swal.fire("បរាជ័យ", data.message, "error");
       if (typeof loadData === "function") loadData();
     }
   } catch (e) {
-    console.error("TOGGLE FREEZE FRONTEND ERROR:", e);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "បញ្ហាតភ្ជាប់: " + e.message,
-      customClass: { popup: "premium-swal" },
-    });
     if (typeof loadData === "function") loadData();
   }
 };
 
-/**
- * 📌 ៥.៣ មុខងារសម្រាប់ផ្ញើសារផ្ទាល់ទៅកាន់អតិថិជន
- */
 window.sendDirectMessage = async function (username) {
   const { value: text } = await Swal.fire({
-    title: `ផ្ញើសារទៅកាន់ @${username}`,
+    title: `ផ្ញើសារជូនដំណឹងទៅកាន់ @${username}`,
     input: "textarea",
-    inputPlaceholder: "វាយបញ្ចូលសាររបស់អ្នកនៅទីនេះ...",
+    inputPlaceholder: "វាយបញ្ចូលខ្លឹមសារសារនៅទីនេះ...",
     showCancelButton: true,
-    confirmButtonColor: "#3b82f6",
+    confirmButtonColor: "#0d9488",
     confirmButtonText: "ផ្ញើសារ",
+    cancelButtonText: "បោះបង់",
     customClass: { popup: "premium-swal" },
   });
 
   if (text && text.trim() !== "") {
     try {
-      // បង្ហាញ Loading មុនពេលផ្ញើ
-      Swal.fire({
-        title: "កំពុងបញ្ជូនសារ...",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-        customClass: { popup: "premium-swal" },
-      });
-
-      // ហៅទៅកាន់ API ថ្មីដែលបានបង្កើត
       const res = await fetch("/api/admin/send-message", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          username: username,
-          message: text.trim(),
-        }),
+        body: JSON.stringify({ username, message: text.trim() }),
       });
-
       const data = await res.json();
-
       if (data.success) {
         Swal.fire({
           toast: true,
           position: "top-end",
           icon: "success",
-          title: data.message || "សារត្រូវបានបញ្ជូន!",
+          title: "សារត្រូវបានបញ្ជូន!",
           showConfirmButton: false,
           timer: 1500,
-          customClass: { popup: "premium-swal" },
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "បរាជ័យ",
-          text: data.message || "មិនអាចបញ្ជូនសារបានទេ!",
-          customClass: { popup: "premium-swal" },
         });
       }
     } catch (e) {
-      console.error("Send Message Error:", e);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "មានបញ្ហាភ្ជាប់ទៅកាន់ Server",
-        customClass: { popup: "premium-swal" },
-      });
+      Swal.fire("Error", "មានបញ្ហាភ្ជាប់ទៅកាន់ Server", "error");
     }
   }
 };
 
-/**
- * 📌 ៥.៤ មុខងារសម្រាប់ Force Logout អតិថិជន
- */
 window.forceLogoutUser = function (username) {
   Swal.fire({
     title: "ផ្តាច់គណនីអតិថិជន?",
-    text: `តើអ្នកចង់បង្ខំឱ្យ @${username} Log out ចេញពីគ្រប់ឧបករណ៍មែនទេ?`,
+    text: `តើអ្នកចង់បង្ខំឱ្យ @${username} Log out ចេញពីគ្រប់ឧបករណ៍ភ្លាមៗមែនទេ?`,
     icon: "warning",
     showCancelButton: true,
     confirmButtonColor: "#f59e0b",
     confirmButtonText: "បាទ/ចាស ផ្តាច់គណនី",
+    cancelButtonText: "បោះបង់",
     customClass: { popup: "premium-swal" },
   }).then(async (result) => {
     if (result.isConfirmed) {
@@ -1337,7 +1127,7 @@ window.forceLogoutUser = function (username) {
             toast: true,
             position: "top-end",
             icon: "success",
-            title: "គណនីត្រូវបានផ្តាច់!",
+            title: "គណនីត្រូវបានផ្តាច់ចេញពីឧបករណ៍!",
             showConfirmButton: false,
             timer: 1500,
           });

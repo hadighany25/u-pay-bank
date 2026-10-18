@@ -90,4 +90,7 @@ router.get(
   merchantController.downloadMerchantCredentialPDF,
 );
 
+// 🔊 ផ្លូវសម្រាប់ទាញសំឡេងនិយាយភាសាខ្មែរ និងអង់គ្លេស (ដើរ ១០០% គ្រប់ឧបករណ៍)
+router.get("/tts", merchantController.streamMerchantTTS);
+
 module.exports = router;

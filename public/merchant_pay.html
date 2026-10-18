@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="km">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -10,7 +10,7 @@
     <title>POS Terminal - U-Pay</title>
 
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Kantumruy+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&display=swap"
       rel="stylesheet"
     />
     <link
@@ -20,7 +20,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-
     <script src="js/lang.js"></script>
     <script src="js/toast.js"></script>
     <script src="js/u-pay-core.js"></script>
@@ -29,117 +28,125 @@
     <script src="js/slip.js"></script>
 
     <style>
-      /* ==========================================
-       🎨 POS TERMINAL STYLES
-       ========================================== */
       :root {
         --primary: #004d40;
-        --secondary: #00b894;
+        --secondary: #0d9488;
+        --emerald: #10b981;
         --bg-main: #f1f5f9;
         --bg-card: #ffffff;
-        --text-main: #1e293b;
+        --text-main: #0f172a;
         --text-muted: #64748b;
         --border-color: #e2e8f0;
         --danger: #ef4444;
       }
 
+      body.dark-mode {
+        --bg-main: #020617;
+        --bg-card: #0f172a;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #1e293b;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
+      }
+      .fa-solid,
+      .fa-regular,
+      .fa-brands,
+      .fa,
+      .fas {
+        font-family: "Font Awesome 6 Free" !important;
+      }
+      .mono-num {
+        font-family: "JetBrains Mono", "Inter", monospace !important;
+      }
+
       body {
-        background-color: #cbd5e1;
+        background-color: #0b1120;
         margin: 0;
         display: flex;
         justify-content: center;
-        min-height: 100vh;
-        font-family: "Kantumruy Pro", "Inter", sans-serif;
+        min-height: 100dvh;
         color: var(--text-main);
-        -webkit-font-smoothing: antialiased;
-      }
-      .kh-text {
-        font-family: "Kantumruy Pro", "Inter", sans-serif !important;
       }
 
       .app-container {
         width: 100%;
         max-width: 480px;
-        min-height: 100vh;
+        height: 100dvh;
         background: var(--bg-main);
         display: flex;
         flex-direction: column;
-        box-shadow: 0 0 25px rgba(0, 0, 0, 0.15);
-      }
-      .swal2-container {
-        z-index: 9999 !important;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        position: relative;
       }
 
       .header-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 20px;
-        background: var(--primary);
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #00382e, #004d40);
         color: white;
       }
-      .back-btn {
-        background: transparent;
+      .icon-circle-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
         border: none;
+        background: rgba(255, 255, 255, 0.14);
         color: white;
-        font-size: 1.3rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
         cursor: pointer;
-        padding: 5px;
-      }
-      .header-title {
-        margin: 0;
-        font-size: 1.15rem;
-        font-weight: 600;
-        text-align: center;
-        flex: 1;
-        font-family: "Inter", sans-serif;
       }
 
-      /* Calculator Styles */
+      /* ផ្ទៃបង្ហាញតួលេខគិតលុយ (Calculator Display) */
       .calc-display {
-        background: var(--primary);
+        background: linear-gradient(180deg, #004d40 0%, #00382e 100%);
         color: white;
-        padding: 25px 20px;
+        padding: 18px 20px 24px;
         text-align: center;
         flex-shrink: 0;
       }
-      .calc-display h4 {
-        margin: 0 0 10px;
-        font-weight: normal;
-        opacity: 0.9;
-      }
       .calc-amount {
-        font-size: 3.5rem;
-        font-weight: 700;
-        margin: 5px 0;
-        font-family: "JetBrains Mono", sans-serif;
+        font-size: 3.2rem;
+        font-weight: 900;
+        margin: 6px 0 12px;
+        letter-spacing: -1px;
       }
       .calc-currency-toggle {
         display: inline-flex;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.16);
+        border-radius: 22px;
         padding: 4px;
+        gap: 4px;
       }
       .calc-currency-toggle button {
         background: transparent;
         border: none;
         color: white;
-        padding: 6px 18px;
-        border-radius: 16px;
-        font-weight: 600;
+        padding: 7px 20px;
+        border-radius: 18px;
+        font-weight: 800;
         cursor: pointer;
         transition: 0.2s;
-        font-family: inherit;
       }
       .calc-currency-toggle button.active {
-        background: white;
-        color: var(--primary);
+        background: #ffffff;
+        color: #004d40;
       }
-      /* លាក់ប៊ូតុងពេលអត់មានគណនី */
       .calc-currency-toggle button.hidden {
         display: none;
       }
 
+      /* គ្រាប់ចុចលេខ (Keypad) */
       .keypad {
         flex: 1;
         display: grid;
@@ -151,51 +158,50 @@
         border: 1px solid var(--border-color);
         border-top: none;
         border-left: none;
-        font-size: 1.6rem;
-        font-weight: 500;
+        font-size: 1.55rem;
+        font-weight: 700;
         color: var(--text-main);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        font-family: "JetBrains Mono", sans-serif;
+        transition: background 0.12s;
       }
       .key-btn:active {
-        background: var(--bg-main);
+        background: rgba(13, 148, 136, 0.12);
       }
-      .key-action {
-        background: var(--bg-main);
-        color: var(--primary);
-        font-weight: 700;
+      .key-quick {
+        background: rgba(13, 148, 136, 0.06);
+        color: #0d9488;
+        font-size: 1.05rem;
+        font-weight: 800;
       }
 
       .calc-footer {
-        padding: 15px 20px;
+        padding: 14px 18px max(14px, env(safe-area-inset-bottom));
         background: var(--bg-card);
         display: flex;
-        gap: 15px;
+        gap: 10px;
         border-top: 1px solid var(--border-color);
-        flex-shrink: 0;
       }
-      .btn-primary {
-        background: var(--primary);
+      .btn-pos-qr {
+        flex: 1;
+        background: linear-gradient(135deg, #004d40, #0d9488);
         color: white;
         border: none;
-        padding: 16px;
-        border-radius: 14px;
-        font-size: 1.1rem;
-        font-weight: 600;
+        padding: 15px;
+        border-radius: 16px;
+        font-size: 1rem;
+        font-weight: 800;
         cursor: pointer;
-        width: 100%;
-        transition: 0.2s;
-        font-family: inherit;
-        box-shadow: 0 4px 10px rgba(0, 77, 64, 0.2);
-      }
-      .btn-primary:active {
-        transform: scale(0.97);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px rgba(13, 148, 136, 0.3);
       }
 
-      /* QR Modal Styles */
+      /* 📱 ផ្ទាំងបង្ហាញ QR Code & Tap to Pay */
       .qr-modal {
         display: none;
         position: fixed;
@@ -204,484 +210,344 @@
         width: 100%;
         max-width: 480px;
         height: 100dvh;
-        background: #f1f5f9;
+        background: var(--bg-main);
         z-index: 2000;
         flex-direction: column;
-        animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         transform: translateX(-50%);
-      }
-      @keyframes modalSlideUp {
-        from {
-          transform: translate(-50%, 100%);
-        }
-        to {
-          transform: translate(-50%, 0);
-        }
       }
       .qr-modal-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        width: 100%;
-        padding: 15px 20px;
-        box-sizing: border-box;
-        flex-shrink: 0;
-      }
-      .qr-modal-footer {
-        width: 100%;
-        padding: 15px 20px;
-        box-sizing: border-box;
-        flex-shrink: 0;
-        background: #f1f5f9;
-        display: flex;
-        justify-content: center;
-        padding-bottom: max(15px, env(safe-area-inset-bottom));
+        padding: 14px 18px;
       }
       .qr-card-container {
         flex: 1;
-        width: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 10px 20px;
-        box-sizing: border-box;
+        padding: 8px 20px;
         overflow-y: auto;
       }
       .qr-white-box {
-        background: #ffffff;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         width: 100%;
         max-width: 350px;
-        padding: 30px 25px 25px;
-        border-radius: 30px;
-        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.1);
+        padding: 24px 22px 22px;
+        border-radius: 28px;
+        box-shadow: 0 20px 40px -10px rgba(0, 77, 64, 0.14);
         text-align: center;
         position: relative;
-        box-sizing: border-box;
-        margin: auto;
       }
 
       .currency-toggle {
         display: flex;
-        background: #f1f5f9;
+        background: var(--bg-main);
         border-radius: 14px;
-        padding: 5px;
-        margin-bottom: 25px;
-        width: 100%;
-        box-sizing: border-box;
-        transition: 0.3s ease;
+        padding: 4px;
+        margin-bottom: 18px;
       }
       .toggle-btn {
         flex: 1;
         text-align: center;
-        padding: 10px 0;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #64748b;
+        padding: 9px 0;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--text-muted);
         border-radius: 10px;
         cursor: pointer;
-        transition: 0.3s;
       }
       .toggle-btn.active {
-        background: white;
-        color: #004d40;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-      }
-      /* លាក់ប៊ូតុងពេលអត់មានគណនី */
-      .toggle-btn.hidden {
-        display: none;
-      }
-
-      .qr-logo-top {
-        height: 40px;
-        margin-bottom: 15px;
-      }
-      /* 🌟 ពង្រីកអក្សរឈ្មោះហាង និង MID អោយធំ */
-      .qr-user-name {
-        margin: 0;
-        font-size: 1.6rem;
-        color: #1e293b;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      #qrMerchantID {
-        color: #64748b;
-        font-size: 1rem;
-        margin: 8px 0 25px;
-        font-weight: 500;
+        background: var(--bg-card);
+        color: #0d9488;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
       .qr-img-wrapper {
         background: #ffffff;
-        padding: 15px;
+        padding: 14px;
         border-radius: 20px;
-        display: flex;
-        flex-direction: column;
+        display: inline-flex;
         align-items: center;
-        margin-bottom: 15px;
+        justify-content: center;
+        margin: 10px 0 12px;
         border: 1px solid #e2e8f0;
-        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.02);
       }
       #myQrImg {
-        width: 100%;
-        max-width: 220px;
-        height: auto;
-        aspect-ratio: 1;
+        width: 210px;
+        height: 210px;
         display: block;
-        border-radius: 12px;
-      }
-
-      /* 🌟 លេខកុងខាងក្រោមរៀបចំពណ៌ថ្មី */
-      #qrAccountNum {
-        margin: 0 0 20px;
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 700;
-        color: #00b894;
-        font-size: 1.2rem;
-        letter-spacing: 1.5px;
-      }
-
-      /* ==========================================
-       ✨ ម៉ូតប្រអប់វាយលុយទំនើបថ្មី (Modern Amount Input)
-       ========================================== */
-      .amount-input-area {
-        border-top: 1px dashed #e2e8f0;
-        padding-top: 20px;
-        width: 100%;
-      }
-      .amount-label {
-        font-size: 0.85rem;
-        color: #64748b;
-        font-weight: 600;
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        border-radius: 10px;
       }
 
       .modern-amount-wrapper {
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 18px;
-        padding: 10px 20px;
+        background: var(--bg-main);
+        border: 2px solid var(--border-color);
+        border-radius: 16px;
+        padding: 8px 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
+        gap: 8px;
       }
-
-      .modern-amount-wrapper:focus-within {
-        border-color: var(--secondary);
-        background: #ffffff;
-        box-shadow:
-          0 0 0 4px rgba(0, 184, 148, 0.15),
-          0 10px 20px rgba(0, 0, 0, 0.05);
-        transform: translateY(-2px);
+      #qrSetAmount {
+        border: none;
+        background: transparent;
+        width: 150px;
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 900;
+        color: #10b981;
+        outline: none;
       }
-
-      .modern-amount-wrapper.locked {
-        background: #f1f5f9;
-        border-color: transparent;
-        opacity: 0.9;
-      }
-      .modern-amount-wrapper.locked:focus-within {
-        transform: none;
-        box-shadow: none;
-        border-color: transparent;
-      }
-
-      .currency-symbol {
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: #94a3b8;
-        transition: 0.3s;
-      }
-      .modern-amount-wrapper:focus-within .currency-symbol {
-        color: var(--primary);
-      }
-
-      /* 🌟 បិទសញ្ញាព្រួញឡើងចុះ (Spinners) មិនអោយឃើញ */
       input[type="number"]::-webkit-inner-spin-button,
       input[type="number"]::-webkit-outer-spin-button {
         -webkit-appearance: none;
         margin: 0;
       }
 
-      #qrSetAmount {
-        border: none;
-        background: transparent;
-        width: 140px;
-        text-align: center;
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #004d40;
-        outline: none;
-        font-family: "JetBrains Mono", sans-serif;
-        padding: 0;
-      }
-      #qrSetAmount::placeholder {
-        color: #cbd5e1;
-        font-weight: 600;
-      }
-
-      .close-qr-btn,
-      .save-qr-icon-btn,
-      .voice-toggle-btn {
-        position: static;
-        font-size: 1.2rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
+      .round-tool-btn {
         width: 40px;
         height: 40px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        transition: 0.2s;
-      }
-      .close-qr-btn {
-        background: #fff;
-        color: #1e293b;
-        border: 1px solid #e2e8f0;
-      }
-      .close-qr-btn:active,
-      .save-qr-icon-btn:active,
-      .voice-toggle-btn:active {
-        transform: scale(0.9);
-      }
-      .save-qr-icon-btn {
-        background: #e0f2f1;
-        color: #004d40;
-        border: 1px solid #b2dfdb;
-      }
-      .voice-toggle-btn.active {
-        background: #e0f2f1;
-        color: #004d40;
-        border: 1px solid #b2dfdb;
-      }
-      .voice-toggle-btn.inactive {
-        background: #f1f5f9;
-        color: #94a3b8;
-        border: 1px solid #e2e8f0;
-      }
-
-      .btn-tap-to-pay {
-        width: 100%;
-        max-width: 350px;
-        padding: 18px;
-        background: #10b981;
-        margin: 0;
-        color: white;
-        border: none;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 1.15rem;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-        display: flex;
+        border-radius: 50%;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-main);
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        cursor: pointer;
+        font-size: 1rem;
       }
-      .btn-tap-to-pay:active {
-        transform: scale(0.96);
-      }
-
-      /* ==========================================
-         🌙 DARK MODE OVERRIDES
-         ========================================== */
-      body.dark-mode {
-        background-color: #000000 !important;
-      }
-      body.dark-mode .app-container {
-        background-color: #121212 !important;
-        box-shadow: 0 0 25px rgba(255, 255, 255, 0.05);
-      }
-      body.dark-mode .header-bar {
-        background: #1a1a1a !important;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-      }
-      body.dark-mode .qr-modal {
-        background-color: #121212 !important;
-      }
-      body.dark-mode .qr-white-box {
-        background-color: #1e1e1e !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
-        border: 1px solid #2d2d2d;
-      }
-      body.dark-mode .close-qr-btn {
-        background: #1e1e1e !important;
-        border-color: #2d2d2d !important;
-        color: #fff !important;
-      }
-      body.dark-mode .save-qr-icon-btn {
-        background: #004d40 !important;
-        border-color: #00b894 !important;
-        color: #fff !important;
+      .round-tool-btn.active {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.35);
       }
 
-      body.dark-mode .amount-input-area {
-        border-top-color: #444 !important;
-      }
-      body.dark-mode .modern-amount-wrapper {
-        background: #121212;
-        border-color: #333;
-      }
-      body.dark-mode .modern-amount-wrapper:focus-within {
-        background: #1e1e1e;
-        border-color: #00b894;
-        box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
-      }
-      body.dark-mode .modern-amount-wrapper.locked {
-        background: #1a1a1a;
-        border-color: transparent;
-      }
-      body.dark-mode #qrSetAmount {
-        color: #00b894 !important;
-      }
-
-      body.dark-mode .currency-toggle {
-        background: #2d2d2d !important;
-      }
-      body.dark-mode .toggle-btn.active {
-        background: #1e1e1e !important;
-        color: #00b894 !important;
-        border: 1px solid #444;
-      }
-      body.dark-mode .keypad {
-        background: #1e1e1e !important;
-      }
-      body.dark-mode .key-btn {
-        border-color: #2d2d2d !important;
-        color: #fff !important;
-      }
-      body.dark-mode .key-action {
-        background: #2a2a2a !important;
-      }
-      body.dark-mode .calc-footer {
-        background: #1e1e1e !important;
-        border-top-color: #2d2d2d !important;
-      }
-      body.dark-mode .qr-modal-footer {
-        background: #121212 !important;
-      }
-      body.dark-mode .voice-toggle-btn.active {
-        background: #004d40 !important;
-        border-color: #00b894 !important;
-        color: #fff !important;
-      }
-      body.dark-mode .voice-toggle-btn.inactive {
-        background: #1e1e1e !important;
-        border-color: #2d2d2d !important;
-        color: #64748b !important;
-      }
-      body.dark-mode h2,
-      body.dark-mode h3,
-      body.dark-mode p {
-        color: #fff !important;
+      /* 🌟 ធានាថា SweetAlert / Slip อยู่ชั้นบนสุด (Z-Index 99999) */
+      .swal2-container {
+        z-index: 99999 !important;
       }
     </style>
   </head>
+
   <body>
     <div class="app-container">
-      <!-- 🧮 CALCULATOR UI -->
+      <!-- ក្បាលម៉ាស៊ីន POS -->
       <div class="header-bar">
-        <button class="back-btn" onclick="goBack()">
+        <button type="button" class="icon-circle-btn" onclick="goBack()">
           <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <h2 class="header-title" id="recvStoreName">POS Terminal</h2>
-        <div style="width: 24px"></div>
+        <div style="text-align: center; min-width: 0; flex: 1">
+          <h2
+            id="recvStoreName"
+            style="
+              margin: 0;
+              font-size: 1rem;
+              font-weight: 900;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            "
+          >
+            POS Terminal
+          </h2>
+          <span
+            id="posCashierSubLabel"
+            style="font-size: 0.7rem; opacity: 0.85"
+          >
+            ម៉ាស៊ីនគិតប្រាក់ឌីជីថល
+          </span>
+        </div>
+        <button
+          type="button"
+          class="icon-circle-btn"
+          id="topVoiceQuickBtn"
+          onclick="toggleVoiceAlert()"
+          title="បិទ/បើកសំឡេងហៅលុយចូលសម្រាប់ហាងនេះ"
+        >
+          <i class="fa-solid fa-volume-high" id="topVoiceQuickIcon"></i>
+        </button>
       </div>
 
+      <!-- អេក្រង់បង្ហាញចំនួនទឹកប្រាក់ -->
       <div class="calc-display">
-        <h4 class="kh-text" data-i18n="merch_enter_amt">
-          បញ្ចូលចំនួនទឹកប្រាក់
-        </h4>
-        <div class="calc-amount">
+        <div style="font-size: 0.8rem; opacity: 0.85; font-weight: 600">
+          បញ្ចូលចំនួនទឹកប្រាក់ត្រូវទូទាត់
+        </div>
+        <div class="calc-amount mono-num">
           <span id="calcSym">$</span><span id="calcDisplay">0</span>
         </div>
         <div class="calc-currency-toggle">
-          <button id="btnCurUSD" class="active" onclick="setCalcCur('USD')">
-            USD
+          <button
+            type="button"
+            id="btnCurUSD"
+            class="active mono-num"
+            onclick="setCalcCur('USD')"
+          >
+            USD ($)
           </button>
-          <button id="btnCurKHR" onclick="setCalcCur('KHR')">KHR</button>
+          <button
+            type="button"
+            id="btnCurKHR"
+            class="mono-num"
+            onclick="setCalcCur('KHR')"
+          >
+            KHR (៛)
+          </button>
         </div>
       </div>
 
+      <!-- គ្រាប់ចុចលេខគិតលុយ -->
       <div class="keypad">
-        <button class="key-btn" onclick="pressKey('1')">1</button>
-        <button class="key-btn" onclick="pressKey('2')">2</button>
-        <button class="key-btn" onclick="pressKey('3')">3</button>
-        <button class="key-btn" onclick="pressKey('00')">00</button>
-        <button class="key-btn" onclick="pressKey('4')">4</button>
-        <button class="key-btn" onclick="pressKey('5')">5</button>
-        <button class="key-btn" onclick="pressKey('6')">6</button>
-        <button class="key-btn" onclick="pressKey('0')">0</button>
-        <button class="key-btn" onclick="pressKey('7')">7</button>
-        <button class="key-btn" onclick="pressKey('8')">8</button>
-        <button class="key-btn" onclick="pressKey('9')">9</button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('1')">
+          1
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('2')">
+          2
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('3')">
+          3
+        </button>
         <button
-          class="key-btn key-action"
+          type="button"
+          class="key-btn key-quick mono-num"
+          onclick="pressKey('00')"
+        >
+          00
+        </button>
+
+        <button type="button" class="key-btn mono-num" onclick="pressKey('4')">
+          4
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('5')">
+          5
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('6')">
+          6
+        </button>
+        <button
+          type="button"
+          class="key-btn key-quick mono-num"
+          onclick="pressKey('000')"
+        >
+          000
+        </button>
+
+        <button type="button" class="key-btn mono-num" onclick="pressKey('7')">
+          7
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('8')">
+          8
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('9')">
+          9
+        </button>
+        <button
+          type="button"
+          class="key-btn"
           style="color: var(--danger)"
           onclick="pressKey('C')"
         >
           <i class="fa-solid fa-delete-left"></i>
         </button>
-      </div>
 
-      <div class="calc-footer">
+        <button type="button" class="key-btn mono-num" onclick="pressKey('.')">
+          .
+        </button>
+        <button type="button" class="key-btn mono-num" onclick="pressKey('0')">
+          0
+        </button>
         <button
-          class="btn-primary kh-text"
-          style="width: 100%"
-          onclick="generateQRFromCalc()"
+          type="button"
+          class="key-btn"
+          style="
+            grid-column: span 2;
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--text-muted);
+          "
+          onclick="
+            calcValue = '';
+            updateCalcDisplay();
+          "
         >
-          <i class="fa-solid fa-qrcode" style="margin-right: 8px"></i>
-          <span data-i18n="merch_show_qr">បង្ហាញ QR សម្រាប់ទូទាត់</span>
+          សម្អាត (Clear)
         </button>
       </div>
 
-      <!-- 📱 QR & NFC MODAL -->
+      <div class="calc-footer">
+        <button type="button" class="btn-pos-qr" onclick="generateQRFromCalc()">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>បង្ហាញ KHQR & ស្កេនកាត NFC</span>
+        </button>
+      </div>
+
+      <!-- 📱 ផ្ទាំងបង្ហាញ QR Code & Tap to Pay -->
       <div id="qrModal" class="qr-modal">
         <div class="qr-modal-header">
-          <div class="close-qr-btn" onclick="closeQRModal()">
+          <button type="button" class="round-tool-btn" onclick="closeQRModal()">
             <i class="fa-solid fa-xmark"></i>
-          </div>
-          <div style="display: flex; gap: 10px">
-            <div
-              class="voice-toggle-btn active"
+          </button>
+
+          <div style="display: flex; gap: 8px; align-items: center">
+            <!-- ប្តូរភាសាសំឡេងនិយាយផ្ទាល់លើអេក្រង់ QR -->
+            <button
+              type="button"
+              id="btnVoiceLangSwitch"
+              onclick="cycleShopVoiceLang()"
+              style="
+                height: 40px;
+                padding: 0 12px;
+                border-radius: 20px;
+                border: 1px solid var(--border-color);
+                background: var(--bg-card);
+                color: var(--text-main);
+                font-weight: 800;
+                font-size: 0.78rem;
+                cursor: pointer;
+              "
+            >
+              🇰🇭 ខ្មែរ
+            </button>
+
+            <button
+              type="button"
+              class="round-tool-btn active"
               id="btnVoiceToggle"
               onclick="toggleVoiceAlert()"
-              title="បើក/បិទ សំឡេង"
+              title="បិទ/បើកសំឡេង"
             >
               <i class="fa-solid fa-volume-high" id="iconVoiceToggle"></i>
-            </div>
-            <div
-              class="save-qr-icon-btn"
+            </button>
+
+            <button
+              type="button"
+              class="round-tool-btn"
               onclick="downloadMyQR()"
               id="btnSaveQR"
-              title="រក្សាទុក QR"
+              title="ទាញយករូបភាព QR"
             >
               <i class="fa-solid fa-download"></i>
-            </div>
+            </button>
           </div>
         </div>
 
         <div class="qr-card-container">
           <div class="qr-white-box" id="myQRContent">
-            <!-- 🌟 របារប្តូររូបិយប័ណ្ណ (Toggle Bar) បង្ហាញពេលមានកុង២ និងអត់ទាន់វាយលុយ -->
             <div class="currency-toggle" id="qrToggleBar">
               <div
-                class="toggle-btn active"
+                class="toggle-btn active mono-num"
                 id="btnQRUSD"
                 onclick="switchQRCurrency('USD')"
               >
                 USD ($)
               </div>
               <div
-                class="toggle-btn"
+                class="toggle-btn mono-num"
                 id="btnQRKHR"
                 onclick="switchQRCurrency('KHR')"
               >
@@ -689,50 +555,111 @@
               </div>
             </div>
 
-            <!-- 🌟 ប้ายបញ្ជាក់រូបិយប័ណ្ណ (Static Badge) បង្ហាញពេលមានកុង១ ឬ វាយលុយហើយ -->
             <div
               id="qrStaticCurrencyBadge"
+              class="mono-num"
               style="
                 display: none;
-                margin-bottom: 25px;
-                background: var(--bg-main);
-                border: 1px solid var(--border-color);
-                padding: 8px 15px;
+                margin-bottom: 16px;
+                background: rgba(16, 185, 129, 0.12);
+                padding: 6px 14px;
                 border-radius: 12px;
-                color: var(--primary);
-                font-weight: 800;
-                font-size: 0.95rem;
-                justify-content: center;
-                align-items: center;
+                color: #10b981;
+                font-weight: 900;
+                font-size: 0.85rem;
               "
             >
               USD ($)
             </div>
 
-            <img
-              src="images/logo-nobg.png"
-              class="qr-logo-top"
-              alt="U-Pay"
-              onerror="this.style.display = 'none'"
-            />
-            <h3 id="qrUserName" class="qr-user-name">...</h3>
-            <p id="qrMerchantID"></p>
+            <!-- រូបឡូហ្គោហាង និងឈ្មោះហាង -->
+            <div
+              id="qrShopLogoWrap"
+              style="
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+                background: linear-gradient(135deg, #004d40, #0d9488);
+                color: white;
+                margin: 0 auto 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.3rem;
+                overflow: hidden;
+              "
+            >
+              <i class="fa-solid fa-store"></i>
+            </div>
+
+            <h3
+              id="qrUserName"
+              style="
+                margin: 0;
+                font-size: 1.25rem;
+                font-weight: 900;
+                text-transform: uppercase;
+              "
+            >
+              ...
+            </h3>
+            <p
+              id="qrMerchantID"
+              class="mono-num"
+              style="
+                margin: 4px 0 8px;
+                font-size: 0.78rem;
+                color: var(--text-muted);
+              "
+            ></p>
 
             <div class="qr-img-wrapper">
               <img id="myQrImg" src="" alt="QR Code" />
             </div>
 
-            <p id="qrAccountNum"></p>
+            <p
+              id="qrAccountNum"
+              class="mono-num"
+              style="
+                margin: 0 0 14px;
+                font-weight: 800;
+                color: #0d9488;
+                font-size: 1.05rem;
+                letter-spacing: 1px;
+              "
+            ></p>
 
-            <div class="amount-input-area">
-              <div class="amount-label kh-text" data-i18n="set_amount">
-                កំណត់ទឹកប្រាក់ចង់បាន
+            <div
+              style="
+                border-top: 1px dashed var(--border-color);
+                padding-top: 14px;
+              "
+            >
+              <div
+                style="
+                  font-size: 0.75rem;
+                  color: var(--text-muted);
+                  font-weight: 700;
+                  margin-bottom: 8px;
+                "
+              >
+                ចំនួនទឹកប្រាក់ត្រូវបង់ (AMOUNT)
               </div>
               <div class="modern-amount-wrapper">
-                <span class="currency-symbol" id="qrCurrencySymbol">$</span>
+                <span
+                  id="qrCurrencySymbol"
+                  class="mono-num"
+                  style="
+                    font-size: 1.6rem;
+                    font-weight: 900;
+                    color: var(--text-muted);
+                  "
+                  >$</span
+                >
                 <input
                   type="number"
                   id="qrSetAmount"
+                  class="mono-num"
                   placeholder="0.00"
                   min="0"
                   oninput="
@@ -745,23 +672,42 @@
           </div>
         </div>
 
-        <div class="qr-modal-footer">
+        <div
+          style="
+            padding: 14px 20px max(16px, env(safe-area-inset-bottom));
+            display: flex;
+            justify-content: center;
+          "
+        >
           <button
+            type="button"
             onclick="startTapToPay()"
-            class="btn-tap-to-pay kh-text"
             id="btnTapToPay"
+            style="
+              width: 100%;
+              max-width: 350px;
+              padding: 16px;
+              background: linear-gradient(135deg, #059669, #10b981);
+              color: white;
+              border: none;
+              border-radius: 18px;
+              font-weight: 900;
+              font-size: 1rem;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              box-shadow: 0 10px 22px rgba(16, 185, 129, 0.32);
+            "
           >
-            <i
-              class="fa-solid fa-contactless"
-              style="margin-right: 10px; font-size: 1.4rem"
-            ></i>
-            <span>ទូទាត់ដោយកាត (Tap to Pay)</span>
+            <i class="fa-solid fa-wifi" style="transform: rotate(90deg)"></i>
+            <span>ស្កេនកាត NFC (Tap to Pay)</span>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ⚡️ POS JAVASCRIPT LOGIC ⚡️ -->
     <script>
       let currentMerchant = null;
       let calcValue = "";
@@ -771,23 +717,228 @@
       let isCashierQR = false;
       let currentCashierObj = null;
 
-      // 🌟 តាមដានគណនីមាន ឬអត់
       let merchHasUSD = false;
       let merchHasKHR = false;
 
+      let shopVoiceOn = true;
+      let shopVoiceProfile = "km_female_1";
+      let posAudioCtx = null;
+
       document.addEventListener("DOMContentLoaded", () => {
         if (window.currentUser) {
-          applyThemeLocally();
+          const userThemeKey = "theme_" + window.currentUser.username;
+          if (localStorage.getItem(userThemeKey) === "dark") {
+            document.body.classList.add("dark-mode");
+          }
           initPOS();
         }
       });
 
-      function applyThemeLocally() {
-        if (window.currentUser && window.currentUser.username) {
-          const userThemeKey = "theme_" + window.currentUser.username;
-          const isDark = localStorage.getItem(userThemeKey) === "dark";
-          if (isDark) document.body.classList.add("dark-mode");
-          else document.body.classList.remove("dark-mode");
+      function getShopStoragePrefix() {
+        return `shop_${currentMerchant?.id || "default"}_`;
+      }
+
+      const POS_VOICE_PROFILES = {
+        km_female_1: {
+          lang: "km",
+          gender: "female",
+          pitchRate: 1.0,
+          label: "🇰🇭 👩 សុភា",
+        },
+        km_male_1: {
+          lang: "km",
+          gender: "male",
+          pitchRate: 0.82,
+          label: "🇰🇭 👨 វិបុល",
+        },
+        km_female_2: {
+          lang: "km",
+          gender: "female",
+          pitchRate: 1.12,
+          label: "🇰🇭 👧 នារី",
+        },
+        en_female_1: {
+          lang: "en",
+          gender: "female",
+          pitchRate: 1.0,
+          label: "🇺🇸 👩 Emma",
+        },
+        en_male_1: {
+          lang: "en",
+          gender: "male",
+          pitchRate: 0.83,
+          label: "🇺🇸 👨 David",
+        },
+        en_female_2: {
+          lang: "en",
+          gender: "female",
+          pitchRate: 1.1,
+          label: "🇬🇧 👩‍💼 Sophia",
+        },
+      };
+      const POS_VOICE_KEYS = Object.keys(POS_VOICE_PROFILES);
+
+      function loadPerShopVoiceSettings() {
+        if (!currentMerchant) return;
+        const prefix = getShopStoragePrefix();
+        const savedOn = localStorage.getItem(prefix + "voiceOn");
+        let savedProf =
+          localStorage.getItem(prefix + "voiceLang") ||
+          currentMerchant.settings?.voiceLang ||
+          "km_female_1";
+
+        if (savedProf === "km") savedProf = "km_female_1";
+        if (savedProf === "en") savedProf = "en_female_1";
+        if (!POS_VOICE_PROFILES[savedProf]) savedProf = "km_female_1";
+
+        shopVoiceOn =
+          savedOn !== null
+            ? savedOn === "true"
+            : currentMerchant.settings?.voiceEnabled !== false;
+        shopVoiceProfile = savedProf;
+
+        updateVoiceToggleUI();
+      }
+
+      function updateVoiceToggleUI() {
+        const btn = document.getElementById("btnVoiceToggle");
+        const icon = document.getElementById("iconVoiceToggle");
+        const topIcon = document.getElementById("topVoiceQuickIcon");
+        const langBtn = document.getElementById("btnVoiceLangSwitch");
+
+        if (btn && icon) {
+          btn.classList.toggle("active", shopVoiceOn);
+          icon.className = shopVoiceOn
+            ? "fa-solid fa-volume-high"
+            : "fa-solid fa-volume-xmark";
+        }
+        if (topIcon) {
+          topIcon.className = shopVoiceOn
+            ? "fa-solid fa-volume-high"
+            : "fa-solid fa-volume-xmark";
+        }
+        if (langBtn) {
+          const prof =
+            POS_VOICE_PROFILES[shopVoiceProfile] ||
+            POS_VOICE_PROFILES.km_female_1;
+          langBtn.innerText = prof.label;
+        }
+      }
+
+      window.toggleVoiceAlert = function () {
+        shopVoiceOn = !shopVoiceOn;
+        localStorage.setItem(
+          getShopStoragePrefix() + "voiceOn",
+          String(shopVoiceOn),
+        );
+        updateVoiceToggleUI();
+        if (shopVoiceOn) {
+          playVoiceAlert(0, "TEST");
+        }
+      };
+
+      window.cycleShopVoiceLang = async function () {
+        const idx = POS_VOICE_KEYS.indexOf(shopVoiceProfile);
+        shopVoiceProfile = POS_VOICE_KEYS[(idx + 1) % POS_VOICE_KEYS.length];
+        localStorage.setItem(
+          getShopStoragePrefix() + "voiceLang",
+          shopVoiceProfile,
+        );
+        updateVoiceToggleUI();
+
+        if (shopVoiceOn) {
+          playVoiceAlert(0, "TEST");
+        }
+
+        if (currentMerchant?.id) {
+          fetch(`/api/merchants/update/${currentMerchant.id}`, {
+            method: "PUT",
+            headers: window.authHeaders,
+            body: JSON.stringify({
+              settings: {
+                voiceEnabled: shopVoiceOn,
+                voiceLang: shopVoiceProfile,
+              },
+            }),
+          }).catch(() => {});
+        }
+      };
+
+      function formatAmountForSpeech(amount, lang) {
+        const str = String(amount || "0")
+          .replace(/,/g, "")
+          .trim();
+        if (!str.includes(".")) return str;
+        const [intPart, decPart] = str.split(".");
+        if (!decPart || Number(decPart) === 0) return intPart;
+        return lang === "km"
+          ? `${intPart} ចុច ${decPart}`
+          : `${intPart} point ${decPart}`;
+      }
+
+      async function playVoiceAlert(amount, currency) {
+        if (!shopVoiceOn) return;
+        const prof =
+          POS_VOICE_PROFILES[shopVoiceProfile] ||
+          POS_VOICE_PROFILES.km_female_1;
+
+        let textToSpeak = "";
+        if (currency === "TEST") {
+          textToSpeak =
+            prof.lang === "km"
+              ? "សួស្តី នេះជាសំឡេងជូនដំណឹងរបស់ហាង"
+              : "Hello, store voice alert is ready";
+        } else {
+          const spokenAmt = formatAmountForSpeech(amount, prof.lang);
+          const curWordKm = currency === "USD" ? "ដុល្លារ" : "រៀល";
+          const curWordEn =
+            currency === "USD" ? "US Dollars" : "Cambodian Riel";
+          textToSpeak =
+            prof.lang === "km"
+              ? `ទទួលបាន ${spokenAmt} ${curWordKm}`
+              : `Payment received ${spokenAmt} ${curWordEn}`;
+        }
+
+        try {
+          const url = `/api/merchants/tts?lang=${prof.lang}&text=${encodeURIComponent(textToSpeak)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("TTS Stream failed");
+
+          const arrayBuf = await res.arrayBuffer();
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+          if (AudioCtx) {
+            if (!posAudioCtx) posAudioCtx = new AudioCtx();
+            if (posAudioCtx.state === "suspended") await posAudioCtx.resume();
+
+            const audioBuffer = await posAudioCtx.decodeAudioData(arrayBuf);
+            const source = posAudioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.playbackRate.value = prof.pitchRate;
+
+            if (prof.gender === "male") {
+              const filter = posAudioCtx.createBiquadFilter();
+              filter.type = "lowshelf";
+              filter.frequency.value = 260;
+              filter.gain.value = 5;
+              source.connect(filter);
+              filter.connect(posAudioCtx.destination);
+            } else {
+              source.connect(posAudioCtx.destination);
+            }
+
+            source.start(0);
+            return;
+          }
+        } catch (e) {}
+
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          const msg = new SpeechSynthesisUtterance(textToSpeak);
+          msg.lang = prof.lang === "km" ? "km-KH" : "en-US";
+          msg.pitch = prof.gender === "male" ? 0.7 : prof.pitchRate;
+          msg.rate = 0.95;
+          window.speechSynthesis.speak(msg);
         }
       }
 
@@ -795,23 +946,19 @@
         const urlParams = new URLSearchParams(window.location.search);
         const mid = urlParams.get("mid");
         const cashierAcc = urlParams.get("cashierAcc");
+        const openQrNow = urlParams.get("openQr") === "1";
 
-        if (!mid) {
-          Swal.fire("Error", "Merchant ID is missing!", "error").then(() =>
-            goBack(),
-          );
-          return;
-        }
+        if (!mid) return goBack();
 
-        currentMerchant = window.currentUser.merchantProfile.merchants.find(
-          (m) => (m.id || m._id) === mid,
-        );
-        if (!currentMerchant) {
-          Swal.fire("Error", "Shop not found!", "error").then(() => goBack());
-          return;
-        }
+        currentMerchant = (
+          window.currentUser.merchantProfile?.merchants || []
+        ).find((m) => (m.id || m._id) === mid);
 
-        if (cashierAcc) {
+        if (!currentMerchant) return goBack();
+
+        loadPerShopVoiceSettings();
+
+        if (cashierAcc && Array.isArray(currentMerchant.cashiers)) {
           currentCashierObj = currentMerchant.cashiers.find(
             (c) => c.accountNumber === cashierAcc,
           );
@@ -819,75 +966,92 @@
         }
 
         const displayName = isCashierQR
-          ? `${currentMerchant.name.toUpperCase()} BY ${currentCashierObj.displayName.toUpperCase()}`
-          : currentMerchant.name.toUpperCase();
+          ? `${currentMerchant.name} (${currentCashierObj.displayName})`
+          : currentMerchant.name;
 
         document.getElementById("recvStoreName").innerText = displayName;
-        document.getElementById("qrUserName").innerText = displayName;
+        document.getElementById("qrUserName").innerText = currentMerchant.name;
+        document.getElementById("posCashierSubLabel").innerText = isCashierQR
+          ? `អ្នកគិតលុយ៖ ${currentCashierObj.originalName}`
+          : `MID: #${currentMerchant.merchantId}`;
 
-        // 🌟 កំណត់ការបង្ហាញគណនីផ្អែកលើទិន្នន័យហាងពិតប្រាកដ
+        const logoBox = document.getElementById("qrShopLogoWrap");
+        if (logoBox && currentMerchant.logo) {
+          logoBox.innerHTML = `<img src="${currentMerchant.logo}" style="width:100%; height:100%; object-fit:cover" />`;
+        }
+
         if (isCashierQR) {
-          merchHasUSD = !!(
-            currentCashierObj.virtualAccounts &&
-            currentCashierObj.virtualAccounts.USD
-          );
-          merchHasKHR = !!(
-            currentCashierObj.virtualAccounts &&
-            currentCashierObj.virtualAccounts.KHR
-          );
+          merchHasUSD = Boolean(currentCashierObj.virtualAccounts?.USD);
+          merchHasKHR = Boolean(currentCashierObj.virtualAccounts?.KHR);
         } else {
-          merchHasUSD = !!currentMerchant.accountNumbers?.USD;
-          merchHasKHR = !!currentMerchant.accountNumbers?.KHR;
+          merchHasUSD = Boolean(currentMerchant.accountNumbers?.USD);
+          merchHasKHR = Boolean(currentMerchant.accountNumbers?.KHR);
         }
 
-        const btnCurUSD = document.getElementById("btnCurUSD");
-        const btnCurKHR = document.getElementById("btnCurKHR");
+        document
+          .getElementById("btnCurUSD")
+          .classList.toggle("hidden", !merchHasUSD);
+        document
+          .getElementById("btnCurKHR")
+          .classList.toggle("hidden", !merchHasKHR);
 
-        // លាក់ប៊ូតុងនៅផ្ទាំង Calculator
-        if (!merchHasUSD) btnCurUSD.classList.add("hidden");
-        if (!merchHasKHR) btnCurKHR.classList.add("hidden");
+        if (merchHasUSD) setCalcCur("USD");
+        else if (merchHasKHR) setCalcCur("KHR");
 
-        // កំណត់ Default Currency
-        if (merchHasUSD) {
-          setCalcCur("USD");
-        } else if (merchHasKHR) {
-          setCalcCur("KHR");
-        } else {
-          Swal.fire("Error", "ហាងនេះមិនទាន់មានគណនីភ្ជាប់ទេ!", "error").then(
-            () => goBack(),
-          );
-          return;
+        if (openQrNow) {
+          openQRModal("", merchHasUSD ? "USD" : "KHR");
         }
 
-        initVoiceSettings();
+        try {
+          const socket = io();
+          socket.emit("joinRoom", window.currentUser.username);
+          socket.on("paymentReceived", (data) => {
+            new Audio(
+              "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
+            )
+              .play()
+              .catch(() => {});
+            playVoiceAlert(data.amount, data.currency);
 
-        const socket = io("https://u-pay-bank.fly.dev");
-        socket.emit("joinRoom", window.currentUser.username);
-        socket.on("paymentReceived", (data) => {
-          new Audio(
-            "https://notificationsounds.com/storage/sounds/file-sounds-1148-juntos.mp3",
-          )
-            .play()
-            .catch(() => {});
-          playVoiceAlert(data.amount, data.currency);
-          Swal.fire({
-            icon: "success",
-            title: window.currentLang === "kh" ? "ជោគជ័យ!" : "Success!",
-            text: `ទទួលបាន ${data.amount} ${data.currency} ពី ${data.senderName}`,
-            confirmButtonColor: "#004d40",
+            // 🌟 ១. បិទផ្ទាំង QR Modal ទាំងស្រុងមុនគេបង្អស់
+            closeQRModal();
+            if (Swal.isVisible()) Swal.close();
+
+            // 🌟 ២. បើកបង្ហាញវិក្កយបត្រ (Transaction Slip) ឱ្យលោតឡើងមកពីក្រោមយ៉ាងរលូន (Z-Index 99999)
+            if (typeof openGlobalSlip === "function") {
+              openGlobalSlip({
+                refId: data.refId || "POS-" + Date.now(),
+                date: new Date().toLocaleString("en-US", {
+                  timeZone: "Asia/Phnom_Penh",
+                  hour12: true,
+                }),
+                type: "Received",
+                amount: data.amount,
+                currency: data.currency,
+                senderName: data.senderName || "Customer",
+                receiverName: currentMerchant.name,
+                status: "Success",
+                trxMethod: "KHQR / POS",
+              });
+            } else {
+              Swal.fire({
+                icon: "success",
+                title: "ទទួលបានការទូទាត់ជោគជ័យ! 🎉",
+                text: `+${data.amount} ${data.currency} ពី ${data.senderName}`,
+                confirmButtonColor: "#004d40",
+              });
+            }
           });
-        });
+        } catch (e) {}
       }
 
       function goBack() {
         window.location.href = "merchant.html";
       }
 
-      // --- CALCULATOR ---
       function setCalcCur(cur) {
         if (cur === "USD" && !merchHasUSD) return;
         if (cur === "KHR" && !merchHasKHR) return;
-
         calcCurrency = cur;
         document
           .getElementById("btnCurUSD")
@@ -901,18 +1065,29 @@
       }
 
       function pressKey(key) {
-        if (key === "C") calcValue = calcValue.slice(0, -1);
-        else {
-          if (calcValue === "0" && key !== "00") calcValue = key;
-          else if (calcValue.length < 10) calcValue += key;
+        if (key === "C") {
+          calcValue = calcValue.slice(0, -1);
+        } else if (key === ".") {
+          if (calcCurrency === "KHR") return;
+          if (!calcValue.includes(".")) calcValue = (calcValue || "0") + ".";
+        } else {
+          if (calcValue === "0" && key !== "00" && key !== "000") {
+            calcValue = key;
+          } else if (calcValue.length < 10) {
+            calcValue += key;
+          }
         }
         updateCalcDisplay();
       }
 
       function updateCalcDisplay() {
-        document.getElementById("calcDisplay").innerText = calcValue
-          ? parseInt(calcValue).toLocaleString("en-US")
-          : "0";
+        if (!calcValue) {
+          document.getElementById("calcDisplay").innerText = "0";
+          return;
+        }
+        const parts = calcValue.split(".");
+        parts[0] = Number(parts[0] || 0).toLocaleString("en-US");
+        document.getElementById("calcDisplay").innerText = parts.join(".");
       }
 
       function generateQRFromCalc() {
@@ -921,10 +1096,7 @@
         updateCalcDisplay();
       }
 
-      // --- QR CODE ---
       function openQRModal(amount, currency = null) {
-        const modal = document.getElementById("qrModal");
-
         let targetCur = currency || (merchHasUSD ? "USD" : "KHR");
         if (
           (targetCur === "USD" && !merchHasUSD) ||
@@ -933,47 +1105,30 @@
           targetCur = merchHasUSD ? "USD" : "KHR";
         }
 
-        const inputWrapper = document.querySelector(".modern-amount-wrapper");
-        const btnUSD = document.getElementById("btnQRUSD");
-        const btnKHR = document.getElementById("btnQRKHR");
         const toggleBar = document.getElementById("qrToggleBar");
         const staticBadge = document.getElementById("qrStaticCurrencyBadge");
 
-        // 🌟 ករណីទី ១៖ កំណត់លុយរួចរាល់
         if (amount && parseFloat(amount) > 0) {
           document.getElementById("qrSetAmount").readOnly = true;
-          inputWrapper.classList.add("locked");
-
           toggleBar.style.display = "none";
-          staticBadge.style.display = "flex";
+          staticBadge.style.display = "block";
           staticBadge.innerText = targetCur === "USD" ? "USD ($)" : "KHR (៛)";
-          staticBadge.style.color = targetCur === "USD" ? "#004d40" : "#047857"; // បៃតងចាស់ vs បៃតងខ្ចី
-        }
-        // 🌟 ករណីទី ២៖ អត់កំណត់លុយទេ
-        else {
+        } else {
           document.getElementById("qrSetAmount").readOnly = false;
-          inputWrapper.classList.remove("locked");
-
-          // បើហាងមានគណនីទាំង ២ ទើបបង្ហាញ Toggle Bar អោយរើស
           if (merchHasUSD && merchHasKHR) {
             toggleBar.style.display = "flex";
             staticBadge.style.display = "none";
-            btnUSD.classList.remove("hidden");
-            btnKHR.classList.remove("hidden");
-          }
-          // បើហាងមានតែមួយ បង្ហាញ Static Badge ជានិច្ច
-          else {
+          } else {
             toggleBar.style.display = "none";
-            staticBadge.style.display = "flex";
+            staticBadge.style.display = "block";
             staticBadge.innerText = merchHasUSD ? "USD ($)" : "KHR (៛)";
-            staticBadge.style.color = merchHasUSD ? "#004d40" : "#047857";
           }
         }
 
         switchQRCurrency(targetCur);
         document.getElementById("qrSetAmount").value = amount || "";
         updateMyQR();
-        modal.style.display = "flex";
+        document.getElementById("qrModal").style.display = "flex";
       }
 
       function closeQRModal() {
@@ -999,41 +1154,38 @@
         }
 
         if (isCashierQR) {
-          let vAcc = currentCashierObj.virtualAccounts
+          const vAcc = currentCashierObj.virtualAccounts
             ? currentCashierObj.virtualAccounts[currency]
             : currentCashierObj.virtualAccount;
-          document.getElementById("qrAccountNum").style.color = "#0284c7";
           document.getElementById("qrAccountNum").textContent = vAcc || "N/A";
           document.getElementById("qrMerchantID").textContent =
-            "Cashier ID: " + (vAcc || "N/A");
+            `Cashier: ${currentCashierObj.originalName}`;
         } else {
           const targetAcc = currentMerchant.accountNumbers
             ? currentMerchant.accountNumbers[currency]
             : null;
-          document.getElementById("qrAccountNum").style.color = "#00b894";
           document.getElementById("qrAccountNum").textContent =
             targetAcc || "N/A";
           document.getElementById("qrMerchantID").textContent =
-            "MID: " + currentMerchant.merchantId;
+            `MID: #${currentMerchant.merchantId}`;
         }
         updateMyQR();
       }
 
       function updateMyQR() {
         const amount = document.getElementById("qrSetAmount").value;
-        let qrData = "",
-          qrColor = "";
+        let qrData = "";
+        const qrColor = isCashierQR ? "0284c7" : "004d40";
 
         if (isCashierQR) {
-          qrColor = "0284c7";
-          let vAcc = currentCashierObj.virtualAccounts
+          const vAcc = currentCashierObj.virtualAccounts
             ? currentCashierObj.virtualAccounts[qrCurrency]
             : currentCashierObj.virtualAccount;
-          if (vAcc)
+          if (vAcc) {
             qrData =
               amount && parseFloat(amount) > 0 ? `${vAcc}:${amount}` : vAcc;
+          }
         } else {
-          qrColor = "004d40";
           const targetAcc = currentMerchant.accountNumbers
             ? currentMerchant.accountNumbers[qrCurrency]
             : null;
@@ -1048,42 +1200,25 @@
       }
 
       function downloadMyQR() {
-        const btnSave = document.getElementById("btnSaveQR");
-        const btnClose = document.querySelector(".close-qr-btn");
-        const toggleBar = document.getElementById("qrToggleBar");
-        const btnTapToPay = document.getElementById("btnTapToPay");
-
-        btnSave.style.display = "none";
-        btnClose.style.display = "none";
-        const isToggleHidden = toggleBar.style.display === "none";
-
-        if (!document.getElementById("qrSetAmount").readOnly)
-          toggleBar.style.display = "none";
-        btnTapToPay.style.display = "none";
-
         html2canvas(document.getElementById("myQRContent"), {
           backgroundColor: document.body.classList.contains("dark-mode")
-            ? "#1e1e1e"
+            ? "#0f172a"
             : "#ffffff",
           scale: 3,
         }).then((canvas) => {
           const link = document.createElement("a");
-          link.download = `Merchant-QR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
+          link.download = `KHQR-${currentMerchant.name.replace(/\s+/g, "-")}.png`;
           link.href = canvas.toDataURL();
           link.click();
-          btnSave.style.display = "flex";
-          btnClose.style.display = "flex";
-          if (!isToggleHidden) toggleBar.style.display = "flex";
-          btnTapToPay.style.display = "flex";
         });
       }
 
-      // --- NFC SCANNER ---
+      // 💳 NFC Tap to Pay
       function normalizeUID(uid) {
         if (!uid) return "";
         uid = String(uid).trim().toUpperCase();
         if (/^\d{10}$/.test(uid)) {
-          let hex = parseInt(uid, 10)
+          const hex = parseInt(uid, 10)
             .toString(16)
             .toUpperCase()
             .padStart(8, "0");
@@ -1103,13 +1238,10 @@
         if (serialNumber)
           serialNumber = serialNumber.replaceAll(":", "").toUpperCase();
 
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
         Swal.fire({
-          title: "កំពុងពិនិត្យកាត...",
+          title: "កំពុងពិនិត្យកាត NFC...",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
         });
 
         try {
@@ -1118,7 +1250,7 @@
             headers: window.authHeaders,
             body: JSON.stringify({
               uid: serialNumber,
-              amount: amount,
+              amount,
               currency: qrCurrency,
             }),
           });
@@ -1132,14 +1264,14 @@
           return Swal.fire("Error", "មិនអាចភ្ជាប់ទៅកាន់ Server បានទេ", "error");
         }
 
-        let requirePin =
+        const requirePin =
           (qrCurrency === "USD" && amount > 20) ||
           (qrCurrency === "KHR" && amount > 80000);
 
         if (requirePin) {
           requestPinVerification(
-            "បញ្ជាក់លេខសម្ងាត់ (PIN)",
-            `ទឹកប្រាក់ ${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()} លើសកម្រិត`,
+            "បញ្ជាក់លេខកូដ PIN កាត",
+            `ទឹកប្រាក់ ${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()} លើសកម្រិតស្កេនរហ័ស`,
             function (pin) {
               executeTapPayment(serialNumber, amount, qrCurrency, pin);
             },
@@ -1157,12 +1289,7 @@
           title: "កំពុងទូទាត់ប្រាក់...",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
-          customClass: { popup: "premium-swal" },
         });
-
-        let cashierAccToSend = isCashierQR
-          ? currentCashierObj.accountNumber
-          : null;
 
         try {
           const res = await fetch("/api/merchants/tap-to-pay", {
@@ -1174,7 +1301,7 @@
               currency,
               pin,
               merchantId: currentMerchant.id,
-              cashierAcc: cashierAccToSend,
+              cashierAcc: isCashierQR ? currentCashierObj.accountNumber : null,
             }),
           });
           const data = await res.json();
@@ -1186,10 +1313,32 @@
               .play()
               .catch(() => {});
             playVoiceAlert(amount, currency);
+
+            // 🌟 ១. បិទផ្ទាំង QR Modal ទាំងស្រុងមុនគេបង្អស់
             closeQRModal();
-            Swal.fire("ជោគជ័យ", "កាត់ប្រាក់រួចរាល់", "success");
+            if (Swal.isVisible()) Swal.close();
+
+            // 🌟 ២. បើកបង្ហាញវិក្កយបត្រ (Transaction Slip) ឱ្យលោតឡើងមកពីក្រោមយ៉ាងរលូន (Z-Index 99999)
+            if (typeof openGlobalSlip === "function") {
+              openGlobalSlip({
+                refId: "POS-" + Date.now(),
+                date: new Date().toLocaleString("en-US", {
+                  timeZone: "Asia/Phnom_Penh",
+                  hour12: true,
+                }),
+                type: "Received",
+                amount: amount,
+                currency: currency,
+                senderName: "NFC Cardholder",
+                receiverName: currentMerchant.name,
+                status: "Success",
+                trxMethod: "NFC Tap to Pay",
+              });
+            } else {
+              Swal.fire("ជោគជ័យ!", "ការទូទាត់ដោយកាត NFC បានសម្រេច!", "success");
+            }
           } else {
-            Swal.fire("ប្រតិបត្តិការបរាជ័យ!", data.message, "error");
+            Swal.fire("បរាជ័យ!", data.message, "error");
           }
         } catch (err) {
           Swal.fire("Error", "Server Error", "error");
@@ -1201,20 +1350,32 @@
       async function startTapToPay() {
         if (isProcessingNFC) return;
         const amount = parseFloat(document.getElementById("qrSetAmount").value);
-        if (!amount || amount <= 0)
-          return Swal.fire("បញ្ជាក់", "សូមបញ្ចូលទឹកប្រាក់!", "warning");
+        if (!amount || amount <= 0) {
+          return Swal.fire(
+            "បញ្ជាក់",
+            "សូមបញ្ចូលចំនួនទឹកប្រាក់ជាមុនសិន!",
+            "warning",
+          );
+        }
+
+        // 🌟 ៣. បិទ QR Modal ជាមុនសិន ពេលកំពុងរង់ចាំស្កេន NFC ដើម្បីកុំឱ្យបាំងអេក្រង់
+        closeQRModal();
 
         let isScanning = true;
         let scanBuffer = "";
 
         Swal.fire({
-          title: "កំពុងរង់ចាំកាត...",
-          html: `<div style="margin: 20px 0;"><i class="fa-solid fa-wifi fa-beat" style="font-size: 4.5rem; color: #10b981;"></i></div>
-                   <h2 style="color: #10b981;">${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()}</h2>
-                   <input type="text" id="hiddenUsbScannerInput" style="opacity: 0; position: absolute; z-index: -1;" autocomplete="off">`,
+          title: "សូមដាក់កាត NFC ជិតម៉ាស៊ីនស្កេន...",
+          html: `
+            <div style="margin:20px 0"><i class="fa-solid fa-wifi fa-beat" style="font-size:4rem; color:#10b981; transform:rotate(90deg)"></i></div>
+            <h2 class="mono-num" style="color:#10b981; margin:0">${qrCurrency === "USD" ? "$" : "៛"}${amount.toLocaleString()}</h2>
+            <input type="text" id="hiddenUsbScannerInput" style="opacity:0; position:absolute; z-index:-1" autocomplete="off">
+          `,
           showCancelButton: true,
           showConfirmButton: false,
+          cancelButtonText: "បោះបង់",
           allowOutsideClick: false,
+          customClass: { popup: "premium-swal" },
           didOpen: () => {
             const hiddenInput = document.getElementById(
               "hiddenUsbScannerInput",
@@ -1268,55 +1429,6 @@
             };
           } catch (error) {}
         }
-      }
-
-      // --- VOICE ALERT ---
-      let isVoiceAlertOn = localStorage.getItem("voiceAlertOn") !== "false";
-
-      function initVoiceSettings() {
-        updateVoiceToggleButton();
-      }
-
-      function toggleVoiceAlert() {
-        isVoiceAlertOn = !isVoiceAlertOn;
-        localStorage.setItem("voiceAlertOn", isVoiceAlertOn);
-        updateVoiceToggleButton();
-        if (isVoiceAlertOn) playVoiceAlert("0", "TEST");
-      }
-
-      function updateVoiceToggleButton() {
-        const btn = document.getElementById("btnVoiceToggle");
-        const icon = document.getElementById("iconVoiceToggle");
-        if (btn && icon) {
-          btn.className = isVoiceAlertOn
-            ? "voice-toggle-btn active"
-            : "voice-toggle-btn inactive";
-          icon.className = isVoiceAlertOn
-            ? "fa-solid fa-volume-high"
-            : "fa-solid fa-volume-xmark";
-        }
-      }
-
-      function playVoiceAlert(amount, currency) {
-        if (!isVoiceAlertOn || !("speechSynthesis" in window)) return;
-        let textToSpeak =
-          currency === "TEST"
-            ? "សំឡេងត្រូវបានបើក"
-            : `ទទួលបាន ${amount} ${currency}`;
-        let msg = new SpeechSynthesisUtterance(textToSpeak);
-        msg.lang = "km-KH";
-
-        let selectedVoiceName = localStorage.getItem("selectedVoiceName");
-        let availableVoices = window.speechSynthesis.getVoices();
-
-        if (selectedVoiceName && availableVoices.length > 0) {
-          let foundVoice = availableVoices.find(
-            (v) => v.name === selectedVoiceName,
-          );
-          if (foundVoice) msg.voice = foundVoice;
-        }
-
-        window.speechSynthesis.speak(msg);
       }
     </script>
   </body>

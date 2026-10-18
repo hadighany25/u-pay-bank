@@ -6,7 +6,10 @@
 const adminToken = sessionStorage.getItem("adminToken");
 const adminRole = sessionStorage.getItem("adminRole");
 let myAdminPermissions = null;
-let globalUsersData = [];
+
+// 🟢 ប្រើ var និងភ្ជាប់ទៅ window ដើម្បីឱ្យគ្រប់ឯកសារ JS ទាំងអស់ចាប់ទិន្នន័យអតិថិជនឃើញ ១០០%
+var globalUsersData = [];
+window.globalUsersData = globalUsersData;
 
 if (!adminToken || !adminRole) {
   window.location.href = "admin-login.html";
@@ -171,7 +174,7 @@ const ADMIN_SIDEBAR_SCHEMA = [
       },
       {
         id: "menu-system",
-        sec: "system", // 👈 ប្តូរមកជា "system" ដើម្បីចុចปุ๊បបើកផ្ទាំងទី ១៨ ភ្លាម!
+        sec: "system",
         icon: "fa-power-off",
         iconColor: "#ef4444",
         label: "បិទ/បើកប្រព័ន្ធ (System)",
@@ -335,7 +338,6 @@ function initSidebarResizeAndCollapseState() {
     }
   });
 
-  // Double-click លើខ្សែបន្ទាត់ដើម្បីត្រឡប់ទៅទទឹងស្តង់ដារ 275px វិញភ្លាមៗ
   handle.addEventListener("dblclick", () => {
     document.body.classList.remove("sb-collapsed", "sb-hidden");
     document.documentElement.style.setProperty("--sb-width", "275px");
@@ -386,7 +388,6 @@ function updateCollapseButtonUI() {
   }
 }
 
-// Shortcut ក្តារចុច៖ ចុច Ctrl + B ដើម្បីបង្រួម ឬ លាត Sidebar ភ្លាមៗ!
 document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
     e.preventDefault();
@@ -532,17 +533,30 @@ function logout() {
 }
 
 // ========================================================================
-// 🔄 SECTION 4: LIGHTWEIGHT SHARED LOADERS
+// 🔄 SECTION 4: LIGHTWEIGHT SHARED LOADERS (Fixed Global & Window Sync 100%)
 // ========================================================================
 async function loadUsersModuleData() {
   try {
     const res = await fetch("/api/users", { headers: getAuthHeaders() });
-    const users = await res.json();
-    if (Array.isArray(users)) {
-      globalUsersData = users;
-      if (typeof filterUsers === "function") filterUsers();
+    const raw = await res.json();
+    const users = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.users)
+        ? raw.users
+        : [];
+
+    globalUsersData = users;
+    window.globalUsersData = users;
+
+    if (typeof filterUsers === "function") {
+      filterUsers();
     }
-  } catch (e) {}
+    if (typeof filterKycTable === "function") {
+      filterKycTable();
+    }
+  } catch (e) {
+    console.error("Load Users Module Data Error:", e);
+  }
 }
 
 async function loadCardsModuleData() {
@@ -553,26 +567,32 @@ async function loadCardsModuleData() {
         () => null,
       ),
     ]);
-    const users = await userRes.json();
+    const rawUsers = await userRes.json();
+    const users = Array.isArray(rawUsers)
+      ? rawUsers
+      : Array.isArray(rawUsers?.users)
+        ? rawUsers.users
+        : [];
+
     let allCardsList = [];
     if (cardsRes && cardsRes.ok) {
       const cData = await cardsRes.json();
       if (cData && Array.isArray(cData.cards)) allCardsList = cData.cards;
     }
 
-    if (Array.isArray(users)) {
-      globalUsersData = users;
-      const allIssuedCards = [];
-      allCardsList.forEach((c) => {
-        const owner = users.find((u) => u.username === c.username) || {
-          username: c.username || "Unknown",
-          fullName: c.username || "Unknown",
-        };
-        allIssuedCards.push({ user: owner, card: c });
-      });
-      window.globalCardsData = allIssuedCards;
-      if (typeof renderCardTablePage === "function") renderCardTablePage();
-    }
+    globalUsersData = users;
+    window.globalUsersData = users;
+
+    const allIssuedCards = [];
+    allCardsList.forEach((c) => {
+      const owner = users.find((u) => u.username === c.username) || {
+        username: c.username || "Unknown",
+        fullName: c.username || "Unknown",
+      };
+      allIssuedCards.push({ user: owner, card: c });
+    });
+    window.globalCardsData = allIssuedCards;
+    if (typeof renderCardTablePage === "function") renderCardTablePage();
   } catch (e) {}
 }
 
@@ -596,7 +616,10 @@ async function applyDynamicPermissions() {
     const data = await res.json();
 
     if (data.success && data.admin) {
-      // 🌟 បង្ហាញឈ្មោះ និងរូបថត Profile ពិតរបស់បុគ្គលិក Admin លើក្បាល Sidebar
+      if (data.admin.username) {
+        sessionStorage.setItem("adminUsername", data.admin.username);
+      }
+
       const nameDisp = document.getElementById("adminNameDisplay");
       const roleDisp = document.getElementById("adminRoleDisplay");
       const avatarBox = document.getElementById("sbAdminAvatarBox");
@@ -668,7 +691,7 @@ async function applyDynamicPermissions() {
     console.error("Error fetching permissions:", err);
   }
 
-  loadUsersModuleData();
+  await loadUsersModuleData();
 }
 
 // ========================================================================
@@ -693,25 +716,32 @@ const ticketSound = new Audio(
 async function checkAdminNotifications() {
   try {
     const [chatRes, userRes] = await Promise.all([
-      fetch("/api/chat/contacts", {
+      fetch("/api/admin/chat/queue", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ myAcc: "ADMIN" }),
+        body: JSON.stringify({ includeBotOnly: false }),
       }),
       fetch("/api/users", { headers: getAuthHeaders() }),
     ]);
 
     const chatData = await chatRes.json();
-    const userData = await userRes.json();
+    const rawUser = await userRes.json();
+    const userData = Array.isArray(rawUser) ? rawUser : rawUser?.users || [];
 
     if (chatData.success && Array.isArray(userData)) {
+      globalUsersData = userData;
+      window.globalUsersData = userData;
+
+      const escalatedList = (chatData.contacts || []).filter(
+        (c) => c.needsSupport,
+      );
       let currentTotalUnread = 0,
-        currentQueueLength = chatData.contacts.length;
+        currentQueueLength = escalatedList.length;
       let currentPendingKyc = 0,
         currentOpenTickets = 0;
 
-      chatData.contacts.forEach((c) => {
-        currentTotalUnread += c.unreadCount;
+      escalatedList.forEach((c) => {
+        currentTotalUnread += c.unreadCount || 0;
       });
       userData.forEach((u) => {
         if (u.kycStatus === "pending") currentPendingKyc++;
@@ -727,7 +757,7 @@ async function checkAdminNotifications() {
         let shouldRefresh = false;
         if (currentQueueLength > previousQueueLength)
           playCustomNotif(
-            "អតិថិជនថ្មី សុំជួបភ្នាក់ងារ! 👨‍💻",
+            "អតិថិជនថ្មី សុំជួបភ្នាក់ងារផ្ទាល់! 👨‍💻",
             chatSound,
             "#0ea5e9",
           );
@@ -806,7 +836,7 @@ window.addEventListener("DOMContentLoaded", () => {
 window.standardDataSearch = function (dataArray, keyword, searchFields) {
   if (!keyword || keyword.trim() === "") return dataArray;
   const lowerKeyword = keyword.toLowerCase().trim();
-  return dataArray.filter((item) => {
+  return (dataArray || []).filter((item) => {
     return searchFields.some((field) => {
       const value = field
         .split(".")

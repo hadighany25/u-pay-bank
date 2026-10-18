@@ -80,10 +80,19 @@ function verifyValidMerchantAccount(owner, accNum, expectedCurrency) {
   return null;
 }
 
-// ១. មុខងារបង្កើតហាងថ្មី (Create Merchant - ភ្ជាប់សុវត្ថិភាព ៣ ជាន់ & គ្រប់គណនី)
+// ១. មុខងារបង្កើតហាងថ្មី (Create Merchant - គាំទ្ររូបឡូហ្គោហាង និងការកំណត់ដាច់ដោយឡែក)
 exports.createMerchant = async (req, res) => {
   try {
-    const { name, city, category, linkedAccUSD, linkedAccKHR, pin } = req.body;
+    const {
+      name,
+      logo,
+      city,
+      category,
+      linkedAccUSD,
+      linkedAccKHR,
+      pin,
+      settings,
+    } = req.body;
     const username = req.user.username;
 
     const owner = await User.findOne({ username });
@@ -123,19 +132,29 @@ exports.createMerchant = async (req, res) => {
     }
 
     const newMerchant = new Merchant({
-      ownerId: owner._id, // 🛡️ ជាន់ទី ១៖ ObjectId
-      userCustomId: owner.userId || owner.id || owner._id.toString(), // 🛡️ ជាន់ទី ២៖ User Custom ID
-      username: owner.username, // 🛡️ ជាន់ទី ៣៖ Username
-      userId: owner.username, // រក្សាទុកសម្រាប់កូដចាស់
-      name,
-      city,
-      category,
+      ownerId: owner._id,
+      userCustomId: owner.userId || owner.id || owner._id.toString(),
+      username: owner.username,
+      userId: owner.username,
+      name: String(name || "").trim(),
+      logo: logo || "",
+      city: city || "Phnom Penh",
+      category: category || "Food & Beverage",
       merchantId,
       apiKey,
       apiSecret,
       linkedAccounts,
       accountNumbers,
       collected: { USD: 0.0, KHR: 0 },
+      settings: {
+        voiceEnabled: settings?.voiceEnabled !== false,
+        voiceLang: settings?.voiceLang || "km",
+        soundChime: settings?.soundChime !== false,
+        telegramAlertEnabled: true,
+        defaultCurrency: validUsdAcc ? "USD" : "KHR",
+        receiptFooter:
+          settings?.receiptFooter || "សូមអរគុណដែលបានគាំទ្រហាងយើងខ្ញុំ!",
+      },
       status: "Active",
     });
 
@@ -153,17 +172,7 @@ exports.createMerchant = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      merchant: {
-        id: savedMerchant._id.toString(),
-        merchantId: savedMerchant.merchantId,
-        name: savedMerchant.name,
-        city: savedMerchant.city,
-        category: savedMerchant.category,
-        linkedAccounts: savedMerchant.linkedAccounts,
-        accountNumbers: savedMerchant.accountNumbers,
-        apiKey: savedMerchant.apiKey,
-        apiSecret: savedMerchant.apiSecret,
-      },
+      merchant: savedMerchant,
     });
   } catch (error) {
     console.error("CREATE MERCHANT ERROR:", error);
@@ -247,10 +256,19 @@ exports.deleteMerchant = async (req, res) => {
   }
 };
 
-// ៤. កែប្រែព័ត៌មានហាង និងគណនីភ្ជាប់ដោយម្ចាស់ហាង (Update Merchant Info & Linked Accounts)
+// ៤. កែប្រែព័ត៌មានហាង រូបឡូហ្គោ គណនីភ្ជាប់ និងការកំណត់ដាច់ដោយឡែកតាមហាង (Update Merchant & Per-Shop Settings)
 exports.updateMerchant = async (req, res) => {
   try {
-    const { name, category, linkedAccUSD, linkedAccKHR } = req.body;
+    const {
+      name,
+      logo,
+      city,
+      category,
+      linkedAccUSD,
+      linkedAccKHR,
+      webhookUrl,
+      settings,
+    } = req.body;
     const username = req.user.username;
 
     const owner = await User.findOne({ username });
@@ -269,10 +287,26 @@ exports.updateMerchant = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Merchant not found" });
 
-    if (name) merchant.name = name.trim();
-    if (category) merchant.category = category;
+    if (name !== undefined && String(name).trim() !== "") {
+      merchant.name = String(name).trim();
+    }
+    if (logo !== undefined) merchant.logo = logo;
+    if (city !== undefined) merchant.city = city;
+    if (category !== undefined) merchant.category = category;
+    if (webhookUrl !== undefined) merchant.webhookUrl = webhookUrl;
 
-    // 🌟 បើមានបញ្ជូនគណនីភ្ជាប់ថ្មីមក ធ្វើការផ្ទៀងផ្ទាត់ និងអាប់ដេត
+    // ⚙️ អាប់ដេតការកំណត់ដាច់ដោយឡែកសម្រាប់តែហាងនេះ (Per-Shop Settings)
+    if (settings && typeof settings === "object") {
+      merchant.settings = {
+        ...(merchant.settings
+          ? merchant.settings.toObject?.() || merchant.settings
+          : {}),
+        ...settings,
+      };
+      merchant.markModified("settings");
+    }
+
+    // 🔗 បើមានបញ្ជូនគណនីភ្ជាប់ថ្មីមក ធ្វើការផ្ទៀងផ្ទាត់ និងអាប់ដេត
     if (linkedAccUSD !== undefined || linkedAccKHR !== undefined) {
       const validUsdAcc = verifyValidMerchantAccount(
         owner,
@@ -318,23 +352,11 @@ exports.updateMerchant = async (req, res) => {
       merchant.markModified("accountNumbers");
     }
 
-    // ធានាថាមានសុវត្ថិភាព ៣ ជាន់
     merchant.ownerId = owner._id;
     merchant.username = owner.username;
     merchant.userCustomId = owner.userId || owner.id || owner._id.toString();
 
     await merchant.save();
-
-    await Notification.create({
-      userId: owner._id,
-      username: owner.username,
-      title: "ព័ត៌មានហាងត្រូវបានកែប្រែ 📝",
-      message: `ព័ត៌មានហាង "${merchant.name}" និងគណនីភ្ជាប់របស់អ្នកត្រូវបានធ្វើបច្ចុប្បន្នភាពរួចរាល់។`,
-      type: "system_alert",
-      date: getKhmerDate(),
-      isRead: false,
-    });
-
     res.json({ success: true, merchant });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -520,39 +542,34 @@ exports.generateTelegramCode = async (req, res) => {
   }
 };
 
-// ៨. ផ្តាច់ការជូនដំណឹងពី Telegram វិញ
+// ៨. ផ្តាច់ការជូនដំណឹងពី Telegram វិញ (ដាច់ដោយឡែកតាមហាង)
 exports.unlinkTelegram = async (req, res) => {
   try {
     const { merchantId } = req.body;
     const userId = req.user.username;
 
-    // ស្វែងរកហាង រួច Set telegramChatId ទៅជា null វិញ
     const merchant = await Merchant.findOne({
       _id: merchantId,
-      userId: userId,
+      $or: [{ userId: userId }, { username: userId }],
     });
     if (!merchant)
       return res
         .status(404)
         .json({ success: false, message: "រកមិនឃើញហាងរបស់អ្នកទេ" });
 
-    // 🔥 ហៅ Telegram Bot នៅទីនេះផ្ទាល់ ដើម្បីដោះស្រាយបញ្ហា Circular Dependency
     const bot = require("../services/telegramBot");
-
-    // 🔥 ហៅមុខងារបាញ់សារជូនដំណឹងចូល Telegram មុនពេលលុបទិន្នន័យ
     if (merchant.telegramChatId && bot && bot.sendMerchantUnlinkAlert) {
       await bot.sendMerchantUnlinkAlert(merchant.telegramChatId, merchant.name);
     }
 
-    // ធ្វើការ Update លុប ChatID ចោលពី Database
     merchant.telegramChatId = null;
+    merchant.telegramGroupName = "";
     await merchant.save();
 
     res
       .status(200)
       .json({ success: true, message: "បានផ្តាច់ Telegram ដោយជោគជ័យ" });
   } catch (error) {
-    console.error("Unlink Merchant Error:", error);
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
@@ -597,35 +614,48 @@ exports.createMerchantQR = async (req, res) => {
 // 👨‍💼 ផ្នែកទី ៥៖ Cashier Management (គ្រប់គ្រងអ្នកគិតលុយ)
 // ========================================================
 
-// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ
+// ៩. ស្វែងរកគណនី U-Pay របស់កូនចៅ (គាំទ្រទាំងលេខគណនី, @username, និងលេខទូរស័ព្ទ!)
 exports.searchCashierAccount = async (req, res) => {
   try {
-    const { accountNumber } = req.params;
+    const clean = String(req.params.accountNumber || "")
+      .replace(/^@/, "")
+      .trim();
+    const rx = new RegExp(
+      "^" + clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+      "i",
+    );
 
-    // 🌟 កែប្រែទៅតាមទម្រង់ Model ថ្មី (Support ទាំង USD, KHR និង Sub-Accounts)
     const user = await User.findOne({
       $or: [
-        { "mainAccounts.USD.accountNumber": accountNumber },
-        { "mainAccounts.KHR.accountNumber": accountNumber },
-        { "subAccounts.accountNumber": accountNumber },
-        // រក្សាទុកកុងចាស់បន្តិចសិន ការពារក្រែងលោមានគណនីចាស់មិនទាន់ Update ចូល Main Accounts
-        { accountNumber: accountNumber },
-        { accountNumberKHR: accountNumber },
+        { "mainAccounts.USD.accountNumber": clean },
+        { "mainAccounts.KHR.accountNumber": clean },
+        { "subAccounts.accountNumber": clean },
+        { accountNumber: clean },
+        { accountNumberKHR: clean },
+        { username: rx },
+        { phone: clean },
       ],
     });
 
     if (!user)
       return res
         .status(404)
-        .json({ success: false, message: "រកមិនឃើញគណនីកូនចៅនេះទេ!" });
+        .json({ success: false, message: "រកមិនឃើញគណនីបុគ្គលិកនេះទេ!" });
+
+    const primaryAcc =
+      user.mainAccounts?.USD?.accountNumber ||
+      user.mainAccounts?.KHR?.accountNumber ||
+      user.accountNumber ||
+      user.username;
 
     res.status(200).json({
       success: true,
       accountName: user.fullName || user.username,
-      accountNumber: accountNumber,
+      username: user.username,
+      profileImage: user.profileImage || "",
+      accountNumber: primaryAcc,
     });
   } catch (error) {
-    console.error("SEARCH CASHIER ERROR:", error);
     res.status(500).json({ success: false, message: "មានបញ្ហាបច្ចេកទេស" });
   }
 };
@@ -1836,5 +1866,41 @@ exports.downloadMerchantCredentialPDF = async (req, res) => {
   } catch (error) {
     if (!res.headersSent)
       res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =======================================================
+// 🔊 ផ្នែកទី ៩៖ ប្រព័ន្ធបង្កើតសំឡេងនិយាយខ្មែរ & អង់គ្លេស (Cloud TTS Proxy Streamer)
+// ធានាថាដើរ ១០០% លើគ្រប់ឧបករណ៍ទាំងអស់ដោយមិនជាប់ CORS Block!
+// =======================================================
+exports.streamMerchantTTS = async (req, res) => {
+  try {
+    const text = String(req.query.text || "").trim();
+    const lang = String(req.query.lang || "km").trim();
+    if (!text) return res.status(400).send("Missing text");
+
+    const tl = lang === "en" ? "en" : "km";
+    const ttsUrl = `https://translate.googleapis.com/translate_tts?client=tw-ob&ie=UTF-8&tl=${tl}&q=${encodeURIComponent(text)}`;
+
+    const response = await fetch(ttsUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(502).send("TTS fetch failed");
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(buffer);
+  } catch (err) {
+    console.error("TTS Stream Error:", err.message);
+    res.status(500).send("TTS Error");
   }
 };
