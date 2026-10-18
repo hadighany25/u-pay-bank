@@ -432,6 +432,643 @@ const toggleAdminStatus = async (req, res) => {
 // ⚙️ ផ្នែកទី ៤៖ ការកំណត់ប្រព័ន្ធ (System Config & Fees)
 // ==========================================
 
+// ============================================================================
+// 🤖 រ៉ូបូតឆែកម៉ោងបិទ និងបើកប្រព័ន្ធស្វ័យប្រវត្តិ (Auto-Freeze & Auto-Resume Engine)
+// រត់រៀងរាល់ ៥ វិនាទីម្ដងក្នុង Server ទោះបី Admin បិទកុំព្យូទ័រក៏វាធ្វើការអូតូដែរ!
+// ============================================================================
+let isMaintenanceSchedulerRunning = false;
+
+const formatKhmerDateTime = (d = new Date()) =>
+  d.toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh", hour12: true });
+
+const formatDurationText = (diffMs) => {
+  const diffSec = Math.max(1, Math.floor(diffMs / 1000));
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  return (
+    (hrs > 0 ? `${hrs}ម៉ោង ` : "") +
+    (mins > 0 ? `${mins}នាទី ` : "") +
+    `${secs}វិនាទី`
+  );
+};
+
+async function broadcastSystemMaintenanceAlert(
+  title,
+  msgBody,
+  sender,
+  incidentId,
+  type = "system_alert",
+) {
+  try {
+    const users = await User.find({ role: { $ne: "admin" } })
+      .select("_id username")
+      .lean();
+    if (users.length === 0) return 0;
+
+    const nowStr = formatKhmerDateTime();
+    const bcId = "BC-SYS-" + Date.now();
+    const notifs = users.map((u) => ({
+      userId: u._id,
+      username: u.username,
+      title,
+      message: msgBody,
+      type,
+      date: nowStr,
+      isRead: false,
+      metadata: {
+        sender: sender || "system",
+        broadcastId: bcId,
+        incidentId: incidentId || "SYS",
+      },
+    }));
+    await Notification.insertMany(notifs);
+    return users.length;
+  } catch (e) {
+    console.error("Broadcast System Alert Error:", e);
+    return 0;
+  }
+}
+
+async function runSystemMaintenanceScheduler() {
+  if (isMaintenanceSchedulerRunning) return;
+  if (mongoose.connection.readyState !== 1) return;
+  isMaintenanceSchedulerRunning = true;
+
+  try {
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys || !sys.maintenanceMeta) return;
+
+    const meta = { ...sys.maintenanceMeta };
+    const historyList = Array.isArray(sys.maintenanceHistory)
+      ? [...sys.maintenanceHistory]
+      : [];
+    const nowMs = Date.now();
+    const nowStr = formatKhmerDateTime();
+
+    // ⏰ ១. ឆែកមើលការកំណត់ម៉ោងទុកជាមុន (SCHEDULED) -> បើដល់ម៉ោង startAtMs គឺបិទប្រព័ន្ធអូតូភ្លាម!
+    if (
+      meta.scheduleStatus === "SCHEDULED" &&
+      !meta.isSystemFrozen &&
+      meta.startAtMs &&
+      nowMs >= Number(meta.startAtMs)
+    ) {
+      await writeSystemStatus({ isSystemFrozen: true });
+
+      meta.isSystemFrozen = true;
+      meta.scheduleStatus = "FROZEN";
+      meta.frozenAtMs = nowMs;
+      meta.frozenAtStr = nowStr;
+
+      const idx = historyList.findIndex(
+        (h) => h.incidentId === meta.incidentId,
+      );
+      if (idx !== -1) {
+        historyList[idx].status = "FROZEN";
+        historyList[idx].startTimeStr = nowStr;
+        historyList[idx].actualEndTimeStr =
+          "កំពុងផ្អាកដំណើរការ (Auto-Frozen)...";
+        historyList[idx].durationText = "កំពុងផ្អាក (Active Freeze)";
+        historyList[idx].startedAtMs = nowMs;
+      }
+
+      sys.set("maintenanceMeta", meta, { strict: false });
+      sys.set("maintenanceHistory", historyList, { strict: false });
+      sys.markModified("maintenanceMeta");
+      sys.markModified("maintenanceHistory");
+      await sys.save();
+      scheduleExactMaintenanceTimers();
+
+      if (meta.notifyUsers !== false) {
+        await broadcastSystemMaintenanceAlert(
+          "🛑 ប្រព័ន្ធចាប់ផ្តើមផ្អាកថែទាំតាមកាលកំណត់ (System Maintenance Started)",
+          `ប្រព័ន្ធធនាគារ U-Pay បានចាប់ផ្តើមផ្អាកប្រតិបត្តិការបណ្តោះអាសន្នតាមកាលកំណត់ (${meta.freezeType})។ មូលហេតុ៖ ${meta.reason} | រំពឹងបើកដំណើរការវិញ៖ ${meta.expectedEndTime}។`,
+          meta.frozenBy || "System Auto-Scheduler",
+          meta.incidentId,
+          "system_alert",
+        );
+      }
+
+      if (global.io) {
+        global.io.emit("system_maintenance_status", {
+          isSystemFrozen: true,
+          meta,
+        });
+      }
+
+      await logAdminAction(
+        "System Auto-Scheduler",
+        "Auto-Freeze System",
+        "System Control",
+        `[${meta.incidentId}] Auto-frozen on schedule at ${nowStr}`,
+      );
+    }
+
+    // ⏰ ២. ឆែកមើលប្រព័ន្ធដែលកំពុងបិទ (FROZEN) -> បើដល់ម៉ោង expectedEndAtMs គឺបើកប្រព័ន្ធវិញអូតូភ្លាម!
+    const updatedMeta = sys.maintenanceMeta || {};
+    if (
+      updatedMeta.isSystemFrozen &&
+      updatedMeta.expectedEndAtMs &&
+      nowMs >= Number(updatedMeta.expectedEndAtMs)
+    ) {
+      await writeSystemStatus({ isSystemFrozen: false });
+
+      const startedMs =
+        updatedMeta.frozenAtMs || updatedMeta.startAtMs || nowMs;
+      const durationStr = formatDurationText(nowMs - startedMs);
+      const autoNote =
+        "បើកដំណើរការវិញដោយស្វ័យប្រវត្តិតាមម៉ោងកំណត់ (Auto-Resumed on Schedule)";
+
+      const idx = historyList.findIndex(
+        (h) => h.incidentId === updatedMeta.incidentId || h.status === "FROZEN",
+      );
+      if (idx !== -1) {
+        historyList[idx].actualEndTimeStr = nowStr;
+        historyList[idx].durationText = durationStr;
+        historyList[idx].resumedBy = "Auto-Scheduler 🤖";
+        historyList[idx].resolutionNote = autoNote;
+        historyList[idx].status = "COMPLETED";
+        historyList[idx].endedAtMs = nowMs;
+      }
+
+      const nextMeta = {
+        isSystemFrozen: false,
+        scheduleStatus: "ONLINE",
+        lastResumedAt: nowStr,
+        lastResumedBy: "Auto-Scheduler 🤖",
+        lastDuration: durationStr,
+      };
+
+      sys.set("maintenanceMeta", nextMeta, { strict: false });
+      sys.set("maintenanceHistory", historyList, { strict: false });
+      sys.markModified("maintenanceMeta");
+      sys.markModified("maintenanceHistory");
+      await sys.save();
+      scheduleExactMaintenanceTimers();
+
+      if (updatedMeta.notifyUsers !== false) {
+        await broadcastSystemMaintenanceAlert(
+          "🟢 ប្រព័ន្ធដំណើរការធម្មតាវិញហើយ (System Auto-Resumed)",
+          `ការថែទាំប្រព័ន្ធធនាគារ U-Pay បានបញ្ចប់តាមកាលកំណត់នៅម៉ោង ${nowStr} (រយៈពេលសរុប៖ ${durationStr})។ លោកអ្នកអាចធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានធម្មតាវិញហើយ។ សូមអរគុណ!`,
+          "System Auto-Scheduler",
+          updatedMeta.incidentId,
+          "info",
+        );
+      }
+
+      if (global.io) {
+        global.io.emit("system_maintenance_status", {
+          isSystemFrozen: false,
+          meta: nextMeta,
+        });
+      }
+
+      await logAdminAction(
+        "System Auto-Scheduler",
+        "Auto-Resume System",
+        "System Control",
+        `[${updatedMeta.incidentId || "SYS"}] Auto-resumed on schedule. Duration: ${durationStr}`,
+      );
+    }
+  } catch (err) {
+    console.error("System Scheduler Error:", err);
+  } finally {
+    isMaintenanceSchedulerRunning = false;
+  }
+}
+
+// បើករ៉ូបូតឱ្យរត់ឆែកម៉ោងរៀងរាល់ ៥ វិនាទីម្ដងដោយស្វ័យប្រវត្តិ
+setInterval(runSystemMaintenanceScheduler, 5000);
+
+// ============================================================================
+// ⚡ ម៉ោងរោទ៍ចំវិនាទីគត់ (Exact Millisecond Timer) + ឆែកភ្លាមៗពេល Server ភ្ញាក់ពីដេក
+// ============================================================================
+let exactStartTimer = null;
+let exactEndTimer = null;
+
+async function scheduleExactMaintenanceTimers() {
+  try {
+    if (exactStartTimer) clearTimeout(exactStartTimer);
+    if (exactEndTimer) clearTimeout(exactEndTimer);
+
+    if (mongoose.connection.readyState !== 1) return;
+    const sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" }).lean();
+    if (!sys || !sys.maintenanceMeta) return;
+
+    const meta = sys.maintenanceMeta;
+    const nowMs = Date.now();
+
+    // ១. បើមានការកំណត់ម៉ោងបិទនាពេលអនាគត -> ដាក់ម៉ោងរោទ៍ឱ្យផ្ទុះចំវិនាទីនោះគត់!
+    if (
+      meta.scheduleStatus === "SCHEDULED" &&
+      !meta.isSystemFrozen &&
+      meta.startAtMs
+    ) {
+      const delayStart = Math.max(0, Number(meta.startAtMs) - nowMs);
+      if (delayStart < 2147483647) {
+        exactStartTimer = setTimeout(async () => {
+          await runSystemMaintenanceScheduler();
+          await scheduleExactMaintenanceTimers();
+        }, delayStart + 50);
+      }
+    }
+
+    // ២. បើកំពុងបិទ ឬមានម៉ោងបើកវិញ -> ដាក់ម៉ោងរោទ៍ឱ្យបើកវិញចំវិនាទីនោះគត់!
+    if (meta.expectedEndAtMs) {
+      const delayEnd = Math.max(0, Number(meta.expectedEndAtMs) - nowMs);
+      if (delayEnd < 2147483647) {
+        exactEndTimer = setTimeout(async () => {
+          await runSystemMaintenanceScheduler();
+        }, delayEnd + 50);
+      }
+    }
+  } catch (e) {
+    console.error("Exact Timer Error:", e);
+  }
+}
+
+// ហៅឱ្យចាប់ផ្តើមដាក់ម៉ោងរោទ៍ភ្លាមៗពេល Server បើកដំណើរការដំបូង
+setTimeout(() => {
+  runSystemMaintenanceScheduler();
+  scheduleExactMaintenanceTimers();
+}, 3000);
+
+/**
+ * 📌 [System Control Center] ទាញយកស្ថានភាពប្រព័ន្ធ កាលវិភាគកំណត់ម៉ោង និងប្រវត្តិរបាយការណ៍ទាំងអស់
+ */
+const getSystemStatus = async (req, res) => {
+  try {
+    await runSystemMaintenanceScheduler();
+    const fileStatus = readSystemStatus() || { isSystemFrozen: false };
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" }).lean();
+
+    const maintenanceMeta = sys?.maintenanceMeta || {
+      isSystemFrozen: Boolean(fileStatus.isSystemFrozen),
+      scheduleStatus: fileStatus.isSystemFrozen ? "FROZEN" : "ONLINE",
+    };
+
+    const maintenanceHistory = Array.isArray(sys?.maintenanceHistory)
+      ? sys.maintenanceHistory
+      : [];
+
+    res.json({
+      success: true,
+      isSystemFrozen: Boolean(fileStatus.isSystemFrozen),
+      maintenanceMeta: {
+        ...maintenanceMeta,
+        isSystemFrozen: Boolean(fileStatus.isSystemFrozen),
+      },
+      maintenanceHistory,
+    });
+  } catch (err) {
+    const fallback = readSystemStatus() || { isSystemFrozen: false };
+    res.json({
+      success: true,
+      isSystemFrozen: Boolean(fallback.isSystemFrozen),
+      maintenanceMeta: {},
+      maintenanceHistory: [],
+    });
+  }
+};
+
+/**
+ * 📌 [System Control Center] បញ្ជាបិទភ្លាមៗ, កំណត់ម៉ោងបិទ/បើកអូតូ, បោះបង់ការកំណត់ម៉ោង ឬ បើកប្រព័ន្ធវិញ
+ */
+const toggleSystem = async (req, res) => {
+  try {
+    const currentStatus = readSystemStatus() || { isSystemFrozen: false };
+    const {
+      actionMode, // "FREEZE_OR_SCHEDULE" | "RESUME_NOW" | "CANCEL_SCHEDULE" | "FORCE_FREEZE_NOW"
+      targetFreezeState,
+      freezeType = "Scheduled Maintenance",
+      reason = "",
+      startTime = "",
+      expectedEndTime = "",
+      startAtMs = null,
+      expectedEndAtMs = null,
+      resolutionNote = "",
+      notifyUsers = true,
+    } = req.body || {};
+
+    let sys = await System.findOne({ settingId: "GLOBAL_SETTINGS" });
+    if (!sys) sys = new System({ settingId: "GLOBAL_SETTINGS" });
+
+    const nowMs = Date.now();
+    const khmerNowStr = formatKhmerDateTime();
+    const historyList = Array.isArray(sys.maintenanceHistory)
+      ? [...sys.maintenanceHistory]
+      : [];
+    const adminName = req.admin?.username || "admin";
+    let broadcastCount = 0;
+
+    // 🚫 ករណីទី ១៖ បោះបង់ការកំណត់ម៉ោងទុកជាមុន (CANCEL SCHEDULE)
+    if (actionMode === "CANCEL_SCHEDULE") {
+      const prevMeta = sys.maintenanceMeta || {};
+      const idx = historyList.findIndex(
+        (h) => h.incidentId === prevMeta.incidentId && h.status === "SCHEDULED",
+      );
+      if (idx !== -1) {
+        historyList[idx].status = "CANCELLED";
+        historyList[idx].actualEndTimeStr = khmerNowStr;
+        historyList[idx].durationText = "បានបោះបង់មុនដល់ម៉ោង (Cancelled)";
+        historyList[idx].resumedBy = adminName;
+        historyList[idx].resolutionNote =
+          resolutionNote || "បោះបង់ការកំណត់ម៉ោងដោយ Admin";
+      }
+
+      await writeSystemStatus({ isSystemFrozen: false });
+      const nextMeta = {
+        isSystemFrozen: false,
+        scheduleStatus: "ONLINE",
+        lastResumedAt: khmerNowStr,
+        lastResumedBy: adminName,
+      };
+
+      sys.set("maintenanceMeta", nextMeta, { strict: false });
+      sys.set("maintenanceHistory", historyList, { strict: false });
+      sys.markModified("maintenanceMeta");
+      sys.markModified("maintenanceHistory");
+      await sys.save();
+      scheduleExactMaintenanceTimers();
+
+      await logAdminAction(
+        adminName,
+        "Cancel Scheduled Maintenance",
+        "System Control",
+        `Cancelled scheduled maintenance [${prevMeta.incidentId || "SYS"}]`,
+      );
+
+      return res.json({
+        success: true,
+        isSystemFrozen: false,
+        scheduleCancelled: true,
+        maintenanceMeta: nextMeta,
+        maintenanceHistory: historyList,
+      });
+    }
+
+    // הקំណត់ថាតើជាការបិទ (ឬកំណត់ម៉ោងបិទ) ឬ ជាការបើកប្រព័ន្ធវិញ
+    const wantFreezeOrSchedule =
+      actionMode === "FREEZE_OR_SCHEDULE" ||
+      actionMode === "FORCE_FREEZE_NOW" ||
+      (targetFreezeState !== undefined
+        ? Boolean(targetFreezeState)
+        : !currentStatus.isSystemFrozen);
+
+    if (wantFreezeOrSchedule) {
+      const incidentId =
+        "INC-" + Math.floor(100000 + Math.random() * 900000).toString();
+      const cleanReason =
+        reason.trim() ||
+        "ធ្វើបច្ចុប្បន្នភាព និងថែទាំប្រព័ន្ធសុវត្ថិភាពធនាគារ (System Maintenance)";
+
+      const parsedStartMs =
+        actionMode === "FORCE_FREEZE_NOW"
+          ? nowMs
+          : startAtMs && !isNaN(Number(startAtMs))
+            ? Number(startAtMs)
+            : nowMs;
+      const parsedEndMs =
+        expectedEndAtMs && !isNaN(Number(expectedEndAtMs))
+          ? Number(expectedEndAtMs)
+          : null;
+
+      // ⏳ ករណីទី ២៖ ម៉ោងចាប់ផ្តើមនៅនាពេលអនាគត (> 30 វិនាទីទៀត) -> ដាក់ក្នុងស្ថានភាពរង់ចាំដល់ម៉ោង (SCHEDULED)
+      if (parsedStartMs > nowMs + 30000) {
+        await writeSystemStatus({ isSystemFrozen: false });
+
+        const metaObj = {
+          incidentId,
+          isSystemFrozen: false,
+          scheduleStatus: "SCHEDULED",
+          freezeType,
+          reason: cleanReason,
+          startTime: startTime || formatKhmerDateTime(new Date(parsedStartMs)),
+          expectedEndTime:
+            expectedEndTime ||
+            (parsedEndMs
+              ? formatKhmerDateTime(new Date(parsedEndMs))
+              : "រហូតដល់មានការជូនដំណឹងបន្ថែម"),
+          startAtMs: parsedStartMs,
+          expectedEndAtMs: parsedEndMs,
+          frozenBy: adminName,
+          notifyUsers: Boolean(notifyUsers),
+          scheduledAtStr: khmerNowStr,
+        };
+
+        sys.set("maintenanceMeta", metaObj, { strict: false });
+
+        historyList.unshift({
+          incidentId,
+          freezeType,
+          reason: cleanReason,
+          startTimeStr: metaObj.startTime,
+          expectedEndTimeStr: metaObj.expectedEndTime,
+          actualEndTimeStr: "រង់ចាំដល់ម៉ោងចាប់ផ្តើម...",
+          durationText: "បានកំណត់ម៉ោងទុក (Scheduled ⏳)",
+          frozenBy: adminName,
+          resumedBy: "-",
+          resolutionNote: "ប្រព័ន្ធនឹងបិទ-បើកដោយស្វ័យប្រវត្តិពេលដល់ម៉ោង",
+          notifyUsers: Boolean(notifyUsers),
+          status: "SCHEDULED",
+          startedAtMs: parsedStartMs,
+        });
+
+        sys.set("maintenanceHistory", historyList.slice(0, 100), {
+          strict: false,
+        });
+        sys.markModified("maintenanceMeta");
+        sys.markModified("maintenanceHistory");
+        await sys.save();
+        scheduleExactMaintenanceTimers();
+
+        if (notifyUsers) {
+          broadcastCount = await broadcastSystemMaintenanceAlert(
+            "⏰ សេចក្តីជូនដំណឹងជាមុន៖ គម្រោងថែទាំប្រព័ន្ធ (Scheduled Maintenance)",
+            `ធនាគារ U-Pay នឹងធ្វើការផ្អាកប្រព័ន្ធបណ្តោះអាសន្ន (${freezeType}) ចាប់ពីម៉ោង ${metaObj.startTime} រហូតដល់ម៉ោង ${metaObj.expectedEndTime}។ មូលហេតុ៖ ${cleanReason}។ សូមអភ័យទោសទុកជាមុន!`,
+            adminName,
+            incidentId,
+            "info",
+          );
+        }
+
+        await logAdminAction(
+          adminName,
+          "Schedule System Maintenance",
+          "System Control",
+          `[${incidentId}] Scheduled from ${metaObj.startTime} to ${metaObj.expectedEndTime}`,
+        );
+
+        return res.json({
+          success: true,
+          isSystemFrozen: false,
+          isScheduled: true,
+          broadcastCount,
+          maintenanceMeta: metaObj,
+          maintenanceHistory: sys.maintenanceHistory,
+        });
+      }
+
+      // 🛑 ករណីទី ៣៖ ម៉ោងចាប់ផ្តើមគឺឥឡូវនេះ -> បិទប្រព័ន្ធភ្លាមៗ (IMMEDIATE FREEZE) + កំណត់ម៉ោងបើកវិញអូតូ
+      await writeSystemStatus({ isSystemFrozen: true });
+
+      const metaObj = {
+        incidentId,
+        isSystemFrozen: true,
+        scheduleStatus: "FROZEN",
+        freezeType,
+        reason: cleanReason,
+        startTime: startTime || khmerNowStr,
+        expectedEndTime:
+          expectedEndTime ||
+          (parsedEndMs
+            ? formatKhmerDateTime(new Date(parsedEndMs))
+            : "រហូតដល់មានការជូនដំណឹងបន្ថែម"),
+        startAtMs: nowMs,
+        expectedEndAtMs: parsedEndMs,
+        frozenBy: adminName,
+        frozenAtMs: nowMs,
+        frozenAtStr: khmerNowStr,
+        notifyUsers: Boolean(notifyUsers),
+      };
+
+      sys.set("maintenanceMeta", metaObj, { strict: false });
+
+      historyList.unshift({
+        incidentId,
+        freezeType,
+        reason: cleanReason,
+        startTimeStr: metaObj.startTime,
+        expectedEndTimeStr: metaObj.expectedEndTime,
+        actualEndTimeStr: parsedEndMs
+          ? "នឹងបើកវិញអូតូតាមម៉ោងកំណត់..."
+          : "កំពុងផ្អាកដំណើរការ...",
+        durationText: "កំពុងផ្អាក (Active Freeze)",
+        frozenBy: adminName,
+        resumedBy: "-",
+        resolutionNote: "-",
+        notifyUsers: Boolean(notifyUsers),
+        status: "FROZEN",
+        startedAtMs: nowMs,
+      });
+
+      sys.set("maintenanceHistory", historyList.slice(0, 100), {
+        strict: false,
+      });
+      sys.markModified("maintenanceMeta");
+      sys.markModified("maintenanceHistory");
+      await sys.save();
+      scheduleExactMaintenanceTimers();
+
+      if (notifyUsers) {
+        broadcastCount = await broadcastSystemMaintenanceAlert(
+          "🛑 សេចក្តីជូនដំណឹង៖ ផ្អាកប្រព័ន្ធបណ្តោះអាសន្ន (System Maintenance)",
+          `ប្រព័ន្ធធនាគារ U-Pay ត្រូវបានផ្អាកប្រតិបត្តិការបណ្តោះអាសន្ន (${freezeType})។ មូលហេតុ៖ ${cleanReason} | ចាប់ផ្តើម៖ ${metaObj.startTime} | រំពឹងបើកវិញ៖ ${metaObj.expectedEndTime}។`,
+          adminName,
+          incidentId,
+          "system_alert",
+        );
+      }
+
+      if (global.io) {
+        global.io.emit("system_maintenance_status", {
+          isSystemFrozen: true,
+          meta: metaObj,
+        });
+      }
+
+      await logAdminAction(
+        adminName,
+        "Freeze System Platform",
+        "System Control",
+        `[${incidentId}] Type: ${freezeType} | Auto-Resume At: ${metaObj.expectedEndTime}`,
+      );
+
+      return res.json({
+        success: true,
+        isSystemFrozen: true,
+        broadcastCount,
+        maintenanceMeta: metaObj,
+        maintenanceHistory: sys.maintenanceHistory,
+      });
+    } else {
+      // 🟢 ករណីទី ៤៖ បើកដំណើរការប្រព័ន្ធវិញដោយដៃ (MANUAL RESUME)
+      await writeSystemStatus({ isSystemFrozen: false });
+
+      const prevMeta = sys.maintenanceMeta || {};
+      const startedMs = prevMeta.frozenAtMs || prevMeta.startAtMs || nowMs;
+      const durationStr = formatDurationText(nowMs - startedMs);
+      const cleanNote =
+        resolutionNote.trim() ||
+        "ការថែទាំប្រព័ន្ធត្រូវបានបញ្ចប់ និងបើកដំណើរការវិញដោយជោគជ័យ ១០០%";
+
+      const idx = historyList.findIndex(
+        (h) => h.status === "FROZEN" || h.incidentId === prevMeta.incidentId,
+      );
+      if (idx !== -1) {
+        historyList[idx].actualEndTimeStr = khmerNowStr;
+        historyList[idx].durationText = durationStr;
+        historyList[idx].resumedBy = adminName;
+        historyList[idx].resolutionNote = cleanNote;
+        historyList[idx].status = "COMPLETED";
+        historyList[idx].endedAtMs = nowMs;
+      }
+
+      const nextMeta = {
+        isSystemFrozen: false,
+        scheduleStatus: "ONLINE",
+        lastResumedAt: khmerNowStr,
+        lastResumedBy: adminName,
+        lastDuration: durationStr,
+      };
+
+      sys.set("maintenanceMeta", nextMeta, { strict: false });
+      sys.set("maintenanceHistory", historyList.slice(0, 100), {
+        strict: false,
+      });
+      sys.markModified("maintenanceMeta");
+      sys.markModified("maintenanceHistory");
+      await sys.save();
+      scheduleExactMaintenanceTimers();
+
+      if (notifyUsers) {
+        broadcastCount = await broadcastSystemMaintenanceAlert(
+          "🟢 ប្រព័ន្ធដំណើរការធម្មតាវិញហើយ (System Online)",
+          `ប្រព័ន្ធធនាគារ U-Pay បានបើកដំណើរការធម្មតាវិញហើយនៅម៉ោង ${khmerNowStr} (រយៈពេលថែទាំសរុប៖ ${durationStr})។ លោកអ្នកអាចធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានធម្មតា។ សូមអរគុណ!`,
+          adminName,
+          prevMeta.incidentId,
+          "info",
+        );
+      }
+
+      if (global.io) {
+        global.io.emit("system_maintenance_status", {
+          isSystemFrozen: false,
+          meta: nextMeta,
+        });
+      }
+
+      await logAdminAction(
+        adminName,
+        "Resume System Platform",
+        "System Control",
+        `System Online | Total Duration: ${durationStr} | Note: ${cleanNote}`,
+      );
+
+      return res.json({
+        success: true,
+        isSystemFrozen: false,
+        broadcastCount,
+        maintenanceMeta: nextMeta,
+        maintenanceHistory: sys.maintenanceHistory,
+      });
+    }
+  } catch (err) {
+    console.error("Toggle System Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
 // 🌐 អនុគមន៍ជំនួយ៖ ទាញយកអត្រាប្តូរប្រាក់ផ្លូវការ (NBC / Global Reference API) រួមជាមួយ Spread ធនាគារ
 async function fetchOfficialNbcRatesHelper() {
   const res = await fetch("https://open.er-api.com/v6/latest/USD");
@@ -563,28 +1200,6 @@ async function fetchOfficialNbcRatesHelper() {
   };
 }
 
-const toggleSystem = async (req, res) => {
-  try {
-    const currentStatus = readSystemStatus();
-    const newStatus = !currentStatus.isSystemFrozen;
-    await writeSystemStatus({ isSystemFrozen: newStatus });
-
-    await logAdminAction(
-      req.admin.username,
-      "Toggle System",
-      "System Platform",
-      `System set to ${newStatus ? "FROZEN" : "ACTIVE"}`,
-    );
-    res.json({ success: true, isSystemFrozen: newStatus });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server Error" });
-  }
-};
-
-const getSystemStatus = (req, res) => {
-  res.json(readSystemStatus());
-};
-
 /**
  * 📌 ទាញយកអត្រាប្តូរប្រាក់ (ឆែកមើលបើផុត ៧ ថ្ងៃ នឹង Auto-Sync ពីធនាគារជាតិដោយស្វ័យប្រវត្តិ)
  */
@@ -621,6 +1236,7 @@ const getFXRates = async (req, res) => {
         sys.fxRates = currentRates;
         sys.markModified("fxRates");
         await sys.save();
+        scheduleExactMaintenanceTimers();
         await writeFXRates(currentRates);
       } catch (syncErr) {
         console.warn(
@@ -665,6 +1281,7 @@ const updateFX = async (req, res) => {
     sys.fxRates = updatedPayload;
     sys.markModified("fxRates");
     await sys.save();
+    scheduleExactMaintenanceTimers();
     await writeFXRates(updatedPayload);
 
     await logAdminAction(
@@ -703,6 +1320,7 @@ const syncNbcFXRates = async (req, res) => {
     sys.fxRates = updatedPayload;
     sys.markModified("fxRates");
     await sys.save();
+    scheduleExactMaintenanceTimers();
     await writeFXRates(updatedPayload);
 
     await logAdminAction(
@@ -731,6 +1349,7 @@ const getFeeSettings = async (req, res) => {
     if (!sys) {
       sys = new System();
       await sys.save();
+      scheduleExactMaintenanceTimers();
     }
     res.json({
       success: true,
@@ -758,6 +1377,7 @@ const updateFeeSettings = async (req, res) => {
     sys.feeTiers = feeTiers;
     sys.markModified("feeTiers");
     await sys.save();
+    scheduleExactMaintenanceTimers();
 
     await logAdminAction(
       req.admin.username,
@@ -5577,6 +6197,481 @@ const adminResolveTicket = async (req, res) => {
   }
 };
 
+// ============================================================================
+// 💬 ផ្នែកទី ១០.២៖ ADMIN LIVE SUPPORT CHAT ENGINE (ផ្ដាច់ដាច់ដោយឡែកពី User 100%)
+// - បង្ហាញតែអតិថិជនណាដែលស្នើសុំជួបភ្នាក់ងារផ្ទាល់ (needsSupport: true) មិនលោតរំខានពេលគេសួរ Bot!
+// - គាំទ្រការចាប់តាម User _id 100%, ធីក ២ (✓✓), និង Online/Last Seen ពិតប្រាកដ
+// ============================================================================
+const getAdminSupportUserVariants = (u) => {
+  if (!u) return [];
+  const arr = [String(u._id)];
+  if (u.mainAccounts?.USD?.accountNumber)
+    arr.push(String(u.mainAccounts.USD.accountNumber));
+  if (u.mainAccounts?.KHR?.accountNumber)
+    arr.push(String(u.mainAccounts.KHR.accountNumber));
+  if (u.accountNumber) arr.push(String(u.accountNumber));
+  if (u.accountNumberKHR) arr.push(String(u.accountNumberKHR));
+  if (u.username) arr.push(String(u.username));
+  return arr;
+};
+
+const getAdminSupportPrimaryAcc = (u) => {
+  if (!u) return "";
+  return (
+    u.mainAccounts?.USD?.accountNumber ||
+    u.accountNumber ||
+    u.mainAccounts?.KHR?.accountNumber ||
+    u.username ||
+    ""
+  );
+};
+
+const findAdminSupportCustomer = async (identifier) => {
+  if (!identifier) return null;
+  const clean = String(identifier).replace(/^@/, "").trim();
+  const orConds = [
+    { "mainAccounts.USD.accountNumber": clean },
+    { "mainAccounts.KHR.accountNumber": clean },
+    { "subAccounts.accountNumber": clean },
+    { accountNumber: clean },
+    { phone: clean },
+    { phoneNumber: clean },
+    { userId: clean },
+  ];
+  if (mongoose.Types.ObjectId.isValid(clean)) {
+    orConds.unshift({ _id: clean });
+  }
+  const exactRx = new RegExp(
+    "^" + clean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+    "i",
+  );
+  orConds.push({ username: exactRx }, { fullName: exactRx });
+  return await User.findOne({ $or: orConds });
+};
+
+/**
+ * 📌 ១. ទាញយកបញ្ជីអតិថិជនក្នុង Live Support Queue សម្រាប់ Admin
+ * - គោលការណ៍តឹងរឹង ១០០%៖ បង្ហាញតែអតិថិជនណាដែលបានចុចភ្ជាប់ទៅភ្នាក់ងារផ្ទាល់ (Live Agent) ប៉ុណ្ណោះ!
+ * - បើអតិថិជនកំពុងឆាតសួរ Bot ធម្មតា គឺមិនបង្ហាញឱ្យរំខាន Admin ដាច់ខាត!
+ */
+const adminGetSupportQueue = async (req, res) => {
+  try {
+    const allChats = await Chat.find({
+      $or: [
+        { senderId: "ADMIN" },
+        { receiverId: "ADMIN" },
+        { senderAcc: "ADMIN" },
+        { receiverAcc: "ADMIN" },
+      ],
+      isScheduled: { $ne: true },
+    })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const users = await User.find({ role: { $ne: "admin" } })
+      .select(
+        "_id username fullName name phone profileImage mainAccounts accountNumber accountNumberKHR needsSupport chatStatus chatSentiment isOnline lastActive kycStatus",
+      )
+      .lean();
+
+    const queueMap = {};
+
+    for (const c of allChats) {
+      const sKey = String(c.senderId || c.senderAcc || "");
+      const rKey = String(c.receiverId || c.receiverAcc || "");
+      const isFromAdmin = sKey === "ADMIN" || sKey === "UPAY_BOT";
+      const rawCustomerKey = isFromAdmin ? rKey : sKey;
+
+      if (!rawCustomerKey || rawCustomerKey === "ADMIN") continue;
+
+      const customer = users.find((u) =>
+        getAdminSupportUserVariants(u).includes(rawCustomerKey),
+      );
+      if (!customer) continue;
+
+      const canonicalId = String(customer._id);
+      const isBotMsg =
+        c.adminName === "UPAY_BOT" || c.adminName === "U-PAY Smart Bot";
+
+      if (!queueMap[canonicalId]) {
+        queueMap[canonicalId] = {
+          customer,
+          lastMsg: c,
+          inLiveAgentMode: false,
+          hasHumanAgentReply: false,
+          unreadFromUser: 0,
+        };
+      } else {
+        queueMap[canonicalId].lastMsg = c;
+      }
+
+      const msgTxt = String(c.message || "");
+
+      // 🔍 តាមដានស្ថានភាពពិតប្រាកដតាមលំដាប់សារ៖
+      // ១. បើសារបញ្ចប់ការសន្ទនា -> បិទវគ្គជំនួយ (ត្រឡប់ទៅ Bot Mode)
+      if (isFromAdmin && msgTxt.includes("ការសន្ទនាត្រូវបានបញ្ចប់")) {
+        queueMap[canonicalId].inLiveAgentMode = false;
+        queueMap[canonicalId].unreadFromUser = 0;
+      }
+      // ២. បើ Bot ឆ្លើយថា "បានបញ្ជូនសំណើរបស់បងទៅកាន់ភ្នាក់ងារ" ឬ "កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ" -> បើកវគ្គ Live Agent!
+      else if (
+        isBotMsg &&
+        (msgTxt.includes("បានបញ្ជូនសំណើរបស់បងទៅកាន់ភ្នាក់ងារ") ||
+          msgTxt.includes("កំពុងភ្ជាប់ទៅកាន់ភ្នាក់ងារ"))
+      ) {
+        queueMap[canonicalId].inLiveAgentMode = true;
+      }
+      // ៣. បើ Bot ឆ្លើយសំណួរធម្មតា (ឧ. របៀបវេរលុយ, សួស្តីបង...) -> មានន័យថាគាត់កំពុងនិយាយជាមួយ Bot សុទ្ធសាធ!
+      else if (isBotMsg) {
+        queueMap[canonicalId].inLiveAgentMode = false;
+        queueMap[canonicalId].unreadFromUser = 0;
+      }
+      // ៤. បើ Admin ពិតប្រាកដឆ្លើយតប -> ស្ថិតក្នុងវគ្គ Live Agent
+      else if (isFromAdmin && !isBotMsg) {
+        queueMap[canonicalId].inLiveAgentMode = true;
+        queueMap[canonicalId].hasHumanAgentReply = true;
+      }
+      // ៥. បើអតិថិជនវាយពាក្យសុំជួបភ្នាក់ងារ
+      else if (
+        !isFromAdmin &&
+        msgTxt
+          .toLowerCase()
+          .match(/human|ភ្នាក់ងារ|មនុស្ស|ជួបបុគ្គលិក|បុគ្គលិក|live agent/)
+      ) {
+        queueMap[canonicalId].inLiveAgentMode = true;
+      }
+
+      if (!isFromAdmin && !c.isRead && queueMap[canonicalId].inLiveAgentMode) {
+        queueMap[canonicalId].unreadFromUser++;
+      }
+    }
+
+    const contacts = [];
+    for (const item of Object.values(queueMap)) {
+      const u = item.customer;
+      const lastC = item.lastMsg;
+
+      // 🧹 Auto-Heal៖ បើក្នុងប្រវត្តិសារចុងក្រោយ គាត់កំពុងនិយាយជាមួយ Bot ធម្មតា (inLiveAgentMode === false)
+      // ប៉ុន្តែក្នុង DB ចាស់នៅជាប់ needsSupport: true គឺបិទវាចោលអូតូ កុំឱ្យលោតរំខាន Admin!
+      if (!item.inLiveAgentMode && u.needsSupport) {
+        await User.updateOne({ _id: u._id }, { $set: { needsSupport: false } });
+        u.needsSupport = false;
+      }
+
+      const isEscalatedSession = Boolean(
+        item.inLiveAgentMode && u.needsSupport,
+      );
+      const isResolvedHumanSession =
+        !isEscalatedSession &&
+        u.chatStatus === "resolved" &&
+        item.hasHumanAgentReply;
+
+      // 🛑 បើមិនទាន់ភ្ជាប់មកភ្នាក់ងារផ្ទាល់ទេ គឺរំលងចោលទាំងស្រុង (មិនបង្ហាញក្នុង Admin ដាច់ខាត!)
+      if (!isEscalatedSession && !isResolvedHumanSession) {
+        continue;
+      }
+
+      const isReallyOnline = u.lastActive
+        ? Date.now() - new Date(u.lastActive).getTime() < 90000
+        : false;
+
+      contacts.push({
+        partnerId: String(u._id),
+        accountNumber: getAdminSupportPrimaryAcc(u),
+        username: u.username || "",
+        name: u.fullName || u.name || u.username,
+        fullName: u.fullName || u.username,
+        phone: u.phone || "",
+        profileImage: u.profileImage || "",
+        kycStatus: u.kycStatus || "unverified",
+        needsSupport: isEscalatedSession,
+        status: isEscalatedSession
+          ? u.chatStatus === "urgent"
+            ? "urgent"
+            : "pending"
+          : "resolved",
+        sentiment: u.chatSentiment || "neutral",
+        lastMessage: lastC.message,
+        time: lastC.time,
+        timestamp: lastC.timestamp,
+        unreadCount: isEscalatedSession ? item.unreadFromUser : 0,
+        isOnline: isReallyOnline,
+        lastActive: u.lastActive || null,
+      });
+    }
+
+    contacts.sort((a, b) => b.timestamp - a.timestamp);
+    res.json({ success: true, contacts });
+  } catch (err) {
+    console.error("Admin Get Support Queue Error:", err);
+    res.status(500).json({ success: false, contacts: [] });
+  }
+};
+
+/**
+ * 📌 ២. ទាញយកប្រវត្តិសារសន្ទនារបស់អតិថិជនម្នាក់សម្រាប់ Admin (តាម _id) + បាញ់ធីក ២ (✓✓)
+ */
+const adminGetChatHistory = async (req, res) => {
+  try {
+    const { targetIdentifier } = req.body || {};
+    const customer = await findAdminSupportCustomer(targetIdentifier);
+    if (!customer) {
+      return res.json({
+        success: false,
+        history: [],
+        message: "រកមិនឃើញអតិថិជននេះទេ!",
+      });
+    }
+
+    const custVariants = getAdminSupportUserVariants(customer);
+    const canonicalCustId = String(customer._id);
+
+    // អាប់ដេតសារដែលអតិថិជនផ្ញើមកឱ្យទៅជាបានអាន (isRead: true)
+    const unreadMsgs = await Chat.find({
+      $or: [
+        { senderId: { $in: custVariants }, receiverId: "ADMIN" },
+        { senderAcc: { $in: custVariants }, receiverAcc: "ADMIN" },
+      ],
+      isRead: false,
+    });
+
+    if (unreadMsgs.length > 0) {
+      for (const m of unreadMsgs) {
+        m.isRead = true;
+        if (!m.senderId) m.senderId = canonicalCustId;
+        if (!m.receiverId) m.receiverId = "ADMIN";
+        await m.save();
+      }
+      if (global.io) {
+        global.io.emit("chat_messages_read", {
+          readerId: "ADMIN",
+          senderId: canonicalCustId,
+        });
+      }
+    }
+
+    const history = await Chat.find({
+      $and: [
+        {
+          $or: [
+            { senderId: { $in: custVariants }, receiverId: "ADMIN" },
+            { senderId: "ADMIN", receiverId: { $in: custVariants } },
+            { senderAcc: { $in: custVariants }, receiverAcc: "ADMIN" },
+            { senderAcc: "ADMIN", receiverAcc: { $in: custVariants } },
+          ],
+        },
+        { isScheduled: { $ne: true } },
+      ],
+    })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const isReallyOnline = customer.lastActive
+      ? Date.now() - new Date(customer.lastActive).getTime() < 90000
+      : false;
+
+    res.json({
+      success: true,
+      history,
+      customerInfo: {
+        partnerId: canonicalCustId,
+        accountNumber: getAdminSupportPrimaryAcc(customer),
+        username: customer.username,
+        fullName: customer.fullName || customer.username,
+        phone: customer.phone || "",
+        profileImage: customer.profileImage || "",
+        kycStatus: customer.kycStatus || "unverified",
+        needsSupport: Boolean(customer.needsSupport),
+        status: customer.chatStatus || "pending",
+        isOnline: isReallyOnline,
+        lastActive: customer.lastActive || null,
+      },
+    });
+  } catch (err) {
+    console.error("Admin Get Chat History Error:", err);
+    res.status(500).json({ success: false, history: [] });
+  }
+};
+
+/**
+ * 📌 ៣. Admin ផ្ញើសារ ឬ រូបភាព/ឯកសារ ទៅកាន់អតិថិជន (ភ្ជាប់ @username ពិតប្រាកដពី req.admin)
+ */
+const adminSendSupportMessage = async (req, res) => {
+  try {
+    const {
+      targetIdentifier,
+      message,
+      imageUrl,
+      audioUrl,
+      fileUrl,
+      fileName,
+      fileSize,
+    } = req.body || {};
+
+    const customer = await findAdminSupportCustomer(targetIdentifier);
+    if (!customer) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
+    }
+
+    const adminHandle = `@${String(req.admin?.username || "admin").replace(/^@/, "")}`;
+    const canonicalCustId = String(customer._id);
+    const nowTs = Date.now();
+    const timeFormatted = new Date(nowTs).toLocaleTimeString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // បើកទង់ needsSupport ឱ្យអតិថិជនស្ថិតក្នុងការសន្ទនាផ្ទាល់ជាមួយភ្នាក់ងារ
+    customer.needsSupport = true;
+    if (customer.chatStatus === "resolved") {
+      customer.chatStatus = "pending";
+    }
+    await customer.save();
+
+    const payload = {
+      id: "MSG-ADM-" + nowTs + "-" + Math.floor(100 + Math.random() * 899),
+      senderId: "ADMIN",
+      receiverId: canonicalCustId,
+      adminName: adminHandle,
+      message: String(message || "").trim() || "ឯកសារភ្ជាប់ 📁",
+      time: timeFormatted,
+      timestamp: nowTs,
+      isRead: false,
+    };
+
+    if (imageUrl) payload.imageUrl = imageUrl;
+    if (audioUrl) payload.audioUrl = audioUrl;
+    if (fileUrl) {
+      payload.fileUrl = fileUrl;
+      if (fileName) payload.fileName = fileName;
+      if (fileSize) payload.fileSize = fileSize;
+    }
+
+    const newMsg = await Chat.create(payload);
+
+    if (global.io) {
+      global.io.emit("new_chat_message", newMsg);
+    }
+
+    res.json({ success: true, message: newMsg, adminHandle });
+  } catch (err) {
+    console.error("Admin Send Support Message Error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ៤. Admin ចុចចាប់ផ្តើមឆាតទៅកាន់អតិថិជនណាម្នាក់មុន (+ ឆាតថ្មី)
+ */
+const adminStartSupportSession = async (req, res) => {
+  try {
+    const { identifier } = req.body || {};
+    const customer = await findAdminSupportCustomer(identifier);
+    if (!customer) {
+      return res.json({
+        success: false,
+        message: "រកមិនឃើញអតិថិជនដែលមានលេខគណនី ឬ @username នេះទេ!",
+      });
+    }
+
+    customer.needsSupport = true;
+    customer.chatStatus = "pending";
+    await customer.save();
+
+    res.json({
+      success: true,
+      partnerId: String(customer._id),
+      accountNumber: getAdminSupportPrimaryAcc(customer),
+      username: customer.username,
+      name: customer.fullName || customer.username,
+      profileImage: customer.profileImage || "",
+      status: customer.chatStatus,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+/**
+ * 📌 ៥. Admin ប្តូរស្ថានភាពសន្ទនា (pending / urgent / resolved)
+ */
+const adminUpdateSupportStatus = async (req, res) => {
+  try {
+    const { targetIdentifier, status } = req.body || {};
+    const customer = await findAdminSupportCustomer(targetIdentifier);
+    if (!customer) {
+      return res.json({ success: false, message: "រកមិនឃើញគណនីអតិថិជនទេ!" });
+    }
+
+    customer.chatStatus = status;
+    if (status === "resolved") {
+      customer.needsSupport = false;
+    } else {
+      customer.needsSupport = true;
+    }
+    await customer.save();
+
+    res.json({ success: true, status: customer.chatStatus });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
+/**
+ * 📌 ៦. Admin បញ្ចប់ការសន្ទនា (End Chat Session -> ត្រឡប់អតិថិជនទៅ Bot Mode វិញ)
+ */
+const adminEndSupportSession = async (req, res) => {
+  try {
+    const { targetIdentifier } = req.body || {};
+    const customer = await findAdminSupportCustomer(targetIdentifier);
+    if (!customer) {
+      return res.json({ success: false, message: "រកមិនឃើញអតិថិជនទេ!" });
+    }
+
+    const adminHandle = `@${String(req.admin?.username || "admin").replace(/^@/, "")}`;
+    const canonicalCustId = String(customer._id);
+    const nowTs = Date.now();
+    const timeFormatted = new Date(nowTs).toLocaleTimeString("en-US", {
+      timeZone: "Asia/Phnom_Penh",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    customer.needsSupport = false;
+    customer.chatStatus = "resolved";
+    await customer.save();
+
+    const endMsg = await Chat.create({
+      id: "MSG-END-" + nowTs,
+      senderId: "ADMIN",
+      receiverId: canonicalCustId,
+      adminName: adminHandle,
+      message: `ការសន្ទនាត្រូវបានបញ្ចប់ដោយ Admin (${adminHandle})។ អរគុណដែលបានទាក់ទងមកកាន់ភ្នាក់ងារ U-PAY! សូមគោរពលា 🙏`,
+      time: timeFormatted,
+      timestamp: nowTs,
+      isRead: false,
+    });
+
+    if (global.io) {
+      global.io.emit("new_chat_message", endMsg);
+    }
+
+    await logAdminAction(
+      req.admin?.username,
+      "End Live Support Chat",
+      customer.username,
+      `Closed live chat session with @${customer.username}`,
+    );
+
+    res.json({ success: true, message: endMsg });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
+
 // ==========================================
 // 📤 ផ្នែកទី ១១៖ បញ្ចេញមុខងារ (Exports)
 // ==========================================
@@ -5678,4 +6773,12 @@ module.exports = {
   getAllSupportTickets,
   getUserTickets,
   adminResolveTicket,
+
+  // Live Support Chat (Admin Dedicated)
+  adminGetSupportQueue,
+  adminGetChatHistory,
+  adminSendSupportMessage,
+  adminStartSupportSession,
+  adminUpdateSupportStatus,
+  adminEndSupportSession,
 };

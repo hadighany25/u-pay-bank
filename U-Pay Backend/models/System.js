@@ -8,6 +8,8 @@ const systemSchema = new mongoose.Schema(
   {
     settingId: { type: String, default: "GLOBAL_SETTINGS" },
     isSystemFrozen: { type: Boolean, default: false },
+    maintenanceMeta: { type: Object, default: {} },
+    maintenanceHistory: { type: Array, default: [] },
 
     // 💱 អត្រាប្តូរប្រាក់គោល និងតារាងរូបិយប័ណ្ណអន្តរជាតិទាំង ៨ + កាលបរិច្ឆេទ Sync ធនាគារជាតិ
     fxRates: {

@@ -2730,23 +2730,30 @@ function renderTrxTab(user) {
     </h2>
 
     <div class="c360-trx-dash-card">
-        <!-- Filters -->
-        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:15px;">
-            <div style="flex:1; min-width:100%;">
-                <label class="kh-text" style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">ជ្រើសរើសគណនី (Account)</label>
-                <select id="c360-trx-acc-filter" class="form-input kh-text" style="margin-top:5px; font-weight: bold;" onchange="c360FilterTrxList(true)">
-                    ${accOptions}
-                </select>
-            </div>
-            <div style="flex:1; min-width:100%;">
-                <label class="kh-text" style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">កាលបរិច្ឆេទ (Date Range)</label>
-                <div style="display:flex; gap:10px; margin-top:5px; align-items:center;">
-                    <input type="date" id="c360-date-start" class="form-input" value="${startStr}" onchange="c360FilterTrxList(true)">
-                    <span style="color:var(--text-muted); font-weight:bold;">-</span>
-                    <input type="date" id="c360-date-end" class="form-input" value="${endStr}" onchange="c360FilterTrxList(true)">
-                </div>
-            </div>
-        </div>
+       <!-- Filters -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px; font-family: 'Kantumruy Pro', sans-serif;">
+    
+    <!-- ប្រអប់ជ្រើសរើសគណនី -->
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+        <label class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">ជ្រើសរើសគណនី (Account)</label>
+        <select id="c360-trx-acc-filter" class="form-input kh-text" style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: var(--text-main); background-color: #f8fafc; outline: none; transition: all 0.2s;" onchange="c360FilterTrxList(true)">
+            ${accOptions}
+        </select>
+    </div>
+    
+          <!-- ប្រអប់ជ្រើសរើសកាលបរិច្ឆេទ -->
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label class="kh-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">កាលបរិច្ឆេទ (Date Range)</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="date" id="c360-date-start" class="form-input" value="${startStr}" style="flex: 1; width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; color: var(--text-main); background-color: #f8fafc; outline: none;" onchange="c360FilterTrxList(true)">
+                  
+                  <span style="color: var(--text-muted); font-weight: bold; font-size: 1.1rem;">-</span>
+                  
+                  <input type="date" id="c360-date-end" class="form-input" value="${endStr}" style="flex: 1; width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; color: var(--text-main); background-color: #f8fafc; outline: none;" onchange="c360FilterTrxList(true)">
+              </div>
+          </div>
+      </div>
+
 
         <!-- 🌟 Mini Dashboard Summary -->
         <div class="c360-mini-dash">
@@ -4486,8 +4493,8 @@ function renderKycTab(user) {
 
       <!-- 🖼️ រូបភាពទាំង ២ (ID Card & Selfie) -->
       <div class="kyc-images-grid">
-        ${renderImageCard("idCard", "១. អត្តសញ្ញាណប័ណ្ណ ឬលិខិតឆ្លងដែន (ID / Passport)", imgUrl, "#0d9488", "fa-id-card")}
-        ${renderImageCard("selfie", "២. រូបថតផ្ទាល់របស់អតិថិជន (Live Selfie)", selfieUrl, "#2563eb", "fa-camera-retro")}
+        ${renderImageCard("idCard", "១. អត្តសញ្ញាណប័ណ្ណ ឬលិខិតឆ្លងដែន", imgUrl, "#0d9488", "fa-id-card")}
+        ${renderImageCard("selfie", "២. រូបថតផ្ទាល់របស់អតិថិជន", selfieUrl, "#2563eb", "fa-camera-retro")}
       </div>
 
       <!-- 📝 ទិន្នន័យអត្តសញ្ញាណ (OCR Extracted Data) -->

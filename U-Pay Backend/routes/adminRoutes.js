@@ -173,12 +173,12 @@ router.post(
 );
 router.post(
   "/get-user",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getUserByAdmin, "getUserByAdmin"),
 );
 router.post(
   "/search-user",
-  checkRole([ROLE_SUPER, ROLE_CUSTOM, ROLE_SUPPORT]),
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.searchUserByAdmin, "searchUserByAdmin"),
 );
 router.post(
@@ -499,6 +499,49 @@ router.get(
   "/user-tickets/:username",
   checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
   safeHandler(adminController.getUserTickets, "getUserTickets"),
+);
+
+// ==========================================
+// 💬 ផ្លូវ (Routes) សម្រាប់ Admin Live Support Chat (ផ្ដាច់ដាច់ពី User 100%)
+// ==========================================
+router.post(
+  "/chat/queue",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.adminGetSupportQueue, "adminGetSupportQueue"),
+);
+router.post(
+  "/chat/history",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.adminGetChatHistory, "adminGetChatHistory"),
+);
+router.post(
+  "/chat/send",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminSendSupportMessage,
+    "adminSendSupportMessage",
+  ),
+);
+router.post(
+  "/chat/start",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminStartSupportSession,
+    "adminStartSupportSession",
+  ),
+);
+router.post(
+  "/chat/status",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(
+    adminController.adminUpdateSupportStatus,
+    "adminUpdateSupportStatus",
+  ),
+);
+router.post(
+  "/chat/end",
+  checkRole([ROLE_SUPER, ROLE_FINANCE, ROLE_SUPPORT, ROLE_CUSTOM]),
+  safeHandler(adminController.adminEndSupportSession, "adminEndSupportSession"),
 );
 
 // ==========================================

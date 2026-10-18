@@ -171,7 +171,7 @@ const ADMIN_SIDEBAR_SCHEMA = [
       },
       {
         id: "menu-system",
-        sec: "__SYSTEM_FREEZE__",
+        sec: "system", // 👈 ប្តូរមកជា "system" ដើម្បីចុចปุ๊បបើកផ្ទាំងទី ១៨ ភ្លាម!
         icon: "fa-power-off",
         iconColor: "#ef4444",
         label: "បិទ/បើកប្រព័ន្ធ (System)",
@@ -495,6 +495,8 @@ function showSection(id, btn) {
     fetchAllSupportTickets(false);
   } else if (id === "admins" && typeof loadAdminList === "function") {
     loadAdminList(false);
+  } else if (id === "system" && typeof loadSystemControlHub === "function") {
+    loadSystemControlHub(false);
   }
 
   document
@@ -667,54 +669,6 @@ async function applyDynamicPermissions() {
   }
 
   loadUsersModuleData();
-}
-
-async function toggleSystemFreeze() {
-  try {
-    const res = await fetch("/api/admin/system-status", {
-      headers: getAuthHeaders(),
-    });
-    const sys = await res.json();
-    const isCurrentlyFrozen = sys.isSystemFrozen;
-    Swal.fire({
-      title: isCurrentlyFrozen
-        ? "បើកដំណើរការប្រព័ន្ធវិញ?"
-        : "ផ្អាកប្រព័ន្ធទាំងមូល?",
-      html: isCurrentlyFrozen
-        ? "អតិថិជននឹងអាចធ្វើប្រតិបត្តិការវេរលុយ/ដកលុយបានធម្មតាវិញ។"
-        : "អតិថិជនទាំងអស់នឹង <b>មិនអាច</b> ធ្វើប្រតិបត្តិការហិរញ្ញវត្ថុបានទេរហូតដល់អ្នកបើកវាវិញ!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: isCurrentlyFrozen ? "#10b981" : "#ef4444",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: isCurrentlyFrozen ? "បាទ, បើកវិញ 🟢" : "បាទ, ផ្អាក 🛑",
-      cancelButtonText: "បោះបង់",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const toggleRes = await fetch("/api/admin/toggle-system", {
-          method: "POST",
-          headers: getAuthHeaders(),
-        });
-        const toggleData = await toggleRes.json();
-        if (toggleData.success) {
-          if (typeof refreshAdminDashboard === "function") {
-            refreshAdminDashboard(false);
-          }
-          Swal.fire({
-            title: toggleData.isSystemFrozen
-              ? "ប្រព័ន្ធត្រូវបានផ្អាក! 🛑"
-              : "ប្រព័ន្ធដំណើរការធម្មតា! 🟢",
-            text: toggleData.isSystemFrozen
-              ? "រាល់ប្រតិបត្តិការត្រូវបាន Block ទាំងស្រុង។"
-              : "អតិថិជនអាចប្រើប្រាស់បានវិញហើយ។",
-            icon: "success",
-            background: "#1e293b",
-            color: "white",
-          });
-        }
-      }
-    });
-  } catch (e) {}
 }
 
 // ========================================================================
